@@ -1,832 +1,752 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
-  BarChart, Bar, AreaChart, Area, ReferenceLine 
+  AreaChart, Area, ComposedChart, Bar 
 } from 'recharts';
 import { 
-  Activity, Upload, TrendingUp, Calendar, ChevronDown, ChevronRight, 
-  Timer, Search, Zap, Mountain, Gauge, ArrowRight, Brain, Battery 
+  Activity, Upload, TrendingUp, ChevronDown, ChevronRight, 
+  Timer, Search, Zap, Mountain, Gauge, Brain, Battery, 
+  Droplets, Utensils, Minus, Plus, Link as LinkIcon, Download,
+  Map
 } from 'lucide-react';
 
 /**
  * ============================================================================
- * CONFIGURATION & CONSTANTS (CLIMB DATABASE & ZONES)
+ * 1. THE MASSIVE CLIMB DATABASE (REAL WORLD + COMPLETE ZWIFT)
  * ============================================================================
  */
 
-// Een selectie van iconische beklimmingen (Real World & Zwift)
-// In een productie-omgeving zou dit een JSON import van 200+ items zijn.
+// Helper: Generates Climbfinder URL for real world, defaults for Zwift if needed
+const getClimbUrl = (name, country) => {
+  if (country === 'Zwift') return `https://zwiftinsider.com/?s=${name.replace(/\s+/g, '+')}`;
+  return `https://climbfinder.com/en/climbs/${name.toLowerCase().replace(/[\s/().']+/g, '-').replace(/-+$/, '')}`;
+};
+
 const CLIMB_DATABASE = [
-  { id: 'alpe_huez', name: "Alpe d'Huez", country: "FR", lengthKm: 13.8, elevation: 1061, avgGrade: 8.1, url: "https://climbfinder.com/en/climbs/alpe-d-huez" },
-  { id: 'ventoux_bedoin', name: "Mont Ventoux (Bédoin)", country: "FR", lengthKm: 21.5, elevation: 1610, avgGrade: 7.5, url: "https://climbfinder.com/en/climbs/mont-ventoux-bedoin" },
-  { id: 'stelvio_prato', name: "Passo dello Stelvio (Prato)", country: "IT", lengthKm: 24.8, elevation: 1845, avgGrade: 7.4, url: "https://climbfinder.com/en/climbs/passo-dello-stelvio-prato-allo-stelvio" },
-  { id: 'red_bull_ring', name: "Red Bull Ring (Spielberg)", country: "AT", lengthKm: 4.3, elevation: 65, avgGrade: 1.5, url: "#" }, // Vlak/Heuvel test
-  { id: 'cauberg', name: "Cauberg", country: "NL", lengthKm: 0.8, elevation: 65, avgGrade: 5.8, url: "https://climbfinder.com/en/climbs/cauberg" },
-  { id: 'zwift_alpe', name: "Alpe du Zwift", country: "Zwift", lengthKm: 12.2, elevation: 1036, avgGrade: 8.5, url: "#" },
-  { id: 'zwift_epic_kom', name: "Epic KOM", country: "Zwift", lengthKm: 9.4, elevation: 540, avgGrade: 5.9, url: "#" },
-  { id: 'adw_portal', name: "Portal: Cote de Pike", country: "Zwift", lengthKm: 2.0, elevation: 200, avgGrade: 10.0, url: "#" },
-];
+  // --- REAL WORLD: FRANKRIJK ---
+  { id: 'fr_alpe', name: "Alpe d'Huez", country: "FR", region: "Alpen", lengthKm: 13.8, elevation: 1061, avgGrade: 8.1 },
+  { id: 'fr_ventoux', name: "Mont Ventoux (Bédoin)", country: "FR", region: "Provence", lengthKm: 21.5, elevation: 1610, avgGrade: 7.5 },
+  { id: 'fr_galibier', name: "Col du Galibier (Valloire)", country: "FR", region: "Alpen", lengthKm: 18.1, elevation: 1245, avgGrade: 6.9 },
+  { id: 'fr_tourmalet', name: "Col du Tourmalet (Luz)", country: "FR", region: "Pyreneeën", lengthKm: 19.0, elevation: 1404, avgGrade: 7.4 },
+  { id: 'fr_aubisque', name: "Col d'Aubisque", country: "FR", region: "Pyreneeën", lengthKm: 16.6, elevation: 1190, avgGrade: 7.2 },
+  { id: 'fr_grand_colombier', name: "Grand Colombier (Culoz)", country: "FR", region: "Jura", lengthKm: 18.3, elevation: 1255, avgGrade: 6.9 },
+  { id: 'fr_bonette', name: "Cime de la Bonette", country: "FR", region: "Alpen", lengthKm: 24.0, elevation: 1589, avgGrade: 6.6 },
+  { id: 'fr_puy_dome', name: "Puy de Dôme", country: "FR", region: "Massif Central", lengthKm: 13.3, elevation: 1033, avgGrade: 7.7 },
+  
+  // --- REAL WORLD: ITALIË ---
+  { id: 'it_stelvio', name: "Passo dello Stelvio (Prato)", country: "IT", region: "Alpen", lengthKm: 24.8, elevation: 1845, avgGrade: 7.4 },
+  { id: 'it_gavia', name: "Passo di Gavia", country: "IT", region: "Alpen", lengthKm: 17.3, elevation: 1363, avgGrade: 7.9 },
+  { id: 'it_mortirolo', name: "Passo del Mortirolo", country: "IT", region: "Alpen", lengthKm: 12.4, elevation: 1300, avgGrade: 10.5 },
+  { id: 'it_zoncolan', name: "Monte Zoncolan", country: "IT", region: "Alpen", lengthKm: 10.1, elevation: 1210, avgGrade: 11.9 },
+  { id: 'it_tre_cime', name: "Tre Cime di Lavaredo", country: "IT", region: "Dolomieten", lengthKm: 7.2, elevation: 546, avgGrade: 7.6 },
+
+  // --- REAL WORLD: SPANJE ---
+  { id: 'es_angliru', name: "Alto de l'Angliru", country: "ES", region: "Asturië", lengthKm: 12.5, elevation: 1266, avgGrade: 10.1 },
+  { id: 'es_lagos', name: "Lagos de Covadonga", country: "ES", region: "Asturië", lengthKm: 12.2, elevation: 866, avgGrade: 7.2 },
+  { id: 'es_teide', name: "Mount Teide", country: "ES", region: "Tenerife", lengthKm: 45.0, elevation: 2300, avgGrade: 5.1 },
+  { id: 'es_sa_calobra', name: "Sa Calobra", country: "ES", region: "Mallorca", lengthKm: 9.4, elevation: 668, avgGrade: 7.1 },
+
+  // --- REAL WORLD: BENELUX/DE/AT ---
+  { id: 'nl_cauberg', name: "Cauberg", country: "NL", region: "Limburg", lengthKm: 0.8, elevation: 65, avgGrade: 5.8 },
+  { id: 'nl_camerig', name: "Camerig", country: "NL", region: "Limburg", lengthKm: 4.6, elevation: 175, avgGrade: 3.8 },
+  { id: 'be_redoute', name: "Côte de la Redoute", country: "BE", region: "Ardennen", lengthKm: 1.6, elevation: 147, avgGrade: 9.2 },
+  { id: 'at_grossglockner', name: "Grossglockner", country: "AT", region: "Alpen", lengthKm: 14.0, elevation: 1280, avgGrade: 9.5 },
+  { id: 'at_kitzbuheler', name: "Kitzbüheler Horn", country: "AT", region: "Tirol", lengthKm: 9.7, elevation: 1290, avgGrade: 12.9 },
+
+  // ==========================================
+  // ZWIFT: WATOPIA (Regulars)
+  // ==========================================
+  { id: 'zw_alpe', name: "Alpe du Zwift", country: "Zwift", region: "Watopia", lengthKm: 12.2, elevation: 1036, avgGrade: 8.5 },
+  { id: 'zw_epic', name: "Epic KOM", country: "Zwift", region: "Watopia", lengthKm: 9.4, elevation: 540, avgGrade: 5.9 },
+  { id: 'zw_epic_rev', name: "Epic KOM Reverse", country: "Zwift", region: "Watopia", lengthKm: 6.2, elevation: 364, avgGrade: 5.9 },
+  { id: 'zw_radio', name: "Radio Tower", country: "Zwift", region: "Watopia", lengthKm: 1.1, elevation: 150, avgGrade: 13.7 },
+  { id: 'zw_volcano', name: "Volcano KOM", country: "Zwift", region: "Watopia", lengthKm: 3.75, elevation: 120, avgGrade: 3.2 },
+  { id: 'zw_hilly', name: "Hilly KOM", country: "Zwift", region: "Watopia", lengthKm: 0.9, elevation: 50, avgGrade: 5.5 },
+  { id: 'zw_hilly_rev', name: "Hilly KOM Reverse", country: "Zwift", region: "Watopia", lengthKm: 2.5, elevation: 49, avgGrade: 1.8 },
+  
+  // ==========================================
+  // ZWIFT: WORLD MAPS (Regulars)
+  // ==========================================
+  { id: 'zw_ven_top', name: "Ven-Top", country: "Zwift", region: "France", lengthKm: 20.9, elevation: 1534, avgGrade: 7.3 },
+  { id: 'zw_petit_kom', name: "Petit KOM", country: "Zwift", region: "France", lengthKm: 2.7, elevation: 106, avgGrade: 4.0 },
+  { id: 'zw_innsbruck', name: "Innsbruck KOM", country: "Zwift", region: "Innsbruck", lengthKm: 7.4, elevation: 400, avgGrade: 5.4 },
+  { id: 'zw_box_hill', name: "Box Hill", country: "Zwift", region: "London", lengthKm: 3.0, elevation: 137, avgGrade: 4.3 },
+  { id: 'zw_leith_hill', name: "Leith Hill", country: "Zwift", region: "London", lengthKm: 1.9, elevation: 134, avgGrade: 6.8 },
+  { id: 'zw_keith_hill', name: "Keith Hill", country: "Zwift", region: "London", lengthKm: 4.2, elevation: 228, avgGrade: 5.2 },
+  { id: 'zw_fox_hill', name: "Fox Hill", country: "Zwift", region: "London", lengthKm: 2.4, elevation: 118, avgGrade: 4.9 },
+  { id: 'zw_ny_kom', name: "New York KOM", country: "Zwift", region: "New York", lengthKm: 1.4, elevation: 89, avgGrade: 6.1 },
+  { id: 'zw_richmond_kom', name: "Richmond KOM", country: "Zwift", region: "Richmond", lengthKm: 0.28, elevation: 19, avgGrade: 6.5 },
+  { id: 'zw_richmond_23', name: "23rd Street", country: "Zwift", region: "Richmond", lengthKm: 0.27, elevation: 26, avgGrade: 10.0 },
+  { id: 'zw_bologna', name: "San Luca (Bologna)", country: "Zwift", region: "Bologna", lengthKm: 2.0, elevation: 218, avgGrade: 10.8 },
+  { id: 'zw_sgurr', name: "Sgurr Summit", country: "Zwift", region: "Scotland", lengthKm: 3.3, elevation: 113, avgGrade: 3.4 },
+  { id: 'zw_yorkshire', name: "Yorkshire KOM", country: "Zwift", region: "Yorkshire", lengthKm: 1.2, elevation: 55, avgGrade: 5.5 },
+  { id: 'zw_temple', name: "Temple KOM", country: "Zwift", region: "Makuri Islands", lengthKm: 1.9, elevation: 64, avgGrade: 3.6 },
+  { id: 'zw_rooftop', name: "Rooftop KOM", country: "Zwift", region: "Makuri Islands", lengthKm: 1.87, elevation: 80, avgGrade: 4.3 },
+  { id: 'zw_castle', name: "Castle KOM", country: "Zwift", region: "Makuri Islands", lengthKm: 2.7, elevation: 68, avgGrade: 2.5 },
+
+  // ==========================================
+  // ZWIFT: CLIMB PORTAL (The Simulation List)
+  // ==========================================
+  { id: 'zp_pike', name: "Cote de Pike", country: "Zwift", region: "Climb Portal", lengthKm: 2.0, elevation: 200, avgGrade: 10.0 },
+  { id: 'zp_tourmalet', name: "Col du Tourmalet", country: "Zwift", region: "Climb Portal", lengthKm: 16.9, elevation: 1268, avgGrade: 7.4 },
+  { id: 'zp_aspin', name: "Col d'Aspin", country: "Zwift", region: "Climb Portal", lengthKm: 12.0, elevation: 779, avgGrade: 6.5 },
+  { id: 'zp_puy_dome', name: "Puy de Dôme", country: "Zwift", region: "Climb Portal", lengthKm: 10.5, elevation: 882, avgGrade: 8.4 },
+  { id: 'zp_superplanche', name: "Superplanche", country: "Zwift", region: "Climb Portal", lengthKm: 7.0, elevation: 614, avgGrade: 8.7 },
+  { id: 'zp_couillole', name: "Col de la Couillole", country: "Zwift", region: "Climb Portal", lengthKm: 15.8, elevation: 1157, avgGrade: 7.3 },
+  { id: 'zp_eze', name: "Col d'Eze", country: "Zwift", region: "Climb Portal", lengthKm: 10.0, elevation: 501, avgGrade: 4.9 },
+  { id: 'zp_willunga', name: "Old Willunga Hill", country: "Zwift", region: "Climb Portal", lengthKm: 3.0, elevation: 227, avgGrade: 7.6 },
+  { id: 'zp_crow_road', name: "Crow Road", country: "Zwift", region: "Climb Portal", lengthKm: 5.6, elevation: 273, avgGrade: 4.8 },
+  { id: 'zp_fuji', name: "Mt. Fuji (Subaru Line)", country: "Zwift", region: "Climb Portal", lengthKm: 22.2, elevation: 1182, avgGrade: 5.3 },
+  { id: 'zp_rocacorba', name: "Rocacorba", country: "Zwift", region: "Climb Portal", lengthKm: 10.0, elevation: 650, avgGrade: 6.5 }, // Approx
+  { id: 'zp_aravis', name: "Col des Aravis", country: "Zwift", region: "Climb Portal", lengthKm: 4.4, elevation: 257, avgGrade: 5.8 },
+  { id: 'zp_domancy', name: "Cote de Domancy", country: "Zwift", region: "Climb Portal", lengthKm: 2.6, elevation: 218, avgGrade: 8.4 },
+  { id: 'zp_tre_cime', name: "Tre Cime di Lavaredo", country: "Zwift", region: "Climb Portal", lengthKm: 7.5, elevation: 574, avgGrade: 7.6 },
+  { id: 'zp_lusk', name: "Luskentyre", country: "Zwift", region: "Climb Portal", lengthKm: 3.2, elevation: 85, avgGrade: 2.7 },
+  { id: 'zp_valparola', name: "Passo Valparola", country: "Zwift", region: "Climb Portal", lengthKm: 13.9, elevation: 813, avgGrade: 5.8 },
+
+].map(c => ({...c, url: c.url || getClimbUrl(c.name, c.country)}));
 
 const COGGAN_ZONES = [
-  { name: 'Z1 Active Recovery', min: 0, max: 0.55, color: '#9ca3af' }, // Gray
-  { name: 'Z2 Endurance', min: 0.56, max: 0.75, color: '#3b82f6' },    // Blue
-  { name: 'Z3 Tempo', min: 0.76, max: 0.90, color: '#22c55e' },       // Green
-  { name: 'Z4 Threshold', min: 0.91, max: 1.05, color: '#eab308' },   // Yellow
-  { name: 'Z5 VO2 Max', min: 1.06, max: 1.20, color: '#f97316' },     // Orange
-  { name: 'Z6 Anaerobic', min: 1.21, max: 1.50, color: '#ef4444' },    // Red
-  { name: 'Z7 Neuromuscular', min: 1.51, max: 10.0, color: '#a855f7' } // Purple
+  { name: 'Z1 Recovery', min: 0, max: 0.55, color: '#9ca3af', textColor: '#1f2937' },
+  { name: 'Z2 Endurance', min: 0.56, max: 0.75, color: '#3b82f6', textColor: '#ffffff' },
+  { name: 'Z3 Tempo', min: 0.76, max: 0.90, color: '#22c55e', textColor: '#ffffff' },
+  { name: 'Z4 Threshold', min: 0.91, max: 1.05, color: '#eab308', textColor: '#ffffff' },
+  { name: 'Z5 VO2 Max', min: 1.06, max: 1.20, color: '#f97316', textColor: '#ffffff' },
+  { name: 'Z6 Anaerobic', min: 1.21, max: 1.50, color: '#ef4444', textColor: '#ffffff' },
+  { name: 'Z7 Neuro', min: 1.51, max: 10.0, color: '#a855f7', textColor: '#ffffff' }
 ];
 
 /**
  * ============================================================================
- * HELPER FUNCTIONS (PHYSICS & PARSING)
+ * 2. HELPERS & PARSERS
  * ============================================================================
  */
 
-// Physics Constants
-const GRAVITY = 9.81;
-const RHO_AIR = 1.225; // Air density at sea level (simplified)
-const CDA_CLIMBING = 0.32; // Aerodynamic drag coefficient (tops)
-const CRR = 0.004; // Rolling resistance (good tires)
-const DRIVETRAIN_LOSS = 0.03; // 3% loss
-
-const calculateVAM = (watts, weightTotal, gradientPercent) => {
-  // Simplificatie: VAM (m/h) = (Watts / kg) * Factor (afhankelijk van steilte)
-  // Betere benadering via Power formula omgekeerd.
-  // Voor nu: Ferrari Formula schatting: VAM = (Power / SystemWeight) * GradientFactor
-  // Maar we gebruiken de physics engine voor precisie.
-  // Hier een snelle schatting voor UI labels:
-  // VAM ~ (W/kg * 1000) / (10 + (Graad/10)) -> Ruwe vuistregel
-  const wKg = watts / weightTotal;
-  return Math.round(wKg * (gradientPercent * 10 + 200)); // Zeer ruwe schatting, physics engine doet het echte werk
-};
-
-const formatDuration = (seconds) => {
+const formatTime = (seconds) => {
+  if (!seconds || isNaN(seconds)) return "00:00";
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = Math.floor(seconds % 60);
   return `${h > 0 ? h + ':' : ''}${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 };
 
-const parseTimeString = (str) => {
-  // Input "59:00" of "1:10:00"
+const parseDurationToSeconds = (str) => {
+  if(!str) return 0;
+  if(str.includes('h') || str.includes('m')) {
+    let s = 0;
+    const h = str.match(/(\d+)h/);
+    const m = str.match(/(\d+)m/);
+    if(h) s += parseInt(h[1]) * 3600;
+    if(m) s += parseInt(m[1]) * 60;
+    return s;
+  }
   const parts = str.split(':').map(Number);
   if (parts.length === 2) return parts[0] * 60 + parts[1];
   if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
   return 0;
 };
 
-// Slimme CSV Parser
-const smartParseCSV = (text) => {
+// Rolling Average Logic (±15 days window)
+const calculateRollingTrend = (activities, targetDateStr, metricKey, windowDays = 15) => {
+  const targetDate = new Date(targetDateStr);
+  const msPerDay = 24 * 60 * 60 * 1000;
+  
+  const inWindow = activities.filter(a => {
+    const d = new Date(a.date);
+    const diffDays = Math.abs((targetDate - d) / msPerDay);
+    return diffDays <= windowDays && a[metricKey] > 0;
+  });
+
+  if (inWindow.length === 0) return 0;
+  const sum = inWindow.reduce((acc, curr) => acc + curr[metricKey], 0);
+  return sum / inWindow.length;
+};
+
+// Advanced CSV Parser (Includes Intervals.icu mapping)
+const smartParseCSV = (text, type = 'generic') => {
   const lines = text.trim().split('\n');
   if (lines.length < 2) return [];
 
-  // Detect delimiter
-  const firstLine = lines[0];
-  const delimiter = firstLine.includes(';') ? ';' : firstLine.includes('\t') ? '\t' : ',';
+  const delimiter = lines[0].includes(';') ? ';' : lines[0].includes('\t') ? '\t' : ',';
+  const rawHeaders = lines[0].split(delimiter).map(h => h.trim().toLowerCase().replace(/['"]+/g, ''));
 
-  const headers = lines[0].split(delimiter).map(h => h.trim().toLowerCase().replace(/['"]+/g, ''));
-  
-  // Header mapping om variaties op te vangen
   const mapHeader = (h) => {
+    if (h === 'icu_training_load' || h === 'training_load') return 'load';
+    if (h === 'icu_intensity' || h === 'intensity') return 'intensity';
+    if (h === 'moving_time' || h === 'elapsed_time') return 'moving_time';
+    if (h === 'icu_rpe' || h === 'feel') return 'rpe';
+    
     if (h.includes('date') || h.includes('datum')) return 'date';
     if (h.includes('title') || h.includes('naam') || h.includes('activity')) return 'title';
     if (h.includes('distance') || h.includes('afstand')) return 'distance';
-    if (h.includes('moving') || h.includes('tijd')) return 'moving_time';
+    if (h.includes('climb') || h.includes('elevation') || h.includes('hoogte')) return 'climbing';
+    if (h.includes('speed') || h.includes('snelheid')) return 'avg_speed';
     if (h.includes('norm') || h.includes('np')) return 'norm_power';
     if (h.includes('avg power') || h.includes('gem. vermogen')) return 'avg_power';
     if (h.includes('load') || h.includes('tss')) return 'load';
     if (h.includes('rpe')) return 'rpe';
-    if (h.includes('climb') || h.includes('hoogte')) return 'elevation';
-    return h;
+    
+    if (h.includes('5m') || h.includes('5 min')) return 'best_5min';
+    if (h.includes('20m') || h.includes('20 min')) return 'best_20min';
+    if (h.includes('60m') || h.includes('60 min')) return 'best_60min';
+    
+    return null;
   };
 
-  const mappedHeaders = headers.map(mapHeader);
+  const colMap = rawHeaders.map(mapHeader);
 
   return lines.slice(1).map(line => {
-    const values = line.split(delimiter);
+    const cols = line.split(delimiter);
     const entry = {};
     
-    mappedHeaders.forEach((key, index) => {
-      let val = values[index] ? values[index].trim().replace(/['"]+/g, '') : '';
-      
-      // Numeric conversie
-      if (['distance', 'moving_time', 'norm_power', 'avg_power', 'load', 'rpe', 'elevation'].includes(key)) {
-        val = parseFloat(val.replace(',', '.'));
-        if (isNaN(val)) val = 0;
+    colMap.forEach((key, idx) => {
+      if (key && cols[idx]) {
+        let val = cols[idx].trim().replace(/['"]+/g, '');
+        if (!['title', 'date'].includes(key)) {
+          if (key === 'moving_time' && val.includes(':')) {
+            val = parseDurationToSeconds(val);
+          } else {
+            val = parseFloat(val.replace(',', '.'));
+          }
+          if (isNaN(val)) val = 0;
+        }
+        entry[key] = val;
       }
-      entry[key] = val;
     });
 
-    // Fallbacks en berekeningen
     if (!entry.id) entry.id = Math.random().toString(36).substr(2, 9);
     if (!entry.date) entry.date = new Date().toISOString().split('T')[0];
     
     return entry;
-  }).filter(e => e.avg_power > 0 || e.distance > 0); // Filter lege rijen
+  }).filter(e => e.distance > 0 || e.moving_time > 0);
 };
 
 
 /**
  * ============================================================================
- * COMPONENT: PHYSICS ENGINE (THE CLIMB LAB)
+ * 3. SUB-COMPONENTS
  * ============================================================================
  */
-const PhysicsEngine = ({ userSettings, selectedClimb, onUpdateClimb }) => {
-  const [mode, setMode] = useState('target'); // 'target' (Time -> Watts) or 'predict' (Watts -> Time)
-  const [targetTimeStr, setTargetTimeStr] = useState("59:00");
-  const [targetWatts, setTargetWatts] = useState(userSettings.ftp || 250);
-  
-  // Physics Calculation Results
-  const [results, setResults] = useState({
-    watts: 0,
-    wkg: 0,
-    time: "",
-    vam: 0,
-    zone: null
-  });
 
-  const totalWeight = userSettings.weight + userSettings.bikeWeight;
+// 3.1 PHYSICS ENGINE
+const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateClimb }) => {
+  const [mode, setMode] = useState('target'); 
+  const [targetTimeStr, setTargetTimeStr] = useState("59:00");
+  const [targetWatts, setTargetWatts] = useState(userSettings.ftp);
+  const [calc, setCalc] = useState({ watts: 0, wkg: 0, time: "", vam: 0, zone: null });
+
+  const updateWeight = (type, delta) => {
+    const current = type === 'body' ? userSettings.weight : userSettings.bikeWeight;
+    const newVal = parseFloat((current + delta).toFixed(1));
+    setUserSettings(prev => ({ ...prev, [type === 'body' ? 'weight' : 'bikeWeight']: newVal }));
+  };
 
   useEffect(() => {
     if (!selectedClimb) return;
-
-    const grade = selectedClimb.avgGrade / 100; // 8.1% -> 0.081
-    const distance = selectedClimb.lengthKm * 1000; // meters
-    const elevation = selectedClimb.elevation; // meters
+    const totalWeight = userSettings.weight + userSettings.bikeWeight;
+    const grade = selectedClimb.avgGrade / 100;
+    const distance = selectedClimb.lengthKm * 1000;
+    const elevation = selectedClimb.elevation;
     
-    let calculatedWatts = 0;
-    let calculatedSeconds = 0;
+    // Physics
+    const g = 9.81; const rho = 1.225; const cda = 0.32; const crr = 0.004; const loss = 0.03;
+
+    let watts = 0, seconds = 0;
 
     if (mode === 'target') {
-      // SCENARIO A: Tijd -> Watts
-      calculatedSeconds = parseTimeString(targetTimeStr);
-      if (calculatedSeconds > 0) {
-        const speed = distance / calculatedSeconds; // m/s
-        
-        // F_gravity = m * g * sin(arctan(grade))
-        // Voor kleine hoeken is sin(arctan(grade)) approx grade
-        const theta = Math.atan(grade);
-        const F_grav = totalWeight * GRAVITY * Math.sin(theta);
-        const F_roll = totalWeight * GRAVITY * Math.cos(theta) * CRR;
-        const F_aero = 0.5 * RHO_AIR * CDA_CLIMBING * (speed * speed);
-        
-        const F_total = F_grav + F_roll + F_aero;
-        const P_wheel = F_total * speed;
-        calculatedWatts = P_wheel / (1 - DRIVETRAIN_LOSS);
+      seconds = parseDurationToSeconds(targetTimeStr);
+      if (seconds > 0) {
+        const v = distance / seconds; 
+        const F_g = totalWeight * g * Math.sin(Math.atan(grade));
+        const F_r = totalWeight * g * Math.cos(Math.atan(grade)) * crr;
+        const F_a = 0.5 * rho * cda * v * v;
+        const P_wheel = (F_g + F_r + F_a) * v;
+        watts = P_wheel / (1 - loss);
       }
     } else {
-      // SCENARIO B: Watts -> Tijd
-      // Iteratieve benadering voor snelheid v
-      calculatedWatts = parseFloat(targetWatts);
-      const P_wheel = calculatedWatts * (1 - DRIVETRAIN_LOSS);
-      
-      // We zoeken v waar: P_wheel = (F_grav + F_roll + 0.5*rho*CdA*v^2) * v
-      // v^3 * (0.5*rho*CdA) + v * (F_grav + F_roll) - P_wheel = 0
-      // Cubic equation solving is tricky, we doen Newton-Raphson
-      
+      watts = parseFloat(targetWatts);
+      const P_wheel = watts * (1 - loss);
       const theta = Math.atan(grade);
-      const K1 = 0.5 * RHO_AIR * CDA_CLIMBING;
-      const K2 = totalWeight * GRAVITY * (Math.sin(theta) + CRR * Math.cos(theta));
-      
-      let v = 3; // Start guess: 3 m/s (~11km/h)
+      const K1 = 0.5 * rho * cda;
+      const K2 = totalWeight * g * (Math.sin(theta) + crr * Math.cos(theta));
+      let v = 3; 
       for(let i=0; i<10; i++) {
-        const f_v = K1 * Math.pow(v, 3) + K2 * v - P_wheel;
-        const df_v = 3 * K1 * Math.pow(v, 2) + K2;
-        v = v - f_v / df_v;
+        const f = K1 * Math.pow(v, 3) + K2 * v - P_wheel;
+        const df = 3 * K1 * Math.pow(v, 2) + K2;
+        v = v - f / df;
       }
-      
-      if (v > 0) {
-        calculatedSeconds = distance / v;
-      }
+      seconds = v > 0 ? distance / v : 0;
     }
 
-    // Update Results
-    const wkg = calculatedWatts / userSettings.weight;
-    
-    // Find Zone
-    const ftp = userSettings.ftp || 300;
-    const ratio = calculatedWatts / ftp;
-    const zone = COGGAN_ZONES.find(z => ratio >= z.min && ratio <= z.max) || COGGAN_ZONES[COGGAN_ZONES.length - 1];
+    const wkg = watts / userSettings.weight;
+    const vam = seconds > 0 ? (elevation / seconds) * 3600 : 0;
+    const zone = COGGAN_ZONES.find(z => (watts / userSettings.ftp) >= z.min && (watts / userSettings.ftp) <= z.max) || COGGAN_ZONES[6];
 
-    setResults({
-      watts: Math.round(calculatedWatts),
-      wkg: wkg.toFixed(2),
-      time: formatDuration(calculatedSeconds),
-      vam: Math.round((elevation / calculatedSeconds) * 3600),
-      zone: zone
+    setCalc({ watts: Math.round(watts), wkg: wkg.toFixed(2), time: formatTime(seconds), vam: Math.round(vam), zone: zone });
+
+  }, [mode, targetTimeStr, targetWatts, selectedClimb, userSettings]);
+
+  // Group climbs by Country (and split Zwift by Region for better UX)
+  const climbsGrouped = useMemo(() => {
+    const groups = {};
+    CLIMB_DATABASE.forEach(c => {
+      // Special logic for Zwift to create subgroups in dropdown
+      let key = c.country;
+      if(c.country === 'Zwift') {
+          key = `Zwift - ${c.region}`; 
+      }
+      
+      if(!groups[key]) groups[key] = [];
+      groups[key].push(c);
     });
-
-  }, [mode, targetTimeStr, targetWatts, selectedClimb, totalWeight, userSettings.weight, userSettings.ftp]);
+    return groups;
+  }, []);
 
   return (
     <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold text-yellow-400 flex items-center gap-2">
-          <Mountain className="w-6 h-6" /> Physics Engine
-        </h2>
-        <select 
-          className="bg-slate-700 text-white rounded p-2 border border-slate-600 text-sm"
-          value={selectedClimb.id}
-          onChange={(e) => onUpdateClimb(CLIMB_DATABASE.find(c => c.id === e.target.value))}
-        >
-          {CLIMB_DATABASE.map(c => (
-            <option key={c.id} value={c.id}>{c.name} ({c.avgGrade}%)</option>
-          ))}
-        </select>
+      <div className="flex flex-col md:flex-row justify-between mb-6 gap-4">
+        <div>
+           <h2 className="text-xl font-bold text-yellow-400 flex items-center gap-2"><Mountain className="w-6 h-6" /> Physics Engine</h2>
+        </div>
+        <div className="flex items-center gap-2">
+            <select 
+              className="bg-slate-700 text-white rounded p-2 text-sm border border-slate-600 outline-none focus:border-yellow-400 max-w-[250px]"
+              value={selectedClimb.id}
+              onChange={(e) => onUpdateClimb(CLIMB_DATABASE.find(c => c.id === e.target.value))}
+            >
+              {/* Sort keys to have Countries first, then Zwift */}
+              {Object.keys(climbsGrouped).sort((a,b) => a.localeCompare(b)).map(group => (
+                <optgroup key={group} label={group}>
+                  {climbsGrouped[group].map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </optgroup>
+              ))}
+            </select>
+            <a href={selectedClimb.url} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-white" title="View Info"><LinkIcon size={16}/></a>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* INPUTS */}
-        <div className="space-y-4">
-          <div className="flex bg-slate-700 rounded-lg p-1">
-            <button 
-              onClick={() => setMode('target')}
-              className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${mode === 'target' ? 'bg-yellow-400 text-slate-900' : 'text-slate-300 hover:text-white'}`}
-            >
-              Target Time
-            </button>
-            <button 
-              onClick={() => setMode('predict')}
-              className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${mode === 'predict' ? 'bg-yellow-400 text-slate-900' : 'text-slate-300 hover:text-white'}`}
-            >
-              Predict (Watts)
-            </button>
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-4 space-y-6">
+            <div className="bg-slate-900 p-4 rounded-lg border border-slate-700 space-y-3">
+                <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-300">Rider</span>
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => updateWeight('body', -0.1)} className="p-1 bg-slate-700 rounded hover:bg-slate-600"><Minus size={14}/></button>
+                        <span className="font-mono w-16 text-center">{userSettings.weight.toFixed(1)} kg</span>
+                        <button onClick={() => updateWeight('body', 0.1)} className="p-1 bg-slate-700 rounded hover:bg-slate-600"><Plus size={14}/></button>
+                    </div>
+                </div>
+                <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-300">Bike</span>
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => updateWeight('bike', -0.1)} className="p-1 bg-slate-700 rounded hover:bg-slate-600"><Minus size={14}/></button>
+                        <span className="font-mono w-16 text-center">{userSettings.bikeWeight.toFixed(1)} kg</span>
+                        <button onClick={() => updateWeight('bike', 0.1)} className="p-1 bg-slate-700 rounded hover:bg-slate-600"><Plus size={14}/></button>
+                    </div>
+                </div>
+            </div>
 
-          <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600">
-             {mode === 'target' ? (
-               <div>
-                 <label className="block text-xs text-slate-400 uppercase mb-1">Doeltijd (UU:MM:SS)</label>
-                 <input 
-                  type="text" 
-                  value={targetTimeStr}
-                  onChange={(e) => setTargetTimeStr(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-600 rounded p-3 text-xl font-mono text-white focus:border-yellow-400 outline-none"
-                 />
-               </div>
-             ) : (
-               <div>
-                 <label className="block text-xs text-slate-400 uppercase mb-1">Target Power (Watts)</label>
-                 <input 
-                  type="number" 
-                  value={targetWatts}
-                  onChange={(e) => setTargetWatts(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-600 rounded p-3 text-xl font-mono text-white focus:border-yellow-400 outline-none"
-                 />
-               </div>
-             )}
-             <div className="mt-4 text-xs text-slate-400 flex justify-between">
-               <span>Rider: {userSettings.weight}kg</span>
-               <span>Bike: {userSettings.bikeWeight}kg</span>
-               <span>Total: {totalWeight}kg</span>
-             </div>
-          </div>
+            <div className="bg-slate-700 rounded-lg p-1 flex">
+                <button onClick={() => setMode('target')} className={`flex-1 py-2 text-xs font-bold uppercase rounded ${mode==='target'?'bg-yellow-400 text-slate-900':'text-slate-300'}`}>Target Time</button>
+                <button onClick={() => setMode('predict')} className={`flex-1 py-2 text-xs font-bold uppercase rounded ${mode==='predict'?'bg-yellow-400 text-slate-900':'text-slate-300'}`}>Predict</button>
+            </div>
+
+            <div className="bg-slate-900 border border-yellow-400/30 p-4 rounded-lg">
+                <label className="text-xs text-yellow-400 uppercase font-bold mb-2 block">{mode === 'target' ? 'Desired Time' : 'Sustainable Power'}</label>
+                {mode === 'target' ? (
+                   <input value={targetTimeStr} onChange={e => setTargetTimeStr(e.target.value)} className="w-full bg-transparent text-3xl font-mono text-white outline-none border-b border-slate-700 focus:border-yellow-400" />
+                ) : (
+                   <input type="number" value={targetWatts} onChange={e => setTargetWatts(e.target.value)} className="w-full bg-transparent text-3xl font-mono text-white outline-none border-b border-slate-700 focus:border-yellow-400" />
+                )}
+            </div>
         </div>
 
-        {/* OUTPUTS */}
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-slate-900 p-4 rounded-lg border border-slate-700">
-              <div className="text-xs text-slate-400 uppercase">Power Output</div>
-              <div className="text-2xl font-bold text-white mt-1">{results.watts} <span className="text-sm font-normal text-slate-500">W</span></div>
-            </div>
-            <div className="bg-slate-900 p-4 rounded-lg border border-slate-700">
-              <div className="text-xs text-slate-400 uppercase">W/kg</div>
-              <div className="text-2xl font-bold text-yellow-400 mt-1">{results.wkg}</div>
-            </div>
-            <div className="bg-slate-900 p-4 rounded-lg border border-slate-700">
-              <div className="text-xs text-slate-400 uppercase">Estimated Time</div>
-              <div className="text-2xl font-bold text-white mt-1">{results.time}</div>
-            </div>
-            <div className="bg-slate-900 p-4 rounded-lg border border-slate-700">
-              <div className="text-xs text-slate-400 uppercase">VAM</div>
-              <div className="text-2xl font-bold text-white mt-1">{results.vam} <span className="text-sm font-normal text-slate-500">m/h</span></div>
-            </div>
-          </div>
-
-          {results.zone && (
-            <div className="bg-slate-900 p-3 rounded-lg border border-slate-700 flex items-center justify-between">
-              <span className="text-sm font-medium text-slate-300">Target Zone:</span>
-              <span 
-                className="px-3 py-1 rounded text-xs font-bold uppercase text-slate-900" 
-                style={{ backgroundColor: results.zone.color }}
-              >
-                {results.zone.name}
-              </span>
-            </div>
-          )}
+        <div className="lg:col-span-8 grid grid-cols-2 gap-4">
+             <div className="bg-slate-700/50 p-4 rounded-lg flex flex-col items-center justify-center border border-slate-600">
+                <span className="text-xs text-slate-400 uppercase mb-1">Required Power</span>
+                <span className="text-3xl font-bold text-white">{calc.watts} <small className="text-sm text-slate-500">W</small></span>
+             </div>
+             <div className="bg-slate-700/50 p-4 rounded-lg flex flex-col items-center justify-center border border-slate-600">
+                <span className="text-xs text-slate-400 uppercase mb-1">Power / Weight</span>
+                <span className="text-3xl font-bold text-yellow-400">{calc.wkg} <small className="text-sm text-yellow-600">W/kg</small></span>
+             </div>
+             <div className="bg-slate-700/50 p-4 rounded-lg flex flex-col items-center justify-center border border-slate-600">
+                <span className="text-xs text-slate-400 uppercase mb-1">Est. Time</span>
+                <span className="text-3xl font-bold text-white font-mono">{calc.time}</span>
+             </div>
+             <div className="bg-slate-700/50 p-4 rounded-lg flex flex-col items-center justify-center border border-slate-600">
+                <span className="text-xs text-slate-400 uppercase mb-1">VAM</span>
+                <span className="text-3xl font-bold text-white">{calc.vam} <small className="text-sm text-slate-500">m/h</small></span>
+             </div>
+             
+             <div className="col-span-2 bg-slate-900 p-4 rounded-lg border border-slate-700">
+                <div className="flex justify-between items-end mb-2">
+                    <span className="text-sm font-bold text-white">Intensity Zone</span>
+                    {calc.zone && <span style={{color: calc.zone.color}} className="font-bold text-sm uppercase">{calc.zone.name}</span>}
+                </div>
+                <div className="w-full h-4 bg-slate-800 rounded-full overflow-hidden flex">
+                    {COGGAN_ZONES.map((z, i) => (
+                        <div key={i} style={{width: `${(z.max - z.min)/0.15 * 10}%`, background: z.color}} className="h-full opacity-30 hover:opacity-100 transition-opacity"></div>
+                    ))}
+                </div>
+                <div className="relative w-full h-2 mt-1">
+                     <div 
+                        className="absolute w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[8px] border-b-white transform -translate-x-1/2 transition-all duration-500"
+                        style={{ left: `${Math.min(Math.max((calc.watts/userSettings.ftp)/1.5 * 100, 0), 100)}%` }}
+                     ></div>
+                </div>
+             </div>
         </div>
       </div>
     </div>
   );
 };
 
-/**
- * ============================================================================
- * COMPONENT: DATA HUB (ACTIVITIES & IMPORT)
- * ============================================================================
- */
-const DataHub = ({ activities, onImport, onDelete, activeTab, setActiveTab }) => {
-  const [searchTerm, setSearchTerm] = useState("");
+// 3.2 DATA HUB (Fixed Tabs & Intervals.icu support)
+const DataHub = ({ activities, onImport, onDelete }) => {
+  const [internalTab, setInternalTab] = useState('log'); // 'log' | 'import' | 'intervals'
   const [importText, setImportText] = useState("");
-  const [expandedYears, setExpandedYears] = useState({});
+  const [search, setSearch] = useState("");
 
-  // Group activities logic
-  const groupedActivities = useMemo(() => {
-    // Filter first
-    const filtered = activities.filter(a => 
-      a.title.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    // Sort descending
-    const sorted = [...filtered].sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    // Group by Year -> Month
-    const groups = sorted.reduce((acc, act) => {
-      const d = new Date(act.date);
-      const year = d.getFullYear();
-      const month = d.toLocaleString('default', { month: 'long' });
-
-      if (!acc[year]) acc[year] = {};
-      if (!acc[year][month]) acc[year][month] = [];
-      
-      acc[year][month].push(act);
-      return acc;
-    }, {});
-
-    return groups;
-  }, [activities, searchTerm]);
-
-  const handleManualImport = () => {
-    const parsed = smartParseCSV(importText);
-    if(parsed.length > 0) {
-      onImport(parsed);
+  const handleImport = (type) => {
+    const data = smartParseCSV(importText, type);
+    if(data.length) {
+      onImport(data);
       setImportText("");
-      alert(`${parsed.length} ritten succesvol geïmporteerd!`);
-      setActiveTab('activities');
+      setInternalTab('log');
+      alert(`Succes: ${data.length} activiteiten toegevoegd!`);
     } else {
-      alert("Geen geldige data gevonden. Controleer het formaat.");
+        alert("Geen geldige data. Controleer de headers.");
     }
   };
 
-  const toggleYear = (year) => {
-    setExpandedYears(prev => ({...prev, [year]: !prev[year]}));
-  };
+  const filtered = activities.filter(a => a.title?.toLowerCase().includes(search.toLowerCase()) || a.date.includes(search));
 
   return (
-    <div className="bg-slate-800 rounded-xl border border-slate-700 shadow-xl overflow-hidden">
-      {/* Tab Header */}
-      <div className="flex border-b border-slate-700">
-        <button 
-          className={`flex-1 py-4 text-sm font-medium flex items-center justify-center gap-2 ${activeTab === 'activities' ? 'bg-slate-700/50 text-yellow-400 border-b-2 border-yellow-400' : 'text-slate-400 hover:text-white'}`}
-          onClick={() => setActiveTab('activities')}
-        >
-          <Activity className="w-4 h-4" /> Activity Log
-        </button>
-        <button 
-          className={`flex-1 py-4 text-sm font-medium flex items-center justify-center gap-2 ${activeTab === 'import' ? 'bg-slate-700/50 text-yellow-400 border-b-2 border-yellow-400' : 'text-slate-400 hover:text-white'}`}
-          onClick={() => setActiveTab('import')}
-        >
-          <Upload className="w-4 h-4" /> Data Import
-        </button>
-      </div>
+    <div className="bg-slate-800 rounded-xl border border-slate-700 shadow-xl overflow-hidden min-h-[600px] flex flex-col">
+        <div className="flex border-b border-slate-700">
+            <button onClick={() => setInternalTab('log')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'log' ? 'bg-slate-700 text-yellow-400' : 'text-slate-400 hover:bg-slate-700/50'}`}>Activity Log</button>
+            <button onClick={() => setInternalTab('import')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'import' ? 'bg-slate-700 text-yellow-400' : 'text-slate-400 hover:bg-slate-700/50'}`}>CSV / Excel</button>
+            <button onClick={() => setInternalTab('intervals')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'intervals' ? 'bg-slate-700 text-orange-400' : 'text-slate-400 hover:bg-slate-700/50'}`}>Intervals.icu</button>
+        </div>
 
-      <div className="p-6">
-        {activeTab === 'activities' && (
-          <div className="space-y-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-3 w-5 h-5 text-slate-500" />
-              <input 
-                type="text" 
-                placeholder="Zoek activiteit..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-600 rounded-lg pl-10 pr-4 py-2 text-white focus:border-yellow-400 outline-none"
-              />
-            </div>
-
-            <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2">
-              {Object.keys(groupedActivities).length === 0 && (
-                <div className="text-center text-slate-500 py-8">Geen activiteiten gevonden. Importeer data.</div>
-              )}
-              
-              {Object.keys(groupedActivities).sort((a,b) => b-a).map(year => (
-                <div key={year} className="border border-slate-700 rounded-lg overflow-hidden">
-                  <button 
-                    onClick={() => toggleYear(year)}
-                    className="w-full flex items-center justify-between p-3 bg-slate-700/30 hover:bg-slate-700/50 transition-colors"
-                  >
-                    <span className="font-bold text-white">{year}</span>
-                    {expandedYears[year] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                  </button>
-                  
-                  {expandedYears[year] && (
-                    <div className="bg-slate-900/50 p-2 space-y-2">
-                      {Object.keys(groupedActivities[year]).map(month => (
-                        <div key={month}>
-                          <div className="text-xs text-slate-400 uppercase font-bold px-2 py-1">{month}</div>
-                          {groupedActivities[year][month].map(act => (
-                            <div key={act.id} className="flex items-center justify-between p-2 hover:bg-slate-800 rounded group">
-                              <div className="flex flex-col">
-                                <span className="text-sm font-medium text-slate-200">{act.title || 'Untitled Ride'}</span>
-                                <span className="text-xs text-slate-500">{act.date} • {act.distance}km • {act.elevation}hm</span>
-                              </div>
-                              <div className="flex items-center gap-3">
-                                {act.norm_power > 0 && (
-                                  <span className="text-xs font-mono text-yellow-400 border border-yellow-400/30 px-1 rounded">{Math.round(act.norm_power)}W NP</span>
-                                )}
-                                <button 
-                                  onClick={() => onDelete(act.id)}
-                                  className="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                  ×
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ))}
+        <div className="p-4 flex-1 overflow-hidden flex flex-col">
+            {internalTab === 'log' && (
+                <>
+                    <div className="relative mb-4">
+                        <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500"/>
+                        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Zoek op datum, naam..." className="w-full bg-slate-900 border border-slate-600 rounded pl-10 pr-4 py-2 text-sm text-white focus:border-yellow-400 outline-none" />
                     </div>
-                  )}
+                    <div className="overflow-x-auto flex-1 border border-slate-700 rounded-lg">
+                        <table className="w-full text-left text-xs whitespace-nowrap">
+                            <thead className="bg-slate-900 text-slate-400 uppercase font-bold sticky top-0">
+                                <tr>
+                                    <th className="p-3">Date</th>
+                                    <th className="p-3">Title</th>
+                                    <th className="p-3 text-right">Dist</th>
+                                    <th className="p-3 text-right">Elev</th>
+                                    <th className="p-3 text-right text-yellow-400">NP</th>
+                                    <th className="p-3 text-right">20m</th>
+                                    <th className="p-3 text-right">Load</th>
+                                    <th className="p-3 text-right">RPE</th>
+                                    <th className="p-3"></th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-700">
+                                {filtered.map(act => (
+                                    <tr key={act.id} className="hover:bg-slate-700/50 transition-colors">
+                                        <td className="p-3 text-slate-300">{act.date}</td>
+                                        <td className="p-3 font-medium text-white max-w-[150px] truncate">{act.title}</td>
+                                        <td className="p-3 text-right text-slate-400">{parseFloat(act.distance).toFixed(1)}</td>
+                                        <td className="p-3 text-right text-slate-400">{Math.round(act.climbing || 0)}</td>
+                                        <td className="p-3 text-right font-bold text-yellow-400">{Math.round(act.norm_power || 0)}</td>
+                                        <td className="p-3 text-right text-slate-400">{Math.round(act.best_20min || 0)}</td>
+                                        <td className="p-3 text-right text-blue-400">{Math.round(act.load || 0)}</td>
+                                        <td className="p-3 text-right text-slate-400">{act.rpe}</td>
+                                        <td className="p-3 text-right"><button onClick={() => onDelete(act.id)} className="text-red-500 hover:text-red-400 font-bold">×</button></td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </>
+            )}
+
+            {internalTab === 'import' && (
+                <div className="space-y-4">
+                    <div className="bg-slate-900 p-4 rounded border border-slate-600">
+                        <h3 className="font-bold text-white mb-2">CSV / Excel Paste</h3>
+                        <p className="text-xs text-slate-400 mb-4">
+                            Ondersteunde kolommen (header detectie):<br/>
+                            <span className="text-yellow-500 font-mono">Date, Title, Distance, Climbing, Norm Power, Avg Power, Load, RPE, 5m, 20m, 60m</span>
+                        </p>
+                        <textarea 
+                            className="w-full h-48 bg-slate-800 border border-slate-700 rounded p-3 text-xs font-mono text-white outline-none focus:border-yellow-400"
+                            placeholder="Date;Title;Distance;Norm Power..."
+                            value={importText}
+                            onChange={e => setImportText(e.target.value)}
+                        />
+                        <button onClick={() => handleImport('generic')} className="mt-4 w-full bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold py-3 rounded">Import & Parse</button>
+                    </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+            )}
 
-        {activeTab === 'import' && (
-          <div className="space-y-6">
-            <div className="bg-slate-900 p-4 rounded-lg border border-slate-700">
-              <h3 className="font-bold text-white mb-2 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-orange-400" /> Intervals.icu & API
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <input placeholder="API Key" className="bg-slate-800 border border-slate-600 rounded p-2 text-sm text-white" />
-                <input placeholder="Athlete ID" className="bg-slate-800 border border-slate-600 rounded p-2 text-sm text-white" />
-              </div>
-              <button className="mt-3 w-full bg-slate-800 hover:bg-slate-700 text-slate-300 py-2 rounded border border-slate-600 text-sm">
-                Sync Latest Activities (Mock)
-              </button>
-            </div>
-
-            <div>
-              <h3 className="font-bold text-white mb-2">CSV / Paste Data</h3>
-              <p className="text-xs text-slate-400 mb-2">Plak Excel/CSV data. De parser detecteert automatisch kolommen (Date, Avg Power, NP, Distance, etc).</p>
-              <textarea 
-                className="w-full h-32 bg-slate-900 border border-slate-600 rounded p-3 text-xs font-mono text-slate-300 focus:border-yellow-400 outline-none"
-                placeholder="Date;Title;Distance;Avg Power..."
-                value={importText}
-                onChange={(e) => setImportText(e.target.value)}
-              />
-              <button 
-                onClick={handleManualImport}
-                className="mt-3 w-full bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold py-2 rounded transition-colors"
-              >
-                Parse & Import
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+            {internalTab === 'intervals' && (
+                <div className="space-y-4">
+                    <div className="bg-slate-900 p-4 rounded border border-slate-600">
+                        <div className="flex items-center gap-2 mb-4">
+                           <div className="p-2 bg-orange-500/20 rounded text-orange-400"><Activity size={20}/></div>
+                           <h3 className="font-bold text-white">Intervals.icu Import</h3>
+                        </div>
+                        <p className="text-sm text-slate-300 mb-4">
+                           1. Ga naar Intervals.icu - Activities - List View.<br/>
+                           2. Klik "Edit" - "Download CSV".<br/>
+                           3. Plak de inhoud hieronder. De parser herkent automatisch `icu_training_load`, `icu_rpe`, etc.
+                        </p>
+                        <textarea 
+                            className="w-full h-32 bg-slate-800 border border-slate-700 rounded p-3 text-xs font-mono text-white outline-none focus:border-orange-400"
+                            placeholder="date,name,moving_time,distance,icu_training_load,icu_rpe..."
+                            value={importText}
+                            onChange={e => setImportText(e.target.value)}
+                        />
+                        <button onClick={() => handleImport('intervals')} className="mt-4 w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded">Parse Intervals CSV</button>
+                    </div>
+                </div>
+            )}
+        </div>
     </div>
   );
 };
 
-/**
- * ============================================================================
- * COMPONENT: AI COACH & SWOT
- * ============================================================================
- */
-const AICoach = ({ activities, userSettings }) => {
-  const [view, setView] = useState('summary'); // summary | deepdive
+// 3.3 FUELING
+const FuelingStrategy = () => {
+    const [duration, setDuration] = useState(180); 
+    const [intensity, setIntensity] = useState(0.85);
 
-  // Mock Analysis Logic
-  const bestPower = useMemo(() => {
-    if(!activities.length) return 0;
-    return Math.max(...activities.map(a => a.avg_power || 0));
-  }, [activities]);
+    const requirements = useMemo(() => {
+        const carbsPerHour = intensity > 0.9 ? 90 : intensity > 0.8 ? 75 : 60;
+        const totalCarbs = (duration / 60) * carbsPerHour;
+        const fluidPerHour = 600;
+        const totalFluid = (duration / 60) * fluidPerHour;
+        const sodiumPerHour = 500;
+        return { carbsPerHour, totalCarbs, fluidPerHour, totalFluid, sodiumPerHour };
+    }, [duration, intensity]);
 
-  const totalLoad = activities.reduce((acc, curr) => acc + (curr.load || 0), 0);
-
-  return (
-    <div className="bg-slate-800 rounded-xl border border-slate-700 shadow-xl p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold text-white flex items-center gap-2">
-          <Brain className="w-6 h-6 text-purple-400" /> AI Performance Coach
-        </h2>
-        <div className="flex bg-slate-700 rounded p-1">
-          <button onClick={() => setView('summary')} className={`px-3 py-1 text-xs rounded ${view==='summary' ? 'bg-purple-500 text-white' : 'text-slate-300'}`}>Summary</button>
-          <button onClick={() => setView('deepdive')} className={`px-3 py-1 text-xs rounded ${view==='deepdive' ? 'bg-purple-500 text-white' : 'text-slate-300'}`}>Deep Dive</button>
+    return (
+        <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
+            <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2"><Utensils className="text-green-400"/> Race Fueling Calculator</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-6">
+                    <div>
+                        <label className="text-xs text-slate-400 uppercase font-bold">Verwachte Duur</label>
+                        <div className="flex items-center gap-4 mt-2">
+                             <input type="range" min="30" max="600" step="15" value={duration} onChange={e=>setDuration(parseInt(e.target.value))} className="flex-1 accent-yellow-400"/>
+                             <span className="w-20 font-mono text-white text-right">{Math.floor(duration/60)}h {duration%60}m</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label className="text-xs text-slate-400 uppercase font-bold">Intensity Factor (IF)</label>
+                        <div className="flex items-center gap-4 mt-2">
+                             <input type="range" min="0.5" max="1.1" step="0.01" value={intensity} onChange={e=>setIntensity(parseFloat(e.target.value))} className="flex-1 accent-red-500"/>
+                             <span className="w-20 font-mono text-white text-right">{(intensity*100).toFixed(0)}%</span>
+                        </div>
+                    </div>
+                    
+                    <div className="p-4 bg-slate-900 rounded border border-slate-700 mt-4">
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                            <div className="bg-slate-800 p-2 rounded">
+                                <Zap className="w-4 h-4 text-yellow-400 mx-auto mb-1"/>
+                                <div className="text-lg font-bold text-white">{requirements.carbsPerHour}g</div>
+                                <div className="text-[10px] text-slate-400">Carbs/hr</div>
+                            </div>
+                            <div className="bg-slate-800 p-2 rounded">
+                                <Droplets className="w-4 h-4 text-blue-400 mx-auto mb-1"/>
+                                <div className="text-lg font-bold text-white">{requirements.fluidPerHour}ml</div>
+                                <div className="text-[10px] text-slate-400">Vocht/hr</div>
+                            </div>
+                            <div className="bg-slate-800 p-2 rounded">
+                                <Battery className="w-4 h-4 text-green-400 mx-auto mb-1"/>
+                                <div className="text-lg font-bold text-white">{requirements.sodiumPerHour}mg</div>
+                                <div className="text-[10px] text-slate-400">Na+/hr</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div className="relative bg-slate-900 border border-slate-700 rounded-lg p-6 flex flex-col justify-between">
+                    <div>
+                         <h3 className="text-slate-300 font-bold mb-1">Total Race Load</h3>
+                         <p className="text-3xl font-bold text-white">{Math.round(requirements.totalCarbs)}g <span className="text-sm font-normal text-slate-500">Koolhydraten</span></p>
+                         <p className="text-lg text-blue-400 mt-1">{Math.round(requirements.totalFluid/1000 * 10)/10}L <span className="text-sm text-slate-500">Vocht</span></p>
+                    </div>
+                    <div className="mt-4">
+                        <div className="text-xs text-slate-400 uppercase mb-2">Example Strategy</div>
+                        <ul className="text-xs text-slate-300 space-y-2">
+                             <li className="flex gap-2"><span className="text-yellow-400 font-bold">Start:</span> Pre-load 500ml sodium + 1 gel.</li>
+                             <li className="flex gap-2"><span className="text-yellow-400 font-bold">Elk uur:</span> 1x Bidon (40g Mix) + 1x Gel (30g) + 1x Reep.</li>
+                             <li className="flex gap-2"><span className="text-yellow-400 font-bold">Finale:</span> Switch naar cafeïne gels in laatste uur.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-
-      {view === 'summary' ? (
-        <div className="space-y-4">
-          <div className="bg-purple-500/10 border border-purple-500/30 p-4 rounded-lg">
-            <h3 className="font-bold text-purple-300 mb-1">Executive Summary</h3>
-            <p className="text-sm text-slate-300">
-              Je FTP progressie stagneert licht. Focus komende week op <span className="text-white font-bold">VO2 Max blokken</span>. 
-              Je klimvermogen (W/kg) is sterk, maar je base load is 15% lager dan vorige maand.
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-slate-900 p-4 rounded border border-slate-700">
-              <div className="text-xs text-slate-400">Recente piek (20m)</div>
-              <div className="text-xl font-bold text-white">{bestPower} W</div>
-            </div>
-            <div className="bg-slate-900 p-4 rounded border border-slate-700">
-              <div className="text-xs text-slate-400">Acute Load</div>
-              <div className="text-xl font-bold text-white">{Math.round(totalLoad / 7)} TSS/d</div>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-4 animate-in fade-in duration-300">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-slate-900 p-4 rounded border-l-4 border-green-500">
-              <h4 className="font-bold text-green-400 text-sm mb-2">STRENGTHS</h4>
-              <ul className="text-xs text-slate-300 list-disc list-inside">
-                <li>Hoge 5-min power output</li>
-                <li>Consistente cadans op >8% hellingen</li>
-              </ul>
-            </div>
-            <div className="bg-slate-900 p-4 rounded border-l-4 border-red-500">
-              <h4 className="font-bold text-red-400 text-sm mb-2">WEAKNESSES</h4>
-              <ul className="text-xs text-slate-300 list-disc list-inside">
-                <li>Fatigue resistance na 2000kJ</li>
-                <li>Aerobe ontkoppeling bij lange duur</li>
-              </ul>
-            </div>
-          </div>
-          <div className="bg-slate-900 p-4 rounded border border-slate-700">
-            <h4 className="font-bold text-white text-sm mb-2">Recommended Workout: "Alpe Simulation"</h4>
-            <p className="text-xs text-slate-400 mb-3">3x 15min @ 88-92% FTP (Sweetspot) met low-cadence starts.</p>
-            <button className="text-xs bg-purple-600 hover:bg-purple-500 text-white px-3 py-1 rounded">Download .zwo</button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+    );
 };
 
 /**
  * ============================================================================
- * MAIN APPLICATION COMPONENT
+ * 4. MAIN APP
  * ============================================================================
  */
+
 const App = () => {
-  const [activeTab, setActiveTab] = useState('dashboard'); // dashboard | physics | data | coach | fueling
+  const [activeTab, setActiveTab] = useState('dashboard');
   
-  // GLOBAL STATE
   const [userSettings, setUserSettings] = useState({
-    weight: 70, // kg
-    bikeWeight: 7.5, // kg
-    ftp: 280, // watts
+    weight: 70.0,
+    bikeWeight: 7.5,
+    ftp: 280,
     maxHr: 190
   });
 
-  const [selectedClimb, setSelectedClimb] = useState(CLIMB_DATABASE[0]);
+  const [selectedClimb, setSelectedClimb] = useState(CLIMB_DATABASE[19]); // Default to Alpe du Zwift
 
-  // Initial Data (Mock)
+  // Initial Data 
   const [activities, setActivities] = useState([
-    { id: 1, date: '2023-10-01', title: 'Alpe training', distance: 45, elevation: 1100, avg_power: 230, norm_power: 245, load: 80 },
-    { id: 2, date: '2023-10-03', title: 'Recovery Spin', distance: 30, elevation: 200, avg_power: 140, norm_power: 145, load: 30 },
-    { id: 3, date: '2023-09-28', title: 'Intervals VO2', distance: 50, elevation: 600, avg_power: 210, norm_power: 260, load: 95 },
+    { id: '1', date: '2023-09-01', title: 'Base Miles', distance: 60, climbing: 400, norm_power: 200, avg_power: 180, load: 80, best_5min: 250, best_20min: 220, best_60min: 200, rpe: 4 },
+    { id: '2', date: '2023-09-05', title: 'Intervals', distance: 45, climbing: 600, norm_power: 260, avg_power: 210, load: 110, best_5min: 350, best_20min: 280, best_60min: 220, rpe: 8 },
+    { id: '3', date: '2023-09-12', title: 'Alpe Test', distance: 40, climbing: 1100, norm_power: 275, avg_power: 270, load: 130, best_5min: 310, best_20min: 295, best_60min: 270, rpe: 9 },
+    { id: '4', date: '2023-09-20', title: 'Recovery', distance: 30, climbing: 100, norm_power: 150, avg_power: 140, load: 30, best_5min: 160, best_20min: 150, best_60min: 140, rpe: 2 },
   ]);
 
-  // Derived Data for Charts
-  const progressData = useMemo(() => {
-    return [...activities]
-      .sort((a,b) => new Date(a.date) - new Date(b.date))
-      .map(a => ({
-        date: a.date,
-        ftp: a.norm_power, // Simpel: NP als proxy voor performance
-        load: a.load
-      }));
-  }, [activities]);
+  const [timeRange, setTimeRange] = useState('ALL');
+
+  const chartData = useMemo(() => {
+    let sorted = [...activities].sort((a,b) => new Date(a.date) - new Date(b.date));
+    
+    if(timeRange !== 'ALL') {
+        const now = new Date();
+        const months = timeRange === '6M' ? 6 : 12;
+        const cutoff = new Date(now.setMonth(now.getMonth() - months));
+        sorted = sorted.filter(a => new Date(a.date) >= cutoff);
+    }
+
+    return sorted.map(act => ({
+        date: act.date,
+        rawFtp: act.best_20min * 0.95,
+        rollingFtp: calculateRollingTrend(activities, act.date, 'norm_power', 15), 
+        load: act.load
+    }));
+  }, [activities, timeRange]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-yellow-400 selection:text-slate-900 pb-20 md:pb-0">
+    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-yellow-400 selection:text-slate-900 pb-20">
       
-      {/* HEADER */}
-      <header className="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-20">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-yellow-400 rounded-lg flex items-center justify-center text-slate-900 font-black text-xl italic">
-              CL
-            </div>
-            <div>
-              <h1 className="font-bold text-white text-lg leading-tight">Climb Lab <span className="text-yellow-400 text-xs align-top">PRO</span></h1>
-              <p className="text-xs text-slate-400">Performance Engineering</p>
-            </div>
-          </div>
-          
-          {/* Quick Settings */}
-          <div className="flex items-center gap-4 bg-slate-800 py-1 px-3 rounded-full border border-slate-700">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400 uppercase">Weight</span>
-              <input 
-                type="number" 
-                value={userSettings.weight} 
-                onChange={(e) => setUserSettings({...userSettings, weight: parseFloat(e.target.value)})}
-                className="w-12 bg-transparent text-right text-sm font-bold text-white focus:text-yellow-400 outline-none"
-              />
-              <span className="text-xs text-slate-500">kg</span>
-            </div>
-            <div className="w-px h-4 bg-slate-700"></div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400 uppercase">Bike</span>
-              <input 
-                type="number" 
-                value={userSettings.bikeWeight} 
-                onChange={(e) => setUserSettings({...userSettings, bikeWeight: parseFloat(e.target.value)})}
-                className="w-10 bg-transparent text-right text-sm font-bold text-white focus:text-yellow-400 outline-none"
-              />
-              <span className="text-xs text-slate-500">kg</span>
-            </div>
-            <div className="w-px h-4 bg-slate-700"></div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400 uppercase">FTP</span>
-              <input 
-                type="number" 
-                value={userSettings.ftp} 
-                onChange={(e) => setUserSettings({...userSettings, ftp: parseFloat(e.target.value)})}
-                className="w-12 bg-transparent text-right text-sm font-bold text-yellow-400 outline-none"
-              />
-            </div>
-          </div>
+      <header className="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-50 shadow-md">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+           <div className="flex items-center gap-3">
+             <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center text-slate-900 font-black text-xl italic shadow-lg shadow-yellow-500/20">CL</div>
+             <div>
+               <h1 className="font-bold text-white text-lg leading-tight">Climb Lab <span className="text-yellow-400 text-xs px-1 border border-yellow-400 rounded">ELITE</span></h1>
+             </div>
+           </div>
+           <div className="flex gap-6 text-sm">
+              <div className="hidden md:block">
+                 <span className="text-slate-500 block text-[10px] uppercase">Sys. Weight</span>
+                 <span className="text-white font-mono font-bold">{(userSettings.weight + userSettings.bikeWeight).toFixed(1)} kg</span>
+              </div>
+              <div className="hidden md:block">
+                 <span className="text-slate-500 block text-[10px] uppercase">W/kg (FTP)</span>
+                 <span className="text-yellow-400 font-mono font-bold">{(userSettings.ftp / userSettings.weight).toFixed(2)}</span>
+              </div>
+           </div>
         </div>
       </header>
 
-      {/* MAIN CONTENT */}
-      <main className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
-        
-        {/* TAB NAVIGATION (DESKTOP) */}
-        <div className="hidden md:flex gap-4 mb-6">
-          {[
-            { id: 'dashboard', icon: Gauge, label: 'Dashboard' },
-            { id: 'physics', icon: Mountain, label: 'Physics Engine' },
-            { id: 'data', icon: Activity, label: 'Data Hub' },
-            { id: 'coach', icon: Brain, label: 'AI Coach' },
-            { id: 'fueling', icon: Battery, label: 'Fueling' },
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                activeTab === tab.id 
-                  ? 'bg-yellow-400 text-slate-900 shadow-lg shadow-yellow-400/20' 
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
-              }`}
-            >
-              <tab.icon className="w-4 h-4" /> {tab.label}
-            </button>
-          ))}
-        </div>
+      <main className="max-w-7xl mx-auto p-4 space-y-6">
+        <nav className="flex overflow-x-auto gap-2 pb-2 md:pb-0 scrollbar-hide">
+           {[
+             {id: 'dashboard', label: 'Dashboard', icon: Gauge},
+             {id: 'physics', label: 'Physics Engine', icon: Mountain},
+             {id: 'data', label: 'Data Hub', icon: Activity},
+             {id: 'fueling', label: 'Fueling', icon: Utensils},
+           ].map(item => (
+             <button 
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm whitespace-nowrap transition-all ${activeTab === item.id ? 'bg-yellow-400 text-slate-900' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'}`}
+             >
+                <item.icon className="w-4 h-4"/> {item.label}
+             </button>
+           ))}
+        </nav>
 
-        {/* VIEW ROUTER */}
         {activeTab === 'dashboard' && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Quick Stats */}
-              <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
-                <div className="flex items-center gap-3 mb-2">
-                   <div className="p-2 bg-blue-500/20 rounded-lg text-blue-400"><TrendingUp size={20}/></div>
-                   <h3 className="text-slate-400 text-sm font-bold uppercase">W/kg (FTP)</h3>
-                </div>
-                <div className="text-3xl font-bold text-white">{(userSettings.ftp / userSettings.weight).toFixed(2)}</div>
-                <div className="text-xs text-slate-500 mt-1">Target: > 4.5 W/kg</div>
-              </div>
-
-              <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
-                <div className="flex items-center gap-3 mb-2">
-                   <div className="p-2 bg-green-500/20 rounded-lg text-green-400"><Activity size={20}/></div>
-                   <h3 className="text-slate-400 text-sm font-bold uppercase">CTL (Fitness)</h3>
-                </div>
-                <div className="text-3xl font-bold text-white">84</div>
-                <div className="text-xs text-green-400 mt-1 flex items-center gap-1">
-                  <TrendingUp size={12}/> +2 this week
-                </div>
-              </div>
-
-              <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
-                <div className="flex items-center gap-3 mb-2">
-                   <div className="p-2 bg-yellow-500/20 rounded-lg text-yellow-400"><Timer size={20}/></div>
-                   <h3 className="text-slate-400 text-sm font-bold uppercase">Alpe d'Huez Est.</h3>
-                </div>
-                <div className="text-3xl font-bold text-white">58:30</div>
-                <div className="text-xs text-slate-500 mt-1">Based on current W/kg</div>
-              </div>
-            </div>
-
-            {/* CHARTS (Mobile Responsive Wrapper) */}
-            <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
-              <h3 className="text-lg font-bold text-white mb-4">Performance Trends</h3>
-              <div className="w-full overflow-x-auto">
-                <div className="min-w-[600px] h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={progressData}>
-                      <defs>
-                        <linearGradient id="colorFtp" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#facc15" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#facc15" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                      <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickFormatter={(d) => d.substring(5)} />
-                      <YAxis stroke="#94a3b8" fontSize={12} />
-                      <Tooltip 
-                        contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f1f5f9' }}
-                        itemStyle={{ color: '#facc15' }}
-                      />
-                      <Area type="monotone" dataKey="ftp" stroke="#facc15" fillOpacity={1} fill="url(#colorFtp)" name="Avg Power (NP)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'physics' && (
-          <PhysicsEngine 
-            userSettings={userSettings} 
-            selectedClimb={selectedClimb}
-            onUpdateClimb={setSelectedClimb}
-          />
-        )}
-
-        {activeTab === 'data' && (
-          <DataHub 
-            activities={activities} 
-            activeTab={activeTab === 'data' ? 'activities' : activeTab} // Local state fix logic needed usually, simplified here
-            setActiveTab={(t) => setActiveTab(t === 'import' ? 'data' : t)} // Hack for simple nav, actually handled in component
-            onImport={(newDocs) => setActivities([...activities, ...newDocs])}
-            onDelete={(id) => setActivities(activities.filter(a => a.id !== id))}
-          />
-        )}
-        
-        {/* Needed to pass state down correctly to DataHub, slight mismatch in prop drilling in simplified view. 
-            Fixing DataHub instantiation above:
-        */}
-        {activeTab === 'data-hub-real' && (
-             <div className="text-red-500">Error State</div>
-        )}
-
-        {activeTab === 'coach' && (
-          <AICoach activities={activities} userSettings={userSettings} />
-        )}
-
-        {activeTab === 'fueling' && (
-          <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
-             <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2"><Battery className="text-green-400"/> Race Day Fueling</h2>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-               <div className="space-y-4">
-                 <p className="text-sm text-slate-300">Strategy for: <strong className="text-yellow-400">{selectedClimb.name}</strong></p>
-                 <div className="p-4 bg-slate-900 rounded border border-slate-700">
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-slate-400">Target Carb Intake</span>
-                      <span className="text-white font-bold">90g / hour</span>
-                    </div>
-                    <div className="w-full bg-slate-800 rounded-full h-2">
-                      <div className="bg-green-500 h-2 rounded-full" style={{width: '90%'}}></div>
+           <div className="space-y-6 animate-in fade-in">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                 <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
+                    <h3 className="text-slate-400 text-xs font-bold uppercase mb-2">FTP Setting</h3>
+                    <div className="flex items-baseline gap-2">
+                        <span className="text-3xl font-bold text-white">{userSettings.ftp}</span>
+                        <span className="text-sm text-slate-500">W</span>
                     </div>
                  </div>
-                 <ul className="text-xs text-slate-400 list-disc list-inside space-y-1">
-                   <li>0:00 - Start met volle glycogeen voorraad</li>
-                   <li>0:20 - Gel 1 (30g) + Water</li>
-                   <li>0:40 - Gel 2 (30g) + Isotonic</li>
-                 </ul>
-               </div>
-               <div className="bg-blue-900/20 p-4 rounded border border-blue-500/30">
-                 <h4 className="text-blue-400 font-bold text-sm mb-2">Hydration Note</h4>
-                 <p className="text-xs text-slate-300">Bij 20°C verlies je ~800ml vocht per uur op deze intensiteit. Drink minstens 1 bidon (500ml) per uur met elektrolyten.</p>
-               </div>
-             </div>
-          </div>
+                 <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
+                    <h3 className="text-slate-400 text-xs font-bold uppercase mb-2">Weight (User)</h3>
+                    <div className="flex items-center justify-between">
+                         <span className="text-3xl font-bold text-white">{userSettings.weight.toFixed(1)}</span>
+                         <div className="flex gap-1">
+                            <button onClick={()=>setUserSettings(s=>({...s, weight: parseFloat((s.weight-0.1).toFixed(1))}))} className="p-1 bg-slate-700 rounded hover:bg-slate-600">-</button>
+                            <button onClick={()=>setUserSettings(s=>({...s, weight: parseFloat((s.weight+0.1).toFixed(1))}))} className="p-1 bg-slate-700 rounded hover:bg-slate-600">+</button>
+                         </div>
+                    </div>
+                 </div>
+                 <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
+                    <h3 className="text-slate-400 text-xs font-bold uppercase mb-2">Weight (Bike)</h3>
+                    <div className="flex items-center justify-between">
+                         <span className="text-3xl font-bold text-white">{userSettings.bikeWeight.toFixed(1)}</span>
+                         <div className="flex gap-1">
+                            <button onClick={()=>setUserSettings(s=>({...s, bikeWeight: parseFloat((s.bikeWeight-0.1).toFixed(1))}))} className="p-1 bg-slate-700 rounded hover:bg-slate-600">-</button>
+                            <button onClick={()=>setUserSettings(s=>({...s, bikeWeight: parseFloat((s.bikeWeight+0.1).toFixed(1))}))} className="p-1 bg-slate-700 rounded hover:bg-slate-600">+</button>
+                         </div>
+                    </div>
+                 </div>
+                 <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
+                    <h3 className="text-slate-400 text-xs font-bold uppercase mb-2">CTL (Load)</h3>
+                    <span className="text-3xl font-bold text-blue-400">{Math.round(activities.reduce((acc,c)=>acc+c.load,0)/42)}</span>
+                    <span className="text-xs text-slate-500 ml-2">avg/day</span>
+                 </div>
+              </div>
+
+              <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
+                 <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2"><TrendingUp className="w-5 h-5 text-yellow-400"/> FTP & Load</h3>
+                    <div className="flex bg-slate-900 rounded p-1">
+                        {['6M','1Y','ALL'].map(r => (
+                            <button key={r} onClick={() => setTimeRange(r)} className={`px-3 py-1 text-xs font-bold rounded ${timeRange===r ? 'bg-yellow-400 text-slate-900' : 'text-slate-400'}`}>{r}</button>
+                        ))}
+                    </div>
+                 </div>
+                 <div className="h-[350px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <ComposedChart data={chartData}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                            <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 12}} tickFormatter={d => d.substring(5)} />
+                            <YAxis yAxisId="left" stroke="#facc15" tick={{fontSize: 12}} domain={['dataMin - 20', 'auto']} />
+                            <YAxis yAxisId="right" orientation="right" stroke="#60a5fa" tick={{fontSize: 12}} />
+                            <Tooltip contentStyle={{backgroundColor: '#0f172a', borderColor: '#334155', color: '#f8fafc'}}/>
+                            <Bar yAxisId="right" dataKey="load" fill="#3b82f6" opacity={0.3} barSize={20} name="TSS/Load" />
+                            <Area yAxisId="left" type="monotone" dataKey="rollingFtp" stroke="#facc15" strokeWidth={3} fillOpacity={0.1} fill="#facc15" name="Trend NP (15d)" />
+                        </ComposedChart>
+                    </ResponsiveContainer>
+                 </div>
+              </div>
+           </div>
         )}
 
+        {activeTab === 'physics' && <PhysicsEngine userSettings={userSettings} setUserSettings={setUserSettings} selectedClimb={selectedClimb} onUpdateClimb={setSelectedClimb} />}
+        {activeTab === 'data' && <DataHub activities={activities} onImport={(n) => setActivities([...activities, ...n])} onDelete={(id) => setActivities(activities.filter(a => a.id !== id))} />}
+        {activeTab === 'fueling' && <FuelingStrategy />}
       </main>
-
-      {/* MOBILE NAV BOTTOM */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 flex justify-around p-3 z-50">
-        {[
-            { id: 'dashboard', icon: Gauge },
-            { id: 'physics', icon: Mountain },
-            { id: 'data', icon: Activity },
-            { id: 'coach', icon: Brain },
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`${activeTab === tab.id ? 'text-yellow-400' : 'text-slate-500'}`}
-            >
-              <tab.icon className="w-6 h-6" />
-            </button>
-          ))}
-      </div>
-
     </div>
   );
 };
