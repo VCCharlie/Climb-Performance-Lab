@@ -4,10 +4,10 @@ import {
   AreaChart, Area, ComposedChart, Bar 
 } from 'recharts';
 import { 
-  Activity, Upload, TrendingUp, ChevronDown, ChevronRight, 
+  Activity, Upload, TrendingUp, ChevronDown, ChevronRight, ChevronUp,
   Timer, Search, Zap, Mountain, Gauge, Brain, Battery, 
   Droplets, Utensils, Minus, Plus, Link as LinkIcon, Download,
-  Map, Cloud, Trash2, AlertTriangle, Info, CheckCircle
+  Map, Cloud, Trash2, AlertTriangle, Info, CheckCircle, ArrowUpDown
 } from 'lucide-react';
 
 // --- FIREBASE CONFIGURATION & INIT ---
@@ -292,16 +292,11 @@ const MONTH_ORDER = [
  * ============================================================================
  */
 
-// NIEUW: Datum Normalisatie functie om "dd/mm/yyyy" om te zetten naar "yyyy-mm-dd"
 const normalizeDate = (dateStr) => {
     if (!dateStr) return new Date().toISOString().split('T')[0];
-    
-    // Check of datum slashes bevat (bv 31/01/2023)
     if (dateStr.includes('/')) {
         const parts = dateStr.split('/');
-        // Aanname: DD/MM/YYYY formaat
         if (parts.length === 3) {
-            // Return YYYY-MM-DD
             return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
         }
     }
@@ -319,10 +314,12 @@ const formatDateDDMMYYYY = (isoDateString) => {
 };
 
 const formatTime = (seconds) => {
-  if (!seconds || isNaN(seconds)) return "00:00";
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.floor(seconds % 60);
+  // Safe number check
+  const sNum = Number(seconds);
+  if (!sNum || isNaN(sNum)) return "00:00";
+  const h = Math.floor(sNum / 3600);
+  const m = Math.floor((sNum % 3600) / 60);
+  const s = Math.floor(sNum % 60);
   return `${h > 0 ? h + ':' : ''}${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 };
 
@@ -343,16 +340,21 @@ const parseDurationToSeconds = (str) => {
   return 0;
 };
 
+// NaN Protected Rolling Average
 const calculateRollingTrend = (activities, targetDateStr, metricKey, windowDays = 15) => {
   const targetDate = new Date(targetDateStr);
   const msPerDay = 24 * 60 * 60 * 1000;
   const inWindow = activities.filter(a => {
     const d = new Date(a.date);
     const diffDays = Math.abs((targetDate - d) / msPerDay);
-    return diffDays <= windowDays && a[metricKey] > 0;
+    // Explicit Number() conversion to avoid string concatenation or NaNs
+    const val = Number(a[metricKey]);
+    return diffDays <= windowDays && !isNaN(val) && val > 0;
   });
+
   if (inWindow.length === 0) return 0;
-  const sum = inWindow.reduce((acc, curr) => acc + curr[metricKey], 0);
+  
+  const sum = inWindow.reduce((acc, curr) => acc + (Number(curr[metricKey]) || 0), 0);
   return sum / inWindow.length;
 };
 
@@ -390,7 +392,6 @@ const smartParseCSV = (text, type = 'generic') => {
       if (key && cols[idx]) {
         let val = cols[idx].trim().replace(/['"]+/g, '');
         if (key === 'date') {
-            // Hier passen we de fix toe
             val = normalizeDate(val);
         } else if (key !== 'title') {
           if (key === 'moving_time' && val.includes(':')) {
@@ -406,9 +407,13 @@ const smartParseCSV = (text, type = 'generic') => {
 
     if (!entry.title) entry.title = "Untitled Activity"; 
     if (!entry.id) entry.id = Math.random().toString(36).substr(2, 9);
-    // Fallback voor ongeldige datums
     if (!entry.date || entry.date === 'Invalid Date') entry.date = new Date().toISOString().split('T')[0];
     
+    // Safety defaults for NaN prevention
+    ['load', 'norm_power', 'avg_power', 'climbing', 'distance'].forEach(k => {
+        if(!entry[k]) entry[k] = 0;
+    });
+
     return entry;
   }).filter(e => e.distance > 0 || e.moving_time > 0);
 };
@@ -604,6 +609,7 @@ const DataHub = ({ activities, onImport, onDelete }) => {
   const [search, setSearch] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null); 
   const [expandedYears, setExpandedYears] = useState({});
+  const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
 
   const handleImport = (type) => {
     const data = smartParseCSV(importText, type);
@@ -641,22 +647,80 @@ const DataHub = ({ activities, onImport, onDelete }) => {
 
   const toggleYear = (year) => setExpandedYears(p => ({...p, [year]: !p[year]}));
 
+  // --- SORTING LOGIC ---
+  const requestSort = (key) => {
+    let direction = 'desc';
+    if (sortConfig.key === key && sortConfig.direction === 'desc') {
+      direction = 'asc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  // 1. Process Activities (Filter & Sort)
+  const processedActivities = useMemo(() => {
+    let filtered = activities.filter(a => a.title?.toLowerCase().includes(search.toLowerCase()) || a.date.includes(search));
+    
+    // Sort
+    if (sortConfig.key) {
+        filtered.sort((a, b) => {
+            let aVal = a[sortConfig.key];
+            let bVal = b[sortConfig.key];
+
+            // String comparison (case insensitive)
+            if (typeof aVal === 'string') {
+                aVal = aVal.toLowerCase();
+                bVal = bVal ? bVal.toLowerCase() : '';
+            } else {
+                // Number safety
+                aVal = Number(aVal) || 0;
+                bVal = Number(bVal) || 0;
+            }
+
+            if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+            if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }
+    return filtered;
+  }, [activities, search, sortConfig]);
+
+  // 2. Group (Only if sorting by Date, otherwise show flat list)
+  const isGroupedView = sortConfig.key === 'date';
+
   const groupedActivities = useMemo(() => {
-    const filtered = activities.filter(a => a.title?.toLowerCase().includes(search.toLowerCase()) || a.date.includes(search));
-    const sorted = [...filtered].sort((a,b) => new Date(b.date) - new Date(a.date));
+    if (!isGroupedView) return null;
     
     const groups = {};
-    sorted.forEach(act => {
+    processedActivities.forEach(act => {
         const d = new Date(act.date);
         const y = d.getFullYear();
-        // Gebruik de Engelse maandnaam voor consistentie met MONTH_ORDER
         const m = d.toLocaleString('en-US', { month: 'long' });
         if(!groups[y]) groups[y] = {};
         if(!groups[y][m]) groups[y][m] = [];
         groups[y][m].push(act);
     });
     return groups;
-  }, [activities, search]);
+  }, [processedActivities, isGroupedView]);
+
+  // --- RENDER HELPERS ---
+  const SortIcon = ({ colKey }) => {
+    if (sortConfig.key !== colKey) return <ArrowUpDown size={12} className="opacity-30 ml-1 inline" />;
+    return sortConfig.direction === 'asc' 
+        ? <ChevronUp size={12} className="text-yellow-400 ml-1 inline" /> 
+        : <ChevronDown size={12} className="text-yellow-400 ml-1 inline" />;
+  };
+
+  const Header = ({ label, colKey, align = 'left' }) => (
+    <th 
+        className={`p-3 cursor-pointer hover:bg-slate-800 transition-colors select-none text-${align}`}
+        onClick={() => requestSort(colKey)}
+    >
+        <span className="flex items-center gap-1 justify-end">
+             {align === 'left' && <span className="flex-1 text-left">{label}</span>}
+             {align === 'left' ? <SortIcon colKey={colKey}/> : <>{label} <SortIcon colKey={colKey}/></>}
+        </span>
+    </th>
+  );
 
   return (
     <div className="bg-slate-800 rounded-xl border border-slate-700 shadow-xl overflow-hidden min-h-[600px] flex flex-col">
@@ -683,24 +747,25 @@ const DataHub = ({ activities, onImport, onDelete }) => {
                         <table className="w-full text-left text-xs whitespace-nowrap">
                             <thead className="bg-slate-900 text-slate-400 uppercase font-bold sticky top-0 z-10">
                                 <tr>
-                                    <th className="p-3">Date</th>
-                                    <th className="p-3">Title</th>
-                                    <th className="p-3 text-right">Time</th>
-                                    <th className="p-3 text-right">Dist</th>
-                                    <th className="p-3 text-right">Elev</th>
-                                    <th className="p-3 text-right">Avg Spd</th>
-                                    <th className="p-3 text-right text-yellow-400">NP</th>
-                                    <th className="p-3 text-right">Avg Pwr</th>
-                                    <th className="p-3 text-right text-blue-400">Load</th>
-                                    <th className="p-3 text-right">RPE</th>
-                                    <th className="p-3 text-right text-slate-500">5m</th>
-                                    <th className="p-3 text-right text-slate-500">20m</th>
-                                    <th className="p-3 text-right text-slate-500">60m</th>
-                                    <th className="p-3">Action</th>
+                                    <Header label="Date" colKey="date" align="left" />
+                                    <Header label="Title" colKey="title" align="left" />
+                                    <Header label="Time" colKey="moving_time" align="right" />
+                                    <Header label="Dist" colKey="distance" align="right" />
+                                    <Header label="Elev" colKey="climbing" align="right" />
+                                    <Header label="Spd" colKey="avg_speed" align="right" />
+                                    <Header label="NP" colKey="norm_power" align="right" />
+                                    <Header label="Avg" colKey="avg_power" align="right" />
+                                    <Header label="Load" colKey="load" align="right" />
+                                    <Header label="RPE" colKey="rpe" align="right" />
+                                    <Header label="5m" colKey="best_5min" align="right" />
+                                    <Header label="20m" colKey="best_20min" align="right" />
+                                    <Header label="60m" colKey="best_60min" align="right" />
+                                    <th className="p-3 text-right">Action</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-700 bg-slate-800">
-                                {Object.keys(groupedActivities).sort((a,b)=>b-a).map(year => (
+                                {/* SCENARIO A: GROUPED VIEW (If sorting by Date) */}
+                                {isGroupedView && groupedActivities && Object.keys(groupedActivities).sort((a,b)=> sortConfig.direction === 'asc' ? a-b : b-a).map(year => (
                                     <React.Fragment key={year}>
                                         <tr className="bg-slate-700/50">
                                             <td colSpan="14" className="p-2">
@@ -709,47 +774,29 @@ const DataHub = ({ activities, onImport, onDelete }) => {
                                                 </button>
                                             </td>
                                         </tr>
-                                        {/* FIX: Maanden sorteren op basis van index ipv alfabet */}
                                         {expandedYears[year] && Object.keys(groupedActivities[year])
-                                            .sort((a, b) => MONTH_ORDER.indexOf(b) - MONTH_ORDER.indexOf(a))
+                                            .sort((a, b) => {
+                                                const diff = MONTH_ORDER.indexOf(b) - MONTH_ORDER.indexOf(a);
+                                                return sortConfig.direction === 'asc' ? -diff : diff;
+                                            })
                                             .map(month => (
                                             <React.Fragment key={month}>
                                                 <tr className="bg-slate-700/20">
                                                     <td colSpan="14" className="px-8 py-1 text-[10px] uppercase font-bold text-slate-500 tracking-wider">{month}</td>
                                                 </tr>
                                                 {groupedActivities[year][month].map(act => (
-                                                    <tr key={act.id} className="hover:bg-slate-700/50 transition-colors">
-                                                        <td className="p-3 text-slate-300">{formatDateDDMMYYYY(act.date)}</td>
-                                                        <td className="p-3 font-medium text-white max-w-[150px] truncate" title={act.title}>{act.title}</td>
-                                                        <td className="p-3 text-right text-slate-400">{formatTime(act.moving_time)}</td>
-                                                        <td className="p-3 text-right text-slate-400">{parseFloat(act.distance).toFixed(1)}</td>
-                                                        <td className="p-3 text-right text-slate-400">{Math.round(act.climbing || 0)}</td>
-                                                        <td className="p-3 text-right text-slate-400">{act.avg_speed ? parseFloat(act.avg_speed).toFixed(1) : '-'}</td>
-                                                        <td className="p-3 text-right font-bold text-yellow-400">{Math.round(act.norm_power || 0)}</td>
-                                                        <td className="p-3 text-right text-slate-400">{Math.round(act.avg_power || 0)}</td>
-                                                        <td className="p-3 text-right text-blue-400">{Math.round(act.load || 0)}</td>
-                                                        <td className="p-3 text-right text-slate-400">{act.rpe || '-'}</td>
-                                                        <td className="p-3 text-right text-slate-500">{act.best_5min ? Math.round(act.best_5min) : '-'}</td>
-                                                        <td className="p-3 text-right text-slate-500">{act.best_20min ? Math.round(act.best_20min) : '-'}</td>
-                                                        <td className="p-3 text-right text-slate-500">{act.best_60min ? Math.round(act.best_60min) : '-'}</td>
-                                                        <td className="p-3 text-right">
-                                                            {deleteConfirm === act.id ? (
-                                                                <div className="flex gap-2 justify-end">
-                                                                    <button onClick={() => onDelete(act.id)} className="text-red-500 font-bold text-xs bg-red-500/10 px-2 py-1 rounded">SURE?</button>
-                                                                    <button onClick={() => setDeleteConfirm(null)} className="text-slate-400 text-xs px-2 py-1">Cancel</button>
-                                                                </div>
-                                                            ) : (
-                                                                <button onClick={() => setDeleteConfirm(act.id)} className="text-slate-600 hover:text-red-400 transition-colors">
-                                                                    <Trash2 size={14}/>
-                                                                </button>
-                                                            )}
-                                                        </td>
-                                                    </tr>
+                                                    <Row key={act.id} act={act} onDelete={onDelete} deleteConfirm={deleteConfirm} setDeleteConfirm={setDeleteConfirm}/>
                                                 ))}
                                             </React.Fragment>
                                         ))}
                                     </React.Fragment>
                                 ))}
+
+                                {/* SCENARIO B: FLAT SORTED VIEW (If sorting by anything else) */}
+                                {!isGroupedView && processedActivities.map(act => (
+                                     <Row key={act.id} act={act} onDelete={onDelete} deleteConfirm={deleteConfirm} setDeleteConfirm={setDeleteConfirm}/>
+                                ))}
+
                             </tbody>
                         </table>
                     </div>
@@ -798,6 +845,37 @@ const DataHub = ({ activities, onImport, onDelete }) => {
     </div>
   );
 };
+
+// Extracted Row Component to avoid duplication
+const Row = ({ act, onDelete, deleteConfirm, setDeleteConfirm }) => (
+    <tr className="hover:bg-slate-700/50 transition-colors border-b border-slate-700/50">
+        <td className="p-3 text-slate-300">{formatDateDDMMYYYY(act.date)}</td>
+        <td className="p-3 font-medium text-white max-w-[150px] truncate" title={act.title}>{act.title}</td>
+        <td className="p-3 text-right text-slate-400">{formatTime(act.moving_time)}</td>
+        <td className="p-3 text-right text-slate-400">{parseFloat(act.distance).toFixed(1)}</td>
+        <td className="p-3 text-right text-slate-400">{Math.round(act.climbing || 0)}</td>
+        <td className="p-3 text-right text-slate-400">{act.avg_speed ? parseFloat(act.avg_speed).toFixed(1) : '-'}</td>
+        <td className="p-3 text-right font-bold text-yellow-400">{Math.round(act.norm_power || 0)}</td>
+        <td className="p-3 text-right text-slate-400">{Math.round(act.avg_power || 0)}</td>
+        <td className="p-3 text-right text-blue-400">{Math.round(act.load || 0)}</td>
+        <td className="p-3 text-right text-slate-400">{act.rpe || '-'}</td>
+        <td className="p-3 text-right text-slate-500">{act.best_5min ? Math.round(act.best_5min) : '-'}</td>
+        <td className="p-3 text-right text-slate-500">{act.best_20min ? Math.round(act.best_20min) : '-'}</td>
+        <td className="p-3 text-right text-slate-500">{act.best_60min ? Math.round(act.best_60min) : '-'}</td>
+        <td className="p-3 text-right">
+            {deleteConfirm === act.id ? (
+                <div className="flex gap-2 justify-end">
+                    <button onClick={() => onDelete(act.id)} className="text-red-500 font-bold text-xs bg-red-500/10 px-2 py-1 rounded">SURE?</button>
+                    <button onClick={() => setDeleteConfirm(null)} className="text-slate-400 text-xs px-2 py-1">Cancel</button>
+                </div>
+            ) : (
+                <button onClick={() => setDeleteConfirm(act.id)} className="text-slate-600 hover:text-red-400 transition-colors">
+                    <Trash2 size={14}/>
+                </button>
+            )}
+        </td>
+    </tr>
+);
 
 const FuelingStrategy = () => {
     const [duration, setDuration] = useState(180); 
@@ -990,6 +1068,10 @@ const App = () => {
     }));
   }, [activities, timeRange]);
 
+  // Safe Total Load Calc
+  const totalLoad = activities.reduce((acc, c) => acc + (Number(c.load) || 0), 0);
+  const avgLoad = activities.length > 0 ? Math.round(totalLoad / activities.length) : 0;
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-yellow-400 selection:text-slate-900 pb-20">
       
@@ -1056,7 +1138,7 @@ const App = () => {
                         </div>
                         <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
                             <h3 className="text-slate-400 text-xs font-bold uppercase mb-2">Load (Avg)</h3>
-                            <span className="text-3xl font-bold text-blue-400">{Math.round(activities.reduce((acc,c)=>acc+c.load,0)/(activities.length||1))}</span>
+                            <span className="text-3xl font-bold text-blue-400">{avgLoad}</span>
                         </div>
                       </div>
 
@@ -1101,3 +1183,4 @@ const App = () => {
 };
 
 export default App;
+
