@@ -7,16 +7,44 @@ import {
   Activity, Upload, TrendingUp, ChevronDown, ChevronRight, 
   Timer, Search, Zap, Mountain, Gauge, Brain, Battery, 
   Droplets, Utensils, Minus, Plus, Link as LinkIcon, Download,
-  Map
+  Map, Cloud, Trash2, AlertTriangle, Info, CheckCircle
 } from 'lucide-react';
+
+// --- FIREBASE CONFIGURATION & INIT ---
+import { initializeApp } from "firebase/app";
+import { getFirestore, collection, doc, setDoc } from "firebase/firestore";
+import { getAnalytics } from "firebase/analytics";
+
+// Jouw specifieke configuratie
+const firebaseConfig = {
+  apiKey: "AIzaSyBNWzcEXhzra-iCkHiZj_FdYUf0NcKvHAk",
+  authDomain: "climb-performance-lab.firebaseapp.com",
+  projectId: "climb-performance-lab",
+  storageBucket: "climb-performance-lab.firebasestorage.app",
+  messagingSenderId: "97555677694",
+  appId: "1:97555677694:web:fa84b31445639e260cc0af",
+  measurementId: "G-G4WLCWCXFK"
+};
+
+// Initialiseer Firebase (Veiligheidscheck)
+let db;
+let analytics;
+try {
+  const app = initializeApp(firebaseConfig);
+  db = getFirestore(app); // Database verbinding
+  if (typeof window !== 'undefined') {
+    analytics = getAnalytics(app); // Analytics verbinding
+  }
+} catch (error) {
+  console.error("Firebase initialisatie fout:", error);
+}
 
 /**
  * ============================================================================
- * 1. THE MASSIVE CLIMB DATABASE (REAL WORLD + COMPLETE ZWIFT)
+ * 1. CLIMB DATABASE & CONSTANTS
  * ============================================================================
  */
 
-// Helper: Generates Climbfinder URL for real world, defaults for Zwift if needed
 const getClimbUrl = (name, country) => {
   if (country === 'Zwift') return `https://zwiftinsider.com/?s=${name.replace(/\s+/g, '+')}`;
   return `https://climbfinder.com/en/climbs/${name.toLowerCase().replace(/[\s/().']+/g, '-').replace(/-+$/, '')}`;
@@ -246,7 +274,6 @@ const CLIMB_DATABASE = [
 { id: 'zp_pla_adet', name: "Pla d'Adet", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 12.1, elevation: 847, avgGrade: 6.9 },
 { id: 'zp_poggio', name: "Poggio", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 4.3, elevation: 136, avgGrade: 3.2 },
 { id: 'zp_trollstigen', name: "Trollstigen", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 12.4, elevation: 784, avgGrade: 6.3 },
-
 ].map(c => ({...c, url: c.url || getClimbUrl(c.name, c.country)}));
 
 const COGGAN_ZONES = [
@@ -265,6 +292,16 @@ const COGGAN_ZONES = [
  * ============================================================================
  */
 
+const formatDateDDMMYYYY = (isoDateString) => {
+  if (!isoDateString) return '-';
+  const date = new Date(isoDateString);
+  if (isNaN(date.getTime())) return isoDateString; // Fallback
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}-${month}-${year}`;
+};
+
 const formatTime = (seconds) => {
   if (!seconds || isNaN(seconds)) return "00:00";
   const h = Math.floor(seconds / 3600);
@@ -275,6 +312,7 @@ const formatTime = (seconds) => {
 
 const parseDurationToSeconds = (str) => {
   if(!str) return 0;
+  if(typeof str === 'number') return str; // Already seconds
   if(str.includes('h') || str.includes('m')) {
     let s = 0;
     const h = str.match(/(\d+)h/);
@@ -289,23 +327,21 @@ const parseDurationToSeconds = (str) => {
   return 0;
 };
 
-// Rolling Average Logic (±15 days window)
+// Rolling Average Logic
 const calculateRollingTrend = (activities, targetDateStr, metricKey, windowDays = 15) => {
   const targetDate = new Date(targetDateStr);
   const msPerDay = 24 * 60 * 60 * 1000;
-  
   const inWindow = activities.filter(a => {
     const d = new Date(a.date);
     const diffDays = Math.abs((targetDate - d) / msPerDay);
     return diffDays <= windowDays && a[metricKey] > 0;
   });
-
   if (inWindow.length === 0) return 0;
   const sum = inWindow.reduce((acc, curr) => acc + curr[metricKey], 0);
   return sum / inWindow.length;
 };
 
-// Advanced CSV Parser (Includes Intervals.icu mapping)
+// Robust CSV Parser
 const smartParseCSV = (text, type = 'generic') => {
   const lines = text.trim().split('\n');
   if (lines.length < 2) return [];
@@ -314,21 +350,23 @@ const smartParseCSV = (text, type = 'generic') => {
   const rawHeaders = lines[0].split(delimiter).map(h => h.trim().toLowerCase().replace(/['"]+/g, ''));
 
   const mapHeader = (h) => {
-    if (h === 'icu_training_load' || h === 'training_load') return 'load';
-    if (h === 'icu_intensity' || h === 'intensity') return 'intensity';
-    if (h === 'moving_time' || h === 'elapsed_time') return 'moving_time';
-    if (h === 'icu_rpe' || h === 'feel') return 'rpe';
+    // Name/Title variations
+    if (h === 'name' || h === 'title' || h === 'activity_name' || h === 'activity') return 'title';
     
+    // Time/Date
     if (h.includes('date') || h.includes('datum')) return 'date';
-    if (h.includes('title') || h.includes('naam') || h.includes('activity')) return 'title';
+    if (h.includes('moving') || h.includes('elapsed')) return 'moving_time';
+    
+    // Metrics
     if (h.includes('distance') || h.includes('afstand')) return 'distance';
     if (h.includes('climb') || h.includes('elevation') || h.includes('hoogte')) return 'climbing';
     if (h.includes('speed') || h.includes('snelheid')) return 'avg_speed';
     if (h.includes('norm') || h.includes('np')) return 'norm_power';
     if (h.includes('avg power') || h.includes('gem. vermogen')) return 'avg_power';
-    if (h.includes('load') || h.includes('tss')) return 'load';
-    if (h.includes('rpe')) return 'rpe';
+    if (h === 'load' || h === 'tss' || h === 'icu_training_load' || h === 'training_load') return 'load';
+    if (h === 'rpe' || h === 'icu_rpe' || h === 'feel') return 'rpe';
     
+    // Power Curve
     if (h.includes('5m') || h.includes('5 min')) return 'best_5min';
     if (h.includes('20m') || h.includes('20 min')) return 'best_20min';
     if (h.includes('60m') || h.includes('60 min')) return 'best_60min';
@@ -345,7 +383,7 @@ const smartParseCSV = (text, type = 'generic') => {
     colMap.forEach((key, idx) => {
       if (key && cols[idx]) {
         let val = cols[idx].trim().replace(/['"]+/g, '');
-        if (!['title', 'date'].includes(key)) {
+        if (key !== 'title' && key !== 'date') {
           if (key === 'moving_time' && val.includes(':')) {
             val = parseDurationToSeconds(val);
           } else {
@@ -357,6 +395,7 @@ const smartParseCSV = (text, type = 'generic') => {
       }
     });
 
+    if (!entry.title) entry.title = "Untitled Activity"; 
     if (!entry.id) entry.id = Math.random().toString(36).substr(2, 9);
     if (!entry.date) entry.date = new Date().toISOString().split('T')[0];
     
@@ -364,19 +403,21 @@ const smartParseCSV = (text, type = 'generic') => {
   }).filter(e => e.distance > 0 || e.moving_time > 0);
 };
 
-
 /**
  * ============================================================================
  * 3. SUB-COMPONENTS
  * ============================================================================
  */
 
-// 3.1 PHYSICS ENGINE
+// 3.1 PHYSICS ENGINE & SELECTOR
 const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateClimb }) => {
   const [mode, setMode] = useState('target'); 
   const [targetTimeStr, setTargetTimeStr] = useState("59:00");
   const [targetWatts, setTargetWatts] = useState(userSettings.ftp);
   const [calc, setCalc] = useState({ watts: 0, wkg: 0, time: "", vam: 0, zone: null });
+  
+  // Filter State
+  const [countryFilter, setCountryFilter] = useState('All');
 
   const updateWeight = (type, delta) => {
     const current = type === 'body' ? userSettings.weight : userSettings.bikeWeight;
@@ -429,46 +470,66 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
 
   }, [mode, targetTimeStr, targetWatts, selectedClimb, userSettings]);
 
-  // Group climbs by Country (and split Zwift by Region for better UX)
+  // Filtered Climbs
+  const filteredClimbs = useMemo(() => {
+    if(countryFilter === 'All') return CLIMB_DATABASE;
+    return CLIMB_DATABASE.filter(c => c.country === countryFilter);
+  }, [countryFilter]);
+
+  // Group climbs by Country/Region for dropdown
   const climbsGrouped = useMemo(() => {
     const groups = {};
-    CLIMB_DATABASE.forEach(c => {
-      // Special logic for Zwift to create subgroups in dropdown
+    filteredClimbs.forEach(c => {
       let key = c.country;
-      if(c.country === 'Zwift') {
-          key = `Zwift - ${c.region}`; 
-      }
-      
+      if(c.country === 'Zwift') key = `Zwift - ${c.region}`; 
       if(!groups[key]) groups[key] = [];
       groups[key].push(c);
     });
     return groups;
-  }, []);
+  }, [filteredClimbs]);
+
+  const uniqueCountries = useMemo(() => ['All', ...new Set(CLIMB_DATABASE.map(c => c.country))].sort(), []);
 
   return (
     <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
-      <div className="flex flex-col md:flex-row justify-between mb-6 gap-4">
-        <div>
-           <h2 className="text-xl font-bold text-yellow-400 flex items-center gap-2"><Mountain className="w-6 h-6" /> Physics Engine</h2>
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-yellow-400 flex items-center gap-2"><Mountain className="w-6 h-6" /> Physics Engine</h2>
+            <a href={selectedClimb.url} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-white flex items-center gap-1 text-xs" title="View Info">
+              <Info size={14}/> Climb Detail
+            </a>
         </div>
-        <div className="flex items-center gap-2">
+
+        {/* Improved Country Filter System */}
+        <div className="space-y-2">
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                {uniqueCountries.map(c => (
+                    <button 
+                        key={c} 
+                        onClick={() => setCountryFilter(c)}
+                        className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${countryFilter === c ? 'bg-yellow-400 text-slate-900' : 'bg-slate-700 text-slate-400 hover:text-white'}`}
+                    >
+                        {c === 'All' ? '🌍 All' : c}
+                    </button>
+                ))}
+            </div>
+            
             <select 
-              className="bg-slate-700 text-white rounded p-2 text-sm border border-slate-600 outline-none focus:border-yellow-400 max-w-[250px]"
+              className="w-full bg-slate-900 text-white rounded p-3 text-sm border border-slate-600 outline-none focus:border-yellow-400"
               value={selectedClimb.id}
               onChange={(e) => onUpdateClimb(CLIMB_DATABASE.find(c => c.id === e.target.value))}
             >
-              {/* Sort keys to have Countries first, then Zwift */}
-              {Object.keys(climbsGrouped).sort((a,b) => a.localeCompare(b)).map(group => (
+              {Object.keys(climbsGrouped).sort().map(group => (
                 <optgroup key={group} label={group}>
-                  {climbsGrouped[group].map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  {climbsGrouped[group].map(c => <option key={c.id} value={c.id}>{c.name} ({c.lengthKm}km @ {c.avgGrade}%)</option>)}
                 </optgroup>
               ))}
             </select>
-            <a href={selectedClimb.url} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-white" title="View Info"><LinkIcon size={16}/></a>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Controls */}
         <div className="lg:col-span-4 space-y-6">
             <div className="bg-slate-900 p-4 rounded-lg border border-slate-700 space-y-3">
                 <div className="flex justify-between items-center">
@@ -504,6 +565,7 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
             </div>
         </div>
 
+        {/* Results */}
         <div className="lg:col-span-8 grid grid-cols-2 gap-4">
              <div className="bg-slate-700/50 p-4 rounded-lg flex flex-col items-center justify-center border border-slate-600">
                 <span className="text-xs text-slate-400 uppercase mb-1">Required Power</span>
@@ -545,11 +607,13 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
   );
 };
 
-// 3.2 DATA HUB (Fixed Tabs & Intervals.icu support)
+// 3.2 DATA HUB (Grouped, Confirm Delete, Sync, Full Columns)
 const DataHub = ({ activities, onImport, onDelete }) => {
-  const [internalTab, setInternalTab] = useState('log'); // 'log' | 'import' | 'intervals'
+  const [internalTab, setInternalTab] = useState('log');
   const [importText, setImportText] = useState("");
   const [search, setSearch] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState(null); 
+  const [expandedYears, setExpandedYears] = useState({});
 
   const handleImport = (type) => {
     const data = smartParseCSV(importText, type);
@@ -563,7 +627,46 @@ const DataHub = ({ activities, onImport, onDelete }) => {
     }
   };
 
-  const filtered = activities.filter(a => a.title?.toLowerCase().includes(search.toLowerCase()) || a.date.includes(search));
+  const handleSync = async () => {
+    if (!db) {
+        alert("Firebase is niet correct geladen. Check je console.");
+        return;
+    }
+    const btn = document.getElementById('sync-btn');
+    if(btn) { btn.innerHTML = '↻ Syncing...'; btn.disabled = true; }
+    
+    try {
+        let count = 0;
+        for (const act of activities) {
+            await setDoc(doc(db, "activities", String(act.id)), act, { merge: true });
+            count++;
+        }
+        alert(`Cloud Sync Voltooid! (${count} items)`);
+    } catch (e) {
+        alert("Sync Error: " + e.message);
+    } finally {
+        if(btn) { btn.innerHTML = 'Cloud Sync'; btn.disabled = false; }
+    }
+  };
+
+  const toggleYear = (year) => setExpandedYears(p => ({...p, [year]: !p[year]}));
+
+  // Grouping Logic
+  const groupedActivities = useMemo(() => {
+    const filtered = activities.filter(a => a.title?.toLowerCase().includes(search.toLowerCase()) || a.date.includes(search));
+    const sorted = [...filtered].sort((a,b) => new Date(b.date) - new Date(a.date));
+    
+    const groups = {};
+    sorted.forEach(act => {
+        const d = new Date(act.date);
+        const y = d.getFullYear();
+        const m = d.toLocaleString('default', { month: 'long' });
+        if(!groups[y]) groups[y] = {};
+        if(!groups[y][m]) groups[y][m] = [];
+        groups[y][m].push(act);
+    });
+    return groups;
+  }, [activities, search]);
 
   return (
     <div className="bg-slate-800 rounded-xl border border-slate-700 shadow-xl overflow-hidden min-h-[600px] flex flex-col">
@@ -576,38 +679,83 @@ const DataHub = ({ activities, onImport, onDelete }) => {
         <div className="p-4 flex-1 overflow-hidden flex flex-col">
             {internalTab === 'log' && (
                 <>
-                    <div className="relative mb-4">
-                        <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500"/>
-                        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Zoek op datum, naam..." className="w-full bg-slate-900 border border-slate-600 rounded pl-10 pr-4 py-2 text-sm text-white focus:border-yellow-400 outline-none" />
+                    <div className="flex justify-between items-center mb-4 gap-4">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500"/>
+                            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Zoek op datum, naam..." className="w-full bg-slate-900 border border-slate-600 rounded pl-10 pr-4 py-2 text-sm text-white focus:border-yellow-400 outline-none" />
+                        </div>
+                        <button id="sync-btn" onClick={handleSync} className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded flex items-center gap-2 text-sm font-bold transition-all whitespace-nowrap">
+                            <Cloud size={16}/> Sync Cloud
+                        </button>
                     </div>
+
                     <div className="overflow-x-auto flex-1 border border-slate-700 rounded-lg">
                         <table className="w-full text-left text-xs whitespace-nowrap">
-                            <thead className="bg-slate-900 text-slate-400 uppercase font-bold sticky top-0">
+                            <thead className="bg-slate-900 text-slate-400 uppercase font-bold sticky top-0 z-10">
                                 <tr>
                                     <th className="p-3">Date</th>
                                     <th className="p-3">Title</th>
+                                    <th className="p-3 text-right">Time</th>
                                     <th className="p-3 text-right">Dist</th>
                                     <th className="p-3 text-right">Elev</th>
+                                    <th className="p-3 text-right">Avg Spd</th>
                                     <th className="p-3 text-right text-yellow-400">NP</th>
-                                    <th className="p-3 text-right">20m</th>
-                                    <th className="p-3 text-right">Load</th>
+                                    <th className="p-3 text-right">Avg Pwr</th>
+                                    <th className="p-3 text-right text-blue-400">Load</th>
                                     <th className="p-3 text-right">RPE</th>
-                                    <th className="p-3"></th>
+                                    <th className="p-3 text-right text-slate-500">5m</th>
+                                    <th className="p-3 text-right text-slate-500">20m</th>
+                                    <th className="p-3 text-right text-slate-500">60m</th>
+                                    <th className="p-3">Action</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-700">
-                                {filtered.map(act => (
-                                    <tr key={act.id} className="hover:bg-slate-700/50 transition-colors">
-                                        <td className="p-3 text-slate-300">{act.date}</td>
-                                        <td className="p-3 font-medium text-white max-w-[150px] truncate">{act.title}</td>
-                                        <td className="p-3 text-right text-slate-400">{parseFloat(act.distance).toFixed(1)}</td>
-                                        <td className="p-3 text-right text-slate-400">{Math.round(act.climbing || 0)}</td>
-                                        <td className="p-3 text-right font-bold text-yellow-400">{Math.round(act.norm_power || 0)}</td>
-                                        <td className="p-3 text-right text-slate-400">{Math.round(act.best_20min || 0)}</td>
-                                        <td className="p-3 text-right text-blue-400">{Math.round(act.load || 0)}</td>
-                                        <td className="p-3 text-right text-slate-400">{act.rpe}</td>
-                                        <td className="p-3 text-right"><button onClick={() => onDelete(act.id)} className="text-red-500 hover:text-red-400 font-bold">×</button></td>
-                                    </tr>
+                            <tbody className="divide-y divide-slate-700 bg-slate-800">
+                                {Object.keys(groupedActivities).sort((a,b)=>b-a).map(year => (
+                                    <React.Fragment key={year}>
+                                        <tr className="bg-slate-700/50">
+                                            <td colSpan="14" className="p-2">
+                                                <button onClick={()=>toggleYear(year)} className="flex items-center gap-2 font-bold text-slate-300 w-full text-left">
+                                                    {expandedYears[year] ? <ChevronDown size={14}/> : <ChevronRight size={14}/>} {year}
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {expandedYears[year] && Object.keys(groupedActivities[year]).map(month => (
+                                            <React.Fragment key={month}>
+                                                <tr className="bg-slate-700/20">
+                                                    <td colSpan="14" className="px-8 py-1 text-[10px] uppercase font-bold text-slate-500 tracking-wider">{month}</td>
+                                                </tr>
+                                                {groupedActivities[year][month].map(act => (
+                                                    <tr key={act.id} className="hover:bg-slate-700/50 transition-colors">
+                                                        <td className="p-3 text-slate-300">{formatDateDDMMYYYY(act.date)}</td>
+                                                        <td className="p-3 font-medium text-white max-w-[150px] truncate" title={act.title}>{act.title}</td>
+                                                        <td className="p-3 text-right text-slate-400">{formatTime(act.moving_time)}</td>
+                                                        <td className="p-3 text-right text-slate-400">{parseFloat(act.distance).toFixed(1)}</td>
+                                                        <td className="p-3 text-right text-slate-400">{Math.round(act.climbing || 0)}</td>
+                                                        <td className="p-3 text-right text-slate-400">{act.avg_speed ? parseFloat(act.avg_speed).toFixed(1) : '-'}</td>
+                                                        <td className="p-3 text-right font-bold text-yellow-400">{Math.round(act.norm_power || 0)}</td>
+                                                        <td className="p-3 text-right text-slate-400">{Math.round(act.avg_power || 0)}</td>
+                                                        <td className="p-3 text-right text-blue-400">{Math.round(act.load || 0)}</td>
+                                                        <td className="p-3 text-right text-slate-400">{act.rpe || '-'}</td>
+                                                        <td className="p-3 text-right text-slate-500">{act.best_5min ? Math.round(act.best_5min) : '-'}</td>
+                                                        <td className="p-3 text-right text-slate-500">{act.best_20min ? Math.round(act.best_20min) : '-'}</td>
+                                                        <td className="p-3 text-right text-slate-500">{act.best_60min ? Math.round(act.best_60min) : '-'}</td>
+                                                        <td className="p-3 text-right">
+                                                            {deleteConfirm === act.id ? (
+                                                                <div className="flex gap-2 justify-end">
+                                                                    <button onClick={() => onDelete(act.id)} className="text-red-500 font-bold text-xs bg-red-500/10 px-2 py-1 rounded">SURE?</button>
+                                                                    <button onClick={() => setDeleteConfirm(null)} className="text-slate-400 text-xs px-2 py-1">Cancel</button>
+                                                                </div>
+                                                            ) : (
+                                                                <button onClick={() => setDeleteConfirm(act.id)} className="text-slate-600 hover:text-red-400 transition-colors">
+                                                                    <Trash2 size={14}/>
+                                                                </button>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </React.Fragment>
+                                        ))}
+                                    </React.Fragment>
                                 ))}
                             </tbody>
                         </table>
@@ -620,8 +768,7 @@ const DataHub = ({ activities, onImport, onDelete }) => {
                     <div className="bg-slate-900 p-4 rounded border border-slate-600">
                         <h3 className="font-bold text-white mb-2">CSV / Excel Paste</h3>
                         <p className="text-xs text-slate-400 mb-4">
-                            Ondersteunde kolommen (header detectie):<br/>
-                            <span className="text-yellow-500 font-mono">Date, Title, Distance, Climbing, Norm Power, Avg Power, Load, RPE, 5m, 20m, 60m</span>
+                            Auto-detectie van 13 kolommen (Datum, Titel, Tijd, Afstand, Hoogte, Snelheid, NP, AvgPwr, Load, RPE, 5m, 20m, 60m).
                         </p>
                         <textarea 
                             className="w-full h-48 bg-slate-800 border border-slate-700 rounded p-3 text-xs font-mono text-white outline-none focus:border-yellow-400"
@@ -642,9 +789,7 @@ const DataHub = ({ activities, onImport, onDelete }) => {
                            <h3 className="font-bold text-white">Intervals.icu Import</h3>
                         </div>
                         <p className="text-sm text-slate-300 mb-4">
-                           1. Ga naar Intervals.icu - Activities - List View.<br/>
-                           2. Klik "Edit" - "Download CSV".<br/>
-                           3. Plak de inhoud hieronder. De parser herkent automatisch `icu_training_load`, `icu_rpe`, etc.
+                           Plak hier je Intervals.icu CSV export. De app herkent automatisch velden als `icu_training_load` en `icu_rpe`.
                         </p>
                         <textarea 
                             className="w-full h-32 bg-slate-800 border border-slate-700 rounded p-3 text-xs font-mono text-white outline-none focus:border-orange-400"
@@ -661,19 +806,29 @@ const DataHub = ({ activities, onImport, onDelete }) => {
   );
 };
 
-// 3.3 FUELING
+// 3.3 FUELING (Counts)
 const FuelingStrategy = () => {
     const [duration, setDuration] = useState(180); 
     const [intensity, setIntensity] = useState(0.85);
+    const [bidonSize, setBidonSize] = useState(750); // 500 or 750
 
     const requirements = useMemo(() => {
         const carbsPerHour = intensity > 0.9 ? 90 : intensity > 0.8 ? 75 : 60;
         const totalCarbs = (duration / 60) * carbsPerHour;
         const fluidPerHour = 600;
         const totalFluid = (duration / 60) * fluidPerHour;
-        const sodiumPerHour = 500;
-        return { carbsPerHour, totalCarbs, fluidPerHour, totalFluid, sodiumPerHour };
-    }, [duration, intensity]);
+        
+        // Item Calculation (Estimates)
+        const totalBidons = Math.ceil(totalFluid / bidonSize); 
+        const fluidCarbs = totalBidons * 40; // 40g mix
+        const remainingCarbs = Math.max(0, totalCarbs - fluidCarbs);
+        
+        // Split remainder
+        const gels = Math.round((remainingCarbs * 0.6) / 30);
+        const bars = Math.round((remainingCarbs * 0.4) / 45);
+
+        return { carbsPerHour, totalCarbs, fluidPerHour, totalFluid, totalBidons, gels, bars };
+    }, [duration, intensity, bidonSize]);
 
     return (
         <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
@@ -694,6 +849,13 @@ const FuelingStrategy = () => {
                              <span className="w-20 font-mono text-white text-right">{(intensity*100).toFixed(0)}%</span>
                         </div>
                     </div>
+                    <div>
+                         <label className="text-xs text-slate-400 uppercase font-bold">Bidon Grootte</label>
+                         <div className="flex bg-slate-900 rounded p-1 mt-2 w-fit">
+                            <button onClick={()=>setBidonSize(500)} className={`px-4 py-1 text-xs rounded ${bidonSize===500 ? 'bg-blue-500 text-white' : 'text-slate-400'}`}>500ml</button>
+                            <button onClick={()=>setBidonSize(750)} className={`px-4 py-1 text-xs rounded ${bidonSize===750 ? 'bg-blue-500 text-white' : 'text-slate-400'}`}>750ml</button>
+                         </div>
+                    </div>
                     
                     <div className="p-4 bg-slate-900 rounded border border-slate-700 mt-4">
                         <div className="grid grid-cols-3 gap-2 text-center">
@@ -709,27 +871,97 @@ const FuelingStrategy = () => {
                             </div>
                             <div className="bg-slate-800 p-2 rounded">
                                 <Battery className="w-4 h-4 text-green-400 mx-auto mb-1"/>
-                                <div className="text-lg font-bold text-white">{requirements.sodiumPerHour}mg</div>
-                                <div className="text-[10px] text-slate-400">Na+/hr</div>
+                                <div className="text-lg font-bold text-white">{Math.round(requirements.totalCarbs)}g</div>
+                                <div className="text-[10px] text-slate-400">Total Load</div>
                             </div>
                         </div>
                     </div>
                 </div>
+                
+                {/* Packing List Visual */}
                 <div className="relative bg-slate-900 border border-slate-700 rounded-lg p-6 flex flex-col justify-between">
                     <div>
-                         <h3 className="text-slate-300 font-bold mb-1">Total Race Load</h3>
-                         <p className="text-3xl font-bold text-white">{Math.round(requirements.totalCarbs)}g <span className="text-sm font-normal text-slate-500">Koolhydraten</span></p>
-                         <p className="text-lg text-blue-400 mt-1">{Math.round(requirements.totalFluid/1000 * 10)/10}L <span className="text-sm text-slate-500">Vocht</span></p>
-                    </div>
-                    <div className="mt-4">
-                        <div className="text-xs text-slate-400 uppercase mb-2">Example Strategy</div>
-                        <ul className="text-xs text-slate-300 space-y-2">
-                             <li className="flex gap-2"><span className="text-yellow-400 font-bold">Start:</span> Pre-load 500ml sodium + 1 gel.</li>
-                             <li className="flex gap-2"><span className="text-yellow-400 font-bold">Elk uur:</span> 1x Bidon (40g Mix) + 1x Gel (30g) + 1x Reep.</li>
-                             <li className="flex gap-2"><span className="text-yellow-400 font-bold">Finale:</span> Switch naar cafeïne gels in laatste uur.</li>
-                        </ul>
+                         <h3 className="text-slate-300 font-bold mb-4 uppercase tracking-wider flex items-center gap-2"><CheckCircle size={16}/> Packing List</h3>
+                         <div className="space-y-4">
+                            <div className="flex items-center justify-between p-3 bg-slate-800 rounded border border-slate-700">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-blue-500/20 p-2 rounded text-blue-400"><Droplets size={20}/></div>
+                                    <div>
+                                        <div className="font-bold text-white text-lg">{requirements.totalBidons}x</div>
+                                        <div className="text-xs text-slate-400">Bidons ({bidonSize}ml) met Mix</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex items-center justify-between p-3 bg-slate-800 rounded border border-slate-700">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-yellow-500/20 p-2 rounded text-yellow-400"><Zap size={20}/></div>
+                                    <div>
+                                        <div className="font-bold text-white text-lg">{requirements.gels}x</div>
+                                        <div className="text-xs text-slate-400">Energy Gels (30g)</div>
+                                    </div>
+                                </div>
+                            </div>
+                             <div className="flex items-center justify-between p-3 bg-slate-800 rounded border border-slate-700">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-green-500/20 p-2 rounded text-green-400"><Utensils size={20}/></div>
+                                    <div>
+                                        <div className="font-bold text-white text-lg">{requirements.bars}x</div>
+                                        <div className="text-xs text-slate-400">Solid Bars (45g)</div>
+                                    </div>
+                                </div>
+                            </div>
+                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    );
+};
+
+// 3.4 DASHBOARD CLIMB INFO (Simulated Profile)
+const ClimbProfileCard = ({ climb }) => {
+    // Simulated Sectors
+    const sectors = [
+        { name: 'Start', km: '0 - ' + (climb.lengthKm * 0.3).toFixed(1), grade: (climb.avgGrade * 0.8).toFixed(1), focus: 'Find rhythm, control HR' },
+        { name: 'Middle', km: (climb.lengthKm * 0.3).toFixed(1) + ' - ' + (climb.lengthKm * 0.8).toFixed(1), grade: (climb.avgGrade * 1.1).toFixed(1), focus: 'Sweetspot power, aero posture' },
+        { name: 'Finale', km: (climb.lengthKm * 0.8).toFixed(1) + ' - Top', grade: (climb.avgGrade * 1.2).toFixed(1), focus: 'Empty the tank, out of saddle' },
+    ];
+
+    return (
+        <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 h-full">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-4">
+                <Map className="text-yellow-400" size={20}/> Tactical Profile: {climb.name}
+            </h3>
+            
+            <div className="flex gap-4 mb-6">
+                 <div className="bg-slate-900 p-3 rounded flex-1 text-center">
+                    <div className="text-xs text-slate-500 uppercase">Length</div>
+                    <div className="text-xl font-bold text-white">{climb.lengthKm} km</div>
+                 </div>
+                 <div className="bg-slate-900 p-3 rounded flex-1 text-center">
+                    <div className="text-xs text-slate-500 uppercase">Elevation</div>
+                    <div className="text-xl font-bold text-white">{climb.elevation} m</div>
+                 </div>
+                 <div className="bg-slate-900 p-3 rounded flex-1 text-center">
+                    <div className="text-xs text-slate-500 uppercase">Avg Grade</div>
+                    <div className="text-xl font-bold text-yellow-400">{climb.avgGrade}%</div>
+                 </div>
+            </div>
+
+            <div className="space-y-3">
+                <h4 className="text-xs uppercase text-slate-400 font-bold mb-2">Key Sectors</h4>
+                {sectors.map((s, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 bg-slate-900/50 rounded border-l-2 border-yellow-400">
+                        <div>
+                            <span className="text-white font-bold text-sm block">{s.name}</span>
+                            <span className="text-xs text-slate-500">{s.km} km</span>
+                        </div>
+                        <div className="text-right">
+                             <span className="text-yellow-400 font-bold block">{s.grade}%</span>
+                             <span className="text-[10px] text-slate-400">{s.focus}</span>
+                        </div>
+                    </div>
+                ))}
             </div>
         </div>
     );
@@ -751,14 +983,13 @@ const App = () => {
     maxHr: 190
   });
 
-  const [selectedClimb, setSelectedClimb] = useState(CLIMB_DATABASE[19]); // Default to Alpe du Zwift
+  const [selectedClimb, setSelectedClimb] = useState(CLIMB_DATABASE[0]);
 
   // Initial Data 
   const [activities, setActivities] = useState([
-    { id: '1', date: '2023-09-01', title: 'Base Miles', distance: 60, climbing: 400, norm_power: 200, avg_power: 180, load: 80, best_5min: 250, best_20min: 220, best_60min: 200, rpe: 4 },
-    { id: '2', date: '2023-09-05', title: 'Intervals', distance: 45, climbing: 600, norm_power: 260, avg_power: 210, load: 110, best_5min: 350, best_20min: 280, best_60min: 220, rpe: 8 },
-    { id: '3', date: '2023-09-12', title: 'Alpe Test', distance: 40, climbing: 1100, norm_power: 275, avg_power: 270, load: 130, best_5min: 310, best_20min: 295, best_60min: 270, rpe: 9 },
-    { id: '4', date: '2023-09-20', title: 'Recovery', distance: 30, climbing: 100, norm_power: 150, avg_power: 140, load: 30, best_5min: 160, best_20min: 150, best_60min: 140, rpe: 2 },
+    { id: '1', date: '2023-09-01', title: 'Base Miles', distance: 60, climbing: 400, norm_power: 200, avg_power: 180, load: 80, best_5min: 250, best_20min: 220, best_60min: 200, rpe: 4, moving_time: 7200, avg_speed: 30.0 },
+    { id: '2', date: '2023-09-05', title: 'Intervals', distance: 45, climbing: 600, norm_power: 260, avg_power: 210, load: 110, best_5min: 350, best_20min: 280, best_60min: 220, rpe: 8, moving_time: 5400, avg_speed: 30.0 },
+    { id: '3', date: '2023-10-12', title: 'Alpe Test', distance: 40, climbing: 1100, norm_power: 275, avg_power: 270, load: 130, best_5min: 310, best_20min: 295, best_60min: 270, rpe: 9, moving_time: 6000, avg_speed: 24.0 },
   ]);
 
   const [timeRange, setTimeRange] = useState('ALL');
@@ -825,63 +1056,62 @@ const App = () => {
 
         {activeTab === 'dashboard' && (
            <div className="space-y-6 animate-in fade-in">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                 <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
-                    <h3 className="text-slate-400 text-xs font-bold uppercase mb-2">FTP Setting</h3>
-                    <div className="flex items-baseline gap-2">
-                        <span className="text-3xl font-bold text-white">{userSettings.ftp}</span>
-                        <span className="text-sm text-slate-500">W</span>
-                    </div>
-                 </div>
-                 <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
-                    <h3 className="text-slate-400 text-xs font-bold uppercase mb-2">Weight (User)</h3>
-                    <div className="flex items-center justify-between">
-                         <span className="text-3xl font-bold text-white">{userSettings.weight.toFixed(1)}</span>
-                         <div className="flex gap-1">
-                            <button onClick={()=>setUserSettings(s=>({...s, weight: parseFloat((s.weight-0.1).toFixed(1))}))} className="p-1 bg-slate-700 rounded hover:bg-slate-600">-</button>
-                            <button onClick={()=>setUserSettings(s=>({...s, weight: parseFloat((s.weight+0.1).toFixed(1))}))} className="p-1 bg-slate-700 rounded hover:bg-slate-600">+</button>
-                         </div>
-                    </div>
-                 </div>
-                 <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
-                    <h3 className="text-slate-400 text-xs font-bold uppercase mb-2">Weight (Bike)</h3>
-                    <div className="flex items-center justify-between">
-                         <span className="text-3xl font-bold text-white">{userSettings.bikeWeight.toFixed(1)}</span>
-                         <div className="flex gap-1">
-                            <button onClick={()=>setUserSettings(s=>({...s, bikeWeight: parseFloat((s.bikeWeight-0.1).toFixed(1))}))} className="p-1 bg-slate-700 rounded hover:bg-slate-600">-</button>
-                            <button onClick={()=>setUserSettings(s=>({...s, bikeWeight: parseFloat((s.bikeWeight+0.1).toFixed(1))}))} className="p-1 bg-slate-700 rounded hover:bg-slate-600">+</button>
-                         </div>
-                    </div>
-                 </div>
-                 <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
-                    <h3 className="text-slate-400 text-xs font-bold uppercase mb-2">CTL (Load)</h3>
-                    <span className="text-3xl font-bold text-blue-400">{Math.round(activities.reduce((acc,c)=>acc+c.load,0)/42)}</span>
-                    <span className="text-xs text-slate-500 ml-2">avg/day</span>
-                 </div>
-              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Left Column: Stats & Chart */}
+                  <div className="lg:col-span-2 space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
+                            <h3 className="text-slate-400 text-xs font-bold uppercase mb-2">FTP</h3>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-3xl font-bold text-white">{userSettings.ftp}</span>
+                                <span className="text-sm text-slate-500">W</span>
+                            </div>
+                        </div>
+                        <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
+                            <h3 className="text-slate-400 text-xs font-bold uppercase mb-2">Weight</h3>
+                            <div className="flex items-center justify-between">
+                                <span className="text-3xl font-bold text-white">{userSettings.weight.toFixed(1)}</span>
+                                <div className="flex gap-1">
+                                    <button onClick={()=>setUserSettings(s=>({...s, weight: parseFloat((s.weight-0.1).toFixed(1))}))} className="p-1 bg-slate-700 rounded hover:bg-slate-600">-</button>
+                                    <button onClick={()=>setUserSettings(s=>({...s, weight: parseFloat((s.weight+0.1).toFixed(1))}))} className="p-1 bg-slate-700 rounded hover:bg-slate-600">+</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
+                            <h3 className="text-slate-400 text-xs font-bold uppercase mb-2">Load (Avg)</h3>
+                            <span className="text-3xl font-bold text-blue-400">{Math.round(activities.reduce((acc,c)=>acc+c.load,0)/(activities.length||1))}</span>
+                        </div>
+                      </div>
 
-              <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
-                 <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-lg font-bold text-white flex items-center gap-2"><TrendingUp className="w-5 h-5 text-yellow-400"/> FTP & Load</h3>
-                    <div className="flex bg-slate-900 rounded p-1">
-                        {['6M','1Y','ALL'].map(r => (
-                            <button key={r} onClick={() => setTimeRange(r)} className={`px-3 py-1 text-xs font-bold rounded ${timeRange===r ? 'bg-yellow-400 text-slate-900' : 'text-slate-400'}`}>{r}</button>
-                        ))}
-                    </div>
-                 </div>
-                 <div className="h-[350px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <ComposedChart data={chartData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                            <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 12}} tickFormatter={d => d.substring(5)} />
-                            <YAxis yAxisId="left" stroke="#facc15" tick={{fontSize: 12}} domain={['dataMin - 20', 'auto']} />
-                            <YAxis yAxisId="right" orientation="right" stroke="#60a5fa" tick={{fontSize: 12}} />
-                            <Tooltip contentStyle={{backgroundColor: '#0f172a', borderColor: '#334155', color: '#f8fafc'}}/>
-                            <Bar yAxisId="right" dataKey="load" fill="#3b82f6" opacity={0.3} barSize={20} name="TSS/Load" />
-                            <Area yAxisId="left" type="monotone" dataKey="rollingFtp" stroke="#facc15" strokeWidth={3} fillOpacity={0.1} fill="#facc15" name="Trend NP (15d)" />
-                        </ComposedChart>
-                    </ResponsiveContainer>
-                 </div>
+                      <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-lg font-bold text-white flex items-center gap-2"><TrendingUp className="w-5 h-5 text-yellow-400"/> FTP & Load</h3>
+                            <div className="flex bg-slate-900 rounded p-1">
+                                {['6M','1Y','ALL'].map(r => (
+                                    <button key={r} onClick={() => setTimeRange(r)} className={`px-3 py-1 text-xs font-bold rounded ${timeRange===r ? 'bg-yellow-400 text-slate-900' : 'text-slate-400'}`}>{r}</button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="h-[300px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <ComposedChart data={chartData}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                                    <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 12}} tickFormatter={d => d.substring(5)} />
+                                    <YAxis yAxisId="left" stroke="#facc15" tick={{fontSize: 12}} domain={['dataMin - 20', 'auto']} />
+                                    <YAxis yAxisId="right" orientation="right" stroke="#60a5fa" tick={{fontSize: 12}} />
+                                    <Tooltip contentStyle={{backgroundColor: '#0f172a', borderColor: '#334155', color: '#f8fafc'}}/>
+                                    <Bar yAxisId="right" dataKey="load" fill="#3b82f6" opacity={0.3} barSize={20} name="TSS/Load" />
+                                    <Area yAxisId="left" type="monotone" dataKey="rollingFtp" stroke="#facc15" strokeWidth={3} fillOpacity={0.1} fill="#facc15" name="Trend NP (15d)" />
+                                </ComposedChart>
+                            </ResponsiveContainer>
+                        </div>
+                      </div>
+                  </div>
+                  
+                  {/* Right Column: Climb Intelligence */}
+                  <div className="lg:col-span-1">
+                     <ClimbProfileCard climb={selectedClimb} />
+                  </div>
               </div>
            </div>
         )}
