@@ -15,7 +15,7 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, collection, doc, setDoc } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 
-// Jouw specifieke configuratie
+// Jouw configuratie
 const firebaseConfig = {
   apiKey: "AIzaSyBNWzcEXhzra-iCkHiZj_FdYUf0NcKvHAk",
   authDomain: "climb-performance-lab.firebaseapp.com",
@@ -26,17 +26,12 @@ const firebaseConfig = {
   measurementId: "G-G4WLCWCXFK"
 };
 
-// Initialiseer Firebase (Veiligheidscheck)
 let db;
-let analytics;
 try {
   const app = initializeApp(firebaseConfig);
-  db = getFirestore(app); // Database verbinding
-  if (typeof window !== 'undefined') {
-    analytics = getAnalytics(app); // Analytics verbinding
-  }
+  db = getFirestore(app);
 } catch (error) {
-  console.error("Firebase initialisatie fout:", error);
+  console.error("Firebase init error:", error);
 }
 
 /**
@@ -277,13 +272,18 @@ const CLIMB_DATABASE = [
 ].map(c => ({...c, url: c.url || getClimbUrl(c.name, c.country)}));
 
 const COGGAN_ZONES = [
-  { name: 'Z1 Recovery', min: 0, max: 0.55, color: '#9ca3af', textColor: '#1f2937' },
-  { name: 'Z2 Endurance', min: 0.56, max: 0.75, color: '#3b82f6', textColor: '#ffffff' },
-  { name: 'Z3 Tempo', min: 0.76, max: 0.90, color: '#22c55e', textColor: '#ffffff' },
-  { name: 'Z4 Threshold', min: 0.91, max: 1.05, color: '#eab308', textColor: '#ffffff' },
-  { name: 'Z5 VO2 Max', min: 1.06, max: 1.20, color: '#f97316', textColor: '#ffffff' },
-  { name: 'Z6 Anaerobic', min: 1.21, max: 1.50, color: '#ef4444', textColor: '#ffffff' },
-  { name: 'Z7 Neuro', min: 1.51, max: 10.0, color: '#a855f7', textColor: '#ffffff' }
+  { name: 'Z1 Recovery', min: 0, max: 0.55, color: '#9ca3af' },
+  { name: 'Z2 Endurance', min: 0.56, max: 0.75, color: '#3b82f6' },
+  { name: 'Z3 Tempo', min: 0.76, max: 0.90, color: '#22c55e' },
+  { name: 'Z4 Threshold', min: 0.91, max: 1.05, color: '#eab308' },
+  { name: 'Z5 VO2 Max', min: 1.06, max: 1.20, color: '#f97316' },
+  { name: 'Z6 Anaerobic', min: 1.21, max: 1.50, color: '#ef4444' },
+  { name: 'Z7 Neuro', min: 1.51, max: 10.0, color: '#a855f7' }
+];
+
+const MONTH_ORDER = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
 ];
 
 /**
@@ -292,10 +292,26 @@ const COGGAN_ZONES = [
  * ============================================================================
  */
 
+// NIEUW: Datum Normalisatie functie om "dd/mm/yyyy" om te zetten naar "yyyy-mm-dd"
+const normalizeDate = (dateStr) => {
+    if (!dateStr) return new Date().toISOString().split('T')[0];
+    
+    // Check of datum slashes bevat (bv 31/01/2023)
+    if (dateStr.includes('/')) {
+        const parts = dateStr.split('/');
+        // Aanname: DD/MM/YYYY formaat
+        if (parts.length === 3) {
+            // Return YYYY-MM-DD
+            return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+        }
+    }
+    return dateStr;
+};
+
 const formatDateDDMMYYYY = (isoDateString) => {
-  if (!isoDateString) return '-';
+  if (!isoDateString || isoDateString === 'Invalid Date') return '-';
   const date = new Date(isoDateString);
-  if (isNaN(date.getTime())) return isoDateString; // Fallback
+  if (isNaN(date.getTime())) return isoDateString; 
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const year = date.getFullYear();
@@ -312,7 +328,7 @@ const formatTime = (seconds) => {
 
 const parseDurationToSeconds = (str) => {
   if(!str) return 0;
-  if(typeof str === 'number') return str; // Already seconds
+  if(typeof str === 'number') return str;
   if(str.includes('h') || str.includes('m')) {
     let s = 0;
     const h = str.match(/(\d+)h/);
@@ -327,7 +343,6 @@ const parseDurationToSeconds = (str) => {
   return 0;
 };
 
-// Rolling Average Logic
 const calculateRollingTrend = (activities, targetDateStr, metricKey, windowDays = 15) => {
   const targetDate = new Date(targetDateStr);
   const msPerDay = 24 * 60 * 60 * 1000;
@@ -341,7 +356,6 @@ const calculateRollingTrend = (activities, targetDateStr, metricKey, windowDays 
   return sum / inWindow.length;
 };
 
-// Robust CSV Parser
 const smartParseCSV = (text, type = 'generic') => {
   const lines = text.trim().split('\n');
   if (lines.length < 2) return [];
@@ -350,14 +364,9 @@ const smartParseCSV = (text, type = 'generic') => {
   const rawHeaders = lines[0].split(delimiter).map(h => h.trim().toLowerCase().replace(/['"]+/g, ''));
 
   const mapHeader = (h) => {
-    // Name/Title variations
     if (h === 'name' || h === 'title' || h === 'activity_name' || h === 'activity') return 'title';
-    
-    // Time/Date
     if (h.includes('date') || h.includes('datum')) return 'date';
-    if (h.includes('moving') || h.includes('elapsed')) return 'moving_time';
-    
-    // Metrics
+    if (h.includes('moving') || h.includes('elapsed') || h.includes('tijd')) return 'moving_time';
     if (h.includes('distance') || h.includes('afstand')) return 'distance';
     if (h.includes('climb') || h.includes('elevation') || h.includes('hoogte')) return 'climbing';
     if (h.includes('speed') || h.includes('snelheid')) return 'avg_speed';
@@ -365,12 +374,9 @@ const smartParseCSV = (text, type = 'generic') => {
     if (h.includes('avg power') || h.includes('gem. vermogen')) return 'avg_power';
     if (h === 'load' || h === 'tss' || h === 'icu_training_load' || h === 'training_load') return 'load';
     if (h === 'rpe' || h === 'icu_rpe' || h === 'feel') return 'rpe';
-    
-    // Power Curve
     if (h.includes('5m') || h.includes('5 min')) return 'best_5min';
     if (h.includes('20m') || h.includes('20 min')) return 'best_20min';
     if (h.includes('60m') || h.includes('60 min')) return 'best_60min';
-    
     return null;
   };
 
@@ -383,7 +389,10 @@ const smartParseCSV = (text, type = 'generic') => {
     colMap.forEach((key, idx) => {
       if (key && cols[idx]) {
         let val = cols[idx].trim().replace(/['"]+/g, '');
-        if (key !== 'title' && key !== 'date') {
+        if (key === 'date') {
+            // Hier passen we de fix toe
+            val = normalizeDate(val);
+        } else if (key !== 'title') {
           if (key === 'moving_time' && val.includes(':')) {
             val = parseDurationToSeconds(val);
           } else {
@@ -397,7 +406,8 @@ const smartParseCSV = (text, type = 'generic') => {
 
     if (!entry.title) entry.title = "Untitled Activity"; 
     if (!entry.id) entry.id = Math.random().toString(36).substr(2, 9);
-    if (!entry.date) entry.date = new Date().toISOString().split('T')[0];
+    // Fallback voor ongeldige datums
+    if (!entry.date || entry.date === 'Invalid Date') entry.date = new Date().toISOString().split('T')[0];
     
     return entry;
   }).filter(e => e.distance > 0 || e.moving_time > 0);
@@ -409,14 +419,11 @@ const smartParseCSV = (text, type = 'generic') => {
  * ============================================================================
  */
 
-// 3.1 PHYSICS ENGINE & SELECTOR
 const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateClimb }) => {
   const [mode, setMode] = useState('target'); 
   const [targetTimeStr, setTargetTimeStr] = useState("59:00");
   const [targetWatts, setTargetWatts] = useState(userSettings.ftp);
   const [calc, setCalc] = useState({ watts: 0, wkg: 0, time: "", vam: 0, zone: null });
-  
-  // Filter State
   const [countryFilter, setCountryFilter] = useState('All');
 
   const updateWeight = (type, delta) => {
@@ -431,8 +438,6 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
     const grade = selectedClimb.avgGrade / 100;
     const distance = selectedClimb.lengthKm * 1000;
     const elevation = selectedClimb.elevation;
-    
-    // Physics
     const g = 9.81; const rho = 1.225; const cda = 0.32; const crr = 0.004; const loss = 0.03;
 
     let watts = 0, seconds = 0;
@@ -467,16 +472,13 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
     const zone = COGGAN_ZONES.find(z => (watts / userSettings.ftp) >= z.min && (watts / userSettings.ftp) <= z.max) || COGGAN_ZONES[6];
 
     setCalc({ watts: Math.round(watts), wkg: wkg.toFixed(2), time: formatTime(seconds), vam: Math.round(vam), zone: zone });
-
   }, [mode, targetTimeStr, targetWatts, selectedClimb, userSettings]);
 
-  // Filtered Climbs
   const filteredClimbs = useMemo(() => {
     if(countryFilter === 'All') return CLIMB_DATABASE;
     return CLIMB_DATABASE.filter(c => c.country === countryFilter);
   }, [countryFilter]);
 
-  // Group climbs by Country/Region for dropdown
   const climbsGrouped = useMemo(() => {
     const groups = {};
     filteredClimbs.forEach(c => {
@@ -499,21 +501,17 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
               <Info size={14}/> Climb Detail
             </a>
         </div>
-
-        {/* Improved Country Filter System */}
         <div className="space-y-2">
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                 {uniqueCountries.map(c => (
                     <button 
-                        key={c} 
-                        onClick={() => setCountryFilter(c)}
+                        key={c} onClick={() => setCountryFilter(c)}
                         className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${countryFilter === c ? 'bg-yellow-400 text-slate-900' : 'bg-slate-700 text-slate-400 hover:text-white'}`}
                     >
                         {c === 'All' ? '🌍 All' : c}
                     </button>
                 ))}
             </div>
-            
             <select 
               className="w-full bg-slate-900 text-white rounded p-3 text-sm border border-slate-600 outline-none focus:border-yellow-400"
               value={selectedClimb.id}
@@ -527,9 +525,7 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
             </select>
         </div>
       </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Controls */}
         <div className="lg:col-span-4 space-y-6">
             <div className="bg-slate-900 p-4 rounded-lg border border-slate-700 space-y-3">
                 <div className="flex justify-between items-center">
@@ -549,12 +545,10 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                     </div>
                 </div>
             </div>
-
             <div className="bg-slate-700 rounded-lg p-1 flex">
                 <button onClick={() => setMode('target')} className={`flex-1 py-2 text-xs font-bold uppercase rounded ${mode==='target'?'bg-yellow-400 text-slate-900':'text-slate-300'}`}>Target Time</button>
                 <button onClick={() => setMode('predict')} className={`flex-1 py-2 text-xs font-bold uppercase rounded ${mode==='predict'?'bg-yellow-400 text-slate-900':'text-slate-300'}`}>Predict</button>
             </div>
-
             <div className="bg-slate-900 border border-yellow-400/30 p-4 rounded-lg">
                 <label className="text-xs text-yellow-400 uppercase font-bold mb-2 block">{mode === 'target' ? 'Desired Time' : 'Sustainable Power'}</label>
                 {mode === 'target' ? (
@@ -564,8 +558,6 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                 )}
             </div>
         </div>
-
-        {/* Results */}
         <div className="lg:col-span-8 grid grid-cols-2 gap-4">
              <div className="bg-slate-700/50 p-4 rounded-lg flex flex-col items-center justify-center border border-slate-600">
                 <span className="text-xs text-slate-400 uppercase mb-1">Required Power</span>
@@ -583,7 +575,6 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                 <span className="text-xs text-slate-400 uppercase mb-1">VAM</span>
                 <span className="text-3xl font-bold text-white">{calc.vam} <small className="text-sm text-slate-500">m/h</small></span>
              </div>
-             
              <div className="col-span-2 bg-slate-900 p-4 rounded-lg border border-slate-700">
                 <div className="flex justify-between items-end mb-2">
                     <span className="text-sm font-bold text-white">Intensity Zone</span>
@@ -607,7 +598,6 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
   );
 };
 
-// 3.2 DATA HUB (Grouped, Confirm Delete, Sync, Full Columns)
 const DataHub = ({ activities, onImport, onDelete }) => {
   const [internalTab, setInternalTab] = useState('log');
   const [importText, setImportText] = useState("");
@@ -651,7 +641,6 @@ const DataHub = ({ activities, onImport, onDelete }) => {
 
   const toggleYear = (year) => setExpandedYears(p => ({...p, [year]: !p[year]}));
 
-  // Grouping Logic
   const groupedActivities = useMemo(() => {
     const filtered = activities.filter(a => a.title?.toLowerCase().includes(search.toLowerCase()) || a.date.includes(search));
     const sorted = [...filtered].sort((a,b) => new Date(b.date) - new Date(a.date));
@@ -660,7 +649,8 @@ const DataHub = ({ activities, onImport, onDelete }) => {
     sorted.forEach(act => {
         const d = new Date(act.date);
         const y = d.getFullYear();
-        const m = d.toLocaleString('default', { month: 'long' });
+        // Gebruik de Engelse maandnaam voor consistentie met MONTH_ORDER
+        const m = d.toLocaleString('en-US', { month: 'long' });
         if(!groups[y]) groups[y] = {};
         if(!groups[y][m]) groups[y][m] = [];
         groups[y][m].push(act);
@@ -719,7 +709,10 @@ const DataHub = ({ activities, onImport, onDelete }) => {
                                                 </button>
                                             </td>
                                         </tr>
-                                        {expandedYears[year] && Object.keys(groupedActivities[year]).map(month => (
+                                        {/* FIX: Maanden sorteren op basis van index ipv alfabet */}
+                                        {expandedYears[year] && Object.keys(groupedActivities[year])
+                                            .sort((a, b) => MONTH_ORDER.indexOf(b) - MONTH_ORDER.indexOf(a))
+                                            .map(month => (
                                             <React.Fragment key={month}>
                                                 <tr className="bg-slate-700/20">
                                                     <td colSpan="14" className="px-8 py-1 text-[10px] uppercase font-bold text-slate-500 tracking-wider">{month}</td>
@@ -806,24 +799,19 @@ const DataHub = ({ activities, onImport, onDelete }) => {
   );
 };
 
-// 3.3 FUELING (Counts)
 const FuelingStrategy = () => {
     const [duration, setDuration] = useState(180); 
     const [intensity, setIntensity] = useState(0.85);
-    const [bidonSize, setBidonSize] = useState(750); // 500 or 750
+    const [bidonSize, setBidonSize] = useState(750);
 
     const requirements = useMemo(() => {
         const carbsPerHour = intensity > 0.9 ? 90 : intensity > 0.8 ? 75 : 60;
         const totalCarbs = (duration / 60) * carbsPerHour;
         const fluidPerHour = 600;
         const totalFluid = (duration / 60) * fluidPerHour;
-        
-        // Item Calculation (Estimates)
         const totalBidons = Math.ceil(totalFluid / bidonSize); 
-        const fluidCarbs = totalBidons * 40; // 40g mix
+        const fluidCarbs = totalBidons * 40; 
         const remainingCarbs = Math.max(0, totalCarbs - fluidCarbs);
-        
-        // Split remainder
         const gels = Math.round((remainingCarbs * 0.6) / 30);
         const bars = Math.round((remainingCarbs * 0.4) / 45);
 
@@ -878,7 +866,6 @@ const FuelingStrategy = () => {
                     </div>
                 </div>
                 
-                {/* Packing List Visual */}
                 <div className="relative bg-slate-900 border border-slate-700 rounded-lg p-6 flex flex-col justify-between">
                     <div>
                          <h3 className="text-slate-300 font-bold mb-4 uppercase tracking-wider flex items-center gap-2"><CheckCircle size={16}/> Packing List</h3>
@@ -918,9 +905,7 @@ const FuelingStrategy = () => {
     );
 };
 
-// 3.4 DASHBOARD CLIMB INFO (Simulated Profile)
 const ClimbProfileCard = ({ climb }) => {
-    // Simulated Sectors
     const sectors = [
         { name: 'Start', km: '0 - ' + (climb.lengthKm * 0.3).toFixed(1), grade: (climb.avgGrade * 0.8).toFixed(1), focus: 'Find rhythm, control HR' },
         { name: 'Middle', km: (climb.lengthKm * 0.3).toFixed(1) + ' - ' + (climb.lengthKm * 0.8).toFixed(1), grade: (climb.avgGrade * 1.1).toFixed(1), focus: 'Sweetspot power, aero posture' },
@@ -967,12 +952,6 @@ const ClimbProfileCard = ({ climb }) => {
     );
 };
 
-/**
- * ============================================================================
- * 4. MAIN APP
- * ============================================================================
- */
-
 const App = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   
@@ -985,7 +964,6 @@ const App = () => {
 
   const [selectedClimb, setSelectedClimb] = useState(CLIMB_DATABASE[0]);
 
-  // Initial Data 
   const [activities, setActivities] = useState([
     { id: '1', date: '2023-09-01', title: 'Base Miles', distance: 60, climbing: 400, norm_power: 200, avg_power: 180, load: 80, best_5min: 250, best_20min: 220, best_60min: 200, rpe: 4, moving_time: 7200, avg_speed: 30.0 },
     { id: '2', date: '2023-09-05', title: 'Intervals', distance: 45, climbing: 600, norm_power: 260, avg_power: 210, load: 110, best_5min: 350, best_20min: 280, best_60min: 220, rpe: 8, moving_time: 5400, avg_speed: 30.0 },
@@ -1057,7 +1035,6 @@ const App = () => {
         {activeTab === 'dashboard' && (
            <div className="space-y-6 animate-in fade-in">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Left Column: Stats & Chart */}
                   <div className="lg:col-span-2 space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
@@ -1108,7 +1085,6 @@ const App = () => {
                       </div>
                   </div>
                   
-                  {/* Right Column: Climb Intelligence */}
                   <div className="lg:col-span-1">
                      <ClimbProfileCard climb={selectedClimb} />
                   </div>
