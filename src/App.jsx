@@ -7,15 +7,17 @@ import {
   Activity, Upload, TrendingUp, ChevronDown, ChevronRight, ChevronUp,
   Timer, Search, Zap, Mountain, Gauge, Brain, Battery, 
   Droplets, Utensils, Minus, Plus, Link as LinkIcon, Download,
-  Map, Cloud, Trash2, AlertTriangle, Info, CheckCircle, ArrowUpDown
+  Map, Cloud, Trash2, AlertTriangle, Info, CheckCircle, ArrowUpDown, RefreshCw, X
 } from 'lucide-react';
+
+// --- IMPORTS UIT NIEUWE BESTAND ---
+import { CLIMB_DATABASE, COGGAN_ZONES } from './climbs';
 
 // --- FIREBASE CONFIGURATION & INIT ---
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, doc, setDoc } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 
-// Jouw configuratie
 const firebaseConfig = {
   apiKey: "AIzaSyBNWzcEXhzra-iCkHiZj_FdYUf0NcKvHAk",
   authDomain: "climb-performance-lab.firebaseapp.com",
@@ -33,258 +35,6 @@ try {
 } catch (error) {
   console.error("Firebase init error:", error);
 }
-
-/**
- * ============================================================================
- * 1. CLIMB DATABASE & CONSTANTS
- * ============================================================================
- */
-
-const getClimbUrl = (name, country) => {
-  if (country === 'Zwift') return `https://zwiftinsider.com/?s=${name.replace(/\s+/g, '+')}`;
-  return `https://climbfinder.com/en/climbs/${name.toLowerCase().replace(/[\s/().']+/g, '-').replace(/-+$/, '')}`;
-};
-
-const CLIMB_DATABASE = [
-// --- REAL WORLD: FRANKRIJK ---
-{ id: 'fr_alpe', name: "Alpe d'Huez", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 13.8, elevation: 1061, avgGrade: 8.1 },
-{ id: 'fr_ventoux', name: "Mont Ventoux (Bédoin)", country: "FR", region: "Provence", flag: "🇫🇷", lengthKm: 21.5, elevation: 1610, avgGrade: 7.5 },
-{ id: 'fr_ventoux_mal', name: "Mont Ventoux (Malaucène)", country: "FR", region: "Provence", flag: "🇫🇷", lengthKm: 21.2, elevation: 1535, avgGrade: 7.2 },
-{ id: 'fr_galibier', name: "Col du Galibier (Valloire)", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 18.1, elevation: 1245, avgGrade: 6.9 },
-{ id: 'fr_glandon', name: "Col du Glandon", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 21.3, elevation: 1472, avgGrade: 6.9 },
-{ id: 'fr_madeleine', name: "Col de la Madeleine", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 19.2, elevation: 1522, avgGrade: 7.9 },
-{ id: 'fr_izoard', name: "Col d'Izoard", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 14.1, elevation: 1000, avgGrade: 7.1 },
-{ id: 'fr_croix_fer', name: "Col de la Croix-de-Fer", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 29.4, elevation: 1520, avgGrade: 5.2 },
-{ id: 'fr_telegraphe', name: "Col du Télégraphe", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 11.8, elevation: 856, avgGrade: 7.3 },
-{ id: 'fr_tourmalet', name: "Col du Tourmalet (Luz)", country: "FR", region: "Pyreneeën", flag: "🇫🇷", lengthKm: 19.0, elevation: 1404, avgGrade: 7.4 },
-{ id: 'fr_aubisque', name: "Col d'Aubisque", country: "FR", region: "Pyreneeën", flag: "🇫🇷", lengthKm: 16.6, elevation: 1190, avgGrade: 7.2 },
-{ id: 'fr_hautacam', name: "Hautacam", country: "FR", region: "Pyreneeën", flag: "🇫🇷", lengthKm: 13.5, elevation: 1050, avgGrade: 7.8 },
-{ id: 'fr_grand_colombier', name: "Grand Colombier (Culoz)", country: "FR", region: "Jura", flag: "🇫🇷", lengthKm: 18.3, elevation: 1255, avgGrade: 6.9 },
-{ id: 'fr_bonette', name: "Cime de la Bonette", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 24.0, elevation: 1589, avgGrade: 6.6 },
-{ id: 'fr_puy_dome', name: "Puy de Dôme", country: "FR", region: "Massif Central", flag: "🇫🇷", lengthKm: 13.3, elevation: 1033, avgGrade: 7.7 },
-{ id: 'fr_loze', name: "Col de la Loze", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 21.5, elevation: 1675, avgGrade: 7.8 },
-{ id: 'fr_iseran', name: "Col de l'Iseran (Bonneval)", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 13.4, elevation: 977, avgGrade: 7.3 },
-{ id: 'fr_granon', name: "Col du Granon", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 11.5, elevation: 1053, avgGrade: 9.2 },
-{ id: 'fr_joux_plane', name: "Col de Joux Plane", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 11.6, elevation: 990, avgGrade: 8.5 },
-{ id: 'fr_colombiere', name: "Col de la Colombière", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 16.3, elevation: 1108, avgGrade: 6.8 },
-{ id: 'fr_roselend', name: "Cormet de Roselend", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 20.3, elevation: 1227, avgGrade: 6.0 },
-{ id: 'fr_aravis', name: "Col des Aravis (Thônes)", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 18.9, elevation: 867, avgGrade: 4.6 },
-{ id: 'fr_saisies', name: "Col des Saisies", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 15.0, elevation: 950, avgGrade: 6.4 },
-{ id: 'fr_ramaz', name: "Col de la Ramaz", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 14.0, elevation: 980, avgGrade: 7.0 },
-{ id: 'fr_romme', name: "Col de Romme", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 9.3, elevation: 815, avgGrade: 8.8 },
-{ id: 'fr_croix_fry', name: "Col de la Croix Fry", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 12.8, elevation: 843, avgGrade: 6.6 },
-{ id: 'fr_glieres', name: "Col des Glières", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 14.0, elevation: 960, avgGrade: 6.8 },
-{ id: 'fr_semnoz', name: "Semnoz (Annecy)", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 17.4, elevation: 1212, avgGrade: 7.0 },
-{ id: 'fr_revard', name: "Mont Revard", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 21.0, elevation: 1276, avgGrade: 6.0 },
-{ id: 'fr_forclaz', name: "Col de la Forclaz (Montmin)", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 8.5, elevation: 680, avgGrade: 8.0 },
-{ id: 'fr_chamrousse', name: "Chamrousse", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 19.0, elevation: 1250, avgGrade: 6.6 },
-{ id: 'fr_deux_alpes', name: "Les Deux Alpes", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 9.0, elevation: 750, avgGrade: 8.3 },
-{ id: 'fr_val_thorens', name: "Val Thorens", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 36.0, elevation: 1850, avgGrade: 5.2 },
-{ id: 'fr_plagne', name: "La Plagne", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 19.1, elevation: 1400, avgGrade: 7.3 },
-{ id: 'fr_courchevel', name: "Courchevel (Altiport)", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 18.0, elevation: 1200, avgGrade: 6.5 },
-{ id: 'fr_mont_cenis', name: "Col du Mont Cenis", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 9.8, elevation: 694, avgGrade: 7.1 },
-{ id: 'fr_cayolle', name: "Col de la Cayolle", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 29.0, elevation: 1190, avgGrade: 4.1 },
-{ id: 'fr_allos', name: "Col d'Allos", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 17.5, elevation: 1108, avgGrade: 6.3 },
-{ id: 'fr_champs', name: "Col des Champs", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 11.4, elevation: 790, avgGrade: 6.9 },
-{ id: 'fr_vars', name: "Col de Vars", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 19.4, elevation: 1111, avgGrade: 5.7 },
-{ id: 'fr_risoul', name: "Risoul 1850", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 12.8, elevation: 885, avgGrade: 6.9 },
-{ id: 'fr_pra_loup', name: "Pra Loup", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 6.2, elevation: 378, avgGrade: 6.1 },
-{ id: 'fr_lombarde', name: "Col de la Lombarde", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 21.3, elevation: 1477, avgGrade: 6.9 },
-{ id: 'fr_turini', name: "Col de Turini", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 24.0, elevation: 1268, avgGrade: 5.2 },
-{ id: 'fr_braus', name: "Col de Braus", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 10.0, elevation: 661, avgGrade: 6.6 },
-{ id: 'fr_madone_real', name: "Col de la Madone (Menton)", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 13.6, elevation: 925, avgGrade: 6.8 },
-{ id: 'fr_eze_real', name: "Col d'Eze (Nice)", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 10.0, elevation: 490, avgGrade: 4.9 },
-{ id: 'fr_noyer', name: "Col du Noyer", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 7.5, elevation: 615, avgGrade: 8.2 },
-{ id: 'fr_chaussy', name: "Col du Chaussy (Montvernier)", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 14.0, elevation: 1050, avgGrade: 7.5 },
-{ id: 'fr_sabot', name: "Col du Sabot", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 14.5, elevation: 1290, avgGrade: 8.9 },
-{ id: 'fr_mollard', name: "Col du Mollard", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 17.6, elevation: 980, avgGrade: 5.6 },
-
-// --- REAL WORLD: VOSGES —
-{ id: 'fr_planche', name: "Planche des Belles Filles", country: "FR", region: "Vogezen", flag: "🇫🇷", lengthKm: 5.9, elevation: 500, avgGrade: 8.5 },
-{ id: 'fr_ballon_alsace', name: "Ballon d'Alsace", country: "FR", region: "Vogezen", flag: "🇫🇷", lengthKm: 12.4, elevation: 643, avgGrade: 5.2 },
-{ id: 'fr_grand_ballon', name: "Grand Ballon", country: "FR", region: "Vogezen", flag: "🇫🇷", lengthKm: 13.5, elevation: 950, avgGrade: 7.0 },
-{ id: 'fr_schlucht', name: "Col de la Schlucht (Munster)", country: "FR", region: "Vogezen", flag: "🇫🇷", lengthKm: 18.0, elevation: 755, avgGrade: 4.2 },
-{ id: 'fr_markstein', name: "Le Markstein (Guebwiller)", country: "FR", region: "Vogezen", flag: "🇫🇷", lengthKm: 24.0, elevation: 893, avgGrade: 3.7 },
-{ id: 'fr_petit_ballon', name: "Petit Ballon (Munster)", country: "FR", region: "Vogezen", flag: "🇫🇷", lengthKm: 9.3, elevation: 755, avgGrade: 8.1 },
-{ id: 'fr_platzerwasel', name: "Col du Platzerwasel", country: "FR", region: "Vogezen", flag: "🇫🇷", lengthKm: 7.1, elevation: 606, avgGrade: 8.5 },
-{ id: 'fr_champ_feu', name: "Champ du Feu", country: "FR", region: "Vogezen", flag: "🇫🇷", lengthKm: 12.0, elevation: 795, avgGrade: 6.6 },
-{ id: 'fr_ste_odile', name: "Mont Sainte-Odile", country: "FR", region: "Vogezen", flag: "🇫🇷", lengthKm: 9.0, elevation: 500, avgGrade: 5.5 },
-{ id: 'fr_donon', name: "Col du Donon", country: "FR", region: "Vogezen", flag: "🇫🇷", lengthKm: 15.0, elevation: 650, avgGrade: 4.3 },
-{ id: 'fr_calvaire', name: "Col du Calvaire", country: "FR", region: "Vogezen", flag: "🇫🇷", lengthKm: 12.0, elevation: 720, avgGrade: 6.0 },
-{ id: 'fr_bagenelles', name: "Col des Bagenelles", country: "FR", region: "Vogezen", flag: "🇫🇷", lengthKm: 8.8, elevation: 525, avgGrade: 6.0 },
-{ id: 'fr_bramont', name: "Col du Bramont", country: "FR", region: "Vogezen", flag: "🇫🇷", lengthKm: 7.6, elevation: 454, avgGrade: 6.0 },
-{ id: 'fr_oderen', name: "Col d'Oderen", country: "FR", region: "Vogezen", flag: "🇫🇷", lengthKm: 11.0, elevation: 570, avgGrade: 5.2 },
-{ id: 'fr_hundsruck', name: "Col du Hundsruck", country: "FR", region: "Vogezen", flag: "🇫🇷", lengthKm: 5.3, elevation: 391, avgGrade: 7.4 },
-{ id: 'fr_firstplan', name: "Col du Firstplan", country: "FR", region: "Vogezen", flag: "🇫🇷", lengthKm: 8.5, elevation: 465, avgGrade: 5.5 },
-{ id: 'fr_grosse_pierre', name: "Col de la Grosse Pierre", country: "FR", region: "Vogezen", flag: "🇫🇷", lengthKm: 9.4, elevation: 500, avgGrade: 5.3 },
-{ id: 'fr_lac_blanc', name: "Le Lac Blanc", country: "FR", region: "Vogezen", flag: "🇫🇷", lengthKm: 10.0, elevation: 600, avgGrade: 6.0 },
-
-// --- REAL WORLD: ITALIË ---
-{ id: 'it_stelvio', name: "Passo dello Stelvio (Prato)", country: "IT", region: "Alpen", flag: "🇮🇹", lengthKm: 24.8, elevation: 1845, avgGrade: 7.4 },
-{ id: 'it_gavia', name: "Passo di Gavia", country: "IT", region: "Alpen", flag: "🇮🇹", lengthKm: 17.3, elevation: 1363, avgGrade: 7.9 },
-{ id: 'it_mortirolo', name: "Passo del Mortirolo", country: "IT", region: "Alpen", flag: "🇮🇹", lengthKm: 12.4, elevation: 1300, avgGrade: 10.5 },
-{ id: 'it_zoncolan', name: "Monte Zoncolan", country: "IT", region: "Alpen", flag: "🇮🇹", lengthKm: 10.1, elevation: 1210, avgGrade: 11.9 },
-{ id: 'it_finestre', name: "Colle delle Finestre", country: "IT", region: "Alpen", flag: "🇮🇹", lengthKm: 18.6, elevation: 1694, avgGrade: 9.1 },
-{ id: 'it_tre_cime', name: "Tre Cime di Lavaredo", country: "IT", region: "Dolomieten", flag: "🇮🇹", lengthKm: 7.2, elevation: 546, avgGrade: 7.6 },
-{ id: 'it_grappa', name: "Monte Grappa", country: "IT", region: "Veneto", flag: "🇮🇹", lengthKm: 19.0, elevation: 1530, avgGrade: 8.1 },
-
-// --- REAL WORLD: SPANJE ---
-{ id: 'es_angliru', name: "Alto de l'Angliru", country: "ES", region: "Asturië", flag: "🇪🇸", lengthKm: 12.5, elevation: 1266, avgGrade: 10.1 },
-{ id: 'es_lagos', name: "Lagos de Covadonga", country: "ES", region: "Asturië", flag: "🇪🇸", lengthKm: 12.2, elevation: 866, avgGrade: 7.2 },
-{ id: 'es_teide', name: "Mount Teide", country: "ES", region: "Tenerife", flag: "🇪🇸", lengthKm: 45.0, elevation: 2300, avgGrade: 5.1 },
-{ id: 'es_sa_calobra', name: "Sa Calobra", country: "ES", region: "Mallorca", flag: "🇪🇸", lengthKm: 9.4, elevation: 668, avgGrade: 7.1 },
-{ id: 'es_veleta', name: "Pico de Veleta", country: "ES", region: "Granada", flag: "🇪🇸", lengthKm: 43.0, elevation: 2700, avgGrade: 6.2 },
-
-// --- REAL WORLD: BENELUX/DE/AT ---
-// Nederland
-{ id: 'nl_cauberg', name: "Cauberg", country: "NL", region: "Limburg", flag: "🇳🇱", lengthKm: 0.8, elevation: 65, avgGrade: 5.8 },
-{ id: 'nl_camerig', name: "Camerig", country: "NL", region: "Limburg", flag: "🇳🇱", lengthKm: 4.6, elevation: 175, avgGrade: 3.8 },
-{ id: 'nl_vaals', name: "Vaalserberg", country: "NL", region: "Zuid-Limburg", flag: "🇳🇱", lengthKm: 2.6, elevation: 110, avgGrade: 4.2 },
-{ id: 'nl_keuten', name: "Keutenberg", country: "NL", region: "Zuid-Limburg", flag: "🇳🇱", lengthKm: 1.2, elevation: 68, avgGrade: 5.9 },
-{ id: 'nl_eyser', name: "Eyserbosweg", country: "NL", region: "Zuid-Limburg", flag: "🇳🇱", lengthKm: 1.1, elevation: 90, avgGrade: 8.1 },
-{ id: 'nl_gulper', name: "Gulperberg", country: "NL", region: "Zuid-Limburg", flag: "🇳🇱", lengthKm: 0.6, elevation: 55, avgGrade: 9.8 },
-{ id: 'nl_loor', name: "Loorberg", country: "NL", region: "Zuid-Limburg", flag: "🇳🇱", lengthKm: 1.5, elevation: 80, avgGrade: 5.3 },
-{ id: 'nl_from', name: "Fromberg", country: "NL", region: "Zuid-Limburg", flag: "🇳🇱", lengthKm: 1.6, elevation: 65, avgGrade: 4.0 },
-{ id: 'nl_posbank', name: "Posbank", country: "NL", region: "Veluwe", flag: "🇳🇱", lengthKm: 2.2, elevation: 85, avgGrade: 3.9 },
-{ id: 'nl_amerong', name: "Amerongse Berg", country: "NL", region: "Utrechtse Heuvelrug", flag: "🇳🇱", lengthKm: 1.8, elevation: 65, avgGrade: 3.6 },
-{ id: 'nl_italia', name: "Italiaanseweg", country: "NL", region: "Veluwe", flag: "🇳🇱", lengthKm: 1.2, elevation: 55, avgGrade: 4.5 },
-{ id: 'nl_grebbe', name: "Grebbeberg", country: "NL", region: "Utrechtse Heuvelrug", flag: "🇳🇱", lengthKm: 0.7, elevation: 40, avgGrade: 5.5 },
-{ id: 'nl_holter', name: "Holterberg", country: "NL", region: "Overijssel", flag: "🇳🇱", lengthKm: 2.5, elevation: 50, avgGrade: 2.0 },
-{ id: 'nl_vam', name: "VAM-Berg", country: "NL", region: "Drenthe", flag: "🇳🇱", lengthKm: 0.5, elevation: 40, avgGrade: 9.6 },
-// België
-{ id: 'be_redoute', name: "Côte de la Redoute", country: "BE", region: "Ardennen", flag: "🇧🇪", lengthKm: 1.6, elevation: 147, avgGrade: 9.2 },
-{ id: 'be_stockeu', name: "Côte de Stockeu", country: "BE", region: "Ardennen", flag: "🇧🇪", lengthKm: 2.3, elevation: 227, avgGrade: 9.9 },
-{ id: 'be_rosier', name: "Col du Rosier", country: "BE", region: "Ardennen", flag: "🇧🇪", lengthKm: 4.4, elevation: 255, avgGrade: 5.8 },
-{ id: 'be_huy', name: "Mur de Huy", country: "BE", region: "Ardennen", flag: "🇧🇪", lengthKm: 1.3, elevation: 125, avgGrade: 9.6 },
-{ id: 'be_thier', name: "Thier de Coo", country: "BE", region: "Ardennen", flag: "🇧🇪", lengthKm: 2.6, elevation: 220, avgGrade: 8.5 },
-{ id: 'be_baraque', name: "Baraque de Fraiture", country: "BE", region: "Ardennen", flag: "🇧🇪", lengthKm: 6.0, elevation: 280, avgGrade: 4.6 },
-{ id: 'be_haussire', name: "Col de Haussire", country: "BE", region: "Ardennen", flag: "🇧🇪", lengthKm: 3.8, elevation: 250, avgGrade: 6.5 },
-{ id: 'be_wanne', name: "Côte de Wanne", country: "BE", region: "Ardennen", flag: "🇧🇪", lengthKm: 2.2, elevation: 165, avgGrade: 7.5 },
-{ id: 'be_roche', name: "La Roche-aux-Faucons", country: "BE", region: "Ardennen", flag: "🇧🇪", lengthKm: 1.3, elevation: 145, avgGrade: 11.0 },
-{ id: 'be_kwaremont', name: "Oude Kwaremont", country: "BE", region: "Vlaanderen", flag: "🇧🇪", lengthKm: 2.2, elevation: 93, avgGrade: 4.2 },
-{ id: 'be_pater', name: "Paterberg", country: "BE", region: "Vlaanderen", flag: "🇧🇪", lengthKm: 0.4, elevation: 48, avgGrade: 12.9 },
-{ id: 'be_koppen', name: "Koppenberg", country: "BE", region: "Vlaanderen", flag: "🇧🇪", lengthKm: 0.6, elevation: 64, avgGrade: 11.6 },
-{ id: 'be_kemmel', name: "Kemmelberg", country: "BE", region: "Vlaanderen", flag: "🇧🇪", lengthKm: 1.4, elevation: 109, avgGrade: 7.8 },
-{ id: 'be_muur', name: "Muur van Geraardsbergen", country: "BE", region: "Vlaanderen", flag: "🇧🇪", lengthKm: 1.1, elevation: 92, avgGrade: 8.7 },
-// Luxemburg
-{ id: 'lu_vianden', name: "Mont Saint-Nicolas", country: "LU", region: "Luxemburg", flag: "🇱🇺", lengthKm: 3.5, elevation: 290, avgGrade: 8.3 },
-{ id: 'lu_bourscheid', name: "Bourscheid-Moulin", country: "LU", region: "Luxemburg", flag: "🇱🇺", lengthKm: 3.6, elevation: 265, avgGrade: 7.4 },
-{ id: 'lu_esch', name: "Esch-sur-Sûre", country: "LU", region: "Luxemburg", flag: "🇱🇺", lengthKm: 2.5, elevation: 160, avgGrade: 6.4 },
-{ id: 'lu_putscheid', name: "Putscheid", country: "LU", region: "Luxemburg", flag: "🇱🇺", lengthKm: 2.8, elevation: 210, avgGrade: 7.5 },
-{ id: 'lu_kauten', name: "Kautenbach", country: "LU", region: "Luxemburg", flag: "🇱🇺", lengthKm: 4.5, elevation: 230, avgGrade: 5.1 },
-// Austria
-{ id: 'at_grossglockner', name: "Grossglockner", country: "AT", region: "Alpen", flag: "🇦🇹", lengthKm: 14.0, elevation: 1280, avgGrade: 9.5 },
-{ id: 'at_kitzbuheler', name: "Kitzbüheler Horn", country: "AT", region: "Tirol", flag: "🇦🇹", lengthKm: 9.7, elevation: 1290, avgGrade: 12.9 },
-// Duitsland
-{ id: 'de_nebelhorn', name: "Nebelhorn", country: "DE", region: "Beieren", flag: "🇩🇪", lengthKm: 7.3, elevation: 1102, avgGrade: 15.1 },
-{ id: 'de_schlappold', name: "Alpe Schlappold", country: "DE", region: "Beieren", flag: "🇩🇪", lengthKm: 7.3, elevation: 876, avgGrade: 12.0 },
-
-// --- REAL WORLD: UK ---
-{ id: 'uk_hardknott', name: "Hardknott Pass", country: "UK", region: "Lake District", flag: "🇬🇧", lengthKm: 2.2, elevation: 298, avgGrade: 13.3 },
-{ id: 'uk_wrynose', name: "Wrynose Pass", country: "UK", region: "Lake District", flag: "🇬🇧", lengthKm: 2.7, elevation: 280, avgGrade: 10.4 },
-{ id: 'uk_green_lane', name: "Green Lane", country: "UK", region: "England", flag: "🇬🇧", lengthKm: 5.7, elevation: 347, avgGrade: 6.1 },
-{ id: 'uk_park_rash', name: "Park Rash", country: "UK", region: "England", flag: "🇬🇧", lengthKm: 4.2, elevation: 302, avgGrade: 7.2 },
-
-// ==========================================
-// ZWIFT: WATOPIA (Regulars)
-// ==========================================
-{ id: 'zw_alpe', name: "Alpe du Zwift", country: "Zwift", region: "Watopia", flag: "🟧", lengthKm: 12.2, elevation: 1036, avgGrade: 8.5 },
-{ id: 'zw_epic', name: "Epic KOM", country: "Zwift", region: "Watopia", flag: "🟧", lengthKm: 9.4, elevation: 540, avgGrade: 5.9 },
-{ id: 'zw_epic_rev', name: "Epic KOM Reverse", country: "Zwift", region: "Watopia", flag: "🟧", lengthKm: 6.2, elevation: 364, avgGrade: 5.9 },
-{ id: 'zw_radio', name: "Radio Tower", country: "Zwift", region: "Watopia", flag: "🟧", lengthKm: 1.1, elevation: 150, avgGrade: 13.7 },
-{ id: 'zw_volcano', name: "Volcano KOM", country: "Zwift", region: "Watopia", flag: "🟧", lengthKm: 3.75, elevation: 120, avgGrade: 3.2 },
-{ id: 'zw_hilly', name: "Hilly KOM", country: "Zwift", region: "Watopia", flag: "🟧", lengthKm: 0.9, elevation: 50, avgGrade: 5.5 },
-{ id: 'zw_hilly_rev', name: "Hilly KOM Reverse", country: "Zwift", region: "Watopia", flag: "🟧", lengthKm: 2.5, elevation: 49, avgGrade: 1.8 },
-{ id: 'z_titans', name: "Titans Grove KOM", country: "Zwift", region: "Watopia", flag: "🟧", lengthKm: 2.6, elevation: 119, avgGrade: 4.6 },
-
-// ==========================================
-// ZWIFT: WORLD MAPS (Regulars)
-// ==========================================
-{ id: 'zw_ven_top', name: "Ven-Top", country: "Zwift", region: "France", flag: "🟧", lengthKm: 20.9, elevation: 1534, avgGrade: 7.3 },
-{ id: 'zw_petit_kom', name: "Petit KOM", country: "Zwift", region: "France", flag: "🟧", lengthKm: 2.7, elevation: 106, avgGrade: 4.0 },
-{ id: 'zw_innsbruck', name: "Innsbruck KOM", country: "Zwift", region: "Innsbruck", flag: "🟧", lengthKm: 7.4, elevation: 400, avgGrade: 5.4 },
-{ id: 'z_igls', name: "Igls (Reverse)", country: "Zwift", region: "Innsbruck", flag: "🟧", lengthKm: 5.6, elevation: 230, avgGrade: 4.1 },
-{ id: 'zw_box_hill', name: "Box Hill", country: "Zwift", region: "London", flag: "🟧", lengthKm: 3.0, elevation: 137, avgGrade: 4.3 },
-{ id: 'zw_leith_hill', name: "Leith Hill", country: "Zwift", region: "London", flag: "🟧", lengthKm: 1.9, elevation: 134, avgGrade: 6.8 },
-{ id: 'zw_keith_hill', name: "Keith Hill", country: "Zwift", region: "London", flag: "🟧", lengthKm: 4.2, elevation: 228, avgGrade: 5.2 },
-{ id: 'zw_fox_hill', name: "Fox Hill", country: "Zwift", region: "London", flag: "🟧", lengthKm: 2.4, elevation: 118, avgGrade: 4.9 },
-{ id: 'zw_ny_kom', name: "New York KOM", country: "Zwift", region: "New York", flag: "🟧", lengthKm: 1.4, elevation: 89, avgGrade: 6.1 },
-{ id: 'zw_richmond_kom', name: "Richmond KOM", country: "Zwift", region: "Richmond", flag: "🟧", lengthKm: 0.28, elevation: 19, avgGrade: 6.5 },
-{ id: 'zw_richmond_23', name: "23rd Street", country: "Zwift", region: "Richmond", flag: "🟧", lengthKm: 0.27, elevation: 26, avgGrade: 10.0 },
-{ id: 'zw_bologna', name: "San Luca (Bologna)", country: "Zwift", region: "Bologna", flag: "🟧", lengthKm: 2.0, elevation: 218, avgGrade: 10.8 },
-{ id: 'zw_sgurr', name: "Sgurr Summit", country: "Zwift", region: "Scotland", flag: "🟧", lengthKm: 3.3, elevation: 113, avgGrade: 3.4 },
-{ id: 'zw_yorkshire', name: "Yorkshire KOM", country: "Zwift", region: "Yorkshire", flag: "🟧", lengthKm: 1.2, elevation: 55, avgGrade: 5.5 },
-{ id: 'zw_temple', name: "Temple KOM", country: "Zwift", region: "Makuri Islands", flag: "🟧", lengthKm: 1.9, elevation: 64, avgGrade: 3.6 },
-{ id: 'zw_rooftop', name: "Rooftop KOM", country: "Zwift", region: "Makuri Islands", flag: "🟧", lengthKm: 1.87, elevation: 80, avgGrade: 4.3 },
-{ id: 'zw_castle', name: "Castle KOM", country: "Zwift", region: "Makuri Islands", flag: "🟧", lengthKm: 2.7, elevation: 68, avgGrade: 2.5 },
-
-// ==========================================
-// ZWIFT: CLIMB PORTAL (The Simulation List)
-// ==========================================
-{ id: 'zp_pike', name: "Cote de Pike", country: "Zwift", region: "Climb Portal", flag: "🟧", lengthKm: 2.0, elevation: 200, avgGrade: 10.0 },
-{ id: 'zp_tourmalet', name: "Col du Tourmalet", country: "Zwift", region: "Climb Portal", flag: "🟧", lengthKm: 16.9, elevation: 1268, avgGrade: 7.4 },
-{ id: 'zp_aspin', name: "Col d'Aspin", country: "Zwift", region: "Climb Portal", flag: "🟧", lengthKm: 12.0, elevation: 779, avgGrade: 6.5 },
-{ id: 'zp_puy_dome', name: "Puy de Dôme", country: "Zwift", region: "Climb Portal", flag: "🟧", lengthKm: 10.5, elevation: 882, avgGrade: 8.4 },
-{ id: 'zp_superplanche', name: "Superplanche", country: "Zwift", region: "Climb Portal", flag: "🟧", lengthKm: 7.0, elevation: 614, avgGrade: 8.7 },
-{ id: 'zp_couillole', name: "Col de la Couillole", country: "Zwift", region: "Climb Portal", flag: "🟧", lengthKm: 15.8, elevation: 1157, avgGrade: 7.3 },
-{ id: 'zp_eze', name: "Col d'Eze", country: "Zwift", region: "Climb Portal", flag: "🟧", lengthKm: 10.0, elevation: 501, avgGrade: 4.9 },
-{ id: 'zp_willunga', name: "Old Willunga Hill", country: "Zwift", region: "Climb Portal", flag: "🟧", lengthKm: 3.0, elevation: 227, avgGrade: 7.6 },
-{ id: 'zp_crow_road', name: "Crow Road", country: "Zwift", region: "Climb Portal", flag: "🟧", lengthKm: 5.6, elevation: 273, avgGrade: 4.8 },
-{ id: 'zp_fuji', name: "Mt. Fuji (Subaru Line)", country: "Zwift", region: "Climb Portal", flag: "🟧", lengthKm: 22.2, elevation: 1182, avgGrade: 5.3 },
-{ id: 'zp_rocacorba', name: "Rocacorba", country: "Zwift", region: "Climb Portal", flag: "🟧", lengthKm: 10.0, elevation: 650, avgGrade: 6.5 },
-{ id: 'zp_aravis', name: "Col des Aravis", country: "Zwift", region: "Climb Portal", flag: "🟧", lengthKm: 4.4, elevation: 257, avgGrade: 5.8 },
-{ id: 'zp_domancy', name: "Cote de Domancy", country: "Zwift", region: "Climb Portal", flag: "🟧", lengthKm: 2.6, elevation: 218, avgGrade: 8.4 },
-{ id: 'zp_tre_cime', name: "Tre Cime di Lavaredo", country: "Zwift", region: "Climb Portal", flag: "🟧", lengthKm: 7.5, elevation: 574, avgGrade: 7.6 },
-{ id: 'zp_lusk', name: "Luskentyre", country: "Zwift", region: "Climb Portal", flag: "🟧", lengthKm: 3.2, elevation: 85, avgGrade: 2.7 },
-{ id: 'zp_valparola', name: "Passo Valparola", country: "Zwift", region: "Climb Portal", flag: "🟧", lengthKm: 13.9, elevation: 813, avgGrade: 5.8 },
-// Rotations
-{ id: 'zp_bealach', name: "Bealach na Bà", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 9.0, elevation: 632, avgGrade: 7.0 },
-{ id: 'zp_cauberg', name: "Cauberg", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 0.8, elevation: 57, avgGrade: 7.1 },
-{ id: 'zp_cheddar', name: "Cheddar Gorge", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 4.7, elevation: 171, avgGrade: 3.6 },
-{ id: 'zp_cipressa', name: "Cipressa", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 6.4, elevation: 228, avgGrade: 3.5 },
-{ id: 'zp_croix', name: "Col de la Croix Saint-Robert", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 5.7, elevation: 346, avgGrade: 6.1 },
-{ id: 'zp_madeleine', name: "Col de la Madeleine", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 14.3, elevation: 1118, avgGrade: 7.8 },
-{ id: 'zp_madone', name: "Col de la Madone", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 16.3, elevation: 902, avgGrade: 5.5 },
-{ id: 'zp_peyresourde', name: "Col de Peyresourde", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 8.3, elevation: 559, avgGrade: 6.7 },
-{ id: 'zp_platzer', name: "Col du Platzerwasel", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 7.8, elevation: 592, avgGrade: 7.3 },
-{ id: 'zp_rosier', name: "Col du Rosier", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 5.0, elevation: 222, avgGrade: 4.5 },
-{ id: 'zp_ordino', name: "Coll d'Ordino", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 10.3, elevation: 511, avgGrade: 5.0 },
-{ id: 'zp_redoute', name: "Côte de La Redoute", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 1.5, elevation: 153, avgGrade: 10.2 },
-{ id: 'zp_trebiac', name: "Cote de Trebiac", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 4.6, elevation: 207, avgGrade: 4.2 },
-{ id: 'zp_forche', name: "Côte des Forche", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 3.0, elevation: 148, avgGrade: 4.9 },
-{ id: 'zp_gotthard', name: "Gotthard Pass", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 14.4, elevation: 909, avgGrade: 6.3 },
-{ id: 'zp_hardknott', name: "Hardknott Pass", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 2.7, elevation: 306, avgGrade: 11.5 },
-{ id: 'zp_hautacam', name: "Hautacam", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 12.7, elevation: 1029, avgGrade: 8.1 },
-{ id: 'zp_isola', name: "Isola 2000", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 18.9, elevation: 1145, avgGrade: 5.9 },
-{ id: 'zp_laguna', name: "La Laguna Negra", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 9.1, elevation: 510, avgGrade: 5.6 },
-{ id: 'zp_turbie', name: "La Turbie + Col d'Eze", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 15.2, elevation: 616, avgGrade: 3.1 },
-{ id: 'zp_lagos', name: "Lagos de Covadonga", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 14.5, elevation: 976, avgGrade: 6.7 },
-{ id: 'zp_chinaillon', name: "Montée du Chinaillon", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 8.1, elevation: 353, avgGrade: 4.4 },
-{ id: 'zp_hamilton', name: "Mt. Hamilton", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 31.3, elevation: 1259, avgGrade: 3.5 },
-{ id: 'zp_mur_bretagne', name: "Mûr de Bretagne", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 2.0, elevation: 129, avgGrade: 6.6 },
-{ id: 'zp_norton', name: "Norton Summit", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 8.7, elevation: 363, avgGrade: 4.0 },
-{ id: 'zp_old_la_honda', name: "Old La Honda", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 5.6, elevation: 396, avgGrade: 7.1 },
-{ id: 'zp_kwaremont', name: "Oude Kwaremont", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 1.5, elevation: 64, avgGrade: 4.3 },
-{ id: 'zp_peyrol', name: "Pas de Peyrol/Puy Mary", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 10.2, elevation: 603, avgGrade: 5.9 },
-{ id: 'zp_pla_adet', name: "Pla d'Adet", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 12.1, elevation: 847, avgGrade: 6.9 },
-{ id: 'zp_poggio', name: "Poggio", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 4.3, elevation: 136, avgGrade: 3.2 },
-{ id: 'zp_trollstigen', name: "Trollstigen", country: "Zwift", region: "Portal", flag: "🌀", lengthKm: 12.4, elevation: 784, avgGrade: 6.3 },
-].map(c => ({...c, url: c.url || getClimbUrl(c.name, c.country)}));
-
-const COGGAN_ZONES = [
-  { name: 'Z1 Recovery', min: 0, max: 0.55, color: '#9ca3af' },
-  { name: 'Z2 Endurance', min: 0.56, max: 0.75, color: '#3b82f6' },
-  { name: 'Z3 Tempo', min: 0.76, max: 0.90, color: '#22c55e' },
-  { name: 'Z4 Threshold', min: 0.91, max: 1.05, color: '#eab308' },
-  { name: 'Z5 VO2 Max', min: 1.06, max: 1.20, color: '#f97316' },
-  { name: 'Z6 Anaerobic', min: 1.21, max: 1.50, color: '#ef4444' },
-  { name: 'Z7 Neuro', min: 1.51, max: 10.0, color: '#a855f7' }
-];
-
-const MONTH_ORDER = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"
-];
 
 /**
  * ============================================================================
@@ -314,7 +64,6 @@ const formatDateDDMMYYYY = (isoDateString) => {
 };
 
 const formatTime = (seconds) => {
-  // Safe number check
   const sNum = Number(seconds);
   if (!sNum || isNaN(sNum)) return "00:00";
   const h = Math.floor(sNum / 3600);
@@ -340,20 +89,17 @@ const parseDurationToSeconds = (str) => {
   return 0;
 };
 
-// NaN Protected Rolling Average
 const calculateRollingTrend = (activities, targetDateStr, metricKey, windowDays = 15) => {
   const targetDate = new Date(targetDateStr);
   const msPerDay = 24 * 60 * 60 * 1000;
   const inWindow = activities.filter(a => {
     const d = new Date(a.date);
     const diffDays = Math.abs((targetDate - d) / msPerDay);
-    // Explicit Number() conversion to avoid string concatenation or NaNs
     const val = Number(a[metricKey]);
     return diffDays <= windowDays && !isNaN(val) && val > 0;
   });
 
   if (inWindow.length === 0) return 0;
-  
   const sum = inWindow.reduce((acc, curr) => acc + (Number(curr[metricKey]) || 0), 0);
   return sum / inWindow.length;
 };
@@ -409,7 +155,6 @@ const smartParseCSV = (text, type = 'generic') => {
     if (!entry.id) entry.id = Math.random().toString(36).substr(2, 9);
     if (!entry.date || entry.date === 'Invalid Date') entry.date = new Date().toISOString().split('T')[0];
     
-    // Safety defaults for NaN prevention
     ['load', 'norm_power', 'avg_power', 'climbing', 'distance'].forEach(k => {
         if(!entry[k]) entry[k] = 0;
     });
@@ -417,6 +162,11 @@ const smartParseCSV = (text, type = 'generic') => {
     return entry;
   }).filter(e => e.distance > 0 || e.moving_time > 0);
 };
+
+const MONTH_ORDER = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+];
 
 /**
  * ============================================================================
@@ -611,7 +361,22 @@ const DataHub = ({ activities, onImport, onDelete }) => {
   const [expandedYears, setExpandedYears] = useState({});
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
 
-  const handleImport = (type) => {
+  // Intervals API State
+  const [intervalsConfig, setIntervalsConfig] = useState({
+    apiKey: localStorage.getItem('intervals_api_key') || '',
+    athleteId: localStorage.getItem('intervals_athlete_id') || ''
+  });
+  const [fetchedActivities, setFetchedActivities] = useState([]);
+  const [selectedActivities, setSelectedActivities] = useState([]);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+
+  const updateIntervalsConfig = (key, val) => {
+    setIntervalsConfig(prev => ({...prev, [key]: val}));
+    localStorage.setItem(`intervals_${key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`)}`, val);
+  };
+
+  const handleImportCSV = (type) => {
     const data = smartParseCSV(importText, type);
     if(data.length) {
       onImport(data);
@@ -623,14 +388,10 @@ const DataHub = ({ activities, onImport, onDelete }) => {
     }
   };
 
-  const handleSync = async () => {
-    if (!db) {
-        alert("Firebase is niet correct geladen. Check je console.");
-        return;
-    }
+  const handleSyncCloud = async () => {
+    if (!db) { alert("Firebase Error"); return; }
     const btn = document.getElementById('sync-btn');
     if(btn) { btn.innerHTML = '↻ Syncing...'; btn.disabled = true; }
-    
     try {
         let count = 0;
         for (const act of activities) {
@@ -645,37 +406,91 @@ const DataHub = ({ activities, onImport, onDelete }) => {
     }
   };
 
-  const toggleYear = (year) => setExpandedYears(p => ({...p, [year]: !p[year]}));
+  // --- INTERVALS API SYNC LOGIC ---
+  const handleIntervalsSync = async () => {
+    if (!intervalsConfig.apiKey || !intervalsConfig.athleteId) {
+        alert("Vul eerst je Athlete ID en API Key in.");
+        return;
+    }
+    setIsSyncing(true);
+    
+    // Calculate date range (Last 90 days)
+    const endDate = new Date().toISOString().split('T')[0];
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 90);
+    const startDateStr = startDate.toISOString().split('T')[0];
 
-  // --- SORTING LOGIC ---
+    try {
+        const response = await fetch(`https://intervals.icu/api/v1/athlete/${intervalsConfig.athleteId}/activities?oldest=${startDateStr}&newest=${endDate}`, {
+            headers: {
+                'Authorization': 'Basic ' + btoa('API_KEY:' + intervalsConfig.apiKey)
+            }
+        });
+
+        if (!response.ok) throw new Error("API Fout: Check ID/Key");
+        const data = await response.json();
+
+        // Map Data & Filter Duplicates
+        const newRides = data
+            .map(ride => ({
+                id: ride.id,
+                date: ride.start_date_local.substring(0, 10),
+                title: ride.name,
+                moving_time: ride.moving_time,
+                distance: (ride.distance / 1000).toFixed(2), // meters to km
+                climbing: ride.total_elevation_gain,
+                norm_power: ride.icu_weighted_avg_watts || 0,
+                avg_power: ride.average_watts || 0,
+                load: ride.icu_training_load || 0,
+                rpe: ride.icu_rpe || 0,
+                avg_speed: (ride.average_speed * 3.6).toFixed(1), // m/s to km/h
+                best_5min: 0, // Intervals gives curves in separate calls usually, keep 0 or extend if needed
+                best_20min: 0,
+                best_60min: 0
+            }))
+            .filter(ride => !activities.some(existing => existing.id === ride.id)); // Filter duplicates
+
+        if (newRides.length > 0) {
+            setFetchedActivities(newRides);
+            setSelectedActivities(newRides.map(r => r.id)); // Select all by default
+            setShowModal(true);
+        } else {
+            alert("Geen nieuwe ritten gevonden (alles is up-to-date).");
+        }
+
+    } catch (e) {
+        alert("Sync mislukt: " + e.message);
+    } finally {
+        setIsSyncing(false);
+    }
+  };
+
+  const confirmImport = () => {
+    const toImport = fetchedActivities.filter(a => selectedActivities.includes(a.id));
+    onImport(toImport);
+    setShowModal(false);
+    setFetchedActivities([]);
+    setInternalTab('log');
+  };
+
+  // Toggle helpers
+  const toggleYear = (year) => setExpandedYears(p => ({...p, [year]: !p[year]}));
+  
+  // Sorting & Grouping
   const requestSort = (key) => {
     let direction = 'desc';
-    if (sortConfig.key === key && sortConfig.direction === 'desc') {
-      direction = 'asc';
-    }
+    if (sortConfig.key === key && sortConfig.direction === 'desc') direction = 'asc';
     setSortConfig({ key, direction });
   };
 
-  // 1. Process Activities (Filter & Sort)
   const processedActivities = useMemo(() => {
     let filtered = activities.filter(a => a.title?.toLowerCase().includes(search.toLowerCase()) || a.date.includes(search));
-    
-    // Sort
     if (sortConfig.key) {
         filtered.sort((a, b) => {
             let aVal = a[sortConfig.key];
             let bVal = b[sortConfig.key];
-
-            // String comparison (case insensitive)
-            if (typeof aVal === 'string') {
-                aVal = aVal.toLowerCase();
-                bVal = bVal ? bVal.toLowerCase() : '';
-            } else {
-                // Number safety
-                aVal = Number(aVal) || 0;
-                bVal = Number(bVal) || 0;
-            }
-
+            if (typeof aVal === 'string') { aVal = aVal.toLowerCase(); bVal = bVal ? bVal.toLowerCase() : ''; } 
+            else { aVal = Number(aVal) || 0; bVal = Number(bVal) || 0; }
             if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
             if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
             return 0;
@@ -684,12 +499,9 @@ const DataHub = ({ activities, onImport, onDelete }) => {
     return filtered;
   }, [activities, search, sortConfig]);
 
-  // 2. Group (Only if sorting by Date, otherwise show flat list)
   const isGroupedView = sortConfig.key === 'date';
-
   const groupedActivities = useMemo(() => {
     if (!isGroupedView) return null;
-    
     const groups = {};
     processedActivities.forEach(act => {
         const d = new Date(act.date);
@@ -702,32 +514,62 @@ const DataHub = ({ activities, onImport, onDelete }) => {
     return groups;
   }, [processedActivities, isGroupedView]);
 
-  // --- RENDER HELPERS ---
-  const SortIcon = ({ colKey }) => {
-    if (sortConfig.key !== colKey) return <ArrowUpDown size={12} className="opacity-30 ml-1 inline" />;
-    return sortConfig.direction === 'asc' 
-        ? <ChevronUp size={12} className="text-yellow-400 ml-1 inline" /> 
-        : <ChevronDown size={12} className="text-yellow-400 ml-1 inline" />;
-  };
-
   const Header = ({ label, colKey, align = 'left' }) => (
-    <th 
-        className={`p-3 cursor-pointer hover:bg-slate-800 transition-colors select-none text-${align}`}
-        onClick={() => requestSort(colKey)}
-    >
+    <th className={`p-3 cursor-pointer hover:bg-slate-800 transition-colors select-none text-${align}`} onClick={() => requestSort(colKey)}>
         <span className="flex items-center gap-1 justify-end">
              {align === 'left' && <span className="flex-1 text-left">{label}</span>}
-             {align === 'left' ? <SortIcon colKey={colKey}/> : <>{label} <SortIcon colKey={colKey}/></>}
+             {align === 'left' ? (sortConfig.key !== colKey ? <ArrowUpDown size={12} className="opacity-30 ml-1 inline" /> : (sortConfig.direction === 'asc' ? <ChevronUp size={12} className="text-yellow-400 ml-1 inline" /> : <ChevronDown size={12} className="text-yellow-400 ml-1 inline" />)) : <>{label} {sortConfig.key !== colKey ? <ArrowUpDown size={12} className="opacity-30 ml-1 inline" /> : (sortConfig.direction === 'asc' ? <ChevronUp size={12} className="text-yellow-400 ml-1 inline" /> : <ChevronDown size={12} className="text-yellow-400 ml-1 inline" />)}</>}
         </span>
     </th>
   );
 
   return (
-    <div className="bg-slate-800 rounded-xl border border-slate-700 shadow-xl overflow-hidden min-h-[600px] flex flex-col">
+    <div className="bg-slate-800 rounded-xl border border-slate-700 shadow-xl overflow-hidden min-h-[600px] flex flex-col relative">
+        {/* SELECTION MODAL */}
+        {showModal && (
+            <div className="absolute inset-0 bg-slate-900/90 z-50 flex items-center justify-center p-6 backdrop-blur-sm">
+                <div className="bg-slate-800 border border-slate-600 rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col">
+                    <div className="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900/50">
+                        <h3 className="font-bold text-white flex items-center gap-2"><Download size={18} className="text-green-400"/> New Activities Found</h3>
+                        <button onClick={() => setShowModal(false)}><X size={20} className="text-slate-400 hover:text-white"/></button>
+                    </div>
+                    <div className="p-4 overflow-y-auto flex-1">
+                        <div className="flex gap-2 mb-4">
+                            <button onClick={() => setSelectedActivities(fetchedActivities.map(r=>r.id))} className="text-xs bg-slate-700 px-2 py-1 rounded text-white hover:bg-slate-600">Select All</button>
+                            <button onClick={() => setSelectedActivities([])} className="text-xs bg-slate-700 px-2 py-1 rounded text-white hover:bg-slate-600">Deselect All</button>
+                        </div>
+                        <div className="space-y-2">
+                            {fetchedActivities.map(ride => (
+                                <div key={ride.id} className="flex items-center p-3 bg-slate-700/30 rounded border border-slate-700 hover:border-slate-500 cursor-pointer" onClick={() => {
+                                    if(selectedActivities.includes(ride.id)) setSelectedActivities(s => s.filter(id => id !== ride.id));
+                                    else setSelectedActivities(s => [...s, ride.id]);
+                                }}>
+                                    <input type="checkbox" checked={selectedActivities.includes(ride.id)} readOnly className="mr-3 w-4 h-4 accent-green-500"/>
+                                    <div className="flex-1">
+                                        <div className="text-sm font-bold text-white">{ride.title}</div>
+                                        <div className="text-xs text-slate-400">{ride.date} • {ride.distance}km • {ride.load} TSS</div>
+                                    </div>
+                                    <div className="text-right">
+                                        <span className="text-xs font-mono text-yellow-400 border border-yellow-400/20 px-1 rounded">{ride.norm_power}W NP</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="p-4 border-t border-slate-700 flex justify-end gap-3 bg-slate-900/50">
+                        <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm font-bold text-slate-400 hover:text-white">Cancel</button>
+                        <button onClick={confirmImport} className="px-6 py-2 text-sm font-bold bg-green-500 hover:bg-green-400 text-white rounded shadow-lg shadow-green-500/20">
+                            Import {selectedActivities.length} Activities
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
+
         <div className="flex border-b border-slate-700">
             <button onClick={() => setInternalTab('log')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'log' ? 'bg-slate-700 text-yellow-400' : 'text-slate-400 hover:bg-slate-700/50'}`}>Activity Log</button>
-            <button onClick={() => setInternalTab('import')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'import' ? 'bg-slate-700 text-yellow-400' : 'text-slate-400 hover:bg-slate-700/50'}`}>CSV / Excel</button>
-            <button onClick={() => setInternalTab('intervals')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'intervals' ? 'bg-slate-700 text-orange-400' : 'text-slate-400 hover:bg-slate-700/50'}`}>Intervals.icu</button>
+            <button onClick={() => setInternalTab('intervals')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'intervals' ? 'bg-slate-700 text-orange-400' : 'text-slate-400 hover:bg-slate-700/50'}`}>Intervals.icu API</button>
+            <button onClick={() => setInternalTab('import')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'import' ? 'bg-slate-700 text-yellow-400' : 'text-slate-400 hover:bg-slate-700/50'}`}>CSV Import</button>
         </div>
 
         <div className="p-4 flex-1 overflow-hidden flex flex-col">
@@ -738,7 +580,7 @@ const DataHub = ({ activities, onImport, onDelete }) => {
                             <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500"/>
                             <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Zoek op datum, naam..." className="w-full bg-slate-900 border border-slate-600 rounded pl-10 pr-4 py-2 text-sm text-white focus:border-yellow-400 outline-none" />
                         </div>
-                        <button id="sync-btn" onClick={handleSync} className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded flex items-center gap-2 text-sm font-bold transition-all whitespace-nowrap">
+                        <button id="sync-btn" onClick={handleSyncCloud} className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded flex items-center gap-2 text-sm font-bold transition-all whitespace-nowrap">
                             <Cloud size={16}/> Sync Cloud
                         </button>
                     </div>
@@ -764,7 +606,6 @@ const DataHub = ({ activities, onImport, onDelete }) => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-700 bg-slate-800">
-                                {/* SCENARIO A: GROUPED VIEW (If sorting by Date) */}
                                 {isGroupedView && groupedActivities && Object.keys(groupedActivities).sort((a,b)=> sortConfig.direction === 'asc' ? a-b : b-a).map(year => (
                                     <React.Fragment key={year}>
                                         <tr className="bg-slate-700/50">
@@ -791,24 +632,79 @@ const DataHub = ({ activities, onImport, onDelete }) => {
                                         ))}
                                     </React.Fragment>
                                 ))}
-
-                                {/* SCENARIO B: FLAT SORTED VIEW (If sorting by anything else) */}
                                 {!isGroupedView && processedActivities.map(act => (
                                      <Row key={act.id} act={act} onDelete={onDelete} deleteConfirm={deleteConfirm} setDeleteConfirm={setDeleteConfirm}/>
                                 ))}
-
                             </tbody>
                         </table>
                     </div>
                 </>
             )}
 
+            {internalTab === 'intervals' && (
+                <div className="space-y-6 animate-in fade-in">
+                    <div className="bg-slate-900/50 border border-slate-600 rounded-lg p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-3 bg-orange-500/20 rounded-lg text-orange-400">
+                                    <Activity size={24}/>
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-white">Connect Intervals.icu</h3>
+                                    <p className="text-xs text-slate-400">Auto-import je ritten, load en power data.</p>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <a href="https://intervals.icu/settings" target="_blank" rel="noreferrer" className="text-xs text-blue-400 hover:text-blue-300 underline">Where do I find my Key?</a>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                            <div>
+                                <label className="block text-xs uppercase font-bold text-slate-500 mb-1">Athlete ID</label>
+                                <input 
+                                    type="text" 
+                                    placeholder="e.g. i12345" 
+                                    value={intervalsConfig.athleteId}
+                                    onChange={e => updateIntervalsConfig('athleteId', e.target.value)}
+                                    className="w-full bg-slate-800 border border-slate-600 rounded p-2 text-white focus:border-orange-400 outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs uppercase font-bold text-slate-500 mb-1">API Key</label>
+                                <input 
+                                    type="password" 
+                                    placeholder="Your Secret Key" 
+                                    value={intervalsConfig.apiKey}
+                                    onChange={e => updateIntervalsConfig('apiKey', e.target.value)}
+                                    className="w-full bg-slate-800 border border-slate-600 rounded p-2 text-white focus:border-orange-400 outline-none"
+                                />
+                            </div>
+                        </div>
+
+                        <button 
+                            onClick={handleIntervalsSync} 
+                            disabled={isSyncing}
+                            className={`w-full py-4 rounded-lg font-bold text-white flex items-center justify-center gap-2 transition-all ${isSyncing ? 'bg-slate-700 cursor-not-allowed' : 'bg-orange-500 hover:bg-orange-600 shadow-lg shadow-orange-500/20'}`}
+                        >
+                            {isSyncing ? <RefreshCw size={20} className="animate-spin"/> : <RefreshCw size={20}/>}
+                            {isSyncing ? 'Connecting & Syncing...' : 'Connect & Sync Last 90 Days'}
+                        </button>
+                    </div>
+
+                    <div className="p-4 rounded border border-blue-500/20 bg-blue-500/5 text-blue-200 text-sm flex gap-3">
+                        <Info size={20} className="shrink-0"/>
+                        <p>De sync haalt automatisch nieuwe ritten op en filtert ritten die al in je log staan eruit. Je kunt daarna selecteren welke je wilt toevoegen.</p>
+                    </div>
+                </div>
+            )}
+
             {internalTab === 'import' && (
                 <div className="space-y-4">
                     <div className="bg-slate-900 p-4 rounded border border-slate-600">
-                        <h3 className="font-bold text-white mb-2">CSV / Excel Paste</h3>
+                        <h3 className="font-bold text-white mb-2">Legacy CSV Import</h3>
                         <p className="text-xs text-slate-400 mb-4">
-                            Auto-detectie van 13 kolommen (Datum, Titel, Tijd, Afstand, Hoogte, Snelheid, NP, AvgPwr, Load, RPE, 5m, 20m, 60m).
+                            Plak hier CSV data als fallback.
                         </p>
                         <textarea 
                             className="w-full h-48 bg-slate-800 border border-slate-700 rounded p-3 text-xs font-mono text-white outline-none focus:border-yellow-400"
@@ -816,28 +712,7 @@ const DataHub = ({ activities, onImport, onDelete }) => {
                             value={importText}
                             onChange={e => setImportText(e.target.value)}
                         />
-                        <button onClick={() => handleImport('generic')} className="mt-4 w-full bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold py-3 rounded">Import & Parse</button>
-                    </div>
-                </div>
-            )}
-
-            {internalTab === 'intervals' && (
-                <div className="space-y-4">
-                    <div className="bg-slate-900 p-4 rounded border border-slate-600">
-                        <div className="flex items-center gap-2 mb-4">
-                           <div className="p-2 bg-orange-500/20 rounded text-orange-400"><Activity size={20}/></div>
-                           <h3 className="font-bold text-white">Intervals.icu Import</h3>
-                        </div>
-                        <p className="text-sm text-slate-300 mb-4">
-                           Plak hier je Intervals.icu CSV export. De app herkent automatisch velden als `icu_training_load` en `icu_rpe`.
-                        </p>
-                        <textarea 
-                            className="w-full h-32 bg-slate-800 border border-slate-700 rounded p-3 text-xs font-mono text-white outline-none focus:border-orange-400"
-                            placeholder="date,name,moving_time,distance,icu_training_load,icu_rpe..."
-                            value={importText}
-                            onChange={e => setImportText(e.target.value)}
-                        />
-                        <button onClick={() => handleImport('intervals')} className="mt-4 w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded">Parse Intervals CSV</button>
+                        <button onClick={() => handleImportCSV('generic')} className="mt-4 w-full bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold py-3 rounded">Import & Parse</button>
                     </div>
                 </div>
             )}
@@ -846,7 +721,7 @@ const DataHub = ({ activities, onImport, onDelete }) => {
   );
 };
 
-// Extracted Row Component to avoid duplication
+// Row component unchanged but included for completeness in context if needed
 const Row = ({ act, onDelete, deleteConfirm, setDeleteConfirm }) => (
     <tr className="hover:bg-slate-700/50 transition-colors border-b border-slate-700/50">
         <td className="p-3 text-slate-300">{formatDateDDMMYYYY(act.date)}</td>
@@ -1068,7 +943,6 @@ const App = () => {
     }));
   }, [activities, timeRange]);
 
-  // Safe Total Load Calc
   const totalLoad = activities.reduce((acc, c) => acc + (Number(c.load) || 0), 0);
   const avgLoad = activities.length > 0 ? Math.round(totalLoad / activities.length) : 0;
 
@@ -1183,4 +1057,3 @@ const App = () => {
 };
 
 export default App;
-
