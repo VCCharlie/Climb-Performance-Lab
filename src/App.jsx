@@ -26,6 +26,7 @@ const MONTH_ORDER = [
   "July", "August", "September", "October", "November", "December"
 ];
 
+// Beschikbare sporten voor filter
 const SPORT_TYPES = ["Ride", "VirtualRide", "GravelRide", "MountainBikeRide", "EBikeRide", "Run", "Walk", "Hike"];
 
 /**
@@ -75,7 +76,6 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
     const distance = selectedClimb.lengthKm * 1000;
     const elevation = selectedClimb.elevation;
     
-    // Physics Constants
     const g = 9.81; const rho = 1.225; const cda = 0.32; const crr = 0.004; const loss = 0.03;
 
     let watts = 0, seconds = 0;
@@ -251,38 +251,54 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
   );
 };
 
-const Row = ({ act, onDelete, deleteConfirm, setDeleteConfirm }) => (
-    <tr className="hover:bg-slate-700/50 transition-colors border-b border-slate-700/50">
-        <td className="p-3 text-slate-300">{formatDateDDMMYYYY(act.date)}</td>
+// --- ROW COMPONENT VOOR DATA & PREVIEW ---
+const Row = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview = false, isSelected = false, onToggleSelect }) => (
+    <tr 
+        className={`hover:bg-slate-700/50 transition-colors border-b border-slate-700/50 ${isSelected ? 'bg-slate-700/30' : ''}`}
+        onClick={onToggleSelect ? () => onToggleSelect(act.id) : undefined}
+    >
+        {/* CHECKBOX ALLEEN IN PREVIEW */}
+        {isPreview && (
+            <td className="p-3 w-10">
+                <input type="checkbox" checked={isSelected} readOnly className="w-4 h-4 accent-green-500 cursor-pointer"/>
+            </td>
+        )}
+
+        <td className="p-3 text-slate-300 whitespace-nowrap">{formatDateDDMMYYYY(act.date)}</td>
         <td className="p-3 text-center">
-            {/* Icoontje op basis van Type */}
-            {act.type === 'VirtualRide' ? <Monitor size={16} className="text-orange-400 mx-auto" title="Virtual Ride (Zwift)"/> :
+            {/* Sport Icoontjes */}
+            {act.type === 'VirtualRide' ? <Monitor size={16} className="text-orange-400 mx-auto" title="Virtual Ride"/> :
              act.type === 'Run' ? <Footprints size={16} className="text-blue-400 mx-auto" title="Run"/> :
              act.type === 'Walk' ? <Footprints size={16} className="text-green-300 mx-auto" title="Walk"/> :
+             act.type === 'Hike' ? <Mountain size={16} className="text-green-500 mx-auto" title="Hike"/> :
              <Bike size={16} className="text-green-400 mx-auto" title="Ride"/>
             }
         </td>
         <td className="p-3 font-medium text-white max-w-[150px] truncate" title={act.title}>{act.title}</td>
-        <td className="p-3 text-right text-slate-400">{formatTime(act.moving_time)}</td>
-        <td className="p-3 text-right text-slate-400">{parseFloat(act.distance).toFixed(1)}</td>
+        <td className="p-3 text-right text-slate-400 font-mono">{formatTime(act.moving_time)}</td>
+        <td className="p-3 text-right text-slate-400">{Number(act.distance).toFixed(1)}</td>
         <td className="p-3 text-right text-slate-400">{Math.round(act.climbing || 0)}</td>
-        <td className="p-3 text-right text-slate-400">{act.avg_speed ? parseFloat(act.avg_speed).toFixed(1) : '-'}</td>
+        <td className="p-3 text-right text-slate-400">{Number(act.avg_speed).toFixed(1)}</td>
         <td className="p-3 text-right font-bold text-yellow-400">{Math.round(act.norm_power || 0)}</td>
         <td className="p-3 text-right text-slate-400">{Math.round(act.avg_power || 0)}</td>
-        <td className="p-3 text-right text-blue-400">{Math.round(act.load || 0)}</td>
+        <td className="p-3 text-right text-blue-400 font-bold">{Math.round(act.load || 0)}</td>
         <td className="p-3 text-right text-slate-400">{act.rpe || '-'}</td>
-        <td className="p-3 text-right">
-            {deleteConfirm === act.id ? (
-                <div className="flex gap-2 justify-end">
-                    <button onClick={() => onDelete(act.id)} className="text-red-500 font-bold text-xs">SURE?</button>
-                    <button onClick={() => setDeleteConfirm(null)} className="text-slate-400 text-xs">Cancel</button>
-                </div>
-            ) : (
-                <button onClick={() => setDeleteConfirm(act.id)} className="text-slate-600 hover:text-red-400 transition-colors">
-                    <Trash2 size={14}/>
-                </button>
-            )}
-        </td>
+        
+        {/* ACTION BUTTON ALLEEN IN LOG */}
+        {!isPreview && (
+            <td className="p-3 text-right">
+                {deleteConfirm === act.id ? (
+                    <div className="flex gap-2 justify-end">
+                        <button onClick={(e) => { e.stopPropagation(); onDelete(act.id); }} className="text-red-500 font-bold text-xs">SURE?</button>
+                        <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(null); }} className="text-slate-400 text-xs">Cancel</button>
+                    </div>
+                ) : (
+                    <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(act.id); }} className="text-slate-600 hover:text-red-400 transition-colors">
+                        <Trash2 size={14}/>
+                    </button>
+                )}
+            </td>
+        )}
     </tr>
 );
 
@@ -300,15 +316,15 @@ const DataHub = ({ activities, onImport, onDelete }) => {
     athleteId: localStorage.getItem('intervals_athlete_id') || ''
   });
   
-  // NEW: Date Range State
+  // DATE RANGE DEFAULT: LAATSTE 90 DAGEN
   const [syncDates, setSyncDates] = useState({
-      start: new Date(new Date().setDate(new Date().getDate() - 90)).toISOString().split('T')[0], // 90 days ago
-      end: new Date().toISOString().split('T')[0] // Today
+      start: new Date(new Date().setDate(new Date().getDate() - 90)).toISOString().split('T')[0], 
+      end: new Date().toISOString().split('T')[0] 
   });
 
-  // NEW: Sport Filter State
+  // SPORT FILTER
   const [sportFilters, setSportFilters] = useState(
-      SPORT_TYPES.reduce((acc, type) => ({...acc, [type]: true}), {}) // All true by default
+      SPORT_TYPES.reduce((acc, type) => ({...acc, [type]: true}), {})
   );
 
   const [fetchedActivities, setFetchedActivities] = useState([]);
@@ -321,30 +337,28 @@ const DataHub = ({ activities, onImport, onDelete }) => {
     localStorage.setItem(`intervals_${key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`)}`, val);
   };
 
-  const toggleSportFilter = (type) => {
-      setSportFilters(prev => ({...prev, [type]: !prev[type]}));
-  };
+  const toggleSportFilter = (type) => setSportFilters(prev => ({...prev, [type]: !prev[type]}));
+  const setAllSportFilters = (val) => setSportFilters(SPORT_TYPES.reduce((acc, type) => ({...acc, [type]: val}), {}));
+  const toggleYear = (year) => setExpandedYears(p => ({...p, [year]: !p[year]}));
 
-  const setAllSportFilters = (val) => {
-      setSportFilters(SPORT_TYPES.reduce((acc, type) => ({...acc, [type]: val}), {}));
-  };
-
+  // CSV IMPORT
   const handleImportCSV = (type) => {
     const data = smartParseCSV(importText, type);
     if(data.length) {
-      onImport(data);
-      setImportText("");
-      setInternalTab('log');
-      alert(`Succes: ${data.length} activiteiten toegevoegd!`);
+        setFetchedActivities(data);
+        setSelectedActivities(data.map(r => r.id));
+        setShowModal(true);
+        setImportText(""); 
     } else {
         alert("Geen geldige data. Controleer de headers.");
     }
   };
 
+  // SYNC CLOUD
   const handleSyncCloud = async () => {
     if (!db) { alert("Firebase Error: Db not initialized"); return; }
     const btn = document.getElementById('sync-btn');
-    if(btn) { btn.innerHTML = '↻ Syncing...'; btn.disabled = true; }
+    if(btn) { btn.innerHTML = 'Syncing...'; btn.disabled = true; }
     try {
         let count = 0;
         for (const act of activities) {
@@ -359,42 +373,39 @@ const DataHub = ({ activities, onImport, onDelete }) => {
     }
   };
 
-  // --- INTERVALS API SYNC LOGIC ---
+  // INTERVALS SYNC
   const handleIntervalsSync = async () => {
     if (!intervalsConfig.apiKey || !intervalsConfig.athleteId) {
         alert("Vul eerst je Athlete ID en API Key in.");
         return;
     }
     setIsSyncing(true);
-    
     try {
-        // Gebruik de geselecteerde datums
         const response = await fetch(`https://intervals.icu/api/v1/athlete/${intervalsConfig.athleteId}/activities?oldest=${syncDates.start}&newest=${syncDates.end}`, {
-            headers: {
-                'Authorization': 'Basic ' + btoa('API_KEY:' + intervalsConfig.apiKey)
-            }
+            headers: { 'Authorization': 'Basic ' + btoa('API_KEY:' + intervalsConfig.apiKey) }
         });
-
         if (!response.ok) throw new Error("API Fout: Check ID/Key");
         const data = await response.json();
 
-        // 1. Map Data & 2. Force Numbers (NaN Fix)
+        // 1. Filter op Sport
+        // 2. Map Data
+        // 3. Forceer Getallen (NaN Fix)
         const newRides = data
-            .filter(ride => sportFilters[ride.type]) // Filter op geselecteerde sporten
+            .filter(ride => sportFilters[ride.type]) 
             .map(ride => ({
                 id: ride.id,
                 date: ride.start_date_local.substring(0, 10),
                 title: ride.name,
                 type: ride.type, 
                 moving_time: Number(ride.moving_time) || 0,
-                distance: (Number(ride.distance) / 1000).toFixed(2),
+                distance: (Number(ride.distance) / 1000).toFixed(2), // API geeft meters
                 climbing: Number(ride.total_elevation_gain) || 0,
-                norm_power: Number(ride.icu_weighted_avg_watts) || 0, // NaN Fix
-                avg_power: Number(ride.average_watts) || 0, // NaN Fix
-                load: Number(ride.icu_training_load) || 0, // NaN Fix
+                norm_power: Number(ride.icu_weighted_avg_watts) || 0,
+                avg_power: Number(ride.average_watts) || 0,
+                load: Number(ride.icu_training_load) || 0,
                 rpe: Number(ride.icu_rpe) || 0,
-                avg_speed: (Number(ride.average_speed) * 3.6).toFixed(1),
-                best_5min: 0, 
+                avg_speed: (Number(ride.average_speed) * 3.6).toFixed(1), // API geeft m/s
+                best_5min: 0, // Intervals Power Curves zijn aparte calls, hier laten we ze leeg
                 best_20min: 0,
                 best_60min: 0
             }))
@@ -405,9 +416,8 @@ const DataHub = ({ activities, onImport, onDelete }) => {
             setSelectedActivities(newRides.map(r => r.id)); 
             setShowModal(true);
         } else {
-            alert("Geen nieuwe ritten gevonden in deze periode/selectie.");
+            alert("Geen nieuwe ritten gevonden in deze selectie.");
         }
-
     } catch (e) {
         alert("Sync mislukt: " + e.message);
     } finally {
@@ -423,8 +433,6 @@ const DataHub = ({ activities, onImport, onDelete }) => {
     setInternalTab('log');
   };
 
-  // Toggle & Sort Logic
-  const toggleYear = (year) => setExpandedYears(p => ({...p, [year]: !p[year]}));
   const requestSort = (key) => {
     let direction = 'desc';
     if (sortConfig.key === key && sortConfig.direction === 'desc') direction = 'asc';
@@ -475,44 +483,65 @@ const DataHub = ({ activities, onImport, onDelete }) => {
     <div className="bg-slate-800 rounded-xl border border-slate-700 shadow-xl overflow-hidden min-h-[600px] flex flex-col relative">
         {/* SELECTION MODAL */}
         {showModal && (
-            <div className="absolute inset-0 bg-slate-900/90 z-50 flex items-center justify-center p-6 backdrop-blur-sm">
-                <div className="bg-slate-800 border border-slate-600 rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col">
+            <div className="absolute inset-0 bg-slate-900/95 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                <div className="bg-slate-800 border border-slate-600 rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col">
                     <div className="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900/50">
-                        <h3 className="font-bold text-white flex items-center gap-2"><Download size={18} className="text-green-400"/> New Activities Found</h3>
+                        <h3 className="font-bold text-white flex items-center gap-2">
+                            <Download size={18} className="text-green-400"/> Found {fetchedActivities.length} Activities
+                        </h3>
                         <button onClick={() => setShowModal(false)}><X size={20} className="text-slate-400 hover:text-white"/></button>
                     </div>
-                    <div className="p-4 overflow-y-auto flex-1">
-                        <div className="flex gap-2 mb-4">
-                            <button onClick={() => setSelectedActivities(fetchedActivities.map(r=>r.id))} className="text-xs bg-slate-700 px-2 py-1 rounded text-white hover:bg-slate-600">Select All</button>
-                            <button onClick={() => setSelectedActivities([])} className="text-xs bg-slate-700 px-2 py-1 rounded text-white hover:bg-slate-600">Deselect All</button>
-                        </div>
-                        <div className="space-y-2">
-                            {fetchedActivities.map(ride => (
-                                <div key={ride.id} className="flex items-center p-3 bg-slate-700/30 rounded border border-slate-700 hover:border-slate-500 cursor-pointer" onClick={() => {
-                                    if(selectedActivities.includes(ride.id)) setSelectedActivities(s => s.filter(id => id !== ride.id));
-                                    else setSelectedActivities(s => [...s, ride.id]);
-                                }}>
-                                    <input type="checkbox" checked={selectedActivities.includes(ride.id)} readOnly className="mr-3 w-4 h-4 accent-green-500"/>
-                                    <div className="flex-1">
-                                        <div className="text-sm font-bold text-white flex items-center gap-2">
-                                            {ride.type === 'VirtualRide' ? <Monitor size={14} className="text-orange-400"/> : 
-                                             ride.type === 'Run' ? <Footprints size={14} className="text-blue-400"/> :
-                                             <Bike size={14} className="text-green-400"/>}
-                                            {ride.title}
-                                        </div>
-                                        <div className="text-xs text-slate-400">{ride.date} • {ride.distance}km • {ride.load} TSS</div>
-                                    </div>
-                                    <div className="text-right">
-                                        <span className="text-xs font-mono text-yellow-400 border border-yellow-400/20 px-1 rounded">{ride.norm_power}W NP</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                    
+                    <div className="p-4 bg-slate-800 border-b border-slate-700 flex gap-4">
+                        <button onClick={() => setSelectedActivities(fetchedActivities.map(r=>r.id))} className="text-xs bg-slate-700 px-3 py-1.5 rounded text-white hover:bg-slate-600">Select All</button>
+                        <button onClick={() => setSelectedActivities([])} className="text-xs bg-slate-700 px-3 py-1.5 rounded text-white hover:bg-slate-600">Deselect All</button>
                     </div>
+
+                    <div className="overflow-auto flex-1 p-0">
+                        <table className="w-full text-left text-xs whitespace-nowrap">
+                            <thead className="bg-slate-900 text-slate-400 uppercase font-bold sticky top-0 z-10 shadow-md">
+                                <tr>
+                                    <th className="p-3 w-10">
+                                        <input type="checkbox" 
+                                            checked={selectedActivities.length === fetchedActivities.length && fetchedActivities.length > 0}
+                                            onChange={(e) => e.target.checked ? setSelectedActivities(fetchedActivities.map(r=>r.id)) : setSelectedActivities([])}
+                                            className="w-4 h-4 accent-green-500"
+                                        />
+                                    </th>
+                                    <th className="p-3">Date</th>
+                                    <th className="p-3 text-center">Type</th>
+                                    <th className="p-3">Title</th>
+                                    <th className="p-3 text-right">Time</th>
+                                    <th className="p-3 text-right">Dist</th>
+                                    <th className="p-3 text-right">Elev</th>
+                                    <th className="p-3 text-right">Spd</th>
+                                    <th className="p-3 text-right text-yellow-400">NP</th>
+                                    <th className="p-3 text-right">Avg</th>
+                                    <th className="p-3 text-right text-blue-400">Load</th>
+                                    <th className="p-3 text-right">RPE</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-700 bg-slate-800">
+                                {fetchedActivities.map(act => (
+                                    <Row 
+                                        key={act.id} 
+                                        act={act} 
+                                        isPreview={true} 
+                                        isSelected={selectedActivities.includes(act.id)}
+                                        onToggleSelect={(id) => {
+                                            if(selectedActivities.includes(id)) setSelectedActivities(s => s.filter(x => x !== id));
+                                            else setSelectedActivities(s => [...s, id]);
+                                        }}
+                                    />
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
                     <div className="p-4 border-t border-slate-700 flex justify-end gap-3 bg-slate-900/50">
                         <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm font-bold text-slate-400 hover:text-white">Cancel</button>
                         <button onClick={confirmImport} className="px-6 py-2 text-sm font-bold bg-green-500 hover:bg-green-400 text-white rounded shadow-lg shadow-green-500/20">
-                            Import {selectedActivities.length} Activities
+                            Import Selected ({selectedActivities.length})
                         </button>
                     </div>
                 </div>
@@ -543,7 +572,7 @@ const DataHub = ({ activities, onImport, onDelete }) => {
                             <thead className="bg-slate-900 text-slate-400 uppercase font-bold sticky top-0 z-10">
                                 <tr>
                                     <Header label="Date" colKey="date" align="left" />
-                                    <th className="p-3">Type</th>
+                                    <th className="p-3 text-center">Type</th>
                                     <Header label="Title" colKey="title" align="left" />
                                     <Header label="Time" colKey="moving_time" align="right" />
                                     <Header label="Dist" colKey="distance" align="right" />
@@ -591,7 +620,7 @@ const DataHub = ({ activities, onImport, onDelete }) => {
                     </div>
                 </>
             )}
-            
+
             {internalTab === 'intervals' && (
                 <div className="space-y-6 animate-in fade-in">
                     <div className="bg-slate-900/50 border border-slate-600 rounded-lg p-6">
@@ -599,7 +628,6 @@ const DataHub = ({ activities, onImport, onDelete }) => {
                             <Settings size={20} className="text-orange-400"/> Sync Configuration
                         </h3>
 
-                        {/* DATUM BEREIK */}
                         <div className="mb-6">
                             <label className="block text-xs uppercase font-bold text-slate-500 mb-2">Search Period</label>
                             <div className="grid grid-cols-2 gap-4">
@@ -624,7 +652,6 @@ const DataHub = ({ activities, onImport, onDelete }) => {
                             </div>
                         </div>
 
-                        {/* SPORT TYPES */}
                         <div className="mb-6">
                             <div className="flex justify-between items-center mb-2">
                                 <label className="text-xs uppercase font-bold text-slate-500">Activity Types</label>
@@ -649,7 +676,6 @@ const DataHub = ({ activities, onImport, onDelete }) => {
                             </div>
                         </div>
 
-                        {/* CREDENTIALS */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 pt-4 border-t border-slate-700">
                             <div>
                                 <label className="block text-xs uppercase font-bold text-slate-500 mb-1">Athlete ID</label>
@@ -743,6 +769,112 @@ const ClimbProfileCard = ({ climb }) => {
                         </div>
                     </div>
                 ))}
+            </div>
+        </div>
+    );
+};
+
+const FuelingStrategy = () => {
+    const [duration, setDuration] = useState(180); 
+    const [intensity, setIntensity] = useState(0.85);
+    const [bidonSize, setBidonSize] = useState(750);
+
+    const requirements = useMemo(() => {
+        const carbsPerHour = intensity > 0.9 ? 90 : intensity > 0.8 ? 75 : 60;
+        const totalCarbs = (duration / 60) * carbsPerHour;
+        const fluidPerHour = 600;
+        const totalFluid = (duration / 60) * fluidPerHour;
+        const totalBidons = Math.ceil(totalFluid / bidonSize); 
+        const fluidCarbs = totalBidons * 40; 
+        const remainingCarbs = Math.max(0, totalCarbs - fluidCarbs);
+        const gels = Math.round((remainingCarbs * 0.6) / 30);
+        const bars = Math.round((remainingCarbs * 0.4) / 45);
+
+        return { carbsPerHour, totalCarbs, fluidPerHour, totalFluid, totalBidons, gels, bars };
+    }, [duration, intensity, bidonSize]);
+
+    return (
+        <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
+            <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2"><Utensils className="text-green-400"/> Race Fueling Calculator</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-6">
+                    <div>
+                        <label className="text-xs text-slate-400 uppercase font-bold">Verwachte Duur</label>
+                        <div className="flex items-center gap-4 mt-2">
+                             <input type="range" min="30" max="600" step="15" value={duration} onChange={e=>setDuration(parseInt(e.target.value))} className="flex-1 accent-yellow-400"/>
+                             <span className="w-20 font-mono text-white text-right">{Math.floor(duration/60)}h {duration%60}m</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label className="text-xs text-slate-400 uppercase font-bold">Intensity Factor (IF)</label>
+                        <div className="flex items-center gap-4 mt-2">
+                             <input type="range" min="0.5" max="1.1" step="0.01" value={intensity} onChange={e=>setIntensity(parseFloat(e.target.value))} className="flex-1 accent-red-500"/>
+                             <span className="w-20 font-mono text-white text-right">{(intensity*100).toFixed(0)}%</span>
+                        </div>
+                    </div>
+                    <div>
+                         <label className="text-xs text-slate-400 uppercase font-bold">Bidon Grootte</label>
+                         <div className="flex bg-slate-900 rounded p-1 mt-2 w-fit">
+                            <button onClick={()=>setBidonSize(500)} className={`px-4 py-1 text-xs rounded ${bidonSize===500 ? 'bg-blue-500 text-white' : 'text-slate-400'}`}>500ml</button>
+                            <button onClick={()=>setBidonSize(750)} className={`px-4 py-1 text-xs rounded ${bidonSize===750 ? 'bg-blue-500 text-white' : 'text-slate-400'}`}>750ml</button>
+                         </div>
+                    </div>
+                    
+                    <div className="p-4 bg-slate-900 rounded border border-slate-700 mt-4">
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                            <div className="bg-slate-800 p-2 rounded">
+                                <Zap className="w-4 h-4 text-yellow-400 mx-auto mb-1"/>
+                                <div className="text-lg font-bold text-white">{requirements.carbsPerHour}g</div>
+                                <div className="text-[10px] text-slate-400">Carbs/hr</div>
+                            </div>
+                            <div className="bg-slate-800 p-2 rounded">
+                                <Droplets className="w-4 h-4 text-blue-400 mx-auto mb-1"/>
+                                <div className="text-lg font-bold text-white">{requirements.fluidPerHour}ml</div>
+                                <div className="text-[10px] text-slate-400">Vocht/hr</div>
+                            </div>
+                            <div className="bg-slate-800 p-2 rounded">
+                                <Battery className="w-4 h-4 text-green-400 mx-auto mb-1"/>
+                                <div className="text-lg font-bold text-white">{Math.round(requirements.totalCarbs)}g</div>
+                                <div className="text-[10px] text-slate-400">Total Load</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div className="relative bg-slate-900 border border-slate-700 rounded-lg p-6 flex flex-col justify-between">
+                    <div>
+                         <h3 className="text-slate-300 font-bold mb-4 uppercase tracking-wider flex items-center gap-2"><CheckCircle size={16}/> Packing List</h3>
+                         <div className="space-y-4">
+                            <div className="flex items-center justify-between p-3 bg-slate-800 rounded border border-slate-700">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-blue-500/20 p-2 rounded text-blue-400"><Droplets size={20}/></div>
+                                    <div>
+                                        <div className="font-bold text-white text-lg">{requirements.totalBidons}x</div>
+                                        <div className="text-xs text-slate-400">Bidons ({bidonSize}ml) met Mix</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex items-center justify-between p-3 bg-slate-800 rounded border border-slate-700">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-yellow-500/20 p-2 rounded text-yellow-400"><Zap size={20}/></div>
+                                    <div>
+                                        <div className="font-bold text-white text-lg">{requirements.gels}x</div>
+                                        <div className="text-xs text-slate-400">Energy Gels (30g)</div>
+                                    </div>
+                                </div>
+                            </div>
+                             <div className="flex items-center justify-between p-3 bg-slate-800 rounded border border-slate-700">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-green-500/20 p-2 rounded text-green-400"><Utensils size={20}/></div>
+                                    <div>
+                                        <div className="font-bold text-white text-lg">{requirements.bars}x</div>
+                                        <div className="text-xs text-slate-400">Solid Bars (45g)</div>
+                                    </div>
+                                </div>
+                            </div>
+                         </div>
+                    </div>
+                </div>
             </div>
         </div>
     );
