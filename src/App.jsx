@@ -20,14 +20,15 @@ import {
 import { ACTIVITY_COLUMNS, SPORT_TYPES, MONTH_ORDER } from './config';
 
 // --- COMPONENT IMPORTS ---
-import PhysicsEngine from './components/PhysicsEngine'; // <--- NIEUW
+import PhysicsEngine from './components/PhysicsEngine';
+import Header from './components/Header'; // <--- NIEUWE IMPORT
 
 // --- FIREBASE FUNCTIES ---
 import { collection, doc, setDoc, getDoc } from "firebase/firestore";
 
 /**
  * ============================================================================
- * HELPER COMPONENTS
+ * HELPER COMPONENTS (TABLE)
  * ============================================================================
  */
 
@@ -152,7 +153,6 @@ const SettingsTab = ({ intervalsConfig, updateIntervalsConfig, onSaveToCloud }) 
                     <Settings className="text-slate-400" /> Application Settings
                 </h2>
 
-                {/* Intervals.icu Section */}
                 <div className="space-y-4">
                     <div className="flex items-center gap-2 pb-2 border-b border-slate-700">
                         <Activity className="text-orange-400" size={18} />
@@ -383,8 +383,8 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
         {/* TABS */}
         <div className="flex border-b border-slate-700">
             <button onClick={() => setInternalTab('log')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'log' ? 'bg-slate-700 text-yellow-400' : 'text-slate-400 hover:bg-slate-700/50'}`}>Activity Log</button>
-            <button onClick={() => setInternalTab('intervals')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'intervals' ? 'bg-slate-700 text-orange-400' : 'text-slate-400 hover:bg-slate-700/50'}`}>Intervals.icu API</button>
-            <button onClick={() => setInternalTab('import')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'import' ? 'bg-slate-700 text-yellow-400' : 'text-slate-400 hover:bg-slate-700/50'}`}>CSV Import</button>
+            <button onClick={() => setInternalTab('intervals')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'intervals' ? 'bg-slate-700 text-orange-400' : 'text-slate-400 hover:bg-slate-700/50'}`}>Sync (API)</button>
+            <button onClick={() => setInternalTab('import')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'import' ? 'bg-slate-700 text-yellow-400' : 'text-slate-400 hover:bg-slate-700/50'}`}>Import (CSV)</button>
         </div>
 
         <div className="p-4 flex-1 overflow-hidden flex flex-col">
@@ -460,7 +460,6 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
   );
 };
 
-// ... Rest van de App Component (neem over uit vorige antwoorden voor FuelingStrategy en ClimbProfileCard) ...
 const ClimbProfileCard = ({ climb }) => {
     if (!climb) return null;
     return (
@@ -487,12 +486,8 @@ const App = () => {
     maxHr: 190
   });
 
-  // CRASH FIX: Veilig initialiseren
   const [selectedClimb, setSelectedClimb] = useState(CLIMB_DATABASE?.[0] || {id: 'dummy', name: 'Loading', lengthKm: 0, elevation: 0, avgGrade: 0});
-
-  // Intervals Config State (App Wide)
   const [intervalsConfig, setIntervalsConfig] = useState({ apiKey: '', athleteId: '' });
-
   const [activities, setActivities] = useState([]);
 
   // Load Settings from Firebase
@@ -528,25 +523,19 @@ const App = () => {
   };
 
   const chartData = useMemo(() => {
-    // Simple mock data fallback if empty
     if (activities.length === 0) return [];
     return activities.map(act => ({
         date: act.date,
         load: act.load,
-        ftp: act.norm_power // simple proxy
+        ftp: act.norm_power
     })).sort((a,b) => new Date(a.date) - new Date(b.date));
   }, [activities]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 font-sans pb-20">
-      <header className="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-50 shadow-md">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-           <div className="flex items-center gap-3">
-             <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center text-slate-900 font-black text-xl italic shadow-lg">CL</div>
-             <h1 className="font-bold text-white text-lg">Climb Lab <span className="text-yellow-400 text-xs px-1 border border-yellow-400 rounded">PRO</span></h1>
-           </div>
-        </div>
-      </header>
+      
+      {/* GEBRUIK HIER DE NIEUWE HEADER COMPONENT */}
+      <Header userSettings={userSettings} />
 
       <main className="max-w-7xl mx-auto p-4 space-y-6">
         <nav className="flex overflow-x-auto gap-2 pb-2 md:pb-0">
@@ -555,7 +544,7 @@ const App = () => {
              {id: 'physics', label: 'Physics', icon: Mountain},
              {id: 'data', label: 'Data Hub', icon: Activity},
              {id: 'fueling', label: 'Fueling', icon: Utensils},
-             {id: 'settings', label: 'Settings', icon: Settings}, // NIEUWE TAB
+             {id: 'settings', label: 'Settings', icon: Settings},
            ].map(item => (
              <button 
                 key={item.id}
@@ -602,7 +591,6 @@ const App = () => {
         
         {activeTab === 'fueling' && <FuelingStrategy />}
 
-        {/* NIEUWE SETTINGS TAB */}
         {activeTab === 'settings' && (
             <SettingsTab 
                 intervalsConfig={intervalsConfig} 
