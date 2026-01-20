@@ -7,20 +7,22 @@
 export const normalizeDate = (dateStr) => {
     if (!dateStr) return new Date().toISOString().split('T')[0];
     if (dateStr.includes('T')) return dateStr.split('T')[0];
-    // Formaat: dd/mm/yyyy
-    if (dateStr.includes('/')) {
-        const parts = dateStr.split('/');
+    
+    // Formaat: dd/mm/yyyy of dd-mm-yyyy
+    if (dateStr.includes('/') || dateStr.includes('-')) {
+        const sep = dateStr.includes('/') ? '/' : '-';
+        const parts = dateStr.split(sep);
+        // Check of het dd-mm-yyyy is (dag is max 31, eerste deel is 1 of 2 cijfers)
         if (parts.length === 3) {
-            return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+             // Simpele aanname: als deel 1 <= 31 en deel 3 is een jaar (4 cijfers), dan is het dd-mm-yyyy
+             if (parts[0].length <= 2 && parts[2].length === 4) {
+                 return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+             }
+             // Anders nemen we aan yyyy-mm-dd
+             return dateStr;
         }
     }
-    // Formaat: dd-mm-yyyy
-    if (dateStr.includes('-') && dateStr.split('-')[0].length === 2) {
-         const parts = dateStr.split('-');
-         if (parts.length === 3) {
-            return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-         }
-    }
+    
     const d = new Date(dateStr);
     if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
     return dateStr;
@@ -54,8 +56,8 @@ export const parseDurationToSeconds = (str) => {
       if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
       if (parts.length === 2) return parts[0] * 60 + parts[1];
   }
-  // 1h 30m formaat
-  if(str.includes('h') || str.includes('m')) {
+  // 1h 30m formaat (Intervals exporteert dit soms)
+  if(str.includes('h') || str.includes('m') || str.includes('s')) {
       let total = 0;
       const h = str.match(/(\d+)h/);
       const m = str.match(/(\d+)m/);
@@ -63,9 +65,11 @@ export const parseDurationToSeconds = (str) => {
       if(h) total += parseInt(h[1]) * 3600;
       if(m) total += parseInt(m[1]) * 60;
       if(s) total += parseInt(s[1]);
-      return total;
+      return total > 0 ? total : 0;
   }
-  return 0;
+  // Soms is het gewoon een getal (seconden) in string vorm
+  const rawNum = parseFloat(str);
+  return !isNaN(rawNum) ? rawNum : 0;
 };
 
 export const calculateRollingTrend = (activities, targetDateStr, metricKey, windowDays = 15) => {
@@ -110,7 +114,56 @@ export const determineActivityType = (type, title) => {
     return 'Ride';
 };
 
-// --- DE NIEUWE CSV PARSER (BETERE DELIMITER DETECTIE) ---
+// --- DE ECHTE ROBUUSTE CSV PARSER ---
+// Deze functie "leest" het hele bestand teken voor teken, zodat enters 
+// BINNEN quotes niet als nieuwe regel worden gezien.
+
+const parseCSVToRows = (text, delimiter) => {
+    const rows = [];
+    let currentRow = [];
+    let currentCell = '';
+    let inQuotes = false;
+
+    // Normaliseer regeleindes
+    const cleanText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+    for (let i = 0; i < cleanText.length; i++) {
+        const char = cleanText[i];
+        const nextChar = cleanText[i + 1];
+
+        if (char === '"') {
+            if (inQuotes && nextChar === '"') {
+                // Dubbele quote binnen een quote = letterlijke quote
+                currentCell += '"';
+                i++; 
+            } else {
+                // Toggle status
+                inQuotes = !inQuotes;
+            }
+        } else if (char === delimiter && !inQuotes) {
+            // Einde cel
+            currentRow.push(currentCell);
+            currentCell = '';
+        } else if (char === '\n' && !inQuotes) {
+            // Einde regel
+            currentRow.push(currentCell);
+            rows.push(currentRow);
+            currentRow = [];
+            currentCell = '';
+        } else {
+            currentCell += char;
+        }
+    }
+    
+    // Vergeet het laatste restje niet
+    if (currentCell || currentRow.length > 0) {
+        currentRow.push(currentCell);
+        rows.push(currentRow);
+    }
+
+    return rows;
+};
+
 const detectDelimiter = (text) => {
     const firstLine = text.split('\n')[0];
     const commas = (firstLine.match(/,/g) || []).length;
@@ -122,108 +175,84 @@ const detectDelimiter = (text) => {
     return ',';
 };
 
-const splitCSVLine = (line, delimiter) => {
-    const values = [];
-    let current = '';
-    let inQuote = false;
-    
-    for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-        
-        if (char === '"') {
-            if (inQuote && line[i+1] === '"') {
-                current += '"';
-                i++;
-            } else {
-                inQuote = !inQuote;
-            }
-        } else if (char === delimiter && !inQuote) {
-            values.push(current);
-            current = '';
-        } else {
-            current += char;
-        }
-    }
-    values.push(current);
-    return values;
-};
-
 export const smartParseCSV = (text) => {
   if (!text || !text.trim()) return [];
 
   const delimiter = detectDelimiter(text);
-  const lines = text.trim().split(/\r?\n/);
   
-  if (lines.length < 2) return [];
+  // Gebruik de robuuste parser
+  const rows = parseCSVToRows(text, delimiter);
+
+  if (rows.length < 2) return [];
 
   // Headers (Row 0)
-  const rawHeaders = splitCSVLine(lines[0], delimiter).map(h => h.trim().toLowerCase().replace(/^"|"$/g, ''));
+  const rawHeaders = rows[0].map(h => h.trim().toLowerCase().replace(/^"|"$/g, ''));
 
   const mapHeader = (h) => {
-    if (h === 'name' || h === 'title' || h === 'activity_name' || h === 'activity') return 'title';
-    if (h === 'type' || h === 'activity type') return 'type';
+    // String cleanups
+    h = h.replace(/_/g, ' '); // Maak van training_load -> training load
+
+    if (h === 'name' || h === 'title' || h.includes('activity name')) return 'title';
+    if (h === 'type' || h.includes('activity type')) return 'type';
     if (h.includes('date') || h.includes('datum')) return 'date';
     if (h.includes('moving') || h.includes('elapsed') || h.includes('tijd')) return 'moving_time';
     if (h.includes('distance') || h.includes('afstand')) return 'distance';
-    if (h.includes('climb') || h.includes('elevation') || h.includes('hoogte') || h.includes('total_elevation_gain')) return 'climbing';
+    if (h.includes('climb') || h.includes('elevation') || h.includes('hoogte') || h.includes('gain')) return 'climbing';
     if (h.includes('speed') || h.includes('snelheid')) return 'avg_speed';
-    if (h.includes('norm') || h.includes('np') || h === 'icu_weighted_avg_watts') return 'norm_power';
-    // Power fix: pak ook 'power' kolom als avg niet expliciet is
-    if (h.includes('avg power') || h.includes('gem. vermogen') || h === 'average_watts' || h === 'power') return 'avg_power';
-    if (h === 'load' || h === 'tss' || h === 'icu_training_load' || h === 'training_load') return 'load';
-    if (h === 'rpe' || h === 'icu_rpe' || h === 'feel') return 'rpe';
+    if (h.includes('norm') || h.includes('np') || h.includes('weighted avg')) return 'norm_power';
+    
+    // Power fix: pak alles wat op power lijkt als gemiddelde
+    if (h.includes('avg power') || h.includes('gem. vermogen') || h.includes('average watts') || h === 'power') return 'avg_power';
+    
+    // Load fix: pak 'training load' (met spatie) ook mee
+    if (h === 'load' || h === 'tss' || h.includes('training load')) return 'load';
+    if (h === 'rpe' || h.includes('feel')) return 'rpe';
     return null;
   };
 
   const colMap = rawHeaders.map(mapHeader);
 
-  // Data rows
-  return lines.slice(1).map(line => {
-    // Skip empty lines
-    if (!line.trim()) return null;
-
-    const cells = splitCSVLine(line, delimiter);
+  return rows.slice(1).map(row => {
     const entry = {};
     
+    // We itereren over colMap zodat we weten welke 'key' bij welke index hoort
     colMap.forEach((key, idx) => {
-      if (key && cells[idx] !== undefined) {
-        let val = cells[idx].trim().replace(/^"|"$/g, '');
-        
-        if (key === 'date') val = normalizeDate(val);
-        else if (key === 'moving_time') val = parseDurationToSeconds(val);
-        else if (key !== 'title' && key !== 'type') {
-            // Getallen: vervang komma door punt (NL formaat fix)
-            val = val.replace(',', '.');
-            // Verwijder duizendtallen scheidingstekens als ze er zijn
-            // Maar pas op: 1.000,50 -> 1000.50
-            if (val.includes('.') && val.lastIndexOf('.') < val.indexOf(',')) {
-                 // Amerikaans formaat met komma als duizend? Nee, intervals doet dat zelden.
-                 // We gaan uit van standaard floats.
-            }
-            val = parseFloat(val);
-            if (isNaN(val)) val = 0;
-        }
-        entry[key] = val;
+      // Als er geen key is voor deze kolom, overslaan
+      if (!key) return;
+      
+      // Pak de waarde uit de row (veilig)
+      let val = row[idx] !== undefined ? row[idx].trim().replace(/^"|"$/g, '') : '';
+
+      if (key === 'date') {
+          entry[key] = normalizeDate(val);
+      } else if (key === 'moving_time') {
+          entry[key] = parseDurationToSeconds(val);
+      } else if (key === 'title' || key === 'type') {
+          entry[key] = val;
+      } else {
+          // Numerieke waarden
+          // Fix voor 1.000,00 vs 1000.00
+          if (val) {
+              val = val.replace(',', '.'); // Vervang komma door punt
+              // Simpele check: als er nu meerdere punten zijn, of punt op rare plek, negeer
+              val = parseFloat(val);
+          }
+          entry[key] = isNaN(val) ? 0 : val;
       }
     });
 
-    // Fallbacks
+    // Fallbacks en Defaults
     if (!entry.title) entry.title = "Untitled"; 
     if (!entry.id) entry.id = Math.random().toString(36).substr(2, 9);
     if (!entry.date || entry.date === 'Invalid Date') entry.date = new Date().toISOString().split('T')[0];
     
-    // Type bepalen (inclusief fix voor MyWhoosh, Rouvy, etc.)
+    // Type bepalen
     entry.type = determineActivityType(entry.type, entry.title);
 
     // Conversies
-    // Intervals API export is vaak meters, CSV is soms km. We gokken op basis van grootte.
-    // > 1000 = waarschijnlijk meters
     if (entry.distance > 2000) entry.distance = (entry.distance / 1000).toFixed(2);
-    
-    // Snelheid: m/s naar km/h? Als < 25 en > 0 is het waarschijnlijk m/s (niemand fietst gemiddeld 25 km/h als getal 6.9 is)
-    // Maar CSV kan ook gewoon 28.5 zijn.
     if (entry.avg_speed > 0 && entry.avg_speed < 15) entry.avg_speed = (entry.avg_speed * 3.6).toFixed(1);
 
     return entry;
-  }).filter(e => e && (e.distance > 0 || e.moving_time > 0));
+  }).filter(e => e.distance > 0 || e.moving_time > 0);
 };
