@@ -47,12 +47,13 @@ export const formatTime = (seconds) => {
 export const parseDurationToSeconds = (str) => {
   if(!str) return 0;
   if(typeof str === 'number') return str;
+  // hh:mm:ss formaat
   if(str.includes(':')) {
       const parts = str.split(':').map(Number);
       if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
       if (parts.length === 2) return parts[0] * 60 + parts[1];
   }
-  // 1h 30m formaat (Intervals export)
+  // 1h 30m formaat
   if(str.includes('h') || str.includes('m') || str.includes('s')) {
       let total = 0;
       const h = str.match(/(\d+)h/);
@@ -63,6 +64,7 @@ export const parseDurationToSeconds = (str) => {
       if(s) total += parseInt(s[1]);
       return total > 0 ? total : 0;
   }
+  // Getal als string (bijv "3600")
   const rawNum = parseFloat(str.replace(',', '.'));
   return !isNaN(rawNum) ? rawNum : 0;
 };
@@ -171,16 +173,16 @@ const parseCSVToRows = (text, delimiter) => {
     return rows;
 };
 
-// 3. Detecteer delimiter (Slimmer: negeer sep= regel)
+// 3. Detecteer delimiter (Slimmer: checkt op basis van eerste échte regel)
 const detectDelimiter = (lines) => {
-    // Check eerste 5 regels voor beste match
+    // Neem een sample (niet regel 0 want dat kan sep= zijn)
     const sample = lines.slice(0, 5).join('\n');
     const commas = (sample.match(/,/g) || []).length;
     const semis = (sample.match(/;/g) || []).length;
     const tabs = (sample.match(/\t/g) || []).length;
     
     if (tabs > commas && tabs > semis) return '\t';
-    if (semis >= commas) return ';'; // Voorkeur voor ; als het gelijk is (vaak NL)
+    if (semis >= commas) return ';'; // Voorkeur voor ; bij twijfel (NL Excel)
     return ',';
 };
 
@@ -190,17 +192,17 @@ export const smartParseCSV = (text) => {
   // Stap 1: Split in regels om te checken op "sep="
   let lines = text.trim().split(/\r?\n/);
   
-  // Verwijder Excel "sep=" regel indien aanwezig
-  if (lines[0].startsWith('sep=')) {
-      lines.shift();
-      // Als we sep= weghalen, moeten we de tekst opnieuw opbouwen voor de parser
+  // FIX: Verwijder Excel "sep=" regel indien aanwezig (Dit was de boosdoener!)
+  if (lines.length > 0 && lines[0].startsWith('sep=')) {
+      lines.shift(); // Gooi eerste regel weg
+      // Herbouw tekst voor de parser
       text = lines.join('\n');
   }
 
   // Stap 2: Detecteer delimiter op basis van schone data
   const delimiter = detectDelimiter(lines);
   
-  // Stap 3: Parse volledige tekst (inclusief quotes support)
+  // Stap 3: Parse volledige tekst
   const rows = parseCSVToRows(text, delimiter);
 
   if (rows.length < 2) return [];
@@ -209,7 +211,9 @@ export const smartParseCSV = (text) => {
   const rawHeaders = rows[0].map(h => h.trim().toLowerCase().replace(/^"|"$/g, ''));
 
   const mapHeader = (h) => {
+    // FIX: Vervang underscores door spaties zodat "training_load" en "training load" beide werken
     h = h.replace(/_/g, ' '); 
+
     if (h === 'name' || h === 'title' || h.includes('activity name')) return 'title';
     if (h === 'type' || h.includes('activity type')) return 'type';
     if (h.includes('date') || h.includes('datum')) return 'date';
@@ -218,7 +222,9 @@ export const smartParseCSV = (text) => {
     if (h.includes('climb') || h.includes('elevation') || h.includes('hoogte') || h.includes('gain')) return 'climbing';
     if (h.includes('speed') || h.includes('snelheid')) return 'avg_speed';
     if (h.includes('norm') || h.includes('np') || h.includes('weighted avg')) return 'norm_power';
+    // Power fix: pak alles wat op power lijkt
     if (h.includes('avg power') || h.includes('gem. vermogen') || h.includes('average watts') || h === 'power') return 'avg_power';
+    // Load fix: pak 'training load' (met spatie) ook mee
     if (h === 'load' || h === 'tss' || h.includes('training load')) return 'load';
     if (h === 'rpe' || h.includes('feel')) return 'rpe';
     return null;
@@ -240,7 +246,7 @@ export const smartParseCSV = (text) => {
       } else if (key === 'title' || key === 'type') {
           entry[key] = val;
       } else {
-          entry[key] = cleanNumber(val);
+          entry[key] = cleanNumber(val); // Gebruik slimme nummer reiniger
       }
     });
 

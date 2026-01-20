@@ -1,16 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { 
   Search, Cloud, Download, Info, RefreshCw, X, Monitor, Bike, Footprints, Settings, 
-  ArrowUpDown, ChevronUp, ChevronDown, Trash2, CheckCircle // <--- HIER TOEGEVOEGD
+  ArrowUpDown, ChevronUp, ChevronDown, Trash2, CheckCircle // <--- TOEGEVOEGD
 } from 'lucide-react';
 import { doc, setDoc } from "firebase/firestore";
 import { db } from '../firebase';
 import { smartParseCSV, formatDateDDMMYYYY, formatTime, determineActivityType } from '../utils';
 import { ACTIVITY_COLUMNS, SPORT_TYPES, MONTH_ORDER } from '../config';
-
-// ... (Rest van de code blijft identiek, kopieer de rest van je bestaande bestand hieronder) ...
-// Om het simpel te houden: plak hieronder de REST van de DataHub code die je al had, 
-// OF kopieer de volledige DataHub code uit mijn vorige antwoord en voeg alleen CheckCircle toe aan de import.
 
 // --- TABLE COMPONENTS (INTERN) ---
 const SortIcon = ({ colKey, config }) => {
@@ -74,7 +70,7 @@ const Row = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview = false
     );
 };
 
-// --- DATA HUB COMPONENT ---
+// --- MAIN COMPONENT ---
 const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
   const [internalTab, setInternalTab] = useState('log');
   const [importText, setImportText] = useState("");
@@ -97,6 +93,7 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
+  // Logic
   const toggleSportFilter = (type) => setSportFilters(prev => ({...prev, [type]: !prev[type]}));
   const setAllSportFilters = (val) => setSportFilters(SPORT_TYPES.reduce((acc, type) => ({...acc, [type]: val}), {}));
   const toggleYear = (year) => setExpandedYears(p => ({...p, [year]: !p[year]}));
@@ -181,7 +178,7 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
             setSelectedActivities(newRides.map(r => r.id)); 
             setShowModal(true);
         } else {
-            alert("Geen nieuwe ritten gevonden in deze selectie.");
+            alert("Geen nieuwe ritten gevonden.");
         }
     } catch (e) {
         alert("Sync mislukt: " + e.message);
