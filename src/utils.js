@@ -14,15 +14,12 @@ export const normalizeDate = (dateStr) => {
         const parts = dateStr.split(sep);
         // Check of het dd-mm-yyyy is (dag is max 31, eerste deel is 1 of 2 cijfers)
         if (parts.length === 3) {
-             // Simpele aanname: als deel 1 <= 31 en deel 3 is een jaar (4 cijfers), dan is het dd-mm-yyyy
              if (parts[0].length <= 2 && parts[2].length === 4) {
                  return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
              }
-             // Anders nemen we aan yyyy-mm-dd
              return dateStr;
         }
     }
-    
     const d = new Date(dateStr);
     if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
     return dateStr;
@@ -50,13 +47,12 @@ export const formatTime = (seconds) => {
 export const parseDurationToSeconds = (str) => {
   if(!str) return 0;
   if(typeof str === 'number') return str;
-  // hh:mm:ss formaat
   if(str.includes(':')) {
       const parts = str.split(':').map(Number);
       if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
       if (parts.length === 2) return parts[0] * 60 + parts[1];
   }
-  // 1h 30m formaat (Intervals exporteert dit soms)
+  // 1h 30m formaat (Intervals export)
   if(str.includes('h') || str.includes('m') || str.includes('s')) {
       let total = 0;
       const h = str.match(/(\d+)h/);
@@ -67,8 +63,7 @@ export const parseDurationToSeconds = (str) => {
       if(s) total += parseInt(s[1]);
       return total > 0 ? total : 0;
   }
-  // Soms is het gewoon een getal (seconden) in string vorm
-  const rawNum = parseFloat(str);
+  const rawNum = parseFloat(str.replace(',', '.'));
   return !isNaN(rawNum) ? rawNum : 0;
 };
 
@@ -87,17 +82,15 @@ export const calculateRollingTrend = (activities, targetDateStr, metricKey, wind
   return sum / inWindow.length;
 };
 
-// --- TYPE DETECTIE (INC. MYWHOOSH, ROUVY ETC) ---
+// --- TYPE DETECTIE ---
 export const determineActivityType = (type, title) => {
     let cleanType = type ? type.toString().replace(/\s+/g, '') : 'Ride';
     
-    // 1. Check Bron Type
     if (cleanType.toLowerCase() === 'virtualride') return 'VirtualRide';
     if (cleanType.toLowerCase() === 'run') return 'Run';
     if (cleanType.toLowerCase() === 'walk') return 'Walk';
     if (cleanType.toLowerCase() === 'hike') return 'Hike';
 
-    // 2. Check Titel op Keywords
     const name = title ? title.toLowerCase() : '';
     const virtualKeywords = [
         'virtual', 'indoor', 
@@ -110,22 +103,43 @@ export const determineActivityType = (type, title) => {
     if (virtualKeywords.some(keyword => name.includes(keyword))) {
         return 'VirtualRide';
     }
-
     return 'Ride';
 };
 
-// --- DE ECHTE ROBUUSTE CSV PARSER ---
-// Deze functie "leest" het hele bestand teken voor teken, zodat enters 
-// BINNEN quotes niet als nieuwe regel worden gezien.
+// --- ROBUUSTE PARSER ---
 
+// 1. Schoon getallen op (NL 1.000,00 vs US 1,000.00)
+const cleanNumber = (val) => {
+    if (!val) return 0;
+    if (typeof val === 'number') return val;
+    
+    // Heeft het zowel punten als komma's? (bv 1.234,56 of 1,234.56)
+    if (val.includes('.') && val.includes(',')) {
+        if (val.lastIndexOf(',') > val.lastIndexOf('.')) {
+            // NL formaat: 1.234,56 -> verwijder punten, vervang komma
+            val = val.replace(/\./g, '').replace(',', '.');
+        } else {
+            // US formaat: 1,234.56 -> verwijder komma's
+            val = val.replace(/,/g, '');
+        }
+    } else if (val.includes(',')) {
+        // Alleen komma's? Waarschijnlijk decimaal scheiding (NL)
+        val = val.replace(',', '.');
+    }
+    
+    const num = parseFloat(val);
+    return isNaN(num) ? 0 : num;
+};
+
+// 2. Parse regels rekening houdend met quotes
 const parseCSVToRows = (text, delimiter) => {
     const rows = [];
     let currentRow = [];
     let currentCell = '';
     let inQuotes = false;
 
-    // Normaliseer regeleindes
-    const cleanText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    // Normaliseer regeleindes en verwijder BOM
+    const cleanText = text.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
     for (let i = 0; i < cleanText.length; i++) {
         const char = cleanText[i];
@@ -133,19 +147,15 @@ const parseCSVToRows = (text, delimiter) => {
 
         if (char === '"') {
             if (inQuotes && nextChar === '"') {
-                // Dubbele quote binnen een quote = letterlijke quote
                 currentCell += '"';
                 i++; 
             } else {
-                // Toggle status
                 inQuotes = !inQuotes;
             }
         } else if (char === delimiter && !inQuotes) {
-            // Einde cel
             currentRow.push(currentCell);
             currentCell = '';
         } else if (char === '\n' && !inQuotes) {
-            // Einde regel
             currentRow.push(currentCell);
             rows.push(currentRow);
             currentRow = [];
@@ -154,33 +164,43 @@ const parseCSVToRows = (text, delimiter) => {
             currentCell += char;
         }
     }
-    
-    // Vergeet het laatste restje niet
     if (currentCell || currentRow.length > 0) {
         currentRow.push(currentCell);
         rows.push(currentRow);
     }
-
     return rows;
 };
 
-const detectDelimiter = (text) => {
-    const firstLine = text.split('\n')[0];
-    const commas = (firstLine.match(/,/g) || []).length;
-    const semis = (firstLine.match(/;/g) || []).length;
-    const tabs = (firstLine.match(/\t/g) || []).length;
+// 3. Detecteer delimiter (Slimmer: negeer sep= regel)
+const detectDelimiter = (lines) => {
+    // Check eerste 5 regels voor beste match
+    const sample = lines.slice(0, 5).join('\n');
+    const commas = (sample.match(/,/g) || []).length;
+    const semis = (sample.match(/;/g) || []).length;
+    const tabs = (sample.match(/\t/g) || []).length;
     
     if (tabs > commas && tabs > semis) return '\t';
-    if (semis > commas) return ';';
+    if (semis >= commas) return ';'; // Voorkeur voor ; als het gelijk is (vaak NL)
     return ',';
 };
 
 export const smartParseCSV = (text) => {
   if (!text || !text.trim()) return [];
 
-  const delimiter = detectDelimiter(text);
+  // Stap 1: Split in regels om te checken op "sep="
+  let lines = text.trim().split(/\r?\n/);
   
-  // Gebruik de robuuste parser
+  // Verwijder Excel "sep=" regel indien aanwezig
+  if (lines[0].startsWith('sep=')) {
+      lines.shift();
+      // Als we sep= weghalen, moeten we de tekst opnieuw opbouwen voor de parser
+      text = lines.join('\n');
+  }
+
+  // Stap 2: Detecteer delimiter op basis van schone data
+  const delimiter = detectDelimiter(lines);
+  
+  // Stap 3: Parse volledige tekst (inclusief quotes support)
   const rows = parseCSVToRows(text, delimiter);
 
   if (rows.length < 2) return [];
@@ -189,9 +209,7 @@ export const smartParseCSV = (text) => {
   const rawHeaders = rows[0].map(h => h.trim().toLowerCase().replace(/^"|"$/g, ''));
 
   const mapHeader = (h) => {
-    // String cleanups
-    h = h.replace(/_/g, ' '); // Maak van training_load -> training load
-
+    h = h.replace(/_/g, ' '); 
     if (h === 'name' || h === 'title' || h.includes('activity name')) return 'title';
     if (h === 'type' || h.includes('activity type')) return 'type';
     if (h.includes('date') || h.includes('datum')) return 'date';
@@ -200,11 +218,7 @@ export const smartParseCSV = (text) => {
     if (h.includes('climb') || h.includes('elevation') || h.includes('hoogte') || h.includes('gain')) return 'climbing';
     if (h.includes('speed') || h.includes('snelheid')) return 'avg_speed';
     if (h.includes('norm') || h.includes('np') || h.includes('weighted avg')) return 'norm_power';
-    
-    // Power fix: pak alles wat op power lijkt als gemiddelde
     if (h.includes('avg power') || h.includes('gem. vermogen') || h.includes('average watts') || h === 'power') return 'avg_power';
-    
-    // Load fix: pak 'training load' (met spatie) ook mee
     if (h === 'load' || h === 'tss' || h.includes('training load')) return 'load';
     if (h === 'rpe' || h.includes('feel')) return 'rpe';
     return null;
@@ -215,12 +229,8 @@ export const smartParseCSV = (text) => {
   return rows.slice(1).map(row => {
     const entry = {};
     
-    // We itereren over colMap zodat we weten welke 'key' bij welke index hoort
     colMap.forEach((key, idx) => {
-      // Als er geen key is voor deze kolom, overslaan
       if (!key) return;
-      
-      // Pak de waarde uit de row (veilig)
       let val = row[idx] !== undefined ? row[idx].trim().replace(/^"|"$/g, '') : '';
 
       if (key === 'date') {
@@ -230,23 +240,14 @@ export const smartParseCSV = (text) => {
       } else if (key === 'title' || key === 'type') {
           entry[key] = val;
       } else {
-          // Numerieke waarden
-          // Fix voor 1.000,00 vs 1000.00
-          if (val) {
-              val = val.replace(',', '.'); // Vervang komma door punt
-              // Simpele check: als er nu meerdere punten zijn, of punt op rare plek, negeer
-              val = parseFloat(val);
-          }
-          entry[key] = isNaN(val) ? 0 : val;
+          entry[key] = cleanNumber(val);
       }
     });
 
-    // Fallbacks en Defaults
     if (!entry.title) entry.title = "Untitled"; 
     if (!entry.id) entry.id = Math.random().toString(36).substr(2, 9);
     if (!entry.date || entry.date === 'Invalid Date') entry.date = new Date().toISOString().split('T')[0];
     
-    // Type bepalen
     entry.type = determineActivityType(entry.type, entry.title);
 
     // Conversies
