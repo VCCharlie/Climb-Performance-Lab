@@ -6,7 +6,6 @@
 // --- FIX: UITGEBREIDE TYPE DETECTIE VOOR ALLE PLATFORMEN ---
 export const determineActivityType = (type, title) => {
     // 1. Schoon de input op (verwijder spaties en maak lowercase)
-    // Dit fixt "Virtual Ride" -> "VirtualRide"
     let cleanType = type ? type.replace(/\s+/g, '') : 'Ride';
     
     // Als de bron al expliciet zegt dat het Virtual is, nemen we dat over
@@ -20,42 +19,25 @@ export const determineActivityType = (type, title) => {
     
     // Uitgebreide lijst met Indoor / Virtual keywords
     const virtualKeywords = [
-        // Algemeen
         'virtual', 'indoor', 
-        
-        // Zwift Worlds
         'zwift', 'watopia', 'makuri', 'richmond', 'london', 'innsbruck', 
         'yorkshire', 'bologna', 'crit city', 'scotland', 'neokyo', 'france', 'paris',
-        
-        // Andere Platformen
-        'mywhoosh',    // UAE Team Emirates platform
-        'rouvy',       // Augmented Reality
-        'fulgaz',      // Real video
-        'bkool',       // Spaans platform
-        'rgt',         // Wahoo RGT
-        'indievelo',   // Esports focus
-        'kinomap',     // Video based
-        'tacx',        // Tacx Training App
-        'trainerroad', // Vaak indoor, al kan TR ook buiten
-        'sufferfest',  // Wahoo SYSTM
-        'systm'        // Wahoo SYSTM
+        'mywhoosh', 'rouvy', 'fulgaz', 'bkool', 'rgt', 'indievelo', 'kinomap', 
+        'tacx', 'trainerroad', 'sufferfest', 'systm'
     ];
 
-    // Als de titel één van deze woorden bevat -> VirtualRide
     if (virtualKeywords.some(keyword => name.includes(keyword))) {
         return 'VirtualRide';
     }
 
-    // Default fallback naar buitenrit
     return 'Ride';
 };
 
 export const normalizeDate = (dateStr) => {
     if (!dateStr) return new Date().toISOString().split('T')[0];
-    if (dateStr.includes('T')) return dateStr.split('T')[0]; // ISO fix
+    if (dateStr.includes('T')) return dateStr.split('T')[0]; 
     if (dateStr.includes('/')) {
         const parts = dateStr.split('/');
-        // Verwacht DD/MM/YYYY
         if (parts.length === 3) {
             return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
         }
@@ -110,16 +92,20 @@ export const calculateRollingTrend = (activities, targetDateStr, metricKey, wind
   return sum / inWindow.length;
 };
 
-// --- DE ROBUUSTE CSV PARSER (Ongewijzigd goed) ---
-const splitCSVRows = (text) => {
+// --- NIEUWE UNIVERSELE PARSER (WERKT VOOR KOMMA, PUNTKOMMA EN TAB) ---
+// Deze functie houdt rekening met quotes, zelfs als het scheidingsteken erin staat.
+const splitCSVRows = (text, delimiter) => {
     const rows = [];
     let currentRow = [];
     let currentCell = '';
     let insideQuotes = false;
 
-    for (let i = 0; i < text.length; i++) {
-        const char = text[i];
-        const nextChar = text[i + 1];
+    // Normalizeer line endings voor de zekerheid
+    const cleanText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+    for (let i = 0; i < cleanText.length; i++) {
+        const char = cleanText[i];
+        const nextChar = cleanText[i + 1];
 
         if (char === '"') {
             if (insideQuotes && nextChar === '"') {
@@ -128,39 +114,48 @@ const splitCSVRows = (text) => {
             } else {
                 insideQuotes = !insideQuotes;
             }
-        } else if (char === ',' && !insideQuotes) {
+        } else if (char === delimiter && !insideQuotes) {
             currentRow.push(currentCell);
             currentCell = '';
-        } else if ((char === '\n' || char === '\r') && !insideQuotes) {
-            if (currentCell || currentRow.length > 0) currentRow.push(currentCell);
-            if (currentRow.length > 0) rows.push(currentRow);
+        } else if (char === '\n' && !insideQuotes) {
+            currentRow.push(currentCell);
+            rows.push(currentRow);
             currentRow = [];
             currentCell = '';
-            if (char === '\r' && nextChar === '\n') i++;
         } else {
             currentCell += char;
         }
     }
-    if (currentCell || currentRow.length > 0) currentRow.push(currentCell);
-    if (currentRow.length > 0) rows.push(currentRow);
+    // Laatste restje
+    if (currentCell || currentRow.length > 0) {
+        currentRow.push(currentCell);
+        rows.push(currentRow);
+    }
     return rows;
 };
 
 export const smartParseCSV = (text) => {
-  // Delimiter detectie
+  if (!text || !text.trim()) return [];
+
+  // Delimiter detectie (op basis van eerste regel)
   const firstLineEnd = text.indexOf('\n');
   const firstLine = text.substring(0, firstLineEnd > -1 ? firstLineEnd : text.length);
-  const delimiter = firstLine.includes('\t') ? '\t' : firstLine.includes(';') ? ';' : ',';
+  
+  // Tel voorkomens om de waarschijnlijke delimiter te vinden
+  const tabCount = (firstLine.match(/\t/g) || []).length;
+  const semiCount = (firstLine.match(/;/g) || []).length;
+  const commaCount = (firstLine.match(/,/g) || []).length;
 
-  let rows;
-  if (delimiter === ',') {
-      rows = splitCSVRows(text);
-  } else {
-      rows = text.trim().split('\n').map(l => l.split(delimiter));
-  }
+  let delimiter = ',';
+  if (tabCount > commaCount && tabCount > semiCount) delimiter = '\t';
+  else if (semiCount > commaCount) delimiter = ';';
+
+  // Gebruik de robuuste parser voor ELK type delimiter
+  const rows = splitCSVRows(text, delimiter);
 
   if (rows.length < 2) return [];
 
+  // Headers (Row 0)
   const rawHeaders = rows[0].map(h => h.trim().toLowerCase().replace(/^"|"$/g, ''));
 
   const mapHeader = (h) => {
@@ -169,10 +164,10 @@ export const smartParseCSV = (text) => {
     if (h.includes('date') || h.includes('datum')) return 'date';
     if (h.includes('moving') || h.includes('elapsed') || h.includes('tijd')) return 'moving_time';
     if (h.includes('distance') || h.includes('afstand')) return 'distance';
-    if (h.includes('climb') || h.includes('elevation') || h.includes('hoogte')) return 'climbing';
+    if (h.includes('climb') || h.includes('elevation') || h.includes('hoogte') || h.includes('total_elevation_gain')) return 'climbing';
     if (h.includes('speed') || h.includes('snelheid')) return 'avg_speed';
-    if (h.includes('norm') || h.includes('np')) return 'norm_power';
-    if (h.includes('avg power') || h.includes('gem. vermogen')) return 'avg_power';
+    if (h.includes('norm') || h.includes('np') || h === 'icu_weighted_avg_watts') return 'norm_power';
+    if (h.includes('avg power') || h.includes('gem. vermogen') || h === 'average_watts') return 'avg_power';
     if (h === 'load' || h === 'tss' || h === 'icu_training_load' || h === 'training_load') return 'load';
     if (h === 'rpe' || h === 'icu_rpe' || h === 'feel') return 'rpe';
     return null;
@@ -183,13 +178,18 @@ export const smartParseCSV = (text) => {
   return rows.slice(1).map(row => {
     const entry = {};
     
+    // Veiligheid: zorg dat we niet meer cellen lezen dan er headers zijn
     row.forEach((cell, idx) => {
+      if (idx >= colMap.length) return;
+      
       const key = colMap[idx];
       if (key) {
-        let val = cell.trim().replace(/^"|"$/g, '');
+        let val = cell ? cell.trim().replace(/^"|"$/g, '') : '';
+        
         if (key === 'date') val = normalizeDate(val);
         else if (key === 'moving_time') val = parseDurationToSeconds(val);
         else if (key !== 'title' && key !== 'type') {
+            // Getallen: vervang komma door punt en parse
             val = parseFloat(val.replace(',', '.'));
             if (isNaN(val)) val = 0;
         }
@@ -201,9 +201,10 @@ export const smartParseCSV = (text) => {
     if (!entry.id) entry.id = Math.random().toString(36).substr(2, 9);
     if (!entry.date || entry.date === 'Invalid Date') entry.date = new Date().toISOString().split('T')[0];
     
-    // Gebruik de nieuwe uitgebreide detectie
+    // Type bepalen (inclusief fix voor MyWhoosh, Rouvy, etc.)
     entry.type = determineActivityType(entry.type, entry.title);
 
+    // Conversies
     if (entry.distance > 1000) entry.distance = (entry.distance / 1000).toFixed(2);
     if (entry.avg_speed < 20 && entry.avg_speed > 0) entry.avg_speed = (entry.avg_speed * 3.6).toFixed(1);
 
