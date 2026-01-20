@@ -1,14 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { 
   Search, Cloud, Download, Info, RefreshCw, X, Monitor, Bike, Footprints, Settings, 
-  ArrowUpDown, ChevronUp, ChevronDown, Trash2
+  ArrowUpDown, ChevronUp, ChevronDown, Trash2, CheckCircle // <--- HIER WAS HIJ VERGETEN!
 } from 'lucide-react';
 import { doc, setDoc } from "firebase/firestore";
 import { db } from '../firebase';
 import { smartParseCSV, formatDateDDMMYYYY, formatTime, determineActivityType } from '../utils';
 import { ACTIVITY_COLUMNS, SPORT_TYPES, MONTH_ORDER } from '../config';
 
-// --- TABLE HELPERS ---
+// --- TABLE COMPONENTS (INTERN) ---
 const SortIcon = ({ colKey, config }) => {
     if (config.key !== colKey) return <ArrowUpDown size={12} className="opacity-30 ml-1 inline" />;
     return config.direction === 'asc' ? <ChevronUp size={12} className="text-yellow-400 ml-1 inline" /> : <ChevronDown size={12} className="text-yellow-400 ml-1 inline" />;
@@ -37,10 +37,15 @@ const Row = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview = false
         switch(col.key) {
             case 'date': return <span className="text-slate-300 whitespace-nowrap">{formatDateDDMMYYYY(val)}</span>;
             case 'type': return (
-                    <div className={`flex justify-center items-center h-full ${isPreview ? 'cursor-pointer hover:text-yellow-400' : ''}`} onClick={(e) => { if(isPreview && onToggleType) { e.stopPropagation(); onToggleType(act.id); }}} title={isPreview ? `Huidig: ${val}. Klik om te wijzigen.` : val}>
+                    <div 
+                        className={`flex justify-center items-center h-full ${isPreview ? 'cursor-pointer hover:text-yellow-400' : ''}`}
+                        onClick={(e) => { if(isPreview && onToggleType) { e.stopPropagation(); onToggleType(act.id); }}}
+                        title={isPreview ? `Huidig: ${val}. Klik om te wijzigen.` : val}
+                    >
                         {val === 'VirtualRide' ? <Monitor size={16} className="text-orange-400" title="Virtual Ride"/> :
                          val === 'Run' ? <Footprints size={16} className="text-blue-400" title="Run"/> :
                          val === 'Walk' ? <Footprints size={16} className="text-green-300" title="Walk"/> :
+                         val === 'Hike' ? <Mountain size={16} className="text-green-500" title="Hike"/> :
                          <Bike size={16} className="text-green-400" title="Ride"/>}
                     </div>
                 );
@@ -65,7 +70,7 @@ const Row = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview = false
     );
 };
 
-// --- DATA HUB COMPONENT ---
+// --- MAIN COMPONENT ---
 const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
   const [internalTab, setInternalTab] = useState('log');
   const [importText, setImportText] = useState("");
@@ -74,17 +79,21 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
   const [expandedYears, setExpandedYears] = useState({});
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
 
-  // Sync States
   const [syncDates, setSyncDates] = useState({
       start: new Date(new Date().setDate(new Date().getDate() - 90)).toISOString().split('T')[0], 
       end: new Date().toISOString().split('T')[0] 
   });
-  const [sportFilters, setSportFilters] = useState(SPORT_TYPES.reduce((acc, type) => ({...acc, [type]: true}), {}));
+  
+  const [sportFilters, setSportFilters] = useState(
+      SPORT_TYPES.reduce((acc, type) => ({...acc, [type]: true}), {})
+  );
+
   const [fetchedActivities, setFetchedActivities] = useState([]);
   const [selectedActivities, setSelectedActivities] = useState([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
+  // Logic
   const toggleSportFilter = (type) => setSportFilters(prev => ({...prev, [type]: !prev[type]}));
   const setAllSportFilters = (val) => setSportFilters(SPORT_TYPES.reduce((acc, type) => ({...acc, [type]: val}), {}));
   const toggleYear = (year) => setExpandedYears(p => ({...p, [year]: !p[year]}));
