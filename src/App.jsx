@@ -11,11 +11,12 @@ import {
 } from 'lucide-react';
 
 // --- EXTERNE IMPORTS ---
+// Zorg dat deze bestanden bestaan (zie vorige stappen)
 import { CLIMB_DATABASE, COGGAN_ZONES } from './climbs'; 
 import { db } from './firebase'; 
 import { 
   smartParseCSV, calculateRollingTrend, formatDateDDMMYYYY, formatTime, 
-  normalizeDate 
+  normalizeDate, determineActivityType 
 } from './utils';
 import { ACTIVITY_COLUMNS, SPORT_TYPES, MONTH_ORDER } from './config';
 
@@ -60,7 +61,7 @@ const TableHeader = ({ config, requestSort, hasActions = true }) => (
 
 // Dynamische Row Component
 const Row = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview = false, isSelected = false, onToggleSelect }) => {
-    // Helper om cel-inhoud te bepalen
+    // Helper om cel-inhoud te bepalen op basis van config
     const renderCell = (col) => {
         const val = act[col.key];
 
@@ -416,7 +417,7 @@ const DataHub = ({ activities, onImport, onDelete }) => {
     }
   };
 
-  // --- INTERVALS API SYNC ---
+  // --- INTERVALS API SYNC (GEFIXT) ---
   const handleIntervalsSync = async () => {
     if (!intervalsConfig.apiKey || !intervalsConfig.athleteId) {
         alert("Vul eerst je Athlete ID en API Key in.");
@@ -430,26 +431,33 @@ const DataHub = ({ activities, onImport, onDelete }) => {
         if (!response.ok) throw new Error("API Fout: Check ID/Key");
         const data = await response.json();
 
-        // 1. Filter Sport, 2. Map & Conversie, 3. NaN check
-        const newRides = data
-            .filter(ride => sportFilters[ride.type]) 
-            .map(ride => ({
+        // 1. MAPPING + TYPE FIX + NaN FIX
+        // We doen dit EERST zodat 'determineActivityType' zijn werk kan doen voordat we filteren
+        const mappedRides = data.map(ride => {
+            const realType = determineActivityType(ride.type, ride.name);
+            return {
                 id: ride.id,
                 date: ride.start_date_local.substring(0, 10),
                 title: ride.name,
-                type: ride.type, 
+                type: realType, 
                 moving_time: Number(ride.moving_time) || 0,
-                distance: (Number(ride.distance) / 1000).toFixed(2), // API: meters -> km
+                distance: (Number(ride.distance) / 1000).toFixed(2), 
                 climbing: Number(ride.total_elevation_gain) || 0,
                 norm_power: Number(ride.icu_weighted_avg_watts) || 0,
                 avg_power: Number(ride.average_watts) || 0,
                 load: Number(ride.icu_training_load) || 0,
                 rpe: Number(ride.icu_rpe) || 0,
-                avg_speed: (Number(ride.average_speed) * 3.6).toFixed(1), // API: m/s -> km/h
+                avg_speed: (Number(ride.average_speed) * 3.6).toFixed(1), 
                 best_5min: 0, 
                 best_20min: 0,
                 best_60min: 0
-            }))
+            };
+        });
+
+        // 2. FILTERING
+        // Nu kunnen we filteren op het 'gecorrigeerde' type (dus VirtualRide wordt nu wel herkend)
+        const newRides = mappedRides
+            .filter(ride => sportFilters[ride.type]) 
             .filter(ride => !activities.some(existing => existing.id === ride.id)); 
 
         if (newRides.length > 0) {
@@ -507,7 +515,7 @@ const DataHub = ({ activities, onImport, onDelete }) => {
 
   return (
     <div className="bg-slate-800 rounded-xl border border-slate-700 shadow-xl overflow-hidden min-h-[600px] flex flex-col relative">
-        {/* === IMPORT MODAL (Nu met dynamische tabel) === */}
+        {/* === IMPORT MODAL === */}
         {showModal && (
             <div className="absolute inset-0 bg-slate-900/95 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
                 <div className="bg-slate-800 border border-slate-600 rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col">
@@ -525,17 +533,7 @@ const DataHub = ({ activities, onImport, onDelete }) => {
 
                     <div className="overflow-auto flex-1 p-0">
                         <table className="w-full text-left text-xs whitespace-nowrap">
-                            <thead className="bg-slate-900 text-slate-400 uppercase font-bold sticky top-0 z-10 shadow-md">
-                                <tr>
-                                    <th className="p-3 w-10">
-                                        <input type="checkbox" checked={selectedActivities.length > 0} readOnly className="w-4 h-4 accent-green-500"/>
-                                    </th>
-                                    {/* Dynamische headers uit config, zonder sort-functionaliteit in modal */}
-                                    {ACTIVITY_COLUMNS.map((col) => (
-                                        <th key={col.key} className={`p-3 text-${col.align} ${col.width}`}>{col.label}</th>
-                                    ))}
-                                </tr>
-                            </thead>
+                            <TableHeader config={{}} requestSort={null} hasActions={false} />
                             <tbody className="divide-y divide-slate-700 bg-slate-800">
                                 {fetchedActivities.map(act => (
                                     <Row 
@@ -586,7 +584,6 @@ const DataHub = ({ activities, onImport, onDelete }) => {
                         <table className="w-full text-left text-xs whitespace-nowrap">
                             <TableHeader config={sortConfig} requestSort={requestSort} hasActions={true} />
                             <tbody className="divide-y divide-slate-700 bg-slate-800">
-                                {/* SCENARIO: GROUPED VIEW */}
                                 {isGroupedView && groupedActivities && Object.keys(groupedActivities).sort((a,b)=> sortConfig.direction === 'asc' ? a-b : b-a).map(year => (
                                     <React.Fragment key={year}>
                                         <tr className="bg-slate-700/50">
@@ -613,7 +610,6 @@ const DataHub = ({ activities, onImport, onDelete }) => {
                                         ))}
                                     </React.Fragment>
                                 ))}
-                                {/* SCENARIO: FLAT VIEW */}
                                 {!isGroupedView && processedActivities.map(act => (
                                      <Row key={act.id} act={act} onDelete={onDelete} deleteConfirm={deleteConfirm} setDeleteConfirm={setDeleteConfirm}/>
                                 ))}
@@ -630,7 +626,6 @@ const DataHub = ({ activities, onImport, onDelete }) => {
                             <Settings size={20} className="text-orange-400"/> Sync Configuration
                         </h3>
 
-                        {/* Datum Selectie */}
                         <div className="mb-6">
                             <label className="block text-xs uppercase font-bold text-slate-500 mb-2">Search Period</label>
                             <div className="grid grid-cols-2 gap-4">
@@ -645,7 +640,6 @@ const DataHub = ({ activities, onImport, onDelete }) => {
                             </div>
                         </div>
 
-                        {/* Sport Filter */}
                         <div className="mb-6">
                             <div className="flex justify-between items-center mb-2">
                                 <label className="text-xs uppercase font-bold text-slate-500">Activity Types</label>
@@ -665,7 +659,6 @@ const DataHub = ({ activities, onImport, onDelete }) => {
                             </div>
                         </div>
 
-                        {/* Credentials */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 pt-4 border-t border-slate-700">
                             <div>
                                 <label className="block text-xs uppercase font-bold text-slate-500 mb-1">Athlete ID</label>
@@ -679,7 +672,7 @@ const DataHub = ({ activities, onImport, onDelete }) => {
 
                         <button onClick={handleIntervalsSync} disabled={isSyncing} className={`w-full py-4 rounded-lg font-bold text-white flex items-center justify-center gap-2 transition-all ${isSyncing ? 'bg-slate-700 cursor-not-allowed' : 'bg-orange-500 hover:bg-orange-600 shadow-lg shadow-orange-500/20'}`}>
                             {isSyncing ? <RefreshCw size={20} className="animate-spin"/> : <RefreshCw size={20}/>}
-                            {isSyncing ? 'Syncing...' : 'Sync Activities'}
+                            {isSyncing ? 'Connecting & Finding Activities...' : 'Sync Activities'}
                         </button>
                     </div>
                 </div>
