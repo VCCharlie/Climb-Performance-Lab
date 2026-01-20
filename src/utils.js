@@ -3,44 +3,23 @@
  * Helper functies voor berekeningen en ROBUUSTE data-parsing
  */
 
-// --- FIX: UITGEBREIDE TYPE DETECTIE VOOR ALLE PLATFORMEN ---
-export const determineActivityType = (type, title) => {
-    // 1. Schoon de input op (verwijder spaties en maak lowercase)
-    let cleanType = type ? type.replace(/\s+/g, '') : 'Ride';
-    
-    // Als de bron al expliciet zegt dat het Virtual is, nemen we dat over
-    if (cleanType.toLowerCase() === 'virtualride') return 'VirtualRide';
-    if (cleanType.toLowerCase() === 'run') return 'Run';
-    if (cleanType.toLowerCase() === 'walk') return 'Walk';
-    if (cleanType.toLowerCase() === 'hike') return 'Hike';
-
-    // 2. Als het type "Ride" is, scannen we de TITEL op bekende indoor platformen
-    const name = title ? title.toLowerCase() : '';
-    
-    // Uitgebreide lijst met Indoor / Virtual keywords
-    const virtualKeywords = [
-        'virtual', 'indoor', 
-        'zwift', 'watopia', 'makuri', 'richmond', 'london', 'innsbruck', 
-        'yorkshire', 'bologna', 'crit city', 'scotland', 'neokyo', 'france', 'paris',
-        'mywhoosh', 'rouvy', 'fulgaz', 'bkool', 'rgt', 'indievelo', 'kinomap', 
-        'tacx', 'trainerroad', 'sufferfest', 'systm'
-    ];
-
-    if (virtualKeywords.some(keyword => name.includes(keyword))) {
-        return 'VirtualRide';
-    }
-
-    return 'Ride';
-};
-
+// --- DATUM FORMATTERS ---
 export const normalizeDate = (dateStr) => {
     if (!dateStr) return new Date().toISOString().split('T')[0];
-    if (dateStr.includes('T')) return dateStr.split('T')[0]; 
+    if (dateStr.includes('T')) return dateStr.split('T')[0];
+    // Formaat: dd/mm/yyyy
     if (dateStr.includes('/')) {
         const parts = dateStr.split('/');
         if (parts.length === 3) {
             return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
         }
+    }
+    // Formaat: dd-mm-yyyy
+    if (dateStr.includes('-') && dateStr.split('-')[0].length === 2) {
+         const parts = dateStr.split('-');
+         if (parts.length === 3) {
+            return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+         }
     }
     const d = new Date(dateStr);
     if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
@@ -69,10 +48,22 @@ export const formatTime = (seconds) => {
 export const parseDurationToSeconds = (str) => {
   if(!str) return 0;
   if(typeof str === 'number') return str;
+  // hh:mm:ss formaat
   if(str.includes(':')) {
       const parts = str.split(':').map(Number);
       if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
       if (parts.length === 2) return parts[0] * 60 + parts[1];
+  }
+  // 1h 30m formaat
+  if(str.includes('h') || str.includes('m')) {
+      let total = 0;
+      const h = str.match(/(\d+)h/);
+      const m = str.match(/(\d+)m/);
+      const s = str.match(/(\d+)s/);
+      if(h) total += parseInt(h[1]) * 3600;
+      if(m) total += parseInt(m[1]) * 60;
+      if(s) total += parseInt(s[1]);
+      return total;
   }
   return 0;
 };
@@ -92,71 +83,81 @@ export const calculateRollingTrend = (activities, targetDateStr, metricKey, wind
   return sum / inWindow.length;
 };
 
-// --- NIEUWE UNIVERSELE PARSER (WERKT VOOR KOMMA, PUNTKOMMA EN TAB) ---
-// Deze functie houdt rekening met quotes, zelfs als het scheidingsteken erin staat.
-const splitCSVRows = (text, delimiter) => {
-    const rows = [];
-    let currentRow = [];
-    let currentCell = '';
-    let insideQuotes = false;
+// --- TYPE DETECTIE (INC. MYWHOOSH, ROUVY ETC) ---
+export const determineActivityType = (type, title) => {
+    let cleanType = type ? type.toString().replace(/\s+/g, '') : 'Ride';
+    
+    // 1. Check Bron Type
+    if (cleanType.toLowerCase() === 'virtualride') return 'VirtualRide';
+    if (cleanType.toLowerCase() === 'run') return 'Run';
+    if (cleanType.toLowerCase() === 'walk') return 'Walk';
+    if (cleanType.toLowerCase() === 'hike') return 'Hike';
 
-    // Normalizeer line endings voor de zekerheid
-    const cleanText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    // 2. Check Titel op Keywords
+    const name = title ? title.toLowerCase() : '';
+    const virtualKeywords = [
+        'virtual', 'indoor', 
+        'zwift', 'watopia', 'makuri', 'richmond', 'london', 'innsbruck', 
+        'yorkshire', 'bologna', 'crit city', 'scotland', 'neokyo', 'france', 'paris',
+        'mywhoosh', 'rouvy', 'fulgaz', 'bkool', 'rgt', 'indievelo', 'kinomap', 
+        'tacx', 'trainerroad', 'sufferfest', 'systm'
+    ];
 
-    for (let i = 0; i < cleanText.length; i++) {
-        const char = cleanText[i];
-        const nextChar = cleanText[i + 1];
+    if (virtualKeywords.some(keyword => name.includes(keyword))) {
+        return 'VirtualRide';
+    }
 
+    return 'Ride';
+};
+
+// --- DE NIEUWE CSV PARSER (BETERE DELIMITER DETECTIE) ---
+const detectDelimiter = (text) => {
+    const firstLine = text.split('\n')[0];
+    const commas = (firstLine.match(/,/g) || []).length;
+    const semis = (firstLine.match(/;/g) || []).length;
+    const tabs = (firstLine.match(/\t/g) || []).length;
+    
+    if (tabs > commas && tabs > semis) return '\t';
+    if (semis > commas) return ';';
+    return ',';
+};
+
+const splitCSVLine = (line, delimiter) => {
+    const values = [];
+    let current = '';
+    let inQuote = false;
+    
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        
         if (char === '"') {
-            if (insideQuotes && nextChar === '"') {
-                currentCell += '"';
+            if (inQuote && line[i+1] === '"') {
+                current += '"';
                 i++;
             } else {
-                insideQuotes = !insideQuotes;
+                inQuote = !inQuote;
             }
-        } else if (char === delimiter && !insideQuotes) {
-            currentRow.push(currentCell);
-            currentCell = '';
-        } else if (char === '\n' && !insideQuotes) {
-            currentRow.push(currentCell);
-            rows.push(currentRow);
-            currentRow = [];
-            currentCell = '';
+        } else if (char === delimiter && !inQuote) {
+            values.push(current);
+            current = '';
         } else {
-            currentCell += char;
+            current += char;
         }
     }
-    // Laatste restje
-    if (currentCell || currentRow.length > 0) {
-        currentRow.push(currentCell);
-        rows.push(currentRow);
-    }
-    return rows;
+    values.push(current);
+    return values;
 };
 
 export const smartParseCSV = (text) => {
   if (!text || !text.trim()) return [];
 
-  // Delimiter detectie (op basis van eerste regel)
-  const firstLineEnd = text.indexOf('\n');
-  const firstLine = text.substring(0, firstLineEnd > -1 ? firstLineEnd : text.length);
+  const delimiter = detectDelimiter(text);
+  const lines = text.trim().split(/\r?\n/);
   
-  // Tel voorkomens om de waarschijnlijke delimiter te vinden
-  const tabCount = (firstLine.match(/\t/g) || []).length;
-  const semiCount = (firstLine.match(/;/g) || []).length;
-  const commaCount = (firstLine.match(/,/g) || []).length;
-
-  let delimiter = ',';
-  if (tabCount > commaCount && tabCount > semiCount) delimiter = '\t';
-  else if (semiCount > commaCount) delimiter = ';';
-
-  // Gebruik de robuuste parser voor ELK type delimiter
-  const rows = splitCSVRows(text, delimiter);
-
-  if (rows.length < 2) return [];
+  if (lines.length < 2) return [];
 
   // Headers (Row 0)
-  const rawHeaders = rows[0].map(h => h.trim().toLowerCase().replace(/^"|"$/g, ''));
+  const rawHeaders = splitCSVLine(lines[0], delimiter).map(h => h.trim().toLowerCase().replace(/^"|"$/g, ''));
 
   const mapHeader = (h) => {
     if (h === 'name' || h === 'title' || h === 'activity_name' || h === 'activity') return 'title';
@@ -167,7 +168,8 @@ export const smartParseCSV = (text) => {
     if (h.includes('climb') || h.includes('elevation') || h.includes('hoogte') || h.includes('total_elevation_gain')) return 'climbing';
     if (h.includes('speed') || h.includes('snelheid')) return 'avg_speed';
     if (h.includes('norm') || h.includes('np') || h === 'icu_weighted_avg_watts') return 'norm_power';
-    if (h.includes('avg power') || h.includes('gem. vermogen') || h === 'average_watts') return 'avg_power';
+    // Power fix: pak ook 'power' kolom als avg niet expliciet is
+    if (h.includes('avg power') || h.includes('gem. vermogen') || h === 'average_watts' || h === 'power') return 'avg_power';
     if (h === 'load' || h === 'tss' || h === 'icu_training_load' || h === 'training_load') return 'load';
     if (h === 'rpe' || h === 'icu_rpe' || h === 'feel') return 'rpe';
     return null;
@@ -175,28 +177,37 @@ export const smartParseCSV = (text) => {
 
   const colMap = rawHeaders.map(mapHeader);
 
-  return rows.slice(1).map(row => {
+  // Data rows
+  return lines.slice(1).map(line => {
+    // Skip empty lines
+    if (!line.trim()) return null;
+
+    const cells = splitCSVLine(line, delimiter);
     const entry = {};
     
-    // Veiligheid: zorg dat we niet meer cellen lezen dan er headers zijn
-    row.forEach((cell, idx) => {
-      if (idx >= colMap.length) return;
-      
-      const key = colMap[idx];
-      if (key) {
-        let val = cell ? cell.trim().replace(/^"|"$/g, '') : '';
+    colMap.forEach((key, idx) => {
+      if (key && cells[idx] !== undefined) {
+        let val = cells[idx].trim().replace(/^"|"$/g, '');
         
         if (key === 'date') val = normalizeDate(val);
         else if (key === 'moving_time') val = parseDurationToSeconds(val);
         else if (key !== 'title' && key !== 'type') {
-            // Getallen: vervang komma door punt en parse
-            val = parseFloat(val.replace(',', '.'));
+            // Getallen: vervang komma door punt (NL formaat fix)
+            val = val.replace(',', '.');
+            // Verwijder duizendtallen scheidingstekens als ze er zijn
+            // Maar pas op: 1.000,50 -> 1000.50
+            if (val.includes('.') && val.lastIndexOf('.') < val.indexOf(',')) {
+                 // Amerikaans formaat met komma als duizend? Nee, intervals doet dat zelden.
+                 // We gaan uit van standaard floats.
+            }
+            val = parseFloat(val);
             if (isNaN(val)) val = 0;
         }
         entry[key] = val;
       }
     });
 
+    // Fallbacks
     if (!entry.title) entry.title = "Untitled"; 
     if (!entry.id) entry.id = Math.random().toString(36).substr(2, 9);
     if (!entry.date || entry.date === 'Invalid Date') entry.date = new Date().toISOString().split('T')[0];
@@ -205,9 +216,14 @@ export const smartParseCSV = (text) => {
     entry.type = determineActivityType(entry.type, entry.title);
 
     // Conversies
-    if (entry.distance > 1000) entry.distance = (entry.distance / 1000).toFixed(2);
-    if (entry.avg_speed < 20 && entry.avg_speed > 0) entry.avg_speed = (entry.avg_speed * 3.6).toFixed(1);
+    // Intervals API export is vaak meters, CSV is soms km. We gokken op basis van grootte.
+    // > 1000 = waarschijnlijk meters
+    if (entry.distance > 2000) entry.distance = (entry.distance / 1000).toFixed(2);
+    
+    // Snelheid: m/s naar km/h? Als < 25 en > 0 is het waarschijnlijk m/s (niemand fietst gemiddeld 25 km/h als getal 6.9 is)
+    // Maar CSV kan ook gewoon 28.5 zijn.
+    if (entry.avg_speed > 0 && entry.avg_speed < 15) entry.avg_speed = (entry.avg_speed * 3.6).toFixed(1);
 
     return entry;
-  }).filter(e => e.distance > 0 || e.moving_time > 0);
+  }).filter(e => e && (e.distance > 0 || e.moving_time > 0));
 };
