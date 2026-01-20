@@ -19,6 +19,9 @@ import {
 } from './utils';
 import { ACTIVITY_COLUMNS, SPORT_TYPES, MONTH_ORDER } from './config';
 
+// --- COMPONENT IMPORTS ---
+import PhysicsEngine from './components/PhysicsEngine'; // <--- NIEUW
+
 // --- FIREBASE FUNCTIES ---
 import { collection, doc, setDoc, getDoc } from "firebase/firestore";
 
@@ -132,13 +135,7 @@ const Row = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview = false
     );
 };
 
-/**
- * ============================================================================
- * MAIN APPLICATION COMPONENTS
- * ============================================================================
- */
-
-// --- 1. SETTINGS COMPONENT (NIEUW) ---
+// --- SETTINGS COMPONENT ---
 const SettingsTab = ({ intervalsConfig, updateIntervalsConfig, onSaveToCloud }) => {
     const [isSaving, setIsSaving] = useState(false);
 
@@ -161,62 +158,34 @@ const SettingsTab = ({ intervalsConfig, updateIntervalsConfig, onSaveToCloud }) 
                         <Activity className="text-orange-400" size={18} />
                         <h3 className="font-bold text-white">Intervals.icu Integration</h3>
                     </div>
-                    
                     <p className="text-sm text-slate-400">
                         Deze gegevens worden gebruikt om je ritten te synchroniseren. 
-                        Ze worden lokaal opgeslagen en gesynchroniseerd met jouw Firebase database.
                     </p>
-
                     <div className="grid grid-cols-1 gap-4">
                         <div>
                             <label className="block text-xs uppercase font-bold text-slate-500 mb-1">Athlete ID</label>
-                            <input 
-                                type="text" 
-                                placeholder="e.g. i12345" 
-                                value={intervalsConfig.athleteId}
-                                onChange={e => updateIntervalsConfig('athleteId', e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-600 rounded p-3 text-white focus:border-orange-400 outline-none transition-colors"
-                            />
+                            <input type="text" placeholder="e.g. i12345" value={intervalsConfig.athleteId} onChange={e => updateIntervalsConfig('athleteId', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded p-3 text-white focus:border-orange-400 outline-none transition-colors" />
                         </div>
                         <div>
                             <label className="block text-xs uppercase font-bold text-slate-500 mb-1">API Key</label>
-                            <input 
-                                type="password" 
-                                placeholder="Your API Key" 
-                                value={intervalsConfig.apiKey}
-                                onChange={e => updateIntervalsConfig('apiKey', e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-600 rounded p-3 text-white focus:border-orange-400 outline-none transition-colors"
-                            />
+                            <input type="password" placeholder="Your API Key" value={intervalsConfig.apiKey} onChange={e => updateIntervalsConfig('apiKey', e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded p-3 text-white focus:border-orange-400 outline-none transition-colors" />
                         </div>
                     </div>
                 </div>
 
                 <div className="mt-8 pt-6 border-t border-slate-700 flex justify-end">
-                    <button 
-                        onClick={handleSave}
-                        disabled={isSaving}
-                        className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold text-white transition-all ${isSaving ? 'bg-slate-600' : 'bg-green-500 hover:bg-green-600 shadow-lg shadow-green-500/20'}`}
-                    >
+                    <button onClick={handleSave} disabled={isSaving} className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold text-white transition-all ${isSaving ? 'bg-slate-600' : 'bg-green-500 hover:bg-green-600 shadow-lg shadow-green-500/20'}`}>
                         {isSaving ? <RefreshCw size={18} className="animate-spin"/> : <Save size={18}/>}
                         {isSaving ? 'Saving...' : 'Save Settings to Cloud'}
                     </button>
                 </div>
             </div>
-
-            {/* Placeholder voor toekomstige settings */}
-            <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 opacity-50">
-                <div className="flex items-center gap-2 pb-2 border-b border-slate-700 mb-4">
-                    <User className="text-blue-400" size={18} />
-                    <h3 className="font-bold text-white">Rider Profile (Coming Soon)</h3>
-                </div>
-                <p className="text-sm text-slate-500">Weight, FTP History, and Zones configuration.</p>
-            </div>
         </div>
     );
 };
 
-// --- 2. DATA HUB (Aangepast: Geen settings meer, alleen acties) ---
-const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => { // intervalsConfig komt nu via props!
+// --- DATA HUB ---
+const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
   const [internalTab, setInternalTab] = useState('log');
   const [importText, setImportText] = useState("");
   const [search, setSearch] = useState("");
@@ -281,7 +250,6 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => { // in
   };
 
   const handleIntervalsSync = async () => {
-    // Check nu de props ipv lokale state
     if (!intervalsConfig.apiKey || !intervalsConfig.athleteId) {
         alert("Geen API gegevens gevonden. Ga naar de Settings tab om deze in te vullen.");
         return;
@@ -415,8 +383,8 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => { // in
         {/* TABS */}
         <div className="flex border-b border-slate-700">
             <button onClick={() => setInternalTab('log')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'log' ? 'bg-slate-700 text-yellow-400' : 'text-slate-400 hover:bg-slate-700/50'}`}>Activity Log</button>
-            <button onClick={() => setInternalTab('intervals')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'intervals' ? 'bg-slate-700 text-orange-400' : 'text-slate-400 hover:bg-slate-700/50'}`}>Sync (API)</button>
-            <button onClick={() => setInternalTab('import')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'import' ? 'bg-slate-700 text-yellow-400' : 'text-slate-400 hover:bg-slate-700/50'}`}>Import (CSV)</button>
+            <button onClick={() => setInternalTab('intervals')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'intervals' ? 'bg-slate-700 text-orange-400' : 'text-slate-400 hover:bg-slate-700/50'}`}>Intervals.icu API</button>
+            <button onClick={() => setInternalTab('import')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'import' ? 'bg-slate-700 text-yellow-400' : 'text-slate-400 hover:bg-slate-700/50'}`}>CSV Import</button>
         </div>
 
         <div className="p-4 flex-1 overflow-hidden flex flex-col">
@@ -453,7 +421,7 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => { // in
             
             {internalTab === 'intervals' && (
                 <div className="bg-slate-900/50 border border-slate-600 rounded-lg p-6 space-y-6">
-                    <h3 className="text-lg font-bold text-white flex items-center gap-2"><RefreshCw size={20} className="text-orange-400"/> Sync from Intervals.icu</h3>
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2"><RefreshCw size={20} className="text-orange-400"/> Sync Activities</h3>
                     
                     {/* Datum Selectors */}
                     <div className="grid grid-cols-2 gap-4">
@@ -475,7 +443,8 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => { // in
                     </div>
 
                     <div className="pt-4 border-t border-slate-700">
-                        <button onClick={handleIntervalsSync} disabled={isSyncing} className="w-full py-3 rounded bg-orange-500 hover:bg-orange-600 text-white font-bold">{isSyncing ? 'Syncing...' : 'Sync Activities'}</button>
+                        <button onClick={handleIntervalsSync} disabled={isSyncing} className="w-full py-3 rounded bg-orange-500 hover:bg-orange-600 text-white font-bold">{isSyncing ? 'Syncing...' : 'Sync Now'}</button>
+                        <p className="text-xs text-center text-slate-500 mt-2">Credentials configured in Settings tab</p>
                     </div>
                 </div>
             )}
@@ -491,211 +460,7 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => { // in
   );
 };
 
-// ... PhysicsEngine, ClimbProfileCard, FuelingStrategy ...
-const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateClimb }) => {
-  const [mode, setMode] = useState('target'); 
-  const [targetTimeStr, setTargetTimeStr] = useState("59:00");
-  const [targetWatts, setTargetWatts] = useState(userSettings.ftp);
-  const [calc, setCalc] = useState({ watts: 0, wkg: 0, time: "", vam: 0, zone: null });
-  const [countryFilter, setCountryFilter] = useState('All');
-
-  const parseDuration = (str) => {
-      if(!str) return 0;
-      const parts = str.split(':').map(Number);
-      if (parts.length === 2) return parts[0] * 60 + parts[1];
-      if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
-      return 0;
-  };
-
-  const updateWeight = (type, delta) => {
-    const current = type === 'body' ? userSettings.weight : userSettings.bikeWeight;
-    const newVal = parseFloat((current + delta).toFixed(1));
-    setUserSettings(prev => ({ ...prev, [type === 'body' ? 'weight' : 'bikeWeight']: newVal }));
-  };
-
-  useEffect(() => {
-    if (!selectedClimb) return;
-    const totalWeight = userSettings.weight + userSettings.bikeWeight;
-    const grade = selectedClimb.avgGrade / 100;
-    const distance = selectedClimb.lengthKm * 1000;
-    const elevation = selectedClimb.elevation;
-    
-    // Physics Constants
-    const g = 9.81; const rho = 1.225; const cda = 0.32; const crr = 0.004; const loss = 0.03;
-
-    let watts = 0, seconds = 0;
-
-    if (mode === 'target') {
-      seconds = parseDuration(targetTimeStr);
-      if (seconds > 0) {
-        const v = distance / seconds; 
-        const F_g = totalWeight * g * Math.sin(Math.atan(grade));
-        const F_r = totalWeight * g * Math.cos(Math.atan(grade)) * crr;
-        const F_a = 0.5 * rho * cda * v * v;
-        const P_wheel = (F_g + F_r + F_a) * v;
-        watts = P_wheel / (1 - loss);
-      }
-    } else {
-      watts = parseFloat(targetWatts);
-      const P_wheel = watts * (1 - loss);
-      const theta = Math.atan(grade);
-      const K1 = 0.5 * rho * cda;
-      const K2 = totalWeight * g * (Math.sin(theta) + crr * Math.cos(theta));
-      let v = 3; 
-      for(let i=0; i<10; i++) {
-        const f = K1 * Math.pow(v, 3) + K2 * v - P_wheel;
-        const df = 3 * K1 * Math.pow(v, 2) + K2;
-        v = v - f / df;
-      }
-      seconds = v > 0 ? distance / v : 0;
-    }
-
-    const wkg = watts / userSettings.weight;
-    const vam = seconds > 0 ? (elevation / seconds) * 3600 : 0;
-    const zone = COGGAN_ZONES.find(z => (watts / userSettings.ftp) >= z.min && (watts / userSettings.ftp) <= z.max) || COGGAN_ZONES[6];
-
-    setCalc({ 
-        watts: Math.round(watts), 
-        wkg: wkg.toFixed(2), 
-        time: new Date(seconds * 1000).toISOString().substr(11, 8), 
-        vam: Math.round(vam), 
-        zone: zone 
-    });
-
-  }, [mode, targetTimeStr, targetWatts, selectedClimb, userSettings]);
-
-  const filteredClimbs = useMemo(() => {
-    if(countryFilter === 'All') return CLIMB_DATABASE;
-    return CLIMB_DATABASE.filter(c => c.country === countryFilter);
-  }, [countryFilter]);
-
-  const climbsGrouped = useMemo(() => {
-    const groups = {};
-    filteredClimbs.forEach(c => {
-      let key = c.country;
-      if(c.country === 'Zwift') key = `Zwift - ${c.region}`; 
-      if(!groups[key]) groups[key] = [];
-      groups[key].push(c);
-    });
-    return groups;
-  }, [filteredClimbs]);
-
-  const uniqueCountries = useMemo(() => ['All', ...new Set(CLIMB_DATABASE.map(c => c.country))].sort(), []);
-
-  return (
-    <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
-      <div className="flex flex-col gap-4 mb-6">
-        <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-yellow-400 flex items-center gap-2"><Mountain className="w-6 h-6" /> Physics Engine</h2>
-            <a href={selectedClimb?.url || '#'} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-white flex items-center gap-1 text-xs" title="View Info">
-              <Info size={14}/> Climb Detail
-            </a>
-        </div>
-
-        <div className="space-y-2">
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                {uniqueCountries.map(c => (
-                    <button 
-                        key={c} 
-                        onClick={() => setCountryFilter(c)}
-                        className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${countryFilter === c ? 'bg-yellow-400 text-slate-900' : 'bg-slate-700 text-slate-400 hover:text-white'}`}
-                    >
-                        {c === 'All' ? '🌍 All' : c}
-                    </button>
-                ))}
-            </div>
-            
-            <select 
-              className="w-full bg-slate-900 text-white rounded p-3 text-sm border border-slate-600 outline-none focus:border-yellow-400"
-              value={selectedClimb?.id || ''}
-              onChange={(e) => onUpdateClimb(CLIMB_DATABASE.find(c => c.id === e.target.value))}
-            >
-              {Object.keys(climbsGrouped).sort().map(group => (
-                <optgroup key={group} label={group}>
-                  {climbsGrouped[group].map(c => <option key={c.id} value={c.id}>{c.name} ({c.lengthKm}km @ {c.avgGrade}%)</option>)}
-                </optgroup>
-              ))}
-            </select>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-4 space-y-6">
-            <div className="bg-slate-900 p-4 rounded-lg border border-slate-700 space-y-3">
-                <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-300">Rider</span>
-                    <div className="flex items-center gap-2">
-                        <button onClick={() => updateWeight('body', -0.1)} className="p-1 bg-slate-700 rounded hover:bg-slate-600"><Minus size={14}/></button>
-                        <span className="font-mono w-16 text-center">{userSettings.weight.toFixed(1)} kg</span>
-                        <button onClick={() => updateWeight('body', 0.1)} className="p-1 bg-slate-700 rounded hover:bg-slate-600"><Plus size={14}/></button>
-                    </div>
-                </div>
-                <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-300">Bike</span>
-                    <div className="flex items-center gap-2">
-                        <button onClick={() => updateWeight('bike', -0.1)} className="p-1 bg-slate-700 rounded hover:bg-slate-600"><Minus size={14}/></button>
-                        <span className="font-mono w-16 text-center">{userSettings.bikeWeight.toFixed(1)} kg</span>
-                        <button onClick={() => updateWeight('bike', 0.1)} className="p-1 bg-slate-700 rounded hover:bg-slate-600"><Plus size={14}/></button>
-                    </div>
-                </div>
-            </div>
-
-            <div className="bg-slate-700 rounded-lg p-1 flex">
-                <button onClick={() => setMode('target')} className={`flex-1 py-2 text-xs font-bold uppercase rounded ${mode==='target'?'bg-yellow-400 text-slate-900':'text-slate-300'}`}>Target Time</button>
-                <button onClick={() => setMode('predict')} className={`flex-1 py-2 text-xs font-bold uppercase rounded ${mode==='predict'?'bg-yellow-400 text-slate-900':'text-slate-300'}`}>Predict</button>
-            </div>
-
-            <div className="bg-slate-900 border border-yellow-400/30 p-4 rounded-lg">
-                <label className="text-xs text-yellow-400 uppercase font-bold mb-2 block">{mode === 'target' ? 'Desired Time' : 'Sustainable Power'}</label>
-                {mode === 'target' ? (
-                   <input value={targetTimeStr} onChange={e => setTargetTimeStr(e.target.value)} className="w-full bg-transparent text-3xl font-mono text-white outline-none border-b border-slate-700 focus:border-yellow-400" />
-                ) : (
-                   <input type="number" value={targetWatts} onChange={e => setTargetWatts(e.target.value)} className="w-full bg-transparent text-3xl font-mono text-white outline-none border-b border-slate-700 focus:border-yellow-400" />
-                )}
-            </div>
-        </div>
-
-        <div className="lg:col-span-8 grid grid-cols-2 gap-4">
-             <div className="bg-slate-700/50 p-4 rounded-lg flex flex-col items-center justify-center border border-slate-600">
-                <span className="text-xs text-slate-400 uppercase mb-1">Required Power</span>
-                <span className="text-3xl font-bold text-white">{calc.watts} <small className="text-sm text-slate-500">W</small></span>
-             </div>
-             <div className="bg-slate-700/50 p-4 rounded-lg flex flex-col items-center justify-center border border-slate-600">
-                <span className="text-xs text-slate-400 uppercase mb-1">Power / Weight</span>
-                <span className="text-3xl font-bold text-yellow-400">{calc.wkg} <small className="text-sm text-yellow-600">W/kg</small></span>
-             </div>
-             <div className="bg-slate-700/50 p-4 rounded-lg flex flex-col items-center justify-center border border-slate-600">
-                <span className="text-xs text-slate-400 uppercase mb-1">Est. Time</span>
-                <span className="text-3xl font-bold text-white font-mono">{calc.time}</span>
-             </div>
-             <div className="bg-slate-700/50 p-4 rounded-lg flex flex-col items-center justify-center border border-slate-600">
-                <span className="text-xs text-slate-400 uppercase mb-1">VAM</span>
-                <span className="text-3xl font-bold text-white">{calc.vam} <small className="text-sm text-slate-500">m/h</small></span>
-             </div>
-             
-             <div className="col-span-2 bg-slate-900 p-4 rounded-lg border border-slate-700">
-                <div className="flex justify-between items-end mb-2">
-                    <span className="text-sm font-bold text-white">Intensity Zone</span>
-                    {calc.zone && <span style={{color: calc.zone.color}} className="font-bold text-sm uppercase">{calc.zone.name}</span>}
-                </div>
-                <div className="w-full h-4 bg-slate-800 rounded-full overflow-hidden flex">
-                    {COGGAN_ZONES.map((z, i) => (
-                        <div key={i} style={{width: `${(z.max - z.min)/0.15 * 10}%`, background: z.color}} className="h-full opacity-30 hover:opacity-100 transition-opacity"></div>
-                    ))}
-                </div>
-                <div className="relative w-full h-2 mt-1">
-                     <div 
-                        className="absolute w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[8px] border-b-white transform -translate-x-1/2 transition-all duration-500"
-                        style={{ left: `${Math.min(Math.max((calc.watts/userSettings.ftp)/1.5 * 100, 0), 100)}%` }}
-                     ></div>
-                </div>
-             </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
+// ... Rest van de App Component (neem over uit vorige antwoorden voor FuelingStrategy en ClimbProfileCard) ...
 const ClimbProfileCard = ({ climb }) => {
     if (!climb) return null;
     return (
