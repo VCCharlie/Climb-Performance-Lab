@@ -1,22 +1,67 @@
-// Helper: Bepaal correcte type (Forceer Zwift -> VirtualRide)
-export const determineActivityType = (type, title) => {
-    const t = type || 'Ride';
-    const name = title ? title.toLowerCase() : '';
-    if (name.includes('zwift') || name.includes('virtual')) return 'VirtualRide';
-    return t;
-};
+/**
+ * src/utils.js
+ * Helper functies voor berekeningen en ROBUUSTE data-parsing
+ */
 
-// ... (Andere helpers: normalizeDate, formatTime, etc. blijven hetzelfde als vorige keer) ...
-// Zorg dat je normalizeDate, formatDateDDMMYYYY, formatTime, parseDurationToSeconds, calculateRollingTrend hier hebt staan!
-// Ik herhaal ze kort voor volledigheid:
+// --- FIX: UITGEBREIDE TYPE DETECTIE VOOR ALLE PLATFORMEN ---
+export const determineActivityType = (type, title) => {
+    // 1. Schoon de input op (verwijder spaties en maak lowercase)
+    // Dit fixt "Virtual Ride" -> "VirtualRide"
+    let cleanType = type ? type.replace(/\s+/g, '') : 'Ride';
+    
+    // Als de bron al expliciet zegt dat het Virtual is, nemen we dat over
+    if (cleanType.toLowerCase() === 'virtualride') return 'VirtualRide';
+    if (cleanType.toLowerCase() === 'run') return 'Run';
+    if (cleanType.toLowerCase() === 'walk') return 'Walk';
+    if (cleanType.toLowerCase() === 'hike') return 'Hike';
+
+    // 2. Als het type "Ride" is, scannen we de TITEL op bekende indoor platformen
+    const name = title ? title.toLowerCase() : '';
+    
+    // Uitgebreide lijst met Indoor / Virtual keywords
+    const virtualKeywords = [
+        // Algemeen
+        'virtual', 'indoor', 
+        
+        // Zwift Worlds
+        'zwift', 'watopia', 'makuri', 'richmond', 'london', 'innsbruck', 
+        'yorkshire', 'bologna', 'crit city', 'scotland', 'neokyo', 'france', 'paris',
+        
+        // Andere Platformen
+        'mywhoosh',    // UAE Team Emirates platform
+        'rouvy',       // Augmented Reality
+        'fulgaz',      // Real video
+        'bkool',       // Spaans platform
+        'rgt',         // Wahoo RGT
+        'indievelo',   // Esports focus
+        'kinomap',     // Video based
+        'tacx',        // Tacx Training App
+        'trainerroad', // Vaak indoor, al kan TR ook buiten
+        'sufferfest',  // Wahoo SYSTM
+        'systm'        // Wahoo SYSTM
+    ];
+
+    // Als de titel één van deze woorden bevat -> VirtualRide
+    if (virtualKeywords.some(keyword => name.includes(keyword))) {
+        return 'VirtualRide';
+    }
+
+    // Default fallback naar buitenrit
+    return 'Ride';
+};
 
 export const normalizeDate = (dateStr) => {
     if (!dateStr) return new Date().toISOString().split('T')[0];
-    if (dateStr.includes('T')) return dateStr.split('T')[0];
+    if (dateStr.includes('T')) return dateStr.split('T')[0]; // ISO fix
     if (dateStr.includes('/')) {
         const parts = dateStr.split('/');
-        if (parts.length === 3) return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+        // Verwacht DD/MM/YYYY
+        if (parts.length === 3) {
+            return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+        }
     }
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
     return dateStr;
 };
 
@@ -59,12 +104,13 @@ export const calculateRollingTrend = (activities, targetDateStr, metricKey, wind
     const val = Number(a[metricKey]);
     return diffDays <= windowDays && !isNaN(val) && val > 0;
   });
+
   if (inWindow.length === 0) return 0;
   const sum = inWindow.reduce((acc, curr) => acc + (Number(curr[metricKey]) || 0), 0);
   return sum / inWindow.length;
 };
 
-// De Regex Parser (Handelt "enters" in CSV titels af)
+// --- DE ROBUUSTE CSV PARSER (Ongewijzigd goed) ---
 const splitCSVRows = (text) => {
     const rows = [];
     let currentRow = [];
@@ -82,7 +128,7 @@ const splitCSVRows = (text) => {
             } else {
                 insideQuotes = !insideQuotes;
             }
-        } else if (char === ',' && !insideQuotes) { // Pas aan als delimiter anders is in smartParseCSV
+        } else if (char === ',' && !insideQuotes) {
             currentRow.push(currentCell);
             currentCell = '';
         } else if ((char === '\n' || char === '\r') && !insideQuotes) {
@@ -101,19 +147,15 @@ const splitCSVRows = (text) => {
 };
 
 export const smartParseCSV = (text) => {
-  // Detecteer delimiter VOORDAT we splitten (simpele check op eerste regel)
+  // Delimiter detectie
   const firstLineEnd = text.indexOf('\n');
   const firstLine = text.substring(0, firstLineEnd > -1 ? firstLineEnd : text.length);
   const delimiter = firstLine.includes('\t') ? '\t' : firstLine.includes(';') ? ';' : ',';
 
-  // Omdat splitCSVRows hard op komma's werkt, vervangen we tijdelijk de delimiter als het geen komma is
-  // Dit is een hack, maar voor nu de veiligste manier zonder complexe regex rewrite.
-  // Voor tab-delimited files (zoals Intervals export vaak is) werkt normale split('\n') vaak wel beter omdat tabs geen quotes gebruiken.
   let rows;
   if (delimiter === ',') {
       rows = splitCSVRows(text);
   } else {
-      // Fallback voor Tab/Puntkomma (vaak geen quotes rondom newlines probleem)
       rows = text.trim().split('\n').map(l => l.split(delimiter));
   }
 
@@ -133,9 +175,6 @@ export const smartParseCSV = (text) => {
     if (h.includes('avg power') || h.includes('gem. vermogen')) return 'avg_power';
     if (h === 'load' || h === 'tss' || h === 'icu_training_load' || h === 'training_load') return 'load';
     if (h === 'rpe' || h === 'icu_rpe' || h === 'feel') return 'rpe';
-    if (h.includes('5m') || h.includes('5 min')) return 'best_5min';
-    if (h.includes('20m') || h.includes('20 min')) return 'best_20min';
-    if (h.includes('60m') || h.includes('60 min')) return 'best_60min';
     return null;
   };
 
@@ -162,10 +201,9 @@ export const smartParseCSV = (text) => {
     if (!entry.id) entry.id = Math.random().toString(36).substr(2, 9);
     if (!entry.date || entry.date === 'Invalid Date') entry.date = new Date().toISOString().split('T')[0];
     
-    // FIX: Detecteer VirtualRide als het in de titel staat
+    // Gebruik de nieuwe uitgebreide detectie
     entry.type = determineActivityType(entry.type, entry.title);
 
-    // Conversies
     if (entry.distance > 1000) entry.distance = (entry.distance / 1000).toFixed(2);
     if (entry.avg_speed < 20 && entry.avg_speed > 0) entry.avg_speed = (entry.avg_speed * 3.6).toFixed(1);
 
