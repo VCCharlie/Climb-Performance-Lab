@@ -10,28 +10,21 @@ import {
   Map, Cloud, Trash2, AlertTriangle, Info, CheckCircle, ArrowUpDown, RefreshCw, X, Monitor, Bike, Footprints, Settings
 } from 'lucide-react';
 
-// --- IMPORTS ---
+// --- EXTERNE IMPORTS ---
 import { CLIMB_DATABASE, COGGAN_ZONES } from './climbs'; 
 import { db } from './firebase'; 
 import { 
   smartParseCSV, calculateRollingTrend, formatDateDDMMYYYY, formatTime, 
   normalizeDate 
 } from './utils';
+import { ACTIVITY_COLUMNS, SPORT_TYPES, MONTH_ORDER } from './config';
 
 // --- FIREBASE FUNCTIES ---
 import { collection, doc, setDoc } from "firebase/firestore";
 
-const MONTH_ORDER = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"
-];
-
-// Beschikbare sporten voor filter
-const SPORT_TYPES = ["Ride", "VirtualRide", "GravelRide", "MountainBikeRide", "EBikeRide", "Run", "Walk", "Hike"];
-
 /**
  * ============================================================================
- * HELPER COMPONENTS
+ * HELPER COMPONENTS (TABLE)
  * ============================================================================
  */
 
@@ -42,9 +35,110 @@ const SortIcon = ({ colKey, config }) => {
         : <ChevronDown size={12} className="text-yellow-400 ml-1 inline" />;
 };
 
+// Dynamische Header Component
+const TableHeader = ({ config, requestSort, hasActions = true }) => (
+    <thead className="bg-slate-900 text-slate-400 uppercase font-bold sticky top-0 z-10 shadow-md">
+        <tr>
+            {/* Loop door kolommen uit config.js */}
+            {ACTIVITY_COLUMNS.map((col) => (
+                <th 
+                    key={col.key} 
+                    className={`p-3 cursor-pointer hover:bg-slate-800 transition-colors select-none text-${col.align} ${col.width || ''}`}
+                    onClick={() => requestSort && requestSort(col.key)}
+                >
+                    <span className={`flex items-center gap-1 ${col.align === 'right' ? 'justify-end' : col.align === 'center' ? 'justify-center' : 'justify-start'}`}>
+                        {col.align === 'left' && <span>{col.label}</span>}
+                        {requestSort && <SortIcon colKey={col.key} config={config}/>}
+                        {col.align !== 'left' && <span>{col.label}</span>}
+                    </span>
+                </th>
+            ))}
+            {hasActions && <th className="p-3 text-right">Action</th>}
+        </tr>
+    </thead>
+);
+
+// Dynamische Row Component
+const Row = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview = false, isSelected = false, onToggleSelect }) => {
+    // Helper om cel-inhoud te bepalen
+    const renderCell = (col) => {
+        const val = act[col.key];
+
+        switch(col.key) {
+            case 'date': 
+                return <span className="text-slate-300 whitespace-nowrap">{formatDateDDMMYYYY(val)}</span>;
+            case 'type':
+                return (
+                    <div className="flex justify-center items-center h-full">
+                        {val === 'VirtualRide' ? <Monitor size={16} className="text-orange-400" title="Virtual Ride"/> :
+                         val === 'Run' ? <Footprints size={16} className="text-blue-400" title="Run"/> :
+                         val === 'Walk' ? <Footprints size={16} className="text-green-300" title="Walk"/> :
+                         val === 'Hike' ? <Mountain size={16} className="text-green-500" title="Hike"/> :
+                         <Bike size={16} className="text-green-400" title="Ride"/>}
+                    </div>
+                );
+            case 'title':
+                return <span className="font-medium text-white block max-w-[200px] truncate" title={val}>{val}</span>;
+            case 'moving_time':
+                return <span className="text-slate-400 font-mono">{formatTime(val)}</span>;
+            case 'distance':
+            case 'avg_speed':
+                return <span className="text-slate-400">{Number(val).toFixed(1)}</span>;
+            case 'climbing':
+            case 'avg_power':
+                return <span className="text-slate-400">{Math.round(val || 0)}</span>;
+            case 'norm_power':
+                return <span className="font-bold text-yellow-400">{Math.round(val || 0)}</span>;
+            case 'load':
+                return <span className="font-bold text-blue-400">{Math.round(val || 0)}</span>;
+            case 'rpe':
+                return <span className="text-slate-400">{val || '-'}</span>;
+            default:
+                return <span className={`text-${col.text || 'slate-500'}`}>{val ? Math.round(val) : '-'}</span>;
+        }
+    };
+
+    return (
+        <tr 
+            className={`hover:bg-slate-700/50 transition-colors border-b border-slate-700/50 ${isSelected ? 'bg-slate-700/30' : ''}`}
+            onClick={onToggleSelect ? () => onToggleSelect(act.id) : undefined}
+        >
+            {/* Preview Checkbox (Handmatig toegevoegd want geen onderdeel van activity data) */}
+            {isPreview && (
+                <td className="p-3 w-10">
+                    <input type="checkbox" checked={isSelected} readOnly className="w-4 h-4 accent-green-500 cursor-pointer"/>
+                </td>
+            )}
+
+            {/* Dynamische cellen */}
+            {ACTIVITY_COLUMNS.map(col => (
+                <td key={col.key} className={`p-3 text-${col.align}`}>
+                    {renderCell(col)}
+                </td>
+            ))}
+
+            {/* Actions (Log View) */}
+            {!isPreview && (
+                <td className="p-3 text-right">
+                    {deleteConfirm === act.id ? (
+                        <div className="flex gap-2 justify-end">
+                            <button onClick={(e) => { e.stopPropagation(); onDelete(act.id); }} className="text-red-500 font-bold text-xs bg-red-500/10 px-2 py-1 rounded">SURE?</button>
+                            <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(null); }} className="text-slate-400 text-xs px-2 py-1">Cancel</button>
+                        </div>
+                    ) : (
+                        <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(act.id); }} className="text-slate-600 hover:text-red-400 transition-colors">
+                            <Trash2 size={14}/>
+                        </button>
+                    )}
+                </td>
+            )}
+        </tr>
+    );
+};
+
 /**
  * ============================================================================
- * MAIN COMPONENTS
+ * MAIN APPLICATION COMPONENTS
  * ============================================================================
  */
 
@@ -251,57 +345,6 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
   );
 };
 
-// --- ROW COMPONENT VOOR DATA & PREVIEW ---
-const Row = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview = false, isSelected = false, onToggleSelect }) => (
-    <tr 
-        className={`hover:bg-slate-700/50 transition-colors border-b border-slate-700/50 ${isSelected ? 'bg-slate-700/30' : ''}`}
-        onClick={onToggleSelect ? () => onToggleSelect(act.id) : undefined}
-    >
-        {/* CHECKBOX ALLEEN IN PREVIEW */}
-        {isPreview && (
-            <td className="p-3 w-10">
-                <input type="checkbox" checked={isSelected} readOnly className="w-4 h-4 accent-green-500 cursor-pointer"/>
-            </td>
-        )}
-
-        <td className="p-3 text-slate-300 whitespace-nowrap">{formatDateDDMMYYYY(act.date)}</td>
-        <td className="p-3 text-center">
-            {/* Sport Icoontjes */}
-            {act.type === 'VirtualRide' ? <Monitor size={16} className="text-orange-400 mx-auto" title="Virtual Ride"/> :
-             act.type === 'Run' ? <Footprints size={16} className="text-blue-400 mx-auto" title="Run"/> :
-             act.type === 'Walk' ? <Footprints size={16} className="text-green-300 mx-auto" title="Walk"/> :
-             act.type === 'Hike' ? <Mountain size={16} className="text-green-500 mx-auto" title="Hike"/> :
-             <Bike size={16} className="text-green-400 mx-auto" title="Ride"/>
-            }
-        </td>
-        <td className="p-3 font-medium text-white max-w-[150px] truncate" title={act.title}>{act.title}</td>
-        <td className="p-3 text-right text-slate-400 font-mono">{formatTime(act.moving_time)}</td>
-        <td className="p-3 text-right text-slate-400">{Number(act.distance).toFixed(1)}</td>
-        <td className="p-3 text-right text-slate-400">{Math.round(act.climbing || 0)}</td>
-        <td className="p-3 text-right text-slate-400">{Number(act.avg_speed).toFixed(1)}</td>
-        <td className="p-3 text-right font-bold text-yellow-400">{Math.round(act.norm_power || 0)}</td>
-        <td className="p-3 text-right text-slate-400">{Math.round(act.avg_power || 0)}</td>
-        <td className="p-3 text-right text-blue-400 font-bold">{Math.round(act.load || 0)}</td>
-        <td className="p-3 text-right text-slate-400">{act.rpe || '-'}</td>
-        
-        {/* ACTION BUTTON ALLEEN IN LOG */}
-        {!isPreview && (
-            <td className="p-3 text-right">
-                {deleteConfirm === act.id ? (
-                    <div className="flex gap-2 justify-end">
-                        <button onClick={(e) => { e.stopPropagation(); onDelete(act.id); }} className="text-red-500 font-bold text-xs">SURE?</button>
-                        <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(null); }} className="text-slate-400 text-xs">Cancel</button>
-                    </div>
-                ) : (
-                    <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(act.id); }} className="text-slate-600 hover:text-red-400 transition-colors">
-                        <Trash2 size={14}/>
-                    </button>
-                )}
-            </td>
-        )}
-    </tr>
-);
-
 const DataHub = ({ activities, onImport, onDelete }) => {
   const [internalTab, setInternalTab] = useState('log');
   const [importText, setImportText] = useState("");
@@ -316,13 +359,11 @@ const DataHub = ({ activities, onImport, onDelete }) => {
     athleteId: localStorage.getItem('intervals_athlete_id') || ''
   });
   
-  // DATE RANGE DEFAULT: LAATSTE 90 DAGEN
   const [syncDates, setSyncDates] = useState({
       start: new Date(new Date().setDate(new Date().getDate() - 90)).toISOString().split('T')[0], 
       end: new Date().toISOString().split('T')[0] 
   });
 
-  // SPORT FILTER
   const [sportFilters, setSportFilters] = useState(
       SPORT_TYPES.reduce((acc, type) => ({...acc, [type]: true}), {})
   );
@@ -340,8 +381,13 @@ const DataHub = ({ activities, onImport, onDelete }) => {
   const toggleSportFilter = (type) => setSportFilters(prev => ({...prev, [type]: !prev[type]}));
   const setAllSportFilters = (val) => setSportFilters(SPORT_TYPES.reduce((acc, type) => ({...acc, [type]: val}), {}));
   const toggleYear = (year) => setExpandedYears(p => ({...p, [year]: !p[year]}));
+  
+  const requestSort = (key) => {
+    let direction = 'desc';
+    if (sortConfig.key === key && sortConfig.direction === 'desc') direction = 'asc';
+    setSortConfig({ key, direction });
+  };
 
-  // CSV IMPORT
   const handleImportCSV = (type) => {
     const data = smartParseCSV(importText, type);
     if(data.length) {
@@ -349,12 +395,9 @@ const DataHub = ({ activities, onImport, onDelete }) => {
         setSelectedActivities(data.map(r => r.id));
         setShowModal(true);
         setImportText(""); 
-    } else {
-        alert("Geen geldige data. Controleer de headers.");
-    }
+    } else { alert("Geen geldige data."); }
   };
 
-  // SYNC CLOUD
   const handleSyncCloud = async () => {
     if (!db) { alert("Firebase Error: Db not initialized"); return; }
     const btn = document.getElementById('sync-btn');
@@ -373,7 +416,7 @@ const DataHub = ({ activities, onImport, onDelete }) => {
     }
   };
 
-  // INTERVALS SYNC
+  // --- INTERVALS API SYNC ---
   const handleIntervalsSync = async () => {
     if (!intervalsConfig.apiKey || !intervalsConfig.athleteId) {
         alert("Vul eerst je Athlete ID en API Key in.");
@@ -387,9 +430,7 @@ const DataHub = ({ activities, onImport, onDelete }) => {
         if (!response.ok) throw new Error("API Fout: Check ID/Key");
         const data = await response.json();
 
-        // 1. Filter op Sport
-        // 2. Map Data
-        // 3. Forceer Getallen (NaN Fix)
+        // 1. Filter Sport, 2. Map & Conversie, 3. NaN check
         const newRides = data
             .filter(ride => sportFilters[ride.type]) 
             .map(ride => ({
@@ -398,14 +439,14 @@ const DataHub = ({ activities, onImport, onDelete }) => {
                 title: ride.name,
                 type: ride.type, 
                 moving_time: Number(ride.moving_time) || 0,
-                distance: (Number(ride.distance) / 1000).toFixed(2), // API geeft meters
+                distance: (Number(ride.distance) / 1000).toFixed(2), // API: meters -> km
                 climbing: Number(ride.total_elevation_gain) || 0,
                 norm_power: Number(ride.icu_weighted_avg_watts) || 0,
                 avg_power: Number(ride.average_watts) || 0,
                 load: Number(ride.icu_training_load) || 0,
                 rpe: Number(ride.icu_rpe) || 0,
-                avg_speed: (Number(ride.average_speed) * 3.6).toFixed(1), // API geeft m/s
-                best_5min: 0, // Intervals Power Curves zijn aparte calls, hier laten we ze leeg
+                avg_speed: (Number(ride.average_speed) * 3.6).toFixed(1), // API: m/s -> km/h
+                best_5min: 0, 
                 best_20min: 0,
                 best_60min: 0
             }))
@@ -431,12 +472,6 @@ const DataHub = ({ activities, onImport, onDelete }) => {
     setShowModal(false);
     setFetchedActivities([]);
     setInternalTab('log');
-  };
-
-  const requestSort = (key) => {
-    let direction = 'desc';
-    if (sortConfig.key === key && sortConfig.direction === 'desc') direction = 'asc';
-    setSortConfig({ key, direction });
   };
 
   const processedActivities = useMemo(() => {
@@ -470,18 +505,9 @@ const DataHub = ({ activities, onImport, onDelete }) => {
     return groups;
   }, [processedActivities, isGroupedView]);
 
-  const Header = ({ label, colKey, align = 'left' }) => (
-    <th className={`p-3 cursor-pointer hover:bg-slate-800 transition-colors select-none text-${align}`} onClick={() => requestSort(colKey)}>
-        <span className="flex items-center gap-1 justify-end">
-             {align === 'left' && <span className="flex-1 text-left">{label}</span>}
-             {align === 'left' ? <SortIcon colKey={colKey} config={sortConfig}/> : <>{label} <SortIcon colKey={colKey} config={sortConfig}/></>}
-        </span>
-    </th>
-  );
-
   return (
     <div className="bg-slate-800 rounded-xl border border-slate-700 shadow-xl overflow-hidden min-h-[600px] flex flex-col relative">
-        {/* SELECTION MODAL */}
+        {/* === IMPORT MODAL (Nu met dynamische tabel) === */}
         {showModal && (
             <div className="absolute inset-0 bg-slate-900/95 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
                 <div className="bg-slate-800 border border-slate-600 rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col">
@@ -502,23 +528,12 @@ const DataHub = ({ activities, onImport, onDelete }) => {
                             <thead className="bg-slate-900 text-slate-400 uppercase font-bold sticky top-0 z-10 shadow-md">
                                 <tr>
                                     <th className="p-3 w-10">
-                                        <input type="checkbox" 
-                                            checked={selectedActivities.length === fetchedActivities.length && fetchedActivities.length > 0}
-                                            onChange={(e) => e.target.checked ? setSelectedActivities(fetchedActivities.map(r=>r.id)) : setSelectedActivities([])}
-                                            className="w-4 h-4 accent-green-500"
-                                        />
+                                        <input type="checkbox" checked={selectedActivities.length > 0} readOnly className="w-4 h-4 accent-green-500"/>
                                     </th>
-                                    <th className="p-3">Date</th>
-                                    <th className="p-3 text-center">Type</th>
-                                    <th className="p-3">Title</th>
-                                    <th className="p-3 text-right">Time</th>
-                                    <th className="p-3 text-right">Dist</th>
-                                    <th className="p-3 text-right">Elev</th>
-                                    <th className="p-3 text-right">Spd</th>
-                                    <th className="p-3 text-right text-yellow-400">NP</th>
-                                    <th className="p-3 text-right">Avg</th>
-                                    <th className="p-3 text-right text-blue-400">Load</th>
-                                    <th className="p-3 text-right">RPE</th>
+                                    {/* Dynamische headers uit config, zonder sort-functionaliteit in modal */}
+                                    {ACTIVITY_COLUMNS.map((col) => (
+                                        <th key={col.key} className={`p-3 text-${col.align} ${col.width}`}>{col.label}</th>
+                                    ))}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-700 bg-slate-800">
@@ -537,7 +552,6 @@ const DataHub = ({ activities, onImport, onDelete }) => {
                             </tbody>
                         </table>
                     </div>
-
                     <div className="p-4 border-t border-slate-700 flex justify-end gap-3 bg-slate-900/50">
                         <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm font-bold text-slate-400 hover:text-white">Cancel</button>
                         <button onClick={confirmImport} className="px-6 py-2 text-sm font-bold bg-green-500 hover:bg-green-400 text-white rounded shadow-lg shadow-green-500/20">
@@ -548,6 +562,7 @@ const DataHub = ({ activities, onImport, onDelete }) => {
             </div>
         )}
 
+        {/* TABS */}
         <div className="flex border-b border-slate-700">
             <button onClick={() => setInternalTab('log')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'log' ? 'bg-slate-700 text-yellow-400' : 'text-slate-400 hover:bg-slate-700/50'}`}>Activity Log</button>
             <button onClick={() => setInternalTab('intervals')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'intervals' ? 'bg-slate-700 text-orange-400' : 'text-slate-400 hover:bg-slate-700/50'}`}>Intervals.icu API</button>
@@ -569,27 +584,13 @@ const DataHub = ({ activities, onImport, onDelete }) => {
 
                     <div className="overflow-x-auto flex-1 border border-slate-700 rounded-lg">
                         <table className="w-full text-left text-xs whitespace-nowrap">
-                            <thead className="bg-slate-900 text-slate-400 uppercase font-bold sticky top-0 z-10">
-                                <tr>
-                                    <Header label="Date" colKey="date" align="left" />
-                                    <th className="p-3 text-center">Type</th>
-                                    <Header label="Title" colKey="title" align="left" />
-                                    <Header label="Time" colKey="moving_time" align="right" />
-                                    <Header label="Dist" colKey="distance" align="right" />
-                                    <Header label="Elev" colKey="climbing" align="right" />
-                                    <Header label="Spd" colKey="avg_speed" align="right" />
-                                    <Header label="NP" colKey="norm_power" align="right" />
-                                    <Header label="Avg" colKey="avg_power" align="right" />
-                                    <Header label="Load" colKey="load" align="right" />
-                                    <Header label="RPE" colKey="rpe" align="right" />
-                                    <th className="p-3 text-right">Action</th>
-                                </tr>
-                            </thead>
+                            <TableHeader config={sortConfig} requestSort={requestSort} hasActions={true} />
                             <tbody className="divide-y divide-slate-700 bg-slate-800">
+                                {/* SCENARIO: GROUPED VIEW */}
                                 {isGroupedView && groupedActivities && Object.keys(groupedActivities).sort((a,b)=> sortConfig.direction === 'asc' ? a-b : b-a).map(year => (
                                     <React.Fragment key={year}>
                                         <tr className="bg-slate-700/50">
-                                            <td colSpan="14" className="p-2">
+                                            <td colSpan={ACTIVITY_COLUMNS.length + 1} className="p-2">
                                                 <button onClick={()=>toggleYear(year)} className="flex items-center gap-2 font-bold text-slate-300 w-full text-left">
                                                     {expandedYears[year] ? <ChevronDown size={14}/> : <ChevronRight size={14}/>} {year}
                                                 </button>
@@ -603,7 +604,7 @@ const DataHub = ({ activities, onImport, onDelete }) => {
                                             .map(month => (
                                             <React.Fragment key={month}>
                                                 <tr className="bg-slate-700/20">
-                                                    <td colSpan="14" className="px-8 py-1 text-[10px] uppercase font-bold text-slate-500 tracking-wider">{month}</td>
+                                                    <td colSpan={ACTIVITY_COLUMNS.length + 1} className="px-8 py-1 text-[10px] uppercase font-bold text-slate-500 tracking-wider">{month}</td>
                                                 </tr>
                                                 {groupedActivities[year][month].map(act => (
                                                     <Row key={act.id} act={act} onDelete={onDelete} deleteConfirm={deleteConfirm} setDeleteConfirm={setDeleteConfirm}/>
@@ -612,6 +613,7 @@ const DataHub = ({ activities, onImport, onDelete }) => {
                                         ))}
                                     </React.Fragment>
                                 ))}
+                                {/* SCENARIO: FLAT VIEW */}
                                 {!isGroupedView && processedActivities.map(act => (
                                      <Row key={act.id} act={act} onDelete={onDelete} deleteConfirm={deleteConfirm} setDeleteConfirm={setDeleteConfirm}/>
                                 ))}
@@ -620,7 +622,7 @@ const DataHub = ({ activities, onImport, onDelete }) => {
                     </div>
                 </>
             )}
-
+            
             {internalTab === 'intervals' && (
                 <div className="space-y-6 animate-in fade-in">
                     <div className="bg-slate-900/50 border border-slate-600 rounded-lg p-6">
@@ -628,30 +630,22 @@ const DataHub = ({ activities, onImport, onDelete }) => {
                             <Settings size={20} className="text-orange-400"/> Sync Configuration
                         </h3>
 
+                        {/* Datum Selectie */}
                         <div className="mb-6">
                             <label className="block text-xs uppercase font-bold text-slate-500 mb-2">Search Period</label>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <span className="text-xs text-slate-400 block mb-1">From</span>
-                                    <input 
-                                        type="date" 
-                                        value={syncDates.start}
-                                        onChange={e => setSyncDates(s => ({...s, start: e.target.value}))}
-                                        className="w-full bg-slate-800 border border-slate-600 rounded p-2 text-white text-sm"
-                                    />
+                                    <input type="date" value={syncDates.start} onChange={e => setSyncDates(s => ({...s, start: e.target.value}))} className="w-full bg-slate-800 border border-slate-600 rounded p-2 text-white text-sm"/>
                                 </div>
                                 <div>
                                     <span className="text-xs text-slate-400 block mb-1">To</span>
-                                    <input 
-                                        type="date" 
-                                        value={syncDates.end}
-                                        onChange={e => setSyncDates(s => ({...s, end: e.target.value}))}
-                                        className="w-full bg-slate-800 border border-slate-600 rounded p-2 text-white text-sm"
-                                    />
+                                    <input type="date" value={syncDates.end} onChange={e => setSyncDates(s => ({...s, end: e.target.value}))} className="w-full bg-slate-800 border border-slate-600 rounded p-2 text-white text-sm"/>
                                 </div>
                             </div>
                         </div>
 
+                        {/* Sport Filter */}
                         <div className="mb-6">
                             <div className="flex justify-between items-center mb-2">
                                 <label className="text-xs uppercase font-bold text-slate-500">Activity Types</label>
@@ -663,12 +657,7 @@ const DataHub = ({ activities, onImport, onDelete }) => {
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                                 {SPORT_TYPES.map(type => (
                                     <label key={type} className={`flex items-center gap-2 p-2 rounded text-xs cursor-pointer border transition-colors ${sportFilters[type] ? 'bg-orange-500/20 border-orange-500/50 text-white' : 'bg-slate-800 border-slate-700 text-slate-400'}`}>
-                                        <input 
-                                            type="checkbox" 
-                                            checked={sportFilters[type] || false} 
-                                            onChange={() => toggleSportFilter(type)}
-                                            className="hidden" 
-                                        />
+                                        <input type="checkbox" checked={sportFilters[type] || false} onChange={() => toggleSportFilter(type)} className="hidden" />
                                         {sportFilters[type] && <CheckCircle size={12} className="text-orange-400"/>}
                                         {type}
                                     </label>
@@ -676,36 +665,21 @@ const DataHub = ({ activities, onImport, onDelete }) => {
                             </div>
                         </div>
 
+                        {/* Credentials */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 pt-4 border-t border-slate-700">
                             <div>
                                 <label className="block text-xs uppercase font-bold text-slate-500 mb-1">Athlete ID</label>
-                                <input 
-                                    type="text" 
-                                    placeholder="e.g. i12345" 
-                                    value={intervalsConfig.athleteId}
-                                    onChange={e => updateIntervalsConfig('athleteId', e.target.value)}
-                                    className="w-full bg-slate-800 border border-slate-600 rounded p-2 text-white focus:border-orange-400 outline-none text-sm"
-                                />
+                                <input type="text" placeholder="e.g. i12345" value={intervalsConfig.athleteId} onChange={e => updateIntervalsConfig('athleteId', e.target.value)} className="w-full bg-slate-800 border border-slate-600 rounded p-2 text-white text-sm"/>
                             </div>
                             <div>
                                 <label className="block text-xs uppercase font-bold text-slate-500 mb-1">API Key</label>
-                                <input 
-                                    type="password" 
-                                    placeholder="Your Secret Key" 
-                                    value={intervalsConfig.apiKey}
-                                    onChange={e => updateIntervalsConfig('apiKey', e.target.value)}
-                                    className="w-full bg-slate-800 border border-slate-600 rounded p-2 text-white focus:border-orange-400 outline-none text-sm"
-                                />
+                                <input type="password" placeholder="Key" value={intervalsConfig.apiKey} onChange={e => updateIntervalsConfig('apiKey', e.target.value)} className="w-full bg-slate-800 border border-slate-600 rounded p-2 text-white text-sm"/>
                             </div>
                         </div>
 
-                        <button 
-                            onClick={handleIntervalsSync} 
-                            disabled={isSyncing}
-                            className={`w-full py-4 rounded-lg font-bold text-white flex items-center justify-center gap-2 transition-all ${isSyncing ? 'bg-slate-700 cursor-not-allowed' : 'bg-orange-500 hover:bg-orange-600 shadow-lg shadow-orange-500/20'}`}
-                        >
+                        <button onClick={handleIntervalsSync} disabled={isSyncing} className={`w-full py-4 rounded-lg font-bold text-white flex items-center justify-center gap-2 transition-all ${isSyncing ? 'bg-slate-700 cursor-not-allowed' : 'bg-orange-500 hover:bg-orange-600 shadow-lg shadow-orange-500/20'}`}>
                             {isSyncing ? <RefreshCw size={20} className="animate-spin"/> : <RefreshCw size={20}/>}
-                            {isSyncing ? 'Connecting & Finding Activities...' : 'Sync Activities'}
+                            {isSyncing ? 'Syncing...' : 'Sync Activities'}
                         </button>
                     </div>
                 </div>
@@ -713,12 +687,7 @@ const DataHub = ({ activities, onImport, onDelete }) => {
             
             {internalTab === 'import' && (
                 <div className="space-y-4">
-                     <textarea 
-                        className="w-full h-48 bg-slate-800 border border-slate-700 rounded p-3 text-xs font-mono text-white"
-                        placeholder="Paste CSV here..."
-                        value={importText}
-                        onChange={e => setImportText(e.target.value)}
-                    />
+                     <textarea className="w-full h-48 bg-slate-800 border border-slate-700 rounded p-3 text-xs font-mono text-white" placeholder="Paste CSV here..." value={importText} onChange={e => setImportText(e.target.value)}/>
                     <button onClick={() => handleImportCSV('generic')} className="mt-4 w-full bg-yellow-400 text-slate-900 font-bold py-3 rounded">Import</button>
                 </div>
             )}
