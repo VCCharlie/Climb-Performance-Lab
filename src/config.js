@@ -3,6 +3,8 @@
  * Vaste configuratie voor de UI en Data Structuren
  */
 
+export const APP_VERSION = "v0.9.2"; // <--- PAS DIT AAN BIJ ELKE UPDATE
+
 // 1. Kolomdefinities voor Activity Log & Import Preview
 // Hiermee garandeer je dat beide tabellen exact dezelfde indeling hebben.
 export const ACTIVITY_COLUMNS = [

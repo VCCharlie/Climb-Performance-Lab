@@ -1,34 +1,43 @@
 import React from 'react';
+import { Activity } from 'lucide-react'; 
 
-const Header = ({ userSettings }) => {
-  // Berekeningen voor de header
-  const systemWeight = (userSettings.weight + userSettings.bikeWeight).toFixed(1);
-  const wkg = (userSettings.ftp / userSettings.weight).toFixed(2);
-
+const Header = () => {
   return (
-    <header className="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-50 shadow-md">
-      <div className="max-w-7xl mx-auto flex justify-between items-center">
-         {/* Logo Sectie */}
-         <div className="flex items-center gap-3">
-           <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center text-slate-900 font-black text-xl italic shadow-lg">
-             CL
-           </div>
-           <h1 className="font-bold text-white text-lg">
-             Climb Lab <span className="text-yellow-400 text-xs px-1 border border-yellow-400 rounded">PRO</span>
-           </h1>
-         </div>
-         
-         {/* Stats Sectie (Rechts) */}
-         <div className="flex gap-6 text-sm hidden md:flex">
-            <div>
-               <span className="text-slate-500 block text-[10px] uppercase">Sys. Weight</span>
-               <span className="text-white font-mono font-bold">{systemWeight} kg</span>
-            </div>
-            <div>
-               <span className="text-slate-500 block text-[10px] uppercase">W/kg (FTP)</span>
-               <span className="text-yellow-400 font-mono font-bold">{wkg}</span>
-            </div>
-         </div>
+    <header className="bg-slate-900 border-b border-slate-800 p-4 shadow-lg">
+      <div className="max-w-7xl mx-auto flex items-center justify-between">
+        
+        {/* TITEL SECTIE */}
+        <div className="flex items-center gap-3">
+          {/* Logo Icoon */}
+          <div className="bg-gradient-to-br from-yellow-400 to-orange-500 p-2 rounded-lg shadow-yellow-500/20 shadow-lg">
+            <Activity size={24} className="text-slate-900" />
+          </div>
+          
+          {/* Tekst + Badge */}
+          <div className="flex flex-col">
+            <h1 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
+              CLIMB PERFORMANCE LAB
+              
+              {/* --- AUTOMATISCHE VERSIE BADGE --- */}
+              <span 
+                className="text-[10px] font-mono font-medium text-slate-400 bg-slate-800 border border-slate-700 px-1.5 py-0.5 rounded align-middle ml-1 hover:text-yellow-400 transition-colors cursor-default" 
+                title="Auto-generated Build Version"
+              >
+                {/* eslint-disable-next-line no-undef */}
+                {__APP_VERSION__}
+              </span>
+              {/* --------------------------------- */}
+              
+            </h1>
+            <span className="text-xs text-slate-500 font-medium uppercase tracking-widest">
+              Data-Driven Ascent Protocols
+            </span>
+          </div>
+        </div>
+
+        {/* Rechterkant header (leeg of user menu) */}
+        <div></div> 
+        
       </div>
     </header>
   );
