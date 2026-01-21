@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { 
   Search, Cloud, Download, Info, RefreshCw, X, Monitor, Bike, Footprints, Settings, 
-  ArrowUpDown, ChevronUp, ChevronDown, Trash2, CheckCircle // <--- TOEGEVOEGD
+  ArrowUpDown, ChevronUp, ChevronDown, Trash2, CheckCircle, Mountain // <--- Mountain toegevoegd voor Hike
 } from 'lucide-react';
 import { doc, setDoc } from "firebase/firestore";
 import { db } from '../firebase';
@@ -150,21 +150,29 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
         if (!response.ok) throw new Error("API Fout: Check ID/Key in Settings");
         const data = await response.json();
 
+        // FIX: Robuustere mapping. Intervals API velden kunnen variëren (bijv. icu_weighted_avg_watts vs weighted_average_watts)
         const mappedRides = data.map(ride => {
             const realType = determineActivityType(ride.type, ride.name);
+            
+            // Safe conversions om NaN te voorkomen
+            const movingTime = Number(ride.moving_time || 0);
+            const distMeters = Number(ride.distance || 0);
+            const avgSpeedMs = Number(ride.average_speed || 0);
+
             return {
                 id: ride.id,
                 date: ride.start_date_local.substring(0, 10),
                 title: ride.name,
                 type: realType, 
-                moving_time: Number(ride.moving_time) || 0,
-                distance: (Number(ride.distance) / 1000).toFixed(2), 
-                climbing: Number(ride.total_elevation_gain) || 0,
-                norm_power: Number(ride.icu_weighted_avg_watts) || 0,
-                avg_power: Number(ride.average_watts) || 0,
-                load: Number(ride.icu_training_load) || 0,
-                rpe: Number(ride.icu_rpe) || 0,
-                avg_speed: (Number(ride.average_speed) * 3.6).toFixed(1), 
+                moving_time: movingTime,
+                distance: (distMeters / 1000).toFixed(2), 
+                climbing: Number(ride.total_elevation_gain || 0),
+                // Fallback mechanisme voor vermogen en load
+                norm_power: Number(ride.icu_weighted_avg_watts || ride.weighted_average_watts || 0),
+                avg_power: Number(ride.average_watts || ride.avg_power || 0),
+                load: Number(ride.icu_training_load || ride.training_load || 0),
+                rpe: Number(ride.icu_rpe || ride.rpe || 0),
+                avg_speed: (avgSpeedMs * 3.6).toFixed(1), 
                 best_5min: 0, best_20min: 0, best_60min: 0
             };
         });

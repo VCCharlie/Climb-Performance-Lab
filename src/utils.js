@@ -110,19 +110,24 @@ export const determineActivityType = (type, title) => {
 // 1. Getallen opschonen (NL vs US formaat)
 const cleanNumber = (val) => {
     if (!val) return 0;
-    if (typeof val === 'number') return val;
+    if (typeof val === 'number') return isNaN(val) ? 0 : val;
     
+    // String opschonen
+    let strVal = val.toString().trim();
+    if (strVal === '') return 0;
+
     // 1.000,00 -> 1000.00
-    if (val.includes('.') && val.includes(',')) {
-        if (val.lastIndexOf(',') > val.lastIndexOf('.')) {
-            val = val.replace(/\./g, '').replace(',', '.');
+    if (strVal.includes('.') && strVal.includes(',')) {
+        if (strVal.lastIndexOf(',') > strVal.lastIndexOf('.')) {
+            strVal = strVal.replace(/\./g, '').replace(',', '.');
         } else {
-            val = val.replace(/,/g, '');
+            strVal = strVal.replace(/,/g, '');
         }
-    } else if (val.includes(',')) {
-        val = val.replace(',', '.');
+    } else if (strVal.includes(',')) {
+        strVal = strVal.replace(',', '.');
     }
-    const num = parseFloat(val);
+    
+    const num = parseFloat(strVal);
     return isNaN(num) ? 0 : num;
 };
 
