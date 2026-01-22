@@ -149,91 +149,67 @@ const handleIntervalsSync = async () => {
         });
         if (!response.ok) throw new Error("API Fout: Check ID/Key in Settings");
         const data = await response.json();
-
-        console.log("Eerste activiteit uit API:", data[0]);
         
-        const mappedRides = data.map(ride => {
-            // FLEXIBLE MAPPING - zoek de juiste velden
-            const getName = () => ride.name || ride.title || ride.activity_name || 'Untitled';
-            const getType = () => ride.type || ride.activity_type || 'Ride';
-            const getDate = () => (ride.start_date_local || ride.start_time || ride.date || '').substring(0, 10);
-            
-            // Tijd & afstand
-            const movingTime = Number(ride.moving_time || ride.elapsed_time || 0);
-            const distMeters = Number(ride.distance || 0);
-            
-            // Snelheid (kan in m/s of km/h zijn)
-            let avgSpeedMs = Number(ride.average_speed || ride.avg_speed || 0);
-            
-            // Hoogtemeters
-            const climbing = Number(ride.total_elevation_gain || ride.elevation_gain || ride.climbing || 0);
-            
-            // Power metrics - meerdere mogelijke veldnamen
-            const normPower = Number(
-                ride.icu_weighted_avg_watts || 
-                ride.weighted_average_watts || 
-                ride.weighted_avg_watts ||
-                ride.norm_power || 
-                ride.np || 
-                0
-            );
-            
-            const avgPower = Number(
-                ride.average_watts || 
-                ride.avg_watts || 
-                ride.avg_power || 
-                ride.power ||
-                0
-            );
-            
-            // Training Load
-            const load = Number(
-                ride.icu_training_load || 
-                ride.training_load || 
-                ride.tss || 
-                ride.load ||
-                0
-            );
-            
-            // RPE
-            const rpe = Number(
-                ride.icu_rpe || 
-                ride.rpe || 
-                ride.feel ||
-                0
-            );
+        console.log("Eerste activiteit uit API:", data[0]);
+        console.log(`Totaal opgehaald: ${data.length} activiteiten`);
 
-            const realType = determineActivityType(getType(), getName());
+        const mappedRides = data.map(ride => {
+            const title = ride.name || 'Untitled';
+            const activityType = ride.type || 'Ride';
+            const date = ride.start_date_local ? ride.start_date_local.substring(0, 10) : '';
+            
+            const movingTime = Number(ride.moving_time || 0);
+            const distMeters = Number(ride.distance || 0);
+            const distKm = distMeters / 1000;
+            const avgSpeedMs = Number(ride.average_speed || 0);
+            const avgSpeedKmh = avgSpeedMs * 3.6;
+            const climbing = Number(ride.total_elevation_gain || 0);
+            const normPower = Number(ride.icu_weighted_avg_watts || 0);
+            const avgPower = Number(ride.icu_average_watts || 0);
+            const load = Number(ride.icu_training_load || 0);
+            const rpe = Number(ride.icu_rpe || 0);
+            const realType = determineActivityType(activityType, title);
 
             return {
                 id: ride.id || Math.random().toString(36).substr(2, 9),
-                date: getDate(),
-                title: getName(),
+                date: date,
+                title: title,
                 type: realType,
                 moving_time: movingTime,
-                distance: distMeters > 2000 ? (distMeters / 1000).toFixed(2) : distMeters.toFixed(2),
+                distance: distKm.toFixed(2),
                 climbing: Math.round(climbing),
                 norm_power: Math.round(normPower),
                 avg_power: Math.round(avgPower),
                 load: Math.round(load),
-                rpe: rpe || 0,
-                avg_speed: avgSpeedMs > 0 && avgSpeedMs < 15 ? (avgSpeedMs * 3.6).toFixed(1) : avgSpeedMs.toFixed(1),
-                best_5min: 0, 
-                best_20min: 0, 
+                rpe: rpe,
+                avg_speed: avgSpeedKmh.toFixed(1),
+                best_5min: 0,
+                best_20min: 0,
                 best_60min: 0
             };
         });
 
-        const newRides = mappedRides
-            .filter(ride => sportFilters[ride.type]) 
-            .filter(ride => !activities.some(existing => existing.id === ride.id)); 
+        // Filter stap 1: Alleen geselecteerde sport types
+        const filteredByType = mappedRides.filter(ride => sportFilters[ride.type]);
+        console.log(`Na sport filter: ${filteredByType.length} activiteiten`);
+        
+        // Filter stap 2: Alleen NIEUWE activiteiten (geen duplicaten)
+        const newRides = filteredByType.filter(ride => 
+            !activities.some(existing => existing.id === ride.id)
+        );
+        console.log(`Nieuwe activiteiten: ${newRides.length}`);
 
         if (newRides.length > 0) {
             setFetchedActivities(newRides);
             setSelectedActivities(newRides.map(r => r.id)); 
             setShowModal(true);
         } else {
-            alert("Geen nieuwe ritten gevonden.");
+            const duplicateCount = filteredByType.length - newRides.length;
+            if (duplicateCount > 0) {
+                alert(`Geen nieuwe activiteiten gevonden. Alle ${duplicateCount} activiteiten zijn al geïmporteerd.`);
+            } else {
+                alert("Geen activiteiten gevonden in deze periode en sport types.");
+            }
         }
     } catch (e) {
         alert("Sync mislukt: " + e.message);
