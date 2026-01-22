@@ -137,7 +137,7 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
     }
   };
 
-  const handleIntervalsSync = async () => {
+const handleIntervalsSync = async () => {
     if (!intervalsConfig.apiKey || !intervalsConfig.athleteId) {
         alert("Geen API gegevens gevonden. Ga naar de Settings tab om deze in te vullen.");
         return;
@@ -150,30 +150,75 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
         if (!response.ok) throw new Error("API Fout: Check ID/Key in Settings");
         const data = await response.json();
 
-        // FIX: Robuustere mapping. Intervals API velden kunnen variëren (bijv. icu_weighted_avg_watts vs weighted_average_watts)
         const mappedRides = data.map(ride => {
-            const realType = determineActivityType(ride.type, ride.name);
+            // FLEXIBLE MAPPING - zoek de juiste velden
+            const getName = () => ride.name || ride.title || ride.activity_name || 'Untitled';
+            const getType = () => ride.type || ride.activity_type || 'Ride';
+            const getDate = () => (ride.start_date_local || ride.start_time || ride.date || '').substring(0, 10);
             
-            // Safe conversions om NaN te voorkomen
-            const movingTime = Number(ride.moving_time || 0);
+            // Tijd & afstand
+            const movingTime = Number(ride.moving_time || ride.elapsed_time || 0);
             const distMeters = Number(ride.distance || 0);
-            const avgSpeedMs = Number(ride.average_speed || 0);
+            
+            // Snelheid (kan in m/s of km/h zijn)
+            let avgSpeedMs = Number(ride.average_speed || ride.avg_speed || 0);
+            
+            // Hoogtemeters
+            const climbing = Number(ride.total_elevation_gain || ride.elevation_gain || ride.climbing || 0);
+            
+            // Power metrics - meerdere mogelijke veldnamen
+            const normPower = Number(
+                ride.icu_weighted_avg_watts || 
+                ride.weighted_average_watts || 
+                ride.weighted_avg_watts ||
+                ride.norm_power || 
+                ride.np || 
+                0
+            );
+            
+            const avgPower = Number(
+                ride.average_watts || 
+                ride.avg_watts || 
+                ride.avg_power || 
+                ride.power ||
+                0
+            );
+            
+            // Training Load
+            const load = Number(
+                ride.icu_training_load || 
+                ride.training_load || 
+                ride.tss || 
+                ride.load ||
+                0
+            );
+            
+            // RPE
+            const rpe = Number(
+                ride.icu_rpe || 
+                ride.rpe || 
+                ride.feel ||
+                0
+            );
+
+            const realType = determineActivityType(getType(), getName());
 
             return {
-                id: ride.id,
-                date: ride.start_date_local.substring(0, 10),
-                title: ride.name,
-                type: realType, 
+                id: ride.id || Math.random().toString(36).substr(2, 9),
+                date: getDate(),
+                title: getName(),
+                type: realType,
                 moving_time: movingTime,
-                distance: (distMeters / 1000).toFixed(2), 
-                climbing: Number(ride.total_elevation_gain || 0),
-                // Fallback mechanisme voor vermogen en load
-                norm_power: Number(ride.icu_weighted_avg_watts || ride.weighted_average_watts || 0),
-                avg_power: Number(ride.average_watts || ride.avg_power || 0),
-                load: Number(ride.icu_training_load || ride.training_load || 0),
-                rpe: Number(ride.icu_rpe || ride.rpe || 0),
-                avg_speed: (avgSpeedMs * 3.6).toFixed(1), 
-                best_5min: 0, best_20min: 0, best_60min: 0
+                distance: distMeters > 2000 ? (distMeters / 1000).toFixed(2) : distMeters.toFixed(2),
+                climbing: Math.round(climbing),
+                norm_power: Math.round(normPower),
+                avg_power: Math.round(avgPower),
+                load: Math.round(load),
+                rpe: rpe || 0,
+                avg_speed: avgSpeedMs > 0 && avgSpeedMs < 15 ? (avgSpeedMs * 3.6).toFixed(1) : avgSpeedMs.toFixed(1),
+                best_5min: 0, 
+                best_20min: 0, 
+                best_60min: 0
             };
         });
 
@@ -190,10 +235,11 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
         }
     } catch (e) {
         alert("Sync mislukt: " + e.message);
+        console.error("Volledige fout:", e);
     } finally {
         setIsSyncing(false);
     }
-  };
+};
 
   const confirmImport = () => {
     const toImport = fetchedActivities.filter(a => selectedActivities.includes(a.id));
