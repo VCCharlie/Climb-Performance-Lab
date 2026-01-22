@@ -150,6 +150,8 @@ const handleIntervalsSync = async () => {
         if (!response.ok) throw new Error("API Fout: Check ID/Key in Settings");
         const data = await response.json();
 
+        console.log("Eerste activiteit uit API:", data[0]);
+        
         const mappedRides = data.map(ride => {
             // FLEXIBLE MAPPING - zoek de juiste velden
             const getName = () => ride.name || ride.title || ride.activity_name || 'Untitled';
