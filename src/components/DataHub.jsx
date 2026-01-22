@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { 
   Search, Cloud, Download, Info, RefreshCw, X, Monitor, Bike, Footprints, Settings, 
-  ArrowUpDown, ChevronUp, ChevronDown, Trash2, CheckCircle, Mountain // <--- Mountain toegevoegd voor Hike
+  ArrowUpDown, ChevronUp, ChevronDown, ChevronRight, Trash2, CheckCircle, Mountain
 } from 'lucide-react';
 import { doc, setDoc } from "firebase/firestore";
 import { db } from '../firebase';
@@ -14,9 +14,12 @@ const SortIcon = ({ colKey, config }) => {
     return config.direction === 'asc' ? <ChevronUp size={12} className="text-yellow-400 ml-1 inline" /> : <ChevronDown size={12} className="text-yellow-400 ml-1 inline" />;
 };
 
-const TableHeader = ({ config, requestSort, hasActions = true }) => (
+const TableHeader = ({ config, requestSort, hasActions = true, isPreview = false }) => (
     <thead className="bg-slate-900 text-slate-400 uppercase font-bold sticky top-0 z-10 shadow-md">
         <tr>
+            {/* CHECKBOX KOLOM VOOR PREVIEW */}
+            {isPreview && <th className="p-3 w-10"></th>}
+            
             {ACTIVITY_COLUMNS.map((col) => (
                 <th key={col.key} className={`p-3 cursor-pointer hover:bg-slate-800 transition-colors select-none text-${col.align} ${col.width || ''}`} onClick={() => requestSort && requestSort(col.key)}>
                     <span className={`flex items-center gap-1 ${col.align === 'right' ? 'justify-end' : col.align === 'center' ? 'justify-center' : 'justify-start'}`}>
@@ -137,7 +140,7 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
     }
   };
 
-const handleIntervalsSync = async () => {
+  const handleIntervalsSync = async () => {
     if (!intervalsConfig.apiKey || !intervalsConfig.athleteId) {
         alert("Geen API gegevens gevonden. Ga naar de Settings tab om deze in te vullen.");
         return;
@@ -150,24 +153,40 @@ const handleIntervalsSync = async () => {
         if (!response.ok) throw new Error("API Fout: Check ID/Key in Settings");
         const data = await response.json();
         
-        console.log("Eerste activiteit uit API:", data[0]);
+        console.log("API Response - Eerste activiteit:", data[0]);
         console.log(`Totaal opgehaald: ${data.length} activiteiten`);
 
         const mappedRides = data.map(ride => {
+            // Intervals.icu velden (officiële API response)
             const title = ride.name || 'Untitled';
             const activityType = ride.type || 'Ride';
             const date = ride.start_date_local ? ride.start_date_local.substring(0, 10) : '';
             
+            // TIJD in seconden
             const movingTime = Number(ride.moving_time || 0);
+            
+            // AFSTAND in METERS -> omzetten naar KM
             const distMeters = Number(ride.distance || 0);
             const distKm = distMeters / 1000;
+            
+            // SNELHEID in M/S -> omzetten naar KM/H
             const avgSpeedMs = Number(ride.average_speed || 0);
             const avgSpeedKmh = avgSpeedMs * 3.6;
+            
+            // HOOGTEMETERS
             const climbing = Number(ride.total_elevation_gain || 0);
+            
+            // POWER - Intervals gebruikt icu_ prefix
             const normPower = Number(ride.icu_weighted_avg_watts || 0);
             const avgPower = Number(ride.icu_average_watts || 0);
+            
+            // TRAINING LOAD
             const load = Number(ride.icu_training_load || 0);
+            
+            // RPE
             const rpe = Number(ride.icu_rpe || 0);
+
+            // Type detectie (Virtual Ride vs normale Ride)
             const realType = determineActivityType(activityType, title);
 
             return {
@@ -188,6 +207,8 @@ const handleIntervalsSync = async () => {
                 best_60min: 0
             };
         });
+
+        console.log("Gemapte data - Eerste activiteit:", mappedRides[0]);
 
         // Filter stap 1: Alleen geselecteerde sport types
         const filteredByType = mappedRides.filter(ride => sportFilters[ride.type]);
@@ -217,7 +238,7 @@ const handleIntervalsSync = async () => {
     } finally {
         setIsSyncing(false);
     }
-};
+  };
 
   const confirmImport = () => {
     const toImport = fetchedActivities.filter(a => selectedActivities.includes(a.id));
@@ -275,7 +296,7 @@ const handleIntervalsSync = async () => {
                     </div>
                     <div className="overflow-auto flex-1 p-0">
                         <table className="w-full text-left text-xs whitespace-nowrap">
-                            <TableHeader config={{}} requestSort={null} hasActions={false} />
+                            <TableHeader config={{}} requestSort={null} hasActions={false} isPreview={true} />
                             <tbody className="divide-y divide-slate-700 bg-slate-800">
                                 {fetchedActivities.map(act => (
                                     <Row 
@@ -317,7 +338,7 @@ const handleIntervalsSync = async () => {
                     </div>
                     <div className="overflow-x-auto flex-1 border border-slate-700 rounded-lg">
                         <table className="w-full text-left text-xs whitespace-nowrap">
-                            <TableHeader config={sortConfig} requestSort={requestSort} hasActions={true} />
+                            <TableHeader config={sortConfig} requestSort={requestSort} hasActions={true} isPreview={false} />
                             <tbody className="divide-y divide-slate-700 bg-slate-800">
                                 {isGroupedView && groupedActivities && Object.keys(groupedActivities).sort((a,b)=> sortConfig.direction === 'asc' ? a-b : b-a).map(year => (
                                     <React.Fragment key={year}>
