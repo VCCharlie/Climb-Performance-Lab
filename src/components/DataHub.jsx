@@ -146,67 +146,51 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
 // Zorg dat deze import bovenaan staat (staat er al als het goed is)
 // import { determineActivityType } from '../utils'; 
 
+// In src/components/DataHub.jsx
+
 const handleIntervalsSync = async () => {
     setIsSyncing(true);
     const btn = document.getElementById('sync-btn');
-    if(btn) btn.innerHTML = 'Fetching Data...';
+    if(btn) btn.innerHTML = 'Fetching...'; 
 
     try {
-        // Build request - credentials are optional if stored in Cloud secrets
-        const requestBody = {
-            start_date: syncDates.start,
-            end_date: syncDates.end,
-            sport_types: Object.entries(sportFilters)
-                .filter(([_, enabled]) => enabled)
-                .map(([type, _]) => type)
-        };
+        // 1. Bouw de URL met jouw datums
+        const url = new URL(CLOUD_SYNC_URL);
+        url.searchParams.append("start", syncDates.start);
+        url.searchParams.append("end", syncDates.end);
+        
+        // 2. Roep aan
+        const response = await fetch(url.toString());
+        const data = await response.json(); 
 
-        // Include credentials from UI if provided (overrides secrets)
-        if (intervalsConfig?.athleteId) {
-            requestBody.athlete_id = intervalsConfig.athleteId;
-        }
-        if (intervalsConfig?.apiKey) {
-            requestBody.api_key = intervalsConfig.apiKey;
-        }
-
-        const response = await fetch(CLOUD_SYNC_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestBody)
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.error || `Server Error (${response.status})`);
-        }
-
+        if (!response.ok) throw new Error(data.error || "Server Error");
+        
+        // 3. Feedback als het leeg is
         if (!Array.isArray(data) || data.length === 0) {
-            alert("No activities found in the selected date range.");
+            // We zijn specifiek over de datums in de melding
+            alert(`Geen activiteiten gevonden op Intervals.icu tussen ${syncDates.start} en ${syncDates.end}.\n\nCheck je Athlete ID in Google Cloud Settings.`);
             return;
         }
 
-        // Filter duplicates
+        // 4. Filteren & Tonen
         const newRides = data.filter(ride => !activities.some(existing => existing.id === ride.id));
 
         if (newRides.length > 0) {
             setFetchedActivities(newRides);
-            setSelectedActivities(newRides.map(r => r.id));
-            setShowModal(true);
+            setSelectedActivities(newRides.map(r => r.id)); 
+            setShowModal(true); 
         } else {
-            alert("All fetched activities are already in your dashboard.");
+            alert("Je bent helemaal bij! Alle gevonden ritten staan al in je dashboard.");
         }
 
     } catch (e) {
-        console.error("Intervals sync error:", e);
-        alert("Sync failed: " + e.message);
+        console.error(e);
+        alert("Sync Fout: " + e.message);
     } finally {
         setIsSyncing(false);
-        if(btn) btn.innerHTML = 'Sync Now';
+        if(btn) btn.innerHTML = 'Cloud Sync';
     }
-};
+  };
 
   const confirmImport = () => {
     const toImport = fetchedActivities.filter(a => selectedActivities.includes(a.id));
