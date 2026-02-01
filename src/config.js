@@ -19,8 +19,10 @@ export const ACTIVITY_COLUMNS = [
     { key: 'avg_power',   label: 'Avg',   align: 'right',  width: 'w-16' },
     { key: 'load',        label: 'Load',  align: 'right',  width: 'w-16', highlight: 'blue' },
     { key: 'rpe',         label: 'RPE',   align: 'right',  width: 'w-12' },
-    // Power Curve kolommen optioneel zichtbaar maken
+    // Power Curve kolommen (1m, 5m, 10m, 20m, 60m)
+    { key: 'best_1min',   label: '1m',    align: 'right',  width: 'w-14', text: 'slate-500' },
     { key: 'best_5min',   label: '5m',    align: 'right',  width: 'w-14', text: 'slate-500' },
+    { key: 'best_10min',  label: '10m',   align: 'right',  width: 'w-14', text: 'slate-500' },
     { key: 'best_20min',  label: '20m',   align: 'right',  width: 'w-14', text: 'slate-500' },
     { key: 'best_60min',  label: '60m',   align: 'right',  width: 'w-14', text: 'slate-500' },
 ];
