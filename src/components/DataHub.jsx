@@ -140,31 +140,43 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
     }
   };
 
-// Voeg dit toe bovenaan DataHub component (of in je config)
-const CLOUD_SYNC_URL = "https://sync-intervals-97555677694.europe-west1.run.app"; 
+// Zorg dat deze import bovenaan staat (staat er al als het goed is)
+// import { determineActivityType } from '../utils'; 
 
 const handleIntervalsSync = async () => {
     setIsSyncing(true);
     const btn = document.getElementById('sync-btn');
-    if(btn) btn.innerHTML = 'Cloud Syncing...';
+    if(btn) btn.innerHTML = 'Fetching Data...'; // Feedback: we halen op, syncen nog niet
 
     try {
-        // We roepen nu jouw Python-motor aan in de cloud
         const response = await fetch(CLOUD_SYNC_URL);
-        
+        const data = await response.json(); // We verwachten nu JSON data terug
+
         if (!response.ok) {
-            const errText = await response.text();
-            throw new Error(errText);
+            throw new Error(data.error || "Server Error");
+        }
+        
+        // Check of er data is
+        if (!Array.isArray(data) || data.length === 0) {
+            alert("Geen nieuwe activiteiten gevonden op Intervals.icu.");
+            return;
         }
 
-        const msg = await response.text();
-        alert("✅ " + msg);
-        
-        // Optioneel: Herlaad de pagina of trigger een data-refresh
-        window.location.reload(); 
+        // Filter duplicaten (activiteiten die je al hebt)
+        const newRides = data.filter(ride => !activities.some(existing => existing.id === ride.id));
+
+        if (newRides.length > 0) {
+            // STAP 3: TOON DE MODAL
+            setFetchedActivities(newRides);
+            setSelectedActivities(newRides.map(r => r.id)); // Selecteer standaard alles
+            setShowModal(true); // <--- HIER OPENEN WE HET PREVIEW SCHERM
+        } else {
+            alert("Alle opgehaalde ritten staan al in je dashboard.");
+        }
 
     } catch (e) {
-        alert("Sync mislukt: " + e.message);
+        console.error(e);
+        alert("Ophalen mislukt: " + e.message);
     } finally {
         setIsSyncing(false);
         if(btn) btn.innerHTML = 'Cloud Sync';
