@@ -147,27 +147,27 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
 // import { determineActivityType } from '../utils'; 
 
 const handleIntervalsSync = async () => {
-    // Validate credentials
-    if (!intervalsConfig?.athleteId || !intervalsConfig?.apiKey) {
-        alert("Please configure your Intervals.icu credentials in the Settings tab first.");
-        return;
-    }
-
     setIsSyncing(true);
     const btn = document.getElementById('sync-btn');
     if(btn) btn.innerHTML = 'Fetching Data...';
 
     try {
-        // Build request with all required parameters
+        // Build request - credentials are optional if stored in Cloud secrets
         const requestBody = {
-            athlete_id: intervalsConfig.athleteId,
-            api_key: intervalsConfig.apiKey,
             start_date: syncDates.start,
             end_date: syncDates.end,
             sport_types: Object.entries(sportFilters)
                 .filter(([_, enabled]) => enabled)
                 .map(([type, _]) => type)
         };
+
+        // Include credentials from UI if provided (overrides secrets)
+        if (intervalsConfig?.athleteId) {
+            requestBody.athlete_id = intervalsConfig.athleteId;
+        }
+        if (intervalsConfig?.apiKey) {
+            requestBody.api_key = intervalsConfig.apiKey;
+        }
 
         const response = await fetch(CLOUD_SYNC_URL, {
             method: 'POST',

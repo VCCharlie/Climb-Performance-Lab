@@ -2,13 +2,19 @@
 Cloud Function: sync-intervals
 Fetches activities from Intervals.icu API and transforms them for Climb Performance Lab.
 
+Credentials can be provided via:
+1. Google Cloud Secret Manager (recommended, more secure)
+2. Request body (fallback for multi-user scenarios)
+
 Deploy to Google Cloud Run Functions:
     gcloud functions deploy sync-intervals \
+        --gen2 \
         --runtime python312 \
         --trigger-http \
         --allow-unauthenticated \
         --region europe-west1 \
-        --entry-point sync_intervals
+        --entry-point sync_intervals \
+        --set-secrets 'INTERVALS_ATHLETE_ID=intervals-athlete-id:latest,INTERVALS_API_KEY=intervals-api-key:latest'
 """
 
 import functions_framework
@@ -16,6 +22,17 @@ from flask import jsonify
 import requests
 from datetime import datetime
 import base64
+import os
+
+
+def get_credentials_from_secrets():
+    """
+    Retrieve credentials from Google Cloud Secret Manager via environment variables.
+    Returns (athlete_id, api_key) or (None, None) if not configured.
+    """
+    athlete_id = os.environ.get("INTERVALS_ATHLETE_ID")
+    api_key = os.environ.get("INTERVALS_API_KEY")
+    return athlete_id, api_key
 
 
 def get_intervals_activities(athlete_id: str, api_key: str, start_date: str, end_date: str) -> list:
@@ -202,13 +219,16 @@ def sync_intervals(request):
     """
     HTTP Cloud Function entry point.
 
+    Credentials are loaded from Google Cloud Secret Manager (environment variables).
+    If not configured, falls back to credentials in request body.
+
     Expects POST with JSON body:
     {
-        "athlete_id": "i12345",
-        "api_key": "your-api-key",
         "start_date": "2024-01-01",
         "end_date": "2024-12-31",
-        "sport_types": ["Ride", "VirtualRide"]  // optional filter
+        "sport_types": ["Ride", "VirtualRide"],  // optional filter
+        "athlete_id": "i12345",                   // optional, overrides secret
+        "api_key": "your-api-key"                 // optional, overrides secret
     }
 
     Returns: JSON array of transformed activities
@@ -231,20 +251,25 @@ def sync_intervals(request):
 
     try:
         # Parse request
-        request_json = request.get_json(silent=True)
+        request_json = request.get_json(silent=True) or {}
 
-        if not request_json:
-            return (jsonify({"error": "Missing JSON body"}), 400, cors_headers)
+        # Get credentials: prefer secrets, fallback to request body
+        secret_athlete_id, secret_api_key = get_credentials_from_secrets()
 
-        athlete_id = request_json.get("athlete_id")
-        api_key = request_json.get("api_key")
+        athlete_id = secret_athlete_id or request_json.get("athlete_id")
+        api_key = secret_api_key or request_json.get("api_key")
+
+        # Get date range from request
         start_date = request_json.get("start_date")
         end_date = request_json.get("end_date")
         sport_types = request_json.get("sport_types", [])
 
         # Validate required fields
         if not athlete_id or not api_key:
-            return (jsonify({"error": "Missing athlete_id or api_key"}), 400, cors_headers)
+            return (jsonify({
+                "error": "Missing credentials. Configure secrets in Google Cloud or provide athlete_id/api_key in request.",
+                "hint": "Set INTERVALS_ATHLETE_ID and INTERVALS_API_KEY secrets in Cloud Run"
+            }), 400, cors_headers)
 
         if not start_date or not end_date:
             return (jsonify({"error": "Missing start_date or end_date"}), 400, cors_headers)
