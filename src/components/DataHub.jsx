@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { 
-  Search, Cloud, Download, Info, RefreshCw, X, Monitor, Bike, Footprints, Settings, 
-  ArrowUpDown, ChevronUp, ChevronDown, ChevronRight, Trash2, CheckCircle, Mountain
+import {
+  Search, Cloud, Download, Upload, Info, RefreshCw, X, Monitor, Bike, Footprints, Settings,
+  ArrowUpDown, ArrowUpRight, ChevronUp, ChevronDown, ChevronRight, Trash2, CheckCircle, Mountain
 } from 'lucide-react';
 import { doc, setDoc } from "firebase/firestore";
 import { db } from '../firebase';
@@ -376,7 +376,10 @@ const handleIntervalsSync = async () => {
             </button>
         </div>
     </div>
-)};
-
+)}
+        </div>
+    </div>
+  );
+};
 
 export default DataHub;
