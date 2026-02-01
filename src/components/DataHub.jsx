@@ -340,12 +340,43 @@ const handleIntervalsSync = async () => {
                 </div>
             )}
 
-            {internalTab === 'import' && (
-                <div className="space-y-4">
-                     <textarea className="w-full h-48 bg-slate-800 border border-slate-700 rounded p-3 text-xs font-mono text-white" placeholder="Paste CSV here..." value={importText} onChange={e => setImportText(e.target.value)}/>
-                    <button onClick={() => handleImportCSV('generic')} className="mt-4 w-full bg-yellow-400 text-slate-900 font-bold py-3 rounded">Import CSV</button>
-                </div>
-            )}
+{internalTab === 'import' && (
+    <div className="space-y-6">
+        {/* STAP 1: DOWNLOAD HULP */}
+        <div className="bg-slate-900/50 p-4 rounded border border-slate-700">
+             <h4 className="text-white font-bold text-sm mb-2 flex items-center gap-2">
+                <Download size={16} className="text-blue-400"/> Stap 1: Download Data
+             </h4>
+             <p className="text-xs text-slate-400 mb-3">
+                Ga naar de Intervals Activities pagina, klik op "List View", selecteer je ritten en kies <strong>Edit &gt; Export CSV</strong>.
+             </p>
+             <a 
+                href={`https://intervals.icu/athlete/${intervalsConfig.athleteId}/activities`} 
+                target="_blank" 
+                rel="noreferrer"
+                className="text-xs bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded inline-flex items-center gap-2 transition-colors"
+             >
+                Open Intervals.icu Activities <ArrowUpRight size={12}/>
+             </a>
+        </div>
+
+        {/* STAP 2: IMPORT AREA */}
+        <div>
+             <h4 className="text-white font-bold text-sm mb-2 flex items-center gap-2">
+                <Upload size={16} className="text-green-400"/> Stap 2: Importeer Bestand
+             </h4>
+             <textarea 
+                className="w-full h-32 bg-slate-800 border border-slate-700 rounded p-3 text-xs font-mono text-white focus:border-yellow-400 outline-none transition-colors" 
+                placeholder="Plak de CSV tekst hier OF sleep het bestand hierin (als je drag-and-drop implementeert)... Voor nu: Open CSV in kladblok, Alles Selecteren (Ctrl+A), Kopiëren (Ctrl+C) en hier Plakken (Ctrl+V)." 
+                value={importText} 
+                onChange={e => setImportText(e.target.value)}
+            />
+            <button onClick={() => handleImportCSV('generic')} className="mt-4 w-full bg-yellow-400 hover:bg-yellow-300 text-slate-900 font-bold py-3 rounded shadow-lg shadow-yellow-400/20 transition-all">
+                Verwerk CSV Data
+            </button>
+        </div>
+    </div>
+)}
         </div>
     </div>
   );
