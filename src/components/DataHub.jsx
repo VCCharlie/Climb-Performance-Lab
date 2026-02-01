@@ -140,105 +140,36 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
     }
   };
 
-  const handleIntervalsSync = async () => {
-    if (!intervalsConfig.apiKey || !intervalsConfig.athleteId) {
-        alert("Geen API gegevens gevonden. Ga naar de Settings tab om deze in te vullen.");
-        return;
-    }
+// Voeg dit toe bovenaan DataHub component (of in je config)
+const CLOUD_SYNC_URL = "https://sync-intervals-97555677694.europe-west1.run.app"; 
+
+const handleIntervalsSync = async () => {
     setIsSyncing(true);
+    const btn = document.getElementById('sync-btn');
+    if(btn) btn.innerHTML = 'Cloud Syncing...';
+
     try {
-        const response = await fetch(`https://intervals.icu/api/v1/athlete/${intervalsConfig.athleteId}/activities?oldest=${syncDates.start}&newest=${syncDates.end}`, {
-            headers: { 'Authorization': 'Basic ' + btoa('API_KEY:' + intervalsConfig.apiKey) }
-        });
-        if (!response.ok) throw new Error("API Fout: Check ID/Key in Settings");
-        const data = await response.json();
+        // We roepen nu jouw Python-motor aan in de cloud
+        const response = await fetch(CLOUD_SYNC_URL);
         
-        console.log("API Response - Eerste activiteit:", data[0]);
-        console.log(`Totaal opgehaald: ${data.length} activiteiten`);
-
-        const mappedRides = data.map(ride => {
-            // Intervals.icu velden (officiële API response)
-            const title = ride.name || 'Untitled';
-            const activityType = ride.type || 'Ride';
-            const date = ride.start_date_local ? ride.start_date_local.substring(0, 10) : '';
-            
-            // TIJD in seconden
-            const movingTime = Number(ride.moving_time || 0);
-            
-            // AFSTAND in METERS -> omzetten naar KM
-            const distMeters = Number(ride.distance || 0);
-            const distKm = distMeters / 1000;
-            
-            // SNELHEID in M/S -> omzetten naar KM/H
-            const avgSpeedMs = Number(ride.average_speed || 0);
-            const avgSpeedKmh = avgSpeedMs * 3.6;
-            
-            // HOOGTEMETERS
-            const climbing = Number(ride.total_elevation_gain || 0);
-            
-            // POWER - Intervals gebruikt icu_ prefix
-            const normPower = Number(ride.icu_weighted_avg_watts || 0);
-            const avgPower = Number(ride.icu_average_watts || 0);
-            
-            // TRAINING LOAD
-            const load = Number(ride.icu_training_load || 0);
-            
-            // RPE
-            const rpe = Number(ride.icu_rpe || 0);
-
-            // Type detectie (Virtual Ride vs normale Ride)
-            const realType = determineActivityType(activityType, title);
-
-            return {
-                id: ride.id || Math.random().toString(36).substr(2, 9),
-                date: date,
-                title: title,
-                type: realType,
-                moving_time: movingTime,
-                distance: distKm.toFixed(2),
-                climbing: Math.round(climbing),
-                norm_power: Math.round(normPower),
-                avg_power: Math.round(avgPower),
-                load: Math.round(load),
-                rpe: rpe,
-                avg_speed: avgSpeedKmh.toFixed(1),
-                best_5min: 0,
-                best_20min: 0,
-                best_60min: 0
-            };
-        });
-
-        console.log("Gemapte data - Eerste activiteit:", mappedRides[0]);
-
-        // Filter stap 1: Alleen geselecteerde sport types
-        const filteredByType = mappedRides.filter(ride => sportFilters[ride.type]);
-        console.log(`Na sport filter: ${filteredByType.length} activiteiten`);
-        
-        // Filter stap 2: Alleen NIEUWE activiteiten (geen duplicaten)
-        const newRides = filteredByType.filter(ride => 
-            !activities.some(existing => existing.id === ride.id)
-        );
-        console.log(`Nieuwe activiteiten: ${newRides.length}`);
-
-        if (newRides.length > 0) {
-            setFetchedActivities(newRides);
-            setSelectedActivities(newRides.map(r => r.id)); 
-            setShowModal(true);
-        } else {
-            const duplicateCount = filteredByType.length - newRides.length;
-            if (duplicateCount > 0) {
-                alert(`Geen nieuwe activiteiten gevonden. Alle ${duplicateCount} activiteiten zijn al geïmporteerd.`);
-            } else {
-                alert("Geen activiteiten gevonden in deze periode en sport types.");
-            }
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(errText);
         }
+
+        const msg = await response.text();
+        alert("✅ " + msg);
+        
+        // Optioneel: Herlaad de pagina of trigger een data-refresh
+        window.location.reload(); 
+
     } catch (e) {
         alert("Sync mislukt: " + e.message);
-        console.error("Volledige fout:", e);
     } finally {
         setIsSyncing(false);
+        if(btn) btn.innerHTML = 'Cloud Sync';
     }
-  };
+};
 
   const confirmImport = () => {
     const toImport = fetchedActivities.filter(a => selectedActivities.includes(a.id));
