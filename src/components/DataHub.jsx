@@ -8,6 +8,9 @@ import { db } from '../firebase';
 import { smartParseCSV, formatDateDDMMYYYY, formatTime, determineActivityType } from '../utils';
 import { ACTIVITY_COLUMNS, SPORT_TYPES, MONTH_ORDER } from '../config';
 
+// DEZE REGEL MOET ER STAAN:
+const CLOUD_SYNC_URL = "https://sync-intervals-97555677694.europe-west1.run.app";
+
 // --- TABLE COMPONENTS (INTERN) ---
 const SortIcon = ({ colKey, config }) => {
     if (config.key !== colKey) return <ArrowUpDown size={12} className="opacity-30 ml-1 inline" />;
