@@ -1,19 +1,23 @@
 /**
  * src/utils.js
  * Helper functies voor berekeningen en ROBUUSTE data-parsing
+ * Geüpdatet voor Intervals.icu specifieke veldnamen (icu_...)
  */
 
 // --- DATUM FORMATTERS ---
 export const normalizeDate = (dateStr) => {
     if (!dateStr) return new Date().toISOString().split('T')[0];
+    // Als er al T in zit (ISO), pak het eerste deel
     if (dateStr.includes('T')) return dateStr.split('T')[0];
     
     // Formaat: dd/mm/yyyy of dd-mm-yyyy fix
     if (dateStr.includes('/') || dateStr.includes('-')) {
         const sep = dateStr.includes('/') ? '/' : '-';
         const parts = dateStr.split(sep);
+        // Check of het dd-mm-yyyy is (dag <= 31, maand <= 12, jaar 4 cijfers)
         if (parts.length === 3) {
-             // Als eerste deel klein is (dag) en laatste groot (jaar) -> dd-mm-yyyy
+             // Simpele heuristiek: als eerste deel klein is en laatste groot -> dd-mm-yyyy
+             // Soms is yyyy-mm-dd ook met streepjes, dus check lengte
              if (parts[0].length <= 2 && parts[2].length === 4) {
                  return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
              }
@@ -47,6 +51,7 @@ export const formatTime = (seconds) => {
 export const parseDurationToSeconds = (str) => {
   if(!str) return 0;
   if(typeof str === 'number') return str;
+  // hh:mm:ss formaat
   if(str.includes(':')) {
       const parts = str.split(':').map(Number);
       if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
@@ -63,6 +68,7 @@ export const parseDurationToSeconds = (str) => {
       if(s) total += parseInt(s[1]);
       return total > 0 ? total : 0;
   }
+  // Gewoon een getal in stringvorm
   const rawNum = parseFloat(str.replace(',', '.'));
   return !isNaN(rawNum) ? rawNum : 0;
 };
@@ -85,11 +91,14 @@ export const calculateRollingTrend = (activities, targetDateStr, metricKey, wind
 export const determineActivityType = (type, title) => {
     let cleanType = type ? type.toString().replace(/\s+/g, '') : 'Ride';
     
+    // Directe matches
     if (cleanType.toLowerCase() === 'virtualride') return 'VirtualRide';
     if (cleanType.toLowerCase() === 'run') return 'Run';
     if (cleanType.toLowerCase() === 'walk') return 'Walk';
     if (cleanType.toLowerCase() === 'hike') return 'Hike';
+    if (['nordicski', 'alpineski', 'iceskate'].includes(cleanType.toLowerCase())) return 'Run'; // Of een 'Winter' categorie
 
+    // Slimme titel detectie voor Virtual
     const name = title ? title.toLowerCase() : '';
     const virtualKeywords = [
         'virtual', 'indoor', 
@@ -112,7 +121,6 @@ const cleanNumber = (val) => {
     if (!val) return 0;
     if (typeof val === 'number') return isNaN(val) ? 0 : val;
     
-    // String opschonen
     let strVal = val.toString().trim();
     if (strVal === '') return 0;
 
@@ -138,6 +146,7 @@ const parseCSVToRows = (text, delimiter) => {
     let currentCell = '';
     let inQuotes = false;
 
+    // BOM en carriage returns verwijderen
     const cleanText = text.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
     for (let i = 0; i < cleanText.length; i++) {
@@ -172,7 +181,6 @@ const parseCSVToRows = (text, delimiter) => {
 
 // 3. Delimiter Detectie (Negeert sep= regel)
 const detectDelimiter = (lines) => {
-    // Neem een sample van de eerste 5 echte regels
     const sample = lines.slice(0, 5).join('\n');
     const commas = (sample.match(/,/g) || []).length;
     const semis = (sample.match(/;/g) || []).length;
@@ -189,11 +197,11 @@ export const smartParseCSV = (text) => {
   // STAP 1: Filter de 'sep=' regel eruit (CRUCIAAL!)
   let lines = text.trim().split(/\r?\n/);
   if (lines.length > 0 && lines[0].toLowerCase().startsWith('sep=')) {
-      lines.shift(); // Verwijder de sep= regel
-      text = lines.join('\n'); // Herbouw tekst zonder die regel
+      lines.shift();
+      text = lines.join('\n');
   }
 
-  // STAP 2: Detecteer delimiter op schone data
+  // STAP 2: Detecteer delimiter
   const delimiter = detectDelimiter(lines);
   
   // STAP 3: Parse volledige tekst
@@ -204,24 +212,35 @@ export const smartParseCSV = (text) => {
   // Headers (alles lowercase en zonder quotes)
   const rawHeaders = rows[0].map(h => h.trim().toLowerCase().replace(/^"|"$/g, ''));
 
+  // --- HEADER MAPPING (UPDATED VOOR INTERVALS.ICU) ---
   const mapHeader = (h) => {
-    // Vervang underscores door spaties (fix voor training_load vs Training Load)
-    h = h.replace(/_/g, ' '); 
+    // Verwijder underscores voor makkelijker matchen, behalve voor specifieke keys
+    const cleanH = h.replace(/_/g, ' '); 
 
-    if (h === 'name' || h === 'title' || h.includes('activity name')) return 'title';
-    if (h === 'type' || h.includes('activity type')) return 'type';
-    if (h.includes('date') || h.includes('datum')) return 'date';
-    if (h.includes('moving') || h.includes('elapsed') || h.includes('tijd')) return 'moving_time';
-    if (h.includes('distance') || h.includes('afstand')) return 'distance';
-    if (h.includes('climb') || h.includes('elevation') || h.includes('hoogte') || h.includes('gain')) return 'climbing';
-    if (h.includes('speed') || h.includes('snelheid')) return 'avg_speed';
-    // Power (NP)
-    if (h.includes('norm') || h.includes('np') || h.includes('weighted avg')) return 'norm_power';
-    // Power (Avg) - check ook op simpele 'power' of 'watts'
-    if (h.includes('avg power') || h.includes('gem. vermogen') || h.includes('average watts') || h === 'power' || h === 'watts') return 'avg_power';
-    // Load fix
-    if (h === 'load' || h === 'tss' || h.includes('training load')) return 'load';
-    if (h === 'rpe' || h.includes('feel')) return 'rpe';
+    // ID & Basis
+    if (h === 'activity id' || h === 'id' || cleanH.includes('activity id')) return 'id';
+    if (h === 'name' || h === 'title' || cleanH.includes('activity name')) return 'title';
+    if (h === 'type' || h === 'sub_type' || cleanH.includes('activity type')) return 'type';
+    if (h === 'start_date_local' || cleanH.includes('date') || cleanH.includes('datum')) return 'date';
+    
+    // Tijden & Afstanden
+    if (h === 'moving_time' || cleanH.includes('moving time') || cleanH.includes('elapsed time')) return 'moving_time';
+    if (h === 'distance' || cleanH.includes('afstand')) return 'distance';
+    if (h === 'total_elevation_gain' || cleanH.includes('climb') || cleanH.includes('elevation') || cleanH.includes('hoogte')) return 'climbing';
+    if (h === 'average_speed' || cleanH.includes('speed') || cleanH.includes('snelheid')) return 'avg_speed';
+    
+    // POWER (NP) - Prioriteit voor 'icu_'
+    if (h === 'icu_weighted_avg_watts' || cleanH.includes('weighted avg power') || cleanH.includes('norm power') || cleanH.includes('np')) return 'norm_power';
+    
+    // POWER (AVG) - Prioriteit voor 'icu_'
+    if (h === 'icu_average_watts' || h === 'average_watts' || cleanH.includes('avg power') || cleanH.includes('average watts') || h === 'power' || h === 'watts') return 'avg_power';
+    
+    // LOAD
+    if (h === 'icu_training_load' || h === 'training_load' || cleanH.includes('tss') || cleanH.includes('load')) return 'load';
+    
+    // RPE
+    if (h === 'icu_rpe' || h === 'rpe' || cleanH.includes('feel')) return 'rpe';
+    
     return null;
   };
 
@@ -246,7 +265,8 @@ export const smartParseCSV = (text) => {
     });
 
     if (!entry.title) entry.title = "Untitled"; 
-    if (!entry.id) entry.id = Math.random().toString(36).substr(2, 9);
+    // Als er geen ID is, verzin er een (alleen bij handmatige import nodig)
+    if (!entry.id) entry.id = 'csv_' + Math.random().toString(36).substr(2, 9);
     if (!entry.date || entry.date === 'Invalid Date') entry.date = new Date().toISOString().split('T')[0];
     
     entry.type = determineActivityType(entry.type, entry.title);
