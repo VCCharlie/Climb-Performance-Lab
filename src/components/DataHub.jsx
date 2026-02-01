@@ -148,31 +148,49 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
 
 // In src/components/DataHub.jsx
 
+// src/components/DataHub.jsx
+
 const handleIntervalsSync = async () => {
     setIsSyncing(true);
     const btn = document.getElementById('sync-btn');
-    if(btn) btn.innerHTML = 'Fetching...'; 
+    if(btn) btn.innerHTML = 'Cloud Processing...'; 
 
     try {
-        // 1. Bouw de URL met jouw datums
-        const url = new URL(CLOUD_SYNC_URL);
-        url.searchParams.append("start", syncDates.start);
-        url.searchParams.append("end", syncDates.end);
+        // --- NIEUWE "POST" METHODE ---
         
-        // 2. Roep aan
-        const response = await fetch(url.toString());
+        // 1. Maak het pakketje klaar voor de nieuwe Python code
+        const payload = {
+            start_date: syncDates.start,      // Python verwacht "start_date" (met underscore)
+            end_date: syncDates.end,          // Python verwacht "end_date"
+            sport_types: Object.keys(sportFilters).filter(k => sportFilters[k]), // Stuur filters mee
+            // Stuur keys mee als backup (voor als environment vars niet werken)
+            athlete_id: intervalsConfig.athleteId, 
+            api_key: intervalsConfig.apiKey,
+            debug: true // Zet aan voor betere logs in Google Cloud
+        };
+
+        // 2. Verstuur als POST request
+        const response = await fetch(CLOUD_SYNC_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
+
         const data = await response.json(); 
 
-        if (!response.ok) throw new Error(data.error || "Server Error");
+        if (!response.ok) {
+            // Betere foutafhandeling o.b.v. jouw nieuwe Python script
+            throw new Error(data.error || "Server Error");
+        }
         
-        // 3. Feedback als het leeg is
+        // 3. Verwerking (Blijft hetzelfde)
         if (!Array.isArray(data) || data.length === 0) {
-            // We zijn specifiek over de datums in de melding
-            alert(`Geen activiteiten gevonden op Intervals.icu tussen ${syncDates.start} en ${syncDates.end}.\n\nCheck je Athlete ID in Google Cloud Settings.`);
+            alert(`Geen activiteiten gevonden tussen ${syncDates.start} en ${syncDates.end}.`);
             return;
         }
 
-        // 4. Filteren & Tonen
         const newRides = data.filter(ride => !activities.some(existing => existing.id === ride.id));
 
         if (newRides.length > 0) {
@@ -190,8 +208,9 @@ const handleIntervalsSync = async () => {
         setIsSyncing(false);
         if(btn) btn.innerHTML = 'Cloud Sync';
     }
-  };
+};
 
+  
   const confirmImport = () => {
     const toImport = fetchedActivities.filter(a => selectedActivities.includes(a.id));
     onImport(toImport);
