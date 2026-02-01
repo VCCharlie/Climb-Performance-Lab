@@ -46,6 +46,11 @@ Climb-Performance-Lab/
 │   ├── firebase.js           # Firebase initialization
 │   └── utils.js              # CSV parsing, formatting, calculations
 │
+├── cloud-function/           # Python Cloud Function for Intervals.icu sync
+│   ├── main.py               # Cloud function entry point
+│   ├── requirements.txt      # Python dependencies
+│   └── README.md             # Deployment instructions
+│
 ├── public/                   # Static public assets
 ├── package.json              # Dependencies and scripts
 ├── vite.config.js            # Vite configuration (version injection, base path)
@@ -171,10 +176,33 @@ npm run preview  # Preview production build locally
 ## External Integrations
 
 ### Intervals.icu
-- API integration via Python Cloud Function
+
+**Architecture**: Frontend (DataHub.jsx) → Cloud Function (Python) → Intervals.icu API
+
+**Cloud Function**: Located in `cloud-function/` directory
 - Endpoint: `https://sync-intervals-97555677694.europe-west1.run.app`
-- Requires: athlete ID and API key (configured in Settings tab)
-- Returns: Activity data in app-compatible format
+- Receives: athlete_id, api_key, date range, sport filters
+- Returns: Transformed activity data
+
+**Request format** (POST):
+```json
+{
+    "athlete_id": "i12345",
+    "api_key": "your-api-key",
+    "start_date": "2024-01-01",
+    "end_date": "2024-12-31",
+    "sport_types": ["Ride", "VirtualRide"]
+}
+```
+
+**Indoor/Virtual Activity Handling**:
+The cloud function maps these Intervals.icu fields for indoor rides:
+- `icu_distance` → distance (trainer-reported)
+- `icu_average_watts` → avg_power
+- `icu_weighted_avg_watts` → norm_power (Normalized Power)
+- `icu_training_load` → load (TSS equivalent)
+
+**Deployment**: See `cloud-function/README.md` for Google Cloud deployment steps
 
 ## Important Notes for AI Assistants
 

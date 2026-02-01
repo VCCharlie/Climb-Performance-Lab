@@ -147,42 +147,64 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
 // import { determineActivityType } from '../utils'; 
 
 const handleIntervalsSync = async () => {
+    // Validate credentials
+    if (!intervalsConfig?.athleteId || !intervalsConfig?.apiKey) {
+        alert("Please configure your Intervals.icu credentials in the Settings tab first.");
+        return;
+    }
+
     setIsSyncing(true);
     const btn = document.getElementById('sync-btn');
-    if(btn) btn.innerHTML = 'Fetching Data...'; // Feedback: we halen op, syncen nog niet
+    if(btn) btn.innerHTML = 'Fetching Data...';
 
     try {
-        const response = await fetch(CLOUD_SYNC_URL);
-        const data = await response.json(); // We verwachten nu JSON data terug
+        // Build request with all required parameters
+        const requestBody = {
+            athlete_id: intervalsConfig.athleteId,
+            api_key: intervalsConfig.apiKey,
+            start_date: syncDates.start,
+            end_date: syncDates.end,
+            sport_types: Object.entries(sportFilters)
+                .filter(([_, enabled]) => enabled)
+                .map(([type, _]) => type)
+        };
+
+        const response = await fetch(CLOUD_SYNC_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody)
+        });
+
+        const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(data.error || "Server Error");
+            throw new Error(data.error || `Server Error (${response.status})`);
         }
-        
-        // Check of er data is
+
         if (!Array.isArray(data) || data.length === 0) {
-            alert("Geen nieuwe activiteiten gevonden op Intervals.icu.");
+            alert("No activities found in the selected date range.");
             return;
         }
 
-        // Filter duplicaten (activiteiten die je al hebt)
+        // Filter duplicates
         const newRides = data.filter(ride => !activities.some(existing => existing.id === ride.id));
 
         if (newRides.length > 0) {
-            // STAP 3: TOON DE MODAL
             setFetchedActivities(newRides);
-            setSelectedActivities(newRides.map(r => r.id)); // Selecteer standaard alles
-            setShowModal(true); // <--- HIER OPENEN WE HET PREVIEW SCHERM
+            setSelectedActivities(newRides.map(r => r.id));
+            setShowModal(true);
         } else {
-            alert("Alle opgehaalde ritten staan al in je dashboard.");
+            alert("All fetched activities are already in your dashboard.");
         }
 
     } catch (e) {
-        console.error(e);
-        alert("Ophalen mislukt: " + e.message);
+        console.error("Intervals sync error:", e);
+        alert("Sync failed: " + e.message);
     } finally {
         setIsSyncing(false);
-        if(btn) btn.innerHTML = 'Cloud Sync';
+        if(btn) btn.innerHTML = 'Sync Now';
     }
 };
 
