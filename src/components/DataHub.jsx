@@ -376,10 +376,7 @@ const handleIntervalsSync = async () => {
             </button>
         </div>
     </div>
-)}
-        </div>
-    </div>
-  );
-};
+)};
+
 
 export default DataHub;
