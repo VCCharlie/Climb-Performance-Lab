@@ -150,42 +150,46 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
 
 // src/components/DataHub.jsx
 
+// src/components/DataHub.jsx
+
 const handleIntervalsSync = async () => {
     setIsSyncing(true);
     const btn = document.getElementById('sync-btn');
     if(btn) btn.innerHTML = 'Cloud Processing...'; 
 
     try {
-        // --- NIEUWE "POST" METHODE ---
-        
-        // 1. Maak het pakketje klaar voor de nieuwe Python code
+        // --- STAP A: SLIMME FILTER LOGICA ---
+        // Haal de geselecteerde filters op
+        let selectedTypes = Object.keys(sportFilters).filter(k => sportFilters[k]);
+
+        // FIX: Als we om 'Ride' vragen, willen we óók 'VirtualRide' ontvangen.
+        // Python hernoemt indoor ritten namelijk naar 'VirtualRide'. 
+        // Als we die niet expliciet vragen, gooit Python ze weg.
+        if (selectedTypes.includes('Ride') && !selectedTypes.includes('VirtualRide')) {
+            selectedTypes.push('VirtualRide');
+        }
+
         const payload = {
-            start_date: syncDates.start,      // Python verwacht "start_date" (met underscore)
-            end_date: syncDates.end,          // Python verwacht "end_date"
-            sport_types: Object.keys(sportFilters).filter(k => sportFilters[k]), // Stuur filters mee
-            // Stuur keys mee als backup (voor als environment vars niet werken)
+            start_date: syncDates.start,
+            end_date: syncDates.end,
+            sport_types: selectedTypes, // Hier sturen we de gecorrigeerde lijst mee
             athlete_id: intervalsConfig.athleteId, 
             api_key: intervalsConfig.apiKey,
-            debug: true // Zet aan voor betere logs in Google Cloud
+            debug: true 
         };
 
-        // 2. Verstuur als POST request
+        // --- STAP B: VERSTUREN ---
         const response = await fetch(CLOUD_SYNC_URL, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
 
         const data = await response.json(); 
 
-        if (!response.ok) {
-            // Betere foutafhandeling o.b.v. jouw nieuwe Python script
-            throw new Error(data.error || "Server Error");
-        }
+        if (!response.ok) throw new Error(data.error || "Server Error");
         
-        // 3. Verwerking (Blijft hetzelfde)
+        // --- STAP C: VERWERKEN ---
         if (!Array.isArray(data) || data.length === 0) {
             alert(`Geen activiteiten gevonden tussen ${syncDates.start} en ${syncDates.end}.`);
             return;
