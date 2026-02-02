@@ -294,9 +294,17 @@ export const smartParseCSV = (text) => {
  * Gebruikt dezelfde logica als de Python Cloud Function.
  */
 
+/**
+ * src/utils.js - UPDATE
+ * Parsed JSON input naar App formaat.
+ * Ondersteunt nu:
+ * 1. Ruwe Intervals API data (icu_...)
+ * 2. Clean JSON export (normalizedPower, elevationGain)
+ */
 export const smartParseJSON = (jsonText) => {
     try {
         const rawData = JSON.parse(jsonText);
+        // Zorg dat het altijd een array is, ook als je 1 object plakt
         const dataArray = Array.isArray(rawData) ? rawData : [rawData];
 
         if (dataArray.length === 0) return [];
@@ -308,9 +316,11 @@ export const smartParseJSON = (jsonText) => {
                 return isNaN(n) ? 0 : n;
             };
 
-            // HULPFUNCTIE: Fallback keten (pak A, anders B, anders C)
+            // HULPFUNCTIE: Fallback keten (pak A, anders B, anders C...)
+            // Dit is de sleutel tot succes: we checken alle mogelijke namen
             const getVal = (...keys) => {
                 for (const k of keys) {
+                    // Check ook geneste objecten als dat ooit voorkomt, maar voor nu plat
                     if (item[k] !== undefined && item[k] !== null && item[k] !== "") return item[k];
                 }
                 return null;
@@ -318,25 +328,38 @@ export const smartParseJSON = (jsonText) => {
 
             // 1. BASIS MAPPING
             const id = String(getVal('id', 'activity_id') || Math.random().toString(36).substr(2, 9));
-            const dateStr = getVal('start_date_local', 'start_date', 'date');
+            // Check startDate (jouw JSON) en start_date_local (API)
+            const dateStr = getVal('startDate', 'start_date_local', 'start_date', 'date');
             const title = getVal('name', 'title') || "Untitled";
             
             // 2. FYSIEKE DATA
-            const movingTime = getNum(getVal('moving_time', 'icu_recording_time', 'elapsed_time'));
-            const distanceMeters = getNum(getVal('distance', 'icu_distance'));
-            const climbing = getNum(getVal('total_elevation_gain', 'total_elevation_loss'));
-            const avgSpeedMs = getNum(getVal('average_speed'));
-
-            // 3. PERFORMANCE DATA (Met Fallbacks)
-            // Power
-            const normPower = getNum(getVal('icu_weighted_avg_watts', 'weighted_average_watts', 'np', 'normalized_power'));
-            const avgPower = getNum(getVal('icu_average_watts', 'average_watts', 'device_watts', 'avg_power'));
+            // Tijd: movingTime (jouw JSON) vs moving_time (API)
+            const movingTime = getNum(getVal('movingTime', 'moving_time', 'icu_recording_time', 'elapsedTime', 'elapsed_time'));
             
-            // Load & RPE
-            const load = getNum(getVal('icu_training_load', 'training_load', 'power_load', 'hr_load', 'pace_load'));
-            const rpe = getNum(getVal('icu_rpe', 'perceived_exertion', 'feel', 'session_rpe'));
+            // Afstand: distance (is in beide formaten meters)
+            const distanceMeters = getNum(getVal('distance', 'icu_distance'));
+            
+            // Hoogtemeters: elevationGain (jouw JSON) vs total_elevation_gain (API)
+            const climbing = getNum(getVal('elevationGain', 'total_elevation_gain', 'total_elevation_loss'));
+            
+            // Snelheid: avgSpeed (jouw JSON, m/s) vs average_speed (API)
+            const avgSpeedMs = getNum(getVal('avgSpeed', 'average_speed'));
 
-            // 4. BEST POWERS
+            // 3. PERFORMANCE DATA
+            // NP: normalizedPower (jouw JSON) vs icu_weighted_avg_watts (API)
+            const normPower = getNum(getVal('normalizedPower', 'icu_weighted_avg_watts', 'weighted_average_watts', 'np', 'normalized_power'));
+            
+            // Avg Power: avgWatts (jouw JSON) vs icu_average_watts (API)
+            const avgPower = getNum(getVal('avgWatts', 'icu_average_watts', 'average_watts', 'device_watts', 'avg_power'));
+            
+            // Load: trainingLoad (jouw JSON) vs icu_training_load (API)
+            const load = getNum(getVal('trainingLoad', 'icu_training_load', 'training_load', 'power_load', 'hr_load', 'pace_load', 'tss'));
+            
+            // RPE: rpe (jouw JSON) vs icu_rpe (API)
+            const rpe = getNum(getVal('rpe', 'icu_rpe', 'perceived_exertion', 'feel', 'session_rpe'));
+
+            // 4. BEST POWERS (Vermogen curves)
+            // Jouw JSON heeft geen best powers (staan als null of ontbreken), maar voor de zekerheid:
             const best1min = getNum(getVal('Best1minpower', 'best_1min_power', 'w1min'));
             const best5min = getNum(getVal('Best5minpower', 'best_5min_power', 'w5min'));
             const best10min = getNum(getVal('Best10minpower', 'best_10min_power', 'w10min'));
@@ -344,20 +367,21 @@ export const smartParseJSON = (jsonText) => {
             const best60min = getNum(getVal('Best60minpower', 'best_60min_power', 'w60min'));
 
             // 5. TYPE DETECTIE
-            // We gebruiken de bestaande determineActivityType uit utils.js
-            // Let op: importeer determineActivityType als je deze functie in een ander bestand zet
             const rawType = getVal('type', 'sub_type');
+            // Zorg dat determineActivityType beschikbaar is/geïmporteerd is in utils.js
             const finalType = determineActivityType(rawType, title);
 
             return {
                 id: id,
-                date: normalizeDate(dateStr), // Zorgt voor YYYY-MM-DD
+                date: normalizeDate(dateStr),
                 title: title,
                 type: finalType,
                 moving_time: movingTime,
-                distance: (distanceMeters > 1000 || distanceMeters === 0) ? (distanceMeters / 1000).toFixed(2) : distanceMeters, // Aanname: input is meters
+                // Slimme conversie: als > 2000 is het waarschijnlijk meters -> naar KM
+                distance: (distanceMeters > 2000 || (distanceMeters > 0 && distanceMeters % 1 !== 0)) ? (distanceMeters / 1000).toFixed(2) : distanceMeters, 
                 climbing: Math.round(climbing),
-                avg_speed: (avgSpeedMs < 20 && avgSpeedMs > 0) ? (avgSpeedMs * 3.6).toFixed(1) : avgSpeedMs, // Aanname: input is m/s
+                // Slimme conversie: als < 20 is het waarschijnlijk m/s -> naar km/u
+                avg_speed: (avgSpeedMs < 20 && avgSpeedMs > 0) ? (avgSpeedMs * 3.6).toFixed(1) : avgSpeedMs,
                 norm_power: Math.round(normPower),
                 avg_power: Math.round(avgPower),
                 load: Math.round(load),
