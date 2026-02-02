@@ -151,34 +151,51 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
 const handleIntervalsSync = async () => {
     setIsSyncing(true);
     const btn = document.getElementById('sync-btn');
-    if(btn) btn.innerHTML = 'Fetching...'; 
+    if(btn) btn.innerHTML = 'Fetching...';
 
     try {
-        // 1. Bouw de URL met jouw datums
-        const url = new URL(CLOUD_SYNC_URL);
-        url.searchParams.append("start", syncDates.start);
-        url.searchParams.append("end", syncDates.end);
-        
-        // 2. Roep aan
-        const response = await fetch(url.toString());
-        const data = await response.json(); 
+        // Bouw de geselecteerde sport types
+        const selectedTypes = Object.entries(sportFilters)
+            .filter(([_, isSelected]) => isSelected)
+            .map(([type, _]) => type);
 
-        if (!response.ok) throw new Error(data.error || "Server Error");
-        
-        // 3. Feedback als het leeg is
-        if (!Array.isArray(data) || data.length === 0) {
-            // We zijn specifiek over de datums in de melding
-            alert(`Geen activiteiten gevonden op Intervals.icu tussen ${syncDates.start} en ${syncDates.end}.\n\nCheck je Athlete ID in Google Cloud Settings.`);
+        if (selectedTypes.length === 0) {
+            alert("Selecteer minimaal één activiteitstype.");
             return;
         }
 
-        // 4. Filteren & Tonen
+        // POST request met JSON body (sport_types filter)
+        const response = await fetch(CLOUD_SYNC_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                start_date: syncDates.start,
+                end_date: syncDates.end,
+                sport_types: selectedTypes,
+                athlete_id: intervalsConfig?.athleteId || '',
+                api_key: intervalsConfig?.apiKey || '',
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) throw new Error(data.error || "Server Error");
+
+        // Feedback als het leeg is
+        if (!Array.isArray(data) || data.length === 0) {
+            alert(`Geen activiteiten gevonden op Intervals.icu tussen ${syncDates.start} en ${syncDates.end}.\n\nGeselecteerde types: ${selectedTypes.join(', ')}\n\nCheck je Athlete ID in Settings.`);
+            return;
+        }
+
+        // Filteren & Tonen
         const newRides = data.filter(ride => !activities.some(existing => existing.id === ride.id));
 
         if (newRides.length > 0) {
             setFetchedActivities(newRides);
-            setSelectedActivities(newRides.map(r => r.id)); 
-            setShowModal(true); 
+            setSelectedActivities(newRides.map(r => r.id));
+            setShowModal(true);
         } else {
             alert("Je bent helemaal bij! Alle gevonden ritten staan al in je dashboard.");
         }
