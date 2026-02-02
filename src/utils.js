@@ -287,3 +287,90 @@ export const smartParseCSV = (text) => {
     return entry;
   }).filter(e => e.distance > 0 || e.moving_time > 0);
 };
+
+
+/**
+ * Parsed JSON input (array van activiteiten) naar het App formaat.
+ * Gebruikt dezelfde logica als de Python Cloud Function.
+ */
+
+export const smartParseJSON = (jsonText) => {
+    try {
+        const rawData = JSON.parse(jsonText);
+        const dataArray = Array.isArray(rawData) ? rawData : [rawData];
+
+        if (dataArray.length === 0) return [];
+
+        return dataArray.map(item => {
+            // HULPFUNCTIE: Veilige getallen
+            const getNum = (val) => {
+                const n = Number(val);
+                return isNaN(n) ? 0 : n;
+            };
+
+            // HULPFUNCTIE: Fallback keten (pak A, anders B, anders C)
+            const getVal = (...keys) => {
+                for (const k of keys) {
+                    if (item[k] !== undefined && item[k] !== null && item[k] !== "") return item[k];
+                }
+                return null;
+            };
+
+            // 1. BASIS MAPPING
+            const id = String(getVal('id', 'activity_id') || Math.random().toString(36).substr(2, 9));
+            const dateStr = getVal('start_date_local', 'start_date', 'date');
+            const title = getVal('name', 'title') || "Untitled";
+            
+            // 2. FYSIEKE DATA
+            const movingTime = getNum(getVal('moving_time', 'icu_recording_time', 'elapsed_time'));
+            const distanceMeters = getNum(getVal('distance', 'icu_distance'));
+            const climbing = getNum(getVal('total_elevation_gain', 'total_elevation_loss'));
+            const avgSpeedMs = getNum(getVal('average_speed'));
+
+            // 3. PERFORMANCE DATA (Met Fallbacks)
+            // Power
+            const normPower = getNum(getVal('icu_weighted_avg_watts', 'weighted_average_watts', 'np', 'normalized_power'));
+            const avgPower = getNum(getVal('icu_average_watts', 'average_watts', 'device_watts', 'avg_power'));
+            
+            // Load & RPE
+            const load = getNum(getVal('icu_training_load', 'training_load', 'power_load', 'hr_load', 'pace_load'));
+            const rpe = getNum(getVal('icu_rpe', 'perceived_exertion', 'feel', 'session_rpe'));
+
+            // 4. BEST POWERS
+            const best1min = getNum(getVal('Best1minpower', 'best_1min_power', 'w1min'));
+            const best5min = getNum(getVal('Best5minpower', 'best_5min_power', 'w5min'));
+            const best10min = getNum(getVal('Best10minpower', 'best_10min_power', 'w10min'));
+            const best20min = getNum(getVal('Best20minpower', 'best_20min_power', 'w20min'));
+            const best60min = getNum(getVal('Best60minpower', 'best_60min_power', 'w60min'));
+
+            // 5. TYPE DETECTIE
+            // We gebruiken de bestaande determineActivityType uit utils.js
+            // Let op: importeer determineActivityType als je deze functie in een ander bestand zet
+            const rawType = getVal('type', 'sub_type');
+            const finalType = determineActivityType(rawType, title);
+
+            return {
+                id: id,
+                date: normalizeDate(dateStr), // Zorgt voor YYYY-MM-DD
+                title: title,
+                type: finalType,
+                moving_time: movingTime,
+                distance: (distanceMeters > 1000 || distanceMeters === 0) ? (distanceMeters / 1000).toFixed(2) : distanceMeters, // Aanname: input is meters
+                climbing: Math.round(climbing),
+                avg_speed: (avgSpeedMs < 20 && avgSpeedMs > 0) ? (avgSpeedMs * 3.6).toFixed(1) : avgSpeedMs, // Aanname: input is m/s
+                norm_power: Math.round(normPower),
+                avg_power: Math.round(avgPower),
+                load: Math.round(load),
+                rpe: rpe,
+                best_1min: Math.round(best1min),
+                best_5min: Math.round(best5min),
+                best_10min: Math.round(best10min),
+                best_20min: Math.round(best20min),
+                best_60min: Math.round(best60min)
+            };
+        });
+    } catch (e) {
+        console.error("JSON Parse Error:", e);
+        return [];
+    }
+};
