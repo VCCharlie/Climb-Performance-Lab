@@ -1,7 +1,7 @@
 /**
  * src/utils.js
  * Helper functies voor berekeningen en ROBUUSTE data-parsing
- * Geüpdatet voor Intervals.icu specifieke veldnamen (icu_...)
+ * Geüpdatet: Nu inclusief Best Power curves (1m, 5m, 20m, 60m)
  */
 
 // --- DATUM FORMATTERS ---
@@ -212,7 +212,7 @@ export const smartParseCSV = (text) => {
   // Headers (alles lowercase en zonder quotes)
   const rawHeaders = rows[0].map(h => h.trim().toLowerCase().replace(/^"|"$/g, ''));
 
-  // --- HEADER MAPPING (UPDATED VOOR INTERVALS.ICU) ---
+  // --- HEADER MAPPING (UPDATED VOOR INTERVALS.ICU & BEST POWERS) ---
   const mapHeader = (h) => {
     // Verwijder underscores voor makkelijker matchen, behalve voor specifieke keys
     const cleanH = h.replace(/_/g, ' '); 
@@ -240,6 +240,16 @@ export const smartParseCSV = (text) => {
     
     // RPE
     if (h === 'icu_rpe' || h === 'rpe' || cleanH.includes('feel')) return 'rpe';
+
+    // --- BEST POWERS (NIEUW TOEGEVOEGD) ---
+    // Intervals CSV headers zijn vaak: Best1minPower, Best5minPower, etc.
+    // Of: Best 1min Power, w5min, etc.
+    
+    if (cleanH.includes('best1min') || cleanH.includes('best 1min') || cleanH.includes('1min power') || cleanH === 'w1min') return 'best_1min';
+    if (cleanH.includes('best5min') || cleanH.includes('best 5min') || cleanH.includes('5min power') || cleanH === 'w5min') return 'best_5min';
+    if (cleanH.includes('best10min') || cleanH.includes('best 10min') || cleanH.includes('10min power') || cleanH === 'w10min') return 'best_10min';
+    if (cleanH.includes('best20min') || cleanH.includes('best 20min') || cleanH.includes('20min power') || cleanH === 'w20min') return 'best_20min';
+    if (cleanH.includes('best60min') || cleanH.includes('best 60min') || cleanH.includes('60min power') || cleanH === 'w60min') return 'best_60min';
     
     return null;
   };
@@ -265,7 +275,6 @@ export const smartParseCSV = (text) => {
     });
 
     if (!entry.title) entry.title = "Untitled"; 
-    // Als er geen ID is, verzin er een (alleen bij handmatige import nodig)
     if (!entry.id) entry.id = 'csv_' + Math.random().toString(36).substr(2, 9);
     if (!entry.date || entry.date === 'Invalid Date') entry.date = new Date().toISOString().split('T')[0];
     
