@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { doc, setDoc } from "firebase/firestore";
 import { db } from '../firebase';
-import { smartParseCSV, formatDateDDMMYYYY, formatTime, determineActivityType } from '../utils';
+import { smartParseCSV, smartParseJSON, formatDateDDMMYYYY, formatTime, determineActivityType } from '../utils';
 import { ACTIVITY_COLUMNS, SPORT_TYPES, MONTH_ORDER } from '../config';
 
 // DEZE REGEL MOET ER STAAN:
@@ -115,14 +115,34 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
       }));
   };
 
-  const handleImportCSV = (type) => {
-    const data = smartParseCSV(importText, type);
-    if(data.length) {
-        setFetchedActivities(data);
-        setSelectedActivities(data.map(r => r.id));
+const handleManualImport = () => {
+    const text = importText.trim();
+    if (!text) {
+        alert("Plak eerst data in het veld.");
+        return;
+    }
+
+    let parsedData = [];
+
+    // DETECTIE LOGICA
+    if (text.startsWith('[') || text.startsWith('{')) {
+        // Het lijkt op JSON!
+        console.log("Detectie: JSON formaat");
+        parsedData = smartParseJSON(text);
+    } else {
+        // We gaan uit van CSV
+        console.log("Detectie: CSV formaat");
+        parsedData = smartParseCSV(text); // 'generic' parameter is niet strikt nodig als smartParseCSV slim is
+    }
+
+    if (parsedData.length > 0) {
+        setFetchedActivities(parsedData);
+        setSelectedActivities(parsedData.map(r => r.id));
         setShowModal(true);
         setImportText(""); 
-    } else { alert("Geen geldige data."); }
+    } else { 
+        alert("Kon geen geldige activiteiten vinden. Controleer of het formaat CSV of JSON is."); 
+    }
   };
 
   const handleSyncCloud = async () => {
@@ -394,8 +414,8 @@ const handleIntervalsSync = async () => {
                 value={importText} 
                 onChange={e => setImportText(e.target.value)}
             />
-            <button onClick={() => handleImportCSV('generic')} className="mt-4 w-full bg-yellow-400 hover:bg-yellow-300 text-slate-900 font-bold py-3 rounded shadow-lg shadow-yellow-400/20 transition-all">
-                Verwerk CSV Data
+            <button onClick={() => handleManualImport('generic')} className="mt-4 w-full bg-yellow-400 hover:bg-yellow-300 text-slate-900 font-bold py-3 rounded shadow-lg shadow-yellow-400/20 transition-all">
+                Verwerk Data (CSV of JSON)
             </button>
         </div>
     </div>
