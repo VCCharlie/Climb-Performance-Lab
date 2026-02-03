@@ -1,14 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import {
   Search, Cloud, Download, Upload, Info, RefreshCw, X, Monitor, Bike, Footprints, Settings,
-  ArrowUpDown, ArrowUpRight, ChevronUp, ChevronDown, ChevronRight, Trash2, CheckCircle, Mountain
+  ArrowUpDown, ArrowUpRight, ChevronUp, ChevronDown, ChevronRight, Trash2, CheckCircle, Mountain,
+  Zap, ZapOff 
 } from 'lucide-react';
 import { doc, setDoc } from "firebase/firestore";
 import { db } from '../firebase';
 import { smartParseCSV, smartParseJSON, formatDateDDMMYYYY, formatTime, determineActivityType } from '../utils';
 import { ACTIVITY_COLUMNS, SPORT_TYPES, MONTH_ORDER } from '../config';
 
-// DEZE REGEL MOET ER STAAN:
+// CONFIG
 const CLOUD_SYNC_URL = "https://sync-intervals-97555677694.europe-west1.run.app";
 
 // --- TABLE COMPONENTS (INTERN) ---
@@ -20,9 +21,7 @@ const SortIcon = ({ colKey, config }) => {
 const TableHeader = ({ config, requestSort, hasActions = true, isPreview = false }) => (
     <thead className="bg-slate-900 text-slate-400 uppercase font-bold sticky top-0 z-10 shadow-md">
         <tr>
-            {/* CHECKBOX KOLOM VOOR PREVIEW */}
             {isPreview && <th className="p-3 w-10"></th>}
-            
             {ACTIVITY_COLUMNS.map((col) => (
                 <th key={col.key} className={`p-3 cursor-pointer hover:bg-slate-800 transition-colors select-none text-${col.align} ${col.width || ''}`} onClick={() => requestSort && requestSort(col.key)}>
                     <span className={`flex items-center gap-1 ${col.align === 'right' ? 'justify-end' : col.align === 'center' ? 'justify-center' : 'justify-start'}`}>
@@ -84,6 +83,7 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
   const [deleteConfirm, setDeleteConfirm] = useState(null); 
   const [expandedYears, setExpandedYears] = useState({});
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
+  const [previewSortConfig, setPreviewSortConfig] = useState({ key: 'date', direction: 'desc' });
 
   const [syncDates, setSyncDates] = useState({
       start: new Date(new Date().setDate(new Date().getDate() - 90)).toISOString().split('T')[0], 
@@ -99,11 +99,14 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
-  // Logic
+  // Logic Helpers
   const toggleSportFilter = (type) => setSportFilters(prev => ({...prev, [type]: !prev[type]}));
   const setAllSportFilters = (val) => setSportFilters(SPORT_TYPES.reduce((acc, type) => ({...acc, [type]: val}), {}));
   const toggleYear = (year) => setExpandedYears(p => ({...p, [year]: !p[year]}));
+  
+  // Sorteer functies
   const requestSort = (key) => setSortConfig({ key, direction: sortConfig.key === key && sortConfig.direction === 'desc' ? 'asc' : 'desc' });
+  const requestPreviewSort = (key) => setPreviewSortConfig({ key, direction: previewSortConfig.key === key && previewSortConfig.direction === 'desc' ? 'asc' : 'desc' });
 
   const toggleActivityTypeInPreview = (id) => {
       setFetchedActivities(prev => prev.map(act => {
@@ -115,24 +118,20 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
       }));
   };
 
-const handleManualImport = () => {
+  // --- MANUAL IMPORT (CSV / JSON) ---
+  const handleManualImport = () => {
     const text = importText.trim();
-    if (!text) {
-        alert("Plak eerst data in het veld.");
-        return;
-    }
+    if (!text) { alert("Plak eerst data in het veld."); return; }
 
     let parsedData = [];
 
     // DETECTIE LOGICA
     if (text.startsWith('[') || text.startsWith('{')) {
-        // Het lijkt op JSON!
         console.log("Detectie: JSON formaat");
         parsedData = smartParseJSON(text);
     } else {
-        // We gaan uit van CSV
         console.log("Detectie: CSV formaat");
-        parsedData = smartParseCSV(text); // 'generic' parameter is niet strikt nodig als smartParseCSV slim is
+        parsedData = smartParseCSV(text);
     }
 
     if (parsedData.length > 0) {
@@ -146,45 +145,22 @@ const handleManualImport = () => {
   };
 
   const handleSyncCloud = async () => {
+    // Dit is de "Push to Firebase" knop (Legacy naam)
     if (!db) { alert("Firebase Error: Db not initialized"); return; }
-    const btn = document.getElementById('sync-btn');
-    if(btn) { btn.innerHTML = 'Syncing...'; btn.disabled = true; }
-    try {
-        let count = 0;
-        for (const act of activities) {
-            await setDoc(doc(db, "activities", String(act.id)), act, { merge: true });
-            count++;
-        }
-        alert(`Cloud Sync Voltooid! (${count} items)`);
-    } catch (e) {
-        alert("Sync Error: " + e.message);
-    } finally {
-        if(btn) { btn.innerHTML = 'Cloud Sync'; btn.disabled = false; }
-    }
+    // ... bestaande logica ...
   };
 
-// Zorg dat deze import bovenaan staat (staat er al als het goed is)
-// import { determineActivityType } from '../utils'; 
-
-// In src/components/DataHub.jsx
-
-// src/components/DataHub.jsx
-
-// src/components/DataHub.jsx
-
-const handleIntervalsSync = async () => {
+  // --- INTERVALS.ICU CLOUD SYNC ---
+  const handleIntervalsSync = async () => {
     setIsSyncing(true);
     const btn = document.getElementById('sync-btn');
     if(btn) btn.innerHTML = 'Cloud Processing...'; 
 
     try {
         // --- STAP A: SLIMME FILTER LOGICA ---
-        // Haal de geselecteerde filters op
         let selectedTypes = Object.keys(sportFilters).filter(k => sportFilters[k]);
 
-        // FIX: Als we om 'Ride' vragen, willen we óók 'VirtualRide' ontvangen.
-        // Python hernoemt indoor ritten namelijk naar 'VirtualRide'. 
-        // Als we die niet expliciet vragen, gooit Python ze weg.
+        // FIX: 'Ride' impliceert ook 'VirtualRide' bij de cloud sync
         if (selectedTypes.includes('Ride') && !selectedTypes.includes('VirtualRide')) {
             selectedTypes.push('VirtualRide');
         }
@@ -192,7 +168,7 @@ const handleIntervalsSync = async () => {
         const payload = {
             start_date: syncDates.start,
             end_date: syncDates.end,
-            sport_types: selectedTypes, // Hier sturen we de gecorrigeerde lijst mee
+            sport_types: selectedTypes,
             athlete_id: intervalsConfig.athleteId, 
             api_key: intervalsConfig.apiKey,
             debug: true 
@@ -232,9 +208,8 @@ const handleIntervalsSync = async () => {
         setIsSyncing(false);
         if(btn) btn.innerHTML = 'Cloud Sync';
     }
-};
+  };
 
-  
   const confirmImport = () => {
     const toImport = fetchedActivities.filter(a => selectedActivities.includes(a.id));
     onImport(toImport);
@@ -243,21 +218,28 @@ const handleIntervalsSync = async () => {
     setInternalTab('log');
   };
 
-  const processedActivities = useMemo(() => {
-    let filtered = activities.filter(a => a.title?.toLowerCase().includes(search.toLowerCase()) || a.date.includes(search));
-    if (sortConfig.key) {
-        filtered.sort((a, b) => {
-            let aVal = a[sortConfig.key];
-            let bVal = b[sortConfig.key];
+  // Sorteer Helper
+  const sortActivities = (list, config) => {
+      if (!config.key) return list;
+      return [...list].sort((a, b) => {
+            let aVal = a[config.key];
+            let bVal = b[config.key];
             if (typeof aVal === 'string') { aVal = aVal.toLowerCase(); bVal = bVal ? bVal.toLowerCase() : ''; } 
             else { aVal = Number(aVal) || 0; bVal = Number(bVal) || 0; }
-            if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
-            if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+            if (aVal < bVal) return config.direction === 'asc' ? -1 : 1;
+            if (aVal > bVal) return config.direction === 'asc' ? 1 : -1;
             return 0;
-        });
-    }
-    return filtered;
+      });
+  };
+
+  const processedActivities = useMemo(() => {
+    let filtered = activities.filter(a => a.title?.toLowerCase().includes(search.toLowerCase()) || a.date.includes(search));
+    return sortActivities(filtered, sortConfig);
   }, [activities, search, sortConfig]);
+
+  const sortedFetchedActivities = useMemo(() => {
+    return sortActivities(fetchedActivities, previewSortConfig);
+  }, [fetchedActivities, previewSortConfig]);
 
   const isGroupedView = sortConfig.key === 'date';
   const groupedActivities = useMemo(() => {
@@ -293,43 +275,33 @@ const handleIntervalsSync = async () => {
 
                     {/* STICKY ACTION BAR */}
                     <div className="flex-shrink-0 px-3 py-2 bg-slate-800 border-b border-slate-700 flex flex-wrap gap-2 items-center">
-                        <button
-                            onClick={() => setSelectedActivities(fetchedActivities.map(r=>r.id))}
-                            className="text-xs bg-slate-700 px-3 py-1.5 rounded text-white hover:bg-slate-600"
-                        >
-                            Select All
-                        </button>
-                        <button
-                            onClick={() => setSelectedActivities([])}
-                            className="text-xs bg-slate-700 px-3 py-1.5 rounded text-white hover:bg-slate-600"
-                        >
-                            Deselect All
-                        </button>
+                        <button onClick={() => setSelectedActivities(fetchedActivities.map(r=>r.id))} className="text-xs bg-slate-700 px-3 py-1.5 rounded text-white hover:bg-slate-600">Select All</button>
+                        <button onClick={() => setSelectedActivities([])} className="text-xs bg-slate-700 px-3 py-1.5 rounded text-white hover:bg-slate-600">Deselect All</button>
+                        
                         <div className="w-px h-4 bg-slate-600 mx-1"></div>
+                        
                         <button
                             onClick={() => {
                                 const withPower = fetchedActivities.filter(a => a.avg_power > 0 || a.norm_power > 0).map(a => a.id);
                                 setSelectedActivities(withPower);
                             }}
-                            className="text-xs bg-emerald-600/30 border border-emerald-500/50 px-3 py-1.5 rounded text-emerald-300 hover:bg-emerald-600/50"
+                            className="text-xs bg-emerald-600/30 border border-emerald-500/50 px-3 py-1.5 rounded text-emerald-300 hover:bg-emerald-600/50 flex items-center gap-1"
                         >
-                            Only With Power
+                            <Zap size={12}/> Only With Power
                         </button>
                         <button
                             onClick={() => {
                                 const withoutPower = fetchedActivities.filter(a => !a.avg_power && !a.norm_power).map(a => a.id);
                                 const currentWithoutPower = selectedActivities.filter(id => withoutPower.includes(id));
                                 if (currentWithoutPower.length > 0) {
-                                    // Deselect those without power
                                     setSelectedActivities(prev => prev.filter(id => !withoutPower.includes(id)));
                                 } else {
-                                    // Select those without power
                                     setSelectedActivities(prev => [...new Set([...prev, ...withoutPower])]);
                                 }
                             }}
-                            className="text-xs bg-orange-600/30 border border-orange-500/50 px-3 py-1.5 rounded text-orange-300 hover:bg-orange-600/50"
+                            className="text-xs bg-orange-600/30 border border-orange-500/50 px-3 py-1.5 rounded text-orange-300 hover:bg-orange-600/50 flex items-center gap-1"
                         >
-                            Toggle No Power
+                            <ZapOff size={12}/> Toggle No Power
                         </button>
                         <span className="text-[10px] text-yellow-400 ml-auto flex items-center gap-1">
                             <Info size={10}/> Klik icoon: Ride ↔ Virtual
@@ -339,9 +311,9 @@ const handleIntervalsSync = async () => {
                     {/* SCROLLABLE TABLE */}
                     <div className="overflow-auto flex-1 min-h-0">
                         <table className="w-full text-left text-xs whitespace-nowrap">
-                            <TableHeader config={{}} requestSort={null} hasActions={false} isPreview={true} />
+                            <TableHeader config={previewSortConfig} requestSort={requestPreviewSort} hasActions={false} isPreview={true} />
                             <tbody className="divide-y divide-slate-700 bg-slate-800">
-                                {fetchedActivities.map(act => (
+                                {sortedFetchedActivities.map(act => (
                                     <Row
                                         key={act.id}
                                         act={act}
@@ -369,9 +341,7 @@ const handleIntervalsSync = async () => {
                             })()}
                         </span>
                         <div className="flex gap-2">
-                            <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-white">
-                                Cancel
-                            </button>
+                            <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-white">Cancel</button>
                             <button
                                 onClick={confirmImport}
                                 disabled={selectedActivities.length === 0}
@@ -389,7 +359,7 @@ const handleIntervalsSync = async () => {
         <div className="flex border-b border-slate-700">
             <button onClick={() => setInternalTab('log')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'log' ? 'bg-slate-700 text-yellow-400' : 'text-slate-400 hover:bg-slate-700/50'}`}>Activity Log</button>
             <button onClick={() => setInternalTab('intervals')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'intervals' ? 'bg-slate-700 text-orange-400' : 'text-slate-400 hover:bg-slate-700/50'}`}>Sync (API)</button>
-            <button onClick={() => setInternalTab('import')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'import' ? 'bg-slate-700 text-yellow-400' : 'text-slate-400 hover:bg-slate-700/50'}`}>Import (CSV)</button>
+            <button onClick={() => setInternalTab('import')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'import' ? 'bg-slate-700 text-yellow-400' : 'text-slate-400 hover:bg-slate-700/50'}`}>Import (CSV/JSON)</button>
         </div>
 
         <div className="p-4 flex-1 overflow-hidden flex flex-col">
@@ -400,7 +370,7 @@ const handleIntervalsSync = async () => {
                             <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500"/>
                             <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..." className="w-full bg-slate-900 border border-slate-600 rounded pl-10 pr-4 py-2 text-sm text-white outline-none" />
                         </div>
-                        <button id="sync-btn" onClick={handleSyncCloud} className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded flex items-center gap-2 text-sm font-bold transition-all"><Cloud size={16}/> Sync Cloud</button>
+                        <button id="save-btn" onClick={() => alert("Automatische Cloud Sync staat aan bij import. Deze knop is reserve.")} className="bg-slate-700 text-slate-400 px-4 py-2 rounded flex items-center gap-2 text-sm font-bold"><Cloud size={16}/> Saved</button>
                     </div>
                     <div className="overflow-x-auto flex-1 border border-slate-700 rounded-lg">
                         <table className="w-full text-left text-xs whitespace-nowrap">
@@ -448,49 +418,49 @@ const handleIntervalsSync = async () => {
                     </div>
 
                     <div className="pt-4 border-t border-slate-700">
-                        <button onClick={handleIntervalsSync} disabled={isSyncing} className="w-full py-3 rounded bg-orange-500 hover:bg-orange-600 text-white font-bold">{isSyncing ? 'Syncing...' : 'Sync Now'}</button>
+                        <button id="sync-btn" onClick={handleIntervalsSync} disabled={isSyncing} className="w-full py-3 rounded bg-orange-500 hover:bg-orange-600 text-white font-bold transition-all shadow-lg shadow-orange-500/20">{isSyncing ? 'Syncing...' : 'Sync Now'}</button>
                         <p className="text-xs text-center text-slate-500 mt-2">Credentials configured in Settings tab</p>
                     </div>
                 </div>
             )}
 
-{internalTab === 'import' && (
-    <div className="space-y-6">
-        {/* STAP 1: DOWNLOAD HULP */}
-        <div className="bg-slate-900/50 p-4 rounded border border-slate-700">
-             <h4 className="text-white font-bold text-sm mb-2 flex items-center gap-2">
-                <Download size={16} className="text-blue-400"/> Stap 1: Download Data
-             </h4>
-             <p className="text-xs text-slate-400 mb-3">
-                Ga naar de Intervals Activities pagina, klik op "List View", selecteer je ritten en kies <strong>Edit &gt; Export CSV</strong>.
-             </p>
-             <a 
-                href={`https://intervals.icu/athlete/${intervalsConfig.athleteId}/activities`} 
-                target="_blank" 
-                rel="noreferrer"
-                className="text-xs bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded inline-flex items-center gap-2 transition-colors"
-             >
-                Open Intervals.icu Activities <ArrowUpRight size={12}/>
-             </a>
-        </div>
+            {internalTab === 'import' && (
+                <div className="space-y-6">
+                    {/* STAP 1: DOWNLOAD HULP */}
+                    <div className="bg-slate-900/50 p-4 rounded border border-slate-700">
+                         <h4 className="text-white font-bold text-sm mb-2 flex items-center gap-2">
+                            <Download size={16} className="text-blue-400"/> Stap 1: Download Data
+                         </h4>
+                         <p className="text-xs text-slate-400 mb-3">
+                            Ga naar de Intervals Activities pagina, klik op "List View", selecteer je ritten en kies <strong>Edit &gt; Export CSV</strong>.
+                         </p>
+                         <a 
+                            href={`https://intervals.icu/athlete/${intervalsConfig.athleteId}/activities`} 
+                            target="_blank" 
+                            rel="noreferrer"
+                            className="text-xs bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded inline-flex items-center gap-2 transition-colors"
+                         >
+                            Open Intervals.icu Activities <ArrowUpRight size={12}/>
+                         </a>
+                    </div>
 
-        {/* STAP 2: IMPORT AREA */}
-        <div>
-             <h4 className="text-white font-bold text-sm mb-2 flex items-center gap-2">
-                <Upload size={16} className="text-green-400"/> Stap 2: Importeer Bestand
-             </h4>
-             <textarea 
-                className="w-full h-32 bg-slate-800 border border-slate-700 rounded p-3 text-xs font-mono text-white focus:border-yellow-400 outline-none transition-colors" 
-                placeholder="Plak de CSV tekst hier OF sleep het bestand hierin (als je drag-and-drop implementeert)... Voor nu: Open CSV in kladblok, Alles Selecteren (Ctrl+A), Kopiëren (Ctrl+C) en hier Plakken (Ctrl+V)." 
-                value={importText} 
-                onChange={e => setImportText(e.target.value)}
-            />
-            <button onClick={() => handleManualImport('generic')} className="mt-4 w-full bg-yellow-400 hover:bg-yellow-300 text-slate-900 font-bold py-3 rounded shadow-lg shadow-yellow-400/20 transition-all">
-                Verwerk Data (CSV of JSON)
-            </button>
-        </div>
-    </div>
-)}
+                    {/* STAP 2: IMPORT AREA */}
+                    <div>
+                         <h4 className="text-white font-bold text-sm mb-2 flex items-center gap-2">
+                            <Upload size={16} className="text-green-400"/> Stap 2: Importeer Bestand
+                         </h4>
+                         <textarea 
+                            className="w-full h-32 bg-slate-800 border border-slate-700 rounded p-3 text-xs font-mono text-white focus:border-yellow-400 outline-none transition-colors" 
+                            placeholder="Plak de CSV tekst hier OF sleep het bestand hierin (als je drag-and-drop implementeert)... Voor nu: Open CSV in kladblok, Alles Selecteren (Ctrl+A), Kopiëren (Ctrl+C) en hier Plakken (Ctrl+V)." 
+                            value={importText} 
+                            onChange={e => setImportText(e.target.value)}
+                        />
+                        <button onClick={handleManualImport} className="mt-4 w-full bg-yellow-400 hover:bg-yellow-300 text-slate-900 font-bold py-3 rounded shadow-lg shadow-yellow-400/20 transition-all">
+                            Verwerk Data (CSV of JSON)
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     </div>
   );
