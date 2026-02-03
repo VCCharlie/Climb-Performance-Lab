@@ -16,7 +16,8 @@ import SettingsTab from './components/SettingsTab';
 
 const App = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
-
+  const [theme, setTheme] = useState('dark'); // 'dark' or 'light'
+  
   const [userSettings, setUserSettings] = useState({
     weight: 70.0,
     bikeWeight: 7.5,
@@ -62,9 +63,7 @@ const App = () => {
                   const data = docSnap.data();
                   if (data.intervals) setIntervalsConfig(data.intervals);
                   if (data.body) setUserSettings(prev => ({...prev, ...data.body}));
-                  if (data.privacyMode !== undefined) setPrivacyMode(data.privacyMode);
-                  if (data.goals) setGoals(data.goals);
-                  if (data.notifications) setNotifications(data.notifications);
+                  if (data.theme) setTheme(data.theme); // Load theme if saved
               }
           } catch (e) { console.log("Error loading settings", e); }
       };
@@ -78,44 +77,30 @@ const App = () => {
           await setDoc(doc(db, "settings", settingsId), {
               intervals: intervalsConfig,
               body: userSettings,
-              privacyMode,
-              goals,
-              notifications
+              theme: theme
           }, { merge: true });
       } catch (e) { alert("Error saving settings: " + e.message); }
   };
 
-  // Google Login handlers
-  const handleLogin = async () => {
-    try {
-      await loginWithGoogle();
-    } catch (error) {
-      if (error.code !== 'auth/popup-closed-by-user') {
-        alert("Login mislukt: " + error.message);
-      }
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      alert("Logout mislukt: " + error.message);
-    }
-  };
-
-  // Chart Data Preparation
+  // Chart Data Preparation (Updated with FTP)
   const chartData = useMemo(() => {
     if (activities.length === 0) return [];
     return activities.map(act => ({
         date: act.date,
         load: act.load,
-        ftp: act.norm_power // proxy
+        ftp: act.ftp || act.norm_power || 0 // Use real FTP if available, else NP as fallback
     })).sort((a,b) => new Date(a.date) - new Date(b.date));
   }, [activities]);
 
+  // Dynamic Styles based on Theme
+  const mainClass = theme === 'dark' ? 'bg-slate-950 text-slate-200' : 'bg-gray-50 text-slate-900';
+  const navBtnActive = theme === 'dark' ? 'bg-yellow-400 text-slate-900' : 'bg-slate-900 text-white';
+  const navBtnInactive = theme === 'dark' ? 'bg-slate-800 text-slate-400 hover:text-white' : 'bg-white text-slate-500 hover:text-slate-900 shadow-sm';
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans pb-12 text-sm">
+    <div className={`min-h-screen font-sans pb-20 transition-colors duration-300 ${mainClass}`}>
+      
+      <Header userSettings={userSettings} />
 
       <Header
         intervalsConfig={intervalsConfig}
@@ -138,7 +123,7 @@ const App = () => {
              <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg font-bold text-xs transition-all ${activeTab === item.id ? 'bg-yellow-400 text-slate-900' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
+                className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm transition-all ${activeTab === item.id ? navBtnActive : navBtnInactive}`}
              >
                 <item.icon className="w-3.5 h-3.5"/> {item.label}
              </button>
@@ -148,7 +133,7 @@ const App = () => {
         {activeTab === 'dashboard' && (
            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                <div className="lg:col-span-2">
-                   <Dashboard chartData={chartData} />
+                   <Dashboard chartData={chartData} theme={theme} />
                </div>
                <div className="lg:col-span-1">
                    <ClimbProfileCard climb={selectedClimb} />
@@ -170,21 +155,13 @@ const App = () => {
         {activeTab === 'fueling' && <FuelingStrategy />}
 
         {activeTab === 'settings' && (
-          <SettingsTab
-            intervalsConfig={intervalsConfig}
-            updateIntervalsConfig={(k, v) => setIntervalsConfig(p => ({...p, [k]: v}))}
-            onSaveToCloud={saveSettingsToCloud}
-            userSettings={userSettings}
-            setUserSettings={setUserSettings}
-            activities={activities}
-            onImportActivities={(newActivities) => setActivities([...activities, ...newActivities])}
-            privacyMode={privacyMode}
-            setPrivacyMode={setPrivacyMode}
-            goals={goals}
-            setGoals={setGoals}
-            notifications={notifications}
-            setNotifications={setNotifications}
-          />
+            <SettingsTab 
+                intervalsConfig={intervalsConfig} 
+                updateIntervalsConfig={(k, v) => setIntervalsConfig(p => ({...p, [k]: v}))}
+                onSaveToCloud={saveSettingsToCloud}
+                theme={theme}
+                setTheme={setTheme}
+            />
         )}
       </main>
     </div>

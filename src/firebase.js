@@ -1,6 +1,6 @@
 /**
  * src/firebase.js
- * Configuratie voor Firebase verbinding met Authentication
+ * Configuratie voor Firebase verbinding (Firestore + Auth)
  */
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
@@ -18,6 +18,7 @@ const firebaseConfig = {
 };
 
 let db;
+let auth;
 let analytics;
 let auth;
 
@@ -34,7 +35,9 @@ try {
   console.error("Firebase init error:", error);
 }
 
-// Google Login helper
+// Google Auth helpers
+const googleProvider = new GoogleAuthProvider();
+
 export const loginWithGoogle = async () => {
   try {
     const result = await signInWithPopup(auth, googleProvider);
@@ -45,7 +48,6 @@ export const loginWithGoogle = async () => {
   }
 };
 
-// Logout helper
 export const logout = async () => {
   try {
     await signOut(auth);

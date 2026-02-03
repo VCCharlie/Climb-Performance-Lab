@@ -1,20 +1,18 @@
 /**
  * src/utils.js
  * Helper functies voor berekeningen en ROBUUSTE data-parsing
- * Geüpdatet: Nu inclusief Power Zones (Coggan model) en Best Power curves
+ * Geüpdatet: Nu inclusief FTP extractie
  */
 
 // --- DATUM FORMATTERS ---
 export const normalizeDate = (dateStr) => {
     if (!dateStr) return new Date().toISOString().split('T')[0];
     if (dateStr.includes('T')) return dateStr.split('T')[0];
-
-    // Formaat: dd/mm/yyyy of dd-mm-yyyy fix
+    
     if (dateStr.includes('/') || dateStr.includes('-')) {
         const sep = dateStr.includes('/') ? '/' : '-';
         const parts = dateStr.split(sep);
         if (parts.length === 3) {
-             // Als eerste deel klein is (dag) en laatste groot (jaar) -> dd-mm-yyyy
              if (parts[0].length <= 2 && parts[2].length === 4) {
                  return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
              }
@@ -53,7 +51,6 @@ export const parseDurationToSeconds = (str) => {
       if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
       if (parts.length === 2) return parts[0] * 60 + parts[1];
   }
-  // Intervals export "1h 30m" formaat fix
   if(str.includes('h') || str.includes('m') || str.includes('s')) {
       let total = 0;
       const h = str.match(/(\d+)h/);
@@ -90,6 +87,7 @@ export const determineActivityType = (type, title) => {
     if (cleanType.toLowerCase() === 'run') return 'Run';
     if (cleanType.toLowerCase() === 'walk') return 'Walk';
     if (cleanType.toLowerCase() === 'hike') return 'Hike';
+    if (['nordicski', 'alpineski', 'iceskate'].includes(cleanType.toLowerCase())) return 'Run';
 
     const name = title ? title.toLowerCase() : '';
     const virtualKeywords = [
@@ -202,17 +200,13 @@ export const getPowerZone = (watts, ftp) => {
 };
 
 // --- PARSER LOGICA ---
-
-// 1. Getallen opschonen (NL vs US formaat)
 const cleanNumber = (val) => {
     if (!val) return 0;
     if (typeof val === 'number') return isNaN(val) ? 0 : val;
-
-    // String opschonen
+    
     let strVal = val.toString().trim();
     if (strVal === '') return 0;
 
-    // 1.000,00 -> 1000.00
     if (strVal.includes('.') && strVal.includes(',')) {
         if (strVal.lastIndexOf(',') > strVal.lastIndexOf('.')) {
             strVal = strVal.replace(/\./g, '').replace(',', '.');
@@ -227,7 +221,6 @@ const cleanNumber = (val) => {
     return isNaN(num) ? 0 : num;
 };
 
-// 2. CSV naar Regels (met Quote support)
 const parseCSVToRows = (text, delimiter) => {
     const rows = [];
     let currentRow = [];
@@ -266,9 +259,7 @@ const parseCSVToRows = (text, delimiter) => {
     return rows;
 };
 
-// 3. Delimiter Detectie (Negeert sep= regel)
 const detectDelimiter = (lines) => {
-    // Neem een sample van de eerste 5 echte regels
     const sample = lines.slice(0, 5).join('\n');
     const commas = (sample.match(/,/g) || []).length;
     const semis = (sample.match(/;/g) || []).length;
@@ -282,42 +273,46 @@ const detectDelimiter = (lines) => {
 export const smartParseCSV = (text) => {
   if (!text || !text.trim()) return [];
 
-  // STAP 1: Filter de 'sep=' regel eruit (CRUCIAAL!)
   let lines = text.trim().split(/\r?\n/);
   if (lines.length > 0 && lines[0].toLowerCase().startsWith('sep=')) {
-      lines.shift(); // Verwijder de sep= regel
-      text = lines.join('\n'); // Herbouw tekst zonder die regel
+      lines.shift();
+      text = lines.join('\n');
   }
 
-  // STAP 2: Detecteer delimiter op schone data
   const delimiter = detectDelimiter(lines);
-
-  // STAP 3: Parse volledige tekst
   const rows = parseCSVToRows(text, delimiter);
 
   if (rows.length < 2) return [];
 
-  // Headers (alles lowercase en zonder quotes)
   const rawHeaders = rows[0].map(h => h.trim().toLowerCase().replace(/^"|"$/g, ''));
 
   const mapHeader = (h) => {
-    // Vervang underscores door spaties (fix voor training_load vs Training Load)
-    h = h.replace(/_/g, ' ');
+    const cleanH = h.replace(/_/g, ' '); 
 
-    if (h === 'name' || h === 'title' || h.includes('activity name')) return 'title';
-    if (h === 'type' || h.includes('activity type')) return 'type';
-    if (h.includes('date') || h.includes('datum')) return 'date';
-    if (h.includes('moving') || h.includes('elapsed') || h.includes('tijd')) return 'moving_time';
-    if (h.includes('distance') || h.includes('afstand')) return 'distance';
-    if (h.includes('climb') || h.includes('elevation') || h.includes('hoogte') || h.includes('gain')) return 'climbing';
-    if (h.includes('speed') || h.includes('snelheid')) return 'avg_speed';
-    // Power (NP)
-    if (h.includes('norm') || h.includes('np') || h.includes('weighted avg')) return 'norm_power';
-    // Power (Avg) - check ook op simpele 'power' of 'watts'
-    if (h.includes('avg power') || h.includes('gem. vermogen') || h.includes('average watts') || h === 'power' || h === 'watts') return 'avg_power';
-    // Load fix
-    if (h === 'load' || h === 'tss' || h.includes('training load')) return 'load';
-    if (h === 'rpe' || h.includes('feel')) return 'rpe';
+    if (h === 'activity id' || h === 'id' || cleanH.includes('activity id')) return 'id';
+    if (h === 'name' || h === 'title' || cleanH.includes('activity name')) return 'title';
+    if (h === 'type' || h === 'sub_type' || cleanH.includes('activity type')) return 'type';
+    if (h === 'start_date_local' || cleanH.includes('date') || cleanH.includes('datum')) return 'date';
+    
+    if (h === 'moving_time' || cleanH.includes('moving time') || cleanH.includes('elapsed time')) return 'moving_time';
+    if (h === 'distance' || cleanH.includes('afstand')) return 'distance';
+    if (h === 'total_elevation_gain' || cleanH.includes('climb') || cleanH.includes('elevation') || cleanH.includes('hoogte')) return 'climbing';
+    if (h === 'average_speed' || cleanH.includes('speed') || cleanH.includes('snelheid')) return 'avg_speed';
+    
+    if (h === 'icu_weighted_avg_watts' || cleanH.includes('weighted avg power') || cleanH.includes('norm power') || cleanH.includes('np')) return 'norm_power';
+    if (h === 'icu_average_watts' || h === 'average_watts' || cleanH.includes('avg power') || cleanH.includes('average watts') || h === 'power' || h === 'watts') return 'avg_power';
+    if (h === 'icu_training_load' || h === 'training_load' || cleanH.includes('tss') || cleanH.includes('load')) return 'load';
+    if (h === 'icu_rpe' || h === 'rpe' || cleanH.includes('feel')) return 'rpe';
+
+    // FTP Extractie
+    if (h === 'icu_ftp' || h === 'ftp' || cleanH.includes('ftp')) return 'ftp';
+
+    if (cleanH.includes('best1min') || cleanH.includes('best 1min') || cleanH.includes('1min power') || cleanH === 'w1min') return 'best_1min';
+    if (cleanH.includes('best5min') || cleanH.includes('best 5min') || cleanH.includes('5min power') || cleanH === 'w5min') return 'best_5min';
+    if (cleanH.includes('best10min') || cleanH.includes('best 10min') || cleanH.includes('10min power') || cleanH === 'w10min') return 'best_10min';
+    if (cleanH.includes('best20min') || cleanH.includes('best 20min') || cleanH.includes('20min power') || cleanH === 'w20min') return 'best_20min';
+    if (cleanH.includes('best60min') || cleanH.includes('best 60min') || cleanH.includes('60min power') || cleanH === 'w60min') return 'best_60min';
+    
     return null;
   };
 
@@ -325,91 +320,54 @@ export const smartParseCSV = (text) => {
 
   return rows.slice(1).map(row => {
     const entry = {};
-
     colMap.forEach((key, idx) => {
       if (!key) return;
       let val = row[idx] !== undefined ? row[idx].trim().replace(/^"|"$/g, '') : '';
-
-      if (key === 'date') {
-          entry[key] = normalizeDate(val);
-      } else if (key === 'moving_time') {
-          entry[key] = parseDurationToSeconds(val);
-      } else if (key === 'title' || key === 'type') {
-          entry[key] = val;
-      } else {
-          entry[key] = cleanNumber(val);
-      }
+      if (key === 'date') entry[key] = normalizeDate(val);
+      else if (key === 'moving_time') entry[key] = parseDurationToSeconds(val);
+      else if (key === 'title' || key === 'type') entry[key] = val;
+      else entry[key] = cleanNumber(val);
     });
-
-    if (!entry.title) entry.title = "Untitled";
-    if (!entry.id) entry.id = Math.random().toString(36).substr(2, 9);
+    if (!entry.title) entry.title = "Untitled"; 
+    if (!entry.id) entry.id = 'csv_' + Math.random().toString(36).substr(2, 9);
     if (!entry.date || entry.date === 'Invalid Date') entry.date = new Date().toISOString().split('T')[0];
-
     entry.type = determineActivityType(entry.type, entry.title);
-
-    // Conversies
     if (entry.distance > 2000) entry.distance = (entry.distance / 1000).toFixed(2);
     if (entry.avg_speed > 0 && entry.avg_speed < 15) entry.avg_speed = (entry.avg_speed * 3.6).toFixed(1);
-
     return entry;
   }).filter(e => e.distance > 0 || e.moving_time > 0);
 };
 
-
-/**
- * Parsed JSON input naar App formaat.
- * Ondersteunt:
- * 1. Ruwe Intervals API data (icu_...)
- * 2. Clean JSON export (normalizedPower, elevationGain)
- */
 export const smartParseJSON = (jsonText) => {
     try {
         const rawData = JSON.parse(jsonText);
-        // Zorg dat het altijd een array is, ook als je 1 object plakt
         const dataArray = Array.isArray(rawData) ? rawData : [rawData];
-
         if (dataArray.length === 0) return [];
-
         return dataArray.map(item => {
-            // HULPFUNCTIE: Veilige getallen
-            const getNum = (val) => {
-                const n = Number(val);
-                return isNaN(n) ? 0 : n;
-            };
-
-            // HULPFUNCTIE: Fallback keten (pak A, anders B, anders C...)
-            const getVal = (...keys) => {
-                for (const k of keys) {
-                    if (item[k] !== undefined && item[k] !== null && item[k] !== "") return item[k];
-                }
-                return null;
-            };
-
-            // 1. BASIS MAPPING
+            const getNum = (val) => { const n = Number(val); return isNaN(n) ? 0 : n; };
+            const getVal = (...keys) => { for (const k of keys) { if (item[k] !== undefined && item[k] !== null && item[k] !== "") return item[k]; } return null; };
+            
             const id = String(getVal('id', 'activity_id') || Math.random().toString(36).substr(2, 9));
             const dateStr = getVal('startDate', 'start_date_local', 'start_date', 'date');
             const title = getVal('name', 'title') || "Untitled";
-
-            // 2. FYSIEKE DATA
+            
             const movingTime = getNum(getVal('movingTime', 'moving_time', 'icu_recording_time', 'elapsedTime', 'elapsed_time'));
             const distanceMeters = getNum(getVal('distance', 'icu_distance'));
             const climbing = getNum(getVal('elevationGain', 'total_elevation_gain', 'total_elevation_loss'));
             const avgSpeedMs = getNum(getVal('avgSpeed', 'average_speed'));
-
-            // 3. PERFORMANCE DATA
             const normPower = getNum(getVal('normalizedPower', 'icu_weighted_avg_watts', 'weighted_average_watts', 'np', 'normalized_power'));
             const avgPower = getNum(getVal('avgWatts', 'icu_average_watts', 'average_watts', 'device_watts', 'avg_power'));
             const load = getNum(getVal('trainingLoad', 'icu_training_load', 'training_load', 'power_load', 'hr_load', 'pace_load', 'tss'));
             const rpe = getNum(getVal('rpe', 'icu_rpe', 'perceived_exertion', 'feel', 'session_rpe'));
+            // FTP Toevoeging
+            const ftp = getNum(getVal('ftp', 'icu_ftp', 'cp'));
 
-            // 4. BEST POWERS (Vermogen curves)
             const best1min = getNum(getVal('Best1minpower', 'best_1min_power', 'w1min'));
             const best5min = getNum(getVal('Best5minpower', 'best_5min_power', 'w5min'));
             const best10min = getNum(getVal('Best10minpower', 'best_10min_power', 'w10min'));
             const best20min = getNum(getVal('Best20minpower', 'best_20min_power', 'w20min'));
             const best60min = getNum(getVal('Best60minpower', 'best_60min_power', 'w60min'));
 
-            // 5. TYPE DETECTIE
             const rawType = getVal('type', 'sub_type');
             const finalType = determineActivityType(rawType, title);
 
@@ -419,13 +377,14 @@ export const smartParseJSON = (jsonText) => {
                 title: title,
                 type: finalType,
                 moving_time: movingTime,
-                distance: (distanceMeters > 2000 || (distanceMeters > 0 && distanceMeters % 1 !== 0)) ? (distanceMeters / 1000).toFixed(2) : distanceMeters,
+                distance: (distanceMeters > 2000 || (distanceMeters > 0 && distanceMeters % 1 !== 0)) ? (distanceMeters / 1000).toFixed(2) : distanceMeters, 
                 climbing: Math.round(climbing),
                 avg_speed: (avgSpeedMs < 20 && avgSpeedMs > 0) ? (avgSpeedMs * 3.6).toFixed(1) : avgSpeedMs,
                 norm_power: Math.round(normPower),
                 avg_power: Math.round(avgPower),
                 load: Math.round(load),
                 rpe: rpe,
+                ftp: Math.round(ftp), // FTP toegevoegd
                 best_1min: Math.round(best1min),
                 best_5min: Math.round(best5min),
                 best_10min: Math.round(best10min),
