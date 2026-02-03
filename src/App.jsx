@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Gauge, Mountain, Activity, Utensils } from 'lucide-react';
 import { doc, setDoc, getDoc } from "firebase/firestore";
-import { db } from './firebase';
+import { onAuthStateChanged } from "firebase/auth";
+import { db, auth, loginWithGoogle, logout } from './firebase';
 import { CLIMB_DATABASE } from './climbs';
 
 // Components
@@ -27,15 +28,25 @@ const App = () => {
   const [intervalsConfig, setIntervalsConfig] = useState({ apiKey: '', athleteId: '' });
   const [activities, setActivities] = useState([]);
 
-  // User auth state (prepared for Google login)
+  // User auth state
   const [user, setUser] = useState(null);
 
-  // Load Settings
+  // Listen to auth state changes
+  useEffect(() => {
+    if (!auth) return;
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Load Settings (user-specific if logged in)
   useEffect(() => {
       const loadSettings = async () => {
           if (!db) return;
           try {
-              const docRef = doc(db, "settings", "user_prefs");
+              const settingsId = user ? `user_${user.uid}` : "user_prefs";
+              const docRef = doc(db, "settings", settingsId);
               const docSnap = await getDoc(docRef);
               if (docSnap.exists()) {
                   const data = docSnap.data();
@@ -45,25 +56,36 @@ const App = () => {
           } catch (e) { console.log("Error loading settings", e); }
       };
       loadSettings();
-  }, []);
+  }, [user]);
 
   const saveSettingsToCloud = async () => {
       if (!db) return;
       try {
-          await setDoc(doc(db, "settings", "user_prefs"), {
+          const settingsId = user ? `user_${user.uid}` : "user_prefs";
+          await setDoc(doc(db, "settings", settingsId), {
               intervals: intervalsConfig,
               body: userSettings
           }, { merge: true });
       } catch (e) { alert("Error saving settings: " + e.message); }
   };
 
-  // Google Login handlers (to be implemented with Firebase Auth)
-  const handleLogin = () => {
-      alert("Google Login wordt binnenkort toegevoegd.\n\nVoor nu worden je instellingen lokaal opgeslagen.");
+  // Google Login handlers
+  const handleLogin = async () => {
+    try {
+      await loginWithGoogle();
+    } catch (error) {
+      if (error.code !== 'auth/popup-closed-by-user') {
+        alert("Login mislukt: " + error.message);
+      }
+    }
   };
 
-  const handleLogout = () => {
-      setUser(null);
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      alert("Logout mislukt: " + error.message);
+    }
   };
 
   // Chart Data Preparation

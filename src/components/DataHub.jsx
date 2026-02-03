@@ -275,29 +275,77 @@ const handleIntervalsSync = async () => {
   }, [processedActivities, isGroupedView]);
 
   return (
-    <div className="bg-slate-800 rounded-xl border border-slate-700 shadow-xl overflow-hidden min-h-[600px] flex flex-col relative animate-in fade-in">
-        {/* MODAL */}
+    <div className="bg-slate-800 rounded-xl border border-slate-700 shadow-xl overflow-hidden min-h-[500px] flex flex-col relative animate-in fade-in">
+        {/* MODAL - Fixed position for zoom stability */}
         {showModal && (
-            <div className="absolute inset-0 bg-slate-900/95 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                <div className="bg-slate-800 border border-slate-600 rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col">
-                    <div className="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900/50">
-                        <h3 className="font-bold text-white flex items-center gap-2"><Download size={18} className="text-green-400"/> Found {fetchedActivities.length} Activities</h3>
-                        <button onClick={() => setShowModal(false)}><X size={20} className="text-slate-400 hover:text-white"/></button>
+            <div className="fixed inset-0 bg-slate-900/95 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+                <div className="bg-slate-800 border border-slate-600 rounded-xl shadow-2xl w-full max-w-6xl max-h-[85vh] flex flex-col">
+                    {/* STICKY HEADER */}
+                    <div className="flex-shrink-0 p-3 border-b border-slate-700 flex justify-between items-center bg-slate-900">
+                        <h3 className="font-bold text-white flex items-center gap-2 text-sm">
+                            <Download size={16} className="text-green-400"/>
+                            {fetchedActivities.length} Activities Found
+                        </h3>
+                        <button onClick={() => setShowModal(false)} className="p-1 hover:bg-slate-700 rounded">
+                            <X size={18} className="text-slate-400 hover:text-white"/>
+                        </button>
                     </div>
-                    <div className="p-4 bg-slate-800 border-b border-slate-700 flex gap-4 items-center">
-                        <button onClick={() => setSelectedActivities(fetchedActivities.map(r=>r.id))} className="text-xs bg-slate-700 px-3 py-1.5 rounded text-white hover:bg-slate-600">Select All</button>
-                        <button onClick={() => setSelectedActivities([])} className="text-xs bg-slate-700 px-3 py-1.5 rounded text-white hover:bg-slate-600">Deselect All</button>
-                        <span className="text-xs text-yellow-400 ml-auto flex items-center gap-1"><Info size={12}/> Klik icoon om te wisselen (Ride ↔ Virtual)</span>
+
+                    {/* STICKY ACTION BAR */}
+                    <div className="flex-shrink-0 px-3 py-2 bg-slate-800 border-b border-slate-700 flex flex-wrap gap-2 items-center">
+                        <button
+                            onClick={() => setSelectedActivities(fetchedActivities.map(r=>r.id))}
+                            className="text-xs bg-slate-700 px-3 py-1.5 rounded text-white hover:bg-slate-600"
+                        >
+                            Select All
+                        </button>
+                        <button
+                            onClick={() => setSelectedActivities([])}
+                            className="text-xs bg-slate-700 px-3 py-1.5 rounded text-white hover:bg-slate-600"
+                        >
+                            Deselect All
+                        </button>
+                        <div className="w-px h-4 bg-slate-600 mx-1"></div>
+                        <button
+                            onClick={() => {
+                                const withPower = fetchedActivities.filter(a => a.avg_power > 0 || a.norm_power > 0).map(a => a.id);
+                                setSelectedActivities(withPower);
+                            }}
+                            className="text-xs bg-emerald-600/30 border border-emerald-500/50 px-3 py-1.5 rounded text-emerald-300 hover:bg-emerald-600/50"
+                        >
+                            Only With Power
+                        </button>
+                        <button
+                            onClick={() => {
+                                const withoutPower = fetchedActivities.filter(a => !a.avg_power && !a.norm_power).map(a => a.id);
+                                const currentWithoutPower = selectedActivities.filter(id => withoutPower.includes(id));
+                                if (currentWithoutPower.length > 0) {
+                                    // Deselect those without power
+                                    setSelectedActivities(prev => prev.filter(id => !withoutPower.includes(id)));
+                                } else {
+                                    // Select those without power
+                                    setSelectedActivities(prev => [...new Set([...prev, ...withoutPower])]);
+                                }
+                            }}
+                            className="text-xs bg-orange-600/30 border border-orange-500/50 px-3 py-1.5 rounded text-orange-300 hover:bg-orange-600/50"
+                        >
+                            Toggle No Power
+                        </button>
+                        <span className="text-[10px] text-yellow-400 ml-auto flex items-center gap-1">
+                            <Info size={10}/> Klik icoon: Ride ↔ Virtual
+                        </span>
                     </div>
-                    <div className="overflow-auto flex-1 p-0">
+
+                    {/* SCROLLABLE TABLE */}
+                    <div className="overflow-auto flex-1 min-h-0">
                         <table className="w-full text-left text-xs whitespace-nowrap">
                             <TableHeader config={{}} requestSort={null} hasActions={false} isPreview={true} />
                             <tbody className="divide-y divide-slate-700 bg-slate-800">
                                 {fetchedActivities.map(act => (
-                                    <Row 
-                                        key={act.id} 
-                                        act={act} 
-                                        isPreview={true} 
+                                    <Row
+                                        key={act.id}
+                                        act={act}
+                                        isPreview={true}
                                         isSelected={selectedActivities.includes(act.id)}
                                         onToggleSelect={(id) => { if(selectedActivities.includes(id)) setSelectedActivities(s => s.filter(x => x !== id)); else setSelectedActivities(s => [...s, id]); }}
                                         onToggleType={toggleActivityTypeInPreview}
@@ -306,12 +354,30 @@ const handleIntervalsSync = async () => {
                             </tbody>
                         </table>
                     </div>
-                    <div className="p-4 border-t border-slate-700 flex justify-between items-center bg-slate-900/50">
-                        <span className="text-xs text-slate-400">{selectedActivities.length} van {fetchedActivities.length} geselecteerd</span>
-                        <div className="flex gap-3">
-                            <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm font-bold text-slate-400 hover:text-white">Cancel</button>
-                            <button onClick={confirmImport} disabled={selectedActivities.length === 0} className="px-8 py-2.5 text-sm font-bold bg-green-500 hover:bg-green-400 disabled:bg-slate-600 disabled:text-slate-400 text-white rounded-lg shadow-lg shadow-green-500/20 transition-all">
-                                ✓ Import {selectedActivities.length} Activities
+
+                    {/* STICKY FOOTER */}
+                    <div className="flex-shrink-0 p-3 border-t border-slate-700 flex justify-between items-center bg-slate-900">
+                        <span className="text-xs text-slate-400">
+                            {selectedActivities.length} van {fetchedActivities.length} geselecteerd
+                            {(() => {
+                                const withPower = fetchedActivities.filter(a => a.avg_power > 0 || a.norm_power > 0).length;
+                                const selectedWithPower = selectedActivities.filter(id => {
+                                    const act = fetchedActivities.find(a => a.id === id);
+                                    return act && (act.avg_power > 0 || act.norm_power > 0);
+                                }).length;
+                                return ` • ${selectedWithPower}/${withPower} met power data`;
+                            })()}
+                        </span>
+                        <div className="flex gap-2">
+                            <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-white">
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmImport}
+                                disabled={selectedActivities.length === 0}
+                                className="px-6 py-2 text-sm font-bold bg-green-500 hover:bg-green-400 disabled:bg-slate-600 disabled:text-slate-400 text-white rounded-lg shadow-lg shadow-green-500/20 transition-all"
+                            >
+                                ✓ Import {selectedActivities.length}
                             </button>
                         </div>
                     </div>
