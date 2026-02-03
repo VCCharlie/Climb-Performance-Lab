@@ -34,7 +34,7 @@ const App = () => {
   useEffect(() => {
       const loadSettings = async () => {
           if (!db) return;
-          try {\
+          try {
               const docRef = doc(db, "settings", "user_prefs");
               const docSnap = await getDoc(docRef);
               if (docSnap.exists()) {
