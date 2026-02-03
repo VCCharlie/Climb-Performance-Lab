@@ -219,8 +219,8 @@ const handleIntervalsSync = async () => {
 
         if (newRides.length > 0) {
             setFetchedActivities(newRides);
-            setSelectedActivities(newRides.map(r => r.id)); 
-            setShowModal(true); 
+            setSelectedActivities(newRides.map(r => r.id));
+            setShowModal(true);
         } else {
             alert("Je bent helemaal bij! Alle gevonden ritten staan al in je dashboard.");
         }
@@ -306,9 +306,14 @@ const handleIntervalsSync = async () => {
                             </tbody>
                         </table>
                     </div>
-                    <div className="p-4 border-t border-slate-700 flex justify-end gap-3 bg-slate-900/50">
-                        <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm font-bold text-slate-400 hover:text-white">Cancel</button>
-                        <button onClick={confirmImport} className="px-6 py-2 text-sm font-bold bg-green-500 hover:bg-green-400 text-white rounded shadow-lg shadow-green-500/20">Import Selected</button>
+                    <div className="p-4 border-t border-slate-700 flex justify-between items-center bg-slate-900/50">
+                        <span className="text-xs text-slate-400">{selectedActivities.length} van {fetchedActivities.length} geselecteerd</span>
+                        <div className="flex gap-3">
+                            <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm font-bold text-slate-400 hover:text-white">Cancel</button>
+                            <button onClick={confirmImport} disabled={selectedActivities.length === 0} className="px-8 py-2.5 text-sm font-bold bg-green-500 hover:bg-green-400 disabled:bg-slate-600 disabled:text-slate-400 text-white rounded-lg shadow-lg shadow-green-500/20 transition-all">
+                                ✓ Import {selectedActivities.length} Activities
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
