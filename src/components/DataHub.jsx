@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { doc, setDoc } from "firebase/firestore";
 import { db } from '../firebase';
-import { smartParseCSV, formatDateDDMMYYYY, formatTime, determineActivityType } from '../utils';
+import { smartParseCSV, smartParseJSON, formatDateDDMMYYYY, formatTime, determineActivityType } from '../utils';
 import { ACTIVITY_COLUMNS, SPORT_TYPES, MONTH_ORDER } from '../config';
 
 // DEZE REGEL MOET ER STAAN:
@@ -115,14 +115,34 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
       }));
   };
 
-  const handleImportCSV = (type) => {
-    const data = smartParseCSV(importText, type);
-    if(data.length) {
-        setFetchedActivities(data);
-        setSelectedActivities(data.map(r => r.id));
+const handleManualImport = () => {
+    const text = importText.trim();
+    if (!text) {
+        alert("Plak eerst data in het veld.");
+        return;
+    }
+
+    let parsedData = [];
+
+    // DETECTIE LOGICA
+    if (text.startsWith('[') || text.startsWith('{')) {
+        // Het lijkt op JSON!
+        console.log("Detectie: JSON formaat");
+        parsedData = smartParseJSON(text);
+    } else {
+        // We gaan uit van CSV
+        console.log("Detectie: CSV formaat");
+        parsedData = smartParseCSV(text); // 'generic' parameter is niet strikt nodig als smartParseCSV slim is
+    }
+
+    if (parsedData.length > 0) {
+        setFetchedActivities(parsedData);
+        setSelectedActivities(parsedData.map(r => r.id));
         setShowModal(true);
         setImportText(""); 
-    } else { alert("Geen geldige data."); }
+    } else { 
+        alert("Kon geen geldige activiteiten vinden. Controleer of het formaat CSV of JSON is."); 
+    }
   };
 
   const handleSyncCloud = async () => {
@@ -148,48 +168,53 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
 
 // In src/components/DataHub.jsx
 
+// src/components/DataHub.jsx
+
+// src/components/DataHub.jsx
+
 const handleIntervalsSync = async () => {
     setIsSyncing(true);
     const btn = document.getElementById('sync-btn');
-    if(btn) btn.innerHTML = 'Fetching...';
+    if(btn) btn.innerHTML = 'Cloud Processing...'; 
 
     try {
-        // Bouw de geselecteerde sport types
-        const selectedTypes = Object.entries(sportFilters)
-            .filter(([_, isSelected]) => isSelected)
-            .map(([type, _]) => type);
+        // --- STAP A: SLIMME FILTER LOGICA ---
+        // Haal de geselecteerde filters op
+        let selectedTypes = Object.keys(sportFilters).filter(k => sportFilters[k]);
 
-        if (selectedTypes.length === 0) {
-            alert("Selecteer minimaal één activiteitstype.");
-            return;
+        // FIX: Als we om 'Ride' vragen, willen we óók 'VirtualRide' ontvangen.
+        // Python hernoemt indoor ritten namelijk naar 'VirtualRide'. 
+        // Als we die niet expliciet vragen, gooit Python ze weg.
+        if (selectedTypes.includes('Ride') && !selectedTypes.includes('VirtualRide')) {
+            selectedTypes.push('VirtualRide');
         }
 
-        // POST request met JSON body (sport_types filter)
+        const payload = {
+            start_date: syncDates.start,
+            end_date: syncDates.end,
+            sport_types: selectedTypes, // Hier sturen we de gecorrigeerde lijst mee
+            athlete_id: intervalsConfig.athleteId, 
+            api_key: intervalsConfig.apiKey,
+            debug: true 
+        };
+
+        // --- STAP B: VERSTUREN ---
         const response = await fetch(CLOUD_SYNC_URL, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                start_date: syncDates.start,
-                end_date: syncDates.end,
-                sport_types: selectedTypes,
-                athlete_id: intervalsConfig?.athleteId || '',
-                api_key: intervalsConfig?.apiKey || '',
-            })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
         });
 
-        const data = await response.json();
+        const data = await response.json(); 
 
         if (!response.ok) throw new Error(data.error || "Server Error");
-
-        // Feedback als het leeg is
+        
+        // --- STAP C: VERWERKEN ---
         if (!Array.isArray(data) || data.length === 0) {
-            alert(`Geen activiteiten gevonden op Intervals.icu tussen ${syncDates.start} en ${syncDates.end}.\n\nGeselecteerde types: ${selectedTypes.join(', ')}\n\nCheck je Athlete ID in Settings.`);
+            alert(`Geen activiteiten gevonden tussen ${syncDates.start} en ${syncDates.end}.`);
             return;
         }
 
-        // Filteren & Tonen
         const newRides = data.filter(ride => !activities.some(existing => existing.id === ride.id));
 
         if (newRides.length > 0) {
@@ -207,8 +232,9 @@ const handleIntervalsSync = async () => {
         setIsSyncing(false);
         if(btn) btn.innerHTML = 'Cloud Sync';
     }
-  };
+};
 
+  
   const confirmImport = () => {
     const toImport = fetchedActivities.filter(a => selectedActivities.includes(a.id));
     onImport(toImport);
@@ -393,8 +419,8 @@ const handleIntervalsSync = async () => {
                 value={importText} 
                 onChange={e => setImportText(e.target.value)}
             />
-            <button onClick={() => handleImportCSV('generic')} className="mt-4 w-full bg-yellow-400 hover:bg-yellow-300 text-slate-900 font-bold py-3 rounded shadow-lg shadow-yellow-400/20 transition-all">
-                Verwerk CSV Data
+            <button onClick={() => handleManualImport('generic')} className="mt-4 w-full bg-yellow-400 hover:bg-yellow-300 text-slate-900 font-bold py-3 rounded shadow-lg shadow-yellow-400/20 transition-all">
+                Verwerk Data (CSV of JSON)
             </button>
         </div>
     </div>
