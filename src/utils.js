@@ -1,13 +1,14 @@
 /**
  * src/utils.js
  * Helper functies voor berekeningen en ROBUUSTE data-parsing
+ * Geüpdatet: Nu inclusief Power Zones (Coggan model) en Best Power curves
  */
 
 // --- DATUM FORMATTERS ---
 export const normalizeDate = (dateStr) => {
     if (!dateStr) return new Date().toISOString().split('T')[0];
     if (dateStr.includes('T')) return dateStr.split('T')[0];
-    
+
     // Formaat: dd/mm/yyyy of dd-mm-yyyy fix
     if (dateStr.includes('/') || dateStr.includes('-')) {
         const sep = dateStr.includes('/') ? '/' : '-';
@@ -28,7 +29,7 @@ export const normalizeDate = (dateStr) => {
 export const formatDateDDMMYYYY = (isoDateString) => {
   if (!isoDateString || isoDateString === 'Invalid Date') return '-';
   const date = new Date(isoDateString);
-  if (isNaN(date.getTime())) return isoDateString; 
+  if (isNaN(date.getTime())) return isoDateString;
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const year = date.getFullYear();
@@ -84,7 +85,7 @@ export const calculateRollingTrend = (activities, targetDateStr, metricKey, wind
 // --- TYPE DETECTIE ---
 export const determineActivityType = (type, title) => {
     let cleanType = type ? type.toString().replace(/\s+/g, '') : 'Ride';
-    
+
     if (cleanType.toLowerCase() === 'virtualride') return 'VirtualRide';
     if (cleanType.toLowerCase() === 'run') return 'Run';
     if (cleanType.toLowerCase() === 'walk') return 'Walk';
@@ -92,10 +93,10 @@ export const determineActivityType = (type, title) => {
 
     const name = title ? title.toLowerCase() : '';
     const virtualKeywords = [
-        'virtual', 'indoor', 
-        'zwift', 'watopia', 'makuri', 'richmond', 'london', 'innsbruck', 
+        'virtual', 'indoor',
+        'zwift', 'watopia', 'makuri', 'richmond', 'london', 'innsbruck',
         'yorkshire', 'bologna', 'crit city', 'scotland', 'neokyo', 'france', 'paris',
-        'mywhoosh', 'rouvy', 'fulgaz', 'bkool', 'rgt', 'indievelo', 'kinomap', 
+        'mywhoosh', 'rouvy', 'fulgaz', 'bkool', 'rgt', 'indievelo', 'kinomap',
         'tacx', 'trainerroad', 'sufferfest', 'systm'
     ];
 
@@ -105,13 +106,108 @@ export const determineActivityType = (type, title) => {
     return 'Ride';
 };
 
+// --- POWER ZONES (COGGAN MODEL) ---
+/**
+ * Berekent Power Zones op basis van FTP volgens het Coggan model.
+ * @param {number} ftp - Functional Threshold Power in watts
+ * @returns {Array} Array van zone objecten met name, min, max, color, description
+ */
+export const calculatePowerZones = (ftp) => {
+    if (!ftp || ftp <= 0) return [];
+
+    return [
+        {
+            zone: 1,
+            name: 'Active Recovery',
+            min: 0,
+            max: Math.round(ftp * 0.55),
+            minPct: 0,
+            maxPct: 55,
+            color: '#94a3b8', // slate-400
+            description: 'Easy spinning, recovery rides'
+        },
+        {
+            zone: 2,
+            name: 'Endurance',
+            min: Math.round(ftp * 0.56),
+            max: Math.round(ftp * 0.75),
+            minPct: 56,
+            maxPct: 75,
+            color: '#3b82f6', // blue-500
+            description: 'Long rides, base building'
+        },
+        {
+            zone: 3,
+            name: 'Tempo',
+            min: Math.round(ftp * 0.76),
+            max: Math.round(ftp * 0.90),
+            minPct: 76,
+            maxPct: 90,
+            color: '#22c55e', // green-500
+            description: 'Steady group rides, sweetspot lower'
+        },
+        {
+            zone: 4,
+            name: 'Threshold',
+            min: Math.round(ftp * 0.91),
+            max: Math.round(ftp * 1.05),
+            minPct: 91,
+            maxPct: 105,
+            color: '#eab308', // yellow-500
+            description: 'Time trials, FTP intervals'
+        },
+        {
+            zone: 5,
+            name: 'VO2max',
+            min: Math.round(ftp * 1.06),
+            max: Math.round(ftp * 1.20),
+            minPct: 106,
+            maxPct: 120,
+            color: '#f97316', // orange-500
+            description: '3-8 minute efforts'
+        },
+        {
+            zone: 6,
+            name: 'Anaerobic',
+            min: Math.round(ftp * 1.21),
+            max: Math.round(ftp * 1.50),
+            minPct: 121,
+            maxPct: 150,
+            color: '#ef4444', // red-500
+            description: '30s - 2 minute efforts'
+        },
+        {
+            zone: 7,
+            name: 'Neuromuscular',
+            min: Math.round(ftp * 1.51),
+            max: 9999,
+            minPct: 151,
+            maxPct: null,
+            color: '#a855f7', // purple-500
+            description: 'Sprints, < 30 seconds'
+        }
+    ];
+};
+
+/**
+ * Bepaalt in welke power zone een gegeven wattage valt.
+ * @param {number} watts - De wattage om te checken
+ * @param {number} ftp - De FTP waarde
+ * @returns {Object|null} Het zone object of null als niet gevonden
+ */
+export const getPowerZone = (watts, ftp) => {
+    if (!watts || !ftp) return null;
+    const zones = calculatePowerZones(ftp);
+    return zones.find(z => watts >= z.min && watts <= z.max) || zones[zones.length - 1];
+};
+
 // --- PARSER LOGICA ---
 
 // 1. Getallen opschonen (NL vs US formaat)
 const cleanNumber = (val) => {
     if (!val) return 0;
     if (typeof val === 'number') return isNaN(val) ? 0 : val;
-    
+
     // String opschonen
     let strVal = val.toString().trim();
     if (strVal === '') return 0;
@@ -126,7 +222,7 @@ const cleanNumber = (val) => {
     } else if (strVal.includes(',')) {
         strVal = strVal.replace(',', '.');
     }
-    
+
     const num = parseFloat(strVal);
     return isNaN(num) ? 0 : num;
 };
@@ -147,7 +243,7 @@ const parseCSVToRows = (text, delimiter) => {
         if (char === '"') {
             if (inQuotes && nextChar === '"') {
                 currentCell += '"';
-                i++; 
+                i++;
             } else {
                 inQuotes = !inQuotes;
             }
@@ -177,9 +273,9 @@ const detectDelimiter = (lines) => {
     const commas = (sample.match(/,/g) || []).length;
     const semis = (sample.match(/;/g) || []).length;
     const tabs = (sample.match(/\t/g) || []).length;
-    
+
     if (tabs > commas && tabs > semis) return '\t';
-    if (semis >= commas) return ';'; 
+    if (semis >= commas) return ';';
     return ',';
 };
 
@@ -195,7 +291,7 @@ export const smartParseCSV = (text) => {
 
   // STAP 2: Detecteer delimiter op schone data
   const delimiter = detectDelimiter(lines);
-  
+
   // STAP 3: Parse volledige tekst
   const rows = parseCSVToRows(text, delimiter);
 
@@ -206,7 +302,7 @@ export const smartParseCSV = (text) => {
 
   const mapHeader = (h) => {
     // Vervang underscores door spaties (fix voor training_load vs Training Load)
-    h = h.replace(/_/g, ' '); 
+    h = h.replace(/_/g, ' ');
 
     if (h === 'name' || h === 'title' || h.includes('activity name')) return 'title';
     if (h === 'type' || h.includes('activity type')) return 'type';
@@ -229,7 +325,7 @@ export const smartParseCSV = (text) => {
 
   return rows.slice(1).map(row => {
     const entry = {};
-    
+
     colMap.forEach((key, idx) => {
       if (!key) return;
       let val = row[idx] !== undefined ? row[idx].trim().replace(/^"|"$/g, '') : '';
@@ -245,10 +341,10 @@ export const smartParseCSV = (text) => {
       }
     });
 
-    if (!entry.title) entry.title = "Untitled"; 
+    if (!entry.title) entry.title = "Untitled";
     if (!entry.id) entry.id = Math.random().toString(36).substr(2, 9);
     if (!entry.date || entry.date === 'Invalid Date') entry.date = new Date().toISOString().split('T')[0];
-    
+
     entry.type = determineActivityType(entry.type, entry.title);
 
     // Conversies
@@ -257,4 +353,88 @@ export const smartParseCSV = (text) => {
 
     return entry;
   }).filter(e => e.distance > 0 || e.moving_time > 0);
+};
+
+
+/**
+ * Parsed JSON input naar App formaat.
+ * Ondersteunt:
+ * 1. Ruwe Intervals API data (icu_...)
+ * 2. Clean JSON export (normalizedPower, elevationGain)
+ */
+export const smartParseJSON = (jsonText) => {
+    try {
+        const rawData = JSON.parse(jsonText);
+        // Zorg dat het altijd een array is, ook als je 1 object plakt
+        const dataArray = Array.isArray(rawData) ? rawData : [rawData];
+
+        if (dataArray.length === 0) return [];
+
+        return dataArray.map(item => {
+            // HULPFUNCTIE: Veilige getallen
+            const getNum = (val) => {
+                const n = Number(val);
+                return isNaN(n) ? 0 : n;
+            };
+
+            // HULPFUNCTIE: Fallback keten (pak A, anders B, anders C...)
+            const getVal = (...keys) => {
+                for (const k of keys) {
+                    if (item[k] !== undefined && item[k] !== null && item[k] !== "") return item[k];
+                }
+                return null;
+            };
+
+            // 1. BASIS MAPPING
+            const id = String(getVal('id', 'activity_id') || Math.random().toString(36).substr(2, 9));
+            const dateStr = getVal('startDate', 'start_date_local', 'start_date', 'date');
+            const title = getVal('name', 'title') || "Untitled";
+
+            // 2. FYSIEKE DATA
+            const movingTime = getNum(getVal('movingTime', 'moving_time', 'icu_recording_time', 'elapsedTime', 'elapsed_time'));
+            const distanceMeters = getNum(getVal('distance', 'icu_distance'));
+            const climbing = getNum(getVal('elevationGain', 'total_elevation_gain', 'total_elevation_loss'));
+            const avgSpeedMs = getNum(getVal('avgSpeed', 'average_speed'));
+
+            // 3. PERFORMANCE DATA
+            const normPower = getNum(getVal('normalizedPower', 'icu_weighted_avg_watts', 'weighted_average_watts', 'np', 'normalized_power'));
+            const avgPower = getNum(getVal('avgWatts', 'icu_average_watts', 'average_watts', 'device_watts', 'avg_power'));
+            const load = getNum(getVal('trainingLoad', 'icu_training_load', 'training_load', 'power_load', 'hr_load', 'pace_load', 'tss'));
+            const rpe = getNum(getVal('rpe', 'icu_rpe', 'perceived_exertion', 'feel', 'session_rpe'));
+
+            // 4. BEST POWERS (Vermogen curves)
+            const best1min = getNum(getVal('Best1minpower', 'best_1min_power', 'w1min'));
+            const best5min = getNum(getVal('Best5minpower', 'best_5min_power', 'w5min'));
+            const best10min = getNum(getVal('Best10minpower', 'best_10min_power', 'w10min'));
+            const best20min = getNum(getVal('Best20minpower', 'best_20min_power', 'w20min'));
+            const best60min = getNum(getVal('Best60minpower', 'best_60min_power', 'w60min'));
+
+            // 5. TYPE DETECTIE
+            const rawType = getVal('type', 'sub_type');
+            const finalType = determineActivityType(rawType, title);
+
+            return {
+                id: id,
+                date: normalizeDate(dateStr),
+                title: title,
+                type: finalType,
+                moving_time: movingTime,
+                distance: (distanceMeters > 2000 || (distanceMeters > 0 && distanceMeters % 1 !== 0)) ? (distanceMeters / 1000).toFixed(2) : distanceMeters,
+                climbing: Math.round(climbing),
+                avg_speed: (avgSpeedMs < 20 && avgSpeedMs > 0) ? (avgSpeedMs * 3.6).toFixed(1) : avgSpeedMs,
+                norm_power: Math.round(normPower),
+                avg_power: Math.round(avgPower),
+                load: Math.round(load),
+                rpe: rpe,
+                best_1min: Math.round(best1min),
+                best_5min: Math.round(best5min),
+                best_10min: Math.round(best10min),
+                best_20min: Math.round(best20min),
+                best_60min: Math.round(best60min)
+            };
+        });
+    } catch (e) {
+        console.error("JSON Parse Error:", e);
+        return [];
+    }
 };
