@@ -2,9 +2,9 @@ import React, { useState, useMemo } from 'react';
 import {
   Search, Cloud, Download, Upload, Info, RefreshCw, X, Monitor, Bike, Footprints, Settings,
   ArrowUpDown, ArrowUpRight, ChevronUp, ChevronDown, ChevronRight, Trash2, CheckCircle, Mountain,
-  Zap, ZapOff, AlertTriangle, Loader2
+  Zap, ZapOff, AlertTriangle, Loader2, Trash
 } from 'lucide-react';
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, deleteDoc } from "firebase/firestore"; // deleteDoc toegevoegd
 import { db } from '../firebase';
 import { smartParseCSV, smartParseJSON, formatDateDDMMYYYY, formatTime } from '../utils';
 import { ACTIVITY_COLUMNS, SPORT_TYPES, MONTH_ORDER } from '../config';
@@ -13,7 +13,6 @@ import { ACTIVITY_COLUMNS, SPORT_TYPES, MONTH_ORDER } from '../config';
 const CLOUD_SYNC_URL = "https://sync-intervals-97555677694.europe-west1.run.app";
 
 // --- HELPER: DATA GUARD ---
-// Voorkomt crashes door corrupte data te filteren (Rapport Sectie 9.2)
 const isValidActivity = (act) => {
     return act && act.id && act.date;
 };
@@ -43,14 +42,11 @@ const TableHeader = ({ config, requestSort, hasActions = true, isPreview = false
 );
 
 const Row = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview = false, isSelected = false, onToggleSelect, onToggleType }) => {
-    // GUARD: Als de activiteit leeg is, render niets (voorkomt crash)
     if (!act) return null;
 
     const renderCell = (col) => {
         try {
             const val = act[col.key];
-            
-            // Safety checks voor null/undefined waarden
             if (val === null || val === undefined) return <span className="text-slate-600">-</span>;
 
             switch(col.key) {
@@ -95,7 +91,7 @@ const Row = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview = false
 };
 
 // --- MAIN COMPONENT ---
-const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
+const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) => {
   const [internalTab, setInternalTab] = useState('log');
   const [importText, setImportText] = useState("");
   const [search, setSearch] = useState("");
@@ -103,6 +99,7 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
   const [expandedYears, setExpandedYears] = useState({});
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
   const [previewSortConfig, setPreviewSortConfig] = useState({ key: 'date', direction: 'desc' });
+  const [isDeleting, setIsDeleting] = useState(false); // Nieuwe state voor verwijderen
 
   const [syncDates, setSyncDates] = useState({
       start: new Date(new Date().setDate(new Date().getDate() - 90)).toISOString().split('T')[0], 
@@ -122,19 +119,50 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
   const toggleSportFilter = (type) => setSportFilters(prev => ({...prev, [type]: !prev[type]}));
   const setAllSportFilters = (val) => setSportFilters(SPORT_TYPES.reduce((acc, type) => ({...acc, [type]: val}), {}));
   const toggleYear = (year) => setExpandedYears(p => ({...p, [year]: !p[year]}));
-  
-  // Sorteer functies
   const requestSort = (key) => setSortConfig({ key, direction: sortConfig.key === key && sortConfig.direction === 'desc' ? 'asc' : 'desc' });
   const requestPreviewSort = (key) => setPreviewSortConfig({ key, direction: previewSortConfig.key === key && previewSortConfig.direction === 'desc' ? 'asc' : 'desc' });
 
-  const toggleActivityTypeInPreview = (id) => {
-      setFetchedActivities(prev => prev.map(act => {
-          if (act.id === id) {
-              const newType = act.type === 'VirtualRide' ? 'Ride' : 'VirtualRide';
-              return { ...act, type: newType };
+  // --- ACTIONS (DELETE & CLEAR) ---
+
+  const handleDeleteSingle = async (id) => {
+      // 1. Verwijder uit Firebase
+      if (db) {
+          try {
+              await deleteDoc(doc(db, "activities", String(id)));
+              console.log("Deleted from Firebase:", id);
+          } catch (e) {
+              console.error("Firebase delete failed:", e);
+              alert("Kon activiteit niet verwijderen uit database.");
+              return;
           }
-          return act;
-      }));
+      }
+      // 2. Update Lokale UI (via prop)
+      onDelete(id);
+      setDeleteConfirm(null);
+  };
+
+  const handleClearDatabase = async () => {
+      if (!confirm("WEET JE HET ZEKER?\n\nHiermee verwijder je ALLE activiteiten uit de database. Dit kan niet ongedaan worden gemaakt.")) return;
+      if (!confirm("ECHT ZEKER? Typ 'JA' in je hoofd en klik OK.")) return;
+
+      setIsDeleting(true);
+      try {
+          if (db && activities.length > 0) {
+              // Verwijder één voor één (Firestore heeft geen simpele 'delete collection' functie voor clients)
+              // Dit is veiliger dan batch voor grote aantallen
+              const promises = activities.map(act => deleteDoc(doc(db, "activities", String(act.id))));
+              await Promise.all(promises);
+              console.log("All activities deleted from Firebase");
+          }
+          // Update UI
+          if (onClear) onClear();
+          alert("Database succesvol gewist. Klaar voor een schone start!");
+      } catch (e) {
+          console.error("Clear DB Error:", e);
+          alert("Fout bij wissen database: " + e.message);
+      } finally {
+          setIsDeleting(false);
+      }
   };
 
   // --- MANUAL IMPORT (CSV / JSON) ---
@@ -143,13 +171,9 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
     if (!text) { alert("Plak eerst data in het veld."); return; }
 
     let parsedData = [];
-
-    // DETECTIE LOGICA
     if (text.startsWith('[') || text.startsWith('{')) {
-        console.log("Detectie: JSON formaat");
         parsedData = smartParseJSON(text);
     } else {
-        console.log("Detectie: CSV formaat");
         parsedData = smartParseCSV(text);
     }
 
@@ -163,6 +187,16 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
     }
   };
 
+  const toggleActivityTypeInPreview = (id) => {
+      setFetchedActivities(prev => prev.map(act => {
+          if (act.id === id) {
+              const newType = act.type === 'VirtualRide' ? 'Ride' : 'VirtualRide';
+              return { ...act, type: newType };
+          }
+          return act;
+      }));
+  };
+
   // --- INTERVALS.ICU CLOUD SYNC ---
   const handleIntervalsSync = async () => {
     setIsSyncing(true);
@@ -171,7 +205,6 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
 
     try {
         let selectedTypes = Object.keys(sportFilters).filter(k => sportFilters[k]);
-
         if (selectedTypes.includes('Ride') && !selectedTypes.includes('VirtualRide')) {
             selectedTypes.push('VirtualRide');
         }
@@ -192,7 +225,6 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
         });
 
         const data = await response.json(); 
-
         if (!response.ok) throw new Error(data.error || "Server Error");
         
         if (!Array.isArray(data) || data.length === 0) {
@@ -200,7 +232,6 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
             return;
         }
 
-        // Veilig filteren op bestaande activities
         const safeActivities = Array.isArray(activities) ? activities : [];
         const newRides = data.filter(ride => !safeActivities.some(existing => existing.id === ride.id));
 
@@ -223,16 +254,13 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
 
   const confirmImport = async () => {
     const toImport = fetchedActivities.filter(a => selectedActivities.includes(a.id));
-    
-    // 1. Update Lokale State
     onImport(toImport);
 
-    // 2. OPSLAAN NAAR FIREBASE (PERSISTENCE)
     if (db) {
         let savedCount = 0;
         try {
             for (const act of toImport) {
-                if (act.id) { // Check of ID bestaat
+                if (act.id) {
                     await setDoc(doc(db, "activities", String(act.id)), act, { merge: true });
                     savedCount++;
                 }
@@ -242,7 +270,6 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
             alert("Let op: Data lokaal geïmporteerd, maar Cloud backup mislukt: " + e.message);
         }
     }
-
     setShowModal(false);
     setFetchedActivities([]);
     setInternalTab('log');
@@ -250,7 +277,7 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
 
   // Sorteer Helper
   const sortActivities = (list, config) => {
-      if (!list || !Array.isArray(list)) return []; // Safety check
+      if (!list || !Array.isArray(list)) return [];
       if (!config.key) return list;
       return [...list].sort((a, b) => {
             let aVal = a[config.key];
@@ -264,10 +291,9 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
   };
 
   const processedActivities = useMemo(() => {
-    if (!activities) return []; // CRITICAL GUARD: voorkomt crash bij undefined
-    
+    if (!activities) return [];
     let filtered = activities.filter(a => {
-        if (!isValidActivity(a)) return false; // Filter corrupte data weg
+        if (!isValidActivity(a)) return false;
         return (a.title && a.title.toLowerCase().includes(search.toLowerCase())) || (a.date && a.date.includes(search));
     });
     return sortActivities(filtered, sortConfig);
@@ -289,9 +315,7 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
             if(!groups[y]) groups[y] = {};
             if(!groups[y][m]) groups[y][m] = [];
             groups[y][m].push(act);
-        } catch(e) {
-            console.warn("Skipping activity with invalid date in grouping", act);
-        }
+        } catch(e) { console.warn("Skipping activity", act); }
     });
     return groups;
   }, [processedActivities, isGroupedView]);
@@ -299,75 +323,38 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
   return (
     <div className="bg-slate-800 rounded-xl border border-slate-700 shadow-xl overflow-hidden min-h-[500px] flex flex-col relative animate-in fade-in">
         
-        {/* MODAL - Fixed position for zoom stability */}
+        {/* MODAL */}
         {showModal && (
             <div className="fixed inset-0 bg-slate-900/95 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
                 <div className="bg-slate-800 border border-slate-600 rounded-xl shadow-2xl w-full max-w-6xl max-h-[85vh] flex flex-col">
-                    {/* STICKY HEADER */}
                     <div className="flex-shrink-0 p-3 border-b border-slate-700 flex justify-between items-center bg-slate-900">
                         <h3 className="font-bold text-white flex items-center gap-2 text-sm">
-                            <Download size={16} className="text-green-400"/>
-                            {fetchedActivities.length} Activities Found
+                            <Download size={16} className="text-green-400"/> {fetchedActivities.length} Activities Found
                         </h3>
-                        <button onClick={() => setShowModal(false)} className="p-1 hover:bg-slate-700 rounded">
-                            <X size={18} className="text-slate-400 hover:text-white"/>
-                        </button>
+                        <button onClick={() => setShowModal(false)} className="p-1 hover:bg-slate-700 rounded"><X size={18} className="text-slate-400 hover:text-white"/></button>
                     </div>
-
-                    {/* STICKY ACTION BAR */}
                     <div className="flex-shrink-0 px-3 py-2 bg-slate-800 border-b border-slate-700 flex flex-wrap gap-2 items-center">
                         <button onClick={() => setSelectedActivities(fetchedActivities.map(r=>r.id))} className="text-xs bg-slate-700 px-3 py-1.5 rounded text-white hover:bg-slate-600">Select All</button>
                         <button onClick={() => setSelectedActivities([])} className="text-xs bg-slate-700 px-3 py-1.5 rounded text-white hover:bg-slate-600">Deselect All</button>
-                        
                         <div className="w-px h-4 bg-slate-600 mx-1"></div>
-                        
-                        <button
-                            onClick={() => {
-                                const withPower = fetchedActivities.filter(a => a.avg_power > 0 || a.norm_power > 0).map(a => a.id);
-                                setSelectedActivities(withPower);
-                            }}
-                            className="text-xs bg-emerald-600/30 border border-emerald-500/50 px-3 py-1.5 rounded text-emerald-300 hover:bg-emerald-600/50 flex items-center gap-1"
-                        >
-                            <Zap size={12}/> Only With Power
-                        </button>
-                        <span className="text-[10px] text-yellow-400 ml-auto flex items-center gap-1">
-                            <Info size={10}/> Klik icoon: Ride ↔ Virtual
-                        </span>
+                        <button onClick={() => { const withPower = fetchedActivities.filter(a => a.avg_power > 0 || a.norm_power > 0).map(a => a.id); setSelectedActivities(withPower); }} className="text-xs bg-emerald-600/30 border border-emerald-500/50 px-3 py-1.5 rounded text-emerald-300 hover:bg-emerald-600/50 flex items-center gap-1"><Zap size={12}/> Only With Power</button>
+                        <span className="text-[10px] text-yellow-400 ml-auto flex items-center gap-1"><Info size={10}/> Klik icoon: Ride ↔ Virtual</span>
                     </div>
-
-                    {/* SCROLLABLE TABLE */}
                     <div className="overflow-auto flex-1 min-h-0 custom-scrollbar">
                         <table className="w-full text-left text-xs whitespace-nowrap">
                             <TableHeader config={previewSortConfig} requestSort={requestPreviewSort} hasActions={false} isPreview={true} />
                             <tbody className="divide-y divide-slate-700 bg-slate-800">
                                 {sortedFetchedActivities.map(act => (
-                                    <Row
-                                        key={act.id}
-                                        act={act}
-                                        isPreview={true}
-                                        isSelected={selectedActivities.includes(act.id)}
-                                        onToggleSelect={(id) => { if(selectedActivities.includes(id)) setSelectedActivities(s => s.filter(x => x !== id)); else setSelectedActivities(s => [...s, id]); }}
-                                        onToggleType={toggleActivityTypeInPreview}
-                                    />
+                                    <Row key={act.id} act={act} isPreview={true} isSelected={selectedActivities.includes(act.id)} onToggleSelect={(id) => { if(selectedActivities.includes(id)) setSelectedActivities(s => s.filter(x => x !== id)); else setSelectedActivities(s => [...s, id]); }} onToggleType={toggleActivityTypeInPreview} />
                                 ))}
                             </tbody>
                         </table>
                     </div>
-
-                    {/* STICKY FOOTER */}
                     <div className="flex-shrink-0 p-3 border-t border-slate-700 flex justify-between items-center bg-slate-900">
-                        <span className="text-xs text-slate-400">
-                            {selectedActivities.length} van {fetchedActivities.length} geselecteerd
-                        </span>
+                        <span className="text-xs text-slate-400">{selectedActivities.length} van {fetchedActivities.length} geselecteerd</span>
                         <div className="flex gap-2">
                             <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-white">Cancel</button>
-                            <button
-                                onClick={confirmImport}
-                                disabled={selectedActivities.length === 0}
-                                className="px-6 py-2 text-sm font-bold bg-green-500 hover:bg-green-400 disabled:bg-slate-600 disabled:text-slate-400 text-white rounded-lg shadow-lg shadow-green-500/20 transition-all"
-                            >
-                                ✓ Import {selectedActivities.length}
-                            </button>
+                            <button onClick={confirmImport} disabled={selectedActivities.length === 0} className="px-6 py-2 text-sm font-bold bg-green-500 hover:bg-green-400 disabled:bg-slate-600 disabled:text-slate-400 text-white rounded-lg shadow-lg shadow-green-500/20 transition-all">✓ Import {selectedActivities.length}</button>
                         </div>
                     </div>
                 </div>
@@ -389,20 +376,21 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
                             <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500"/>
                             <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..." className="w-full bg-slate-900 border border-slate-600 rounded pl-10 pr-4 py-2 text-sm text-white outline-none" />
                         </div>
-                        <button id="save-btn" onClick={() => alert("Automatische Cloud Sync staat aan bij import. Deze knop is reserve.")} className="bg-slate-700 text-slate-400 px-4 py-2 rounded flex items-center gap-2 text-sm font-bold"><Cloud size={16}/> Saved</button>
+                        {/* DEZE KNOP IS DE "NUCLEAR OPTION" */}
+                        <button 
+                            onClick={handleClearDatabase} 
+                            disabled={isDeleting || !activities || activities.length === 0}
+                            className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/50 px-4 py-2 rounded flex items-center gap-2 text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {isDeleting ? <Loader2 className="animate-spin" size={16}/> : <Trash size={16}/>}
+                            {isDeleting ? 'Wissen...' : 'Clear Database'}
+                        </button>
                     </div>
                     
-                    {/* GUARD: LOADING STATE */}
                     {!activities ? (
-                         <div className="flex-1 flex flex-col items-center justify-center text-slate-500 gap-4">
-                            <Loader2 className="animate-spin text-yellow-400" size={32}/>
-                            <p>Loading Activities...</p>
-                         </div>
+                         <div className="flex-1 flex flex-col items-center justify-center text-slate-500 gap-4"><Loader2 className="animate-spin text-yellow-400" size={32}/><p>Loading Activities...</p></div>
                     ) : processedActivities.length === 0 ? (
-                        <div className="flex-1 flex flex-col items-center justify-center text-slate-500 gap-2 border border-dashed border-slate-700 rounded-lg">
-                            <AlertTriangle size={32} className="text-slate-600"/>
-                            <p>No activities found. Start with an Import!</p>
-                        </div>
+                        <div className="flex-1 flex flex-col items-center justify-center text-slate-500 gap-2 border border-dashed border-slate-700 rounded-lg"><AlertTriangle size={32} className="text-slate-600"/><p>No activities found. Start with an Import!</p></div>
                     ) : (
                         <div className="overflow-x-auto flex-1 border border-slate-700 rounded-lg custom-scrollbar">
                             <table className="w-full text-left text-xs whitespace-nowrap">
@@ -414,12 +402,12 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
                                             {expandedYears[year] && Object.keys(groupedActivities[year]).sort((a, b) => { const diff = MONTH_ORDER.indexOf(b) - MONTH_ORDER.indexOf(a); return sortConfig.direction === 'asc' ? -diff : diff; }).map(month => (
                                                 <React.Fragment key={month}>
                                                     <tr className="bg-slate-700/20"><td colSpan={ACTIVITY_COLUMNS.length+1} className="px-8 py-1 text-[10px] uppercase font-bold text-slate-500">{month}</td></tr>
-                                                    {groupedActivities[year][month].map(act => <Row key={act.id} act={act} onDelete={onDelete} deleteConfirm={deleteConfirm} setDeleteConfirm={setDeleteConfirm}/>)}
+                                                    {groupedActivities[year][month].map(act => <Row key={act.id} act={act} onDelete={handleDeleteSingle} deleteConfirm={deleteConfirm} setDeleteConfirm={setDeleteConfirm}/>)}
                                                 </React.Fragment>
                                             ))}
                                         </React.Fragment>
                                     ))}
-                                    {!isGroupedView && processedActivities.map(act => <Row key={act.id} act={act} onDelete={onDelete} deleteConfirm={deleteConfirm} setDeleteConfirm={setDeleteConfirm}/>)}
+                                    {!isGroupedView && processedActivities.map(act => <Row key={act.id} act={act} onDelete={handleDeleteSingle} deleteConfirm={deleteConfirm} setDeleteConfirm={setDeleteConfirm}/>)}
                                 </tbody>
                             </table>
                         </div>
@@ -427,6 +415,7 @@ const DataHub = ({ activities, onImport, onDelete, intervalsConfig }) => {
                 </>
             )}
             
+            {/* OVERIGE TABS (Intervals & Import) blijven identiek, hieronder ingekort voor leesbaarheid maar in jouw bestand laat je ze staan zoals in vorige versie */}
             {internalTab === 'intervals' && (
                 <div className="bg-slate-900/50 border border-slate-600 rounded-lg p-6 space-y-6">
                     <h3 className="text-lg font-bold text-white flex items-center gap-2"><RefreshCw size={20} className="text-orange-400"/> Sync Activities</h3>
