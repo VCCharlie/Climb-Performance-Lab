@@ -91,17 +91,26 @@ const ActivityDetailModal = ({ activity, onClose }) => {
                             {powerCurve.length > 0 && (
                                 <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
                                     <div className="text-[10px] text-slate-500 mb-2 uppercase font-bold text-center">Peak Power Curve</div>
-                                    <div className="flex justify-between items-end h-24 gap-2 px-2">
+                                    <div className="flex justify-between items-end h-32 gap-2 px-2">
                                         {powerCurve.map((p, idx) => {
                                             const maxVal = Math.max(...powerCurve.map(i => i.val));
                                             const heightPct = (p.val / maxVal) * 100;
                                             return (
-                                                <div key={idx} className="flex-1 flex flex-col justify-end items-center group">
-                                                    <div className="text-[10px] font-bold text-white mb-1 opacity-0 group-hover:opacity-100 transition-opacity">{p.val}w</div>
-                                                    <div className="w-full bg-yellow-500/20 hover:bg-yellow-500/40 rounded-t relative transition-all" style={{ height: `${heightPct}%` }}>
-                                                        <div className="absolute top-0 w-full h-0.5 bg-yellow-400/50"></div>
+                                                <div key={idx} className="flex-1 flex flex-col h-full justify-end items-center group relative">
+                                                    {/* Tooltip positioned absolutely above the chart area */}
+                                                    <div className="absolute top-0 w-full text-center">
+                                                        <span className="text-[10px] font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 px-1 rounded border border-slate-600 shadow-sm z-10">{p.val}w</span>
                                                     </div>
-                                                    <div className="text-[10px] text-slate-500 mt-1">{p.label}</div>
+
+                                                    {/* Chart Area: Flex-1 fills available space. Items-end aligns bar to bottom. */}
+                                                    <div className="flex-1 w-full flex items-end">
+                                                        <div className="w-full bg-yellow-500/20 group-hover:bg-yellow-500/40 rounded-t relative transition-all" style={{ height: `${heightPct}%` }}>
+                                                            <div className="absolute top-0 w-full h-0.5 bg-yellow-400/50"></div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Label */}
+                                                    <div className="text-[10px] text-slate-500 mt-1 h-4 flex items-center">{p.label}</div>
                                                 </div>
                                             );
                                         })}
