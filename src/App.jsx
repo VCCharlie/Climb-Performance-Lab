@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Gauge, Mountain, Activity, Utensils } from 'lucide-react'; // Settings icon weggehaald
+import { Gauge, Mountain, Activity, Utensils } from 'lucide-react'; 
 import { doc, setDoc, getDoc, collection, getDocs } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from './firebase'; 
@@ -13,12 +13,12 @@ import DataHub from './components/DataHub';
 import FuelingStrategy from './components/FuelingStrategy';
 import ClimbProfileCard from './components/ClimbProfileCard';
 import Dashboard from './components/Dashboard';
-import SettingsModal from './components/SettingsModal'; // NIEUW
+import SettingsModal from './components/SettingsModal'; 
 
 const App = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [theme, setTheme] = useState('dark');
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false); // Modal state
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false); 
   
   const [userSettings, setUserSettings] = useState({
     weight: 70.0,
@@ -149,7 +149,6 @@ const App = () => {
              {id: 'physics', label: 'Physics', icon: Mountain},
              {id: 'data', label: 'Data Hub', icon: Activity},
              {id: 'fueling', label: 'Fueling', icon: Utensils},
-             // Settings tab is nu weg hier
            ].map(item => (
              <button
                 key={item.id}
@@ -185,6 +184,7 @@ const App = () => {
                             setActivities(prev => [...prev, ...n]);
                         }}
                         onDelete={(id) => setActivities(activities.filter(a => a.id !== id))}
+                        onClear={() => setActivities([])} // NIEUW: Prop om alles leeg te maken
                         intervalsConfig={intervalsConfig}
                     />
                 )}
