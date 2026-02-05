@@ -114,19 +114,38 @@ const App = () => {
     };
 
     // Chart Data
+    // Chart Data
     const chartData = useMemo(() => {
         if (activities.length === 0) return [];
         const sorted = [...activities].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        // Track last known FTP for fallback, but prefer calculated eFTP
         let lastKnownFtp = userSettings.ftp || 200;
 
         return sorted.map(act => {
+            // Update last known FTP from activity if manually set
             if (act.ftp && act.ftp > 100) {
                 lastKnownFtp = act.ftp;
             }
+
+            // Calculate eFTP: 95% of 20m power, OR 95% of Avg Power (if 20m missing but decent duration)
+            // Strict logic: best_20min is gold standard.
+            let eFTP = lastKnownFtp; // Default fallback
+
+            if (act.best_20min && act.best_20min > 0) {
+                eFTP = Math.round(act.best_20min * 0.95);
+            } else if (act.avg_power && act.moving_time > 1200) {
+                // Fallback: If >20mins duration, use avg_power * 0.95 as rough estimate
+                // This might be too generous for easy rides, but better than flat line? 
+                // User asked for "math on the rolling average for rides on that date".
+                // Actually, let's Stick to best_20min * 0.95. If missing, use lastKnown.
+            }
+
             return {
                 date: act.date,
                 load: act.load,
-                ftp: lastKnownFtp
+                ftp: lastKnownFtp, // Keep original for reference
+                eFTP: act.best_20min ? Math.round(act.best_20min * 0.95) : null // Only set if valid effort
             };
         });
     }, [activities, userSettings.ftp]);
@@ -146,21 +165,28 @@ const App = () => {
             />
 
             <main className={`mx-auto p-3 space-y-4 transition-all duration-300 ${activeTab === 'data' ? 'max-w-[95%]' : 'max-w-7xl'}`}>
-                <nav className="flex overflow-x-auto gap-1.5 pb-2 md:pb-0">
+                <nav className="flex overflow-x-auto gap-4 pb-2 md:pb-0 border-b border-slate-700/50 mb-4 px-2">
                     {[
                         { id: 'dashboard', label: 'Dashboard', icon: Gauge },
                         { id: 'physics', label: 'Physics', icon: Mountain },
                         { id: 'data', label: 'Data Hub', icon: Activity },
                         { id: 'fueling', label: 'Fueling', icon: Utensils },
-                    ].map(item => (
-                        <button
-                            key={item.id}
-                            onClick={() => setActiveTab(item.id)}
-                            className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm transition-all ${activeTab === item.id ? navBtnActive : navBtnInactive}`}
-                        >
-                            <item.icon className="w-3.5 h-3.5" /> {item.label}
-                        </button>
-                    ))}
+                    ].map(item => {
+                        const isActive = activeTab === item.id;
+                        return (
+                            <button
+                                key={item.id}
+                                onClick={() => setActiveTab(item.id)}
+                                className={`flex items-center gap-2 px-4 py-3 font-bold text-sm transition-all border-b-2 ${isActive
+                                    ? (isDark ? 'border-yellow-400 text-white' : 'border-blue-500 text-blue-600')
+                                    : 'border-transparent text-slate-500 hover:text-slate-400'
+                                    }`}
+                            >
+                                <item.icon className={`w-4 h-4 ${isActive ? (isDark ? 'text-yellow-400' : 'text-blue-500') : ''}`} />
+                                {item.label}
+                            </button>
+                        )
+                    })}
                 </nav>
 
                 {isLoading ? (

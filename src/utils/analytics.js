@@ -73,15 +73,11 @@ export const calculateTrendLine = (data, key) => {
  * Optimize data for charting - enrich with rolling avg and trend
  */
 export const enrichChartData = (data) => {
-    let result = calculateRollingAverage(data, 'ftp', 30); // 30 entries window (approx 1 month if daily, but depends on frequency)
-    // Actually, rolling average based on DAYS is harder if data is sparse. 
-    // The simple index-based window is "last 30 activities". 
-    // If the user wants Time-based rolling (e.g. 30 days), we'd need a different algo.
-    // For now, index-based (last 30 points) is safer for performance if data is sparse, 
-    // EXCEPT if points are years apart. 
-    // Let's stick to index-based for "Moving Average" of samples.
+    let result = calculateRollingAverage(data, 'ftp', 30);
+    result = calculateRollingAverage(result, 'eFTP', 30); // NEW: Rolling avg for eFTP
 
     result = calculateTrendLine(result, 'ftp');
+    result = calculateTrendLine(result, 'eFTP'); // NEW: Trend for eFTP
     result = calculateTrendLine(result, 'load');
     return result;
 };
