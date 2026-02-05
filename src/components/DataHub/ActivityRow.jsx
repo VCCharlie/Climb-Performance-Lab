@@ -1,9 +1,9 @@
 import React from 'react';
-import { Monitor, Footprints, Mountain, Bike, Trash2, ExternalLink } from 'lucide-react';
+import { Monitor, Footprints, Mountain, Bike, Trash2, ExternalLink, Eye } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
 import { ACTIVITY_COLUMNS } from '../../config';
 
-const ActivityRow = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview = false, isSelected = false, onToggleSelect, onToggleType }) => {
+const ActivityRow = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview = false, isSelected = false, onToggleSelect, onToggleType, onViewDetail }) => {
     if (!act) return null;
 
     const renderCell = (col) => {
@@ -15,7 +15,7 @@ const ActivityRow = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview
                 case 'date': return <span className="text-slate-300 whitespace-nowrap">{formatDateDDMMYYYY(val)}</span>;
                 case 'type': return (
                     <div
-                        className={`flex justify - center items - center h - full ${isPreview ? 'cursor-pointer hover:text-yellow-400' : ''} `}
+                        className={`flex justify-center items-center h-full ${isPreview ? 'cursor-pointer hover:text-yellow-400' : ''}`}
                         onClick={(e) => { if (isPreview && onToggleType) { e.stopPropagation(); onToggleType(act.id); } }}
                         title={isPreview ? `Huidig: ${val}. Klik om te wijzigen.` : val}
                     >
@@ -39,9 +39,9 @@ const ActivityRow = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview
                                 title="Open in Intervals.icu"
                             >
                                 <ExternalLink size={12} />
-                            </a >
+                            </a>
                         )}
-                    </div >
+                    </div>
                 );
                 case 'moving_time': return <span className="text-slate-400 font-mono">{formatTime(val)}</span>;
                 case 'distance': case 'avg_speed': return <span className="text-slate-400">{Number(val).toFixed(1)}</span>;
@@ -62,7 +62,14 @@ const ActivityRow = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview
             {isPreview && <td className="p-3 w-10"><input type="checkbox" checked={isSelected} readOnly className="w-4 h-4 accent-green-500 cursor-pointer" /></td>}
             {ACTIVITY_COLUMNS.map(col => <td key={col.key} className={`p-3 text-${col.align} text-xs`}>{renderCell(col)}</td>)}
             {!isPreview && <td className="p-3 text-right">
-                {deleteConfirm === act.id ? <div className="flex gap-2 justify-end"><button onClick={(e) => { e.stopPropagation(); onDelete(act.id) }} className="text-red-500 font-bold text-xs bg-red-500/10 px-2 py-1 rounded">SURE?</button><button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(null) }} className="text-slate-400 text-xs px-2 py-1">Cancel</button></div> : <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(act.id) }} className="text-slate-600 hover:text-red-400"><Trash2 size={14} /></button>}
+                <div className="flex gap-2 justify-end items-center">
+                    {onViewDetail && (
+                        <button onClick={(e) => { e.stopPropagation(); onViewDetail(act); }} className="text-slate-600 hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity" title="View Details">
+                            <Eye size={14} />
+                        </button>
+                    )}
+                    {deleteConfirm === act.id ? <div className="flex gap-2 justify-end"><button onClick={(e) => { e.stopPropagation(); onDelete(act.id) }} className="text-red-500 font-bold text-xs bg-red-500/10 px-2 py-1 rounded">SURE?</button><button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(null) }} className="text-slate-400 text-xs px-2 py-1">Cancel</button></div> : <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(act.id) }} className="text-slate-600 hover:text-red-400"><Trash2 size={14} /></button>}
+                </div>
             </td>}
         </tr>
     );

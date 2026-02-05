@@ -6,6 +6,7 @@ import useSortableData from '../../hooks/useSortableData';
 import { ACTIVITY_COLUMNS, MONTH_ORDER } from '../../config';
 import { findDuplicates } from '../../utils/duplicateDetection';
 import DuplicateReviewModal from './DuplicateReviewModal';
+import ActivityDetailModal from './ActivityDetailModal';
 
 // Helper for validity
 const isValidActivity = (act) => {
@@ -16,6 +17,9 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
     const [search, setSearch] = useState("");
     const [deleteConfirm, setDeleteConfirm] = useState(null);
     const [expandedYears, setExpandedYears] = useState({});
+
+    // Detail View
+    const [selectedDetailActivity, setSelectedDetailActivity] = useState(null);
 
     // Duplication Feature
     const [duplicateConflicts, setDuplicateConflicts] = useState([]);
@@ -88,6 +92,12 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
 
     return (
         <>
+            {selectedDetailActivity && (
+                <ActivityDetailModal
+                    activity={selectedDetailActivity}
+                    onClose={() => setSelectedDetailActivity(null)}
+                />
+            )}
             {showDupModal && (
                 <DuplicateReviewModal
                     conflicts={duplicateConflicts}
@@ -134,12 +144,12 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
                                     {expandedYears[year] && Object.keys(groupedActivities[year]).sort((a, b) => { const diff = MONTH_ORDER.indexOf(b) - MONTH_ORDER.indexOf(a); return sortConfig.direction === 'asc' ? -diff : diff; }).map(month => (
                                         <React.Fragment key={month}>
                                             <tr className="bg-slate-700/20"><td colSpan={ACTIVITY_COLUMNS.length + 1} className="px-8 py-1 text-[10px] uppercase font-bold text-slate-500">{month}</td></tr>
-                                            {groupedActivities[year][month].map(act => <ActivityRow key={act.id} act={act} onDelete={onDelete} deleteConfirm={deleteConfirm} setDeleteConfirm={setDeleteConfirm} />)}
+                                            {groupedActivities[year][month].map(act => <ActivityRow key={act.id} act={act} onDelete={onDelete} deleteConfirm={deleteConfirm} setDeleteConfirm={setDeleteConfirm} onViewDetail={setSelectedDetailActivity} />)}
                                         </React.Fragment>
                                     ))}
                                 </React.Fragment>
                             ))}
-                            {!isGroupedView && processedActivities.map(act => <ActivityRow key={act.id} act={act} onDelete={onDelete} deleteConfirm={deleteConfirm} setDeleteConfirm={setDeleteConfirm} />)}
+                            {!isGroupedView && processedActivities.map(act => <ActivityRow key={act.id} act={act} onDelete={onDelete} deleteConfirm={deleteConfirm} setDeleteConfirm={setDeleteConfirm} onViewDetail={setSelectedDetailActivity} />)}
                         </tbody>
                     </table>
                 </div>
