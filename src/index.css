@@ -1,5 +1,10 @@
 /* Basis instellingen voor de App */
 :root {
+  /* 1. SCALING LOGICA (Nieuw) */
+  /* Dit is de standaard grootte. 1rem = 16px */
+  font-size: 16px;
+
+  /* 2. JOUW STIJLEN (Behouden) */
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
@@ -15,12 +20,29 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* RESPONSIVE SCALING (Nieuw) */
+/* Voor laptops/Chromebooks met beperkte hoogte: schaal terug */
+@media (max-height: 900px) {
+  :root {
+    font-size: 14px; /* Dit zoomt de hele interface iets uit (~12.5%) */
+  }
+}
+
+/* Voor hele compacte schermen */
+@media (max-width: 1280px) {
+  :root {
+    font-size: 13px;
+  }
+}
+
 /* Zorg dat de app de volledige hoogte pakt */
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
   background-color: #020617;
+  /* Zorg dat standaard fonts goed renderen */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
 /* Custom Scrollbar (Nodig voor de lijsten in je dashboard) */
