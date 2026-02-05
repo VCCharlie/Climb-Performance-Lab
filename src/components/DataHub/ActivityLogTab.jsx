@@ -1,9 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Trash, Loader2, AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
+import { Search, Trash, Loader2, AlertTriangle, ChevronDown, ChevronRight, Zap } from 'lucide-react';
 import TableHeader from './TableHeader';
 import ActivityRow from './ActivityRow';
 import useSortableData from '../../hooks/useSortableData';
 import { ACTIVITY_COLUMNS, MONTH_ORDER } from '../../config';
+import { findDuplicates } from '../../utils/duplicateDetection';
+import DuplicateReviewModal from './DuplicateReviewModal';
 
 // Helper for validity
 const isValidActivity = (act) => {
@@ -14,6 +16,43 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
     const [search, setSearch] = useState("");
     const [deleteConfirm, setDeleteConfirm] = useState(null);
     const [expandedYears, setExpandedYears] = useState({});
+
+    // Duplication Feature
+    const [duplicateConflicts, setDuplicateConflicts] = useState([]);
+    const [showDupModal, setShowDupModal] = useState(false);
+    const [isScanning, setIsScanning] = useState(false);
+
+    const handleScanDuplicates = () => {
+        setIsScanning(true);
+        // Small delay to let UI show spinner
+        setTimeout(() => {
+            const conflicts = findDuplicates(activities);
+            setIsScanning(false);
+            if (conflicts.length > 0) {
+                setDuplicateConflicts(conflicts);
+                setShowDupModal(true);
+            } else {
+                alert("Geen dubbele activiteiten gevonden! (Clean status: 100%)");
+            }
+        }, 100);
+    };
+
+    const handleResolveConflict = (idsToDelete) => {
+        if (idsToDelete && idsToDelete.length > 0) {
+            idsToDelete.forEach(id => onDelete(id));
+        }
+
+        // Remove the resolved conflict from the list
+        setDuplicateConflicts(prev => {
+            const copy = [...prev];
+            copy.shift(); // Remove the first one (current)
+            if (copy.length === 0) {
+                setShowDupModal(false);
+                alert("Alle conflicten opgelost!");
+            }
+            return copy;
+        });
+    };
 
     // Sorting Logic
     const { items: sortedItems, requestSort, sortConfig } = useSortableData(activities, { key: 'date', direction: 'desc' });
@@ -49,11 +88,27 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
 
     return (
         <>
+            {showDupModal && (
+                <DuplicateReviewModal
+                    conflicts={duplicateConflicts}
+                    onResolve={handleResolveConflict}
+                    onClose={() => setShowDupModal(false)}
+                />
+            )}
             <div className="flex justify-between items-center mb-4 gap-4">
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
                     <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." className="w-full bg-slate-900 border border-slate-600 rounded pl-10 pr-4 py-2 text-sm text-white outline-none" />
                 </div>
+                <button
+                    onClick={handleScanDuplicates}
+                    disabled={isScanning || !activities || activities.length < 2}
+                    className="bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 border border-yellow-500/50 px-4 py-2 rounded flex items-center gap-2 text-sm font-bold transition-all disabled:opacity-50"
+                    title="Scan for duplicates (Time/Distance/Duration)"
+                >
+                    {isScanning ? <Loader2 className="animate-spin" size={16} /> : <Zap size={16} />}
+                    {isScanning ? 'Scan...' : 'Fix Duplicates'}
+                </button>
                 <button
                     onClick={onClear}
                     disabled={isDeleting || !activities || activities.length === 0}
