@@ -1,5 +1,5 @@
 import React from 'react';
-import { Monitor, Footprints, Mountain, Bike, Trash2 } from 'lucide-react';
+import { Monitor, Footprints, Mountain, Bike, Trash2, ExternalLink } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
 import { ACTIVITY_COLUMNS } from '../../config';
 
@@ -15,7 +15,7 @@ const ActivityRow = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview
                 case 'date': return <span className="text-slate-300 whitespace-nowrap">{formatDateDDMMYYYY(val)}</span>;
                 case 'type': return (
                     <div
-                        className={`flex justify-center items-center h-full ${isPreview ? 'cursor-pointer hover:text-yellow-400' : ''}`}
+                        className={`flex justify - center items - center h - full ${isPreview ? 'cursor-pointer hover:text-yellow-400' : ''} `}
                         onClick={(e) => { if (isPreview && onToggleType) { e.stopPropagation(); onToggleType(act.id); } }}
                         title={isPreview ? `Huidig: ${val}. Klik om te wijzigen.` : val}
                     >
@@ -26,7 +26,23 @@ const ActivityRow = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview
                                         <Bike size={16} className="text-green-400" title="Ride" />}
                     </div>
                 );
-                case 'title': return <span className="font-medium text-white block max-w-[200px] truncate" title={val}>{val}</span>;
+                case 'title': return (
+                    <div className="flex items-center gap-2">
+                        <span className="font-medium text-white block max-w-[200px] truncate" title={val}>{val}</span>
+                        {act.id && !String(act.id).startsWith('csv_') && (
+                            <a
+                                href={`https://intervals.icu/activities/${act.id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-slate-500 hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={e => e.stopPropagation()}
+                                title="Open in Intervals.icu"
+                            >
+                                <ExternalLink size={12} />
+                            </a >
+                        )}
+                    </div >
+                );
                 case 'moving_time': return <span className="text-slate-400 font-mono">{formatTime(val)}</span>;
                 case 'distance': case 'avg_speed': return <span className="text-slate-400">{Number(val).toFixed(1)}</span>;
                 case 'climbing': case 'avg_power': return <span className="text-slate-400">{Math.round(val || 0)}</span>;
@@ -42,7 +58,7 @@ const ActivityRow = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview
     };
 
     return (
-        <tr className={`hover:bg-slate-700/50 transition-colors border-b border-slate-700/50 ${isSelected ? 'bg-slate-700/30' : ''}`} onClick={onToggleSelect ? () => onToggleSelect(act.id) : undefined}>
+        <tr className={`group hover:bg-slate-700/50 transition-colors border-b border-slate-700/50 ${isSelected ? 'bg-slate-700/30' : ''}`} onClick={onToggleSelect ? () => onToggleSelect(act.id) : undefined}>
             {isPreview && <td className="p-3 w-10"><input type="checkbox" checked={isSelected} readOnly className="w-4 h-4 accent-green-500 cursor-pointer" /></td>}
             {ACTIVITY_COLUMNS.map(col => <td key={col.key} className={`p-3 text-${col.align} text-xs`}>{renderCell(col)}</td>)}
             {!isPreview && <td className="p-3 text-right">
