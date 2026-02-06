@@ -37,14 +37,15 @@ const Dashboard = ({ theme, manualFtp }) => {
     const [chartData, setChartData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [timeRange, setTimeRange] = useState('1Y');
 
     useEffect(() => {
         const loadData = async () => {
             try {
                 setLoading(true);
-                // Date range as requested
-                const startDate = '2025-01-01';
-                const endDate = '2026-12-31';
+                // Fetch wide range to support all filters locally
+                const startDate = '2020-01-01';
+                const endDate = '2026-12-31'; // Future proof
 
                 const rawData = await fetchIntervalsData(startDate, endDate);
 
@@ -67,7 +68,27 @@ const Dashboard = ({ theme, manualFtp }) => {
         };
 
         loadData();
-    }, [manualFtp]); // Reload/reprocess if manualFtp changes (optional, but good for consistency)
+    }, [manualFtp]);
+
+    // --- Filter Logic ---
+    const getFilteredData = () => {
+        if (!chartData.length) return [];
+        if (timeRange === 'ALL') return chartData;
+
+        const now = new Date();
+        const cutoffDate = new Date();
+
+        if (timeRange === '1M') cutoffDate.setMonth(now.getMonth() - 1);
+        if (timeRange === '3M') cutoffDate.setMonth(now.getMonth() - 3);
+        if (timeRange === '6M') cutoffDate.setMonth(now.getMonth() - 6);
+        if (timeRange === '1Y') cutoffDate.setFullYear(now.getFullYear() - 1);
+        if (timeRange === '3Y') cutoffDate.setFullYear(now.getFullYear() - 3);
+        if (timeRange === '6Y') cutoffDate.setFullYear(now.getFullYear() - 6);
+
+        return chartData.filter(d => new Date(d.date) >= cutoffDate);
+    };
+
+    const filteredData = getFilteredData();
 
     if (loading) {
         return (
@@ -85,20 +106,22 @@ const Dashboard = ({ theme, manualFtp }) => {
         );
     }
 
-    // --- 1. Stat Calculation ---
-    const latest = chartData.length > 0 ? chartData[chartData.length - 1] : null;
+    // --- 1. Stat Calculation (Based on FILTERED Data) ---
+    const latest = filteredData.length > 0 ? filteredData[filteredData.length - 1] : (chartData.length > 0 ? chartData[chartData.length - 1] : null);
 
     // Display Manual FTP if set, otherwise from latest activity
     const displayFtp = manualFtp || latest?.ftp || 0;
 
-    // Find max eFTP in the dataset
-    const maxEftp = chartData.reduce((max, d) => Math.max(max, d.eFTP || 0), 0);
+    // Find max eFTP in the filtered dataset
+    const maxEftp = filteredData.reduce((max, d) => Math.max(max, d.eFTP || 0), 0);
 
     // Find latest valid eFTP
-    const lastValidEftp = [...chartData].reverse().find(d => d.eFTP > 0)?.eFTP || 0;
+    const lastValidEftp = [...filteredData].reverse().find(d => d.eFTP > 0)?.eFTP || 0;
 
     const currentLoad = latest?.load || 0;
-    const totalActivities = chartData.length;
+    const totalActivities = filteredData.length;
+
+    const ranges = ['1M', '3M', '6M', '1Y', '3Y', '6Y', 'ALL'];
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -108,6 +131,21 @@ const Dashboard = ({ theme, manualFtp }) => {
                 <div>
                     <h2 className="text-2xl font-bold text-white tracking-tight">Dashboard</h2>
                     <p className="text-slate-400 text-sm">Performance metrics overview</p>
+                </div>
+
+                {/* TIME FILTER BUTTONS */}
+                <div className="flex bg-slate-800 rounded-lg p-1 border border-slate-700">
+                    {ranges.map(range => (
+                        <button
+                            key={range}
+                            onClick={() => setTimeRange(range)}
+                            className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${timeRange === range
+                                ? 'bg-blue-600 text-white shadow-lg'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}
+                        >
+                            {range}
+                        </button>
+                    ))}
                 </div>
             </div>
 
@@ -125,7 +163,7 @@ const Dashboard = ({ theme, manualFtp }) => {
                     title="Est. FTP (eFTP)"
                     value={lastValidEftp}
                     unit="W"
-                    subtitle={`Season Max: ${maxEftp} W`}
+                    subtitle={`Period Max: ${maxEftp} W`}
                     icon={TrendingUp}
                     trend={lastValidEftp >= displayFtp ? 'up' : 'down'}
                     colorClass="text-green-500"
@@ -142,7 +180,7 @@ const Dashboard = ({ theme, manualFtp }) => {
                     title="Total Rides"
                     value={totalActivities}
                     unit=""
-                    subtitle="Recorded activities"
+                    subtitle="In selected period"
                     icon={Calendar}
                     colorClass="text-yellow-500"
                 />
@@ -162,7 +200,7 @@ const Dashboard = ({ theme, manualFtp }) => {
 
                     <div className="h-[350px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                            <ComposedChart data={filteredData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                                 <defs>
                                     <linearGradient id="colorLoad" x1="0" y1="0" x2="0" y2="1">
                                         <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
