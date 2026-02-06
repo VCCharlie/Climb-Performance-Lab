@@ -113,42 +113,8 @@ const App = () => {
         alert("Backup succesvol hersteld!");
     };
 
-    // Chart Data
-    // Chart Data
-    const chartData = useMemo(() => {
-        if (activities.length === 0) return [];
-        const sorted = [...activities].sort((a, b) => new Date(a.date) - new Date(b.date));
+    // Chart Data logic moved to Dashboard.jsx
 
-        // Track last known FTP for fallback, but prefer calculated eFTP
-        let lastKnownFtp = userSettings.ftp || 200;
-
-        return sorted.map(act => {
-            // Update last known FTP from activity if manually set
-            if (act.ftp && act.ftp > 100) {
-                lastKnownFtp = act.ftp;
-            }
-
-            // Calculate eFTP: 95% of 20m power, OR 95% of Avg Power (if 20m missing but decent duration)
-            // Strict logic: best_20min is gold standard.
-            let eFTP = lastKnownFtp; // Default fallback
-
-            if (act.best_20min && act.best_20min > 0) {
-                eFTP = Math.round(act.best_20min * 0.95);
-            } else if (act.avg_power && act.moving_time > 1200) {
-                // Fallback: If >20mins duration, use avg_power * 0.95 as rough estimate
-                // This might be too generous for easy rides, but better than flat line? 
-                // User asked for "math on the rolling average for rides on that date".
-                // Actually, let's Stick to best_20min * 0.95. If missing, use lastKnown.
-            }
-
-            return {
-                date: act.date,
-                load: act.load,
-                ftp: lastKnownFtp, // Keep original for reference
-                eFTP: act.best_20min ? Math.round(act.best_20min * 0.95) : null // Only set if valid effort
-            };
-        });
-    }, [activities, userSettings.ftp]);
 
     const isDark = theme === 'dark';
     const mainClass = isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-100 text-slate-900';
@@ -196,7 +162,7 @@ const App = () => {
                         {activeTab === 'dashboard' && (
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                                 <div className="lg:col-span-2">
-                                    <Dashboard chartData={chartData} theme={theme} />
+                                    <Dashboard theme={theme} />
                                 </div>
                                 <div className="lg:col-span-1">
                                     <ClimbProfileCard climb={selectedClimb} />

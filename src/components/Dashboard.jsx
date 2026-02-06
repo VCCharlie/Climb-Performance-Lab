@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, ComposedChart } from 'recharts';
 import { Activity, TrendingUp, Zap, Calendar, ArrowUp, ArrowDown } from 'lucide-react';
+import { fetchIntervalsData } from '../services/intervalsService';
 
 const StatCard = ({ title, value, unit, subtitle, icon: Icon, trend, colorClass }) => (
     <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg relative overflow-hidden group hover:border-slate-600 transition-all">
@@ -32,7 +33,49 @@ const StatCard = ({ title, value, unit, subtitle, icon: Icon, trend, colorClass 
     </div>
 );
 
-const Dashboard = ({ chartData, theme }) => {
+const Dashboard = ({ theme }) => {
+    const [chartData, setChartData] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        const loadData = async () => {
+            try {
+                setLoading(true);
+                // Date range as requested
+                const startDate = '2025-01-01';
+                const endDate = '2026-12-31';
+
+                const data = await fetchIntervalsData(startDate, endDate);
+                setChartData(data);
+                setError(null);
+            } catch (err) {
+                setError('Kon data niet ophalen van Intervals.icu');
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadData();
+    }, []);
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-64">
+                <div className="text-slate-400 animate-pulse">Laden van dashboard data...</div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="p-4 bg-red-900/20 border border-red-800 rounded-lg text-red-200">
+                Error: {error}
+            </div>
+        );
+    }
+
     // --- 1. Stat Calculation ---
     const latest = chartData.length > 0 ? chartData[chartData.length - 1] : null;
 
@@ -178,5 +221,4 @@ const Dashboard = ({ chartData, theme }) => {
         </div>
     );
 };
-
 export default Dashboard;
