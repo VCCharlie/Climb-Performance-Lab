@@ -10,30 +10,51 @@ const Dashboard = ({ theme, manualFtp }) => {
     const [timeRange, setTimeRange] = useState('1Y');
 
     useEffect(() => {
+        const processRawData = (data, userFtp) => {
+            return data.map(d => ({
+                ...d,
+                eFTP: d.best_20min ? Math.round(d.best_20min * 0.95) : null,
+                ftp: d.ftp || userFtp
+            }));
+        };
+
         const loadData = async () => {
             try {
                 setLoading(true);
-                // Fetch wide range to support all filters locally
-                const startDate = '2020-01-01';
-                const endDate = '2026-12-31'; // Future proof
 
-                const rawData = await fetchIntervalsData(startDate, endDate);
+                // STEP 1: Fast Load (Current Year + Future)
+                // This gives an "instant" feel for the most relevant data
+                const fastStart = '2025-01-01';
+                const fastEnd = '2026-12-31';
 
-                // Process Data: Add eFTP if missing, using best_20min * 0.95
-                // Also ensure FTP is backfilled if missing
-                const processedData = rawData.map(d => ({
-                    ...d,
-                    eFTP: d.best_20min ? Math.round(d.best_20min * 0.95) : null,
-                    ftp: d.ftp || manualFtp // Use activity FTP or fallback to manual
-                }));
+                const recentData = await fetchIntervalsData(fastStart, fastEnd);
+                const processedRecent = processRawData(recentData, manualFtp);
 
-                setChartData(processedData);
+                // Show dashboard immediately with recent data
+                setChartData(processedRecent);
+                setLoading(false);
                 setError(null);
+
+                // STEP 2: Background Load (Historical Data)
+                // Silently fetch older data and merge it
+                const historyStart = '2020-01-01';
+                const historyEnd = '2024-12-31';
+
+                const historyData = await fetchIntervalsData(historyStart, historyEnd);
+                const processedHistory = processRawData(historyData, manualFtp);
+
+                // Merge and Sort (ensure chronological order)
+                setChartData(prev => {
+                    const combined = [...processedHistory, ...prev];
+                    // simple dedupe based on date string could be added if overlap risks existed, 
+                    // but ranges are distinct here. 
+                    return combined.sort((a, b) => new Date(a.date) - new Date(b.date));
+                });
+
             } catch (err) {
                 setError('Kon data niet ophalen van Intervals.icu');
                 console.error(err);
-            } finally {
-                setLoading(false);
+                setLoading(false); // Ensure loading stops on error
             }
         };
 
