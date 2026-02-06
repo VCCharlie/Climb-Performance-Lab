@@ -109,11 +109,39 @@ export const determineActivityType = (type, title) => {
     return 'Ride';
 };
 
+// --- SCIENCE MODELS (ELITE) ---
+export const calculateBassettCorrection = (watts, altitude) => {
+    // Bassett et al. (1999): ~1% power loss per 100m above 1000m roughly.
+    // Normalized to Sea Level Equivalent.
+    if (!watts || !altitude || altitude < 1000) return watts;
+    const correctionFactor = 1 + ((altitude - 1000) / 100 * 0.01);
+    return Math.round(watts * correctionFactor);
+};
+
+export const calculateFerrariWatts = (vam, gradient, totalWeight) => {
+    // Ferrari Formula: Relative Power (W/kg) = VAM / (200 + 10 * Gradient(%))
+    // Returns Total Watts if weight provided, else W/kg
+    if (!vam || !gradient) return 0;
+    const gradientFactor = 200 + (10 * gradient);
+    const relativePower = vam / gradientFactor; // W/kg
+    if (totalWeight) return Math.round(relativePower * totalWeight);
+    return parseFloat(relativePower.toFixed(2));
+};
+
 const cleanNumber = (val) => {
     if (!val) return 0;
     if (typeof val === 'number') return isNaN(val) ? 0 : val;
     let strVal = val.toString().trim();
     if (strVal === '') return 0;
+
+    // PROTECTION: Intervals sometimes exports arrays as 'min:max' (e.g. 635:646).
+    // If we strip non-digits, this becomes 635646.
+    // We should treat this as invalid for a single scalar number, or take the average.
+    // For safety in this general parser, we return 0 or the first part.
+    if (strVal.includes(':')) {
+        // Only allow if it looks like a simple float/int
+        return 0;
+    }
 
     // Remove common units like 'kg', 'm', 'W' etc. if attached
     strVal = strVal.replace(/[^\d.,-]/g, '');

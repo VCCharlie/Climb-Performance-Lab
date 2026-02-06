@@ -97,6 +97,17 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
         setInternalTab('log');
     };
 
+    // --- CLIMBER GUARD ---
+    // Validates if an activity has minimal required data to prevent UI crashes
+    const isValidActivity = (act) => {
+        if (!act) return false;
+        // Check for essential numeric fields that shouldn't be null/NaN if it's a valid ride
+        // e.g. must have distance OR duration
+        return (act.distance > 0 || act.moving_time > 0);
+    };
+
+    const validActivities = activities.filter(isValidActivity);
+
     return (
         <div className="bg-slate-800 rounded-xl border border-slate-700 shadow-xl overflow-hidden min-h-[500px] flex flex-col relative animate-in fade-in">
 
@@ -122,7 +133,7 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
             <div className="p-4 flex-1 overflow-hidden flex flex-col">
                 {internalTab === 'log' && (
                     <ActivityLogTab
-                        activities={activities}
+                        activities={validActivities}
                         onDelete={handleDeleteSingle}
                         onClear={handleClearDatabase}
                         isDeleting={isDeleting}

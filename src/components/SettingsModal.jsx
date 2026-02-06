@@ -154,11 +154,19 @@ const SettingsModal = ({
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className={`block text-[10px] uppercase font-bold mb-1 ${labelClass} text-blue-500`}>Current FTP (W)</label>
-                                    <input type="number" value={userSettings.ftp || ''} onChange={e => updateUserSettings('ftp', Number(e.target.value))} className={`w-full border rounded p-2 text-sm outline-none font-bold ${inputClass}`} />
+                                    <div className="flex items-center gap-1">
+                                        <button onClick={() => updateUserSettings('ftp', (userSettings.ftp || 250) - 1)} className={`p-2 rounded ${isDark ? 'bg-slate-700 hover:bg-slate-600' : 'bg-gray-200 hover:bg-gray-300'}`}>-</button>
+                                        <input type="number" value={userSettings.ftp || ''} onChange={e => updateUserSettings('ftp', Number(e.target.value))} className={`w-full border rounded p-2 text-sm outline-none font-bold text-center ${inputClass}`} />
+                                        <button onClick={() => updateUserSettings('ftp', (userSettings.ftp || 250) + 1)} className={`p-2 rounded ${isDark ? 'bg-slate-700 hover:bg-slate-600' : 'bg-gray-200 hover:bg-gray-300'}`}>+</button>
+                                    </div>
                                 </div>
                                 <div>
                                     <label className={`block text-[10px] uppercase font-bold mb-1 ${labelClass}`}>Current Weight (kg)</label>
-                                    <input type="number" value={userSettings.weight || ''} onChange={e => updateUserSettings('weight', Number(e.target.value))} className={`w-full border rounded p-2 text-sm outline-none ${inputClass}`} />
+                                    <div className="flex items-center gap-1">
+                                        <button onClick={() => updateUserSettings('weight', parseFloat(((userSettings.weight || 70) - 0.1).toFixed(1)))} className={`p-2 rounded ${isDark ? 'bg-slate-700 hover:bg-slate-600' : 'bg-gray-200 hover:bg-gray-300'}`}>-</button>
+                                        <input type="number" value={userSettings.weight || ''} onChange={e => updateUserSettings('weight', Number(e.target.value))} className={`w-full border rounded p-2 text-sm outline-none text-center ${inputClass}`} />
+                                        <button onClick={() => updateUserSettings('weight', parseFloat(((userSettings.weight || 70) + 0.1).toFixed(1)))} className={`p-2 rounded ${isDark ? 'bg-slate-700 hover:bg-slate-600' : 'bg-gray-200 hover:bg-gray-300'}`}>+</button>
+                                    </div>
                                 </div>
                             </div>
                             <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-slate-700/30">
@@ -168,11 +176,15 @@ const SettingsModal = ({
                                 </div>
                                 <div>
                                     <label className={`block text-[10px] uppercase font-bold mb-1 ${labelClass}`}>Target FTP</label>
-                                    <input type="number" value={userSettings.goals?.targetFtp || ''} onChange={e => updateUserSettings('goals', { ...userSettings.goals, targetFtp: Number(e.target.value) })} className={`w-full border rounded p-2 text-sm outline-none ${inputClass}`} />
+                                    <div className="flex gap-1">
+                                        <input type="number" value={userSettings.goals?.targetFtp || ''} onChange={e => updateUserSettings('goals', { ...userSettings.goals, targetFtp: Number(e.target.value) })} className={`w-full border rounded p-2 text-sm outline-none ${inputClass}`} />
+                                    </div>
                                 </div>
                                 <div>
                                     <label className={`block text-[10px] uppercase font-bold mb-1 ${labelClass}`}>Target Kg</label>
-                                    <input type="number" value={userSettings.goals?.targetWeight || ''} onChange={e => updateUserSettings('goals', { ...userSettings.goals, targetWeight: Number(e.target.value) })} className={`w-full border rounded p-2 text-sm outline-none ${inputClass}`} />
+                                    <div className="flex gap-1">
+                                        <input type="number" value={userSettings.goals?.targetWeight || ''} onChange={e => updateUserSettings('goals', { ...userSettings.goals, targetWeight: Number(e.target.value) })} className={`w-full border rounded p-2 text-sm outline-none ${inputClass}`} />
+                                    </div>
                                 </div>
                             </div>
                         </div>
