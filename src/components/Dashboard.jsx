@@ -132,7 +132,7 @@ const Dashboard = ({ theme, manualFtp }) => {
             {/* HEADER SECTION */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold text-white tracking-tight">Dashboard</h2>
+                    <h2 className="text-2xl font-bold text-yellow-500 tracking-tight">Dashboard</h2>
                     <p className="text-slate-400 text-sm">Performance metrics overview</p>
                 </div>
 
