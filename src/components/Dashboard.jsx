@@ -1,70 +1,182 @@
-import React, { useState, useEffect } from 'react';
-// Importeer de service die we net gemaakt hebben
-import { fetchIntervalsData } from '../services/intervalsService';
-// Importeer eventuele andere componenten die je al had, zoals de Chart
-// import MyChartComponent from './MyChartComponent'; 
+import React from 'react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, ComposedChart } from 'recharts';
+import { Activity, TrendingUp, Zap, Calendar, ArrowUp, ArrowDown } from 'lucide-react';
 
-const Dashboard = () => {
-  // State voor de grafiek data
-  const [chartData, setChartData] = useState([]);
-  
-  // State om bij te houden of we nog aan het laden zijn (handig voor een spinner)
-  const [loading, setLoading] = useState(true);
-  
-  // State voor eventuele foutmeldingen
-  const [error, setError] = useState(null);
+const StatCard = ({ title, value, unit, subtitle, icon: Icon, trend, colorClass }) => (
+    <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg relative overflow-hidden group hover:border-slate-600 transition-all">
+        <div className={`absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity ${colorClass}`}>
+            <Icon size={64} />
+        </div>
 
-  useEffect(() => {
-    // We definiëren een async functie binnen de useEffect
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        
-        // We halen data op van begin dit jaar tot eind dit jaar (pas aan indien nodig)
-        const startDate = '2025-01-01';
-        const endDate = '2026-12-31';
-        
-        const data = await fetchIntervalsData(startDate, endDate);
-        
-        // Update de state met de opgehaalde data
-        setChartData(data);
-        setError(null);
-      } catch (err) {
-        setError('Kon data niet ophalen van Intervals.icu');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
+        <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-2">
+                <div className={`p-2 rounded-lg bg-slate-700/50 ${colorClass} text-white`}>
+                    <Icon size={18} />
+                </div>
+                <h3 className="text-slate-400 text-sm font-bold uppercase tracking-wider">{title}</h3>
+            </div>
 
-    // Voer de functie uit
-    loadData();
-  }, []); // De lege array [] zorgt dat dit alleen bij het mounten (laden) gebeurt
+            <div className="flex items-baseline gap-1">
+                <span className="text-3xl font-black text-white">{value}</span>
+                {unit && <span className="text-sm font-bold text-slate-500">{unit}</span>}
+            </div>
 
-  // Render logica
-  if (loading) {
-    return <div>Data aan het laden...</div>;
-  }
-
-  if (error) {
-    return <div style={{ color: 'red' }}>Error: {error}</div>;
-  }
-
-  return (
-    <div className="dashboard-container">
-      <h1>Performance Dashboard</h1>
-      
-      {/* Hier geef je de dynamische chartData door aan je grafiek component */}
-      {/* Vervang <MyChartComponent /> door jouw eigen grafiek component */}
-      {/* <MyChartComponent data={chartData} /> */}
-      
-      {/* Ter controle (debug): toon de eerste paar regels data */}
-      <pre>
-        {JSON.stringify(chartData.slice(0, 3), null, 2)}
-        {chartData.length > 0 && `\n...en nog ${chartData.length - 3} items`}
-      </pre>
+            {subtitle && (
+                <div className="mt-2 flex items-center gap-2 text-xs font-medium">
+                    {trend === 'up' && <ArrowUp size={12} className="text-green-400" />}
+                    {trend === 'down' && <ArrowDown size={12} className="text-red-400" />}
+                    <span className="text-slate-400">{subtitle}</span>
+                </div>
+            )}
+        </div>
     </div>
-  );
+);
+
+const Dashboard = ({ chartData, theme }) => {
+    // --- 1. Stat Calculation ---
+    const latest = chartData.length > 0 ? chartData[chartData.length - 1] : null;
+
+    // Find last known non-null values for display
+    const currentFtp = latest?.ftp || 0;
+
+    // Find max eFTP in the dataset
+    const maxEftp = chartData.reduce((max, d) => Math.max(max, d.eFTP || 0), 0);
+
+    // Find latest valid eFTP
+    const lastValidEftp = [...chartData].reverse().find(d => d.eFTP > 0)?.eFTP || 0;
+
+    const currentLoad = latest?.load || 0;
+    const totalActivities = chartData.length;
+
+    return (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+            {/* HEADER SECTION */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 className="text-2xl font-bold text-white tracking-tight">Dashboard</h2>
+                    <p className="text-slate-400 text-sm">Performance metrics overview</p>
+                </div>
+            </div>
+
+            {/* STAT BOXES */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard
+                    title="Current FTP"
+                    value={currentFtp}
+                    unit="W"
+                    subtitle="Manually set threshold"
+                    icon={Zap}
+                    colorClass="text-blue-500"
+                />
+                <StatCard
+                    title="Est. FTP (eFTP)"
+                    value={lastValidEftp}
+                    unit="W"
+                    subtitle={`Season Max: ${maxEftp} W`}
+                    icon={TrendingUp}
+                    trend={lastValidEftp >= currentFtp ? 'up' : 'down'}
+                    colorClass="text-green-500"
+                />
+                <StatCard
+                    title="Fitness Load"
+                    value={currentLoad}
+                    unit="TSS/d"
+                    subtitle="42-day rolling average"
+                    icon={Activity}
+                    colorClass="text-purple-500"
+                />
+                <StatCard
+                    title="Total Rides"
+                    value={totalActivities}
+                    unit=""
+                    subtitle="Recorded activities"
+                    icon={Calendar}
+                    colorClass="text-yellow-500"
+                />
+            </div>
+
+            {/* CHARTS */}
+            <div className="grid grid-cols-1 gap-6">
+
+                {/* MAIN PERFORMANCE CHART */}
+                <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                            <Activity className="text-blue-400" size={20} />
+                            FTP Progression & Load
+                        </h3>
+                    </div>
+
+                    <div className="h-[350px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="colorLoad" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                                <XAxis
+                                    dataKey="date"
+                                    stroke="#94a3b8"
+                                    tickFormatter={(str) => {
+                                        const d = new Date(str);
+                                        return `${d.getDate()}/${d.getMonth() + 1}`;
+                                    }}
+                                    minTickGap={30}
+                                />
+                                <YAxis yAxisId="left" stroke="#94a3b8" domain={['auto', 'auto']} />
+                                <YAxis yAxisId="right" orientation="right" stroke="#8b5cf6" domain={[0, 'auto']} hide />
+
+                                <Tooltip
+                                    contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc' }}
+                                    itemStyle={{ color: '#fff' }}
+                                    labelStyle={{ color: '#94a3b8' }}
+                                    labelFormatter={(label) => new Date(label).toLocaleDateString()}
+                                />
+                                <Legend iconType="circle" />
+
+                                <Area
+                                    yAxisId="right"
+                                    type="monotone"
+                                    dataKey="load"
+                                    name="Fitness Load"
+                                    stroke="#8b5cf6"
+                                    fillOpacity={1}
+                                    fill="url(#colorLoad)"
+                                />
+
+                                <Line
+                                    yAxisId="left"
+                                    type="stepAfter"
+                                    dataKey="ftp"
+                                    name="Set FTP"
+                                    stroke="#3b82f6"
+                                    strokeWidth={2}
+                                    dot={false}
+                                />
+
+                                <Line
+                                    yAxisId="left"
+                                    connectNulls
+                                    type="monotone"
+                                    dataKey="eFTP"
+                                    name="eFTP (Effort)"
+                                    stroke="#22c55e"
+                                    strokeWidth={2}
+                                    dot={{ r: 3, fill: '#22c55e' }}
+                                    activeDot={{ r: 6 }}
+                                />
+                            </ComposedChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    );
 };
 
 export default Dashboard;
