@@ -41,7 +41,7 @@ const Dashboard = ({ chartData, theme }) => {
     // UI FIX: Darker cards
     const cardClass = 'bg-slate-900 border-slate-800 shadow-xl';
 
-    const titleClass = isDark ? 'text-white' : 'text-slate-800';
+    const titleClass = 'text-white';
     const gridColor = isDark ? '#1e293b' : '#e2e8f0'; // slate-800 line
     const axisColor = isDark ? '#64748b' : '#64748b';
 
@@ -86,7 +86,16 @@ const Dashboard = ({ chartData, theme }) => {
                     <ResponsiveContainer width="100%" height="100%">
                         <ComposedChart data={filteredLoadData}>
                             <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
-                            <XAxis dataKey="date" stroke={axisColor} tick={{ fontSize: 12 }} minTickGap={30} />
+                            <XAxis
+                                dataKey="date"
+                                type="number"
+                                scale="time"
+                                domain={['dataMin', 'dataMax']}
+                                tickFormatter={(unixTime) => new Date(unixTime).toLocaleDateString()}
+                                stroke={axisColor}
+                                tick={{ fontSize: 12 }}
+                                minTickGap={30}
+                            />
                             <YAxis stroke={axisColor} tick={{ fontSize: 12 }} />
                             <Tooltip contentStyle={tooltipStyle} />
                             <Area type="monotone" dataKey="load" stroke="#3b82f6" fill="#3b82f6" fillOpacity={isDark ? 0.2 : 0.1} name="Daily Load" />
@@ -109,7 +118,16 @@ const Dashboard = ({ chartData, theme }) => {
                     <ResponsiveContainer width="100%" height="100%">
                         <ComposedChart data={filteredFtpData}>
                             <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
-                            <XAxis dataKey="date" stroke={axisColor} tick={{ fontSize: 12 }} minTickGap={30} />
+                            <XAxis
+                                dataKey="date"
+                                type="number"
+                                scale="time"
+                                domain={['dataMin', 'dataMax']}
+                                tickFormatter={(unixTime) => new Date(unixTime).toLocaleDateString()}
+                                stroke={axisColor}
+                                tick={{ fontSize: 12 }}
+                                minTickGap={30}
+                            />
                             <YAxis stroke={axisColor} tick={{ fontSize: 12 }} domain={['dataMin - 10', 'dataMax + 10']} />
                             <Tooltip contentStyle={tooltipStyle} />
 

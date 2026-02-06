@@ -73,7 +73,9 @@ export const calculateTrendLine = (data, key) => {
  * Optimize data for charting - enrich with rolling avg and trend
  */
 export const enrichChartData = (data) => {
-    let result = calculateRollingAverage(data, 'ftp', 30);
+    let result = data.map(d => ({ ...d, date: new Date(d.date).getTime() })); // Convert date to timestamp
+
+    result = calculateRollingAverage(result, 'ftp', 30);
     result = calculateRollingAverage(result, 'eFTP', 30); // NEW: Rolling avg for eFTP
 
     result = calculateTrendLine(result, 'ftp');
