@@ -39,9 +39,7 @@ const Dashboard = ({ chartData, theme }) => {
     const isDark = theme === 'dark';
 
     // UI FIX: Darker cards
-    const cardClass = isDark
-        ? 'bg-slate-900 border-slate-800' // Darker than slate-800
-        : 'bg-white border-slate-200 shadow-xl';
+    const cardClass = 'bg-slate-900 border-slate-800 shadow-xl';
 
     const titleClass = isDark ? 'text-white' : 'text-slate-800';
     const gridColor = isDark ? '#1e293b' : '#e2e8f0'; // slate-800 line
