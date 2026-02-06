@@ -264,6 +264,7 @@ def transform_activity(activity: dict) -> dict:
         "best_10min": best_10min,
         "best_20min": best_20min,
         "best_60min": best_60min,
+        "eFTP": safe_int(activity.get("icu_eftp"), 0) # Add eFTP
     }
 
 
