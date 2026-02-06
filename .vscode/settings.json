@@ -1,0 +1,33 @@
+{
+    // Algemene editor voorkeuren voor leesbaarheid
+    "editor.formatOnSave": true,
+    "editor.wordWrap": "on",
+    "editor.minimap.enabled": false,
+    "editor.stickyScroll.enabled": true,
+    "editor.renderLineHighlight": "all",
+    
+    // Zorgen dat Gemini en de editor altijd volledige bestanden tonen
+    "editor.linkedEditing": true,
+    "editor.formatOnPaste": true,
+    
+    // Verberg minified bestanden en rommel om focus op logica te houden
+    "files.exclude": {
+        "**/*.min.js": true,
+        "**/*.min.css": true,
+        "**/dist/**": true,
+        "**/node_modules/**": true,
+        "**/.DS_Store": true
+    },
+
+    // Specifieke instellingen voor de Gemini Code Assist extensie
+    "google.gemini.codeAssist.enabled": true,
+    "google.gemini.chat.telemetry.enabled": false,
+    
+    // Helpt bij het navigeren door modulaire bestanden
+    "workbench.editor.enablePreview": false,
+    "explorer.compactFolders": false,
+    
+    // Voorkeur voor indentation (4 spaties voor VBA-achtige leesbaarheid)
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true
+}
