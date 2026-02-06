@@ -11,11 +11,23 @@ const Dashboard = ({ theme, manualFtp }) => {
 
     useEffect(() => {
         const processRawData = (data, userFtp) => {
-            return data.map(d => ({
-                ...d,
-                eFTP: d.best_20min ? Math.round(d.best_20min * 0.95) : null,
-                ftp: d.ftp || userFtp
-            }));
+            return data.map(d => {
+                // Calculate eFTP from best 20min power
+                let eFTP = d.best_20min ? Math.round(d.best_20min * 0.95) : null;
+
+                // SANITY CHECK: Filter out unrealistic spikes (e.g. > 600W)
+                // This handles sensor errors or bad data inputs
+                if (eFTP > 600) {
+                    console.warn(`[Dashboard] Filtering outlier eFTP: ${eFTP}W on ${d.date}`);
+                    eFTP = null;
+                }
+
+                return {
+                    ...d,
+                    eFTP,
+                    ftp: d.ftp || userFtp
+                };
+            });
         };
 
         const loadData = async () => {
