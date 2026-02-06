@@ -102,7 +102,7 @@ const PerformanceModule = ({ data, manualFtp }) => {
                         </h3>
                     </div>
 
-                    <div className="h-[350px] w-full">
+                    <div className="min-h-[300px] h-[50vh] max-h-[500px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <ComposedChart data={filteredData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                                 <defs>
