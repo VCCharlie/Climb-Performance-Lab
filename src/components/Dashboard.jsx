@@ -33,7 +33,7 @@ const StatCard = ({ title, value, unit, subtitle, icon: Icon, trend, colorClass 
     </div>
 );
 
-const Dashboard = ({ theme }) => {
+const Dashboard = ({ theme, manualFtp }) => {
     const [chartData, setChartData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -46,8 +46,17 @@ const Dashboard = ({ theme }) => {
                 const startDate = '2025-01-01';
                 const endDate = '2026-12-31';
 
-                const data = await fetchIntervalsData(startDate, endDate);
-                setChartData(data);
+                const rawData = await fetchIntervalsData(startDate, endDate);
+
+                // Process Data: Add eFTP if missing, using best_20min * 0.95
+                // Also ensure FTP is backfilled if missing
+                const processedData = rawData.map(d => ({
+                    ...d,
+                    eFTP: d.best_20min ? Math.round(d.best_20min * 0.95) : null,
+                    ftp: d.ftp || manualFtp // Use activity FTP or fallback to manual
+                }));
+
+                setChartData(processedData);
                 setError(null);
             } catch (err) {
                 setError('Kon data niet ophalen van Intervals.icu');
@@ -58,7 +67,7 @@ const Dashboard = ({ theme }) => {
         };
 
         loadData();
-    }, []);
+    }, [manualFtp]); // Reload/reprocess if manualFtp changes (optional, but good for consistency)
 
     if (loading) {
         return (
@@ -79,8 +88,8 @@ const Dashboard = ({ theme }) => {
     // --- 1. Stat Calculation ---
     const latest = chartData.length > 0 ? chartData[chartData.length - 1] : null;
 
-    // Find last known non-null values for display
-    const currentFtp = latest?.ftp || 0;
+    // Display Manual FTP if set, otherwise from latest activity
+    const displayFtp = manualFtp || latest?.ftp || 0;
 
     // Find max eFTP in the dataset
     const maxEftp = chartData.reduce((max, d) => Math.max(max, d.eFTP || 0), 0);
@@ -106,7 +115,7 @@ const Dashboard = ({ theme }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard
                     title="Current FTP"
-                    value={currentFtp}
+                    value={displayFtp}
                     unit="W"
                     subtitle="Manually set threshold"
                     icon={Zap}
@@ -118,7 +127,7 @@ const Dashboard = ({ theme }) => {
                     unit="W"
                     subtitle={`Season Max: ${maxEftp} W`}
                     icon={TrendingUp}
-                    trend={lastValidEftp >= currentFtp ? 'up' : 'down'}
+                    trend={lastValidEftp >= displayFtp ? 'up' : 'down'}
                     colorClass="text-green-500"
                 />
                 <StatCard
