@@ -4,6 +4,7 @@ import { smartParseCSV, smartParseJSON } from '../../utils';
 
 const ImportTab = ({ intervalsConfig, onImportResults }) => {
     const [isDragging, setIsDragging] = useState(false);
+    const [importText, setImportText] = useState("");
 
     const processFile = (file) => {
         if (!file) return;
