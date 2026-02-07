@@ -270,13 +270,13 @@ export const smartParseCSV = (text) => {
 
         // Basic Metrics
         if (cleanH === 'time' || cleanH === 'moving time' || cleanH === 'elapsed time' || cleanH.includes('moving_time')) return 'moving_time';
-        if (cleanH === 'distance' || cleanH.includes('afstand')) return 'distance';
-        if (cleanH === 'elevation' || cleanH.includes('elevation gain') || cleanH.includes('climb') || cleanH.includes('hoogte')) return 'climbing';
-        if (cleanH === 'average speed' || cleanH === 'avg speed' || cleanH.includes('snelheid') || cleanH.includes('speed')) return 'avg_speed';
+        if (cleanH === 'distance' || cleanH === 'dist' || cleanH.includes('afstand')) return 'distance';
+        if (cleanH === 'elevation' || cleanH === 'elev' || cleanH.includes('elevation gain') || cleanH.includes('climb') || cleanH.includes('hoogte')) return 'climbing';
+        if (cleanH === 'average speed' || cleanH === 'avg speed' || cleanH === 'spd' || cleanH.includes('snelheid') || cleanH.includes('speed')) return 'avg_speed';
 
         // Power & Load
         if (cleanH === 'normalized power' || cleanH === 'norm power' || cleanH === 'np' || cleanH.includes('weighted avg power')) return 'norm_power';
-        if (cleanH === 'average power' || cleanH === 'avg power' || cleanH === 'power' || cleanH === 'watts' || cleanH.includes('average watts')) return 'avg_power';
+        if (cleanH === 'average power' || cleanH === 'avg power' || cleanH === 'power' || cleanH === 'watts' || cleanH === 'avg' || cleanH.includes('average watts')) return 'avg_power';
         if (cleanH === 'training load' || cleanH === 'load' || cleanH === 'tss' || cleanH.includes('icu training load')) return 'load';
         if (cleanH === 'work' || cleanH === 'total work' || cleanH.includes('joules')) return 'work'; // Added Work
         if (cleanH === 'rpe' || cleanH.includes('perceived exertion') || cleanH.includes('feel')) return 'rpe';
