@@ -3,6 +3,8 @@ import { RefreshCw, CheckCircle } from 'lucide-react';
 import { SPORT_TYPES } from '../../config';
 import useIntervalsSync from '../../hooks/useIntervalsSync';
 
+import { normalizeIntervalsActivity } from '../../utils';
+
 const SyncTab = ({ intervalsConfig, existingActivities, onSyncResults }) => {
     const [syncDates, setSyncDates] = useState({
         start: new Date(new Date().setDate(new Date().getDate() - 90)).toISOString().split('T')[0],
@@ -22,7 +24,8 @@ const SyncTab = ({ intervalsConfig, existingActivities, onSyncResults }) => {
         try {
             const { count, newActivities } = await syncActivities(syncDates.start, syncDates.end, sportFilters, existingActivities);
             if (count > 0) {
-                onSyncResults(newActivities);
+                const normalized = newActivities.map(normalizeIntervalsActivity);
+                onSyncResults(normalized);
             } else {
                 // Determine if it was empty result or just duplicates
                 // For now, the hook returns 0 count for both cases, but we can improve valid alerting if needed.

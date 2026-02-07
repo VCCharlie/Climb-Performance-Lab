@@ -312,59 +312,62 @@ export const smartParseCSV = (text) => {
     }).filter(e => e.distance > 0 || e.moving_time > 0);
 };
 
+// Shared Normalizer for API & JSON Import
+export const normalizeIntervalsActivity = (item) => {
+    const getNum = (val) => { const n = Number(val); return isNaN(n) ? 0 : n; };
+    const getVal = (...keys) => { for (const k of keys) { if (item[k] !== undefined && item[k] !== null && item[k] !== "") return item[k]; } return null; };
+
+    const id = String(getVal('id', 'activity_id') || Math.random().toString(36).substr(2, 9));
+    const dateStr = getVal('startDate', 'start_date_local', 'start_date', 'date');
+    const title = getVal('name', 'title') || "Untitled";
+
+    const movingTime = getNum(getVal('movingTime', 'moving_time', 'icu_recording_time', 'elapsedTime', 'elapsed_time'));
+    const distanceMeters = getNum(getVal('distance', 'icu_distance'));
+    const climbing = getNum(getVal('elevationGain', 'total_elevation_gain', 'total_elevation_loss'));
+    const avgSpeedMs = getNum(getVal('avgSpeed', 'average_speed'));
+    const normPower = getNum(getVal('normalizedPower', 'icu_weighted_avg_watts', 'weighted_average_watts', 'np', 'normalized_power'));
+    const avgPower = getNum(getVal('avgWatts', 'icu_average_watts', 'average_watts', 'device_watts', 'avg_power'));
+    const load = getNum(getVal('trainingLoad', 'icu_training_load', 'training_load', 'power_load', 'hr_load', 'pace_load', 'tss'));
+    const rpe = getNum(getVal('rpe', 'icu_rpe', 'perceived_exertion', 'feel', 'session_rpe'));
+    const ftp = getNum(getVal('ftp', 'icu_ftp', 'cp'));
+
+    const best1min = getNum(getVal('Best1minpower', 'best_1min_power', 'w1min'));
+    const best5min = getNum(getVal('Best5minpower', 'best_5min_power', 'w5min'));
+    const best10min = getNum(getVal('Best10minpower', 'best_10min_power', 'w10min'));
+    const best20min = getNum(getVal('Best20minpower', 'best_20min_power', 'w20min'));
+    const best60min = getNum(getVal('Best60minpower', 'best_60min_power', 'w60min'));
+
+    const rawType = getVal('type', 'sub_type');
+    const finalType = determineActivityType(rawType, title);
+
+    return {
+        id: id,
+        date: normalizeDate(dateStr),
+        title: title,
+        type: finalType,
+        moving_time: movingTime,
+        distance: (distanceMeters > 2000 || (distanceMeters > 0 && distanceMeters % 1 !== 0)) ? (distanceMeters / 1000).toFixed(2) : distanceMeters,
+        climbing: Math.round(climbing),
+        avg_speed: (avgSpeedMs < 20 && avgSpeedMs > 0) ? (avgSpeedMs * 3.6).toFixed(1) : avgSpeedMs,
+        norm_power: Math.round(normPower),
+        avg_power: Math.round(avgPower),
+        load: Math.round(load),
+        rpe: rpe,
+        ftp: Math.round(ftp),
+        best_1min: Math.round(best1min),
+        best_5min: Math.round(best5min),
+        best_10min: Math.round(best10min),
+        best_20min: Math.round(best20min),
+        best_60min: Math.round(best60min)
+    };
+};
+
 export const smartParseJSON = (jsonText) => {
     try {
         const rawData = JSON.parse(jsonText);
         const dataArray = Array.isArray(rawData) ? rawData : [rawData];
         if (dataArray.length === 0) return [];
-        return dataArray.map(item => {
-            const getNum = (val) => { const n = Number(val); return isNaN(n) ? 0 : n; };
-            const getVal = (...keys) => { for (const k of keys) { if (item[k] !== undefined && item[k] !== null && item[k] !== "") return item[k]; } return null; };
-
-            const id = String(getVal('id', 'activity_id') || Math.random().toString(36).substr(2, 9));
-            const dateStr = getVal('startDate', 'start_date_local', 'start_date', 'date');
-            const title = getVal('name', 'title') || "Untitled";
-
-            const movingTime = getNum(getVal('movingTime', 'moving_time', 'icu_recording_time', 'elapsedTime', 'elapsed_time'));
-            const distanceMeters = getNum(getVal('distance', 'icu_distance'));
-            const climbing = getNum(getVal('elevationGain', 'total_elevation_gain', 'total_elevation_loss'));
-            const avgSpeedMs = getNum(getVal('avgSpeed', 'average_speed'));
-            const normPower = getNum(getVal('normalizedPower', 'icu_weighted_avg_watts', 'weighted_average_watts', 'np', 'normalized_power'));
-            const avgPower = getNum(getVal('avgWatts', 'icu_average_watts', 'average_watts', 'device_watts', 'avg_power'));
-            const load = getNum(getVal('trainingLoad', 'icu_training_load', 'training_load', 'power_load', 'hr_load', 'pace_load', 'tss'));
-            const rpe = getNum(getVal('rpe', 'icu_rpe', 'perceived_exertion', 'feel', 'session_rpe'));
-            const ftp = getNum(getVal('ftp', 'icu_ftp', 'cp'));
-
-            const best1min = getNum(getVal('Best1minpower', 'best_1min_power', 'w1min'));
-            const best5min = getNum(getVal('Best5minpower', 'best_5min_power', 'w5min'));
-            const best10min = getNum(getVal('Best10minpower', 'best_10min_power', 'w10min'));
-            const best20min = getNum(getVal('Best20minpower', 'best_20min_power', 'w20min'));
-            const best60min = getNum(getVal('Best60minpower', 'best_60min_power', 'w60min'));
-
-            const rawType = getVal('type', 'sub_type');
-            const finalType = determineActivityType(rawType, title);
-
-            return {
-                id: id,
-                date: normalizeDate(dateStr),
-                title: title,
-                type: finalType,
-                moving_time: movingTime,
-                distance: (distanceMeters > 2000 || (distanceMeters > 0 && distanceMeters % 1 !== 0)) ? (distanceMeters / 1000).toFixed(2) : distanceMeters,
-                climbing: Math.round(climbing),
-                avg_speed: (avgSpeedMs < 20 && avgSpeedMs > 0) ? (avgSpeedMs * 3.6).toFixed(1) : avgSpeedMs,
-                norm_power: Math.round(normPower),
-                avg_power: Math.round(avgPower),
-                load: Math.round(load),
-                rpe: rpe,
-                ftp: Math.round(ftp),
-                best_1min: Math.round(best1min),
-                best_5min: Math.round(best5min),
-                best_10min: Math.round(best10min),
-                best_20min: Math.round(best20min),
-                best_60min: Math.round(best60min)
-            };
-        });
+        return dataArray.map(normalizeIntervalsActivity);
     } catch (e) {
         console.error("JSON Parse Error:", e);
         return [];
