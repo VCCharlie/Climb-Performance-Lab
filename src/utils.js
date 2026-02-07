@@ -259,25 +259,36 @@ export const smartParseCSV = (text) => {
     }
     const rawHeaders = rows[0].map(h => h.trim().toLowerCase().replace(/^"|"$/g, ''));
     const mapHeader = (h) => {
-        const cleanH = h.replace(/_/g, ' ');
-        if (h === 'activity id' || h === 'id' || cleanH.includes('activity id')) return 'id';
-        if (h === 'name' || h === 'title' || cleanH.includes('activity name')) return 'title';
-        if (h === 'type' || h === 'sub_type' || cleanH.includes('activity type')) return 'type';
-        if (h === 'start_date_local' || cleanH.includes('date') || cleanH.includes('datum')) return 'date';
-        if (h === 'moving_time' || cleanH.includes('moving time') || cleanH.includes('elapsed time')) return 'moving_time';
-        if (h === 'distance' || cleanH.includes('afstand')) return 'distance';
-        if (h === 'total_elevation_gain' || cleanH.includes('climb') || cleanH.includes('elevation') || cleanH.includes('hoogte')) return 'climbing';
-        if (h === 'average_speed' || cleanH.includes('speed') || cleanH.includes('snelheid')) return 'avg_speed';
-        if (h === 'icu_weighted_avg_watts' || cleanH.includes('weighted avg power') || cleanH.includes('norm power') || cleanH.includes('np')) return 'norm_power';
-        if (h === 'icu_average_watts' || h === 'average_watts' || cleanH.includes('avg power') || cleanH.includes('average watts') || h === 'power' || h === 'watts') return 'avg_power';
-        if (h === 'icu_training_load' || h === 'training_load' || cleanH.includes('tss') || cleanH.includes('load')) return 'load';
-        if (h === 'icu_rpe' || h === 'rpe' || cleanH.includes('feel')) return 'rpe';
-        if (h === 'icu_ftp' || h === 'ftp' || cleanH.includes('ftp')) return 'ftp';
-        if (cleanH.includes('best1min') || cleanH.includes('best 1min') || cleanH === 'w1min') return 'best_1min';
-        if (cleanH.includes('best5min') || cleanH.includes('best 5min') || cleanH === 'w5min') return 'best_5min';
-        if (cleanH.includes('best10min') || cleanH.includes('best 10min') || cleanH === 'w10min') return 'best_10min';
-        if (cleanH.includes('best20min') || cleanH.includes('best 20min') || cleanH === 'w20min') return 'best_20min';
-        if (cleanH.includes('best60min') || cleanH.includes('best 60min') || cleanH === 'w60min') return 'best_60min';
+        // Normalize: lowercase, remove quotes, trim
+        const cleanH = h.toLowerCase().trim().replace(/^"|"$/g, '').replace(/_/g, ' ');
+
+        // ID & Metadata
+        if (cleanH === 'activity id' || cleanH === 'id' || cleanH.includes('activity id')) return 'id';
+        if (cleanH === 'name' || cleanH === 'title' || cleanH.includes('activity name')) return 'title';
+        if (cleanH === 'type' || cleanH === 'sub_type' || cleanH.includes('activity type')) return 'type';
+        if (cleanH === 'date' || cleanH.includes('start date') || cleanH.includes('datum')) return 'date';
+
+        // Basic Metrics
+        if (cleanH === 'time' || cleanH === 'moving time' || cleanH === 'elapsed time' || cleanH.includes('moving_time')) return 'moving_time';
+        if (cleanH === 'distance' || cleanH.includes('afstand')) return 'distance';
+        if (cleanH === 'elevation' || cleanH.includes('elevation gain') || cleanH.includes('climb') || cleanH.includes('hoogte')) return 'climbing';
+        if (cleanH === 'average speed' || cleanH === 'avg speed' || cleanH.includes('snelheid') || cleanH.includes('speed')) return 'avg_speed';
+
+        // Power & Load
+        if (cleanH === 'normalized power' || cleanH === 'norm power' || cleanH === 'np' || cleanH.includes('weighted avg power')) return 'norm_power';
+        if (cleanH === 'average power' || cleanH === 'avg power' || cleanH === 'power' || cleanH === 'watts' || cleanH.includes('average watts')) return 'avg_power';
+        if (cleanH === 'training load' || cleanH === 'load' || cleanH === 'tss' || cleanH.includes('icu training load')) return 'load';
+        if (cleanH === 'work' || cleanH === 'total work' || cleanH.includes('joules')) return 'work'; // Added Work
+        if (cleanH === 'rpe' || cleanH.includes('perceived exertion') || cleanH.includes('feel')) return 'rpe';
+        if (cleanH === 'ftp' || cleanH.includes('icu ftp')) return 'ftp';
+
+        // Best Power / Peak Power
+        if (cleanH.includes('best 1min') || cleanH.includes('best 1m') || cleanH === 'w1min') return 'best_1min';
+        if (cleanH.includes('best 5min') || cleanH.includes('best 5m') || cleanH === 'w5min') return 'best_5min';
+        if (cleanH.includes('best 10min') || cleanH.includes('best 10m') || cleanH === 'w10min') return 'best_10min';
+        if (cleanH.includes('best 20min') || cleanH.includes('best 20m') || cleanH === 'w20min') return 'best_20min';
+        if (cleanH.includes('best 60min') || cleanH.includes('best 60m') || cleanH === 'w60min') return 'best_60min';
+
         return null;
     };
     const colMap = rawHeaders.map(mapHeader);
