@@ -1,106 +1,299 @@
 import React, { useState, useMemo } from 'react';
-import { Utensils, Zap, Droplets, Battery, CheckCircle } from 'lucide-react';
+import { Utensils, Zap, Droplets, Battery, CheckCircle, Thermometer, CloudRain, Mountain, Clock } from 'lucide-react';
 
 const FuelingStrategy = () => {
-    const [duration, setDuration] = useState(180); 
-    const [intensity, setIntensity] = useState(0.85);
-    const [bidonSize, setBidonSize] = useState(750);
+    // --- BASIC INPUTS ---
+    const [duration, setDuration] = useState(180); // minutes
+    const [intensity, setIntensity] = useState(0.85); // IF
 
-    const requirements = useMemo(() => {
-        const carbsPerHour = intensity > 0.9 ? 90 : intensity > 0.8 ? 75 : 60;
-        const totalCarbs = (duration / 60) * carbsPerHour;
-        const fluidPerHour = 600;
-        const totalFluid = (duration / 60) * fluidPerHour;
-        const totalBidons = Math.ceil(totalFluid / bidonSize); 
-        const fluidCarbs = totalBidons * 40; 
-        const remainingCarbs = Math.max(0, totalCarbs - fluidCarbs);
-        const gels = Math.round((remainingCarbs * 0.6) / 30);
-        const bars = Math.round((remainingCarbs * 0.4) / 45);
+    // --- EQUIPMENT ---
+    const [bidonSize, setBidonSize] = useState(750); // ml
 
-        return { carbsPerHour, totalCarbs, fluidPerHour, totalFluid, totalBidons, gels, bars };
-    }, [duration, intensity, bidonSize]);
+    // --- ENVIRONMENTAL FACTORS ---
+    const [temp, setTemp] = useState(20); // Celsius
+    const [humidity, setHumidity] = useState('medium'); // low, medium, high
+    const [altitude, setAltitude] = useState(0); // meters
+
+    // --- NUTRITION PRODUCT CONFIG ---
+    const [productConfig, setProductConfig] = useState({
+        drinkMixCarbs: 40, // g per bidon (e.g. Isotonic)
+        gelCarbs: 30,      // g per gel (e.g. Maurten/SIS)
+        barCarbs: 45       // g per bar (e.g. Clif Bar)
+    });
+
+    const calculateStrategy = useMemo(() => {
+        // 1. Calculate Carbs Needs (Elite Guidelines)
+        // < 1h: small amounts / rinse
+        // 1-2h: 30-60g/hr
+        // 2-3h: 60-75g/hr
+        // > 3h: 90g/hr (if gut trained)
+        let recommendedCarbsPerHour = 60;
+        if (duration <= 60) recommendedCarbsPerHour = 30;
+        else if (duration <= 120) recommendedCarbsPerHour = 60;
+        else if (duration <= 180) recommendedCarbsPerHour = 75;
+        else recommendedCarbsPerHour = 90;
+
+        // Adjust for intensity (Higher intensity = emphasis on liquid/gels, less bars)
+        if (intensity > 0.9) recommendedCarbsPerHour = 90;
+
+        // 2. Calculate Fluid Needs (Sweat Rate Estimation)
+        // Base: 500ml/hr
+        let fluidBase = 500;
+
+        // Temp Correction
+        // +15ml per degree > 15C
+        if (temp > 15) fluidBase += (temp - 15) * 15;
+
+        // Humidity Correction
+        if (humidity === 'high') fluidBase *= 1.1; // +10%
+        if (humidity === 'low') fluidBase *= 1.2; // +20% (Dry air evaporates faster, deception)
+
+        // Intensity Correction
+        // Harder effort = more heat
+        fluidBase *= intensity;
+
+        // Altitude Correction (>1500m)
+        // Drier air + increased respiration
+        if (altitude > 1500) fluidBase += 100;
+
+        const fluidPerHour = Math.round(fluidBase);
+
+        // Totals
+        const durationHours = duration / 60;
+        const totalCarbsNeeded = Math.round(durationHours * recommendedCarbsPerHour);
+        const totalFluidNeeded = Math.round(durationHours * fluidPerHour);
+
+        // 3. Packing List Logic
+        const totalBidons = Math.ceil(totalFluidNeeded / bidonSize);
+        const carbsFromDrink = totalBidons * productConfig.drinkMixCarbs;
+
+        const remainingCarbs = Math.max(0, totalCarbsNeeded - carbsFromDrink);
+
+        // Solid vs Liquid Split
+        // High Intensity (>0.85) -> 80% Gels, 20% Bars
+        // Low Intensity (<0.75) -> 40% Gels, 60% Bars
+        let gelRatio = 0.6;
+        if (intensity > 0.85) gelRatio = 0.9;
+        if (intensity < 0.75) gelRatio = 0.4;
+
+        const carbsFromGels = remainingCarbs * gelRatio;
+        const carbsFromBars = remainingCarbs * (1 - gelRatio);
+
+        const gelsCount = Math.ceil(carbsFromGels / productConfig.gelCarbs);
+        const barsCount = Math.ceil(carbsFromBars / productConfig.barCarbs);
+
+        return {
+            carbsPerHour: recommendedCarbsPerHour,
+            fluidPerHour: fluidPerHour,
+            totalCarbs: totalCarbsNeeded,
+            totalFluid: totalFluidNeeded,
+            packing: {
+                bidons: totalBidons,
+                gels: gelsCount,
+                bars: barsCount,
+                mixName: `${productConfig.drinkMixCarbs}g Mix`,
+                gelName: `${productConfig.gelCarbs}g Gel`,
+                barName: `${productConfig.barCarbs}g Bar`
+            }
+        };
+    }, [duration, intensity, bidonSize, temp, humidity, altitude, productConfig]);
+
+    // Timeline Generation
+    const timeline = useMemo(() => {
+        const events = [];
+        const startTime = 0; // minutes
+        const numEvents = Math.floor(duration / 20); // Interval every 20 mins
+
+        for (let i = 1; i <= numEvents; i++) {
+            const time = i * 20;
+            let action = "Drink";
+            let icon = Droplets;
+
+            // Every 40 mins roughly, take a gel/bar
+            if (time % 40 === 0) {
+                action = "Drink + Gel";
+                icon = Zap;
+            }
+            // Every 60-80 mins, take solid if needed
+            if (time % 80 === 0 && intensity < 0.85) {
+                action = "Drink + Solid Bar";
+                icon = Utensils;
+            }
+
+            events.push({ time, action, icon });
+        }
+        return events;
+    }, [duration, intensity]);
+
+    const handleConfigChange = (key, val) => {
+        setProductConfig(prev => ({ ...prev, [key]: parseInt(val) || 0 }));
+    };
 
     return (
-        <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl animate-in fade-in">
-            <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2"><Utensils className="text-green-400"/> Race Fueling Calculator</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-6">
-                    <div>
-                        <label className="text-xs text-slate-400 uppercase font-bold">Verwachte Duur</label>
-                        <div className="flex items-center gap-4 mt-2">
-                             <input type="range" min="30" max="600" step="15" value={duration} onChange={e=>setDuration(parseInt(e.target.value))} className="flex-1 accent-yellow-400"/>
-                             <span className="w-20 font-mono text-white text-right">{Math.floor(duration/60)}h {duration%60}m</span>
+        <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl animate-in fade-in space-y-8">
+            <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-white flex items-center gap-2"><Utensils className="text-green-400" /> Elite Fueling Strategy</h2>
+                <div className="text-xs text-slate-500 bg-slate-900 px-3 py-1 rounded-full border border-slate-700">Scientific Guidelines</div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* --- INPUTS --- */}
+                <div className="space-y-6 lg:col-span-1">
+
+                    {/* Activity Params */}
+                    <div className="bg-slate-900/50 p-4 rounded border border-slate-700 space-y-4">
+                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide">Activity Profile</h3>
+                        <div>
+                            <div className="flex justify-between text-xs text-slate-300 mb-1">
+                                <span>Duration</span>
+                                <span className="font-mono text-yellow-400">{Math.floor(duration / 60)}h {duration % 60}m</span>
+                            </div>
+                            <input type="range" min="30" max="600" step="15" value={duration} onChange={e => setDuration(parseInt(e.target.value))} className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-yellow-400" />
+                        </div>
+                        <div>
+                            <div className="flex justify-between text-xs text-slate-300 mb-1">
+                                <span>Intensity (IF)</span>
+                                <span className="font-mono text-yellow-400">{(intensity * 100).toFixed(0)}%</span>
+                            </div>
+                            <input type="range" min="0.5" max="1.1" step="0.01" value={intensity} onChange={e => setIntensity(parseFloat(e.target.value))} className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-red-500" />
                         </div>
                     </div>
-                    <div>
-                        <label className="text-xs text-slate-400 uppercase font-bold">Intensity Factor (IF)</label>
-                        <div className="flex items-center gap-4 mt-2">
-                             <input type="range" min="0.5" max="1.1" step="0.01" value={intensity} onChange={e=>setIntensity(parseFloat(e.target.value))} className="flex-1 accent-red-500"/>
-                             <span className="w-20 font-mono text-white text-right">{(intensity*100).toFixed(0)}%</span>
+
+                    {/* Environment */}
+                    <div className="bg-slate-900/50 p-4 rounded border border-slate-700 space-y-4">
+                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide flex items-center gap-2"><Thermometer size={14} /> Environment</h3>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-[10px] text-slate-400 uppercase">Temp (°C)</label>
+                                <input type="number" value={temp} onChange={e => setTemp(parseInt(e.target.value))} className="w-full bg-slate-800 border-slate-600 rounded text-sm text-white px-2 py-1 mt-1 focus:border-yellow-400 outline-none" />
+                            </div>
+                            <div>
+                                <label className="text-[10px] text-slate-400 uppercase">Altitude (m)</label>
+                                <input type="number" step="100" value={altitude} onChange={e => setAltitude(parseInt(e.target.value))} className="w-full bg-slate-800 border-slate-600 rounded text-sm text-white px-2 py-1 mt-1 focus:border-yellow-400 outline-none" />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="text-[10px] text-slate-400 uppercase">Humidity</label>
+                            <div className="grid grid-cols-3 gap-2 mt-1">
+                                {['low', 'medium', 'high'].map(h => (
+                                    <button
+                                        key={h}
+                                        onClick={() => setHumidity(h)}
+                                        className={`px-2 py-1 text-xs rounded uppercase ${humidity === h ? 'bg-blue-500 text-white font-bold' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+                                    >
+                                        {h}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </div>
-                    <div>
-                         <label className="text-xs text-slate-400 uppercase font-bold">Bidon Grootte</label>
-                         <div className="flex bg-slate-900 rounded p-1 mt-2 w-fit">
-                            <button onClick={()=>setBidonSize(500)} className={`px-4 py-1 text-xs rounded ${bidonSize===500 ? 'bg-blue-500 text-white' : 'text-slate-400'}`}>500ml</button>
-                            <button onClick={()=>setBidonSize(750)} className={`px-4 py-1 text-xs rounded ${bidonSize===750 ? 'bg-blue-500 text-white' : 'text-slate-400'}`}>750ml</button>
-                         </div>
-                    </div>
-                    
-                    <div className="p-4 bg-slate-900 rounded border border-slate-700 mt-4">
-                        <div className="grid grid-cols-3 gap-2 text-center">
-                            <div className="bg-slate-800 p-2 rounded">
-                                <Zap className="w-4 h-4 text-yellow-400 mx-auto mb-1"/>
-                                <div className="text-lg font-bold text-white">{requirements.carbsPerHour}g</div>
-                                <div className="text-[10px] text-slate-400">Carbs/hr</div>
+
+                    {/* Product Config */}
+                    <div className="bg-slate-900/50 p-4 rounded border border-slate-700 space-y-4">
+                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide">Nutrition Products (Carbs/Unit)</h3>
+                        <div className="grid grid-cols-3 gap-2">
+                            <div>
+                                <label className="text-[10px] text-slate-500">Drink Mix (g)</label>
+                                <input type="number" value={productConfig.drinkMixCarbs} onChange={e => handleConfigChange('drinkMixCarbs', e.target.value)} className="w-full bg-slate-800 border-slate-600 rounded text-xs text-white px-2 py-1" />
                             </div>
-                            <div className="bg-slate-800 p-2 rounded">
-                                <Droplets className="w-4 h-4 text-blue-400 mx-auto mb-1"/>
-                                <div className="text-lg font-bold text-white">{requirements.fluidPerHour}ml</div>
-                                <div className="text-[10px] text-slate-400">Vocht/hr</div>
+                            <div>
+                                <label className="text-[10px] text-slate-500">Gel (g)</label>
+                                <input type="number" value={productConfig.gelCarbs} onChange={e => handleConfigChange('gelCarbs', e.target.value)} className="w-full bg-slate-800 border-slate-600 rounded text-xs text-white px-2 py-1" />
                             </div>
-                            <div className="bg-slate-800 p-2 rounded">
-                                <Battery className="w-4 h-4 text-green-400 mx-auto mb-1"/>
-                                <div className="text-lg font-bold text-white">{Math.round(requirements.totalCarbs)}g</div>
-                                <div className="text-[10px] text-slate-400">Total Load</div>
+                            <div>
+                                <label className="text-[10px] text-slate-500">Bar (g)</label>
+                                <input type="number" value={productConfig.barCarbs} onChange={e => handleConfigChange('barCarbs', e.target.value)} className="w-full bg-slate-800 border-slate-600 rounded text-xs text-white px-2 py-1" />
                             </div>
+                        </div>
+                        <div className="mt-2">
+                            <label className="text-[10px] text-slate-500">Bidon Size</label>
+                            <select value={bidonSize} onChange={e => setBidonSize(parseInt(e.target.value))} className="w-full bg-slate-800 border-slate-600 rounded text-xs text-white px-2 py-1 mt-1">
+                                <option value={500}>500ml</option>
+                                <option value={750}>750ml</option>
+                                <option value={1000}>1 Liter</option>
+                            </select>
                         </div>
                     </div>
                 </div>
-                
-                <div className="relative bg-slate-900 border border-slate-700 rounded-lg p-6 flex flex-col justify-between">
-                    <div>
-                         <h3 className="text-slate-300 font-bold mb-4 uppercase tracking-wider flex items-center gap-2"><CheckCircle size={16}/> Packing List</h3>
-                         <div className="space-y-4">
-                            <div className="flex items-center justify-between p-3 bg-slate-800 rounded border border-slate-700">
-                                <div className="flex items-center gap-3">
-                                    <div className="bg-blue-500/20 p-2 rounded text-blue-400"><Droplets size={20}/></div>
-                                    <div>
-                                        <div className="font-bold text-white text-lg">{requirements.totalBidons}x</div>
-                                        <div className="text-xs text-slate-400">Bidons ({bidonSize}ml) met Mix</div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="flex items-center justify-between p-3 bg-slate-800 rounded border border-slate-700">
-                                <div className="flex items-center gap-3">
-                                    <div className="bg-yellow-500/20 p-2 rounded text-yellow-400"><Zap size={20}/></div>
-                                    <div>
-                                        <div className="font-bold text-white text-lg">{requirements.gels}x</div>
-                                        <div className="text-xs text-slate-400">Energy Gels (30g)</div>
-                                    </div>
-                                </div>
-                            </div>
-                             <div className="flex items-center justify-between p-3 bg-slate-800 rounded border border-slate-700">
-                                <div className="flex items-center gap-3">
-                                    <div className="bg-green-500/20 p-2 rounded text-green-400"><Utensils size={20}/></div>
-                                    <div>
-                                        <div className="font-bold text-white text-lg">{requirements.bars}x</div>
-                                        <div className="text-xs text-slate-400">Solid Bars (45g)</div>
-                                    </div>
-                                </div>
-                            </div>
-                         </div>
+
+                {/* --- RESULTS PANEL --- */}
+                <div className="space-y-6 lg:col-span-2 flex flex-col h-full">
+                    {/* KPI Cards */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="bg-slate-700/50 p-4 rounded-lg border border-slate-600 text-center">
+                            <Zap className="w-5 h-5 text-yellow-500 mx-auto mb-2" />
+                            <div className="text-2xl font-bold text-white">{calculateStrategy.carbsPerHour}g</div>
+                            <div className="text-xs text-slate-400 uppercase">Carbs / Hour</div>
+                        </div>
+                        <div className="bg-slate-700/50 p-4 rounded-lg border border-slate-600 text-center">
+                            <Droplets className="w-5 h-5 text-blue-500 mx-auto mb-2" />
+                            <div className="text-2xl font-bold text-white">{calculateStrategy.fluidPerHour}ml</div>
+                            <div className="text-xs text-slate-400 uppercase">Fluid / Hour</div>
+                        </div>
+                        <div className="bg-slate-700/50 p-4 rounded-lg border border-slate-600 text-center">
+                            <Battery className="w-5 h-5 text-green-500 mx-auto mb-2" />
+                            <div className="text-2xl font-bold text-white">{calculateStrategy.totalCarbs}g</div>
+                            <div className="text-xs text-slate-400 uppercase">Total Carbs</div>
+                        </div>
+                        <div className="bg-slate-700/50 p-4 rounded-lg border border-slate-600 text-center">
+                            <CloudRain className={`w-5 h-5 mx-auto mb-2 ${calculateStrategy.fluidPerHour > 800 ? 'text-red-500 animate-pulse' : 'text-blue-300'}`} />
+                            <div className="text-2xl font-bold text-white">{(calculateStrategy.totalFluid / 1000).toFixed(1)}L</div>
+                            <div className="text-xs text-slate-400 uppercase">Total Fluid</div>
+                        </div>
                     </div>
+
+                    {/* Packing List */}
+                    <div className="bg-slate-900 border border-slate-700 rounded-lg p-6">
+                        <h3 className="text-white font-bold mb-4 flex items-center gap-2"><CheckCircle size={18} className="text-green-400" /> Race Day Packing List</h3>
+                        <div className="flex flex-wrap gap-4">
+                            <div className="flex items-center gap-3 bg-slate-800 px-4 py-3 rounded border border-slate-700 flex-1 min-w-[150px]">
+                                <div className="bg-blue-500/20 p-2 rounded text-blue-400 font-bold text-xl">{calculateStrategy.packing.bidons}</div>
+                                <div>
+                                    <div className="text-sm font-bold text-white">Bidons</div>
+                                    <div className="text-[10px] text-slate-400">{bidonSize}ml + {calculateStrategy.packing.mixName}</div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3 bg-slate-800 px-4 py-3 rounded border border-slate-700 flex-1 min-w-[150px]">
+                                <div className="bg-yellow-500/20 p-2 rounded text-yellow-400 font-bold text-xl">{calculateStrategy.packing.gels}</div>
+                                <div>
+                                    <div className="text-sm font-bold text-white">Gels</div>
+                                    <div className="text-[10px] text-slate-400">{calculateStrategy.packing.gelName}</div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3 bg-slate-800 px-4 py-3 rounded border border-slate-700 flex-1 min-w-[150px]">
+                                <div className="bg-green-500/20 p-2 rounded text-green-400 font-bold text-xl">{calculateStrategy.packing.bars}</div>
+                                <div>
+                                    <div className="text-sm font-bold text-white">Solid Bars</div>
+                                    <div className="text-[10px] text-slate-400">{calculateStrategy.packing.barName}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Timeline */}
+                    <div className="flex-1 bg-slate-900 border border-slate-700 rounded-lg p-6 overflow-hidden flex flex-col">
+                        <h3 className="text-white font-bold mb-4 flex items-center gap-2"><Clock size={16} /> Nutrition Timeline</h3>
+                        <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+                            {/* Pre-Load */}
+                            <div className="flex items-center gap-4 text-slate-400 border-l-2 border-slate-700 pl-4 py-1">
+                                <span className="font-mono text-xs w-12">-15m</span>
+                                <div className="bg-slate-800 px-3 py-1 rounded text-xs">Drink 300ml + 1 Gel (Pre-load)</div>
+                            </div>
+
+                            {timeline.map((event, idx) => (
+                                <div key={idx} className="flex items-center gap-4 text-white border-l-2 border-yellow-500/50 pl-4 py-1">
+                                    <span className="font-mono text-sm w-12 text-yellow-400">{Math.floor(event.time / 60)}h{event.time % 60 > 0 ? event.time % 60 : '00'}</span>
+                                    <div className="flex items-center gap-2 bg-slate-800 px-3 py-2 rounded text-sm w-full">
+                                        <event.icon size={14} className="text-slate-400" />
+                                        {event.action}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
