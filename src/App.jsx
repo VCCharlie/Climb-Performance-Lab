@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Gauge, Mountain, Activity, Utensils } from 'lucide-react';
+import { Gauge, Mountain, Activity, Utensils, Brain } from 'lucide-react';
 import { doc, setDoc, getDoc, collection, getDocs } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from './firebase';
@@ -11,6 +11,7 @@ import Header from './components/Header';
 import PhysicsEngine from './components/PhysicsEngine';
 import DataHub from './components/DataHub';
 import FuelingStrategy from './components/FuelingStrategy';
+import AICoach from './components/AICoach';
 import ClimbProfileCard from './components/ClimbProfileCard';
 import Dashboard from './components/Dashboard';
 import SettingsModal from './components/SettingsModal';
@@ -134,6 +135,7 @@ const App = () => {
                 <nav className="flex overflow-x-auto gap-4 pb-2 md:pb-0 border-b border-slate-700/50 mb-4 px-2">
                     {[
                         { id: 'dashboard', label: 'Dashboard', icon: Gauge },
+                        { id: 'coach', label: 'AI Coach', icon: Brain },
                         { id: 'physics', label: 'Physics', icon: Mountain },
                         { id: 'data', label: 'Data Hub', icon: Activity },
                         { id: 'fueling', label: 'Fueling', icon: Utensils },
@@ -169,6 +171,8 @@ const App = () => {
                                 </div>
                             </div>
                         )}
+
+                        {activeTab === 'coach' && <AICoach activities={activities} userSettings={userSettings} />}
 
                         {activeTab === 'physics' && <PhysicsEngine userSettings={userSettings} setUserSettings={setUserSettings} selectedClimb={selectedClimb} onUpdateClimb={setSelectedClimb} />}
 
