@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Gauge, Mountain, Activity, Utensils, Brain } from 'lucide-react';
-import { doc, setDoc, getDoc, collection, getDocs } from "firebase/firestore";
+import { doc, setDoc, getDoc, collection, getDocs, onSnapshot } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from './firebase';
 import { CLIMB_DATABASE } from './climbs';
@@ -20,6 +20,7 @@ const App = () => {
     const [activeTab, setActiveTab] = useState('dashboard');
     const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [syncStatus, setSyncStatus] = useState('idle'); // 'idle', 'syncing', 'synced', 'error'
 
     const [userSettings, setUserSettings] = useState({
         weight: 70.0,
@@ -47,13 +48,14 @@ const App = () => {
         return () => unsubscribe();
     }, []);
 
-    // Data Laden (Settings + Historie)
+    // 1. Settings Laden (One-time fetch)
     useEffect(() => {
-        const loadData = async () => {
+        const loadSettings = async () => {
             if (!db) return;
-            setIsLoading(true);
+            // Only set loading true initially
+            if (activities.length === 0) setIsLoading(true);
+
             try {
-                // A. Settings laden
                 const settingsId = user ? `user_${user.uid}` : "user_prefs";
                 const docRef = doc(db, "settings", settingsId);
                 const docSnap = await getDoc(docRef);
@@ -67,25 +69,48 @@ const App = () => {
                         localStorage.setItem('theme', data.theme);
                     }
                 }
-
-                // B. Activiteiten Historie laden
-                const actCol = collection(db, "activities");
-                const actSnap = await getDocs(actCol);
-                const loadedActs = actSnap.docs.map(d => d.data());
-
-                if (loadedActs.length > 0) {
-                    loadedActs.sort((a, b) => new Date(b.date) - new Date(a.date));
-                    setActivities(loadedActs);
-                }
-
             } catch (e) {
-                console.error("Error loading data", e);
+                console.error("Error loading settings", e);
             } finally {
-                setIsLoading(false);
+                // We don't set loading false here because we wait for activities
             }
         };
-        loadData();
+        loadSettings();
     }, [user]);
+
+    // 2. Real-time Activities Sync (onSnapshot)
+    useEffect(() => {
+        if (!db) {
+            setIsLoading(false);
+            return;
+        }
+
+        const actCol = collection(db, "activities");
+
+        // This listener handles both initial load AND real-time updates
+        const unsubscribe = onSnapshot(actCol, (snapshot) => {
+            const loadedActs = snapshot.docs.map(d => d.data());
+
+            if (loadedActs.length > 0) {
+                loadedActs.sort((a, b) => new Date(b.date) - new Date(a.date));
+                setActivities(loadedActs);
+            } else {
+                setActivities([]);
+            }
+
+            // Check if changes are local (latency compensation) or synced
+            const hasPendingWrites = snapshot.metadata.hasPendingWrites;
+            setSyncStatus(hasPendingWrites ? 'syncing' : 'synced');
+
+            setIsLoading(false);
+        }, (error) => {
+            console.error("Real-time sync error:", error);
+            setSyncStatus('error');
+            setIsLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, [user]); // Re-subscribe if user changes (security rules might change)
 
     // Update Power Zones
     useEffect(() => {
@@ -129,6 +154,7 @@ const App = () => {
                 userSettings={userSettings}
                 onOpenSettings={() => setIsSettingsOpen(true)}
                 user={user}
+                syncStatus={syncStatus}
             />
 
             <main className={`mx-auto p-3 space-y-4 transition-all duration-300 ${activeTab === 'data' ? 'max-w-[95%]' : 'max-w-7xl'}`}>
