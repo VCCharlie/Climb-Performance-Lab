@@ -133,7 +133,7 @@ const FuelingStrategy = () => {
         <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl animate-in fade-in space-y-8">
             <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-white flex items-center gap-2"><Utensils className="text-green-400" /> Elite Fueling Strategy</h2>
-                <div className="text-xs text-slate-500 bg-slate-900 px-3 py-1 rounded-full border border-slate-700">Scientific Guidelines</div>
+                <div className="text-xs text-slate-400 bg-slate-900 px-3 py-1 rounded-full border border-slate-700">Scientific Guidelines</div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -195,20 +195,20 @@ const FuelingStrategy = () => {
                         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide">Nutrition Products (Carbs/Unit)</h3>
                         <div className="grid grid-cols-3 gap-2">
                             <div>
-                                <label className="text-[10px] text-slate-500">Drink Mix (g)</label>
+                                <label className="text-[10px] text-slate-400">Drink Mix (g)</label>
                                 <input type="number" value={productConfig.drinkMixCarbs} onChange={e => handleConfigChange('drinkMixCarbs', e.target.value)} className="w-full bg-slate-800 border-slate-600 rounded text-xs text-white px-2 py-1" />
                             </div>
                             <div>
-                                <label className="text-[10px] text-slate-500">Gel (g)</label>
+                                <label className="text-[10px] text-slate-400">Gel (g)</label>
                                 <input type="number" value={productConfig.gelCarbs} onChange={e => handleConfigChange('gelCarbs', e.target.value)} className="w-full bg-slate-800 border-slate-600 rounded text-xs text-white px-2 py-1" />
                             </div>
                             <div>
-                                <label className="text-[10px] text-slate-500">Bar (g)</label>
+                                <label className="text-[10px] text-slate-400">Bar (g)</label>
                                 <input type="number" value={productConfig.barCarbs} onChange={e => handleConfigChange('barCarbs', e.target.value)} className="w-full bg-slate-800 border-slate-600 rounded text-xs text-white px-2 py-1" />
                             </div>
                         </div>
                         <div className="mt-2">
-                            <label className="text-[10px] text-slate-500">Bidon Size</label>
+                            <label className="text-[10px] text-slate-400">Bidon Size</label>
                             <select value={bidonSize} onChange={e => setBidonSize(parseInt(e.target.value))} className="w-full bg-slate-800 border-slate-600 rounded text-xs text-white px-2 py-1 mt-1">
                                 <option value={500}>500ml</option>
                                 <option value={750}>750ml</option>

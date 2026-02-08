@@ -284,7 +284,7 @@ ${workout.zwoSteps.map(step => {
                 </div>
                 <div className="text-right hidden md:block">
                     <div className="text-2xl font-bold text-white">{Math.round(swot.avgWeeklyLoad)} TSS</div>
-                    <div className="text-xs text-slate-500 uppercase">Avg Weekly Load</div>
+                    <div className="text-xs text-slate-400 uppercase">Avg Weekly Load</div>
                 </div>
             </div>
 

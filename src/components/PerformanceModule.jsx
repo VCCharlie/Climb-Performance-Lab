@@ -18,7 +18,7 @@ const StatCard = ({ title, value, unit, subtitle, icon: Icon, trend, colorClass 
 
             <div className="flex items-baseline gap-1">
                 <span className="text-3xl font-black text-white">{value}</span>
-                {unit && <span className="text-sm font-bold text-slate-500">{unit}</span>}
+                {unit && <span className="text-sm font-bold text-slate-400">{unit}</span>}
             </div>
 
             {subtitle && (
