@@ -280,7 +280,7 @@ export const smartParseCSV = (text) => {
         if (cleanH === 'training load' || cleanH === 'load' || cleanH === 'tss' || cleanH.includes('icu training load')) return 'load';
         if (cleanH === 'work' || cleanH === 'total work' || cleanH.includes('joules')) return 'work'; // Added Work
         if (cleanH === 'rpe' || cleanH.includes('perceived exertion') || cleanH.includes('feel')) return 'rpe';
-        if (cleanH === 'ftp' || cleanH.includes('icu ftp')) return 'ftp';
+        if (cleanH === 'ftp' || cleanH.includes('icu ftp') || cleanH.includes('icu_pm_ftp')) return 'ftp';
 
         // Best Power / Peak Power
         if (cleanH.includes('best 1min') || cleanH.includes('best 1m') || cleanH === 'w1min') return 'best_1min';
@@ -329,7 +329,7 @@ export const normalizeIntervalsActivity = (item) => {
     const avgPower = getNum(getVal('avgWatts', 'icu_average_watts', 'average_watts', 'device_watts', 'avg_power'));
     const load = getNum(getVal('trainingLoad', 'icu_training_load', 'training_load', 'power_load', 'hr_load', 'pace_load', 'tss'));
     const rpe = getNum(getVal('rpe', 'icu_rpe', 'perceived_exertion', 'feel', 'session_rpe'));
-    const ftp = getNum(getVal('ftp', 'icu_ftp', 'cp'));
+    const ftp = getNum(getVal('ftp', 'icu_ftp', 'icu_pm_ftp', 'cp'));
 
     const best1min = getNum(getVal('Best1minpower', 'best_1min_power', 'w1min'));
     const best5min = getNum(getVal('Best5minpower', 'best_5min_power', 'w5min'));

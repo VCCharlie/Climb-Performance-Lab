@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Mountain, Info, Minus, Plus } from 'lucide-react';
 import { CLIMB_DATABASE, COGGAN_ZONES } from '../climbs';
-import { parseDurationToSeconds } from '../utils'; // We gebruiken de centrale utils functie
+import { parseDurationToSeconds, calculateFerrariWatts } from '../utils'; // We gebruiken de centrale utils functie
 
 const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateClimb }) => {
   const [mode, setMode] = useState('target');
@@ -77,6 +77,8 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
       wkg: wkg.toFixed(2),
       time: new Date(seconds * 1000).toISOString().substr(11, 8),
       vam: Math.round(vam),
+      ferrariWatts: calculateFerrariWatts(vam, grade * 100, totalWeight),
+      ferrariWkg: calculateFerrariWatts(vam, grade * 100),
       zone: zone
     });
 
@@ -215,6 +217,11 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
           <div className="bg-slate-700/50 p-4 rounded-lg flex flex-col items-center justify-center border border-slate-600">
             <span className="text-xs text-slate-400 uppercase mb-1">VAM</span>
             <span className="text-3xl font-bold text-white">{calc.vam} <small className="text-sm text-slate-500">m/h</small></span>
+          </div>
+          <div className="bg-slate-700/50 p-4 rounded-lg flex flex-col items-center justify-center border border-slate-600">
+            <span className="text-xs text-slate-400 uppercase mb-1" title="Dr. Ferrari Formula (Gradient corrected)">Ferrari Eq. Power</span>
+            <span className="text-3xl font-bold text-orange-400">{calc.ferrariWatts} <small className="text-sm text-orange-600">W</small></span>
+            <span className="text-[10px] text-slate-500">{calc.ferrariWkg} W/kg</span>
           </div>
 
           <div className="col-span-2 bg-slate-900 p-4 rounded-lg border border-slate-700">

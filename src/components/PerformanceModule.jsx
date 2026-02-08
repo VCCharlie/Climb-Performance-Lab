@@ -104,7 +104,7 @@ const PerformanceModule = ({ data, manualFtp }) => {
 
                     <div className="min-h-[300px] h-[50vh] max-h-[500px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <ComposedChart data={filteredData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                            <ComposedChart data={filteredData.map(d => ({ ...d, dateNum: new Date(d.date).getTime() }))} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                                 <defs>
                                     <linearGradient id="colorLoad" x1="0" y1="0" x2="0" y2="1">
                                         <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
@@ -113,12 +113,15 @@ const PerformanceModule = ({ data, manualFtp }) => {
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
                                 <XAxis
-                                    dataKey="date"
+                                    dataKey="dateNum"
+                                    type="number"
+                                    domain={['dataMin', 'dataMax']}
                                     stroke="#94a3b8"
-                                    tickFormatter={(str) => {
-                                        const d = new Date(str);
+                                    tickFormatter={(timestamp) => {
+                                        const d = new Date(timestamp);
                                         return `${d.getDate()}/${d.getMonth() + 1}`;
                                     }}
+                                    scale="time"
                                     minTickGap={30}
                                 />
                                 <YAxis yAxisId="left" stroke="#94a3b8" domain={['auto', 'auto']} />
@@ -150,6 +153,7 @@ const PerformanceModule = ({ data, manualFtp }) => {
                                     stroke="#3b82f6"
                                     strokeWidth={2}
                                     dot={false}
+                                    connectNulls
                                 />
 
                                 <Line
