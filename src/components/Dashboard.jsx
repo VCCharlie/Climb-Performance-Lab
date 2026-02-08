@@ -9,6 +9,8 @@ const Dashboard = ({ theme, manualFtp }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [timeRange, setTimeRange] = useState(() => localStorage.getItem('dashboard_timeRange') || '1Y');
+    const [customStart, setCustomStart] = useState('');
+    const [customEnd, setCustomEnd] = useState('');
 
     useEffect(() => {
         localStorage.setItem('dashboard_timeRange', timeRange);

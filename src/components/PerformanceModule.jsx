@@ -32,6 +32,117 @@ const StatCard = ({ title, value, unit, subtitle, icon: Icon, trend, colorClass 
     </div>
 );
 
+const PeriodStatistics = ({ data }) => {
+    if (!data || data.length === 0) return null;
+
+    // Aggregates
+    const totalRides = data.length;
+    const totalDistance = Math.round(data.reduce((acc, d) => acc + (d.distance || 0), 0) / 1000); // km
+    const totalElevation = Math.round(data.reduce((acc, d) => acc + (d.climbing || 0), 0)); // m
+    const totalTimeHours = Math.round(data.reduce((acc, d) => acc + (d.moving_time || 0), 0) / 3600);
+    const totalEnergy = Math.round(data.reduce((acc, d) => acc + (d.work || 0), 0)); // kJ
+
+    // Averages
+    const avgPower = Math.round(data.reduce((acc, d) => acc + (d.avg_power || 0), 0) / totalRides);
+    const avgHr = Math.round(data.reduce((acc, d) => acc + (d.avg_hr || 0), 0) / totalRides);
+    const maxPower = Math.max(...data.map(d => d.max_power || 0));
+    const maxHr = Math.max(...data.map(d => d.max_hr || 0));
+
+    // Indoor vs Outdoor (assuming 'VirtualRide' is indoor)
+    const indoorRides = data.filter(d => d.type === 'VirtualRide');
+    const outdoorRides = data.filter(d => d.type !== 'VirtualRide');
+
+    const indoorDist = Math.round(indoorRides.reduce((acc, d) => acc + (d.distance || 0), 0) / 1000);
+    const outdoorDist = totalDistance - indoorDist;
+
+    return (
+        <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl mt-6">
+            <div className="flex items-center gap-2 mb-6 border-b border-slate-700 pb-4">
+                <Calendar className="text-yellow-400" size={20} />
+                <h3 className="text-lg font-bold text-white">Period Statistics</h3>
+                <span className="text-xs text-slate-400 ml-auto font-mono">
+                    {new Date(data[0].date).toLocaleDateString()} - {new Date(data[data.length - 1].date).toLocaleDateString()}
+                </span>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                {/* COLUMN 1: VOLUME */}
+                <div className="space-y-4">
+                    <h4 className="text-xs uppercase font-bold text-slate-500 mb-2">Volume</h4>
+                    <div>
+                        <div className="text-2xl font-black text-white">{totalDistance} <span className="text-xs text-slate-500 font-normal">km</span></div>
+                        <div className="text-xs text-slate-400">Total Distance</div>
+                    </div>
+                    <div>
+                        <div className="text-2xl font-black text-white">{totalElevation} <span className="text-xs text-slate-500 font-normal">m</span></div>
+                        <div className="text-xs text-slate-400">Elevation Gain</div>
+                    </div>
+                    <div>
+                        <div className="text-xl font-bold text-slate-300">{totalTimeHours} <span className="text-xs text-slate-500 font-normal">hrs</span></div>
+                        <div className="text-xs text-slate-400">Moving Time</div>
+                    </div>
+                </div>
+
+                {/* COLUMN 2: INTENSITY */}
+                <div className="space-y-4">
+                    <h4 className="text-xs uppercase font-bold text-slate-500 mb-2">Intensity (Avg)</h4>
+                    <div>
+                        <div className="text-2xl font-black text-green-400">{avgPower} <span className="text-xs text-slate-500 font-normal">W</span></div>
+                        <div className="text-xs text-slate-400">Avg Power</div>
+                    </div>
+                    <div>
+                        <div className="text-xl font-bold text-red-400">{avgHr} <span className="text-xs text-slate-500 font-normal">bpm</span></div>
+                        <div className="text-xs text-slate-400">Avg Heart Rate</div>
+                    </div>
+                    <div>
+                        <div className="text-lg font-bold text-yellow-400">{totalEnergy} <span className="text-xs text-slate-500 font-normal">kJ</span></div>
+                        <div className="text-xs text-slate-400">Total Work</div>
+                    </div>
+                </div>
+
+                {/* COLUMN 3: MAXIMA */}
+                <div className="space-y-4">
+                    <h4 className="text-xs uppercase font-bold text-slate-500 mb-2">Period Maxima</h4>
+                    <div className="bg-slate-700/30 p-3 rounded-lg border border-slate-700">
+                        <div className="flex justify-between items-end">
+                            <span className="text-xs text-slate-400">Max Power</span>
+                            <span className="text-xl font-bold text-white">{maxPower} W</span>
+                        </div>
+                    </div>
+                    <div className="bg-slate-700/30 p-3 rounded-lg border border-slate-700">
+                        <div className="flex justify-between items-end">
+                            <span className="text-xs text-slate-400">Max HR</span>
+                            <span className="text-xl font-bold text-white">{maxHr} bpm</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* COLUMN 4: CONTEXT */}
+                <div className="space-y-4">
+                    <h4 className="text-xs uppercase font-bold text-slate-500 mb-2">Environment</h4>
+                    <div className="space-y-2">
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-slate-400">Outdoor</span>
+                            <span className="font-bold text-white">{outdoorDist} km <span className="text-slate-500 text-xs">({outdoorRides.length})</span></span>
+                        </div>
+                        <div className="w-full bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                            <div className="bg-blue-500 h-full" style={{ width: `${(outdoorDist / totalDistance) * 100}%` }}></div>
+                        </div>
+
+                        <div className="flex justify-between items-center text-sm mt-3">
+                            <span className="text-slate-400">Indoor (Virtual)</span>
+                            <span className="font-bold text-white">{indoorDist} km <span className="text-slate-500 text-xs">({indoorRides.length})</span></span>
+                        </div>
+                        <div className="w-full bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                            <div className="bg-purple-500 h-full" style={{ width: `${(indoorDist / totalDistance) * 100}%` }}></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const PerformanceModule = ({ data, manualFtp }) => {
     // Use filtered data passed from parent
     const filteredData = data || [];
@@ -44,6 +155,7 @@ const PerformanceModule = ({ data, manualFtp }) => {
 
     // Find max eFTP in the filtered dataset
     const maxEftp = filteredData.reduce((max, d) => Math.max(max, d.eFTP || 0), 0);
+    const hasSeaLevelPower = filteredData.some(d => d.seaLevelPower);
 
     // Find latest valid eFTP
     const lastValidEftp = [...filteredData].reverse().find(d => d.eFTP > 0)?.eFTP || 0;
@@ -137,7 +249,7 @@ const PerformanceModule = ({ data, manualFtp }) => {
                                     labelStyle={{ color: '#94a3b8' }}
                                     labelFormatter={(label) => new Date(label).toLocaleDateString()}
                                 />
-                                <Legend iconType="circle" />
+                                <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
 
                                 <Area
                                     yAxisId="right"
@@ -172,22 +284,28 @@ const PerformanceModule = ({ data, manualFtp }) => {
                                     activeDot={{ r: 6 }}
                                 />
 
-                                <Line
-                                    yAxisId="left"
-                                    connectNulls
-                                    type="monotone"
-                                    dataKey="seaLevelPower"
-                                    name="Sea Level Power"
-                                    stroke="#f97316"
-                                    strokeWidth={1}
-                                    strokeDasharray="5 5"
-                                    dot={showDots ? { r: 2, fill: '#f97316' } : false}
-                                    activeDot={{ r: 5 }}
-                                />
+                                {hasSeaLevelPower && (
+                                    <Line
+                                        yAxisId="left"
+                                        connectNulls
+                                        type="monotone"
+                                        dataKey="seaLevelPower"
+                                        name="Sea Level Power"
+                                        stroke="#f97316"
+                                        strokeWidth={1}
+                                        strokeDasharray="5 5"
+                                        dot={showDots ? { r: 2, fill: '#f97316' } : false}
+                                        activeDot={{ r: 5 }}
+                                    />
+                                )}
                             </ComposedChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
+
+                {/* PERIOD STATISTICS TABLE (NEW) */}
+                <PeriodStatistics data={filteredData} />
+
             </div>
         </>
     );
