@@ -167,6 +167,19 @@ const PerformanceModule = ({ data, manualFtp }) => {
                                     dot={{ r: 3, fill: '#22c55e' }}
                                     activeDot={{ r: 6 }}
                                 />
+
+                                <Line
+                                    yAxisId="left"
+                                    connectNulls
+                                    type="monotone"
+                                    dataKey="seaLevelPower"
+                                    name="Sea Level Power"
+                                    stroke="#f97316"
+                                    strokeWidth={1}
+                                    strokeDasharray="5 5"
+                                    dot={{ r: 2, fill: '#f97316' }}
+                                    activeDot={{ r: 5 }}
+                                />
                             </ComposedChart>
                         </ResponsiveContainer>
                     </div>

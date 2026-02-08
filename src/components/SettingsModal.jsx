@@ -215,44 +215,27 @@ const SettingsModal = ({
                             </div>
                         </div>
 
-                        {/* CUSTOM POWER ZONES */}
+                        {/* CUSTOM POWER ZONES (LOCKED TO COGGAN) */}
                         <div className={`border rounded-xl p-6 ${cardClass}`}>
                             <div className="flex items-center justify-between pb-2 border-b border-slate-700/50 mb-4">
                                 <div className="flex items-center gap-2">
                                     <Zap className="text-yellow-400" size={18} />
-                                    <h3 className={`font-bold ${titleClass}`}>Power Zones</h3>
+                                    <h3 className={`font-bold ${titleClass}`}>Power Zones (Coggan)</h3>
                                 </div>
-                                <button onClick={handleRecalculateZones} className="text-xs text-blue-400 hover:text-blue-300 underline">
-                                    Reset to FTP
-                                </button>
+                                <span className="text-xs text-slate-500 italic">
+                                    Auto-calculated based on FTP
+                                </span>
                             </div>
 
                             <div className="space-y-2">
-                                {(userSettings.powerZones || []).map((zone, idx) => (
+                                {(calculatePowerZones(userSettings.ftp || 250)).map((zone, idx) => (
                                     <div key={idx} className="flex items-center gap-2">
                                         <div className="w-3 h-3 rounded-full" style={{ backgroundColor: zone.color }}></div>
-                                        <span className={`w-14 text-xs font-bold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{zone.name}</span>
+                                        <span className={`w-24 text-xs font-bold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{zone.label}</span>
 
-                                        <input
-                                            type="number"
-                                            value={zone.min}
-                                            className={`w-12 border rounded px-1 py-1 text-xs outline-none text-right ${inputClass}`}
-                                            readOnly
-                                        />
-                                        <span className="text-xs text-slate-500">-</span>
-                                        <input
-                                            type="number"
-                                            value={zone.max}
-                                            onChange={(e) => {
-                                                const newZones = [...userSettings.powerZones];
-                                                newZones[idx].max = Number(e.target.value);
-                                                // Update next zone min automatically
-                                                if (newZones[idx + 1]) newZones[idx + 1].min = Number(e.target.value) + 1;
-                                                updateUserSettings('powerZones', newZones);
-                                            }}
-                                            className={`w-12 border rounded px-1 py-1 text-xs outline-none text-right ${inputClass}`}
-                                        />
-                                        <span className="text-xs text-slate-500">W</span>
+                                        <div className={`flex-1 text-right text-xs font-mono opacity-80 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                                            {zone.min} - {zone.max < 9999 ? zone.max : '∞'} W
+                                        </div>
                                     </div>
                                 ))}
                             </div>
