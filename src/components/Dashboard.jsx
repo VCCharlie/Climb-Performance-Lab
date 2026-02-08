@@ -149,7 +149,7 @@ const Dashboard = ({ theme, manualFtp }) => {
                 </div>
 
                 {/* TIME FILTER BUTTONS */}
-                <div className="flex bg-slate-800 rounded-lg p-1 border border-slate-700">
+                <div className="flex flex-wrap items-center gap-2 bg-slate-800 rounded-lg p-1 border border-slate-700">
                     {ranges.map(range => (
                         <button
                             key={range}
@@ -164,10 +164,33 @@ const Dashboard = ({ theme, manualFtp }) => {
                 </div>
             </div>
 
-            {/* PERFORMANCE MODULE (Refactored) */}
-            <PerformanceModule data={filteredData} manualFtp={manualFtp} />
-
+            {/* CUSTOM DATE PICKER (Conditional) */}
+            {timeRange === 'Custom' && (
+                <div className="flex justify-end animate-in fade-in slide-in-from-right-4 duration-300">
+                    <div className="flex items-center gap-2 bg-slate-800 p-2 rounded-lg border border-slate-700">
+                        <span className="text-xs text-slate-400 font-bold uppercase mr-2">Select Range:</span>
+                        <input
+                            type="date"
+                            value={customStart}
+                            onChange={e => setCustomStart(e.target.value)}
+                            className="bg-slate-900 text-white text-xs rounded px-2 py-1 outline-none focus:ring-1 ring-blue-500 border border-slate-600"
+                        />
+                        <span className="text-slate-500">-</span>
+                        <input
+                            type="date"
+                            value={customEnd}
+                            onChange={e => setCustomEnd(e.target.value)}
+                            className="bg-slate-900 text-white text-xs rounded px-2 py-1 outline-none focus:ring-1 ring-blue-500 border border-slate-600"
+                        />
+                    </div>
+                </div>
+            )}
         </div>
+
+            {/* PERFORMANCE MODULE (Refactored) */ }
+    <PerformanceModule data={filteredData} manualFtp={manualFtp} />
+
+        </div >
     );
 };
 export default Dashboard;

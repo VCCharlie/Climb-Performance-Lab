@@ -151,7 +151,7 @@ const SettingsModal = ({
                                 <Target className="text-red-400" size={18} />
                                 <h3 className={`font-bold ${titleClass}`}>Performance & Goals</h3>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
                                     <label className={`block text-[10px] uppercase font-bold mb-1 ${labelClass} text-blue-500`}>Current FTP (W)</label>
                                     <div className="flex items-center gap-1">
@@ -161,11 +161,17 @@ const SettingsModal = ({
                                     </div>
                                 </div>
                                 <div>
-                                    <label className={`block text-[10px] uppercase font-bold mb-1 ${labelClass}`}>Current Weight (kg)</label>
+                                    <label className={`block text-[10px] uppercase font-bold mb-1 ${labelClass}`}>Body Weight (kg)</label>
                                     <div className="flex items-center gap-1">
                                         <button onClick={() => updateUserSettings('weight', parseFloat(((userSettings.weight || 70) - 0.1).toFixed(1)))} className={`p-2 rounded ${isDark ? 'bg-slate-700 hover:bg-slate-600' : 'bg-gray-200 hover:bg-gray-300'}`}>-</button>
                                         <input type="number" value={userSettings.weight || ''} onChange={e => updateUserSettings('weight', Number(e.target.value))} className={`w-full border rounded p-2 text-sm outline-none text-center ${inputClass}`} />
                                         <button onClick={() => updateUserSettings('weight', parseFloat(((userSettings.weight || 70) + 0.1).toFixed(1)))} className={`p-2 rounded ${isDark ? 'bg-slate-700 hover:bg-slate-600' : 'bg-gray-200 hover:bg-gray-300'}`}>+</button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className={`block text-[10px] uppercase font-bold mb-1 ${labelClass}`}>Bike Weight (kg)</label>
+                                    <div className="flex items-center gap-1">
+                                        <input type="number" step="0.1" value={userSettings.bikeWeight || ''} onChange={e => updateUserSettings('bikeWeight', Number(e.target.value))} className={`w-full border rounded p-2 text-sm outline-none text-center ${inputClass}`} />
                                     </div>
                                 </div>
                             </div>
