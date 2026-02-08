@@ -122,7 +122,7 @@ const PerformanceModule = ({ data, manualFtp }) => {
                                         return `${d.getDate()}/${d.getMonth() + 1}`;
                                     }}
                                     scale="time"
-                                    minTickGap={30}
+                                    minTickGap={80}
                                 />
                                 <YAxis yAxisId="left" stroke="#94a3b8" domain={['auto', 'auto']} />
                                 <YAxis yAxisId="right" orientation="right" stroke="#8b5cf6" domain={[0, 'auto']} hide />
