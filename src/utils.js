@@ -289,7 +289,8 @@ export const smartParseCSV = (text) => {
         if (cleanH.includes('best 20min') || cleanH.includes('best 20m') || cleanH === 'w20min') return 'best_20min';
         if (cleanH.includes('best 60min') || cleanH.includes('best 60m') || cleanH === 'w60min') return 'best_60min';
 
-        return null;
+        if (cleanH === 'avg altitude' || cleanH === 'average altitude' || cleanH === 'altitude avg') return 'avg_altitude';
+        if (cleanH === 'max altitude' || cleanH === 'maximum altitude') return 'max_altitude';
     };
     const colMap = rawHeaders.map(mapHeader);
     return rows.slice(1).map(row => {
@@ -337,6 +338,9 @@ export const normalizeIntervalsActivity = (item) => {
     const best20min = getNum(getVal('Best20minpower', 'best_20min_power', 'w20min'));
     const best60min = getNum(getVal('Best60minpower', 'best_60min_power', 'w60min'));
 
+    const avgAltitude = getNum(getVal('avgAltitude', 'average_altitude', 'avg_altitude'));
+    const maxAltitude = getNum(getVal('maxAltitude', 'maximum_altitude', 'max_altitude'));
+
     const rawType = getVal('type', 'sub_type');
     const finalType = determineActivityType(rawType, title);
 
@@ -358,7 +362,10 @@ export const normalizeIntervalsActivity = (item) => {
         best_5min: Math.round(best5min),
         best_10min: Math.round(best10min),
         best_20min: Math.round(best20min),
-        best_60min: Math.round(best60min)
+        best_20min: Math.round(best20min),
+        best_60min: Math.round(best60min),
+        avg_altitude: Math.round(avgAltitude),
+        max_altitude: Math.round(maxAltitude)
     };
 };
 

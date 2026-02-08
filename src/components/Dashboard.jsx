@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { fetchIntervalsData } from '../services/intervalsService';
+import { calculateBassettCorrection } from '../utils'; // Import Bassett correction
 import PerformanceModule from './PerformanceModule';
 
 
@@ -22,10 +23,15 @@ const Dashboard = ({ theme, manualFtp }) => {
                     eFTP = null;
                 }
 
+                // Calculate Bassett Correction (Sea Level Power) if altitude is available
+                // We need avg_altitude from the CSV parsing (added in utils.js)
+                const seaLevelPower = d.avg_altitude ? calculateBassettCorrection(d.avg_power, d.avg_altitude) : null;
+
                 return {
                     ...d,
                     eFTP,
-                    ftp: d.ftp || userFtp
+                    ftp: d.ftp || userFtp,
+                    seaLevelPower
                 };
             });
         };
