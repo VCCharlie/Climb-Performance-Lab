@@ -170,7 +170,7 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
               <span className="text-sm text-slate-300">Rider</span>
               <div className="flex items-center gap-2">
                 <button onClick={() => updateWeight('body', -0.1)} className="p-1 bg-slate-700 rounded hover:bg-slate-600"><Minus size={14} /></button>
-                <span className="font-mono w-16 text-center">{userSettings.weight.toFixed(1)} kg</span>
+                <span className="font-mono w-16 text-center text-yellow-400">{userSettings.weight.toFixed(1)} kg</span>
                 <button onClick={() => updateWeight('body', 0.1)} className="p-1 bg-slate-700 rounded hover:bg-slate-600"><Plus size={14} /></button>
               </div>
             </div>
@@ -178,7 +178,7 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
               <span className="text-sm text-slate-300">Bike</span>
               <div className="flex items-center gap-2">
                 <button onClick={() => updateWeight('bike', -0.1)} className="p-1 bg-slate-700 rounded hover:bg-slate-600"><Minus size={14} /></button>
-                <span className="font-mono w-16 text-center">{userSettings.bikeWeight.toFixed(1)} kg</span>
+                <span className="font-mono w-16 text-center text-yellow-400">{userSettings.bikeWeight.toFixed(1)} kg</span>
                 <button onClick={() => updateWeight('bike', 0.1)} className="p-1 bg-slate-700 rounded hover:bg-slate-600"><Plus size={14} /></button>
               </div>
             </div>

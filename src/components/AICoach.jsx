@@ -268,10 +268,22 @@ ${workout.zwoSteps.map(step => {
         URL.revokeObjectURL(url);
     };
 
-    const getTypeColor = (t) => {
-        if (t === 'recovery') return 'text-green-400 border-green-500/50 bg-green-500/10';
-        if (t === 'endurance') return 'text-blue-400 border-blue-500/50 bg-blue-500/10';
-        return 'text-yellow-400 border-yellow-500/50 bg-yellow-500/10';
+    const getCardStyles = (t) => {
+        if (t === 'recovery') return {
+            container: 'border-green-500/30 bg-green-900/10',
+            text: 'text-green-400',
+            badge: 'bg-green-500/20 text-green-300'
+        };
+        if (t === 'endurance') return {
+            container: 'border-blue-500/30 bg-blue-900/10',
+            text: 'text-blue-400',
+            badge: 'bg-blue-500/20 text-blue-300'
+        };
+        return {
+            container: 'border-yellow-500/30 bg-yellow-900/10',
+            text: 'text-yellow-400',
+            badge: 'bg-yellow-500/20 text-yellow-300'
+        };
     };
 
     return (
@@ -296,35 +308,40 @@ ${workout.zwoSteps.map(step => {
                         <Calendar size={14} /> {recommendations.dayName} Sessies
                     </div>
 
-                    {recommendations.options.map((opt, idx) => (
-                        <div key={opt.id} className={`p-5 rounded-xl border-2 transition-colors relative ${getTypeColor(opt.type)} ${idx > 0 && 'opacity-90 scale-95 origin-top mt-2'}`}>
-                            {idx === 0 && <div className="absolute -top-3 left-4 px-2 py-0.5 bg-yellow-400 text-slate-900 text-[10px] font-bold uppercase rounded">Aanbevolen</div>}
-                            {idx > 0 && <div className="absolute -top-3 left-4 px-2 py-0.5 bg-slate-600 text-slate-200 text-[10px] font-bold uppercase rounded">Alternatief</div>}
+                    {recommendations.options.map((opt, idx) => {
+                        const styles = getCardStyles(opt.type);
+                        return (
+                            <div key={opt.id} className={`p-5 rounded-xl border-2 transition-colors relative ${styles.container} ${idx > 0 && 'opacity-90 scale-95 origin-top mt-2'}`}>
+                                {idx === 0 && <div className="absolute -top-3 left-4 px-2 py-0.5 bg-yellow-400 text-slate-900 text-[10px] font-bold uppercase rounded">Aanbevolen</div>}
+                                {idx > 0 && <div className="absolute -top-3 left-4 px-2 py-0.5 bg-slate-600 text-slate-200 text-[10px] font-bold uppercase rounded">Alternatief</div>}
 
-                            <div className="flex justify-between items-start mb-2 mt-2">
-                                <h3 className="text-lg font-bold text-white">{opt.title}</h3>
-                                {opt.type === 'interval' && <Activity size={16} />}
-                                {opt.type === 'recovery' && <Battery size={16} />}
-                                {opt.type === 'endurance' && <TrendingUp size={16} />}
+                                <div className="flex justify-between items-start mb-2 mt-2">
+                                    <h3 className={`text-lg font-bold ${styles.text}`}>{opt.title}</h3>
+                                    <div className={styles.text}>
+                                        {opt.type === 'interval' && <Activity size={16} />}
+                                        {opt.type === 'recovery' && <Battery size={16} />}
+                                        {opt.type === 'endurance' && <TrendingUp size={16} />}
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-4 mb-3 text-xs font-mono text-slate-300">
+                                    <span className="flex items-center gap-1"><ClockIcon /> {opt.duration}</span>
+                                    <span className="flex items-center gap-1"><Brain size={12} /> {opt.focus}</span>
+                                </div>
+
+                                <p className="text-xs leading-relaxed text-slate-300 mb-4 h-16 overflow-y-auto custom-scrollbar">
+                                    {opt.description}
+                                </p>
+
+                                <button
+                                    onClick={() => handleDownloadZwo(opt)}
+                                    className="w-full bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold py-2 px-3 rounded flex items-center justify-center gap-2 border border-slate-600 transition-colors"
+                                >
+                                    <Download size={14} /> Download .zwo
+                                </button>
                             </div>
-
-                            <div className="flex gap-4 mb-3 text-xs font-mono opacity-80">
-                                <span className="flex items-center gap-1"><ClockIcon /> {opt.duration}</span>
-                                <span className="flex items-center gap-1"><Brain size={12} /> {opt.focus}</span>
-                            </div>
-
-                            <p className="text-xs leading-relaxed opacity-90 mb-4 h-16 overflow-y-auto custom-scrollbar">
-                                {opt.description}
-                            </p>
-
-                            <button
-                                onClick={() => handleDownloadZwo(opt)}
-                                className="w-full bg-slate-800/80 hover:bg-slate-700 text-white text-xs font-bold py-2 px-3 rounded flex items-center justify-center gap-2 border border-slate-600/50 transition-colors"
-                            >
-                                <Download size={14} /> Download .zwo
-                            </button>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
 
                 {/* --- 2. SWOT MATRIX (Right Col, 2 span) --- */}
