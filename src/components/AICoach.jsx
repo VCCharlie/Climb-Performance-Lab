@@ -324,12 +324,12 @@ ${workout.zwoSteps.map(step => {
                                     </div>
                                 </div>
 
-                                <div className="flex gap-4 mb-3 text-xs font-mono text-slate-300">
+                                <div className="flex gap-4 mb-3 text-xs font-mono text-slate-600">
                                     <span className="flex items-center gap-1"><ClockIcon /> {opt.duration}</span>
                                     <span className="flex items-center gap-1"><Brain size={12} /> {opt.focus}</span>
                                 </div>
 
-                                <p className="text-xs leading-relaxed text-slate-300 mb-4 h-16 overflow-y-auto custom-scrollbar">
+                                <p className="text-xs leading-relaxed text-slate-700 mb-4 h-16 overflow-y-auto custom-scrollbar">
                                     {opt.description}
                                 </p>
 
