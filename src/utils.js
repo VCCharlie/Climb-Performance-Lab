@@ -289,6 +289,7 @@ export const smartParseCSV = (text) => {
         if (cleanH.includes('best 20min') || cleanH.includes('best 20m') || cleanH === 'w20min') return 'best_20min';
         if (cleanH.includes('best 60min') || cleanH.includes('best 60m') || cleanH === 'w60min') return 'best_60min';
 
+        if (cleanH === 'average heartrate' || cleanH === 'avg hr' || cleanH === 'hr' || cleanH.includes('heart rate')) return 'avg_hr';
         if (cleanH === 'avg altitude' || cleanH === 'average altitude' || cleanH === 'altitude avg') return 'avg_altitude';
         if (cleanH === 'max altitude' || cleanH === 'maximum altitude') return 'max_altitude';
     };
@@ -322,13 +323,15 @@ export const normalizeIntervalsActivity = (item) => {
     const dateStr = getVal('startDate', 'start_date_local', 'start_date', 'date');
     const title = getVal('name', 'title') || "Untitled";
 
-    const movingTime = getNum(getVal('movingTime', 'moving_time', 'icu_recording_time', 'elapsedTime', 'elapsed_time'));
-    const distanceMeters = getNum(getVal('distance', 'icu_distance'));
-    const climbing = getNum(getVal('elevationGain', 'total_elevation_gain', 'total_elevation_loss'));
-    const avgSpeedMs = getNum(getVal('avgSpeed', 'average_speed'));
+    const movingTime = getNum(getVal('movingTime', 'moving_time', 'icu_recording_time', 'elapsedTime', 'elapsed_time', 'time'));
+    const distanceMeters = getNum(getVal('distance', 'icu_distance', 'total_distance'));
+    const climbing = getNum(getVal('elevationGain', 'total_elevation_gain', 'total_elevation_loss', 'climbing'));
+    const avgSpeedMs = getNum(getVal('avgSpeed', 'average_speed', 'velocity_smooth'));
     const normPower = getNum(getVal('normalizedPower', 'icu_weighted_avg_watts', 'weighted_average_watts', 'np', 'normalized_power'));
-    const avgPower = getNum(getVal('avgWatts', 'icu_average_watts', 'average_watts', 'device_watts', 'avg_power'));
+    const avgPower = getNum(getVal('avgWatts', 'icu_average_watts', 'average_watts', 'device_watts', 'avg_power', 'power'));
+    const avgHr = getNum(getVal('average_heartrate', 'avg_hr', 'average_hr', 'hr', 'icu_average_heartrate', 'avg_heartrate'));
     const load = getNum(getVal('trainingLoad', 'icu_training_load', 'training_load', 'power_load', 'hr_load', 'pace_load', 'tss'));
+    const work = getNum(getVal('work', 'total_work', 'icu_joules', 'joules', 'kilojoules', 'energy'));
     const rpe = getNum(getVal('rpe', 'icu_rpe', 'perceived_exertion', 'feel', 'session_rpe'));
     const ftp = getNum(getVal('ftp', 'icu_ftp', 'icu_pm_ftp', 'cp'));
 
@@ -341,7 +344,7 @@ export const normalizeIntervalsActivity = (item) => {
     const avgAltitude = getNum(getVal('avgAltitude', 'average_altitude', 'avg_altitude'));
     const maxAltitude = getNum(getVal('maxAltitude', 'maximum_altitude', 'max_altitude'));
 
-    const rawType = getVal('type', 'sub_type');
+    const rawType = getVal('type', 'sub_type', 'activity_type');
     const finalType = determineActivityType(rawType, title);
 
     return {
@@ -355,13 +358,14 @@ export const normalizeIntervalsActivity = (item) => {
         avg_speed: (avgSpeedMs < 20 && avgSpeedMs > 0) ? (avgSpeedMs * 3.6).toFixed(1) : avgSpeedMs,
         norm_power: Math.round(normPower),
         avg_power: Math.round(avgPower),
+        avg_hr: Math.round(avgHr),
         load: Math.round(load),
+        work: Math.round(work),
         rpe: rpe,
         ftp: Math.round(ftp),
         best_1min: Math.round(best1min),
         best_5min: Math.round(best5min),
         best_10min: Math.round(best10min),
-        best_20min: Math.round(best20min),
         best_20min: Math.round(best20min),
         best_60min: Math.round(best60min),
         avg_altitude: Math.round(avgAltitude),
