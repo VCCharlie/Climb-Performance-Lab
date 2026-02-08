@@ -4,12 +4,12 @@ import { loginWithGoogle, logout, auth } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 
 const Header = ({ userSettings, onOpenSettings, user, syncStatus }) => {
-  const [user, setUser] = useState(null);
+  const [localUser, setLocalUser] = useState(null); // Rename to avoid conflict if prop is user
 
   useEffect(() => {
     if (!auth) return;
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+      setLocalUser(currentUser);
     });
     return () => unsubscribe();
   }, []);
@@ -41,6 +41,17 @@ const Header = ({ userSettings, onOpenSettings, user, syncStatus }) => {
         </div>
 
         <div className="flex items-center gap-4">
+          {/* SYNC INDICATOR */}
+          <div className="flex items-center gap-2 mr-4 border-r border-slate-700 pr-4" title={`Sync Status: ${syncStatus}`}>
+            {syncStatus === 'synced' && <CheckCircle size={16} className="text-green-500" />}
+            {syncStatus === 'syncing' && <RefreshCw size={16} className="text-yellow-400 animate-spin" />}
+            {syncStatus === 'error' && <AlertCircle size={16} className="text-red-500" />}
+            {(syncStatus === 'idle' || !syncStatus) && <Cloud size={16} className="text-slate-600" />}
+
+            <span className="text-[10px] uppercase font-bold text-slate-500 hidden sm:block">
+              {syncStatus === 'synced' ? 'Synced' : syncStatus === 'syncing' ? 'Syncing' : syncStatus === 'error' ? 'Offline' : 'Idle'}
+            </span>
+          </div>
           <div className="flex gap-4 text-xs font-mono mr-4 border-r border-slate-700 pr-4">
             <div className="text-right">
               <span className="block text-slate-500 uppercase text-[10px]">Weight</span>

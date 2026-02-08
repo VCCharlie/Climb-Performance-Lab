@@ -8,7 +8,11 @@ const Dashboard = ({ theme, manualFtp }) => {
     const [chartData, setChartData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [timeRange, setTimeRange] = useState('1Y');
+    const [timeRange, setTimeRange] = useState(() => localStorage.getItem('dashboard_timeRange') || '1Y');
+
+    useEffect(() => {
+        localStorage.setItem('dashboard_timeRange', timeRange);
+    }, [timeRange]);
 
     useEffect(() => {
         const processRawData = (data, userFtp) => {

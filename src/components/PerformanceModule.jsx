@@ -50,6 +50,7 @@ const PerformanceModule = ({ data, manualFtp }) => {
 
     const currentLoad = latest?.load || 0;
     const totalActivities = filteredData.length;
+    const showDots = totalActivities < 60; // Hide dots if too many points
 
     return (
         <>
@@ -119,10 +120,13 @@ const PerformanceModule = ({ data, manualFtp }) => {
                                     stroke="#94a3b8"
                                     tickFormatter={(timestamp) => {
                                         const d = new Date(timestamp);
+                                        // If viewing large range (e.g. > 1 year), show Year?
+                                        // Simple heuristic: always show DD/MM, maybe YY if gap is large?
+                                        // Let's stick to DD/MM for compactness, relying on tooltip for full date.
                                         return `${d.getDate()}/${d.getMonth() + 1}`;
                                     }}
                                     scale="time"
-                                    minTickGap={80}
+                                    minTickGap={50}
                                 />
                                 <YAxis yAxisId="left" stroke="#94a3b8" domain={['auto', 'auto']} />
                                 <YAxis yAxisId="right" orientation="right" stroke="#8b5cf6" domain={[0, 'auto']} hide />
@@ -164,7 +168,7 @@ const PerformanceModule = ({ data, manualFtp }) => {
                                     name="eFTP (Effort)"
                                     stroke="#22c55e"
                                     strokeWidth={2}
-                                    dot={{ r: 3, fill: '#22c55e' }}
+                                    dot={showDots ? { r: 3, fill: '#22c55e' } : false}
                                     activeDot={{ r: 6 }}
                                 />
 
@@ -177,7 +181,7 @@ const PerformanceModule = ({ data, manualFtp }) => {
                                     stroke="#f97316"
                                     strokeWidth={1}
                                     strokeDasharray="5 5"
-                                    dot={{ r: 2, fill: '#f97316' }}
+                                    dot={showDots ? { r: 2, fill: '#f97316' } : false}
                                     activeDot={{ r: 5 }}
                                 />
                             </ComposedChart>
