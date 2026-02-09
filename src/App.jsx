@@ -123,12 +123,13 @@ const App = () => {
         if (!db) return;
         try {
             const settingsId = user ? `user_${user.uid}` : "user_prefs";
+            console.log("Saving Settings to Cloud:", { intervals: intervalsConfig, body: userSettings, theme });
             await setDoc(doc(db, "settings", settingsId), {
                 intervals: intervalsConfig,
                 body: userSettings,
                 theme: theme
             }, { merge: true });
-            alert("Settings saved!");
+            alert("Settings saved! Bike Weight: " + (userSettings.bikeWeight || 'N/A'));
         } catch (e) { alert("Error saving settings: " + e.message); }
     };
 
