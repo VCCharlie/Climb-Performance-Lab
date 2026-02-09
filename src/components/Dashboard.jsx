@@ -185,7 +185,6 @@ const Dashboard = ({ theme, manualFtp }) => {
                     </div>
                 </div>
             )}
-        </div>
 
             {/* PERFORMANCE MODULE (Refactored) */ }
     <PerformanceModule data={filteredData} manualFtp={manualFtp} />
