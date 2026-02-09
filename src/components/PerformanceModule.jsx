@@ -143,9 +143,15 @@ const PeriodStatistics = ({ data }) => {
     );
 };
 
-const PerformanceModule = ({ data, manualFtp }) => {
+// --- HIER IS DE WIJZIGING (prop: customTicks) ---
+const PerformanceModule = ({ data, manualFtp, customTicks }) => {
     // Use filtered data passed from parent
     const filteredData = data || [];
+
+    // --- SMART TICKS CONVERSION ---
+    // Omdat je XAxis type="number" gebruikt met timestamps (dateNum),
+    // moeten we de customTicks (datums strings) omzetten naar timestamps.
+    const axisTicks = customTicks ? customTicks.map(t => new Date(t).getTime()) : undefined;
 
     // --- 1. Stat Calculation ---
     const latest = filteredData.length > 0 ? filteredData[filteredData.length - 1] : null;
@@ -230,11 +236,11 @@ const PerformanceModule = ({ data, manualFtp }) => {
                                     type="number"
                                     domain={['dataMin', 'dataMax']}
                                     stroke="#94a3b8"
+                                    // DEZE 2 REGELS ZORGEN VOOR DE SCHONE AS:
+                                    ticks={axisTicks} 
+                                    interval={0} 
                                     tickFormatter={(timestamp) => {
                                         const d = new Date(timestamp);
-                                        // If viewing large range (e.g. > 1 year), show Year?
-                                        // Simple heuristic: always show DD/MM, maybe YY if gap is large?
-                                        // Let's stick to DD/MM for compactness, relying on tooltip for full date.
                                         return `${d.getDate()}/${d.getMonth() + 1}`;
                                     }}
                                     scale="time"
