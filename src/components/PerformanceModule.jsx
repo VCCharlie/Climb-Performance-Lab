@@ -1,7 +1,7 @@
 import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, ComposedChart } from 'recharts';
 import { Activity, TrendingUp, Zap, Calendar, ArrowUp, ArrowDown } from 'lucide-react';
-import { formatDateDDMMYYYY } from '/src/utils';
+import { formatDateDDMMYYYY } from '../utils'; // <--- ZORG DAT DEZE GEÏMPORTEERD IS
 
 const StatCard = ({ title, value, unit, subtitle, icon: Icon, trend, colorClass }) => (
     <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg relative overflow-hidden group hover:border-slate-600 transition-all">
@@ -49,7 +49,7 @@ const PeriodStatistics = ({ data }) => {
     const maxPower = Math.max(...data.map(d => d.max_power || 0));
     const maxHr = Math.max(...data.map(d => d.max_hr || 0));
 
-    // Indoor vs Outdoor (assuming 'VirtualRide' is indoor)
+    // Indoor vs Outdoor
     const indoorRides = data.filter(d => d.type === 'VirtualRide');
     const outdoorRides = data.filter(d => d.type !== 'VirtualRide');
 
@@ -62,7 +62,8 @@ const PeriodStatistics = ({ data }) => {
                 <Calendar className="text-yellow-400" size={20} />
                 <h3 className="text-lg font-bold text-white">Period Statistics</h3>
                 <span className="text-xs text-slate-400 ml-auto font-mono">
-                    {new Date(data[0].date).toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric' })} - {new Date(data[data.length - 1].date).toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                    {/* HIER: Nederlandse datum formatting */}
+                    {formatDateDDMMYYYY(data[0].date)} - {formatDateDDMMYYYY(data[data.length - 1].date)}
                 </span>
             </div>
 
@@ -144,36 +145,41 @@ const PeriodStatistics = ({ data }) => {
     );
 };
 
-// --- HIER IS DE WIJZIGING (prop: customTicks) ---
 const PerformanceModule = ({ data, manualFtp, customTicks }) => {
-    // Use filtered data passed from parent
     const filteredData = data || [];
 
-    // --- SMART TICKS CONVERSION ---
-    // Omdat je XAxis type="number" gebruikt met timestamps (dateNum),
-    // moeten we de customTicks (datums strings) omzetten naar timestamps.
+    // --- SMART AXIS LOGIC ---
     const axisTicks = customTicks ? customTicks.map(t => new Date(t).getTime()) : undefined;
+
+    // Check of we jaartallen moeten tonen
+    // Criterium: Als de dataset start in een ander jaar dan hij eindigt, OF als de range > 360 dagen is
+    const showYearOnAxis = React.useMemo(() => {
+        if (filteredData.length < 2) return false;
+        const start = new Date(filteredData[0].date);
+        const end = new Date(filteredData[filteredData.length - 1].date);
+        
+        // Verspringen van jaar? (bv 2024 -> 2025)
+        if (start.getFullYear() !== end.getFullYear()) return true;
+        
+        // Langer dan een jaar (bv Jan 2025 -> Dec 2025 kan, maar Jan 2025 -> Feb 2026 is true)
+        const diffTime = Math.abs(end - start);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+        return diffDays > 360; 
+    }, [filteredData]);
+
 
     // --- 1. Stat Calculation ---
     const latest = filteredData.length > 0 ? filteredData[filteredData.length - 1] : null;
-
-    // Display Manual FTP if set, otherwise from latest activity
     const displayFtp = manualFtp || latest?.ftp || 0;
-
-    // Find max eFTP in the filtered dataset
     const maxEftp = filteredData.reduce((max, d) => Math.max(max, d.eFTP || 0), 0);
     const hasSeaLevelPower = filteredData.some(d => d.seaLevelPower);
-
-    // Find latest valid eFTP
     const lastValidEftp = [...filteredData].reverse().find(d => d.eFTP > 0)?.eFTP || 0;
-
     const currentLoad = latest?.load || 0;
     const totalActivities = filteredData.length;
-    const showDots = totalActivities < 60; // Hide dots if too many points
+    const showDots = totalActivities < 60; 
 
     return (
         <>
-            {/* STAT BOXES */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard
                     title="Current FTP"
@@ -210,10 +216,7 @@ const PerformanceModule = ({ data, manualFtp, customTicks }) => {
                 />
             </div>
 
-            {/* CHARTS */}
             <div className="grid grid-cols-1 gap-6">
-
-                {/* MAIN PERFORMANCE CHART */}
                 <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
                     <div className="flex items-center justify-between mb-6">
                         <h3 className="text-lg font-bold text-white flex items-center gap-2">
@@ -232,21 +235,30 @@ const PerformanceModule = ({ data, manualFtp, customTicks }) => {
                                     </linearGradient>
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                                
                                 <XAxis
                                     dataKey="dateNum"
                                     type="number"
                                     domain={['dataMin', 'dataMax']}
                                     stroke="#94a3b8"
-                                    // DEZE 2 REGELS ZORGEN VOOR DE SCHONE AS:
                                     ticks={axisTicks} 
                                     interval={0} 
-                                    tickFormatter={(timestamp) => {
-                                        const d = new Date(timestamp);
-                                        return `${d.getDate()}/${d.getMonth() + 1}`;
-                                    }}
                                     scale="time"
                                     minTickGap={50}
+                                    // HIER IS DE MAGIE:
+                                    tickFormatter={(timestamp) => {
+                                        const d = new Date(timestamp);
+                                        // Als we jaren moeten tonen: "10 feb. '24"
+                                        if (showYearOnAxis) {
+                                            const month = d.toLocaleDateString('nl-NL', { month: 'short' });
+                                            const yearShort = d.getFullYear().toString().slice(-2);
+                                            return `${d.getDate()} ${month} '${yearShort}`;
+                                        }
+                                        // Anders compact: "10 feb."
+                                        return `${d.getDate()} ${d.toLocaleDateString('nl-NL', { month: 'short' })}`;
+                                    }}
                                 />
+                                
                                 <YAxis yAxisId="left" stroke="#94a3b8" domain={['auto', 'auto']} />
                                 <YAxis yAxisId="right" orientation="right" stroke="#8b5cf6" domain={[0, 'auto']} hide />
 
@@ -254,7 +266,8 @@ const PerformanceModule = ({ data, manualFtp, customTicks }) => {
                                     contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc' }}
                                     itemStyle={{ color: '#fff' }}
                                     labelStyle={{ color: '#94a3b8' }}
-                                    labelFormatter={(label) => new Date(label).toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                    // HIER: Ook de tooltip in NL format
+                                    labelFormatter={(label) => formatDateDDMMYYYY(label)}
                                 />
                                 <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
 
@@ -310,9 +323,7 @@ const PerformanceModule = ({ data, manualFtp, customTicks }) => {
                     </div>
                 </div>
 
-                {/* PERIOD STATISTICS TABLE (NEW) */}
                 <PeriodStatistics data={filteredData} />
-
             </div>
         </>
     );
