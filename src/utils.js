@@ -326,20 +326,20 @@ export const normalizeIntervalsActivity = (item) => {
     const movingTime = getNum(getVal('movingTime', 'moving_time', 'icu_recording_time', 'elapsedTime', 'elapsed_time', 'time'));
     const distanceMeters = getNum(getVal('distance', 'icu_distance', 'total_distance'));
     const climbing = getNum(getVal('elevationGain', 'total_elevation_gain', 'total_elevation_loss', 'climbing'));
-    const avgSpeedMs = getNum(getVal('avgSpeed', 'average_speed', 'velocity_smooth'));
-    const normPower = getNum(getVal('normalizedPower', 'icu_weighted_avg_watts', 'weighted_average_watts', 'np', 'normalized_power'));
+    const avgSpeedMs = getNum(getVal('avg_speed', 'avgSpeed', 'average_speed', 'velocity_smooth'));
+    const normPower = getNum(getVal('norm_power', 'normalizedPower', 'icu_weighted_avg_watts', 'weighted_average_watts', 'np', 'normalized_power'));
     const avgPower = getNum(getVal('avgWatts', 'icu_average_watts', 'average_watts', 'device_watts', 'avg_power', 'power'));
     const avgHr = getNum(getVal('average_heartrate', 'avg_hr', 'average_hr', 'hr', 'icu_average_heartrate', 'avg_heartrate'));
-    const load = getNum(getVal('trainingLoad', 'icu_training_load', 'training_load', 'power_load', 'hr_load', 'pace_load', 'tss'));
+    const load = getNum(getVal('load', 'trainingLoad', 'icu_training_load', 'training_load', 'power_load', 'hr_load', 'pace_load', 'tss'));
     const work = getNum(getVal('work', 'total_work', 'icu_joules', 'joules', 'kilojoules', 'energy'));
     const rpe = getNum(getVal('rpe', 'icu_rpe', 'perceived_exertion', 'feel', 'session_rpe'));
     const ftp = getNum(getVal('ftp', 'icu_ftp', 'icu_pm_ftp', 'cp'));
 
-    const best1min = getNum(getVal('Best1minpower', 'best_1min_power', 'w1min'));
-    const best5min = getNum(getVal('Best5minpower', 'best_5min_power', 'w5min'));
-    const best10min = getNum(getVal('Best10minpower', 'best_10min_power', 'w10min'));
-    const best20min = getNum(getVal('Best20minpower', 'best_20min_power', 'w20min'));
-    const best60min = getNum(getVal('Best60minpower', 'best_60min_power', 'w60min'));
+    const best1min = getNum(getVal('best_1min', 'Best1minpower', 'best_1min_power', 'w1min'));
+    const best5min = getNum(getVal('best_5min', 'Best5minpower', 'best_5min_power', 'w5min'));
+    const best10min = getNum(getVal('best_10min', 'Best10minpower', 'best_10min_power', 'w10min'));
+    const best20min = getNum(getVal('best_20min', 'Best20minpower', 'best_20min_power', 'w20min'));
+    const best60min = getNum(getVal('best_60min', 'Best60minpower', 'best_60min_power', 'w60min'));
 
     const avgAltitude = getNum(getVal('avgAltitude', 'average_altitude', 'avg_altitude'));
     const maxAltitude = getNum(getVal('maxAltitude', 'maximum_altitude', 'max_altitude'));
@@ -353,9 +353,9 @@ export const normalizeIntervalsActivity = (item) => {
         title: title,
         type: finalType,
         moving_time: movingTime,
-        distance: (distanceMeters > 2000 || (distanceMeters > 0 && distanceMeters % 1 !== 0)) ? (distanceMeters / 1000).toFixed(2) : distanceMeters,
+        distance: distanceMeters > 1000 ? (distanceMeters / 1000).toFixed(2) : distanceMeters,
         climbing: Math.round(climbing),
-        avg_speed: (avgSpeedMs < 20 && avgSpeedMs > 0) ? (avgSpeedMs * 3.6).toFixed(1) : avgSpeedMs,
+        avg_speed: (avgSpeedMs > 0 && avgSpeedMs < 15) ? (avgSpeedMs * 3.6).toFixed(1) : avgSpeedMs,
         norm_power: Math.round(normPower),
         avg_power: Math.round(avgPower),
         avg_hr: Math.round(avgHr),
