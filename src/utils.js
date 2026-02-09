@@ -41,14 +41,19 @@ export const normalizeDate = (dateStr) => {
     return dateStr;
 };
 
-export const formatDateDDMMYYYY = (isoDateString) => {
-    if (!isoDateString || isoDateString === 'Invalid Date') return '-';
-    const date = new Date(isoDateString);
-    if (isNaN(date.getTime())) return isoDateString;
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}-${month}-${year}`;
+export const formatDateDDMMYYYY = (isoString) => {
+  if (!isoString) return '-';
+  try {
+    const d = new Date(isoString);
+    // Forceer nl-NL: "09-02-2026"
+    return d.toLocaleDateString('nl-NL', { 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: 'numeric' 
+    });
+  } catch (e) {
+    return isoString;
+  }
 };
 
 export const formatTime = (seconds) => {
