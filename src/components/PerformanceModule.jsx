@@ -38,14 +38,26 @@ const PeriodStatistics = ({ data }) => {
 
     // Aggregates
     const totalRides = data.length;
-    const totalDistance = Math.round(data.reduce((acc, d) => acc + (d.distance || 0), 0) / 1000); // km
+    // FIX: Distance in utils is already converted to km if > 2000, OR stays meters. 
+    // Given the confusion, let's assume raw data from Intervals is meters (standard). 
+    // Utils only formats for individual rows. 
+    // Safe approach: Sum and determine unit.
+    const totalDistanceRaw = data.reduce((acc, d) => acc + (d.distance || 0), 0);
+    // If we assume d.distance is KM (from utils), then we sum KM. 
+    // If d.distance is Meters, we sum Meters.
+    // Utils smartParseCSV line 316: entry.distance = (entry.distance / 1000).toFixed(2). So it IS KM.
+    const totalDistance = Math.round(totalDistanceRaw); // Already in KM
+
     const totalElevation = Math.round(data.reduce((acc, d) => acc + (d.climbing || 0), 0)); // m
     const totalTimeHours = Math.round(data.reduce((acc, d) => acc + (d.moving_time || 0), 0) / 3600);
+    // Work: Utils maps 'total_work', 'energy' etc.
     const totalEnergy = Math.round(data.reduce((acc, d) => acc + (d.work || 0), 0)); // kJ
 
     // Averages
     const avgPower = Math.round(data.reduce((acc, d) => acc + (d.avg_power || 0), 0) / totalRides);
     const avgHr = Math.round(data.reduce((acc, d) => acc + (d.avg_hr || 0), 0) / totalRides);
+
+    // Maxima (Now using correct fields from utils)
     const maxPower = Math.max(...data.map(d => d.max_power || 0));
     const maxHr = Math.max(...data.map(d => d.max_hr || 0));
 
@@ -53,7 +65,8 @@ const PeriodStatistics = ({ data }) => {
     const indoorRides = data.filter(d => d.type === 'VirtualRide');
     const outdoorRides = data.filter(d => d.type !== 'VirtualRide');
 
-    const indoorDist = Math.round(indoorRides.reduce((acc, d) => acc + (d.distance || 0), 0) / 1000);
+    // Distance logic again
+    const indoorDist = Math.round(indoorRides.reduce((acc, d) => acc + (d.distance || 0), 0));
     const outdoorDist = totalDistance - indoorDist;
 
     return (
@@ -62,7 +75,6 @@ const PeriodStatistics = ({ data }) => {
                 <Calendar className="text-yellow-400" size={20} />
                 <h3 className="text-lg font-bold text-white">Period Statistics</h3>
                 <span className="text-xs text-slate-400 ml-auto font-mono">
-                    {/* HIER: Nederlandse datum formatting */}
                     {formatDateDDMMYYYY(data[0].date)} - {formatDateDDMMYYYY(data[data.length - 1].date)}
                 </span>
             </div>
@@ -93,7 +105,7 @@ const PeriodStatistics = ({ data }) => {
                         <div className="text-xs text-slate-400">Avg Power</div>
                     </div>
                     <div>
-                        <div className="text-xl font-bold text-red-400">{avgHr} <span className="text-xs text-slate-500 font-normal">bpm</span></div>
+                        <div className="text-xl font-bold text-red-400">{avgHr === 0 ? '-' : avgHr} <span className="text-xs text-slate-500 font-normal">bpm</span></div>
                         <div className="text-xs text-slate-400">Avg Heart Rate</div>
                     </div>
                     <div>
@@ -114,7 +126,7 @@ const PeriodStatistics = ({ data }) => {
                     <div className="bg-slate-700/30 p-3 rounded-lg border border-slate-700">
                         <div className="flex justify-between items-end">
                             <span className="text-xs text-slate-400">Max HR</span>
-                            <span className="text-xl font-bold text-white">{maxHr} bpm</span>
+                            <span className="text-xl font-bold text-white">{maxHr === 0 ? '-' : maxHr} bpm</span>
                         </div>
                     </div>
                 </div>
@@ -145,8 +157,19 @@ const PeriodStatistics = ({ data }) => {
     );
 };
 
-const PerformanceModule = ({ data, manualFtp, customTicks }) => {
+const PerformanceModule = ({
+    data,
+    manualFtp,
+    customTicks,
+    timeRange,
+    setTimeRange,
+    customStart,
+    setCustomStart,
+    customEnd,
+    setCustomEnd
+}) => {
     const filteredData = data || [];
+    const ranges = ['1M', '3M', '6M', '1Y', '3Y', '6Y', 'ALL', 'Custom'];
 
     // --- SMART AXIS LOGIC ---
     const axisTicks = customTicks ? customTicks.map(t => new Date(t).getTime()) : undefined;
@@ -157,14 +180,14 @@ const PerformanceModule = ({ data, manualFtp, customTicks }) => {
         if (filteredData.length < 2) return false;
         const start = new Date(filteredData[0].date);
         const end = new Date(filteredData[filteredData.length - 1].date);
-        
+
         // Verspringen van jaar? (bv 2024 -> 2025)
         if (start.getFullYear() !== end.getFullYear()) return true;
-        
+
         // Langer dan een jaar (bv Jan 2025 -> Dec 2025 kan, maar Jan 2025 -> Feb 2026 is true)
         const diffTime = Math.abs(end - start);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-        return diffDays > 360; 
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays > 360;
     }, [filteredData]);
 
 
@@ -176,7 +199,7 @@ const PerformanceModule = ({ data, manualFtp, customTicks }) => {
     const lastValidEftp = [...filteredData].reverse().find(d => d.eFTP > 0)?.eFTP || 0;
     const currentLoad = latest?.load || 0;
     const totalActivities = filteredData.length;
-    const showDots = totalActivities < 60; 
+    const showDots = totalActivities < 60;
 
     return (
         <>
@@ -218,11 +241,36 @@ const PerformanceModule = ({ data, manualFtp, customTicks }) => {
 
             <div className="grid grid-cols-1 gap-6">
                 <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
-                    <div className="flex items-center justify-between mb-6">
+                    <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
                         <h3 className="text-lg font-bold text-white flex items-center gap-2">
                             <Activity className="text-blue-400" size={20} />
                             FTP Progression & Load
                         </h3>
+
+                        {/* TIME CONTROLS INSIDE THE BOX */}
+                        <div className="flex flex-col items-end gap-2">
+                            <div className="flex flex-wrap items-center gap-1 bg-slate-900/50 rounded-lg p-1 border border-slate-600">
+                                {ranges.map(range => (
+                                    <button
+                                        key={range}
+                                        onClick={() => setTimeRange(range)}
+                                        className={`px-3 py-1 text-[10px] font-bold uppercase rounded transition-all ${timeRange === range
+                                            ? 'bg-blue-600 text-white shadow-lg'
+                                            : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}
+                                    >
+                                        {range}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {timeRange === 'Custom' && (
+                                <div className="flex items-center gap-2 bg-slate-900/50 p-1.5 rounded-lg border border-slate-600 animate-in fade-in slide-in-from-right-2">
+                                    <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="bg-slate-800 text-white text-[10px] rounded px-2 py-1 outline-none border border-slate-600" />
+                                    <span className="text-slate-500 text-[10px]">-</span>
+                                    <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="bg-slate-800 text-white text-[10px] rounded px-2 py-1 outline-none border border-slate-600" />
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     <div className="min-h-[300px] h-[50vh] max-h-[500px] w-full">
@@ -235,14 +283,14 @@ const PerformanceModule = ({ data, manualFtp, customTicks }) => {
                                     </linearGradient>
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                                
+
                                 <XAxis
                                     dataKey="dateNum"
                                     type="number"
                                     domain={['dataMin', 'dataMax']}
                                     stroke="#94a3b8"
-                                    ticks={axisTicks} 
-                                    interval={0} 
+                                    ticks={axisTicks}
+                                    interval={0}
                                     scale="time"
                                     minTickGap={50}
                                     // HIER IS DE MAGIE:
@@ -258,7 +306,7 @@ const PerformanceModule = ({ data, manualFtp, customTicks }) => {
                                         return `${d.getDate()} ${d.toLocaleDateString('nl-NL', { month: 'short' })}`;
                                     }}
                                 />
-                                
+
                                 <YAxis yAxisId="left" stroke="#94a3b8" domain={['auto', 'auto']} />
                                 <YAxis yAxisId="right" orientation="right" stroke="#8b5cf6" domain={[0, 'auto']} hide />
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { fetchIntervalsData } from '../services/intervalsService';
-import { calculateBassettCorrection } from '../utils'; 
+import { calculateBassettCorrection } from '../utils';
 import PerformanceModule from './PerformanceModule';
 
 const Dashboard = ({ theme, manualFtp }) => {
@@ -19,7 +19,7 @@ const Dashboard = ({ theme, manualFtp }) => {
         const processRawData = (data, userFtp) => {
             return data.map(d => {
                 let eFTP = d.best_20min ? Math.round(d.best_20min * 0.95) : null;
-                
+
                 // Filter uitschieters (bad sensor data)
                 if (eFTP > 600) eFTP = null;
 
@@ -53,15 +53,15 @@ const Dashboard = ({ theme, manualFtp }) => {
                 // STRICT MERGE & DEDUPE
                 setChartData(prev => {
                     const combined = [...processedHistory, ...prev];
-                    
+
                     // Ontdubbelen op basis van unieke ID (Map behoudt laatste versie)
                     const uniqueMap = new Map();
                     combined.forEach(item => {
                         if (item.id) uniqueMap.set(item.id, item);
                     });
-                    
+
                     const uniqueArray = Array.from(uniqueMap.values());
-                    
+
                     // Altijd sorteren op datum
                     return uniqueArray.sort((a, b) => new Date(a.date) - new Date(b.date));
                 });
@@ -69,7 +69,7 @@ const Dashboard = ({ theme, manualFtp }) => {
             } catch (err) {
                 console.error(err);
                 // Alleen error tonen als we helemaal geen data hebben
-                if(chartData.length === 0) setError('Kon data niet ophalen van Intervals.icu');
+                if (chartData.length === 0) setError('Kon data niet ophalen van Intervals.icu');
             } finally {
                 setLoading(false);
             }
@@ -81,13 +81,13 @@ const Dashboard = ({ theme, manualFtp }) => {
     // --- Filter Logic ---
     const filteredData = useMemo(() => {
         if (!chartData.length) return [];
-        
+
         let cutoffDate = new Date();
         // Reset tijd naar middernacht voor eerlijke vergelijking
-        cutoffDate.setHours(0,0,0,0);
+        cutoffDate.setHours(0, 0, 0, 0);
 
         if (timeRange === 'Custom') {
-            if(!customStart) return chartData;
+            if (!customStart) return chartData;
             const start = new Date(customStart);
             const end = customEnd ? new Date(customEnd) : new Date();
             return chartData.filter(d => {
@@ -121,7 +121,7 @@ const Dashboard = ({ theme, manualFtp }) => {
         }
         // Altijd de allerlaatste datum toevoegen
         ticks.push(filteredData[filteredData.length - 1].date);
-        
+
         // Zorg voor unieke waarden (via Set)
         return [...new Set(ticks)];
     }, [filteredData]);
@@ -145,40 +145,18 @@ const Dashboard = ({ theme, manualFtp }) => {
                     <h2 className="text-2xl font-bold text-yellow-500 tracking-tight">Dashboard</h2>
                     <p className="text-slate-400 text-sm">Performance metrics overview</p>
                 </div>
-
-                {/* TIME FILTER BUTTONS */}
-                <div className="flex flex-wrap items-center gap-2 bg-slate-800 rounded-lg p-1 border border-slate-700">
-                    {ranges.map(range => (
-                        <button
-                            key={range}
-                            onClick={() => setTimeRange(range)}
-                            className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${timeRange === range
-                                ? 'bg-blue-600 text-white shadow-lg'
-                                : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}
-                        >
-                            {range}
-                        </button>
-                    ))}
-                </div>
             </div>
-
-            {/* CUSTOM DATE PICKER */}
-            {timeRange === 'Custom' && (
-                <div className="flex justify-end animate-in fade-in slide-in-from-right-4 duration-300">
-                    <div className="flex items-center gap-2 bg-slate-800 p-2 rounded-lg border border-slate-700">
-                        <span className="text-xs text-slate-400 font-bold uppercase mr-2">Select Range:</span>
-                        <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="bg-slate-900 text-white text-xs rounded px-2 py-1 outline-none focus:ring-1 ring-blue-500 border border-slate-600" />
-                        <span className="text-slate-500">-</span>
-                        <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="bg-slate-900 text-white text-xs rounded px-2 py-1 outline-none focus:ring-1 ring-blue-500 border border-slate-600" />
-                    </div>
-                </div>
-            )}
-
-            {/* PERFORMANCE MODULE (Nu met customTicks prop) */}
-            <PerformanceModule 
-                data={filteredData} 
-                manualFtp={manualFtp} 
-                customTicks={customTicks} // <--- HIER GEVEN WE DE SCHONE X-AS MEE
+            {/* PERFORMANCE MODULE (Nu met customTicks prop en controls) */}
+            <PerformanceModule
+                data={filteredData}
+                manualFtp={manualFtp}
+                customTicks={customTicks}
+                timeRange={timeRange}
+                setTimeRange={setTimeRange}
+                customStart={customStart}
+                setCustomStart={setCustomStart}
+                customEnd={customEnd}
+                setCustomEnd={setCustomEnd}
             />
         </div>
     );

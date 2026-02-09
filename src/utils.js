@@ -42,18 +42,18 @@ export const normalizeDate = (dateStr) => {
 };
 
 export const formatDateDDMMYYYY = (isoString) => {
-  if (!isoString) return '-';
-  try {
-    const d = new Date(isoString);
-    // Forceer nl-NL: "09-02-2026"
-    return d.toLocaleDateString('nl-NL', { 
-        day: '2-digit', 
-        month: '2-digit', 
-        year: 'numeric' 
-    });
-  } catch (e) {
-    return isoString;
-  }
+    if (!isoString) return '-';
+    try {
+        const d = new Date(isoString);
+        // Forceer nl-NL: "09-02-2026"
+        return d.toLocaleDateString('nl-NL', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    } catch (e) {
+        return isoString;
+    }
 };
 
 export const formatTime = (seconds) => {
@@ -297,6 +297,8 @@ export const smartParseCSV = (text) => {
         if (cleanH === 'average heartrate' || cleanH === 'avg hr' || cleanH === 'hr' || cleanH.includes('heart rate')) return 'avg_hr';
         if (cleanH === 'avg altitude' || cleanH === 'average altitude' || cleanH === 'altitude avg') return 'avg_altitude';
         if (cleanH === 'max altitude' || cleanH === 'maximum altitude') return 'max_altitude';
+        if (cleanH === 'max power' || cleanH === 'max watts' || cleanH === 'maximum power') return 'max_power';
+        if (cleanH === 'max heartrate' || cleanH === 'max hr' || cleanH === 'maximum heart rate') return 'max_hr';
     };
     const colMap = rawHeaders.map(mapHeader);
     return rows.slice(1).map(row => {
@@ -339,6 +341,8 @@ export const normalizeIntervalsActivity = (item) => {
     const work = getNum(getVal('work', 'total_work', 'icu_joules', 'joules', 'kilojoules', 'energy'));
     const rpe = getNum(getVal('rpe', 'icu_rpe', 'perceived_exertion', 'feel', 'session_rpe'));
     const ftp = getNum(getVal('ftp', 'icu_ftp', 'icu_pm_ftp', 'cp'));
+    const maxPower = getNum(getVal('max_power', 'maxWatts', 'icu_max_watts', 'max_watts'));
+    const maxHr = getNum(getVal('max_hr', 'max_heartrate', 'max_heart_rate', 'icu_max_hr'));
 
     const best1min = getNum(getVal('best_1min', 'Best1minpower', 'best_1min_power', 'w1min'));
     const best5min = getNum(getVal('best_5min', 'Best5minpower', 'best_5min_power', 'w5min'));
@@ -368,6 +372,8 @@ export const normalizeIntervalsActivity = (item) => {
         work: Math.round(work),
         rpe: rpe,
         ftp: Math.round(ftp),
+        max_power: Math.round(maxPower),
+        max_hr: Math.round(maxHr),
         best_1min: Math.round(best1min),
         best_5min: Math.round(best5min),
         best_10min: Math.round(best10min),
