@@ -294,7 +294,7 @@ export const smartParseCSV = (text) => {
         if (cleanH.includes('best 20min') || cleanH.includes('best 20m') || cleanH === 'w20min') return 'best_20min';
         if (cleanH.includes('best 60min') || cleanH.includes('best 60m') || cleanH === 'w60min') return 'best_60min';
 
-        if (cleanH === 'average heartrate' || cleanH === 'avg hr' || cleanH === 'hr' || cleanH.includes('heart rate')) return 'avg_hr';
+        if (cleanH === 'average heartrate' || cleanH === 'avg hr' || cleanH === 'hr' || cleanH.includes('heart rate') || cleanH.includes('heartrate')) return 'avg_hr';
         if (cleanH === 'avg altitude' || cleanH === 'average altitude' || cleanH === 'altitude avg') return 'avg_altitude';
         if (cleanH === 'max altitude' || cleanH === 'maximum altitude') return 'max_altitude';
         if (cleanH === 'max power' || cleanH === 'max watts' || cleanH === 'maximum power') return 'max_power';
