@@ -1,6 +1,7 @@
 import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, ComposedChart } from 'recharts';
 import { Activity, TrendingUp, Zap, Calendar, ArrowUp, ArrowDown } from 'lucide-react';
+import { formatDateDDMMYYYY } from '/src/utils';
 
 const StatCard = ({ title, value, unit, subtitle, icon: Icon, trend, colorClass }) => (
     <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg relative overflow-hidden group hover:border-slate-600 transition-all">
@@ -61,7 +62,7 @@ const PeriodStatistics = ({ data }) => {
                 <Calendar className="text-yellow-400" size={20} />
                 <h3 className="text-lg font-bold text-white">Period Statistics</h3>
                 <span className="text-xs text-slate-400 ml-auto font-mono">
-                    {new Date(data[0].date).toLocaleDateString()} - {new Date(data[data.length - 1].date).toLocaleDateString()}
+                    {new Date(data[0].date).toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric' })} - {new Date(data[data.length - 1].date).toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                 </span>
             </div>
 
@@ -253,7 +254,7 @@ const PerformanceModule = ({ data, manualFtp, customTicks }) => {
                                     contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc' }}
                                     itemStyle={{ color: '#fff' }}
                                     labelStyle={{ color: '#94a3b8' }}
-                                    labelFormatter={(label) => new Date(label).toLocaleDateString()}
+                                    labelFormatter={(label) => new Date(label).toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                                 />
                                 <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
 
