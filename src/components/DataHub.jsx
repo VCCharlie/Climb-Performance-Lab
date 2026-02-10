@@ -429,14 +429,20 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
             }
 
             const safeActivities = Array.isArray(activities) ? activities : [];
-            const newRides = data.filter(ride => !safeActivities.some(existing => existing.id === ride.id));
+            // MOD: We filteren NIET meer op bestaande ritten, zodat we ze kunnen UPDATEN met nieuwe velden (bijv. max_power)
+            // Wel handig om te weten hoeveel er 'nieuw' zijn voor de UI, maar we tonen ze allemaal.
+            const newRides = data;
+            const existingIds = new Set(safeActivities.map(a => a.id));
+            const reallyNewCount = newRides.filter(r => !existingIds.has(r.id)).length;
+            const updateCount = newRides.length - reallyNewCount;
 
             if (newRides.length > 0) {
                 setFetchedActivities(newRides);
+                // Standaard alles selecteren om te updaten is misschien agressief, maar wel wat de user wil ('re-process').
                 setSelectedActivities(newRides.map(r => r.id));
                 setShowModal(true);
             } else {
-                alert("Je bent helemaal bij! Alle gevonden ritten staan al in je dashboard.");
+                alert("Geen activiteiten gevonden via API.");
             }
 
         } catch (e) {
@@ -545,6 +551,7 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
                     <div className="bg-slate-800 border border-slate-600 rounded-xl shadow-2xl w-full max-w-6xl max-h-[85vh] flex flex-col">
                         <div className="flex-shrink-0 p-3 border-b border-slate-700 flex justify-between items-center bg-slate-900">
                             <h3 className="font-bold text-white flex items-center gap-2 text-sm"><Download size={16} className="text-green-400" /> {fetchedActivities.length} Activities Found</h3>
+                            <span className="text-xs text-slate-400 ml-auto mr-4">Select to Import or Update</span>
                             <button onClick={() => setShowModal(false)} className="p-1 hover:bg-slate-700 rounded"><X size={18} className="text-slate-400 hover:text-white" /></button>
                         </div>
                         <div className="flex-shrink-0 px-3 py-2 bg-slate-800 border-b border-slate-700 flex flex-wrap gap-2 items-center">
