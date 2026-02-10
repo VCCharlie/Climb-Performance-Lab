@@ -30,7 +30,7 @@ export const TableHeader = ({ config, requestSort, hasActions = true, isPreview 
     </thead>
 );
 
-export const Row = ({ act, onDelete, onEdit, deleteConfirm, setDeleteConfirm, isPreview = false, isSelected = false, onToggleSelect, onToggleType }) => {
+const Row = React.memo(({ act, onDelete, onEdit, deleteConfirm, setDeleteConfirm, isPreview = false, isSelected = false, onToggleSelect, onToggleType }) => {
     if (!act) return null;
 
     const renderCell = (col) => {
@@ -104,7 +104,7 @@ export const Row = ({ act, onDelete, onEdit, deleteConfirm, setDeleteConfirm, is
             </td >}
         </tr >
     );
-};
+});
 
 const ActivityTable = ({ activities, sortConfig, onSort, onDelete, onEdit, isGroupedView, expandedYears, onToggleYear, deleteConfirm, setDeleteConfirm }) => {
     // Logic for grouping is assumed handled by parent or we move it here?
@@ -123,7 +123,7 @@ const ActivityTable = ({ activities, sortConfig, onSort, onDelete, onEdit, isGro
     // Let's accept `groupedActivities` as an optional prop.
 
     return (
-        <div className="overflow-x-auto flex-1 border border-slate-700 rounded-lg custom-scrollbar">
+        <div className="overflow-x-auto overflow-y-auto flex-1 border border-slate-700 rounded-lg custom-scrollbar relative">
             <table className="w-full text-left text-xs whitespace-nowrap">
                 <TableHeader config={sortConfig} requestSort={onSort} hasActions={true} isPreview={false} />
                 <tbody className="divide-y divide-slate-700 bg-slate-800">
