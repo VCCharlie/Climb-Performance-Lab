@@ -38,34 +38,37 @@ const PeriodStatistics = ({ data }) => {
 
     // Aggregates
     const totalRides = data.length;
-    // FIX: Distance in utils is already converted to km if > 2000, OR stays meters. 
-    // Given the confusion, let's assume raw data from Intervals is meters (standard). 
-    // Utils only formats for individual rows. 
-    // Safe approach: Sum and determine unit.
-    const totalDistanceRaw = data.reduce((acc, d) => acc + (d.distance || 0), 0);
-    // If we assume d.distance is KM (from utils), then we sum KM. 
-    // If d.distance is Meters, we sum Meters.
-    // Utils smartParseCSV line 316: entry.distance = (entry.distance / 1000).toFixed(2). So it IS KM.
-    const totalDistance = Math.round(totalDistanceRaw); // Already in KM
+    // Distance (safe sum)
+    const totalDistance = Math.round(data.reduce((acc, d) => acc + (d.distance || 0), 0));
 
-    const totalElevation = Math.round(data.reduce((acc, d) => acc + (d.climbing || 0), 0)); // m
+    // Elevation (safe sum)
+    const totalElevation = Math.round(data.reduce((acc, d) => acc + (d.climbing || 0), 0));
+
+    // Time (safe sum)
     const totalTimeHours = Math.round(data.reduce((acc, d) => acc + (d.moving_time || 0), 0) / 3600);
-    // Work: Utils maps 'total_work', 'energy' etc.
-    const totalEnergy = Math.round(data.reduce((acc, d) => acc + (d.work || 0), 0)); // kJ
 
-    // Averages
-    const avgPower = Math.round(data.reduce((acc, d) => acc + (d.avg_power || 0), 0) / totalRides);
-    const avgHr = Math.round(data.reduce((acc, d) => acc + (d.avg_hr || 0), 0) / totalRides);
+    // Work: Sum 'work' (kJ). If missing, try to calc from power? No, relying on utils to normalize.
+    const totalEnergy = Math.round(data.reduce((acc, d) => acc + (d.work || 0), 0));
 
-    // Maxima (Now using correct fields from utils)
-    const maxPower = Math.max(...data.map(d => d.max_power || 0));
-    const maxHr = Math.max(...data.map(d => d.max_hr || 0));
+    // Averages (Ignore 0 values for correct average!)
+    const ridesWithPower = data.filter(d => d.avg_power > 0);
+    const avgPower = ridesWithPower.length > 0
+        ? Math.round(ridesWithPower.reduce((acc, d) => acc + d.avg_power, 0) / ridesWithPower.length)
+        : 0;
+
+    const ridesWithHr = data.filter(d => d.avg_hr > 0);
+    const avgHr = ridesWithHr.length > 0
+        ? Math.round(ridesWithHr.reduce((acc, d) => acc + d.avg_hr, 0) / ridesWithHr.length)
+        : 0;
+
+    // Maxima
+    const maxPower = Math.max(0, ...data.map(d => d.max_power || 0));
+    const maxHr = Math.max(0, ...data.map(d => d.max_hr || 0));
 
     // Indoor vs Outdoor
     const indoorRides = data.filter(d => d.type === 'VirtualRide');
     const outdoorRides = data.filter(d => d.type !== 'VirtualRide');
 
-    // Distance logic again
     const indoorDist = Math.round(indoorRides.reduce((acc, d) => acc + (d.distance || 0), 0));
     const outdoorDist = totalDistance - indoorDist;
 

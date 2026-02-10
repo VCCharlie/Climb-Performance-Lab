@@ -349,13 +349,12 @@ export const normalizeIntervalsActivity = (item) => {
     // Work handling: icu_joules (Joules) -> kJ
     let work = getNum(getVal('work', 'total_work', 'kilojoules', 'energy'));
 
-    // Fallback: If work is 0, check icu_joules or calculate from Avg Power * Time
-    if (work === 0) {
+    // Fallback: Calculate Work (kJ) = Avg Power (W) * Time (s) / 1000
+    if (work === 0 && avgPower > 0 && movingTime > 0) {
         const joules = getNum(getVal('icu_joules', 'joules'));
         if (joules > 0) {
             work = joules / 1000;
-        } else if (avgPower > 0 && movingTime > 0) {
-            // Calculate Work (kJ) = Power (W) * Time (s) / 1000
+        } else {
             work = (avgPower * movingTime) / 1000;
         }
     }
@@ -363,12 +362,21 @@ export const normalizeIntervalsActivity = (item) => {
     const rpe = getNum(getVal('rpe', 'icu_rpe', 'perceived_exertion', 'feel', 'session_rpe'));
     const ftp = getNum(getVal('ftp', 'icu_ftp', 'icu_pm_ftp', 'cp'));
 
-    // Max Power: Try root keys first, then dig into icu_intervals if available
+    // Max Power: Try root keys first
     let maxPower = getNum(getVal('max_power', 'maxWatts', 'icu_max_watts', 'max_watts', 'p_max', 'icu_pm_p_max'));
+
+    // Fallback 1: Nested intervals
     if (maxPower === 0 && item.icu_intervals && Array.isArray(item.icu_intervals)) {
-        // Find max 'max_watts' in intervals
         const intervalMax = Math.max(...item.icu_intervals.map(i => Number(i.max_watts) || 0));
         if (intervalMax > 0) maxPower = intervalMax;
+    }
+
+    // Fallback 2: If we have avg power but no max, max must be at least avg (logic fix for display)
+    // Actually, better to send 0 than lie, BUT if we have best_1min or something?
+    // Let's rely on best_1min as a floor if max_power is missing.
+    if (maxPower === 0) {
+        const best1 = getNum(getVal('best_1min', 'best_1min_power', 'w1min'));
+        if (best1 > 0) maxPower = best1; // Better than 0
     }
 
     const maxHr = getNum(getVal('max_hr', 'max_heartrate', 'max_heart_rate', 'icu_max_hr', 'athlete_max_hr'));
