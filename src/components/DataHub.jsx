@@ -430,8 +430,11 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
             const listUrl = `https://intervals.icu/api/v1/athlete/${intervalsConfig.athleteId}/activities?${params}`;
             console.log("Fetching summaries from:", listUrl);
 
+            // Intervals.icu API uses Basic Auth with username 'API_KEY'
+            const authHeader = 'Basic ' + btoa(`API_KEY:${intervalsConfig.apiKey}`);
+
             const listResponse = await fetchWithTimeout(listUrl, {
-                headers: { 'Authorization': `Bearer ${intervalsConfig.apiKey}` }
+                headers: { 'Authorization': authHeader }
             });
 
             if (!listResponse.ok) throw new Error(`Failed to fetch activities list: ${listResponse.status}`);
@@ -461,9 +464,18 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
                 // Create array of promises for this batch
                 const batchPromises = batchSummaries.map(async (summary) => {
                     const detailUrl = `https://intervals.icu/api/v1/activity/${summary.id}?intervals=true`;
+
+                    // Re-use authHeader defined above (scope check: need to pass it or redefine)
+                    // It's safer to redefine or pull from variable if in scope.
+                    // Since it's inside the same function scope, we can use `authHeader` if defined in correct scope.
+                    // However, `authHeader` was defined inside the `try` block above.
+                    // Let's redefine it here to be safe or move the definition up.
+                    // To avoid scope issues let's just recalculate it simply.
+                    const authHeader = 'Basic ' + btoa(`API_KEY:${intervalsConfig.apiKey}`);
+
                     try {
                         const res = await fetchWithTimeout(detailUrl, {
-                            headers: { 'Authorization': `Bearer ${intervalsConfig.apiKey}` }
+                            headers: { 'Authorization': authHeader }
                         }, 10000); // 10s timeout per detail
 
                         if (res.ok) return await res.json();
