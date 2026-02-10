@@ -30,7 +30,7 @@ export const TableHeader = ({ config, requestSort, hasActions = true, isPreview 
     </thead>
 );
 
-const Row = React.memo(({ act, onDelete, onEdit, deleteConfirm, setDeleteConfirm, isPreview = false, isSelected = false, onToggleSelect, onToggleType }) => {
+export const Row = React.memo(({ act, onDelete, onEdit, deleteConfirm, setDeleteConfirm, isPreview = false, isSelected = false, onToggleSelect, onToggleType }) => {
     if (!act) return null;
 
     const renderCell = (col) => {
