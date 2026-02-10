@@ -145,8 +145,11 @@ const PeriodStatistics = ({ data }) => {
                 <div className="space-y-4">
                     <h4 className="text-xs uppercase font-bold text-slate-500 mb-2">Period Maxima</h4>
                     <div className="bg-slate-700/30 p-3 rounded-lg border border-slate-700">
-                        <div className="flex justify-between items-end">
-                            <span className="text-xs text-slate-400">Max Power <span className="text-[10px] text-slate-600">{maxPowerLabel}</span></span>
+                        <div className="flex justify-between items-center">
+                            <div className="flex flex-col">
+                                <span className="text-xs text-slate-400">Max Power</span>
+                                <span className="text-xs font-bold text-blue-400">{maxPowerLabel.replace(/[()]/g, '')}</span>
+                            </div>
                             <span className="text-xl font-bold text-white">{formatNumber(maxPower)} W</span>
                         </div>
                     </div>
