@@ -578,25 +578,34 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
                                 </tbody>
                             </table>
                         </div>
-                    </div>
-
-                    {/* DEBUG DATA */}
-                    {rawData && (
-                        <div className="border-t border-slate-700 bg-slate-900 p-2">
-                            <button onClick={() => setShowDebug(!showDebug)} className="text-xs text-slate-500 hover:text-white flex items-center gap-1 w-full justify-center">
-                                <Info size={12} /> {showDebug ? 'Hide Debug Data' : 'Show Debug Data (Raw API Response)'}
-                            </button>
-                            {showDebug && (
-                                <pre className="mt-2 text-[10px] text-green-400 bg-black p-4 rounded overflow-auto max-h-60 font-mono select-text">
-                                    {JSON.stringify(rawData, null, 2)}
-                                </pre>
-                            )}
+                        {/* Footer - Restored */}
+                        <div className="flex-shrink-0 p-3 border-t border-slate-700 flex justify-between items-center bg-slate-900">
+                            <span className="text-xs text-slate-400">{selectedActivities.length} van {fetchedActivities.length} geselecteerd</span>
+                            <div className="flex gap-2">
+                                <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-white">Cancel</button>
+                                <button onClick={confirmImport} disabled={selectedActivities.length === 0} className="px-6 py-2 text-sm font-bold bg-green-500 hover:bg-green-400 disabled:bg-slate-600 disabled:text-slate-400 text-white rounded-lg shadow-lg shadow-green-500/20 transition-all">✓ Import {selectedActivities.length}</button>
+                            </div>
                         </div>
-                    )}
+
+                        {/* DEBUG DATA */}
+                        {rawData && (
+                            <div className="border-t border-slate-700 bg-slate-900 p-2">
+                                <button onClick={() => setShowDebug(!showDebug)} className="text-xs text-slate-500 hover:text-white flex items-center gap-1 w-full justify-center">
+                                    <Info size={12} /> {showDebug ? 'Hide Debug Data' : 'Show Debug Data (Raw API Response)'}
+                                </button>
+                                {showDebug && (
+                                    <pre className="mt-2 text-[10px] text-green-400 bg-black p-4 rounded overflow-auto max-h-60 font-mono select-text">
+                                        {JSON.stringify(rawData, null, 2)}
+                                    </pre>
+                                )}
+                            </div>
+                        )}
+                    </div>
                 </div>
+            )}
 
 
-{/* DUPLICATE RESOLUTION MODAL */}
+            {/* DUPLICATE RESOLUTION MODAL */}
             {
                 showDuplicateModal && (
                     <div className="fixed inset-0 bg-slate-900/95 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
