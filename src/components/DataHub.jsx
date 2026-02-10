@@ -266,6 +266,7 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
     const [showModal, setShowModal] = useState(false);
     const [rawData, setRawData] = useState(null); // Voor debuggen
     const [showDebug, setShowDebug] = useState(false);
+    const [syncProgress, setSyncProgress] = useState(null);
 
     // Logic Helpers
     const toggleSportFilter = (type) => setSportFilters(prev => ({ ...prev, [type]: !prev[type] }));
@@ -404,7 +405,21 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
 
         // DEBUG: Clear logs
         console.clear();
-        console.log("Starting Deep Sync...");
+        console.log("Starting Deep Sync (Robust Mode)...");
+
+        // Helper: Fetch with Timeout
+        const fetchWithTimeout = async (url, options = {}, timeout = 15000) => {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeout);
+            try {
+                const response = await fetch(url, { ...options, signal: controller.signal });
+                clearTimeout(id);
+                return response;
+            } catch (error) {
+                clearTimeout(id);
+                throw error;
+            }
+        };
 
         try {
             // 1. Fetch Activity List (Summaries)
@@ -415,7 +430,7 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
             const listUrl = `https://intervals.icu/api/v1/athlete/${intervalsConfig.athleteId}/activities?${params}`;
             console.log("Fetching summaries from:", listUrl);
 
-            const listResponse = await fetch(listUrl, {
+            const listResponse = await fetchWithTimeout(listUrl, {
                 headers: { 'Authorization': `Bearer ${intervalsConfig.apiKey}` }
             });
 
@@ -429,46 +444,43 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
                 return;
             }
 
-            // 2. Deep Sync - Fetch Details in Batches
-            const BATCH_SIZE = 20;
+            // 2. Deep Sync - Fetch Details individually with concurrency
+            const BATCH_SIZE = 5; // Conservative batch size to avoid rate limits
             let detailedActivities = [];
-            const ids = summaryData.map(a => a.id);
 
-            for (let i = 0; i < ids.length; i += BATCH_SIZE) {
-                const batchIds = ids.slice(i, i + BATCH_SIZE);
-                const progressMsg = `Fetching details: ${Math.min(i + BATCH_SIZE, ids.length)} / ${ids.length}`;
+            // We want to fetch details for ALL items to get max_watts etc.
+            // But we can respect the batching.
+            const total = summaryData.length;
+
+            for (let i = 0; i < total; i += BATCH_SIZE) {
+                const batchSummaries = summaryData.slice(i, i + BATCH_SIZE);
+                const progressMsg = `Fetching details: ${Math.min(i + BATCH_SIZE, total)} / ${total}`;
                 setSyncProgress(progressMsg);
                 console.log(progressMsg);
 
-                // Endpoint: Comma-separated IDs to get details
-                const batchUrl = `https://intervals.icu/api/v1/athlete/${intervalsConfig.athleteId}/activities/${batchIds.join(',')}?intervals=true`;
+                // Create array of promises for this batch
+                const batchPromises = batchSummaries.map(async (summary) => {
+                    const detailUrl = `https://intervals.icu/api/v1/activity/${summary.id}?intervals=true`;
+                    try {
+                        const res = await fetchWithTimeout(detailUrl, {
+                            headers: { 'Authorization': `Bearer ${intervalsConfig.apiKey}` }
+                        }, 10000); // 10s timeout per detail
 
-                try {
-                    const batchResponse = await fetch(batchUrl, {
-                        headers: { 'Authorization': `Bearer ${intervalsConfig.apiKey}` }
-                    });
-
-                    if (batchResponse.ok) {
-                        const batchData = await batchResponse.json();
-                        if (Array.isArray(batchData)) {
-                            detailedActivities.push(...batchData);
-                        } else if (batchData && typeof batchData === 'object') {
-                            detailedActivities.push(batchData);
-                        }
-                    } else {
-                        console.warn(`Batch fetch failed for ${batchIds.length} items. Status: ${batchResponse.status}`);
-                        // Fallback: Use summaries
-                        const missingSummaries = summaryData.filter(s => batchIds.includes(s.id));
-                        detailedActivities.push(...missingSummaries);
+                        if (res.ok) return await res.json();
+                        console.warn(`Failed to fetch detail for ${summary.id}: ${res.status}`);
+                        return summary; // Fallback to summary if detail fails
+                    } catch (err) {
+                        console.error(`Error fetching detail for ${summary.id}:`, err);
+                        return summary; // Fallback to summary
                     }
-                } catch (batchErr) {
-                    console.error("Batch fetch error:", batchErr);
-                    const missingSummaries = summaryData.filter(s => batchIds.includes(s.id));
-                    detailedActivities.push(...missingSummaries);
-                }
+                });
+
+                // Wait for all in this batch
+                const batchResults = await Promise.all(batchPromises);
+                detailedActivities.push(...batchResults);
 
                 // Rate limiter breathing room
-                await new Promise(r => setTimeout(r, 200));
+                await new Promise(r => setTimeout(r, 500));
             }
 
             console.log(`Deep Sync complete. Processed ${detailedActivities.length} activities.`);
@@ -476,6 +488,8 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
             // 3. Normalize and Store
             if (detailedActivities.length > 0) {
                 setRawData(detailedActivities[0]); // store first detailed item for debug
+                // Also log one for inspection
+                console.log("Sample detailed activity:", detailedActivities[0]);
             }
 
             const newRides = detailedActivities.map(normalizeIntervalsActivity);
@@ -487,7 +501,11 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
 
         } catch (error) {
             console.error('Intervals Sync Error:', error);
-            alert(`Sync failed: ${error.message}`);
+            if (error.name === 'AbortError') {
+                alert("Sync timed out. Please try a shorter date range.");
+            } else {
+                alert(`Sync failed: ${error.message}`);
+            }
             setSyncProgress(null);
         } finally {
             setIsSyncing(false);
@@ -789,7 +807,9 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
                             </div>
                         </div>
                         <div className="pt-4 border-t border-slate-700">
-                            <button id="sync-btn" onClick={handleIntervalsSync} disabled={isSyncing} className="w-full py-3 rounded bg-orange-500 hover:bg-orange-600 text-white font-bold transition-all shadow-lg shadow-orange-500/20">{isSyncing ? 'Syncing...' : 'Sync Now'}</button>
+                            <button id="sync-btn" onClick={handleIntervalsSync} disabled={isSyncing} className="w-full py-3 rounded bg-orange-500 hover:bg-orange-600 text-white font-bold transition-all shadow-lg shadow-orange-500/20">
+                                {isSyncing ? (syncProgress || 'Syncing...') : 'Sync Now'}
+                            </button>
                         </div>
                     </div>
                 )}
