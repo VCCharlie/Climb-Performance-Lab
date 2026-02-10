@@ -207,7 +207,11 @@ const App = () => {
                             <DataHub
                                 activities={activities}
                                 onImport={(n) => {
-                                    setActivities(prev => [...prev, ...n]);
+                                    setActivities(prev => {
+                                        const map = new Map(prev.map(a => [a.id, a]));
+                                        n.forEach(act => map.set(act.id, act));
+                                        return Array.from(map.values());
+                                    });
                                 }}
                                 onDelete={(id) => setActivities(activities.filter(a => a.id !== id))}
                                 onClear={() => setActivities([])} // NIEUW: Prop om alles leeg te maken

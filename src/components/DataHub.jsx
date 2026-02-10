@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { doc, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from '../firebase';
-import { smartParseCSV, smartParseJSON, formatDateDDMMYYYY, formatTime } from '../utils';
+import { smartParseCSV, smartParseJSON, normalizeIntervalsActivity, formatDateDDMMYYYY, formatTime } from '../utils';
 import { ACTIVITY_COLUMNS, SPORT_TYPES, MONTH_ORDER } from '../config';
 
 // CONFIG
@@ -430,8 +430,8 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
 
             const safeActivities = Array.isArray(activities) ? activities : [];
             // MOD: We filteren NIET meer op bestaande ritten, zodat we ze kunnen UPDATEN met nieuwe velden (bijv. max_power)
-            // Wel handig om te weten hoeveel er 'nieuw' zijn voor de UI, maar we tonen ze allemaal.
-            const newRides = data;
+            // Waarschuwing: API data is RAW, dus we moeten normaliseren!
+            const newRides = data.map(normalizeIntervalsActivity);
             const existingIds = new Set(safeActivities.map(a => a.id));
             const reallyNewCount = newRides.filter(r => !existingIds.has(r.id)).length;
             const updateCount = newRides.length - reallyNewCount;
