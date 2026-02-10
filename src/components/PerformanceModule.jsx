@@ -216,10 +216,22 @@ const PerformanceModule = ({
     // --- 1. Stat Calculation ---
     const latest = filteredData.length > 0 ? filteredData[filteredData.length - 1] : null;
     const displayFtp = manualFtp || latest?.ftp || 0;
+
+    // eFTP: Show MAX of the period, not just "Latest". User wants to see the best "Est. FTP" in that timeframe.
     const maxEftp = filteredData.reduce((max, d) => Math.max(max, d.eFTP || 0), 0);
+    // Use Max for display to be dynamic
+    const displayEftp = maxEftp;
+
     const hasSeaLevelPower = filteredData.some(d => d.seaLevelPower);
-    const lastValidEftp = [...filteredData].reverse().find(d => d.eFTP > 0)?.eFTP || 0;
-    const currentLoad = latest?.load || 0;
+
+    // Load: Show Average Daily Load for this period
+    // If period is 30 days, Sum(Load) / 30 is close to CTL. 
+    // But since 'load' in activity is TSS, Avg Load per Ride is distinct from CTL.
+    // Let's show "Avg Load / Ride" which definitely changes.
+    const avgLoadPerRide = filteredData.length > 0
+        ? Math.round(filteredData.reduce((acc, d) => acc + (d.load || 0), 0) / filteredData.length)
+        : 0;
+
     const totalActivities = filteredData.length;
     const showDots = totalActivities < 60;
 
@@ -231,13 +243,7 @@ const PerformanceModule = ({
     const maxEftpIndoor = Math.max(0, ...indoorRides.map(d => d.eFTP || 0));
     const maxEftpOutdoor = Math.max(0, ...outdoorRides.map(d => d.eFTP || 0));
 
-    // 2. Load Split (Total TSS for period?) - User asked for "same value but split". 
-    // "Fitness Load" is usually CTL (rolling avg). You can't really sum CTL.
-    // However, user said "same value but split". 
-    // Maybe they mean "Avg Load" or "Total Load" for the period? 
-    // Let's use **Avg Daily Load** (Total Load / Days) or just **Total Load Accumulation**.
-    // Given the box says "Fitness Load (TSS/d)" which implies CTL, splitting CTL is tricky.
-    // Let's perform a simplistic split: Avg Load of Indoor Rides vs Avg Load of Outdoor Rides.
+    // 2. Load Split (Avg Load per Ride)
     const avgLoadIndoor = indoorRides.length > 0 ? Math.round(indoorRides.reduce((acc, d) => acc + (d.load || 0), 0) / indoorRides.length) : 0;
     const avgLoadOutdoor = outdoorRides.length > 0 ? Math.round(outdoorRides.reduce((acc, d) => acc + (d.load || 0), 0) / outdoorRides.length) : 0;
 
@@ -257,20 +263,20 @@ const PerformanceModule = ({
                     colorClass="text-blue-500"
                 />
                 <StatCard
-                    title="Est. FTP (eFTP)"
-                    value={lastValidEftp}
+                    title="Peak eFTP"
+                    value={displayEftp}
                     unit="W"
-                    subtitle={`Period Max: ${maxEftp} W`}
+                    subtitle="Period Maximum"
                     icon={TrendingUp}
-                    trend={lastValidEftp >= displayFtp ? 'up' : 'down'}
+                    trend={displayEftp >= displayFtp ? 'up' : 'down'}
                     colorClass="text-green-500"
                     split={{ indoor: maxEftpIndoor, outdoor: maxEftpOutdoor }}
                 />
                 <StatCard
-                    title="Fitness Load"
-                    value={currentLoad}
-                    unit="TSS/d"
-                    subtitle="42-day rolling average"
+                    title="Avg Load"
+                    value={avgLoadPerRide}
+                    unit="TSS"
+                    subtitle="Per ride (Avg)"
                     icon={Activity}
                     colorClass="text-purple-500"
                     split={{ indoor: avgLoadIndoor, outdoor: avgLoadOutdoor }}

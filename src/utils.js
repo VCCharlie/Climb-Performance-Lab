@@ -342,7 +342,7 @@ export const normalizeIntervalsActivity = (item) => {
     const avgSpeedMs = getNum(getVal('avg_speed', 'avgSpeed', 'average_speed', 'velocity_smooth'));
     const normPower = getNum(getVal('norm_power', 'normalizedPower', 'icu_weighted_avg_watts', 'weighted_average_watts', 'np', 'normalized_power'));
     const avgPower = getNum(getVal('avgWatts', 'icu_average_watts', 'average_watts', 'device_watts', 'avg_power', 'power'));
-    const avgHr = getNum(getVal('average_heartrate', 'avg_hr', 'average_hr', 'hr', 'icu_average_heartrate', 'avg_heartrate'));
+    const avgHr = getNum(getVal('average_heartrate', 'avg_hr', 'average_hr', 'hr', 'icu_average_heartrate', 'avg_heartrate', 'icu_avg_hr'));
     const load = getNum(getVal('load', 'trainingLoad', 'icu_training_load', 'training_load', 'power_load', 'hr_load', 'pace_load', 'tss'));
 
     // Work handling: icu_joules is in Joules, we want kJ.
@@ -378,17 +378,19 @@ export const normalizeIntervalsActivity = (item) => {
     // Fallback 2: If we have avg power but no max, max must be at least avg (logic fix for display)
     // Actually, better to send 0 than lie, BUT if we have best_1min or something?
     // Let's rely on best_1min as a floor if max_power is missing.
+    // SANITY CHECK: best_1min cannot be 1700W for a normal rider (clean anomaly)
+    let best1min = getNum(getVal('best_1min', 'Best1minpower', 'best_1min_power', 'w1min'));
+    if (best1min > 1200) best1min = 0; // Filter insane values
+
     if (maxPower === 0) {
-        const best1 = getNum(getVal('best_1min', 'best_1min_power', 'w1min'));
-        if (best1 > 0) {
-            maxPower = best1;
+        if (best1min > 0) {
+            maxPower = best1min;
             maxPowerSource = '1 min';
         }
     }
 
-    const maxHr = getNum(getVal('max_hr', 'max_heartrate', 'max_heart_rate', 'icu_max_hr', 'athlete_max_hr'));
+    const maxHr = getNum(getVal('max_hr', 'max_heartrate', 'max_heart_rate', 'icu_max_hr', 'athlete_max_hr', 'icu_max_heartrate'));
 
-    const best1min = getNum(getVal('best_1min', 'Best1minpower', 'best_1min_power', 'w1min'));
     const best5min = getNum(getVal('best_5min', 'Best5minpower', 'best_5min_power', 'w5min'));
     const best10min = getNum(getVal('best_10min', 'Best10minpower', 'best_10min_power', 'w10min'));
     const best20min = getNum(getVal('best_20min', 'Best20minpower', 'best_20min_power', 'w20min'));
