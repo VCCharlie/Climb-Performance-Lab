@@ -400,65 +400,97 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
     // --- INTERVALS SYNC ---
     const handleIntervalsSync = async () => {
         setIsSyncing(true);
-        const btn = document.getElementById('sync-btn');
-        if (btn) btn.innerHTML = 'Cloud Processing...';
+        setSyncProgress(null);
+
+        // DEBUG: Clear logs
+        console.clear();
+        console.log("Starting Deep Sync...");
 
         try {
-            let selectedTypes = Object.keys(sportFilters).filter(k => sportFilters[k]);
-            if (selectedTypes.includes('Ride') && !selectedTypes.includes('VirtualRide')) selectedTypes.push('VirtualRide');
+            // 1. Fetch Activity List (Summaries)
+            const params = new URLSearchParams({
+                oldest: syncDates.start,
+                newest: syncDates.end
+            });
+            const listUrl = `https://intervals.icu/api/v1/athlete/${intervalsConfig.athleteId}/activities?${params}`;
+            console.log("Fetching summaries from:", listUrl);
 
-            const payload = {
-                start_date: syncDates.start,
-                end_date: syncDates.end,
-                sport_types: selectedTypes,
-                athlete_id: intervalsConfig.athleteId,
-                api_key: intervalsConfig.apiKey,
-                debug: true
-            };
-
-            const response = await fetch(CLOUD_SYNC_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+            const listResponse = await fetch(listUrl, {
+                headers: { 'Authorization': `Bearer ${intervalsConfig.apiKey}` }
             });
 
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || "Server Error");
+            if (!listResponse.ok) throw new Error(`Failed to fetch activities list: ${listResponse.status}`);
+            const summaryData = await listResponse.json();
+            console.log(`Fetched ${summaryData.length} summaries.`);
 
-            if (!Array.isArray(data) || data.length === 0) {
-                alert(`Geen activiteiten gevonden tussen ${syncDates.start} en ${syncDates.end}.`);
+            if (summaryData.length === 0) {
+                alert('No activities found in range.');
+                setIsSyncing(false);
                 return;
             }
 
-            // DEBUG: Show available keys to user/console
-            console.log("RAW API DATA (First Item):", data[0]);
-            console.log("Available Keys:", Object.keys(data[0]));
-            if (data.length > 0) setRawData(data[0]);
-            // alert("DEBUG: check console for raw keys. Sample keys: " + Object.keys(data[0]).join(", "));
+            // 2. Deep Sync - Fetch Details in Batches
+            const BATCH_SIZE = 20;
+            let detailedActivities = [];
+            const ids = summaryData.map(a => a.id);
 
-            const safeActivities = Array.isArray(activities) ? activities : [];
-            // MOD: We filteren NIET meer op bestaande ritten, zodat we ze kunnen UPDATEN met nieuwe velden (bijv. max_power)
-            // Waarschuwing: API data is RAW, dus we moeten normaliseren!
-            const newRides = data.map(normalizeIntervalsActivity);
-            const existingIds = new Set(safeActivities.map(a => a.id));
-            const reallyNewCount = newRides.filter(r => !existingIds.has(r.id)).length;
-            const updateCount = newRides.length - reallyNewCount;
+            for (let i = 0; i < ids.length; i += BATCH_SIZE) {
+                const batchIds = ids.slice(i, i + BATCH_SIZE);
+                const progressMsg = `Fetching details: ${Math.min(i + BATCH_SIZE, ids.length)} / ${ids.length}`;
+                setSyncProgress(progressMsg);
+                console.log(progressMsg);
 
-            if (newRides.length > 0) {
-                setFetchedActivities(newRides);
-                // Standaard alles selecteren om te updaten is misschien agressief, maar wel wat de user wil ('re-process').
-                setSelectedActivities(newRides.map(r => r.id));
-                setShowModal(true);
-            } else {
-                alert("Geen activiteiten gevonden via API.");
+                // Endpoint: Comma-separated IDs to get details
+                const batchUrl = `https://intervals.icu/api/v1/athlete/${intervalsConfig.athleteId}/activities/${batchIds.join(',')}?intervals=true`;
+
+                try {
+                    const batchResponse = await fetch(batchUrl, {
+                        headers: { 'Authorization': `Bearer ${intervalsConfig.apiKey}` }
+                    });
+
+                    if (batchResponse.ok) {
+                        const batchData = await batchResponse.json();
+                        if (Array.isArray(batchData)) {
+                            detailedActivities.push(...batchData);
+                        } else if (batchData && typeof batchData === 'object') {
+                            detailedActivities.push(batchData);
+                        }
+                    } else {
+                        console.warn(`Batch fetch failed for ${batchIds.length} items. Status: ${batchResponse.status}`);
+                        // Fallback: Use summaries
+                        const missingSummaries = summaryData.filter(s => batchIds.includes(s.id));
+                        detailedActivities.push(...missingSummaries);
+                    }
+                } catch (batchErr) {
+                    console.error("Batch fetch error:", batchErr);
+                    const missingSummaries = summaryData.filter(s => batchIds.includes(s.id));
+                    detailedActivities.push(...missingSummaries);
+                }
+
+                // Rate limiter breathing room
+                await new Promise(r => setTimeout(r, 200));
             }
 
-        } catch (e) {
-            console.error(e);
-            alert("Sync Fout: " + e.message);
+            console.log(`Deep Sync complete. Processed ${detailedActivities.length} activities.`);
+
+            // 3. Normalize and Store
+            if (detailedActivities.length > 0) {
+                setRawData(detailedActivities[0]); // store first detailed item for debug
+            }
+
+            const newRides = detailedActivities.map(normalizeIntervalsActivity);
+            setFetchedActivities(newRides);
+            setSelectedActivities(newRides.map(r => r.id));
+            setInternalTab('import');
+            setShowModal(true);
+            setSyncProgress(null);
+
+        } catch (error) {
+            console.error('Intervals Sync Error:', error);
+            alert(`Sync failed: ${error.message}`);
+            setSyncProgress(null);
         } finally {
             setIsSyncing(false);
-            if (btn) btn.innerHTML = 'Cloud Sync';
         }
     };
 
