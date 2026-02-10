@@ -526,25 +526,79 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
 
     const confirmImport = async () => {
         const toImport = fetchedActivities.filter(a => selectedActivities.includes(a.id));
+
+        let savedCount = 0;
+        let replacedCount = 0;
+        const idsToDelete = [];
+
+        // Deduplication Logic
+        if (activities && activities.length > 0) {
+            toImport.forEach(newAct => {
+                const newDate = newAct.date.split('T')[0];
+
+                // Find potential duplicates
+                const duplicate = activities.find(existing => {
+                    if (existing.id === newAct.id) return false; // meaningful update, not a duplicate id
+                    const exDate = existing.date.split('T')[0];
+                    if (exDate !== newDate) return false;
+
+                    // Check Type
+                    if (existing.type !== newAct.type && existing.type !== 'Ride' && newAct.type !== 'Ride') return false;
+
+                    // Check similarity (Time or Distance)
+                    const timeDiff = Math.abs((existing.moving_time || 0) - (newAct.moving_time || 0));
+                    const distDiff = Math.abs((existing.distance || 0) - (newAct.distance || 0));
+
+                    // Match if time within 5 mins OR distance within 1km
+                    return timeDiff < 300 || distDiff < 1.0;
+                });
+
+                if (duplicate) {
+                    idsToDelete.push(duplicate.id);
+                    replacedCount++;
+                    console.log(`Replace duplicate: deleting ${duplicate.id} (${duplicate.title}) for new ${newAct.id}`);
+                }
+            });
+        }
+
+        // 1. Delete Replaced items
+        if (idsToDelete.length > 0) {
+            idsToDelete.forEach(id => onDelete(id)); // Update local state immediately via prop
+            if (db) {
+                try {
+                    await Promise.all(idsToDelete.map(id => deleteDoc(doc(db, "activities", String(id)))));
+                } catch (e) {
+                    console.error("Failed to delete duplicates from FB:", e);
+                }
+            }
+        }
+
+        // 2. Import New items
         onImport(toImport);
 
         if (db) {
-            let savedCount = 0;
             try {
-                for (const act of toImport) {
+                // Use Promise.all for faster parallel writes
+                const writePromises = toImport.map(act => {
                     if (act.id) {
-                        await setDoc(doc(db, "activities", String(act.id)), act, { merge: true });
-                        savedCount++;
+                        return setDoc(doc(db, "activities", String(act.id)), act, { merge: true });
                     }
-                }
+                    return Promise.resolve();
+                });
+                await Promise.all(writePromises);
+                savedCount = toImport.length;
                 console.log(`Saved ${savedCount} activities to Firebase`);
             } catch (e) {
                 alert("Let op: Data lokaal geïmporteerd, maar Cloud backup mislukt: " + e.message);
             }
         }
+
         setShowModal(false);
         setFetchedActivities([]);
         setInternalTab('log');
+
+        const summaryMsg = `Import Successful!\n\nImported: ${savedCount}\nReplaced Duplicates: ${replacedCount}`;
+        alert(summaryMsg);
     };
 
     // Sorting & Filtering
