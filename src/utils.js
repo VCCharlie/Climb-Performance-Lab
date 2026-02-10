@@ -348,10 +348,16 @@ export const normalizeIntervalsActivity = (item) => {
     // Work handling: icu_joules is in Joules, we want kJ.
     // Work handling: icu_joules (Joules) -> kJ
     let work = getNum(getVal('work', 'total_work', 'kilojoules', 'energy'));
-    // If work is 0, check icu_joules.
+
+    // Fallback: If work is 0, check icu_joules or calculate from Avg Power * Time
     if (work === 0) {
         const joules = getNum(getVal('icu_joules', 'joules'));
-        if (joules > 0) work = joules / 1000;
+        if (joules > 0) {
+            work = joules / 1000;
+        } else if (avgPower > 0 && movingTime > 0) {
+            // Calculate Work (kJ) = Power (W) * Time (s) / 1000
+            work = (avgPower * movingTime) / 1000;
+        }
     }
 
     const rpe = getNum(getVal('rpe', 'icu_rpe', 'perceived_exertion', 'feel', 'session_rpe'));
