@@ -3,7 +3,12 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { Activity, TrendingUp, Zap, Calendar, ArrowUp, ArrowDown } from 'lucide-react';
 import { formatDateDDMMYYYY } from '../utils'; // <--- ZORG DAT DEZE GEÏMPORTEERD IS
 
-const StatCard = ({ title, value, unit, subtitle, icon: Icon, trend, colorClass }) => (
+const formatNumber = (num) => {
+    if (num === null || num === undefined) return '-';
+    return num.toLocaleString('de-DE'); // 1.000 format
+};
+
+const StatCard = ({ title, value, unit, subtitle, icon: Icon, trend, colorClass, split }) => (
     <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg relative overflow-hidden group hover:border-slate-600 transition-all">
         <div className={`absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity ${colorClass}`}>
             <Icon size={64} />
@@ -18,7 +23,7 @@ const StatCard = ({ title, value, unit, subtitle, icon: Icon, trend, colorClass 
             </div>
 
             <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-black text-white">{value}</span>
+                <span className="text-3xl font-black text-white">{formatNumber(value)}</span>
                 {unit && <span className="text-sm font-bold text-slate-400">{unit}</span>}
             </div>
 
@@ -27,6 +32,20 @@ const StatCard = ({ title, value, unit, subtitle, icon: Icon, trend, colorClass 
                     {trend === 'up' && <ArrowUp size={12} className="text-green-400" />}
                     {trend === 'down' && <ArrowDown size={12} className="text-red-400" />}
                     <span className="text-slate-400">{subtitle}</span>
+                </div>
+            )}
+
+            {/* SPLIT DATA (Indoor / Outdoor) */}
+            {split && (
+                <div className="mt-4 pt-3 border-t border-slate-700/50 space-y-1">
+                    <div className="flex justify-between text-xs">
+                        <span className="text-slate-400">Outdoor</span>
+                        <span className="font-mono text-white">{formatNumber(split.outdoor)} {unit}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                        <span className="text-slate-400">Indoor</span>
+                        <span className="font-mono text-white">{formatNumber(split.indoor)} {unit}</span>
+                    </div>
                 </div>
             )}
         </div>
@@ -73,7 +92,7 @@ const PeriodStatistics = ({ data }) => {
     const outdoorDist = totalDistance - indoorDist;
 
     return (
-        <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl mt-6">
+        <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl mb-6"> {/* Added mb-6 */}
             <div className="flex items-center gap-2 mb-6 border-b border-slate-700 pb-4">
                 <Calendar className="text-yellow-400" size={20} />
                 <h3 className="text-lg font-bold text-white">Period Statistics</h3>
@@ -87,15 +106,15 @@ const PeriodStatistics = ({ data }) => {
                 <div className="space-y-4">
                     <h4 className="text-xs uppercase font-bold text-slate-500 mb-2">Volume</h4>
                     <div>
-                        <div className="text-2xl font-black text-white">{totalDistance} <span className="text-xs text-slate-500 font-normal">km</span></div>
+                        <div className="text-2xl font-black text-white">{formatNumber(totalDistance)} <span className="text-xs text-slate-500 font-normal">km</span></div>
                         <div className="text-xs text-slate-400">Total Distance</div>
                     </div>
                     <div>
-                        <div className="text-2xl font-black text-white">{totalElevation} <span className="text-xs text-slate-500 font-normal">m</span></div>
+                        <div className="text-2xl font-black text-white">{formatNumber(totalElevation)} <span className="text-xs text-slate-500 font-normal">m</span></div>
                         <div className="text-xs text-slate-400">Elevation Gain</div>
                     </div>
                     <div>
-                        <div className="text-xl font-bold text-slate-300">{totalTimeHours} <span className="text-xs text-slate-500 font-normal">hrs</span></div>
+                        <div className="text-xl font-bold text-slate-300">{formatNumber(totalTimeHours)} <span className="text-xs text-slate-500 font-normal">hrs</span></div>
                         <div className="text-xs text-slate-400">Moving Time</div>
                     </div>
                 </div>
@@ -104,7 +123,7 @@ const PeriodStatistics = ({ data }) => {
                 <div className="space-y-4">
                     <h4 className="text-xs uppercase font-bold text-slate-500 mb-2">Intensity (Avg)</h4>
                     <div>
-                        <div className="text-2xl font-black text-green-400">{avgPower} <span className="text-xs text-slate-500 font-normal">W</span></div>
+                        <div className="text-2xl font-black text-green-400">{formatNumber(avgPower)} <span className="text-xs text-slate-500 font-normal">W</span></div>
                         <div className="text-xs text-slate-400">Avg Power</div>
                     </div>
                     <div>
@@ -112,7 +131,7 @@ const PeriodStatistics = ({ data }) => {
                         <div className="text-xs text-slate-400">Avg Heart Rate</div>
                     </div>
                     <div>
-                        <div className="text-lg font-bold text-yellow-400">{totalEnergy} <span className="text-xs text-slate-500 font-normal">kJ</span></div>
+                        <div className="text-lg font-bold text-yellow-400">{formatNumber(totalEnergy)} <span className="text-xs text-slate-500 font-normal">kJ</span></div>
                         <div className="text-xs text-slate-400">Total Work</div>
                     </div>
                 </div>
@@ -122,8 +141,8 @@ const PeriodStatistics = ({ data }) => {
                     <h4 className="text-xs uppercase font-bold text-slate-500 mb-2">Period Maxima</h4>
                     <div className="bg-slate-700/30 p-3 rounded-lg border border-slate-700">
                         <div className="flex justify-between items-end">
-                            <span className="text-xs text-slate-400">Max Power</span>
-                            <span className="text-xl font-bold text-white">{maxPower} W</span>
+                            <span className="text-xs text-slate-400">Max Power <span className="text-[10px] text-slate-600">(Instant)</span></span>
+                            <span className="text-xl font-bold text-white">{formatNumber(maxPower)} W</span>
                         </div>
                     </div>
                     <div className="bg-slate-700/30 p-3 rounded-lg border border-slate-700">
@@ -140,7 +159,7 @@ const PeriodStatistics = ({ data }) => {
                     <div className="space-y-2">
                         <div className="flex justify-between items-center text-sm">
                             <span className="text-slate-400">Outdoor</span>
-                            <span className="font-bold text-white">{outdoorDist} km <span className="text-slate-500 text-xs">({outdoorRides.length})</span></span>
+                            <span className="font-bold text-white">{formatNumber(outdoorDist)} km <span className="text-slate-500 text-xs">({outdoorRides.length})</span></span>
                         </div>
                         <div className="w-full bg-slate-700 h-1.5 rounded-full overflow-hidden">
                             <div className="bg-blue-500 h-full" style={{ width: `${(outdoorDist / totalDistance) * 100}%` }}></div>
@@ -148,7 +167,7 @@ const PeriodStatistics = ({ data }) => {
 
                         <div className="flex justify-between items-center text-sm mt-3">
                             <span className="text-slate-400">Indoor (Virtual)</span>
-                            <span className="font-bold text-white">{indoorDist} km <span className="text-slate-500 text-xs">({indoorRides.length})</span></span>
+                            <span className="font-bold text-white">{formatNumber(indoorDist)} km <span className="text-slate-500 text-xs">({indoorRides.length})</span></span>
                         </div>
                         <div className="w-full bg-slate-700 h-1.5 rounded-full overflow-hidden">
                             <div className="bg-purple-500 h-full" style={{ width: `${(indoorDist / totalDistance) * 100}%` }}></div>
@@ -165,14 +184,9 @@ const PerformanceModule = ({
     manualFtp,
     customTicks,
     timeRange,
-    setTimeRange,
-    customStart,
-    setCustomStart,
-    customEnd,
-    setCustomEnd
+    // Note: Control props (setTimeRange etc) not used here anymore as controls moved to Dashboard
 }) => {
     const filteredData = data || [];
-    const ranges = ['1M', '3M', '6M', '1Y', '3Y', '6Y', 'ALL', 'Custom'];
 
     // --- SMART AXIS LOGIC ---
     const axisTicks = customTicks ? customTicks.map(t => new Date(t).getTime()) : undefined;
@@ -204,9 +218,31 @@ const PerformanceModule = ({
     const totalActivities = filteredData.length;
     const showDots = totalActivities < 60;
 
+    // --- SPLIT CALCULATIONS ---
+    const indoorRides = filteredData.filter(d => d.type === 'VirtualRide');
+    const outdoorRides = filteredData.filter(d => d.type !== 'VirtualRide');
+
+    // 1. Est FTP Split (Max eFTP per environment)
+    const maxEftpIndoor = Math.max(0, ...indoorRides.map(d => d.eFTP || 0));
+    const maxEftpOutdoor = Math.max(0, ...outdoorRides.map(d => d.eFTP || 0));
+
+    // 2. Load Split (Total TSS for period?) - User asked for "same value but split". 
+    // "Fitness Load" is usually CTL (rolling avg). You can't really sum CTL.
+    // However, user said "same value but split". 
+    // Maybe they mean "Avg Load" or "Total Load" for the period? 
+    // Let's use **Avg Daily Load** (Total Load / Days) or just **Total Load Accumulation**.
+    // Given the box says "Fitness Load (TSS/d)" which implies CTL, splitting CTL is tricky.
+    // Let's perform a simplistic split: Avg Load of Indoor Rides vs Avg Load of Outdoor Rides.
+    const avgLoadIndoor = indoorRides.length > 0 ? Math.round(indoorRides.reduce((acc, d) => acc + (d.load || 0), 0) / indoorRides.length) : 0;
+    const avgLoadOutdoor = outdoorRides.length > 0 ? Math.round(outdoorRides.reduce((acc, d) => acc + (d.load || 0), 0) / outdoorRides.length) : 0;
+
+    // 3. Total Rides Split
+    const countIndoor = indoorRides.length;
+    const countOutdoor = outdoorRides.length;
+
     return (
         <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <StatCard
                     title="Current FTP"
                     value={displayFtp}
@@ -223,6 +259,7 @@ const PerformanceModule = ({
                     icon={TrendingUp}
                     trend={lastValidEftp >= displayFtp ? 'up' : 'down'}
                     colorClass="text-green-500"
+                    split={{ indoor: maxEftpIndoor, outdoor: maxEftpOutdoor }}
                 />
                 <StatCard
                     title="Fitness Load"
@@ -231,6 +268,7 @@ const PerformanceModule = ({
                     subtitle="42-day rolling average"
                     icon={Activity}
                     colorClass="text-purple-500"
+                    split={{ indoor: avgLoadIndoor, outdoor: avgLoadOutdoor }}
                 />
                 <StatCard
                     title="Total Rides"
@@ -239,8 +277,12 @@ const PerformanceModule = ({
                     subtitle="In selected period"
                     icon={Calendar}
                     colorClass="text-yellow-500"
+                    split={{ indoor: countIndoor, outdoor: countOutdoor }}
                 />
             </div>
+
+            {/* MOVED: Period Statistics UP */}
+            <PeriodStatistics data={filteredData} />
 
             <div className="grid grid-cols-1 gap-6">
                 <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
@@ -249,31 +291,7 @@ const PerformanceModule = ({
                             <Activity className="text-blue-400" size={20} />
                             FTP Progression & Load
                         </h3>
-
-                        {/* TIME CONTROLS INSIDE THE BOX */}
-                        <div className="flex flex-col items-end gap-2">
-                            <div className="flex flex-wrap items-center gap-1 bg-slate-900/50 rounded-lg p-1 border border-slate-600">
-                                {ranges.map(range => (
-                                    <button
-                                        key={range}
-                                        onClick={() => setTimeRange(range)}
-                                        className={`px-3 py-1 text-[10px] font-bold uppercase rounded transition-all ${timeRange === range
-                                            ? 'bg-blue-600 text-white shadow-lg'
-                                            : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}
-                                    >
-                                        {range}
-                                    </button>
-                                ))}
-                            </div>
-
-                            {timeRange === 'Custom' && (
-                                <div className="flex items-center gap-2 bg-slate-900/50 p-1.5 rounded-lg border border-slate-600 animate-in fade-in slide-in-from-right-2">
-                                    <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="bg-slate-800 text-white text-[10px] rounded px-2 py-1 outline-none border border-slate-600" />
-                                    <span className="text-slate-500 text-[10px]">-</span>
-                                    <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="bg-slate-800 text-white text-[10px] rounded px-2 py-1 outline-none border border-slate-600" />
-                                </div>
-                            )}
-                        </div>
+                        {/* Controls removed from here */}
                     </div>
 
                     <div className="min-h-[300px] h-[50vh] max-h-[500px] w-full">
@@ -296,16 +314,13 @@ const PerformanceModule = ({
                                     interval={0}
                                     scale="time"
                                     minTickGap={50}
-                                    // HIER IS DE MAGIE:
                                     tickFormatter={(timestamp) => {
                                         const d = new Date(timestamp);
-                                        // Als we jaren moeten tonen: "10 feb. '24"
                                         if (showYearOnAxis) {
                                             const month = d.toLocaleDateString('nl-NL', { month: 'short' });
                                             const yearShort = d.getFullYear().toString().slice(-2);
                                             return `${d.getDate()} ${month} '${yearShort}`;
                                         }
-                                        // Anders compact: "10 feb."
                                         return `${d.getDate()} ${d.toLocaleDateString('nl-NL', { month: 'short' })}`;
                                     }}
                                 />
@@ -317,8 +332,8 @@ const PerformanceModule = ({
                                     contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc' }}
                                     itemStyle={{ color: '#fff' }}
                                     labelStyle={{ color: '#94a3b8' }}
-                                    // HIER: Ook de tooltip in NL format
                                     labelFormatter={(label) => formatDateDDMMYYYY(label)}
+                                // Use formatted numbers in tooltip too if possible, but default is okay
                                 />
                                 <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
 
@@ -373,8 +388,6 @@ const PerformanceModule = ({
                         </ResponsiveContainer>
                     </div>
                 </div>
-
-                <PeriodStatistics data={filteredData} />
             </div>
         </>
     );

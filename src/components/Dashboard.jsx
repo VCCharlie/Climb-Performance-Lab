@@ -143,24 +143,44 @@ const Dashboard = ({ theme, manualFtp }) => {
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* HEADER SECTION */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            {/* HEADER SECTION WITH CONTROLS */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-md">
                 <div>
                     <h2 className="text-2xl font-bold text-yellow-500 tracking-tight">Dashboard</h2>
                     <p className="text-slate-400 text-sm">Performance metrics overview</p>
                 </div>
+
+                {/* GLOBAL TIME CONTROLS */}
+                <div className="flex flex-col items-end gap-2">
+                    <div className="flex flex-wrap items-center gap-1 bg-slate-900/50 rounded-lg p-1 border border-slate-600">
+                        {ranges.map(range => (
+                            <button
+                                key={range}
+                                onClick={() => setTimeRange(range)}
+                                className={`px-3 py-1 text-[10px] font-bold uppercase rounded transition-all ${timeRange === range
+                                    ? 'bg-blue-600 text-white shadow-lg'
+                                    : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}
+                            >
+                                {range}
+                            </button>
+                        ))}
+                    </div>
+
+                    {timeRange === 'Custom' && (
+                        <div className="flex items-center gap-2 bg-slate-900/50 p-1.5 rounded-lg border border-slate-600 animate-in fade-in slide-in-from-right-2">
+                            <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="bg-slate-800 text-white text-[10px] rounded px-2 py-1 outline-none border border-slate-600" />
+                            <span className="text-slate-500 text-[10px]">-</span>
+                            <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="bg-slate-800 text-white text-[10px] rounded px-2 py-1 outline-none border border-slate-600" />
+                        </div>
+                    )}
+                </div>
             </div>
-            {/* PERFORMANCE MODULE (Nu met customTicks prop en controls) */}
+
+            {/* PERFORMANCE MODULE */}
             <PerformanceModule
                 data={filteredData}
                 manualFtp={manualFtp}
                 customTicks={customTicks}
-                timeRange={timeRange}
-                setTimeRange={setTimeRange}
-                customStart={customStart}
-                setCustomStart={setCustomStart}
-                customEnd={customEnd}
-                setCustomEnd={setCustomEnd}
             />
         </div>
     );
