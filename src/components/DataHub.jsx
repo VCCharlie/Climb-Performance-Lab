@@ -14,6 +14,7 @@ import ActivityTable from './data-hub/ActivityTable';
 import ImportModal from './data-hub/ImportModal';
 import SyncPanel from './data-hub/SyncPanel';
 import DuplicateResolver from './data-hub/DuplicateResolver';
+import QuickNav from './data-hub/QuickNav';
 
 // CONFIG
 const CLOUD_SYNC_URL = "https://sync-intervals-97555677694.europe-west1.run.app";
@@ -35,6 +36,7 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
     const [isDeleting, setIsDeleting] = useState(false);
     const [duplicates, setDuplicates] = useState([]);
     const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+    const [indoorFilter, setIndoorFilter] = useState('all'); // 'all', 'indoor', 'outdoor'
 
     // EDIT STATE
     const [editingActivity, setEditingActivity] = useState(null);
@@ -379,7 +381,34 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
         if (!activities) return [];
         let filtered = activities.filter(a => {
             if (!isValidActivity(a)) return false;
-            return (a.title && a.title.toLowerCase().includes(search.toLowerCase())) || (a.date && a.date.includes(search));
+
+            // Indoor/Outdoor Filter
+            if (indoorFilter === 'indoor' && !['VirtualRide', 'VirtualRun'].includes(a.type)) return false;
+            if (indoorFilter === 'outdoor' && ['VirtualRide', 'VirtualRun'].includes(a.type)) return false;
+
+            // Search
+            const searchLower = search.toLowerCase();
+            if (!searchLower) return true;
+
+            // 1. Title Match
+            if (a.title && a.title.toLowerCase().includes(searchLower)) return true;
+
+            // 2. Date Match (flexible: 2024-02-04 OR 4-2-2024 OR 04-02-2024)
+            if (a.date) {
+                if (a.date.includes(searchLower)) return true; // YYYY-MM-DD match
+
+                try {
+                    const d = new Date(a.date);
+                    const day = d.getDate();
+                    const month = d.getMonth() + 1;
+                    const year = d.getFullYear();
+                    const dmy = `${day}-${month}-${year}`; // 4-2-2024
+                    const ddmm = `${day.toString().padStart(2, '0')}-${month.toString().padStart(2, '0')}-${year}`; // 04-02-2024
+                    if (dmy.includes(searchLower) || ddmm.includes(searchLower)) return true;
+                } catch (e) { }
+            }
+
+            return false;
         });
 
         if (sortConfig.key) {
@@ -394,7 +423,7 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
             });
         }
         return filtered;
-    }, [activities, search, sortConfig]);
+    }, [activities, search, sortConfig, indoorFilter]);
 
     const sortedFetchedActivities = useMemo(() => {
         if (!fetchedActivities) return [];
@@ -477,11 +506,19 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
             <div className="p-4 flex-1 overflow-hidden flex flex-col">
                 {internalTab === 'log' && (
                     <>
-                        <div className="flex justify-between items-center mb-4 gap-4">
-                            <div className="relative flex-1">
-                                <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
-                                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." className="w-full bg-slate-900 border border-slate-600 rounded pl-10 pr-4 py-2 text-sm text-white outline-none" />
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
+                            <div className="flex gap-2 w-full md:w-auto flex-1">
+                                <div className="relative flex-1">
+                                    <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                                    <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search (name or 4-2-2024)..." className="w-full bg-slate-900 border border-slate-600 rounded pl-10 pr-4 py-2 text-sm text-white outline-none focus:border-yellow-400" />
+                                </div>
+                                <div className="flex bg-slate-900 rounded border border-slate-600 p-1">
+                                    <button onClick={() => setIndoorFilter('all')} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'all' ? 'bg-slate-700 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}>All</button>
+                                    <button onClick={() => setIndoorFilter('outdoor')} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'outdoor' ? 'bg-green-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}>Out</button>
+                                    <button onClick={() => setIndoorFilter('indoor')} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'indoor' ? 'bg-orange-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}>In</button>
+                                </div>
                             </div>
+
 
                             <div className="flex gap-2">
                                 {/* DUPLICATE BUTTON */}
@@ -504,6 +541,15 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
                                 </button>
                             </div>
                         </div>
+
+                        {/* QUICK NAV */}
+                        {isGroupedView && (
+                            <QuickNav
+                                groupedActivities={groupedActivities}
+                                expandedYears={expandedYears}
+                                onToggleYear={toggleYear}
+                            />
+                        )}
 
                         {!activities ? (
                             <div className="flex-1 flex flex-col items-center justify-center text-slate-500 gap-4"><Loader2 className="animate-spin text-yellow-400" size={32} /><p>Loading Activities...</p></div>
