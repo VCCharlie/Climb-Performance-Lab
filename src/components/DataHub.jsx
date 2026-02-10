@@ -151,9 +151,31 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
         }
     };
 
-    const resolveDuplicate = async (keepId, deleteId) => {
-        await handleDeleteSingle(deleteId);
-        setDuplicates(prev => prev.filter(d => d.a.id !== deleteId && d.b.id !== deleteId));
+    const resolveDuplicate = async (action, dup) => {
+        const { a, b } = dup;
+        // ACTIONS: 'keepA' (delete B), 'keepB' (delete A), 'keepBoth' (delete None), 'deleteBoth' (delete A & B)
+
+        let idsToDelete = [];
+        if (action === 'keepA') idsToDelete.push(b.id);
+        if (action === 'keepB') idsToDelete.push(a.id);
+        if (action === 'deleteBoth') idsToDelete.push(a.id, b.id);
+
+        if (idsToDelete.length > 0) {
+            // Update Local
+            idsToDelete.forEach(id => onDelete(id));
+
+            // Update Firebase
+            if (db) {
+                try {
+                    await Promise.all(idsToDelete.map(id => deleteDoc(doc(db, "activities", String(id)))));
+                } catch (e) {
+                    console.error("Failed to delete resolved duplicates:", e);
+                }
+            }
+        }
+
+        // Remove from list
+        setDuplicates(prev => prev.filter(d => d !== dup));
         if (duplicates.length <= 1) setShowDuplicateModal(false);
     };
 

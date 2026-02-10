@@ -37,7 +37,7 @@ const DuplicateResolver = ({ duplicates, onResolve, onClose }) => {
                                         <div>Time: {formatTime(dup.a.moving_time)}</div>
                                         <div>Power: {dup.a.avg_power}W</div>
                                     </div>
-                                    <button onClick={() => onResolve(dup.a.id, dup.b.id)} className="mt-3 w-full py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded">Keep A (Delete B)</button>
+                                    <button onClick={() => onResolve('keepA', dup)} className="mt-3 w-full py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded">Keep A (Delete B)</button>
                                 </div>
 
                                 {/* OPTIE B */}
@@ -53,8 +53,14 @@ const DuplicateResolver = ({ duplicates, onResolve, onClose }) => {
                                         <div>Time: {formatTime(dup.b.moving_time)}</div>
                                         <div>Power: {dup.b.avg_power}W</div>
                                     </div>
-                                    <button onClick={() => onResolve(dup.b.id, dup.a.id)} className="mt-3 w-full py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded">Keep B (Delete A)</button>
+                                    <button onClick={() => onResolve('keepB', dup)} className="mt-3 w-full py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded">Keep B (Delete A)</button>
                                 </div>
+                            </div>
+
+                            {/* EXTRA OPTIONS */}
+                            <div className="flex gap-2 justify-center pt-2 border-t border-slate-700/50">
+                                <button onClick={() => onResolve('keepBoth', dup)} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded border border-slate-500">Keep Both</button>
+                                <button onClick={() => onResolve('deleteBoth', dup)} className="px-4 py-2 bg-red-900/50 hover:bg-red-900 text-red-200 text-xs font-bold rounded border border-red-800">Delete Both</button>
                             </div>
                         </div>
                     ))}
