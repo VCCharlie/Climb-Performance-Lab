@@ -84,6 +84,10 @@ const PeriodStatistics = ({ data }) => {
     const maxPower = Math.max(0, ...data.map(d => d.max_power || 0));
     const maxHr = Math.max(0, ...data.map(d => d.max_hr || 0));
 
+    // Find the label for the max power (e.g. Instant vs 1 min)
+    const maxPowerItem = data.find(d => d.max_power === maxPower);
+    const maxPowerLabel = maxPowerItem ? `(${maxPowerItem.max_power_source || 'Instant'})` : '';
+
     // Indoor vs Outdoor
     const indoorRides = data.filter(d => d.type === 'VirtualRide');
     const outdoorRides = data.filter(d => d.type !== 'VirtualRide');
@@ -102,6 +106,7 @@ const PeriodStatistics = ({ data }) => {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                {/* ... Volume & Intensity Columns ... */}
                 {/* COLUMN 1: VOLUME */}
                 <div className="space-y-4">
                     <h4 className="text-xs uppercase font-bold text-slate-500 mb-2">Volume</h4>
@@ -141,7 +146,7 @@ const PeriodStatistics = ({ data }) => {
                     <h4 className="text-xs uppercase font-bold text-slate-500 mb-2">Period Maxima</h4>
                     <div className="bg-slate-700/30 p-3 rounded-lg border border-slate-700">
                         <div className="flex justify-between items-end">
-                            <span className="text-xs text-slate-400">Max Power <span className="text-[10px] text-slate-600">(Instant)</span></span>
+                            <span className="text-xs text-slate-400">Max Power <span className="text-[10px] text-slate-600">{maxPowerLabel}</span></span>
                             <span className="text-xl font-bold text-white">{formatNumber(maxPower)} W</span>
                         </div>
                     </div>

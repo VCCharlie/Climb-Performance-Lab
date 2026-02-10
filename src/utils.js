@@ -364,11 +364,15 @@ export const normalizeIntervalsActivity = (item) => {
 
     // Max Power: Try root keys first
     let maxPower = getNum(getVal('max_power', 'maxWatts', 'icu_max_watts', 'max_watts', 'p_max', 'icu_pm_p_max'));
+    let maxPowerSource = 'Instant'; // Default
 
     // Fallback 1: Nested intervals
     if (maxPower === 0 && item.icu_intervals && Array.isArray(item.icu_intervals)) {
         const intervalMax = Math.max(...item.icu_intervals.map(i => Number(i.max_watts) || 0));
-        if (intervalMax > 0) maxPower = intervalMax;
+        if (intervalMax > 0) {
+            maxPower = intervalMax;
+            maxPowerSource = 'Interval';
+        }
     }
 
     // Fallback 2: If we have avg power but no max, max must be at least avg (logic fix for display)
@@ -376,7 +380,10 @@ export const normalizeIntervalsActivity = (item) => {
     // Let's rely on best_1min as a floor if max_power is missing.
     if (maxPower === 0) {
         const best1 = getNum(getVal('best_1min', 'best_1min_power', 'w1min'));
-        if (best1 > 0) maxPower = best1; // Better than 0
+        if (best1 > 0) {
+            maxPower = best1;
+            maxPowerSource = '1 min';
+        }
     }
 
     const maxHr = getNum(getVal('max_hr', 'max_heartrate', 'max_heart_rate', 'icu_max_hr', 'athlete_max_hr'));
@@ -410,6 +417,7 @@ export const normalizeIntervalsActivity = (item) => {
         rpe: rpe,
         ftp: Math.round(ftp),
         max_power: Math.round(maxPower),
+        max_power_source: maxPowerSource,
         max_hr: Math.round(maxHr),
         best_1min: Math.round(best1min),
         best_5min: Math.round(best5min),
