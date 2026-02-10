@@ -264,6 +264,8 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
     const [selectedActivities, setSelectedActivities] = useState([]);
     const [isSyncing, setIsSyncing] = useState(false);
     const [showModal, setShowModal] = useState(false);
+    const [rawData, setRawData] = useState(null); // Voor debuggen
+    const [showDebug, setShowDebug] = useState(false);
 
     // Logic Helpers
     const toggleSportFilter = (type) => setSportFilters(prev => ({ ...prev, [type]: !prev[type] }));
@@ -431,6 +433,7 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
             // DEBUG: Show available keys to user/console
             console.log("RAW API DATA (First Item):", data[0]);
             console.log("Available Keys:", Object.keys(data[0]));
+            if (data.length > 0) setRawData(data[0]);
             // alert("DEBUG: check console for raw keys. Sample keys: " + Object.keys(data[0]).join(", "));
 
             const safeActivities = Array.isArray(activities) ? activities : [];
@@ -575,78 +578,87 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
                                 </tbody>
                             </table>
                         </div>
-                        <div className="flex-shrink-0 p-3 border-t border-slate-700 flex justify-between items-center bg-slate-900">
-                            <span className="text-xs text-slate-400">{selectedActivities.length} van {fetchedActivities.length} geselecteerd</span>
-                            <div className="flex gap-2">
-                                <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-white">Cancel</button>
-                                <button onClick={confirmImport} disabled={selectedActivities.length === 0} className="px-6 py-2 text-sm font-bold bg-green-500 hover:bg-green-400 disabled:bg-slate-600 disabled:text-slate-400 text-white rounded-lg shadow-lg shadow-green-500/20 transition-all">✓ Import {selectedActivities.length}</button>
+                    </div>
+
+                    {/* DEBUG DATA */}
+                    {rawData && (
+                        <div className="border-t border-slate-700 bg-slate-900 p-2">
+                            <button onClick={() => setShowDebug(!showDebug)} className="text-xs text-slate-500 hover:text-white flex items-center gap-1 w-full justify-center">
+                                <Info size={12} /> {showDebug ? 'Hide Debug Data' : 'Show Debug Data (Raw API Response)'}
+                            </button>
+                            {showDebug && (
+                                <pre className="mt-2 text-[10px] text-green-400 bg-black p-4 rounded overflow-auto max-h-60 font-mono select-text">
+                                    {JSON.stringify(rawData, null, 2)}
+                                </pre>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+
+{/* DUPLICATE RESOLUTION MODAL */}
+            {
+                showDuplicateModal && (
+                    <div className="fixed inset-0 bg-slate-900/95 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+                        <div className="bg-slate-800 border border-slate-600 rounded-xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col">
+                            <div className="flex-shrink-0 p-4 border-b border-slate-700 bg-slate-900">
+                                <h3 className="font-bold text-white flex items-center gap-2 text-lg">
+                                    <CopyPlus size={20} className="text-orange-400" />
+                                    {duplicates.length} Conflicten Gevonden
+                                </h3>
+                                <p className="text-xs text-slate-400 mt-1">Vergelijk en kies welke activiteit je wilt behouden.</p>
+                            </div>
+
+                            <div className="overflow-auto flex-1 p-4 space-y-4 bg-slate-900/50">
+                                {duplicates.map((dup, idx) => (
+                                    <div key={idx} className="bg-slate-800 border border-slate-600 rounded-lg p-4 flex flex-col gap-3">
+                                        <div className="text-xs font-mono text-orange-300 bg-orange-900/20 px-2 py-1 rounded w-fit">
+                                            {dup.reason}
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            {/* OPTIE A */}
+                                            <div className="border border-slate-700 rounded p-3 bg-slate-700/30 hover:bg-slate-700/50 transition-colors">
+                                                <div className="flex justify-between mb-2">
+                                                    <span className="font-bold text-white text-sm">Versie A</span>
+                                                    <span className="text-xs text-slate-400">{dup.a.type}</span>
+                                                </div>
+                                                <div className="space-y-1 text-xs text-slate-300">
+                                                    <div className="font-medium text-white">{dup.a.title}</div>
+                                                    <div>Date: {formatDateDDMMYYYY(dup.a.date)}</div>
+                                                    <div>Dist: {dup.a.distance}km</div>
+                                                    <div>Time: {formatTime(dup.a.moving_time)}</div>
+                                                    <div>Power: {dup.a.avg_power}W</div>
+                                                </div>
+                                                <button onClick={() => resolveDuplicate(dup.a.id, dup.b.id)} className="mt-3 w-full py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded">Keep A (Delete B)</button>
+                                            </div>
+
+                                            {/* OPTIE B */}
+                                            <div className="border border-slate-700 rounded p-3 bg-slate-700/30 hover:bg-slate-700/50 transition-colors">
+                                                <div className="flex justify-between mb-2">
+                                                    <span className="font-bold text-white text-sm">Versie B</span>
+                                                    <span className="text-xs text-slate-400">{dup.b.type}</span>
+                                                </div>
+                                                <div className="space-y-1 text-xs text-slate-300">
+                                                    <div className="font-medium text-white">{dup.b.title}</div>
+                                                    <div>Date: {formatDateDDMMYYYY(dup.b.date)}</div>
+                                                    <div>Dist: {dup.b.distance}km</div>
+                                                    <div>Time: {formatTime(dup.b.moving_time)}</div>
+                                                    <div>Power: {dup.b.avg_power}W</div>
+                                                </div>
+                                                <button onClick={() => resolveDuplicate(dup.b.id, dup.a.id)} className="mt-3 w-full py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded">Keep B (Delete A)</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="flex-shrink-0 p-3 border-t border-slate-700 bg-slate-900 flex justify-end">
+                                <button onClick={() => setShowDuplicateModal(false)} className="px-4 py-2 text-sm text-slate-400 hover:text-white">Sluiten (Later beslissen)</button>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
-
-            {/* DUPLICATE RESOLUTION MODAL */}
-            {showDuplicateModal && (
-                <div className="fixed inset-0 bg-slate-900/95 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div className="bg-slate-800 border border-slate-600 rounded-xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col">
-                        <div className="flex-shrink-0 p-4 border-b border-slate-700 bg-slate-900">
-                            <h3 className="font-bold text-white flex items-center gap-2 text-lg">
-                                <CopyPlus size={20} className="text-orange-400" />
-                                {duplicates.length} Conflicten Gevonden
-                            </h3>
-                            <p className="text-xs text-slate-400 mt-1">Vergelijk en kies welke activiteit je wilt behouden.</p>
-                        </div>
-
-                        <div className="overflow-auto flex-1 p-4 space-y-4 bg-slate-900/50">
-                            {duplicates.map((dup, idx) => (
-                                <div key={idx} className="bg-slate-800 border border-slate-600 rounded-lg p-4 flex flex-col gap-3">
-                                    <div className="text-xs font-mono text-orange-300 bg-orange-900/20 px-2 py-1 rounded w-fit">
-                                        {dup.reason}
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        {/* OPTIE A */}
-                                        <div className="border border-slate-700 rounded p-3 bg-slate-700/30 hover:bg-slate-700/50 transition-colors">
-                                            <div className="flex justify-between mb-2">
-                                                <span className="font-bold text-white text-sm">Versie A</span>
-                                                <span className="text-xs text-slate-400">{dup.a.type}</span>
-                                            </div>
-                                            <div className="space-y-1 text-xs text-slate-300">
-                                                <div className="font-medium text-white">{dup.a.title}</div>
-                                                <div>Date: {formatDateDDMMYYYY(dup.a.date)}</div>
-                                                <div>Dist: {dup.a.distance}km</div>
-                                                <div>Time: {formatTime(dup.a.moving_time)}</div>
-                                                <div>Power: {dup.a.avg_power}W</div>
-                                            </div>
-                                            <button onClick={() => resolveDuplicate(dup.a.id, dup.b.id)} className="mt-3 w-full py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded">Keep A (Delete B)</button>
-                                        </div>
-
-                                        {/* OPTIE B */}
-                                        <div className="border border-slate-700 rounded p-3 bg-slate-700/30 hover:bg-slate-700/50 transition-colors">
-                                            <div className="flex justify-between mb-2">
-                                                <span className="font-bold text-white text-sm">Versie B</span>
-                                                <span className="text-xs text-slate-400">{dup.b.type}</span>
-                                            </div>
-                                            <div className="space-y-1 text-xs text-slate-300">
-                                                <div className="font-medium text-white">{dup.b.title}</div>
-                                                <div>Date: {formatDateDDMMYYYY(dup.b.date)}</div>
-                                                <div>Dist: {dup.b.distance}km</div>
-                                                <div>Time: {formatTime(dup.b.moving_time)}</div>
-                                                <div>Power: {dup.b.avg_power}W</div>
-                                            </div>
-                                            <button onClick={() => resolveDuplicate(dup.b.id, dup.a.id)} className="mt-3 w-full py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded">Keep B (Delete A)</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        <div className="flex-shrink-0 p-3 border-t border-slate-700 bg-slate-900 flex justify-end">
-                            <button onClick={() => setShowDuplicateModal(false)} className="px-4 py-2 text-sm text-slate-400 hover:text-white">Sluiten (Later beslissen)</button>
-                        </div>
-                    </div>
-                </div>
-            )}
+                )
+            }
 
             {/* TABS */}
             <div className="flex border-b border-slate-700">
@@ -756,7 +768,7 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 };
 
