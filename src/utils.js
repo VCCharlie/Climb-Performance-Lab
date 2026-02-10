@@ -283,7 +283,8 @@ export const smartParseCSV = (text) => {
         if (cleanH === 'normalized power' || cleanH === 'norm power' || cleanH === 'np' || cleanH.includes('weighted avg power')) return 'norm_power';
         if (cleanH === 'average power' || cleanH === 'avg power' || cleanH === 'power' || cleanH === 'watts' || cleanH === 'avg' || cleanH.includes('average watts')) return 'avg_power';
         if (cleanH === 'training load' || cleanH === 'load' || cleanH === 'tss' || cleanH.includes('icu training load')) return 'load';
-        if (cleanH === 'work' || cleanH === 'total work' || cleanH.includes('joules')) return 'work'; // Added Work
+        if (cleanH === 'work' || cleanH === 'total work' || cleanH === 'kilojoules') return 'work';
+        if (cleanH.includes('joules') || cleanH === 'energy') return 'joules'; // Map to temp key for conversion
         if (cleanH === 'rpe' || cleanH.includes('perceived exertion') || cleanH.includes('feel')) return 'rpe';
         if (cleanH === 'ftp' || cleanH.includes('icu ftp') || cleanH.includes('icu_pm_ftp')) return 'ftp';
 
@@ -309,6 +310,11 @@ export const smartParseCSV = (text) => {
             if (key === 'date') entry[key] = normalizeDate(val);
             else if (key === 'moving_time') entry[key] = parseDurationToSeconds(val);
             else if (key === 'title' || key === 'type') entry[key] = val;
+            else if (key === 'joules') {
+                // Convert Joules to kJ
+                const j = cleanNumber(val);
+                if (j > 0) entry['work'] = Math.round(j / 1000);
+            }
             else entry[key] = cleanNumber(val);
         });
         if (!entry.title) entry.title = "Untitled";
@@ -340,8 +346,10 @@ export const normalizeIntervalsActivity = (item) => {
     const load = getNum(getVal('load', 'trainingLoad', 'icu_training_load', 'training_load', 'power_load', 'hr_load', 'pace_load', 'tss'));
 
     // Work handling: icu_joules is in Joules, we want kJ.
+    // Work handling: icu_joules (Joules) -> kJ
     let work = getNum(getVal('work', 'total_work', 'kilojoules', 'energy'));
-    if (!work) {
+    // If work is 0, check icu_joules.
+    if (work === 0) {
         const joules = getNum(getVal('icu_joules', 'joules'));
         if (joules > 0) work = joules / 1000;
     }
