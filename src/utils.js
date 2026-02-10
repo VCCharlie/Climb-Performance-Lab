@@ -298,7 +298,7 @@ export const smartParseCSV = (text) => {
         if (cleanH === 'average heartrate' || cleanH === 'avg hr' || cleanH === 'hr' || cleanH.includes('heart rate') || cleanH.includes('heartrate')) return 'avg_hr';
         if (cleanH === 'avg altitude' || cleanH === 'average altitude' || cleanH === 'altitude avg') return 'avg_altitude';
         if (cleanH === 'max altitude' || cleanH === 'maximum altitude') return 'max_altitude';
-        if (cleanH === 'max power' || cleanH === 'max watts' || cleanH === 'maximum power' || cleanH === 'p_max') return 'max_power';
+        if (cleanH === 'max power' || cleanH === 'max watts' || cleanH === 'maximum power' || cleanH === 'p_max' || cleanH.includes('icu pm p max') || cleanH === 'max_watts') return 'max_power';
         if (cleanH === 'max heartrate' || cleanH === 'max hr' || cleanH === 'maximum heart rate') return 'max_hr';
     };
     const colMap = rawHeaders.map(mapHeader);
