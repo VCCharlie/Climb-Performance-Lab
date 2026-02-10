@@ -362,7 +362,15 @@ export const normalizeIntervalsActivity = (item) => {
 
     const rpe = getNum(getVal('rpe', 'icu_rpe', 'perceived_exertion', 'feel', 'session_rpe'));
     const ftp = getNum(getVal('ftp', 'icu_ftp', 'icu_pm_ftp', 'cp'));
-    const maxPower = getNum(getVal('max_power', 'maxWatts', 'icu_max_watts', 'max_watts', 'p_max', 'icu_pm_p_max'));
+
+    // Max Power: Try root keys first, then dig into icu_intervals if available
+    let maxPower = getNum(getVal('max_power', 'maxWatts', 'icu_max_watts', 'max_watts', 'p_max', 'icu_pm_p_max'));
+    if (maxPower === 0 && item.icu_intervals && Array.isArray(item.icu_intervals)) {
+        // Find max 'max_watts' in intervals
+        const intervalMax = Math.max(...item.icu_intervals.map(i => Number(i.max_watts) || 0));
+        if (intervalMax > 0) maxPower = intervalMax;
+    }
+
     const maxHr = getNum(getVal('max_hr', 'max_heartrate', 'max_heart_rate', 'icu_max_hr', 'athlete_max_hr'));
 
     const best1min = getNum(getVal('best_1min', 'Best1minpower', 'best_1min_power', 'w1min'));
