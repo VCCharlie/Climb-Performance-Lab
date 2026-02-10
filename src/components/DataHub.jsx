@@ -428,6 +428,11 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
                 return;
             }
 
+            // DEBUG: Show available keys to user/console
+            console.log("RAW API DATA (First Item):", data[0]);
+            console.log("Available Keys:", Object.keys(data[0]));
+            // alert("DEBUG: check console for raw keys. Sample keys: " + Object.keys(data[0]).join(", "));
+
             const safeActivities = Array.isArray(activities) ? activities : [];
             // MOD: We filteren NIET meer op bestaande ritten, zodat we ze kunnen UPDATEN met nieuwe velden (bijv. max_power)
             // Waarschuwing: API data is RAW, dus we moeten normaliseren!
