@@ -297,7 +297,7 @@ export const smartParseCSV = (text) => {
         if (cleanH === 'average heartrate' || cleanH === 'avg hr' || cleanH === 'hr' || cleanH.includes('heart rate') || cleanH.includes('heartrate')) return 'avg_hr';
         if (cleanH === 'avg altitude' || cleanH === 'average altitude' || cleanH === 'altitude avg') return 'avg_altitude';
         if (cleanH === 'max altitude' || cleanH === 'maximum altitude') return 'max_altitude';
-        if (cleanH === 'max power' || cleanH === 'max watts' || cleanH === 'maximum power') return 'max_power';
+        if (cleanH === 'max power' || cleanH === 'max watts' || cleanH === 'maximum power' || cleanH === 'p_max') return 'max_power';
         if (cleanH === 'max heartrate' || cleanH === 'max hr' || cleanH === 'maximum heart rate') return 'max_hr';
     };
     const colMap = rawHeaders.map(mapHeader);
@@ -338,11 +338,18 @@ export const normalizeIntervalsActivity = (item) => {
     const avgPower = getNum(getVal('avgWatts', 'icu_average_watts', 'average_watts', 'device_watts', 'avg_power', 'power'));
     const avgHr = getNum(getVal('average_heartrate', 'avg_hr', 'average_hr', 'hr', 'icu_average_heartrate', 'avg_heartrate'));
     const load = getNum(getVal('load', 'trainingLoad', 'icu_training_load', 'training_load', 'power_load', 'hr_load', 'pace_load', 'tss'));
-    const work = getNum(getVal('work', 'total_work', 'icu_joules', 'joules', 'kilojoules', 'energy'));
+
+    // Work handling: icu_joules is in Joules, we want kJ.
+    let work = getNum(getVal('work', 'total_work', 'kilojoules', 'energy'));
+    if (!work) {
+        const joules = getNum(getVal('icu_joules', 'joules'));
+        if (joules > 0) work = joules / 1000;
+    }
+
     const rpe = getNum(getVal('rpe', 'icu_rpe', 'perceived_exertion', 'feel', 'session_rpe'));
     const ftp = getNum(getVal('ftp', 'icu_ftp', 'icu_pm_ftp', 'cp'));
-    const maxPower = getNum(getVal('max_power', 'maxWatts', 'icu_max_watts', 'max_watts'));
-    const maxHr = getNum(getVal('max_hr', 'max_heartrate', 'max_heart_rate', 'icu_max_hr'));
+    const maxPower = getNum(getVal('max_power', 'maxWatts', 'icu_max_watts', 'max_watts', 'p_max', 'icu_pm_p_max'));
+    const maxHr = getNum(getVal('max_hr', 'max_heartrate', 'max_heart_rate', 'icu_max_hr', 'athlete_max_hr'));
 
     const best1min = getNum(getVal('best_1min', 'Best1minpower', 'best_1min_power', 'w1min'));
     const best5min = getNum(getVal('best_5min', 'Best5minpower', 'best_5min_power', 'w5min'));
