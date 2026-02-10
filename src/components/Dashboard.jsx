@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { fetchIntervalsData } from '../services/intervalsService';
-import { calculateBassettCorrection } from '../utils';
+import { calculateBassettCorrection, normalizeIntervalsActivity } from '../utils';
 import PerformanceModule from './PerformanceModule';
 
 const Dashboard = ({ theme, manualFtp }) => {
@@ -17,7 +17,11 @@ const Dashboard = ({ theme, manualFtp }) => {
 
     useEffect(() => {
         const processRawData = (data, userFtp) => {
-            return data.map(d => {
+            return data.map(raw => {
+                // 1. NORMALIZE (Map keys correctly: work, max_power, etc.)
+                const d = normalizeIntervalsActivity(raw);
+
+                // 2. ENHANCE (Dashboard specific: eFTP, Sea Level Power)
                 let eFTP = d.best_20min ? Math.round(d.best_20min * 0.95) : null;
 
                 // Filter uitschieters (bad sensor data)
