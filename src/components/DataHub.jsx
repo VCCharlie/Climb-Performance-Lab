@@ -100,8 +100,16 @@ const EditActivityModal = ({ activity, onClose, onSave }) => {
                             <input name="avg_power" type="number" value={formData.avg_power || 0} onChange={handleChange} className="w-full bg-slate-700 border border-slate-600 rounded p-2 text-white focus:border-yellow-400 outline-none" />
                         </div>
                         <div>
+                            <label className="text-xs text-slate-400 uppercase font-bold block mb-1">Max Power (W)</label>
+                            <input name="max_power" type="number" value={formData.max_power || 0} onChange={handleChange} className="w-full bg-slate-700 border border-slate-600 rounded p-2 text-white focus:border-yellow-400 outline-none" />
+                        </div>
+                        <div>
                             <label className="text-xs text-slate-400 uppercase font-bold block mb-1">Norm Power (NP)</label>
                             <input name="norm_power" type="number" value={formData.norm_power || 0} onChange={handleChange} className="w-full bg-slate-700 border border-slate-600 rounded p-2 text-white focus:border-yellow-400 outline-none" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-slate-400 uppercase font-bold block mb-1">Work (kJ)</label>
+                            <input name="work" type="number" value={formData.work || 0} onChange={handleChange} className="w-full bg-slate-700 border border-slate-600 rounded p-2 text-white focus:border-yellow-400 outline-none" />
                         </div>
                         <div>
                             <label className="text-xs text-slate-400 uppercase font-bold block mb-1">Avg HR (bpm)</label>
@@ -128,8 +136,8 @@ const EditActivityModal = ({ activity, onClose, onSave }) => {
 
 // --- TABLE COMPONENTS (INTERN) ---
 const SortIcon = ({ colKey, config }) => {
-    if (config.key !== colKey) return <ArrowUpDown size={12} className="opacity-30 ml-1 inline" />;
-    return config.direction === 'asc' ? <ChevronUp size={12} className="text-yellow-400 ml-1 inline" /> : <ChevronDown size={12} className="text-yellow-400 ml-1 inline" />;
+    if (config.key !== colKey) return <ArrowUpDown size={12} className="opacity-30 inline" />;
+    return config.direction === 'asc' ? <ChevronUp size={12} className="text-yellow-400 inline" /> : <ChevronDown size={12} className="text-yellow-400 inline" />;
 };
 
 const TableHeader = ({ config, requestSort, hasActions = true, isPreview = false }) => (
@@ -137,8 +145,8 @@ const TableHeader = ({ config, requestSort, hasActions = true, isPreview = false
         <tr>
             {isPreview && <th className="p-3 w-10"></th>}
             {ACTIVITY_COLUMNS.map((col) => (
-                <th key={col.key} className={`p - 3 cursor - pointer hover: bg - slate - 800 transition - colors select - none text - ${col.align} ${col.width || ''} `} onClick={() => requestSort && requestSort(col.key)}>
-                    <span className={`flex items - center gap - 1 ${col.align === 'right' ? 'justify-end' : col.align === 'center' ? 'justify-center' : 'justify-start'} `}>
+                <th key={col.key} className={`p-3 cursor-pointer hover:bg-slate-800 transition-colors select-none text-${col.align} ${col.width || ''}`} onClick={() => requestSort && requestSort(col.key)}>
+                    <span className={`flex items-center gap-1 ${col.align === 'right' ? 'justify-end' : col.align === 'center' ? 'justify-center' : 'justify-start'}`}>
                         {col.align === 'left' && <span>{col.label}</span>}
                         {requestSort && <SortIcon colKey={col.key} config={config} />}
                         {col.align !== 'left' && <span>{col.label}</span>}
@@ -162,7 +170,7 @@ const Row = ({ act, onDelete, onEdit, deleteConfirm, setDeleteConfirm, isPreview
                 case 'date': return <span className="text-slate-300 whitespace-nowrap">{formatDateDDMMYYYY(val)}</span>;
                 case 'type': return (
                     <div
-                        className={`flex justify - center items - center h - full ${isPreview ? 'cursor-pointer hover:text-yellow-400' : ''} `}
+                        className={`flex justify-center items-center h-full ${isPreview ? 'cursor-pointer hover:text-yellow-400' : ''}`}
                         onClick={(e) => { if (isPreview && onToggleType) { e.stopPropagation(); onToggleType(act.id); } }}
                         title={isPreview ? `Huidig: ${val}. Klik om te wijzigen.` : val}
                     >
@@ -180,7 +188,7 @@ const Row = ({ act, onDelete, onEdit, deleteConfirm, setDeleteConfirm, isPreview
                 case 'norm_power': return <span className="font-bold text-yellow-400">{Math.round(val || 0)}</span>;
                 case 'load': return <span className="font-bold text-blue-400">{Math.round(val || 0)}</span>;
                 case 'rpe': return <span className="text-slate-400">{val || '-'}</span>;
-                default: return <span className={`text - ${col.text || 'slate-500'} `}>{val ? Math.round(val) : '-'}</span>;
+                default: return <span className={`text-${col.text || 'slate-500'}`}>{val ? Math.round(val) : '-'}</span>;
             }
         } catch (e) {
             console.error("Error rendering cell", col.key, e);
@@ -189,9 +197,9 @@ const Row = ({ act, onDelete, onEdit, deleteConfirm, setDeleteConfirm, isPreview
     };
 
     return (
-        <tr className={`hover: bg - slate - 700 / 50 transition - colors border - b border - slate - 700 / 50 ${isSelected ? 'bg-slate-700/30' : ''} `} onClick={onToggleSelect ? () => onToggleSelect(act.id) : undefined}>
+        <tr className={`hover:bg-slate-700/50 transition-colors border-b border-slate-700/50 ${isSelected ? 'bg-slate-700/30' : ''}`} onClick={onToggleSelect ? () => onToggleSelect(act.id) : undefined}>
             {isPreview && <td className="p-3 w-10"><input type="checkbox" checked={isSelected} readOnly className="w-4 h-4 accent-green-500 cursor-pointer" /></td>}
-            {ACTIVITY_COLUMNS.map(col => <td key={col.key} className={`p - 3 text - ${col.align} text - xs`}>{renderCell(col)}</td>)}
+            {ACTIVITY_COLUMNS.map(col => <td key={col.key} className={`p-3 text-${col.align} text-xs ${col.width || ''}`}>{renderCell(col)}</td>)}
             {!isPreview && <td className="p-3 text-right">
                 {deleteConfirm === act.id ? (
                     <div className="flex gap-2 justify-end">
@@ -225,6 +233,7 @@ const Row = ({ act, onDelete, onEdit, deleteConfirm, setDeleteConfirm, isPreview
         </tr >
     );
 };
+
 
 // --- MAIN COMPONENT ---
 const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) => {
