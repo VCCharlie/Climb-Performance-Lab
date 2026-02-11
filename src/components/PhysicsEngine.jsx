@@ -159,6 +159,16 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
     return groups;
   }, [filteredClimbs]);
 
+  const calculateZoneWidth = (zone) => {
+    // Visual max is 150% of FTP (1.5)
+    // We clamp the zone's max to 1.5 for visual representation
+    const VISUAL_MAX = 1.6;
+    const min = Math.min(zone.min, VISUAL_MAX);
+    const max = Math.min(zone.max, VISUAL_MAX);
+    const width = max - min;
+    return (width / VISUAL_MAX) * 100;
+  };
+
   const uniqueCountries = useMemo(() => ['All', ...new Set(CLIMB_DATABASE.map(c => c.country))].sort(), []);
   const uniqueRegions = useMemo(() => {
     if (countryFilter === 'All') return [];
@@ -354,6 +364,14 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
             <span className="text-3xl font-bold text-orange-400">{calc.ferrariWatts} <small className="text-sm text-orange-600">W</small></span>
             <span className="text-[10px] text-slate-500">{calc.ferrariWkg} W/kg</span>
           </div>
+          <div className="bg-slate-700/50 p-4 rounded-lg flex flex-col items-center justify-center border border-slate-600">
+            <span className="text-xs text-slate-400 uppercase mb-1">Energy / Work</span>
+            <span className="text-3xl font-bold text-blue-400">
+              {calc.watts > 0 ? Math.round((calc.watts * parseDurationToSeconds(calc.time)) / 1000) : 0}
+              <small className="text-sm text-blue-600"> kJ</small>
+            </span>
+            <span className="text-[10px] text-slate-500">~{calc.watts > 0 ? Math.round((calc.watts * parseDurationToSeconds(calc.time)) / 1000) : 0} kCal</span>
+          </div>
 
           <div className="col-span-2 bg-slate-900 p-4 rounded-lg border border-slate-700">
             <div className="flex justify-between items-end mb-2">
@@ -361,21 +379,30 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
               {calc.zone && <span style={{ color: calc.zone.color }} className="font-bold text-sm uppercase">{calc.zone.name}</span>}
             </div>
             <div className="w-full h-4 bg-slate-800 rounded-full overflow-hidden flex">
-              {COGGAN_ZONES.map((z, i) => (
-                <div key={i} style={{ width: `${(z.max - z.min) / 0.15 * 10}%`, background: z.color }} className="h-full opacity-30 hover:opacity-100 transition-opacity"></div>
-              ))}
-            </div>
-            <div className="relative w-full h-2 mt-1">
-              <div
-                className="absolute w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[8px] border-b-white transform -translate-x-1/2 transition-all duration-500"
-                style={{ left: `${Math.min(Math.max((calc.watts / userSettings.ftp) / 1.5 * 100, 0), 100)}%` }}
-              ></div>
+              <div className="w-full h-6 bg-slate-800 rounded-full overflow-hidden flex relative">
+                {COGGAN_ZONES.map((z, i) => (
+                  <div
+                    key={i}
+                    style={{ width: `${calculateZoneWidth(z)}%`, background: z.color }}
+                    className="h-full opacity-40 hover:opacity-90 transition-opacity flex items-center justify-center"
+                    title={`${z.name} (${Math.round(z.min * 100)}% - ${Math.round(z.max * 100 > 200 ? '>150' : z.max * 100)}%)`}
+                  >
+                    {/* Only show label if width is sufficient (>10%) */}
+                    {calculateZoneWidth(z) > 10 && <span className="text-[9px] font-bold text-white/80 drop-shadow-md truncate px-1">{z.id}</span>}
+                  </div>
+                ))}
+              </div>
+              <div className="relative w-full h-2 mt-1">
+                <div
+                  className="absolute top-0 bottom-0 w-[4px] bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)] z-10 transition-all duration-500"
+                  style={{ left: `${Math.min(Math.max((calc.watts / userSettings.ftp) / 1.6 * 100, 0), 100)}%` }}
+                ></div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+      );
 };
 
-export default PhysicsEngine;
+      export default PhysicsEngine;
