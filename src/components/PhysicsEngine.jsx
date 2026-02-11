@@ -3,6 +3,33 @@ import { Mountain, Info, Minus, Plus, Search, Filter } from 'lucide-react';
 import { CLIMB_DATABASE, COGGAN_ZONES } from '../climbs';
 import { parseDurationToSeconds, calculateFerrariWatts, calculateClimbCategory } from '../utils';
 
+// Helper component for numeric filter inputs
+const NumberFilter = ({ label, value, onChange, min, max, step = 1, showDecimals = false }) => (
+  <div className="flex flex-col">
+    <span className="text-[10px] uppercase text-slate-500 font-bold mb-1">{label}</span>
+    <div className="flex items-center bg-slate-800 rounded border border-slate-600">
+      <button
+        onClick={() => onChange(Math.max(min, Number((value - step).toFixed(showDecimals ? 1 : 0))))}
+        className="px-2 py-1 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+      >
+        <Minus size={12} />
+      </button>
+      <input
+        type="number"
+        value={value}
+        onChange={e => onChange(Number(e.target.value))}
+        className="w-12 text-center bg-transparent text-xs text-white outline-none font-mono"
+      />
+      <button
+        onClick={() => onChange(Math.min(max, Number((value + step).toFixed(showDecimals ? 1 : 0))))}
+        className="px-2 py-1 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+      >
+        <Plus size={12} />
+      </button>
+    </div>
+  </div>
+);
+
 const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateClimb }) => {
   const [mode, setMode] = useState('target');
   const [targetTimeStr, setTargetTimeStr] = useState("59:00");
@@ -11,13 +38,13 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
   const [countryFilter, setCountryFilter] = useState('All');
   const [regionFilter, setRegionFilter] = useState('All');
 
-  // NEW FILTERS
+  // FILTERS
   const [searchTerm, setSearchTerm] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
+  // Default range: 0-100km, 0-25%
   const [minDist, setMinDist] = useState(0);
   const [maxDist, setMaxDist] = useState(100);
   const [minGrade, setMinGrade] = useState(0);
-  const [maxGrade, setMaxGrade] = useState(20);
+  const [maxGrade, setMaxGrade] = useState(25);
 
   // Physics Params State
   const [cda, setCda] = useState(0.32);
@@ -25,16 +52,11 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
   const [loss, setLoss] = useState(0.03);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // Functie om gewicht aan te passen via de + en - knoppen
   const updateWeight = (type, delta) => {
     const current = type === 'body' ? userSettings.weight : userSettings.bikeWeight;
     const newVal = parseFloat((current + delta).toFixed(1));
-
-    if (type === 'body') {
-      setUserSettings(prev => ({ ...prev, weight: newVal }));
-    } else {
-      setUserSettings(prev => ({ ...prev, bikeWeight: newVal }));
-    }
+    if (type === 'body') setUserSettings(prev => ({ ...prev, weight: newVal }));
+    else setUserSettings(prev => ({ ...prev, bikeWeight: newVal }));
   };
 
   useEffect(() => {
@@ -107,12 +129,24 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
       climbs = climbs.filter(c => c.region === regionFilter);
     }
 
-    // 3. Sliders
+    // 3. Range Filters
     climbs = climbs.filter(c => c.lengthKm >= minDist && c.lengthKm <= maxDist);
     climbs = climbs.filter(c => c.avgGrade >= minGrade && c.avgGrade <= maxGrade);
 
     return climbs;
   }, [countryFilter, regionFilter, searchTerm, minDist, maxDist, minGrade, maxGrade]);
+
+  // Auto-Select unique match logic
+  useEffect(() => {
+    // If the search term is precise enough (>= 3 chars) and results in exactly 1 match
+    // AND that match is not already selected (to avoid loops/re-selection annoyance)
+    if (searchTerm.length >= 3 && filteredClimbs.length === 1) {
+      if (filteredClimbs[0].id !== selectedClimb?.id) {
+        onUpdateClimb(filteredClimbs[0]);
+      }
+    }
+  }, [searchTerm, filteredClimbs, onUpdateClimb, selectedClimb]);
+
 
   const climbsGrouped = useMemo(() => {
     const groups = {};
@@ -149,25 +183,18 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
           <h2 className="text-xl font-bold text-yellow-400 flex items-center gap-2"><Mountain className="w-6 h-6" /> Physics Engine</h2>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`p-2 rounded border transition-colors ${showFilters ? 'bg-yellow-400 text-slate-900 border-yellow-400' : 'text-slate-400 border-slate-600 hover:text-white'}`}
-              title="Filters"
-            >
-              <Filter size={16} />
-            </button>
-            <button
               onClick={() => setShowAdvanced(!showAdvanced)}
               className={`text-xs font-bold px-3 py-1 rounded border ${showAdvanced ? 'bg-yellow-400/10 text-yellow-400 border-yellow-400' : 'text-slate-400 border-slate-600'}`}
             >
-              Advanced
+              Advanced Physics
             </button>
             <a href={selectedClimb?.url || '#'} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-white flex items-center gap-1 text-xs" title="View Info">
-              <Info size={14} /> Climb Detail
+              <Info size={14} /> OnlyInfo
             </a>
           </div>
         </div>
 
-        {/* ADVANCED SETTINGS PANEL */}
+        {/* ADVANCED PHYSICS PANEL */}
         {showAdvanced && (
           <div className="bg-slate-900/50 p-4 rounded-lg border border-slate-700 grid grid-cols-3 gap-4 text-xs animate-in slide-in-from-top-2">
             <div>
@@ -185,68 +212,68 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
           </div>
         )}
 
-        {/* NEW FILTERS PANEL */}
-        {showFilters && (
-          <div className="bg-slate-900/50 p-4 rounded-lg border border-slate-700 space-y-4 animate-in slide-in-from-top-2">
-            <div className="relative">
+        {/* PERMANENT FILTER PANEL */}
+        <div className="bg-slate-900/50 p-4 rounded-lg border border-slate-700 space-y-4">
+          <div className="flex gap-4">
+            {/* Search Bar - Flex 1 to take available space */}
+            <div className="flex-1 relative">
               <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
               <input
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 placeholder="Search climb (e.g. 'Ventoux')..."
-                className="w-full bg-slate-800 border border-slate-600 rounded pl-10 pr-4 py-2 text-sm text-white outline-none focus:border-yellow-400"
+                className="w-full bg-slate-800 border border-slate-600 rounded pl-10 pr-4 py-2 text-sm text-white outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="flex justify-between text-xs text-slate-400 mb-1">
-                  <span>Distance: {minDist} - {maxDist} km</span>
-                </div>
-                <input type="range" min="0" max="100" value={maxDist} onChange={e => setMaxDist(Number(e.target.value))} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer" />
-              </div>
-              <div>
-                <div className="flex justify-between text-xs text-slate-400 mb-1">
-                  <span>Avg Grade: {minGrade} - {maxGrade}%</span>
-                </div>
-                <input type="range" min="0" max="20" step="0.5" value={minGrade} onChange={e => setMinGrade(Number(e.target.value))} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer" />
-              </div>
+
+            {/* Numeric Filters - Compact grid */}
+            <div className="flex gap-3">
+              <NumberFilter label="Min Km" value={minDist} onChange={setMinDist} min={0} max={maxDist} step={5} />
+              <NumberFilter label="Max Km" value={maxDist} onChange={setMaxDist} min={minDist} max={200} step={5} />
+              <NumberFilter label="Min %" value={minGrade} onChange={setMinGrade} min={0} max={maxGrade} step={1} showDecimals />
+              <NumberFilter label="Max %" value={maxGrade} onChange={setMaxGrade} min={minGrade} max={25} step={1} showDecimals />
             </div>
           </div>
-        )}
 
-        <div className="space-y-3">
-          {/* Country Filter */}
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            {uniqueCountries.map(c => (
-              <button
-                key={c}
-                onClick={() => handleCountryChange(c)}
-                className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${countryFilter === c ? 'bg-yellow-400 text-slate-900' : 'bg-slate-700 text-slate-400 hover:text-white'}`}
-              >
-                {c === 'All' ? '🌍 All' : c}
-              </button>
-            ))}
-          </div>
-
-          {/* Region Filter */}
-          {countryFilter !== 'All' && uniqueRegions.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide animate-in fade-in slide-in-from-top-1">
-              {uniqueRegions.map(r => (
+          <div className="space-y-3 pt-2 border-t border-slate-700/50">
+            {/* Country Filter */}
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              {uniqueCountries.map(c => (
                 <button
-                  key={r}
-                  onClick={() => setRegionFilter(r)}
-                  className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${regionFilter === r ? 'bg-orange-400 text-slate-900' : 'bg-slate-800 border border-slate-600 text-slate-400 hover:text-white'}`}
+                  key={c}
+                  onClick={() => handleCountryChange(c)}
+                  className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${countryFilter === c ? 'bg-yellow-400 text-slate-900 border border-yellow-400' : 'bg-slate-800 border-slate-600 border text-slate-400 hover:text-white'}`}
                 >
-                  {r === 'All' ? 'Alle Regio\'s' : r}
+                  {c === 'All' ? '🌍 All' : c}
                 </button>
               ))}
             </div>
-          )}
 
+            {/* Region Filter */}
+            {countryFilter !== 'All' && uniqueRegions.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide animate-in fade-in slide-in-from-top-1">
+                {uniqueRegions.map(r => (
+                  <button
+                    key={r}
+                    onClick={() => setRegionFilter(r)}
+                    className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${regionFilter === r ? 'bg-orange-400 text-slate-900 border border-orange-400' : 'bg-slate-800 border border-slate-600 text-slate-400 hover:text-white'}`}
+                  >
+                    {r === 'All' ? 'Alle Regio\'s' : r}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Climb Selector & Category Badge */}
           <div className="flex gap-2">
-            <div className="flex-1">
+            <div className="flex-1 relative">
+              {/* Results count badge */}
+              <div className="absolute right-8 top-3 text-[10px] text-slate-400 pointer-events-none">
+                {filteredClimbs.length} results
+              </div>
               <select
-                className="w-full bg-slate-900 text-white rounded p-3 text-sm border border-slate-600 outline-none focus:border-yellow-400"
+                className="w-full bg-slate-800 text-white rounded p-3 text-sm border border-slate-600 outline-none focus:border-yellow-400"
                 value={selectedClimb?.id || ''}
                 onChange={(e) => {
                   e.target.blur();
@@ -261,7 +288,7 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
               </select>
             </div>
             {selectedCategory && (
-              <div className={`flex flex-col items-center justify-center px-4 rounded border ${selectedCategory.className} min-w-[60px]`} title={selectedCategory.full}>
+              <div className={`flex flex-col items-center justify-center px-4 rounded border ${selectedCategory.className} min-w-[60px] cursor-help transition-transform hover:scale-105`} title={selectedCategory.full}>
                 <span className="text-lg leading-none">{selectedCategory.label}</span>
               </div>
             )}
