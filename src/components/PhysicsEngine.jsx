@@ -378,26 +378,26 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
               <span className="text-sm font-bold text-white">Intensity Zone</span>
               {calc.zone && <span style={{ color: calc.zone.color }} className="font-bold text-sm uppercase">{calc.zone.name}</span>}
             </div>
-            <div className="w-full h-4 bg-slate-800 rounded-full overflow-hidden flex">
-              <div className="w-full h-6 bg-slate-800 rounded-full overflow-hidden flex relative">
-                {COGGAN_ZONES.map((z, i) => (
-                  <div
-                    key={i}
-                    style={{ width: `${calculateZoneWidth(z)}%`, background: z.color }}
-                    className="h-full opacity-40 hover:opacity-90 transition-opacity flex items-center justify-center"
-                    title={`${z.name} (${Math.round(z.min * 100)}% - ${Math.round(z.max * 100 > 200 ? '>150' : z.max * 100)}%)`}
-                  >
-                    {/* Only show label if width is sufficient (>10%) */}
-                    {calculateZoneWidth(z) > 10 && <span className="text-[9px] font-bold text-white/80 drop-shadow-md truncate px-1">{z.id}</span>}
-                  </div>
-                ))}
-              </div>
-              <div className="relative w-full h-2 mt-1">
+
+            <div className="w-full h-6 bg-slate-800 rounded-full overflow-hidden flex relative mb-1">
+              {COGGAN_ZONES.map((z, i) => (
                 <div
-                  className="absolute top-0 bottom-0 w-[4px] bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)] z-10 transition-all duration-500"
-                  style={{ left: `${Math.min(Math.max((calc.watts / userSettings.ftp) / 1.6 * 100, 0), 100)}%` }}
-                ></div>
-              </div>
+                  key={i}
+                  style={{ width: `${calculateZoneWidth(z)}%`, background: z.color }}
+                  className="h-full opacity-40 hover:opacity-90 transition-opacity flex items-center justify-center"
+                  title={`${z.name} (${Math.round(z.min * 100)}% - ${Math.round(z.max * 100 > 200 ? '>150' : z.max * 100)}%)`}
+                >
+                  {/* Only show label if width is sufficient (>10%) */}
+                  {calculateZoneWidth(z) > 10 && <span className="text-[9px] font-bold text-white/80 drop-shadow-md truncate px-1">{z.id}</span>}
+                </div>
+              ))}
+            </div>
+
+            <div className="relative w-full h-2">
+              <div
+                className="absolute top-0 bottom-0 w-[4px] bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)] z-10 transition-all duration-500"
+                style={{ left: `${Math.min(Math.max((calc.watts / userSettings.ftp) / 1.6 * 100, 0), 100)}%` }}
+              ></div>
             </div>
           </div>
         </div>
