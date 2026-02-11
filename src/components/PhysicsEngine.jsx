@@ -9,6 +9,7 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
   const [targetWatts, setTargetWatts] = useState(userSettings.ftp);
   const [calc, setCalc] = useState({ watts: 0, wkg: 0, time: "", vam: 0, zone: null });
   const [countryFilter, setCountryFilter] = useState('All');
+  const [regionFilter, setRegionFilter] = useState('All'); // NEW: Region Filter
 
   // Physics Params State
   const [cda, setCda] = useState(0.32);
@@ -85,15 +86,23 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
   }, [mode, targetTimeStr, targetWatts, selectedClimb, userSettings, cda, crr, loss]);
 
   const filteredClimbs = useMemo(() => {
-    if (countryFilter === 'All') return CLIMB_DATABASE;
-    return CLIMB_DATABASE.filter(c => c.country === countryFilter);
-  }, [countryFilter]);
+    let climbs = CLIMB_DATABASE;
+    if (countryFilter !== 'All') {
+      climbs = climbs.filter(c => c.country === countryFilter);
+    }
+    if (regionFilter !== 'All') {
+      climbs = climbs.filter(c => c.region === regionFilter);
+    }
+    return climbs;
+  }, [countryFilter, regionFilter]);
 
   const climbsGrouped = useMemo(() => {
     const groups = {};
     filteredClimbs.forEach(c => {
       let key = c.country;
       if (c.country === 'Zwift') key = `Zwift - ${c.region}`;
+      // Als we al gefilterd hebben op land/regio, groeperen we misschien liever op iets anders?
+      // Voor nu behouden we de logica:
       if (!groups[key]) groups[key] = [];
       groups[key].push(c);
     });
@@ -101,6 +110,20 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
   }, [filteredClimbs]);
 
   const uniqueCountries = useMemo(() => ['All', ...new Set(CLIMB_DATABASE.map(c => c.country))].sort(), []);
+
+  // Calculate unique regions for the selected country
+  const uniqueRegions = useMemo(() => {
+    if (countryFilter === 'All') return [];
+    const regions = CLIMB_DATABASE
+      .filter(c => c.country === countryFilter)
+      .map(c => c.region);
+    return ['All', ...new Set(regions)].sort();
+  }, [countryFilter]);
+
+  const handleCountryChange = (country) => {
+    setCountryFilter(country);
+    setRegionFilter('All'); // Reset region when country changes
+  };
 
   return (
     <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
@@ -138,18 +161,35 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
           </div>
         )}
 
-        <div className="space-y-2">
+        {/* FILTERS */}
+        <div className="space-y-3">
+          {/* Country Filter */}
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
             {uniqueCountries.map(c => (
               <button
                 key={c}
-                onClick={() => setCountryFilter(c)}
+                onClick={() => handleCountryChange(c)}
                 className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${countryFilter === c ? 'bg-yellow-400 text-slate-900' : 'bg-slate-700 text-slate-400 hover:text-white'}`}
               >
                 {c === 'All' ? '🌍 All' : c}
               </button>
             ))}
           </div>
+
+          {/* Region Filter (Conditional) */}
+          {countryFilter !== 'All' && uniqueRegions.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide animate-in fade-in slide-in-from-top-1">
+              {uniqueRegions.map(r => (
+                <button
+                  key={r}
+                  onClick={() => setRegionFilter(r)}
+                  className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${regionFilter === r ? 'bg-orange-400 text-slate-900' : 'bg-slate-800 border border-slate-600 text-slate-400 hover:text-white'}`}
+                >
+                  {r === 'All' ? 'Alle Regio\'s' : r}
+                </button>
+              ))}
+            </div>
+          )}
 
           <select
             className="w-full bg-slate-900 text-white rounded p-3 text-sm border border-slate-600 outline-none focus:border-yellow-400"
