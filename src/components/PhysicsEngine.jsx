@@ -82,49 +82,6 @@ const NumberFilter = ({ label, value, onChange, min, max, step = 1, showDecimals
     </div>
   </div>
 );
-// Helper for repeating button actions with acceleration
-const RepeatButton = ({ onAction, children, className }) => {
-  const intervalRef = React.useRef(null);
-  const timeoutRef = React.useRef(null);
-
-  const start = () => {
-    onAction();
-    // Initial delay before repeating starts
-    timeoutRef.current = setTimeout(() => {
-      let speed = 150;
-      let count = 0;
-
-      const run = () => {
-        onAction();
-        count++;
-        // Accelerate: after 5 repeats, go faster (50ms)
-        if (count > 5) speed = 50;
-        else if (count > 20) speed = 20; // Very fast after 20
-
-        intervalRef.current = setTimeout(run, speed);
-      };
-      run();
-    }, 400);
-  };
-
-  const stop = () => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    if (intervalRef.current) clearTimeout(intervalRef.current);
-  };
-
-  return (
-    <button
-      onMouseDown={start}
-      onMouseUp={stop}
-      onMouseLeave={stop}
-      onTouchStart={start}
-      onTouchEnd={stop}
-      className={className}
-    >
-      {children}
-    </button>
-  );
-};
 
 const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateClimb }) => {
   const [mode, setMode] = useState('target');
