@@ -402,7 +402,8 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
           </div>
         </div>
       </div>
-      );
+    </div>
+  );
 };
 
-      export default PhysicsEngine;
+export default PhysicsEngine;
