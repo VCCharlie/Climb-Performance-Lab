@@ -194,7 +194,10 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
           <select
             className="w-full bg-slate-900 text-white rounded p-3 text-sm border border-slate-600 outline-none focus:border-yellow-400"
             value={selectedClimb?.id || ''}
-            onChange={(e) => onUpdateClimb(CLIMB_DATABASE.find(c => c.id === e.target.value))}
+            onChange={(e) => {
+              e.target.blur(); // Fix focus sticking to dropdown
+              onUpdateClimb(CLIMB_DATABASE.find(c => c.id === e.target.value));
+            }}
           >
             {Object.keys(climbsGrouped).sort().map(group => (
               <optgroup key={group} label={group}>
