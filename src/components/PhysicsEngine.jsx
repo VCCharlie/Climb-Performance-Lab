@@ -59,6 +59,20 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
     else setUserSettings(prev => ({ ...prev, bikeWeight: newVal }));
   };
 
+  const adjustTargetTime = (deltaSeconds) => {
+    const currentSeconds = parseDurationToSeconds(targetTimeStr);
+    const newSeconds = Math.max(0, currentSeconds + deltaSeconds);
+    const date = new Date(newSeconds * 1000);
+    const formatted = newSeconds >= 3600
+      ? date.toISOString().substr(11, 8)
+      : date.toISOString().substr(14, 5);
+    setTargetTimeStr(formatted);
+  };
+
+  const adjustTargetWatts = (delta) => {
+    setTargetWatts(prev => Math.max(0, Number(prev) + delta));
+  };
+
   useEffect(() => {
     if (!selectedClimb) return;
     const totalWeight = userSettings.weight + userSettings.bikeWeight;
@@ -334,11 +348,27 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
 
           <div className="bg-slate-900 border border-yellow-400/30 p-4 rounded-lg">
             <label className="text-xs text-yellow-400 uppercase font-bold mb-2 block">{mode === 'target' ? 'Desired Time' : 'Sustainable Power'}</label>
-            {mode === 'target' ? (
-              <input value={targetTimeStr} onChange={e => setTargetTimeStr(e.target.value)} className="w-full bg-transparent text-3xl font-mono text-white outline-none border-b border-slate-700 focus:border-yellow-400" />
-            ) : (
-              <input type="number" value={targetWatts} onChange={e => setTargetWatts(e.target.value)} className="w-full bg-transparent text-3xl font-mono text-white outline-none border-b border-slate-700 focus:border-yellow-400" />
-            )}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => mode === 'target' ? adjustTargetTime(-1) : adjustTargetWatts(-1)}
+                className="p-2 bg-slate-800 rounded hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+              >
+                <Minus size={20} />
+              </button>
+
+              {mode === 'target' ? (
+                <input value={targetTimeStr} onChange={e => setTargetTimeStr(e.target.value)} className="w-full bg-transparent text-3xl font-mono text-center text-white outline-none border-b border-transparent focus:border-yellow-400" />
+              ) : (
+                <input type="number" value={targetWatts} onChange={e => setTargetWatts(e.target.value)} className="w-full bg-transparent text-3xl font-mono text-center text-white outline-none border-b border-transparent focus:border-yellow-400" />
+              )}
+
+              <button
+                onClick={() => mode === 'target' ? adjustTargetTime(1) : adjustTargetWatts(1)}
+                className="p-2 bg-slate-800 rounded hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+              >
+                <Plus size={20} />
+              </button>
+            </div>
           </div>
         </div>
 
