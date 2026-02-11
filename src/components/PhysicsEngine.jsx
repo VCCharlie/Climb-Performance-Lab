@@ -3,32 +3,128 @@ import { Mountain, Info, Minus, Plus, Search, Filter } from 'lucide-react';
 import { CLIMB_DATABASE, COGGAN_ZONES } from '../climbs';
 import { parseDurationToSeconds, calculateFerrariWatts, calculateClimbCategory } from '../utils';
 
+// Helper for repeating button actions with acceleration
+const RepeatButton = ({ onAction, children, className }) => {
+  const intervalRef = React.useRef(null);
+  const timeoutRef = React.useRef(null);
+  const isRunning = React.useRef(false);
+
+  const start = (e) => {
+    // Prevent default to avoid text selection or other issues
+    if (e.cancelable) e.preventDefault();
+    if (isRunning.current) return;
+
+    isRunning.current = true;
+    onAction();
+
+    // Initial delay before repeating starts
+    timeoutRef.current = setTimeout(() => {
+      let speed = 150;
+      let count = 0;
+
+      const run = () => {
+        if (!isRunning.current) return;
+        onAction();
+        count++;
+        // Accelerate: after 5 repeats, go faster (50ms)
+        if (count > 5) speed = 50;
+        else if (count > 20) speed = 20; // Very fast after 20
+
+        intervalRef.current = setTimeout(run, speed);
+      };
+      run();
+    }, 400);
+  };
+
+  const stop = () => {
+    isRunning.current = false;
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (intervalRef.current) clearTimeout(intervalRef.current);
+  };
+
+  return (
+    <button
+      onMouseDown={start}
+      onMouseUp={stop}
+      onMouseLeave={stop}
+      onTouchStart={start}
+      onTouchEnd={stop}
+      className={className}
+    >
+      {children}
+    </button>
+  );
+};
+
 // Helper component for numeric filter inputs
 const NumberFilter = ({ label, value, onChange, min, max, step = 1, showDecimals = false }) => (
   <div className="flex flex-col">
     <span className="text-[10px] uppercase text-slate-500 font-bold mb-1">{label}</span>
     <div className="flex items-center bg-slate-800 rounded border border-slate-600">
-      <button
-        onClick={() => onChange(Math.max(min, Number((value - step).toFixed(showDecimals ? 1 : 0))))}
-        className="px-2 py-1 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+      <RepeatButton
+        onAction={() => onChange(Math.max(min, Number((value - step).toFixed(showDecimals ? 1 : 0))))}
+        className="px-2 py-1 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors select-none"
       >
         <Minus size={12} />
-      </button>
+      </RepeatButton>
       <input
         type="number"
         value={value}
         onChange={e => onChange(Number(e.target.value))}
         className="w-12 text-center bg-transparent text-xs text-white outline-none font-mono"
       />
-      <button
-        onClick={() => onChange(Math.min(max, Number((value + step).toFixed(showDecimals ? 1 : 0))))}
-        className="px-2 py-1 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+      <RepeatButton
+        onAction={() => onChange(Math.min(max, Number((value + step).toFixed(showDecimals ? 1 : 0))))}
+        className="px-2 py-1 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors select-none"
       >
         <Plus size={12} />
-      </button>
+      </RepeatButton>
     </div>
   </div>
 );
+// Helper for repeating button actions with acceleration
+const RepeatButton = ({ onAction, children, className }) => {
+  const intervalRef = React.useRef(null);
+  const timeoutRef = React.useRef(null);
+
+  const start = () => {
+    onAction();
+    // Initial delay before repeating starts
+    timeoutRef.current = setTimeout(() => {
+      let speed = 150;
+      let count = 0;
+
+      const run = () => {
+        onAction();
+        count++;
+        // Accelerate: after 5 repeats, go faster (50ms)
+        if (count > 5) speed = 50;
+        else if (count > 20) speed = 20; // Very fast after 20
+
+        intervalRef.current = setTimeout(run, speed);
+      };
+      run();
+    }, 400);
+  };
+
+  const stop = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (intervalRef.current) clearTimeout(intervalRef.current);
+  };
+
+  return (
+    <button
+      onMouseDown={start}
+      onMouseUp={stop}
+      onMouseLeave={stop}
+      onTouchStart={start}
+      onTouchEnd={stop}
+      className={className}
+    >
+      {children}
+    </button>
+  );
+};
 
 const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateClimb }) => {
   const [mode, setMode] = useState('target');
