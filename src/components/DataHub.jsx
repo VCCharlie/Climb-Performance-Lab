@@ -154,6 +154,20 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
         if (duplicates.length <= 1) setShowDuplicateModal(false);
     };
 
+    const [isDragging, setIsDragging] = useState(false);
+
+    const handleFileUpload = (file) => {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const text = e.target.result;
+            setImportText(text);
+            // Optionally auto-trigger import? User probably wants to review/click 'Process'
+            // handleManualImport(text); 
+        };
+        reader.readAsText(file);
+    };
+
     // --- MANUAL IMPORT ---
     const handleManualImport = () => {
         const text = importText.trim();
