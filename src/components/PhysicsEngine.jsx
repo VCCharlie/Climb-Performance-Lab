@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Mountain, Info, Minus, Plus } from 'lucide-react';
+import { Mountain, Info, Minus, Plus, Search, Filter } from 'lucide-react';
 import { CLIMB_DATABASE, COGGAN_ZONES } from '../climbs';
-import { parseDurationToSeconds, calculateFerrariWatts } from '../utils'; // We gebruiken de centrale utils functie
+import { parseDurationToSeconds, calculateFerrariWatts, calculateClimbCategory } from '../utils';
 
 const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateClimb }) => {
   const [mode, setMode] = useState('target');
@@ -9,7 +9,15 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
   const [targetWatts, setTargetWatts] = useState(userSettings.ftp);
   const [calc, setCalc] = useState({ watts: 0, wkg: 0, time: "", vam: 0, zone: null });
   const [countryFilter, setCountryFilter] = useState('All');
-  const [regionFilter, setRegionFilter] = useState('All'); // NEW: Region Filter
+  const [regionFilter, setRegionFilter] = useState('All');
+
+  // NEW FILTERS
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [minDist, setMinDist] = useState(0);
+  const [maxDist, setMaxDist] = useState(100);
+  const [minGrade, setMinGrade] = useState(0);
+  const [maxGrade, setMaxGrade] = useState(20);
 
   // Physics Params State
   const [cda, setCda] = useState(0.32);
@@ -22,7 +30,6 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
     const current = type === 'body' ? userSettings.weight : userSettings.bikeWeight;
     const newVal = parseFloat((current + delta).toFixed(1));
 
-    // Update de settings in de hoofapp via de prop
     if (type === 'body') {
       setUserSettings(prev => ({ ...prev, weight: newVal }));
     } else {
@@ -36,11 +43,8 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
     const grade = selectedClimb.avgGrade / 100;
     const distance = selectedClimb.lengthKm * 1000;
     const elevation = selectedClimb.elevation;
-
-    // Physics Constants
     const g = 9.81;
     const rho = 1.225;
-    // Uses user defined cda, crr, loss
 
     let watts = 0, seconds = 0;
 
@@ -85,24 +89,36 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
 
   }, [mode, targetTimeStr, targetWatts, selectedClimb, userSettings, cda, crr, loss]);
 
+  // Enhanced Filter Logic
   const filteredClimbs = useMemo(() => {
     let climbs = CLIMB_DATABASE;
+
+    // 1. Text Search
+    if (searchTerm) {
+      const lower = searchTerm.toLowerCase();
+      climbs = climbs.filter(c => c.name.toLowerCase().includes(lower) || c.id.toLowerCase().includes(lower));
+    }
+
+    // 2. Country/Region
     if (countryFilter !== 'All') {
       climbs = climbs.filter(c => c.country === countryFilter);
     }
     if (regionFilter !== 'All') {
       climbs = climbs.filter(c => c.region === regionFilter);
     }
+
+    // 3. Sliders
+    climbs = climbs.filter(c => c.lengthKm >= minDist && c.lengthKm <= maxDist);
+    climbs = climbs.filter(c => c.avgGrade >= minGrade && c.avgGrade <= maxGrade);
+
     return climbs;
-  }, [countryFilter, regionFilter]);
+  }, [countryFilter, regionFilter, searchTerm, minDist, maxDist, minGrade, maxGrade]);
 
   const climbsGrouped = useMemo(() => {
     const groups = {};
     filteredClimbs.forEach(c => {
       let key = c.country;
       if (c.country === 'Zwift') key = `Zwift - ${c.region}`;
-      // Als we al gefilterd hebben op land/regio, groeperen we misschien liever op iets anders?
-      // Voor nu behouden we de logica:
       if (!groups[key]) groups[key] = [];
       groups[key].push(c);
     });
@@ -110,32 +126,40 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
   }, [filteredClimbs]);
 
   const uniqueCountries = useMemo(() => ['All', ...new Set(CLIMB_DATABASE.map(c => c.country))].sort(), []);
-
-  // Calculate unique regions for the selected country
   const uniqueRegions = useMemo(() => {
     if (countryFilter === 'All') return [];
-    const regions = CLIMB_DATABASE
-      .filter(c => c.country === countryFilter)
-      .map(c => c.region);
+    const regions = CLIMB_DATABASE.filter(c => c.country === countryFilter).map(c => c.region);
     return ['All', ...new Set(regions)].sort();
   }, [countryFilter]);
 
   const handleCountryChange = (country) => {
     setCountryFilter(country);
-    setRegionFilter('All'); // Reset region when country changes
+    setRegionFilter('All');
   };
+
+  const selectedCategory = useMemo(() => {
+    if (!selectedClimb) return null;
+    return calculateClimbCategory(selectedClimb.lengthKm, selectedClimb.avgGrade);
+  }, [selectedClimb]);
 
   return (
     <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
       <div className="flex flex-col gap-4 mb-6">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-yellow-400 flex items-center gap-2"><Mountain className="w-6 h-6" /> Physics Engine</h2>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`p-2 rounded border transition-colors ${showFilters ? 'bg-yellow-400 text-slate-900 border-yellow-400' : 'text-slate-400 border-slate-600 hover:text-white'}`}
+              title="Filters"
+            >
+              <Filter size={16} />
+            </button>
             <button
               onClick={() => setShowAdvanced(!showAdvanced)}
               className={`text-xs font-bold px-3 py-1 rounded border ${showAdvanced ? 'bg-yellow-400/10 text-yellow-400 border-yellow-400' : 'text-slate-400 border-slate-600'}`}
             >
-              Advanced Parameters
+              Advanced
             </button>
             <a href={selectedClimb?.url || '#'} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-white flex items-center gap-1 text-xs" title="View Info">
               <Info size={14} /> Climb Detail
@@ -161,7 +185,35 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
           </div>
         )}
 
-        {/* FILTERS */}
+        {/* NEW FILTERS PANEL */}
+        {showFilters && (
+          <div className="bg-slate-900/50 p-4 rounded-lg border border-slate-700 space-y-4 animate-in slide-in-from-top-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+              <input
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                placeholder="Search climb (e.g. 'Ventoux')..."
+                className="w-full bg-slate-800 border border-slate-600 rounded pl-10 pr-4 py-2 text-sm text-white outline-none focus:border-yellow-400"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="flex justify-between text-xs text-slate-400 mb-1">
+                  <span>Distance: {minDist} - {maxDist} km</span>
+                </div>
+                <input type="range" min="0" max="100" value={maxDist} onChange={e => setMaxDist(Number(e.target.value))} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer" />
+              </div>
+              <div>
+                <div className="flex justify-between text-xs text-slate-400 mb-1">
+                  <span>Avg Grade: {minGrade} - {maxGrade}%</span>
+                </div>
+                <input type="range" min="0" max="20" step="0.5" value={minGrade} onChange={e => setMinGrade(Number(e.target.value))} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer" />
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-3">
           {/* Country Filter */}
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
@@ -176,7 +228,7 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
             ))}
           </div>
 
-          {/* Region Filter (Conditional) */}
+          {/* Region Filter */}
           {countryFilter !== 'All' && uniqueRegions.length > 0 && (
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide animate-in fade-in slide-in-from-top-1">
               {uniqueRegions.map(r => (
@@ -191,20 +243,29 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
             </div>
           )}
 
-          <select
-            className="w-full bg-slate-900 text-white rounded p-3 text-sm border border-slate-600 outline-none focus:border-yellow-400"
-            value={selectedClimb?.id || ''}
-            onChange={(e) => {
-              e.target.blur(); // Fix focus sticking to dropdown
-              onUpdateClimb(CLIMB_DATABASE.find(c => c.id === e.target.value));
-            }}
-          >
-            {Object.keys(climbsGrouped).sort().map(group => (
-              <optgroup key={group} label={group}>
-                {climbsGrouped[group].map(c => <option key={c.id} value={c.id}>{c.name} ({c.lengthKm}km @ {c.avgGrade}%)</option>)}
-              </optgroup>
-            ))}
-          </select>
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <select
+                className="w-full bg-slate-900 text-white rounded p-3 text-sm border border-slate-600 outline-none focus:border-yellow-400"
+                value={selectedClimb?.id || ''}
+                onChange={(e) => {
+                  e.target.blur();
+                  onUpdateClimb(CLIMB_DATABASE.find(c => c.id === e.target.value));
+                }}
+              >
+                {Object.keys(climbsGrouped).sort().map(group => (
+                  <optgroup key={group} label={group}>
+                    {climbsGrouped[group].map(c => <option key={c.id} value={c.id}>{c.name} ({c.lengthKm}km @ {c.avgGrade}%)</option>)}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+            {selectedCategory && (
+              <div className={`flex flex-col items-center justify-center px-4 rounded border ${selectedCategory.className} min-w-[60px]`} title={selectedCategory.full}>
+                <span className="text-lg leading-none">{selectedCategory.label}</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

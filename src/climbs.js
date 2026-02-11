@@ -112,8 +112,8 @@ const RAW_CLIMBS = [
 
   // --- REAL WORLD: BENELUX/DE/AT ---
   // Nederland
-  { id: 'nl_cauberg', name: "Cauberg", country: "NL", region: "Limburg", flag: "🇳🇱", lengthKm: 0.8, elevation: 65, avgGrade: 5.8 },
-  { id: 'nl_camerig', name: "Camerig", country: "NL", region: "Limburg", flag: "🇳🇱", lengthKm: 4.6, elevation: 175, avgGrade: 3.8 },
+  { id: 'nl_cauberg', name: "Cauberg", country: "NL", region: "Zuid-Limburg", flag: "🇳🇱", lengthKm: 0.8, elevation: 65, avgGrade: 5.8 },
+  { id: 'nl_camerig', name: "Camerig", country: "NL", region: "Zuid-Limburg", flag: "🇳🇱", lengthKm: 4.6, elevation: 175, avgGrade: 3.8 },
   { id: 'nl_vaals', name: "Vaalserberg", country: "NL", region: "Zuid-Limburg", flag: "🇳🇱", lengthKm: 2.6, elevation: 110, avgGrade: 4.2 },
   { id: 'nl_keuten', name: "Keutenberg", country: "NL", region: "Zuid-Limburg", flag: "🇳🇱", lengthKm: 1.2, elevation: 68, avgGrade: 5.9 },
   { id: 'nl_eyser', name: "Eyserbosweg", country: "NL", region: "Zuid-Limburg", flag: "🇳🇱", lengthKm: 1.1, elevation: 90, avgGrade: 8.1 },
@@ -148,11 +148,41 @@ const RAW_CLIMBS = [
   { id: 'lu_putscheid', name: "Putscheid", country: "LU", region: "Luxemburg", flag: "🇱🇺", lengthKm: 2.8, elevation: 210, avgGrade: 7.5 },
   { id: 'lu_kauten', name: "Kautenbach", country: "LU", region: "Luxemburg", flag: "🇱🇺", lengthKm: 4.5, elevation: 230, avgGrade: 5.1 },
   // Austria
-  { id: 'at_grossglockner', name: "Grossglockner", country: "AT", region: "Alpen", flag: "🇦🇹", lengthKm: 14.0, elevation: 1280, avgGrade: 9.5 },
-  { id: 'at_kitzbuheler', name: "Kitzbüheler Horn", country: "AT", region: "Tirol", flag: "🇦🇹", lengthKm: 9.7, elevation: 1290, avgGrade: 12.9 },
+  { id: 'at_grossglockner', name: "Grossglockner (Edelweissspitze)", country: "AT", region: "Alpen", flag: "🇦🇹", lengthKm: 14.0, elevation: 2571, avgGrade: 9.5 },
+  { id: 'at_kitzbuheler', name: "Kitzbüheler Horn", country: "AT", region: "Tirol", flag: "🇦🇹", lengthKm: 9.7, elevation: 1670, avgGrade: 12.9 },
+  { id: 'at_rettenbach', name: "Rettenbachferner (Sölden)", country: "AT", region: "Ötztal", flag: "🇦🇹", lengthKm: 13.5, elevation: 2670, avgGrade: 10.5 },
+  { id: 'at_kuhtai', name: "Kühtai (Oetz)", country: "AT", region: "Tirol", flag: "🇦🇹", lengthKm: 18.5, elevation: 2017, avgGrade: 6.1 },
+  { id: 'at_timmelsjoch', name: "Timmelsjoch (Sölden)", country: "AT", region: "Ötztal", flag: "🇦🇹", lengthKm: 29.0, elevation: 2509, avgGrade: 3.8 },
+  { id: 'at_horn', name: "Zillertaler Höhenstrasse", country: "AT", region: "Zillertal", flag: "🇦🇹", lengthKm: 13.0, elevation: 2020, avgGrade: 10.0 },
+
   // Duitsland
   { id: 'de_nebelhorn', name: "Nebelhorn", country: "DE", region: "Beieren", flag: "🇩🇪", lengthKm: 7.3, elevation: 1102, avgGrade: 15.1 },
   { id: 'de_schlappold', name: "Alpe Schlappold", country: "DE", region: "Beieren", flag: "🇩🇪", lengthKm: 7.3, elevation: 876, avgGrade: 12.0 },
+  { id: 'de_rossfeld', name: "Rossfeld Panoramastrasse", country: "DE", region: "Beieren", flag: "🇩🇪", lengthKm: 15.4, elevation: 1540, avgGrade: 7.0 },
+  { id: 'de_schauinsland', name: "Schauinsland", country: "DE", region: "Zwarte Woud", flag: "🇩🇪", lengthKm: 11.5, elevation: 1200, avgGrade: 6.5 },
+  { id: 'de_kandel', name: "Kandel", country: "DE", region: "Zwarte Woud", flag: "🇩🇪", lengthKm: 12.0, elevation: 1241, avgGrade: 8.0 },
+  { id: 'de_belchen', name: "Belchen", country: "DE", region: "Zwarte Woud", flag: "🇩🇪", lengthKm: 10.0, elevation: 1350, avgGrade: 6.0 },
+
+  // Andorra
+  { id: 'ad_arcalis', name: "Ordino-Arcalís", country: "AD", region: "Andorra", flag: "🇦🇩", lengthKm: 10.5, elevation: 2229, avgGrade: 7.1 },
+  { id: 'ad_cen', name: "Port de Cabús", country: "AD", region: "Andorra", flag: "🇦🇩", lengthKm: 18.0, elevation: 2328, avgGrade: 6.2 },
+
+  // --- REAL WORLD: FRANKRIJK (Extra 2) ---
+  { id: 'fr_plateau_beille', name: "Plateau de Beille", country: "FR", region: "Pyreneeën", flag: "🇫🇷", lengthKm: 15.8, elevation: 1790, avgGrade: 7.9 },
+  { id: 'fr_luz_ardiden', name: "Luz Ardiden", country: "FR", region: "Pyreneeën", flag: "🇫🇷", lengthKm: 14.7, elevation: 1720, avgGrade: 6.9 },
+  { id: 'fr_ax_3', name: "Ax-3-Domaines", country: "FR", region: "Pyreneeën", flag: "🇫🇷", lengthKm: 7.8, elevation: 1351, avgGrade: 8.2 },
+  { id: 'fr_agnel', name: "Col Agnel", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 20.5, elevation: 2744, avgGrade: 6.6 },
+  { id: 'fr_izoard_sud', name: "Col d'Izoard (Zuid)", country: "FR", region: "Alpen", flag: "🇫🇷", lengthKm: 15.9, elevation: 2360, avgGrade: 6.9 },
+
+  // --- REAL WORLD: SPANJE (Extra) ---
+  { id: 'es_bola', name: "Bola del Mundo", country: "ES", region: "Madrid", flag: "🇪🇸", lengthKm: 3.5, elevation: 2247, avgGrade: 11.8 },
+  { id: 'es_cabarga', name: "Peña Cabarga", country: "ES", region: "Cantabria", flag: "🇪🇸", lengthKm: 6.0, elevation: 569, avgGrade: 9.2 },
+  { id: 'es_zoncolan_es', name: "Alto de l'Angliru (korter)", country: "ES", region: "Asturië", flag: "🇪🇸", lengthKm: 6.5, elevation: 1570, avgGrade: 13.0 },
+
+  // --- REAL WORLD: ITALIË (Extra 2) ---
+  { id: 'it_falzarego', name: "Passo Falzarego", country: "IT", region: "Dolomieten", flag: "🇮🇹", lengthKm: 15.0, elevation: 2105, avgGrade: 5.8 },
+  { id: 'it_valparola', name: "Passo Valparola", country: "IT", region: "Dolomieten", flag: "🇮🇹", lengthKm: 13.0, elevation: 2192, avgGrade: 6.0 },
+  { id: 'it_san_pellegrino', name: "Passo San Pellegrino", country: "IT", region: "Dolomieten", flag: "🇮🇹", lengthKm: 11.5, elevation: 1918, avgGrade: 6.5 },
 
   // --- REAL WORLD: UK ---
   { id: 'uk_hardknott', name: "Hardknott Pass", country: "UK", region: "Lake District", flag: "🇬🇧", lengthKm: 2.2, elevation: 298, avgGrade: 13.3 },
