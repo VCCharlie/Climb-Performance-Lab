@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "strava-climb-lab": {
+      "command": "node",
+      "args": ["./mcp-server/index.js"],
+      "env": {
+        "STRAVA_CLIENT_ID": "${STRAVA_CLIENT_ID}",
+        "STRAVA_CLIENT_SECRET": "${STRAVA_CLIENT_SECRET}"
+      }
+    }
+  }
+}
