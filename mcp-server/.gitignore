@@ -1,0 +1,8 @@
+# Strava MCP Server dependencies
+node_modules/
+.env
+.strava-tokens.json
+
+# Logs
+*.log
+npm-debug.log*

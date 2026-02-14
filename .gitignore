@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# MCP Server secrets and tokens
+.env
+.strava-tokens.json
+mcp-server/.strava-tokens.json

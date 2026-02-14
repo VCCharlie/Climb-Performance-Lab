@@ -1,0 +1,23 @@
+{
+  "name": "strava-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for accessing Strava data in Climb Performance Lab",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "keywords": [
+    "mcp",
+    "strava",
+    "model-context-protocol"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "dotenv": "^16.4.5",
+    "node-fetch": "^3.3.2"
+  }
+}
