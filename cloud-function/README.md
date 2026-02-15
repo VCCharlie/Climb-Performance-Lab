@@ -59,11 +59,13 @@ https://sync-intervals-XXXXX.europe-west1.run.app
 
 ### Step 3: Update Frontend URL
 
-Update the URL in `src/components/DataHub.jsx`:
+The cloud function URL is already configured in `src/config.js`:
 
 ```javascript
-const CLOUD_SYNC_URL = "https://YOUR-FUNCTION-URL.run.app";
+export const CLOUD_SYNC_URL = "https://sync-intervals-97555677694.europe-west1.run.app";
 ```
+
+If you deploy to a different URL, update this constant.
 
 ## API Reference
 
@@ -104,11 +106,17 @@ const CLOUD_SYNC_URL = "https://YOUR-FUNCTION-URL.run.app";
         "avg_speed": 32.5,
         "avg_power": 220,
         "norm_power": 235,
+        "avg_hr": 145,
+        "max_hr": 175,
+        "work": 792,
         "load": 85,
         "rpe": 7,
+        "best_1min": 320,
         "best_5min": 280,
+        "best_10min": 265,
         "best_20min": 250,
-        "best_60min": 220
+        "best_60min": 220,
+        "eFTP": 245
     }
 ]
 ```
