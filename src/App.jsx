@@ -42,6 +42,29 @@ const App = () => {
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
+    // State for new features (persistent across tab switches)
+    const [racePacingState, setRacePacingState] = useState({
+        selectedClimbs: [],
+        recoveryMinutes: {},
+        targetIntensity: 0.85
+    });
+    const [gearOptimizerState, setGearOptimizerState] = useState({
+        selectedClimb: CLIMB_DATABASE[0],
+        chainrings: [50, 34],
+        cassette: [11, 12, 13, 14, 15, 16, 17, 19, 21, 24, 28],
+        wheelDiameter: 700,
+        tyreMm: 25,
+        targetCadence: 80
+    });
+    const [climbProfilerState, setClimbProfilerState] = useState({
+        selectedClimb: CLIMB_DATABASE[0],
+        showPowerZones: true
+    });
+    const [fuelingState, setFuelingState] = useState({
+        duration: 180,
+        intensity: 0.85
+    });
+
     // Auth Listener
     useEffect(() => {
         if (!auth) return;
@@ -225,13 +248,40 @@ const App = () => {
                             />
                         )}
 
-                        {activeTab === 'fueling' && <FuelingStrategy />}
+                        {activeTab === 'fueling' && (
+                            <FuelingStrategy
+                                initialDuration={fuelingState.duration}
+                                initialIntensity={fuelingState.intensity}
+                            />
+                        )}
 
-                        {activeTab === 'racepacing' && <RacePacing userSettings={userSettings} />}
+                        {activeTab === 'racepacing' && (
+                            <RacePacing
+                                userSettings={userSettings}
+                                initialState={racePacingState}
+                                onStateChange={setRacePacingState}
+                                onExportToFueling={(duration, intensity) => {
+                                    setFuelingState({ duration, intensity });
+                                    setActiveTab('fueling');
+                                }}
+                            />
+                        )}
 
-                        {activeTab === 'gearoptimizer' && <GearOptimizer userSettings={userSettings} />}
+                        {activeTab === 'gearoptimizer' && (
+                            <GearOptimizer
+                                userSettings={userSettings}
+                                initialState={gearOptimizerState}
+                                onStateChange={setGearOptimizerState}
+                            />
+                        )}
 
-                        {activeTab === 'profiler' && <ClimbProfiler userSettings={userSettings} />}
+                        {activeTab === 'profiler' && (
+                            <ClimbProfiler
+                                userSettings={userSettings}
+                                initialState={climbProfilerState}
+                                onStateChange={setClimbProfilerState}
+                            />
+                        )}
 
                         {isSettingsOpen && (
                             <SettingsModal

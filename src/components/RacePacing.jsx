@@ -1,11 +1,18 @@
 import React, { useState, useMemo } from 'react';
-import { Mountain, Plus, Trash2, AlertTriangle, TrendingDown, Battery, Zap, Clock } from 'lucide-react';
+import { Mountain, Plus, Trash2, AlertTriangle, TrendingDown, Battery, Zap, Clock, Utensils } from 'lucide-react';
 import { CLIMB_DATABASE } from '../climbs';
 
-const RacePacing = ({ userSettings }) => {
-    const [selectedClimbs, setSelectedClimbs] = useState([]);
-    const [recoveryMinutes, setRecoveryMinutes] = useState({}); // Recovery time tussen climbs
-    const [targetIntensity, setTargetIntensity] = useState(0.85); // Overall race intensity
+const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueling }) => {
+    const [selectedClimbs, setSelectedClimbs] = useState(initialState?.selectedClimbs || []);
+    const [recoveryMinutes, setRecoveryMinutes] = useState(initialState?.recoveryMinutes || {});
+    const [targetIntensity, setTargetIntensity] = useState(initialState?.targetIntensity || 0.85);
+
+    // Sync state changes to parent
+    React.useEffect(() => {
+        if (onStateChange) {
+            onStateChange({ selectedClimbs, recoveryMinutes, targetIntensity });
+        }
+    }, [selectedClimbs, recoveryMinutes, targetIntensity, onStateChange]);
 
     // Physics constants
     const CRR = 0.004; // Rolling resistance
@@ -69,8 +76,11 @@ const RacePacing = ({ userSettings }) => {
             const prevCumulativeEnergy = prevDetail ? prevDetail.cumulativeEnergy : 0;
 
             const time = calculateClimbTime(climb, basePower);
-            const energy = (basePower * time * 60) / 1000; // kJ
-            const carbs = energy * 0.6; // ~60% from carbs at high intensity
+            const energy = (basePower * time * 60) / 1000; // kJ mechanical energy
+            // Convert to metabolic energy (body is ~23% efficient)
+            // Then to carbs: 1 kJ = 0.239 kcal, 1g carbs = 4 kcal
+            // At high intensity, ~60% energy from carbs
+            const carbs = energy / 0.23 * 0.239 / 4 * 0.6; // grams
 
             // Add recovery time
             const recovery = recoveryMinutes[climb.id] || 0;
@@ -99,10 +109,12 @@ const RacePacing = ({ userSettings }) => {
         const totalEnergy = lastDetail ? lastDetail.cumulativeEnergy : 0;
         const totalCarbs = climbDetails.reduce((sum, c) => sum + c.carbsGrams, 0);
 
-        // Glycogen depletion estimate (500g store = ~2000 kcal = ~8400 kJ)
-        const maxGlycogen = 8400; // kJ
-        const glycogenUsed = totalEnergy * 0.6; // 60% from glycogen
-        const glycogenPercent = (glycogenUsed / maxGlycogen) * 100;
+        // Glycogen depletion estimate
+        // Trained athlete: ~500g glycogen = 2000 kcal = 500g × 4 kcal/g
+        const maxGlycogenKcal = 2000; // kcal
+        const metabolicEnergyKcal = totalEnergy / 0.23 * 0.239; // Convert mechanical kJ to metabolic kcal
+        const glycogenUsedKcal = metabolicEnergyKcal * 0.6; // 60% from glycogen at race intensity
+        const glycogenPercent = (glycogenUsedKcal / maxGlycogenKcal) * 100;
 
         // Warning flags
         const warnings = [];
@@ -145,6 +157,18 @@ const RacePacing = ({ userSettings }) => {
                 </h2>
                 <div className="text-xs text-slate-400 bg-slate-900 px-3 py-1 rounded-full border border-slate-700">
                     Physics-Based Pacing
+                </div>
+            </div>
+
+            {/* Methodology Info */}
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                <h4 className="text-blue-400 font-bold text-sm mb-2">ℹ️ Hoe werkt dit?</h4>
+                <div className="text-xs text-slate-300 space-y-1">
+                    <p><strong>• Climb tijden:</strong> Berekend via physics engine (zwaartekracht, luchtweerstand, rolweerstand)</p>
+                    <p><strong>• Energie verbruik:</strong> Mechanisch vermogen (kJ) → Metabolisch verbruik (lichaam is ~23% efficient)</p>
+                    <p><strong>• Koolhydraten:</strong> Bij race intensiteit komt ~60% energie uit glycogeen. 1g carbs = 4 kcal</p>
+                    <p><strong>• Glycogeen depot:</strong> Getrainde atleet heeft ~500g glycogeen (~2000 kcal) beschikbaar</p>
+                    <p><strong>💡 Tip:</strong> Vermijd depletie &gt;80% - je hebt ook nog energie nodig voor vlakke stukken!</p>
                 </div>
             </div>
 
@@ -344,16 +368,29 @@ const RacePacing = ({ userSettings }) => {
 
                     {/* Nutrition Recommendation */}
                     <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
-                        <h4 className="text-green-400 font-bold text-sm mb-2">💡 Voedingsstrategie</h4>
-                        <p className="text-sm text-slate-300">
-                            Voor deze race heb je <strong>{Math.round(raceStrategy.totalCarbs)}g koolhydraten</strong> nodig
-                            ({Math.round(raceStrategy.carbsPerHour)}g/uur).
-                            {raceStrategy.carbsPerHour <= 60 && " Dit is goed haalbaar met standaard sportvoeding."}
-                            {raceStrategy.carbsPerHour > 60 && raceStrategy.carbsPerHour <= 90 &&
-                                " Train je spijsvertering met deze hoge carb intake!"}
-                            {raceStrategy.carbsPerHour > 90 &&
-                                " Dit is extreem hoog - overweeg pacing te verlagen of extra herstel tussen climbs."}
-                        </p>
+                        <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                                <h4 className="text-green-400 font-bold text-sm mb-2">💡 Voedingsstrategie</h4>
+                                <p className="text-sm text-slate-300">
+                                    Voor deze race heb je <strong>{Math.round(raceStrategy.totalCarbs)}g koolhydraten</strong> nodig
+                                    ({Math.round(raceStrategy.carbsPerHour)}g/uur).
+                                    {raceStrategy.carbsPerHour <= 60 && " Dit is goed haalbaar met standaard sportvoeding."}
+                                    {raceStrategy.carbsPerHour > 60 && raceStrategy.carbsPerHour <= 90 &&
+                                        " Train je spijsvertering met deze hoge carb intake!"}
+                                    {raceStrategy.carbsPerHour > 90 &&
+                                        " Dit is extreem hoog - overweeg pacing te verlagen of extra herstel tussen climbs."}
+                                </p>
+                            </div>
+                            {onExportToFueling && (
+                                <button
+                                    onClick={() => onExportToFueling(raceStrategy.totalTime, targetIntensity)}
+                                    className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm font-bold transition-colors whitespace-nowrap"
+                                >
+                                    <Utensils size={16} />
+                                    Open in Fueling →
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}

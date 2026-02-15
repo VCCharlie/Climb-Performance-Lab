@@ -24,9 +24,16 @@ const CustomTooltip = ({ active, payload, showPowerZones, powerRecommendations }
     return null;
 };
 
-const ClimbProfiler = ({ userSettings }) => {
-    const [selectedClimb, setSelectedClimb] = useState(CLIMB_DATABASE[0]);
-    const [showPowerZones, setShowPowerZones] = useState(true);
+const ClimbProfiler = ({ userSettings, initialState, onStateChange }) => {
+    const [selectedClimb, setSelectedClimb] = useState(initialState?.selectedClimb || CLIMB_DATABASE[0]);
+    const [showPowerZones, setShowPowerZones] = useState(initialState?.showPowerZones !== undefined ? initialState.showPowerZones : true);
+
+    // Sync state changes to parent
+    React.useEffect(() => {
+        if (onStateChange) {
+            onStateChange({ selectedClimb, showPowerZones });
+        }
+    }, [selectedClimb, showPowerZones, onStateChange]);
 
     // Generate realistic gradient profile from climb data
     const profileData = useMemo(() => {

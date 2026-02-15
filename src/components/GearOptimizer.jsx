@@ -2,17 +2,24 @@ import React, { useState, useMemo } from 'react';
 import { Settings, TrendingUp, AlertCircle, CheckCircle, Bike } from 'lucide-react';
 import { CLIMB_DATABASE } from '../climbs';
 
-const GearOptimizer = ({ userSettings }) => {
+const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
     // Gearing configuration
-    const [chainrings, setChainrings] = useState([50, 34]); // Compact
-    const [cassette, setCassette] = useState([11, 12, 13, 14, 15, 16, 17, 19, 21, 24, 28]); // 11-28
-    const [wheelDiameter, setWheelDiameter] = useState(700); // 700c
-    const [tyreMm, setTyreMm] = useState(25); // 25mm tyres
+    const [chainrings, setChainrings] = useState(initialState?.chainrings || [50, 34]);
+    const [cassette, setCassette] = useState(initialState?.cassette || [11, 12, 13, 14, 15, 16, 17, 19, 21, 24, 28]);
+    const [wheelDiameter, setWheelDiameter] = useState(initialState?.wheelDiameter || 700);
+    const [tyreMm, setTyreMm] = useState(initialState?.tyreMm || 25);
 
     // Climb selection
-    const [selectedClimb, setSelectedClimb] = useState(CLIMB_DATABASE[0]);
+    const [selectedClimb, setSelectedClimb] = useState(initialState?.selectedClimb || CLIMB_DATABASE[0]);
     const [targetPower, setTargetPower] = useState(userSettings.ftp * 0.85);
-    const [targetCadence, setTargetCadence] = useState(80);
+    const [targetCadence, setTargetCadence] = useState(initialState?.targetCadence || 80);
+
+    // Sync state changes to parent
+    React.useEffect(() => {
+        if (onStateChange) {
+            onStateChange({ chainrings, cassette, wheelDiameter, tyreMm, selectedClimb, targetCadence });
+        }
+    }, [chainrings, cassette, wheelDiameter, tyreMm, selectedClimb, targetCadence, onStateChange]);
 
     // Common gearing presets
     const gearingPresets = {
