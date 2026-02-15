@@ -206,6 +206,40 @@ def transform_activity(activity: dict) -> dict:
         if rpe < 1 or rpe > 10:
             rpe = None
 
+    # === HEART RATE ===
+    avg_hr = safe_int(get_first_valid(
+        activity.get("icu_average_heartrate"),
+        activity.get("average_heartrate"),
+        activity.get("average_heart_rate"),
+        activity.get("avg_hr"),
+        activity.get("icu_avg_hr"),
+        default=0
+    ))
+    max_hr = safe_int(get_first_valid(
+        activity.get("max_heartrate"),
+        activity.get("max_heart_rate"),
+        activity.get("icu_max_heartrate"),
+        activity.get("icu_max_hr"),
+        activity.get("max_hr"),
+        default=0
+    ))
+
+    # === WORK (kJ) ===
+    # Intervals.icu returns joules, we need kilojoules
+    work_joules = safe_float(get_first_valid(
+        activity.get("icu_joules"),
+        activity.get("joules"),
+        default=0
+    ))
+    if work_joules > 0:
+        work_kj = int(work_joules / 1000)
+    elif avg_power > 0 and time_seconds > 0:
+        # Fallback: Calculate from avg power and time
+        # Note: This is an approximation assuming constant power output
+        work_kj = int((avg_power * time_seconds) / 1000)
+    else:
+        work_kj = 0
+
     # === POWER CURVE BESTS (PascalCase field names from API!) ===
     # Intervals.icu uses: Best1minpower, Best5minpower, Best10minpower, Best20minpower, Best60minpower
     best_1min = safe_int(get_first_valid(
@@ -257,6 +291,9 @@ def transform_activity(activity: dict) -> dict:
         "avg_speed": round(avg_speed_kmh, 1),
         "avg_power": avg_power,
         "norm_power": norm_power,
+        "avg_hr": avg_hr,
+        "max_hr": max_hr,
+        "work": work_kj,
         "load": load,
         "rpe": rpe,
         "best_1min": best_1min,

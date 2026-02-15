@@ -84,7 +84,24 @@ The AI will use the MCP server to fetch your data securely!
 
 ## Intervals.icu Integration
 
-The app also supports syncing with Intervals.icu via a Google Cloud Function. See [cloud-function/README.md](./cloud-function/README.md) for setup instructions.
+The app supports syncing with Intervals.icu via a **Google Cloud Function**. This architecture provides:
+
+- **✅ No CORS issues**: Cloud function handles API communication
+- **✅ Secure credentials**: API keys stored in Google Cloud Secret Manager
+- **✅ Proper data transformation**: Automatically maps all Intervals.icu fields to the app format
+- **✅ Indoor/Virtual ride detection**: Properly handles Zwift, TrainerRoad, etc.
+
+**Architecture:**
+```
+Frontend (React) → Cloud Function (Python) → Intervals.icu API
+```
+
+The cloud function is configured in `src/config.js`:
+```javascript
+export const CLOUD_SYNC_URL = "https://sync-intervals-97555677694.europe-west1.run.app";
+```
+
+For deployment and setup instructions, see [cloud-function/README.md](./cloud-function/README.md).
 
 ## Project Structure
 
