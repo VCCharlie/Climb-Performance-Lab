@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Mountain, TrendingUp, Flag, AlertTriangle, MapPin } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { CLIMB_DATABASE } from '../climbs';
+import { CLIMB_DATABASE, COGGAN_ZONES } from '../climbs';
 
 // Custom tooltip component (moved outside to avoid recreation on render)
 const CustomTooltip = ({ active, payload, showPowerZones, powerRecommendations }) => {

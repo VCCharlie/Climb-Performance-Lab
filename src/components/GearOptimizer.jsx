@@ -74,7 +74,7 @@ const GearOptimizer = ({ userSettings }) => {
         chainrings.forEach(chainring => {
             cassette.forEach(cog => {
                 const ratio = chainring / cog;
-                const gearInches = ratio * (wheelDiameter === 700 ? 27 : 26);
+                const development = ratio * wheelCircumference; // meters per pedal revolution
 
                 // Calculate cadence needed to achieve target speed
                 const cadenceNeeded = (speedMs / wheelCircumference) * 60 / ratio;
@@ -86,7 +86,7 @@ const GearOptimizer = ({ userSettings }) => {
                     chainring,
                     cog,
                     ratio,
-                    gearInches,
+                    development,
                     cadenceNeeded,
                     speedAtTargetCadence,
                     isSuitable: cadenceNeeded >= 60 && cadenceNeeded <= 100
@@ -344,13 +344,14 @@ const GearOptimizer = ({ userSettings }) => {
                                         {Math.round(gear.cadenceNeeded)} rpm
                                     </span>
                                     <span className="text-slate-500">
-                                        {gear.gearInches.toFixed(1)}"
+                                        {gear.development.toFixed(2)}m
                                     </span>
                                 </div>
                             ))}
                         </div>
                         <div className="text-xs text-slate-500 mt-2">
-                            Groene verzetten: 60-100 rpm | Geel = optimaal voor {targetCadence} rpm
+                            Groene verzetten: 60-100 rpm | Geel = optimaal voor {targetCadence} rpm<br />
+                            Development (m) = afstand per trapomwenteling
                         </div>
                     </div>
                 </div>
