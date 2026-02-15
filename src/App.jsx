@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Gauge, Mountain, Activity, Utensils, Brain } from 'lucide-react';
+import { Gauge, Mountain, Activity, Utensils, Brain, Route, Settings as SettingsIcon, TrendingUp } from 'lucide-react';
 import { doc, setDoc, getDoc, collection, getDocs, onSnapshot } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from './firebase';
@@ -15,6 +15,9 @@ import AICoach from './components/AICoach';
 import ClimbProfileCard from './components/ClimbProfileCard';
 import Dashboard from './components/Dashboard';
 import SettingsModal from './components/SettingsModal';
+import RacePacing from './components/RacePacing';
+import GearOptimizer from './components/GearOptimizer';
+import ClimbProfiler from './components/ClimbProfiler';
 
 const App = () => {
     const [activeTab, setActiveTab] = useState('dashboard');
@@ -166,6 +169,9 @@ const App = () => {
                         { id: 'physics', label: 'Physics', icon: Mountain },
                         { id: 'data', label: 'Data Hub', icon: Activity },
                         { id: 'fueling', label: 'Fueling', icon: Utensils },
+                        { id: 'racepacing', label: 'Race Pacing', icon: Route },
+                        { id: 'gearoptimizer', label: 'Gear Optimizer', icon: SettingsIcon },
+                        { id: 'profiler', label: 'Climb Profiler', icon: TrendingUp },
                     ].map(item => {
                         const isActive = activeTab === item.id;
                         return (
@@ -220,6 +226,12 @@ const App = () => {
                         )}
 
                         {activeTab === 'fueling' && <FuelingStrategy />}
+
+                        {activeTab === 'racepacing' && <RacePacing userSettings={userSettings} />}
+
+                        {activeTab === 'gearoptimizer' && <GearOptimizer userSettings={userSettings} />}
+
+                        {activeTab === 'profiler' && <ClimbProfiler userSettings={userSettings} />}
 
                         {isSettingsOpen && (
                             <SettingsModal
