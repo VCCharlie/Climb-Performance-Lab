@@ -235,6 +235,7 @@ def transform_activity(activity: dict) -> dict:
         work_kj = int(work_joules / 1000)
     elif avg_power > 0 and time_seconds > 0:
         # Fallback: Calculate from avg power and time
+        # Note: This is an approximation assuming constant power output
         work_kj = int((avg_power * time_seconds) / 1000)
     else:
         work_kj = 0
