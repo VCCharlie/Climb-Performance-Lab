@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Gauge, Mountain, Activity, Utensils, Brain, Route, Settings as SettingsIcon, TrendingUp } from 'lucide-react';
+import { Gauge, Mountain, Activity, Utensils, Brain, Route, Settings as SettingsIcon, TrendingUp, Menu, X, Heart, Trophy, Cloud } from 'lucide-react';
 import { doc, setDoc, getDoc, collection, getDocs, onSnapshot } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from './firebase';
@@ -18,12 +18,16 @@ import SettingsModal from './components/SettingsModal';
 import RacePacing from './components/RacePacing';
 import GearOptimizer from './components/GearOptimizer';
 import ClimbProfiler from './components/ClimbProfiler';
+import RecoveryAdvisor from './components/RecoveryAdvisor';
+import BucketList from './components/BucketList';
+import WeatherClimb from './components/WeatherClimb';
 
 const App = () => {
     const [activeTab, setActiveTab] = useState('dashboard');
     const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [syncStatus, setSyncStatus] = useState('idle'); // 'idle', 'syncing', 'synced', 'error'
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const [userSettings, setUserSettings] = useState({
         weight: 70.0,
@@ -63,6 +67,17 @@ const App = () => {
     const [fuelingState, setFuelingState] = useState({
         duration: 180,
         intensity: 0.85
+    });
+    const [bucketListState, setBucketListState] = useState({
+        climbStatus: {}
+    });
+    const [weatherClimbState, setWeatherClimbState] = useState({
+        selectedClimb: CLIMB_DATABASE[0],
+        targetPower: 280 * 0.85,
+        temperature: 20,
+        windSpeed: 0,
+        windDirection: 'none',
+        humidity: 50
     });
 
     // Auth Listener
@@ -185,33 +200,100 @@ const App = () => {
             />
 
             <main className={`mx-auto p-3 space-y-4 transition-all duration-300 ${activeTab === 'data' ? 'max-w-[95%]' : 'max-w-7xl'}`}>
-                <nav className="flex overflow-x-auto gap-4 pb-2 md:pb-0 border-b border-slate-700/50 mb-4 px-2">
-                    {[
-                        { id: 'dashboard', label: 'Dashboard', icon: Gauge },
-                        { id: 'coach', label: 'AI Coach', icon: Brain },
-                        { id: 'physics', label: 'Physics', icon: Mountain },
-                        { id: 'data', label: 'Data Hub', icon: Activity },
-                        { id: 'fueling', label: 'Fueling', icon: Utensils },
-                        { id: 'racepacing', label: 'Race Pacing', icon: Route },
-                        { id: 'gearoptimizer', label: 'Gear Optimizer', icon: SettingsIcon },
-                        { id: 'profiler', label: 'Climb Profiler', icon: TrendingUp },
-                    ].map(item => {
-                        const isActive = activeTab === item.id;
-                        return (
-                            <button
-                                key={item.id}
-                                onClick={() => setActiveTab(item.id)}
-                                className={`flex items-center gap-2 px-4 py-3 font-bold text-sm transition-all border-b-2 ${isActive
-                                    ? (isDark ? 'border-yellow-400 text-white' : 'border-blue-500 text-blue-600')
-                                    : 'border-transparent text-slate-500 hover:text-slate-400'
-                                    }`}
-                            >
-                                <item.icon className={`w-4 h-4 ${isActive ? (isDark ? 'text-yellow-400' : 'text-blue-500') : ''}`} />
-                                {item.label}
-                            </button>
-                        )
-                    })}
-                </nav>
+                {/* Navigation - Desktop & Mobile */}
+                <div className="relative">
+                    {/* Mobile: Hamburger Button */}
+                    <button
+                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                        className="md:hidden flex items-center gap-2 px-4 py-2 bg-slate-800 rounded border border-slate-700 text-white mb-4"
+                    >
+                        {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+                        <span className="font-bold text-sm">
+                            {[
+                                { id: 'dashboard', label: 'Dashboard' },
+                                { id: 'coach', label: 'AI Coach' },
+                                { id: 'physics', label: 'Physics' },
+                                { id: 'data', label: 'Data Hub' },
+                                { id: 'fueling', label: 'Fueling' },
+                                { id: 'racepacing', label: 'Race Pacing' },
+                                { id: 'gearoptimizer', label: 'Gear Optimizer' },
+                                { id: 'profiler', label: 'Climb Profiler' },
+                                { id: 'recovery', label: 'Recovery Advisor' },
+                                { id: 'bucketlist', label: 'Bucket List' },
+                                { id: 'weather', label: 'Weather Climb' },
+                            ].find(item => item.id === activeTab)?.label || 'Menu'}
+                        </span>
+                    </button>
+
+                    {/* Mobile: Dropdown Menu */}
+                    {isMobileMenuOpen && (
+                        <div className="md:hidden absolute top-full left-0 right-0 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50 mb-4">
+                            {[
+                                { id: 'dashboard', label: 'Dashboard', icon: Gauge },
+                                { id: 'coach', label: 'AI Coach', icon: Brain },
+                                { id: 'physics', label: 'Physics', icon: Mountain },
+                                { id: 'data', label: 'Data Hub', icon: Activity },
+                                { id: 'fueling', label: 'Fueling', icon: Utensils },
+                                { id: 'racepacing', label: 'Race Pacing', icon: Route },
+                                { id: 'gearoptimizer', label: 'Gear Optimizer', icon: SettingsIcon },
+                                { id: 'profiler', label: 'Climb Profiler', icon: TrendingUp },
+                                { id: 'recovery', label: 'Recovery Advisor', icon: Heart },
+                                { id: 'bucketlist', label: 'Bucket List', icon: Trophy },
+                                { id: 'weather', label: 'Weather Climb', icon: Cloud },
+                            ].map(item => {
+                                const isActive = activeTab === item.id;
+                                return (
+                                    <button
+                                        key={item.id}
+                                        onClick={() => {
+                                            setActiveTab(item.id);
+                                            setIsMobileMenuOpen(false);
+                                        }}
+                                        className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${isActive
+                                            ? 'bg-yellow-400/20 text-yellow-400 border-l-4 border-yellow-400'
+                                            : 'text-slate-300 hover:bg-slate-700'
+                                            }`}
+                                    >
+                                        <item.icon className="w-4 h-4" />
+                                        {item.label}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    {/* Desktop: Horizontal Tabs (more compact) */}
+                    <nav className="hidden md:flex overflow-x-auto gap-1 pb-2 border-b border-slate-700/50 mb-4">
+                        {[
+                            { id: 'dashboard', label: 'Dashboard', icon: Gauge },
+                            { id: 'coach', label: 'AI Coach', icon: Brain },
+                            { id: 'physics', label: 'Physics', icon: Mountain },
+                            { id: 'data', label: 'Data Hub', icon: Activity },
+                            { id: 'fueling', label: 'Fueling', icon: Utensils },
+                            { id: 'racepacing', label: 'Pacing', icon: Route },
+                            { id: 'gearoptimizer', label: 'Gear', icon: SettingsIcon },
+                            { id: 'profiler', label: 'Profiler', icon: TrendingUp },
+                            { id: 'recovery', label: 'Recovery', icon: Heart },
+                            { id: 'bucketlist', label: 'Bucket', icon: Trophy },
+                            { id: 'weather', label: 'Weather', icon: Cloud },
+                        ].map(item => {
+                            const isActive = activeTab === item.id;
+                            return (
+                                <button
+                                    key={item.id}
+                                    onClick={() => setActiveTab(item.id)}
+                                    className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold transition-all border-b-2 whitespace-nowrap ${isActive
+                                        ? (isDark ? 'border-yellow-400 text-white' : 'border-blue-500 text-blue-600')
+                                        : 'border-transparent text-slate-500 hover:text-slate-400'
+                                        }`}
+                                >
+                                    <item.icon className={`w-3.5 h-3.5 ${isActive ? (isDark ? 'text-yellow-400' : 'text-blue-500') : ''}`} />
+                                    {item.label}
+                                </button>
+                            );
+                        })}
+                    </nav>
+                </div>
 
                 {isLoading ? (
                     <div className="flex justify-center items-center h-64 text-slate-400 animate-pulse">Laden van data...</div>
@@ -280,6 +362,23 @@ const App = () => {
                                 userSettings={userSettings}
                                 initialState={climbProfilerState}
                                 onStateChange={setClimbProfilerState}
+                            />
+                        )}
+
+                        {activeTab === 'recovery' && <RecoveryAdvisor activities={activities} />}
+
+                        {activeTab === 'bucketlist' && (
+                            <BucketList
+                                initialState={bucketListState}
+                                onStateChange={setBucketListState}
+                            />
+                        )}
+
+                        {activeTab === 'weather' && (
+                            <WeatherClimb
+                                userSettings={userSettings}
+                                initialState={weatherClimbState}
+                                onStateChange={setWeatherClimbState}
                             />
                         )}
 

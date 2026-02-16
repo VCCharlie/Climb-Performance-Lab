@@ -368,7 +368,7 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
 
                     {/* Nutrition Recommendation */}
                     <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
-                        <div className="flex items-start justify-between gap-4">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                             <div className="flex-1">
                                 <h4 className="text-green-400 font-bold text-sm mb-2">💡 Voedingsstrategie</h4>
                                 <p className="text-sm text-slate-300">
@@ -384,7 +384,7 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
                             {onExportToFueling && (
                                 <button
                                     onClick={() => onExportToFueling(raceStrategy.totalTime, targetIntensity)}
-                                    className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm font-bold transition-colors whitespace-nowrap"
+                                    className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm font-bold transition-colors whitespace-nowrap w-full sm:w-auto justify-center"
                                 >
                                     <Utensils size={16} />
                                     Open in Fueling →
