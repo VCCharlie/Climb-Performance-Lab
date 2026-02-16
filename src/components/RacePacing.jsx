@@ -1,11 +1,15 @@
 import React, { useState, useMemo } from 'react';
-import { Mountain, Plus, Trash2, AlertTriangle, TrendingDown, Battery, Zap, Clock, Utensils } from 'lucide-react';
+import { Mountain, Plus, Trash2, AlertTriangle, TrendingDown, Battery, Zap, Clock, Utensils, Search, Filter } from 'lucide-react';
 import { CLIMB_DATABASE } from '../climbs';
 
 const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueling }) => {
     const [selectedClimbs, setSelectedClimbs] = useState(initialState?.selectedClimbs || []);
     const [recoveryMinutes, setRecoveryMinutes] = useState(initialState?.recoveryMinutes || {});
     const [targetIntensity, setTargetIntensity] = useState(initialState?.targetIntensity || 0.85);
+
+    // Search and filter state
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterRegion, setFilterRegion] = useState('all'); // 'all' or auto-detect from first climb
 
     // Sync state changes to parent
     React.useEffect(() => {
@@ -46,12 +50,40 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
         return timeSeconds / 60; // Return in minutes
     };
 
+    // Filter climbs based on search and region
+    const filteredClimbs = useMemo(() => {
+        let filtered = CLIMB_DATABASE;
+
+        // Apply search filter
+        if (searchTerm) {
+            filtered = filtered.filter(climb =>
+                climb.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                climb.country.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (climb.region && climb.region.toLowerCase().includes(searchTerm.toLowerCase()))
+            );
+        }
+
+        // Apply region filter (if we have climbs selected, suggest same region)
+        if (filterRegion !== 'all') {
+            filtered = filtered.filter(climb => climb.country === filterRegion);
+        } else if (selectedClimbs.length > 0) {
+            // Auto-suggest climbs from same country as the last added climb
+            const lastClimb = selectedClimbs[selectedClimbs.length - 1];
+            const sameRegion = filtered.filter(c => c.country === lastClimb.country);
+            const otherRegions = filtered.filter(c => c.country !== lastClimb.country);
+            filtered = [...sameRegion, ...otherRegions]; // Same region first
+        }
+
+        return filtered;
+    }, [searchTerm, filterRegion, selectedClimbs]);
+
     // Add climb to race plan
     const addClimb = (climbId) => {
         const climb = CLIMB_DATABASE.find(c => c.id === climbId);
         if (climb && !selectedClimbs.find(c => c.id === climbId)) {
             setSelectedClimbs([...selectedClimbs, climb]);
             setRecoveryMinutes({ ...recoveryMinutes, [climbId]: 30 });
+            setSearchTerm(''); // Clear search after adding
         }
     };
 
@@ -178,6 +210,39 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
                 <div className="space-y-4">
                     <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wide">Voeg Beklimmingen Toe</h3>
 
+                    {/* Search Field */}
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
+                        <input
+                            type="text"
+                            placeholder="Zoek climb (bijv. Ventoux, Alpe)..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-3 py-2 bg-slate-700 border border-slate-600 rounded text-white text-sm focus:border-yellow-400 outline-none"
+                        />
+                    </div>
+
+                    {/* Region Filter */}
+                    {selectedClimbs.length > 0 && (
+                        <div className="flex items-center gap-2 text-xs">
+                            <Filter size={14} className="text-slate-400" />
+                            <span className="text-slate-400">Filter:</span>
+                            <button
+                                onClick={() => setFilterRegion('all')}
+                                className={`px-2 py-1 rounded ${filterRegion === 'all' ? 'bg-yellow-400 text-slate-900 font-bold' : 'bg-slate-700 text-slate-300'}`}
+                            >
+                                Alle
+                            </button>
+                            <button
+                                onClick={() => setFilterRegion(selectedClimbs[selectedClimbs.length - 1].country)}
+                                className={`px-2 py-1 rounded ${filterRegion !== 'all' ? 'bg-yellow-400 text-slate-900 font-bold' : 'bg-slate-700 text-slate-300'}`}
+                            >
+                                {selectedClimbs[selectedClimbs.length - 1].flag} Zelfde regio
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Filtered Dropdown */}
                     <select
                         onChange={(e) => {
                             if (e.target.value) {
@@ -186,9 +251,10 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
                             }
                         }}
                         className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm"
+                        value=""
                     >
-                        <option value="">Selecteer een climb...</option>
-                        {CLIMB_DATABASE.map(climb => (
+                        <option value="">Selecteer een climb... ({filteredClimbs.length} resultaten)</option>
+                        {filteredClimbs.map(climb => (
                             <option key={climb.id} value={climb.id}>
                                 {climb.flag} {climb.name} - {climb.lengthKm}km @ {climb.avgGrade}%
                             </option>

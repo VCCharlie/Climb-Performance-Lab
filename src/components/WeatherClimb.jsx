@@ -1,6 +1,22 @@
 import React, { useState, useMemo } from 'react';
-import { Cloud, Wind, Thermometer, Droplets, Sun, CloudRain, AlertTriangle } from 'lucide-react';
+import { Cloud, Wind, Thermometer, Droplets, Sun, CloudRain, AlertTriangle, Search, RefreshCw } from 'lucide-react';
 import { CLIMB_DATABASE } from '../climbs';
+
+// Approximate locations for popular climbs (city/town for weather lookup)
+const CLIMB_LOCATIONS = {
+    fr_alpe: 'Bourg-d\'Oisans,FR',
+    fr_ventoux: 'Bédoin,FR',
+    fr_ventoux_mal: 'Malaucène,FR',
+    fr_tourmalet: 'Luz-Saint-Sauveur,FR',
+    fr_galibier: 'Valloire,FR',
+    fr_aubisque: 'Laruns,FR',
+    it_stelvio: 'Prato allo Stelvio,IT',
+    it_zoncolan: 'Ovaro,IT',
+    it_gavia: 'Bormio,IT',
+    ch_grimsel: 'Gletsch,CH',
+    ch_furka: 'Realp,CH',
+    // Add more as needed
+};
 
 const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
     const [selectedClimb, setSelectedClimb] = useState(initialState?.selectedClimb || CLIMB_DATABASE[0]);
@@ -12,12 +28,82 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
     const [windDirection, setWindDirection] = useState(initialState?.windDirection || 'none'); // headwind, tailwind, none
     const [humidity, setHumidity] = useState(initialState?.humidity || 50);
 
+    // Weather API
+    const [location, setLocation] = useState('');
+    const [apiKey, setApiKey] = useState(localStorage.getItem('openweather_api_key') || '');
+    const [isLoadingWeather, setIsLoadingWeather] = useState(false);
+    const [weatherError, setWeatherError] = useState(null);
+
     // Sync state changes to parent
     React.useEffect(() => {
         if (onStateChange) {
             onStateChange({ selectedClimb, targetPower, temperature, windSpeed, windDirection, humidity });
         }
     }, [selectedClimb, targetPower, temperature, windSpeed, windDirection, humidity, onStateChange]);
+
+    // Auto-set location when climb changes
+    React.useEffect(() => {
+        const climbLocation = CLIMB_LOCATIONS[selectedClimb.id];
+        if (climbLocation) {
+            setLocation(climbLocation);
+        } else {
+            // Generic location based on climb name
+            setLocation(`${selectedClimb.name.split('(')[0].trim()},${selectedClimb.country}`);
+        }
+    }, [selectedClimb]);
+
+    // Fetch weather from OpenWeatherMap API
+    const fetchWeather = async () => {
+        if (!apiKey) {
+            setWeatherError('Voer eerst een OpenWeatherMap API key in (gratis op openweathermap.org)');
+            return;
+        }
+
+        if (!location) {
+            setWeatherError('Voer een locatie in');
+            return;
+        }
+
+        setIsLoadingWeather(true);
+        setWeatherError(null);
+
+        try {
+            const response = await fetch(
+                `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(location)}&appid=${apiKey}&units=metric`
+            );
+
+            if (!response.ok) {
+                throw new Error('Locatie niet gevonden of ongeldige API key');
+            }
+
+            const data = await response.json();
+
+            // Update weather conditions
+            setTemperature(Math.round(data.main.temp));
+            setHumidity(data.main.humidity);
+            setWindSpeed(Math.round(data.wind.speed * 3.6)); // m/s to km/h
+
+            // Determine wind direction relative to climb (simplified)
+            // In reality, you'd need climb orientation data
+            setWindDirection('none'); // Default, user can adjust
+
+            setWeatherError(null);
+        } catch (error) {
+            setWeatherError(error.message || 'Fout bij ophalen weer');
+        } finally {
+            setIsLoadingWeather(false);
+        }
+    };
+
+    // Save API key to localStorage
+    const saveApiKey = (key) => {
+        setApiKey(key);
+        if (key) {
+            localStorage.setItem('openweather_api_key', key);
+        } else {
+            localStorage.removeItem('openweather_api_key');
+        }
+    };
 
     // Physics constants
     const CRR = 0.004;
@@ -186,6 +272,89 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                     <p><strong>• Luchtvochtigheid:</strong> Hoge vochtigheid vermindert zweet verdamping (oververhitting risico)</p>
                     <p><strong>💡 Tip:</strong> Plan je beklimmingen in de ochtend bij warme dagen!</p>
                 </div>
+            </div>
+
+            {/* Weather API Section */}
+            <div className="bg-slate-900 p-4 rounded border border-slate-700 space-y-4">
+                <h3 className="text-white font-bold text-sm flex items-center gap-2">
+                    <Cloud className="text-cyan-400" size={16} />
+                    Live Weersgegevens Ophalen (Optioneel)
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* API Key Input */}
+                    <div>
+                        <label className="text-xs text-slate-400 uppercase block mb-1">
+                            OpenWeatherMap API Key
+                            <a
+                                href="https://openweathermap.org/api"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-400 hover:underline ml-2"
+                            >
+                                (Gratis aanmaken →)
+                            </a>
+                        </label>
+                        <input
+                            type="text"
+                            placeholder="Vul je API key in..."
+                            value={apiKey}
+                            onChange={(e) => saveApiKey(e.target.value)}
+                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded text-white text-sm focus:border-cyan-400 outline-none"
+                        />
+                    </div>
+
+                    {/* Location Search */}
+                    <div>
+                        <label className="text-xs text-slate-400 uppercase block mb-1">Locatie</label>
+                        <div className="flex gap-2">
+                            <div className="relative flex-1">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={14} />
+                                <input
+                                    type="text"
+                                    placeholder="Bijv. Bourg-d'Oisans,FR"
+                                    value={location}
+                                    onChange={(e) => setLocation(e.target.value)}
+                                    className="w-full pl-9 pr-3 py-2 bg-slate-700 border border-slate-600 rounded text-white text-sm focus:border-cyan-400 outline-none"
+                                />
+                            </div>
+                            <button
+                                onClick={fetchWeather}
+                                disabled={isLoadingWeather || !apiKey}
+                                className={`px-4 py-2 rounded text-sm font-bold transition-colors flex items-center gap-2 ${
+                                    isLoadingWeather || !apiKey
+                                        ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                                        : 'bg-cyan-500 hover:bg-cyan-600 text-white'
+                                }`}
+                            >
+                                {isLoadingWeather ? (
+                                    <>
+                                        <RefreshCw size={14} className="animate-spin" />
+                                        Laden...
+                                    </>
+                                ) : (
+                                    <>
+                                        <RefreshCw size={14} />
+                                        Haal op
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Error/Success Messages */}
+                {weatherError && (
+                    <div className="bg-red-500/10 border border-red-500/30 rounded p-3 text-red-300 text-sm">
+                        ⚠️ {weatherError}
+                    </div>
+                )}
+
+                {!weatherError && !isLoadingWeather && location && (
+                    <div className="text-xs text-slate-500">
+                        💡 Klik op "Haal op" om actuele weersgegevens voor {location} te laden
+                    </div>
+                )}
             </div>
 
             {/* Configuration */}
