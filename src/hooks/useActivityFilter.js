@@ -1,5 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 
+import { MONTH_ORDER } from '../config';
+
 // Helper inside hook or import
 const isValid = (act) => act && act.id && act.date;
 
@@ -8,29 +10,27 @@ const useActivityFilter = (activities) => {
     const [indoorFilter, setIndoorFilter] = useState('all'); // 'all', 'indoor', 'outdoor'
     const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
 
-    // We store explicit collapse state. If a key is not present, it is considered expanded (true)
-    const [expandedYears, setExpandedYears] = useState({});
-    const [expandedMonths, setExpandedMonths] = useState({});
+    // We store explicit collapse state.
+    const [expandedYears, setExpandedYears] = useState(null);
+    const [expandedMonths, setExpandedMonths] = useState(null);
 
     // -- Actions --
     const requestSort = useCallback((key) => {
         setSortConfig(prev => ({ key, direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc' }));
     }, []);
 
-    // Toggle year (default is true, so if undefined we set to false)
     const toggleYear = useCallback((year) => {
-        setExpandedYears(p => ({ ...p, [year]: p[year] === false ? true : false }));
+        setExpandedYears(p => ({ ...p, [year]: !p[year] }));
     }, []);
 
-    // Toggle month (default is true, so if undefined we set to false)
     const toggleMonth = useCallback((year, month) => {
         const key = `${year}-${month}`;
-        setExpandedMonths(p => ({ ...p, [key]: p[key] === false ? true : false }));
+        setExpandedMonths(p => ({ ...p, [key]: !p[key] }));
     }, []);
 
-    // Checkers
-    const isYearExpanded = useCallback((year) => expandedYears[year] !== false, [expandedYears]);
-    const isMonthExpanded = useCallback((year, month) => expandedMonths[`${year}-${month}`] !== false, [expandedMonths]);
+    // Checkers - Note: Default is now false because we prepopulate true keys!
+    const isYearExpanded = useCallback((year) => expandedYears?.[year] === true, [expandedYears]);
+    const isMonthExpanded = useCallback((year, month) => expandedMonths?.[`${year}-${month}`] === true, [expandedMonths]);
 
     // -- Derived State --
     const processedActivities = useMemo(() => {
@@ -85,6 +85,7 @@ const useActivityFilter = (activities) => {
     const groupedActivities = useMemo(() => {
         if (!isGroupedView) return null;
         const groups = {};
+
         processedActivities.forEach(act => {
             try {
                 const d = new Date(act.date);
@@ -95,8 +96,37 @@ const useActivityFilter = (activities) => {
                 groups[y][m].push(act);
             } catch (e) { }
         });
+
+        // Auto-expand last 6 ACTIVE months if not already defined
+        if (expandedYears === null && expandedMonths === null && Object.keys(groups).length > 0) {
+            const initialY = {};
+            const initialM = {};
+
+            // Extract all absolute month strings present
+            const activeMonthKeys = [];
+            Object.keys(groups).sort((a, b) => b - a).forEach(y => {
+                Object.keys(groups[y]).sort((a, b) => MONTH_ORDER.indexOf(b) - MONTH_ORDER.indexOf(a)).forEach(m => {
+                    activeMonthKeys.push({ year: y, month: m });
+                });
+            });
+
+            // Take top 6
+            const top6 = activeMonthKeys.slice(0, 6);
+            top6.forEach(({ year, month }) => {
+                initialY[year] = true;
+                initialM[`${year}-${month}`] = true;
+            });
+
+            // We set state directly inside useMemo (anti-pattern) or useEffect?
+            // Safer to do it via timeout to avoid React warnings during render phase
+            setTimeout(() => {
+                setExpandedYears(prev => prev || initialY);
+                setExpandedMonths(prev => prev || initialM);
+            }, 0);
+        }
+
         return groups;
-    }, [processedActivities, isGroupedView]);
+    }, [processedActivities, isGroupedView, expandedYears, expandedMonths]);
 
     return {
         search, setSearch,
@@ -111,3 +141,4 @@ const useActivityFilter = (activities) => {
 };
 
 export default useActivityFilter;
+
