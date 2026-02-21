@@ -15,9 +15,9 @@ const SortIcon = ({ colKey, config }) => {
 export const TableHeader = ({ config, requestSort, hasActions = true, isPreview = false }) => (
     <thead className="bg-cdbg text-cdmuted uppercase font-bold sticky top-0 z-10 shadow-md text-[0.7rem] tracking-wider">
         <tr>
-            {isPreview && <th className="p-3 w-10"></th>}
+            {isPreview && <th className="px-2 py-2 w-8"></th>}
             {ACTIVITY_COLUMNS.map((col) => (
-                <th key={col.key} className={`p-3 cursor-pointer hover:bg-cdsurface transition-colors select-none text-${col.align} ${col.width || ''}`} onClick={() => requestSort && requestSort(col.key)}>
+                <th key={col.key} className={`px-2 py-2 cursor-pointer hover:bg-cdsurface transition-colors select-none text-${col.align} ${col.width || ''}`} onClick={() => requestSort && requestSort(col.key)}>
                     <span className={`flex items-center gap-1 ${col.align === 'right' ? 'justify-end' : col.align === 'center' ? 'justify-center' : 'justify-start'}`}>
                         {col.align === 'left' && <span>{col.label}</span>}
                         {requestSort && <SortIcon colKey={col.key} config={config} />}
@@ -25,7 +25,7 @@ export const TableHeader = ({ config, requestSort, hasActions = true, isPreview 
                     </span>
                 </th>
             ))}
-            {hasActions && <th className="p-3 text-right">Action</th>}
+            {hasActions && <th className="px-2 py-2 text-right w-24">Action</th>}
         </tr>
     </thead>
 );
@@ -70,9 +70,9 @@ export const Row = React.memo(({ act, onDelete, onEdit, deleteConfirm, setDelete
 
     return (
         <tr className={`hover:bg-cdborder/50 transition-colors border-b border-cdborder/50 ${isSelected ? 'bg-cdborder/30' : ''}`} onClick={onToggleSelect ? () => onToggleSelect(act.id) : undefined}>
-            {isPreview && <td className="p-3 w-10"><input type="checkbox" checked={isSelected} readOnly className="w-4 h-4 accent-green-500 cursor-pointer" /></td>}
-            {ACTIVITY_COLUMNS.map(col => <td key={col.key} className={`p-3 text-${col.align} text-xs ${col.width || ''}`}>{renderCell(col)}</td>)}
-            {!isPreview && <td className="p-3 text-right">
+            {isPreview && <td className="px-2 py-1.5 w-8"><input type="checkbox" checked={isSelected} readOnly className="w-4 h-4 accent-green-500 cursor-pointer" /></td>}
+            {ACTIVITY_COLUMNS.map(col => <td key={col.key} className={`px-2 py-1.5 text-${col.align} text-xs ${col.width || ''}`}>{renderCell(col)}</td>)}
+            {!isPreview && <td className="px-2 py-1.5 text-right w-24">
                 {deleteConfirm === act.id ? (
                     <div className="flex gap-2 justify-end">
                         <button onClick={(e) => { e.stopPropagation(); onDelete(act.id) }} className="text-red-500 font-bold text-xs bg-red-500/10 px-2 py-1 rounded">SURE?</button>
@@ -123,7 +123,7 @@ const ActivityTable = ({ activities, sortConfig, onSort, onDelete, onEdit, isGro
     // Let's accept `groupedActivities` as an optional prop.
 
     return (
-        <div className="overflow-x-auto overflow-y-auto flex-1 border border-cdborder rounded-lg custom-scrollbar relative">
+        <div className="overflow-x-auto overflow-y-auto flex-1 border border-cdborder rounded-lg custom-scrollbar relative max-h-[65vh]">
             <table className="w-full text-left text-xs whitespace-nowrap">
                 <TableHeader config={sortConfig} requestSort={onSort} hasActions={true} isPreview={false} />
                 <tbody className="divide-y divide-cdborder bg-cdsurface">
