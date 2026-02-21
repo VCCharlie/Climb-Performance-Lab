@@ -1,0 +1,33 @@
+name: Nightly Intervals Sync
+
+on:
+  schedule:
+    # Runs every night at 03:00 UTC (05:00 CEST / 04:00 CET)
+    - cron: '0 3 * * *'
+  # Allows manual triggering via the Actions tab on GitHub
+  workflow_dispatch:
+
+jobs:
+  sync-to-firebase:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Firebase Admin
+        # Installed here only — intentionally NOT in package.json to keep the
+        # front-end bundle free of server-side dependencies.
+        run: npm install firebase-admin
+
+      - name: Run Nightly Sync Script
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          INTERVALS_ATHLETE_ID: ${{ secrets.INTERVALS_ATHLETE_ID }}
+          INTERVALS_API_KEY: ${{ secrets.INTERVALS_API_KEY }}
+        run: node scripts/nightlySync.js
