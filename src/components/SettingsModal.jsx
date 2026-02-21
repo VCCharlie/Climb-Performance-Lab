@@ -21,7 +21,7 @@ const SettingsModal = ({
     };
 
     const setAllSportFilters = (val) => {
-        import('../../config').then(({ SPORT_TYPES }) => {
+        import('../config').then(({ SPORT_TYPES }) => {
             if (setSportFilters) setSportFilters(SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: val }), {}));
         });
     };
