@@ -3,6 +3,7 @@ import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
     Legend, ResponsiveContainer
 } from 'recharts';
+import PowerCurveChart from './charts/PowerCurveChart';
 
 /**
  * PowerTab: Shows power-specific metrics:
@@ -107,7 +108,7 @@ const PowerTab = ({ data }) => {
                                 contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f1f5f9' }}
                                 itemStyle={{ color: '#94a3b8' }}
                                 itemSorter={(item) => {
-                                    // Force tooltip rows to appear in 5 → 20 → 60 order
+                                    // Recharts sorts ascending by the returned value
                                     const order = { '5 min': 0, '20 min': 1, '60 min': 2 };
                                     return order[item.name] ?? 99;
                                 }}
@@ -144,6 +145,9 @@ const PowerTab = ({ data }) => {
                     </ResponsiveContainer>
                 </div>
             </div>
+
+            {/* Power Curve (MMP) */}
+            <PowerCurveChart data={data} />
         </div>
     );
 };

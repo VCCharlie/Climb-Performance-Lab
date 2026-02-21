@@ -1,12 +1,13 @@
 import React from 'react';
 import PerformanceModule from '../PerformanceModule';
+import BarChartCard from './charts/BarChartCard';
+import ActivityHeatmap from './charts/ActivityHeatmap';
 
 /**
- * OverviewTab: Shows the main dashboard metrics and performance charts.
- * Wraps the existing PerformanceModule which already contains:
- *   - StatCards (FTP, eFTP, Load, Rides)
- *   - PeriodStatistics summary
- *   - FTP Progression & Load chart
+ * OverviewTab: Main Dashboard overview.
+ *  - StatCards + FTP Progression (PerformanceModule)
+ *  - Bar charts: Distance / TSS / Elevation (each with Week/Month toggle)
+ *  - 52-week Activity Heatmap
  */
 const OverviewTab = ({ data, manualFtp, customTicks }) => {
     if (!data || data.length === 0) {
@@ -19,11 +20,40 @@ const OverviewTab = ({ data, manualFtp, customTicks }) => {
 
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
+            {/* Stat cards + FTP progression chart */}
             <PerformanceModule
                 data={data}
                 manualFtp={manualFtp}
                 customTicks={customTicks}
             />
+
+            {/* Bar charts: 3 columns, each with their own week/month toggle */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <BarChartCard
+                    data={data}
+                    metric="distance"
+                    title="Afstand"
+                    unit="km"
+                    color="rgba(59,130,246,0.75)"
+                />
+                <BarChartCard
+                    data={data}
+                    metric="tss"
+                    title="TSS"
+                    unit="TSS"
+                    color="rgba(249,115,22,0.75)"
+                />
+                <BarChartCard
+                    data={data}
+                    metric="elevation"
+                    title="Hoogtemeters"
+                    unit="m"
+                    color="rgba(34,197,94,0.75)"
+                />
+            </div>
+
+            {/* 52-week activity heatmap — always uses full dataset regardless of time filter */}
+            <ActivityHeatmap data={data} />
         </div>
     );
 };
