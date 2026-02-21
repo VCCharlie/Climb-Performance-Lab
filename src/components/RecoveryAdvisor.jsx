@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+﻿import React, { useMemo } from 'react';
 import { Activity, TrendingUp, TrendingDown, Calendar, AlertTriangle, CheckCircle, Zap } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts';
 
@@ -139,12 +139,12 @@ const RecoveryAdvisor = ({ activities }) => {
         if (active && payload && payload.length) {
             const data = payload[0].payload;
             return (
-                <div className="bg-slate-800 border border-slate-600 p-3 rounded shadow-lg">
-                    <p className="text-white text-sm font-bold mb-2">{new Date(data.date).toLocaleDateString('nl-NL')}</p>
+                <div className="bg-cdsurface border border-cdborder p-3 rounded shadow-lg">
+                    <p className="text-cdtext text-sm font-bold mb-2">{new Date(data.date).toLocaleDateString('nl-NL')}</p>
                     <p className="text-blue-400 text-xs">CTL (Fitness): {data.ctl}</p>
                     <p className="text-red-400 text-xs">ATL (Fatigue): {data.atl}</p>
                     <p className="text-yellow-400 text-xs">TSB (Form): {data.tsb}</p>
-                    {data.load > 0 && <p className="text-slate-300 text-xs mt-1">Training Load: {data.load}</p>}
+                    {data.load > 0 && <p className="text-cdtext text-xs mt-1">Training Load: {data.load}</p>}
                 </div>
             );
         }
@@ -153,12 +153,12 @@ const RecoveryAdvisor = ({ activities }) => {
 
     if (!trainingMetrics.current) {
         return (
-            <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
-                <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl">
+                <h2 className="text-xl font-bold text-cdtext mb-4 flex items-center gap-2">
                     <Activity className="text-purple-400" />
                     Training Load & Recovery Advisor
                 </h2>
-                <div className="text-center py-12 text-slate-400">
+                <div className="text-center py-12 text-cdmuted">
                     <Calendar size={48} className="mx-auto mb-4 opacity-50" />
                     <p>Geen activiteiten gevonden in de laatste 90 dagen.</p>
                     <p className="text-sm mt-2">Import je trainingsdata via de Data Hub tab.</p>
@@ -168,91 +168,91 @@ const RecoveryAdvisor = ({ activities }) => {
     }
 
     return (
-        <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl space-y-6">
+        <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl space-y-6">
             <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <h2 className="text-xl font-bold text-cdtext flex items-center gap-2">
                     <Activity className="text-purple-400" />
                     Training Load & Recovery Advisor
                 </h2>
-                <div className="text-xs text-slate-400 bg-slate-900 px-3 py-1 rounded-full border border-slate-700">
+                <div className="text-xs text-cdmuted bg-cdbg px-3 py-1 rounded-full border border-cdborder">
                     Performance Management Chart
                 </div>
             </div>
 
             {/* Methodology Info */}
             <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-                <h4 className="text-blue-400 font-bold text-sm mb-2">ℹ️ Hoe werkt dit?</h4>
-                <div className="text-xs text-slate-300 space-y-1">
-                    <p><strong>• CTL (Fitness):</strong> 42-daags gemiddelde van training load. Hogere waarde = betere conditie</p>
-                    <p><strong>• ATL (Fatigue):</strong> 7-daags gemiddelde. Hogere waarde = meer vermoeidheid</p>
-                    <p><strong>• TSB (Form):</strong> CTL - ATL. Negatief = vermoeid, Positief = fris, 5-25 = race ready</p>
-                    <p><strong>💡 Ideaal TSB voor races:</strong> +5 tot +25 (fris maar niet deconditioned)</p>
+                <h4 className="text-blue-400 font-bold text-sm mb-2">â„¹ï¸ Hoe werkt dit?</h4>
+                <div className="text-xs text-cdtext space-y-1">
+                    <p><strong>â€¢ CTL (Fitness):</strong> 42-daags gemiddelde van training load. Hogere waarde = betere conditie</p>
+                    <p><strong>â€¢ ATL (Fatigue):</strong> 7-daags gemiddelde. Hogere waarde = meer vermoeidheid</p>
+                    <p><strong>â€¢ TSB (Form):</strong> CTL - ATL. Negatief = vermoeid, Positief = fris, 5-25 = race ready</p>
+                    <p><strong>ðŸ’¡ Ideaal TSB voor races:</strong> +5 tot +25 (fris maar niet deconditioned)</p>
                 </div>
             </div>
 
             {/* Current Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-slate-900 p-4 rounded border border-slate-700">
+                <div className="bg-cdbg p-4 rounded border border-cdborder">
                     <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-slate-400 uppercase">Fitness (CTL)</span>
+                        <span className="text-xs text-cdmuted uppercase">Fitness (CTL)</span>
                         <TrendingUp className="text-blue-400" size={16} />
                     </div>
                     <div className="text-3xl font-bold text-blue-400">{trainingMetrics.current.ctl}</div>
-                    <p className="text-xs text-slate-500 mt-1">Chronic Training Load</p>
+                    <p className="text-xs text-cdmuted mt-1">Chronic Training Load</p>
                 </div>
 
-                <div className="bg-slate-900 p-4 rounded border border-slate-700">
+                <div className="bg-cdbg p-4 rounded border border-cdborder">
                     <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-slate-400 uppercase">Fatigue (ATL)</span>
+                        <span className="text-xs text-cdmuted uppercase">Fatigue (ATL)</span>
                         <TrendingDown className="text-red-400" size={16} />
                     </div>
                     <div className="text-3xl font-bold text-red-400">{trainingMetrics.current.atl}</div>
-                    <p className="text-xs text-slate-500 mt-1">Acute Training Load</p>
+                    <p className="text-xs text-cdmuted mt-1">Acute Training Load</p>
                 </div>
 
-                <div className={`bg-slate-900 p-4 rounded border ${trainingMetrics.current.tsb < -10
-                        ? 'border-red-500/50'
-                        : trainingMetrics.current.tsb > 25
-                            ? 'border-blue-500/50'
-                            : 'border-green-500/50'
+                <div className={`bg-cdbg p-4 rounded border ${trainingMetrics.current.tsb < -10
+                    ? 'border-red-500/50'
+                    : trainingMetrics.current.tsb > 25
+                        ? 'border-blue-500/50'
+                        : 'border-green-500/50'
                     }`}>
                     <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-slate-400 uppercase">Form (TSB)</span>
+                        <span className="text-xs text-cdmuted uppercase">Form (TSB)</span>
                         <Activity className={`${trainingMetrics.current.tsb < -10
-                                ? 'text-red-400'
-                                : trainingMetrics.current.tsb > 25
-                                    ? 'text-blue-400'
-                                    : 'text-green-400'
-                            }`} size={16} />
-                    </div>
-                    <div className={`text-3xl font-bold ${trainingMetrics.current.tsb < -10
                             ? 'text-red-400'
                             : trainingMetrics.current.tsb > 25
                                 ? 'text-blue-400'
                                 : 'text-green-400'
+                            }`} size={16} />
+                    </div>
+                    <div className={`text-3xl font-bold ${trainingMetrics.current.tsb < -10
+                        ? 'text-red-400'
+                        : trainingMetrics.current.tsb > 25
+                            ? 'text-blue-400'
+                            : 'text-green-400'
                         }`}>
                         {trainingMetrics.current.tsb > 0 ? '+' : ''}{trainingMetrics.current.tsb}
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">Training Stress Balance</p>
+                    <p className="text-xs text-cdmuted mt-1">Training Stress Balance</p>
                 </div>
             </div>
 
             {/* Recommendations */}
             {trainingMetrics.recommendations.length > 0 && (
                 <div className="space-y-2">
-                    <h3 className="text-white font-bold text-sm uppercase tracking-wide">Aanbevelingen</h3>
+                    <h3 className="text-cdtext font-bold text-sm uppercase tracking-wide">Aanbevelingen</h3>
                     {trainingMetrics.recommendations.map((rec, idx) => {
                         const Icon = rec.icon;
                         return (
                             <div
                                 key={idx}
                                 className={`p-3 rounded border text-sm flex items-start gap-3 ${rec.type === 'success'
-                                        ? 'bg-green-500/10 border-green-500/30 text-green-300'
-                                        : rec.type === 'warning'
-                                            ? 'bg-red-500/10 border-red-500/30 text-red-300'
-                                            : rec.type === 'caution'
-                                                ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-300'
-                                                : 'bg-blue-500/10 border-blue-500/30 text-blue-300'
+                                    ? 'bg-green-500/10 border-green-500/30 text-green-300'
+                                    : rec.type === 'warning'
+                                        ? 'bg-red-500/10 border-red-500/30 text-red-300'
+                                        : rec.type === 'caution'
+                                            ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-300'
+                                            : 'bg-blue-500/10 border-blue-500/30 text-blue-300'
                                     }`}
                             >
                                 <Icon size={18} className="flex-shrink-0 mt-0.5" />
@@ -267,22 +267,22 @@ const RecoveryAdvisor = ({ activities }) => {
             )}
 
             {/* Chart */}
-            <div className="bg-slate-900 p-4 rounded border border-slate-700">
-                <h3 className="text-white font-bold text-sm mb-4 uppercase tracking-wide">
+            <div className="bg-cdbg p-4 rounded border border-cdborder">
+                <h3 className="text-cdtext font-bold text-sm mb-4 uppercase tracking-wide">
                     Laatste 90 Dagen - Performance Management Chart
                 </h3>
                 <ResponsiveContainer width="100%" height={300}>
                     <LineChart data={trainingMetrics.chartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                         <XAxis
                             dataKey="date"
-                            stroke="#94a3b8"
-                            tick={{ fill: '#94a3b8', fontSize: 10 }}
+                            stroke="#64748b"
+                            tick={{ fill: '#64748b', fontSize: 10 }}
                             tickFormatter={(date) => new Date(date).toLocaleDateString('nl-NL', { month: 'short', day: 'numeric' })}
                         />
                         <YAxis
-                            stroke="#94a3b8"
-                            tick={{ fill: '#94a3b8', fontSize: 12 }}
+                            stroke="#64748b"
+                            tick={{ fill: '#64748b', fontSize: 12 }}
                         />
                         <Tooltip content={<CustomTooltip />} />
                         <Legend wrapperStyle={{ fontSize: '12px' }} />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { Gauge, Mountain, Activity, Utensils, Brain, Route, Settings as SettingsIcon, TrendingUp, Menu, X, Heart, Trophy, Cloud } from 'lucide-react';
 import { doc, setDoc, getDoc, collection, getDocs, onSnapshot } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
@@ -185,9 +185,9 @@ const App = () => {
 
 
     const isDark = theme === 'dark';
-    const mainClass = isDark ? 'bg-slate-950 text-slate-200' : 'bg-slate-100 text-slate-900';
-    const navBtnActive = isDark ? 'bg-yellow-400 text-slate-900 shadow-lg shadow-yellow-400/20' : 'bg-white text-slate-900 border border-slate-300 shadow-md';
-    const navBtnInactive = isDark ? 'bg-slate-800 text-slate-400 hover:text-white' : 'bg-slate-200 text-slate-500 hover:text-slate-900 hover:bg-white';
+    const mainClass = isDark ? 'bg-cdbg text-cdtext' : 'bg-cdbg text-cdtext';
+    const navBtnActive = isDark ? 'bg-cdaccent text-white shadow-lg border border-cdaccent' : 'bg-cdaccent text-white shadow-lg border border-cdaccent';
+    const navBtnInactive = isDark ? 'bg-cdsurface text-cdmuted hover:text-cdtext hover:bg-cdsurface' : 'bg-cdsurface text-cdmuted hover:text-cdtext hover:bg-cdsurface';
 
     return (
         <div className={`min-h-screen font-sans pb-20 transition-colors duration-300 ${mainClass}`}>
@@ -205,7 +205,7 @@ const App = () => {
                     {/* Mobile: Hamburger Button */}
                     <button
                         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                        className="md:hidden flex items-center gap-2 px-4 py-2 bg-slate-800 rounded border border-slate-700 text-white mb-4"
+                        className="md:hidden flex items-center gap-2 px-4 py-2 bg-cdsurface rounded border border-cdborder text-cdtext mb-4"
                     >
                         {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
                         <span className="font-bold text-sm">
@@ -227,7 +227,7 @@ const App = () => {
 
                     {/* Mobile: Dropdown Menu */}
                     {isMobileMenuOpen && (
-                        <div className="md:hidden absolute top-full left-0 right-0 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50 mb-4">
+                        <div className="md:hidden absolute top-full left-0 right-0 bg-cdsurface border border-cdborder rounded-lg shadow-xl z-50 mb-4">
                             {[
                                 { id: 'dashboard', label: 'Dashboard', icon: Gauge },
                                 { id: 'coach', label: 'AI Coach', icon: Brain },
@@ -250,8 +250,8 @@ const App = () => {
                                             setIsMobileMenuOpen(false);
                                         }}
                                         className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${isActive
-                                            ? 'bg-yellow-400/20 text-yellow-400 border-l-4 border-yellow-400'
-                                            : 'text-slate-300 hover:bg-slate-700'
+                                            ? 'bg-cdaccent/20 text-cdaccent border-l-4 border-cdaccent'
+                                            : 'text-cdtext hover:bg-cdborder'
                                             }`}
                                     >
                                         <item.icon className="w-4 h-4" />
@@ -263,7 +263,7 @@ const App = () => {
                     )}
 
                     {/* Desktop: Horizontal Tabs (more compact) */}
-                    <nav className="hidden md:flex overflow-x-auto gap-1 pb-2 border-b border-slate-700/50 mb-4">
+                    <nav className="hidden md:flex overflow-x-auto gap-1 pb-2 border-b border-cdborder/50 mb-4">
                         {[
                             { id: 'dashboard', label: 'Dashboard', icon: Gauge },
                             { id: 'coach', label: 'AI Coach', icon: Brain },
@@ -283,11 +283,11 @@ const App = () => {
                                     key={item.id}
                                     onClick={() => setActiveTab(item.id)}
                                     className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold transition-all border-b-2 whitespace-nowrap ${isActive
-                                        ? (isDark ? 'border-yellow-400 text-white' : 'border-blue-500 text-blue-600')
-                                        : 'border-transparent text-slate-500 hover:text-slate-400'
+                                        ? 'border-cdaccent text-cdtext'
+                                        : 'border-transparent text-cdmuted hover:text-cdtext'
                                         }`}
                                 >
-                                    <item.icon className={`w-3.5 h-3.5 ${isActive ? (isDark ? 'text-yellow-400' : 'text-blue-500') : ''}`} />
+                                    <item.icon className={`w-3.5 h-3.5 ${isActive ? 'text-cdaccent' : ''}`} />
                                     {item.label}
                                 </button>
                             );
@@ -296,7 +296,7 @@ const App = () => {
                 </div>
 
                 {isLoading ? (
-                    <div className="flex justify-center items-center h-64 text-slate-400 animate-pulse">Laden van data...</div>
+                    <div className="flex justify-center items-center h-64 text-cdmuted animate-pulse">Laden van data...</div>
                 ) : (
                     <>
                         {activeTab === 'dashboard' && (

@@ -1,4 +1,4 @@
-
+﻿
 import React from 'react';
 import {
     ArrowUpDown, ChevronUp, ChevronDown, ChevronRight, Monitor, Bike, Footprints,
@@ -13,11 +13,11 @@ const SortIcon = ({ colKey, config }) => {
 };
 
 export const TableHeader = ({ config, requestSort, hasActions = true, isPreview = false }) => (
-    <thead className="bg-slate-900 text-slate-400 uppercase font-bold sticky top-0 z-10 shadow-md text-[0.7rem] tracking-wider">
+    <thead className="bg-cdbg text-cdmuted uppercase font-bold sticky top-0 z-10 shadow-md text-[0.7rem] tracking-wider">
         <tr>
             {isPreview && <th className="p-3 w-10"></th>}
             {ACTIVITY_COLUMNS.map((col) => (
-                <th key={col.key} className={`p-3 cursor-pointer hover:bg-slate-800 transition-colors select-none text-${col.align} ${col.width || ''}`} onClick={() => requestSort && requestSort(col.key)}>
+                <th key={col.key} className={`p-3 cursor-pointer hover:bg-cdsurface transition-colors select-none text-${col.align} ${col.width || ''}`} onClick={() => requestSort && requestSort(col.key)}>
                     <span className={`flex items-center gap-1 ${col.align === 'right' ? 'justify-end' : col.align === 'center' ? 'justify-center' : 'justify-start'}`}>
                         {col.align === 'left' && <span>{col.label}</span>}
                         {requestSort && <SortIcon colKey={col.key} config={config} />}
@@ -39,7 +39,7 @@ export const Row = React.memo(({ act, onDelete, onEdit, deleteConfirm, setDelete
             if (val === null || val === undefined) return <span className="text-slate-600">-</span>;
 
             switch (col.key) {
-                case 'date': return <span className="text-slate-300 whitespace-nowrap">{formatDateDDMMYYYY(val)}</span>;
+                case 'date': return <span className="text-cdtext whitespace-nowrap">{formatDateDDMMYYYY(val)}</span>;
                 case 'type': return (
                     <div
                         className={`flex justify-center items-center h-full ${isPreview ? 'cursor-pointer hover:text-yellow-400' : ''}`}
@@ -53,13 +53,13 @@ export const Row = React.memo(({ act, onDelete, onEdit, deleteConfirm, setDelete
                                         <Bike size={16} className="text-green-400" title="Ride" />}
                     </div>
                 );
-                case 'title': return <span className="font-medium text-white block max-w-[200px] truncate" title={val}>{val}</span>;
-                case 'moving_time': return <span className="text-slate-400 font-mono">{formatTime(val)}</span>;
-                case 'distance': case 'avg_speed': return <span className="text-slate-400">{Number(val).toFixed(1)}</span>;
-                case 'climbing': case 'avg_power': return <span className="text-slate-400">{Math.round(val || 0)}</span>;
+                case 'title': return <span className="font-medium text-cdtext block max-w-[200px] truncate" title={val}>{val}</span>;
+                case 'moving_time': return <span className="text-cdmuted font-mono">{formatTime(val)}</span>;
+                case 'distance': case 'avg_speed': return <span className="text-cdmuted">{Number(val).toFixed(1)}</span>;
+                case 'climbing': case 'avg_power': return <span className="text-cdmuted">{Math.round(val || 0)}</span>;
                 case 'norm_power': return <span className="font-bold text-yellow-400">{Math.round(val || 0)}</span>;
                 case 'load': return <span className="font-bold text-blue-400">{Math.round(val || 0)}</span>;
-                case 'rpe': return <span className="text-slate-400">{val || '-'}</span>;
+                case 'rpe': return <span className="text-cdmuted">{val || '-'}</span>;
                 default: return <span className={`text-${col.text || 'slate-500'}`}>{val ? Math.round(val) : '-'}</span>;
             }
         } catch (e) {
@@ -69,14 +69,14 @@ export const Row = React.memo(({ act, onDelete, onEdit, deleteConfirm, setDelete
     };
 
     return (
-        <tr className={`hover:bg-slate-700/50 transition-colors border-b border-slate-700/50 ${isSelected ? 'bg-slate-700/30' : ''}`} onClick={onToggleSelect ? () => onToggleSelect(act.id) : undefined}>
+        <tr className={`hover:bg-cdborder/50 transition-colors border-b border-cdborder/50 ${isSelected ? 'bg-cdborder/30' : ''}`} onClick={onToggleSelect ? () => onToggleSelect(act.id) : undefined}>
             {isPreview && <td className="p-3 w-10"><input type="checkbox" checked={isSelected} readOnly className="w-4 h-4 accent-green-500 cursor-pointer" /></td>}
             {ACTIVITY_COLUMNS.map(col => <td key={col.key} className={`p-3 text-${col.align} text-xs ${col.width || ''}`}>{renderCell(col)}</td>)}
             {!isPreview && <td className="p-3 text-right">
                 {deleteConfirm === act.id ? (
                     <div className="flex gap-2 justify-end">
                         <button onClick={(e) => { e.stopPropagation(); onDelete(act.id) }} className="text-red-500 font-bold text-xs bg-red-500/10 px-2 py-1 rounded">SURE?</button>
-                        <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(null) }} className="text-slate-400 text-xs px-2 py-1">Cancel</button>
+                        <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(null) }} className="text-cdmuted text-xs px-2 py-1">Cancel</button>
                     </div>
                 ) : (
                     <div className="flex gap-1 justify-end">
@@ -123,18 +123,18 @@ const ActivityTable = ({ activities, sortConfig, onSort, onDelete, onEdit, isGro
     // Let's accept `groupedActivities` as an optional prop.
 
     return (
-        <div className="overflow-x-auto overflow-y-auto flex-1 border border-slate-700 rounded-lg custom-scrollbar relative">
+        <div className="overflow-x-auto overflow-y-auto flex-1 border border-cdborder rounded-lg custom-scrollbar relative">
             <table className="w-full text-left text-xs whitespace-nowrap">
                 <TableHeader config={sortConfig} requestSort={onSort} hasActions={true} isPreview={false} />
-                <tbody className="divide-y divide-slate-700 bg-slate-800">
+                <tbody className="divide-y divide-cdborder bg-cdsurface">
                     {isGroupedView ? (
                         // We need groupedActivities passed in
                         Object.keys(activities).sort((a, b) => sortConfig.direction === 'asc' ? a - b : b - a).map(year => (
                             <React.Fragment key={year}>
-                                <tr id={`year-${year}`} className="bg-slate-700/50 scroll-mt-10"><td colSpan={ACTIVITY_COLUMNS.length + 1} className="p-2 font-bold text-slate-300"><button onClick={() => onToggleYear(year)} className="flex items-center gap-2">{expandedYears[year] ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {year}</button></td></tr>
+                                <tr id={`year-${year}`} className="bg-cdborder/50 scroll-mt-10"><td colSpan={ACTIVITY_COLUMNS.length + 1} className="p-2 font-bold text-cdtext"><button onClick={() => onToggleYear(year)} className="flex items-center gap-2">{expandedYears[year] ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {year}</button></td></tr>
                                 {expandedYears[year] && Object.keys(activities[year]).sort((a, b) => { const diff = MONTH_ORDER.indexOf(b) - MONTH_ORDER.indexOf(a); return sortConfig.direction === 'asc' ? -diff : diff; }).map(month => (
                                     <React.Fragment key={month}>
-                                        <tr id={`month-${year}-${month}`} className="bg-slate-700/20 scroll-mt-12"><td colSpan={ACTIVITY_COLUMNS.length + 1} className="px-8 py-1 text-[10px] uppercase font-bold text-slate-500">{month}</td></tr>
+                                        <tr id={`month-${year}-${month}`} className="bg-cdborder/20 scroll-mt-12"><td colSpan={ACTIVITY_COLUMNS.length + 1} className="px-8 py-1 text-[10px] uppercase font-bold text-cdmuted">{month}</td></tr>
                                         {activities[year][month].map(act => <Row key={act.id} act={act} onDelete={onDelete} onEdit={onEdit} deleteConfirm={deleteConfirm} setDeleteConfirm={setDeleteConfirm} />)}
                                     </React.Fragment>
                                 ))}

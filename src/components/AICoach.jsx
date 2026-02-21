@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+﻿import React, { useMemo } from 'react';
 import { Brain, TrendingUp, AlertTriangle, Calendar, CheckCircle, Activity, Battery, Download, Shuffle } from 'lucide-react';
 
 const AICoach = ({ activities, userSettings }) => {
@@ -20,7 +20,7 @@ const AICoach = ({ activities, userSettings }) => {
         if (last30Days.length >= 12) {
             strengths.push({
                 label: "Hoge consistentie",
-                context: `Je hebt ${last30Days.length} keer getraind in de afgelopen 30 dagen (>3x/week). Consistentie is de belangrijkste factor voor mitochondriële aanpassing en aerobe basis.`
+                context: `Je hebt ${last30Days.length} keer getraind in de afgelopen 30 dagen (>3x/week). Consistentie is de belangrijkste factor voor mitochondriÃ«le aanpassing en aerobe basis.`
             });
         } else if (last30Days.length < 4) {
             weaknesses.push({
@@ -70,7 +70,7 @@ const AICoach = ({ activities, userSettings }) => {
         }
 
         // Fillers if empty
-        if (strengths.length === 0) strengths.push({ label: "Geen recente uitschieters", context: "Je training is stabiel, blijf bouwen aan consistentie om uitschieters te creëren." });
+        if (strengths.length === 0) strengths.push({ label: "Geen recente uitschieters", context: "Je training is stabiel, blijf bouwen aan consistentie om uitschieters te creÃ«ren." });
         if (weaknesses.length === 0) weaknesses.push({ label: "Geen duidelijke zwaktes", context: "Je profiel is goed gebalanceerd. Tijd om te specificeren naar je hoofddoel." });
         if (opportunities.length === 0) opportunities.push({ label: "Consolideer vorm", context: "Je load is stabiel. Dit is een goed moment om te werken aan techniek of specifieke zwaktes zonder de totale load te verhogen." });
         if (threats.length === 0) threats.push({ label: "Geen acuut risico", context: "Je training stress balance lijkt gezond. Luister wel altijd naar je lichaam." });
@@ -156,7 +156,7 @@ const AICoach = ({ activities, userSettings }) => {
                         title: "VO2 Max: Micro-Bursts",
                         duration: "1u 15m",
                         focus: "3 sets, 10x (30s ON / 15s OFF)",
-                        description: "Korte, hevige prikkels om je zuurstofopname (VO2max) te verhogen. 30s @ 120% FTP, 15s rust. Zeer zwaar maar efficiënt.",
+                        description: "Korte, hevige prikkels om je zuurstofopname (VO2max) te verhogen. 30s @ 120% FTP, 15s rust. Zeer zwaar maar efficiÃ«nt.",
                         type: "interval",
                         zwoSteps: [
                             { type: 'Warmup', duration: 900, powerLow: 0.50, powerHigh: 0.75 },
@@ -270,33 +270,33 @@ ${workout.zwoSteps.map(step => {
 
     const getCardStyles = (t) => {
         if (t === 'recovery') return {
-            container: 'border-green-500/30 bg-green-900/10',
-            text: 'text-green-400',
-            badge: 'bg-green-500/20 text-green-300'
+            container: 'border-green-200 bg-green-50',
+            text: 'text-green-700',
+            badge: 'bg-green-100 text-green-800'
         };
         if (t === 'endurance') return {
-            container: 'border-blue-500/30 bg-blue-900/10',
-            text: 'text-blue-400',
-            badge: 'bg-blue-500/20 text-blue-300'
+            container: 'border-blue-200 bg-blue-50',
+            text: 'text-blue-700',
+            badge: 'bg-blue-100 text-blue-800'
         };
         return {
-            container: 'border-yellow-500/30 bg-yellow-900/10',
-            text: 'text-yellow-400',
-            badge: 'bg-yellow-500/20 text-yellow-300'
+            container: 'border-yellow-200 bg-yellow-50',
+            text: 'text-yellow-700',
+            badge: 'bg-yellow-100 text-yellow-800'
         };
     };
 
     return (
         <div className="space-y-6 animate-in fade-in">
             {/* Header */}
-            <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl flex items-center justify-between">
+            <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl flex items-center justify-between">
                 <div>
-                    <h2 className="text-xl font-bold text-white flex items-center gap-2"><Brain className="text-purple-400" /> AI Performance Coach</h2>
-                    <p className="text-sm text-slate-400">Gebaseerd op je data van de laatste 30 dagen & beschikbaarheid.</p>
+                    <h2 className="text-xl font-bold text-cdtext flex items-center gap-2"><Brain className="text-purple-400" /> AI Performance Coach</h2>
+                    <p className="text-sm text-cdmuted">Gebaseerd op je data van de laatste 30 dagen & beschikbaarheid.</p>
                 </div>
                 <div className="text-right hidden md:block">
-                    <div className="text-2xl font-bold text-white">{Math.round(swot.avgWeeklyLoad)} TSS</div>
-                    <div className="text-xs text-slate-400 uppercase">Avg Weekly Load</div>
+                    <div className="text-2xl font-bold text-cdtext">{Math.round(swot.avgWeeklyLoad)} TSS</div>
+                    <div className="text-xs text-cdmuted uppercase">Avg Weekly Load</div>
                 </div>
             </div>
 
@@ -304,7 +304,7 @@ ${workout.zwoSteps.map(step => {
 
                 {/* --- 1. WORKOUT SUGGESTIONS (Left Col) --- */}
                 <div className="lg:col-span-1 space-y-4">
-                    <div className="flex items-center gap-2 text-slate-400 text-sm uppercase font-bold tracking-wider">
+                    <div className="flex items-center gap-2 text-cdmuted text-sm uppercase font-bold tracking-wider">
                         <Calendar size={14} /> {recommendations.dayName} Sessies
                     </div>
 
@@ -313,7 +313,7 @@ ${workout.zwoSteps.map(step => {
                         return (
                             <div key={opt.id} className={`p-5 rounded-xl border-2 transition-colors relative ${styles.container} ${idx > 0 && 'opacity-90 scale-95 origin-top mt-2'}`}>
                                 {idx === 0 && <div className="absolute -top-3 left-4 px-2 py-0.5 bg-yellow-400 text-slate-900 text-[10px] font-bold uppercase rounded">Aanbevolen</div>}
-                                {idx > 0 && <div className="absolute -top-3 left-4 px-2 py-0.5 bg-slate-600 text-slate-200 text-[10px] font-bold uppercase rounded">Alternatief</div>}
+                                {idx > 0 && <div className="absolute -top-3 left-4 px-2 py-0.5 bg-cdsurface border border-cdborder text-cdtext text-[10px] font-bold uppercase rounded">Alternatief</div>}
 
                                 <div className="flex justify-between items-start mb-2 mt-2">
                                     <h3 className={`text-lg font-bold ${styles.text}`}>{opt.title}</h3>
@@ -324,18 +324,18 @@ ${workout.zwoSteps.map(step => {
                                     </div>
                                 </div>
 
-                                <div className="flex gap-4 mb-3 text-xs font-mono text-slate-600">
+                                <div className="flex gap-4 mb-3 text-xs font-mono text-cdmuted">
                                     <span className="flex items-center gap-1"><ClockIcon /> {opt.duration}</span>
                                     <span className="flex items-center gap-1"><Brain size={12} /> {opt.focus}</span>
                                 </div>
 
-                                <p className="text-xs leading-relaxed text-slate-700 mb-4 h-16 overflow-y-auto custom-scrollbar">
+                                <p className="text-xs leading-relaxed text-cdtext mb-4 h-16 overflow-y-auto custom-scrollbar">
                                     {opt.description}
                                 </p>
 
                                 <button
                                     onClick={() => handleDownloadZwo(opt)}
-                                    className="w-full bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold py-2 px-3 rounded flex items-center justify-center gap-2 border border-slate-600 transition-colors"
+                                    className="w-full bg-cdsurface hover:bg-cdborder text-cdtext text-xs font-bold py-2 px-3 rounded flex items-center justify-center gap-2 border border-cdborder transition-colors"
                                 >
                                     <Download size={14} /> Download .zwo
                                 </button>
@@ -358,18 +358,18 @@ ${workout.zwoSteps.map(step => {
 
 // Sub-component for cleaner SWOT rendering
 const SwotCard = ({ title, items, icon: Icon, color, border }) => (
-    <div className={`bg-slate-800/80 p-4 rounded-lg border-l-4 ${border} h-full`}>
-        <h4 className={`font-bold text-white mb-3 flex items-center gap-2`}>
+    <div className={`bg-cdsurface/80 p-4 rounded-lg border-l-4 ${border} h-full`}>
+        <h4 className={`font-bold text-cdtext mb-3 flex items-center gap-2`}>
             <Icon size={16} className={color} /> {title}
         </h4>
         <ul className="space-y-4">
             {items.map((item, i) => (
                 <li key={i} className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2 text-sm text-slate-200 font-bold">
+                    <div className="flex items-center gap-2 text-sm text-cdtext font-bold">
                         <span className={`w-1.5 h-1.5 rounded-full ${color.replace('text-', 'bg-')}`}></span>
                         {item.label}
                     </div>
-                    <div className="text-xs text-slate-400 pl-3.5 leading-relaxed">
+                    <div className="text-xs text-cdmuted pl-3.5 leading-relaxed">
                         {item.context}
                     </div>
                 </li>

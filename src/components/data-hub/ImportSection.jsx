@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Download, Upload, ArrowUpRight } from 'lucide-react';
 import { smartParseCSV, smartParseJSON } from '../../utils';
 
@@ -32,14 +32,14 @@ const ImportSection = ({ intervalsConfig, onDataDetected }) => {
 
     return (
         <div className="space-y-6">
-            <div className="bg-slate-900/50 p-4 rounded border border-slate-700">
-                <h4 className="text-white font-bold text-sm mb-2 flex items-center gap-2"><Download size={16} className="text-blue-400" /> Stap 1: Download Data</h4>
-                <p className="text-xs text-slate-400 mb-3">Ga naar de Intervals Activities pagina, klik op "List View", selecteer je ritten en kies <strong>Edit &gt; Export CSV</strong>.</p>
-                <a href={`https://intervals.icu/athlete/${intervalsConfig.athleteId}/activities`} target="_blank" rel="noreferrer" className="text-xs bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded inline-flex items-center gap-2 transition-colors">Open Intervals.icu Activities <ArrowUpRight size={12} /></a>
+            <div className="bg-cdbg/50 p-4 rounded border border-cdborder">
+                <h4 className="text-cdtext font-bold text-sm mb-2 flex items-center gap-2"><Download size={16} className="text-blue-400" /> Stap 1: Download Data</h4>
+                <p className="text-xs text-cdmuted mb-3">Ga naar de Intervals Activities pagina, klik op "List View", selecteer je ritten en kies <strong>Edit &gt; Export CSV</strong>.</p>
+                <a href={`https://intervals.icu/athlete/${intervalsConfig.athleteId}/activities`} target="_blank" rel="noreferrer" className="text-xs bg-cdborder hover:bg-slate-600 text-cdtext px-3 py-2 rounded inline-flex items-center gap-2 transition-colors">Open Intervals.icu Activities <ArrowUpRight size={12} /></a>
             </div>
 
             <div>
-                <h4 className="text-white font-bold text-sm mb-2 flex items-center gap-2"><Upload size={16} className="text-green-400" /> Stap 2: Importeer Bestand</h4>
+                <h4 className="text-cdtext font-bold text-sm mb-2 flex items-center gap-2"><Upload size={16} className="text-green-400" /> Stap 2: Importeer Bestand</h4>
 
                 {/* DRAG & DROP ZONE */}
                 <div
@@ -55,7 +55,7 @@ const ImportSection = ({ intervalsConfig, onDataDetected }) => {
                     onClick={() => document.getElementById('fileInput').click()}
                     className={`
                                     border-2 border-dashed rounded-lg p-8 mb-4 text-center cursor-pointer transition-all
-                                    ${isDragging ? 'border-yellow-400 bg-yellow-400/10' : 'border-slate-600 hover:border-slate-400 bg-slate-800'}
+                                    ${isDragging ? 'border-yellow-400 bg-yellow-400/10' : 'border-cdborder hover:border-slate-400 bg-cdsurface'}
                                 `}
                 >
                     <input
@@ -65,15 +65,15 @@ const ImportSection = ({ intervalsConfig, onDataDetected }) => {
                         className="hidden"
                         onChange={(e) => e.target.files && handleFileUpload(e.target.files[0])}
                     />
-                    <Upload className={`mx-auto mb-2 ${isDragging ? 'text-yellow-400' : 'text-slate-400'}`} size={32} />
-                    <p className="text-sm font-bold text-white">Klik om te openen / Sleep bestand hierheen</p>
-                    <p className="text-xs text-slate-500 mt-1">Ondersteunt .csv en .json export van Intervals.icu</p>
+                    <Upload className={`mx-auto mb-2 ${isDragging ? 'text-yellow-400' : 'text-cdmuted'}`} size={32} />
+                    <p className="text-sm font-bold text-cdtext">Klik om te openen / Sleep bestand hierheen</p>
+                    <p className="text-xs text-cdmuted mt-1">Ondersteunt .csv en .json export van Intervals.icu</p>
                 </div>
 
                 <div className="relative">
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-slate-900 px-2 text-[10px] text-slate-500 uppercase font-bold">Of plak tekst</span>
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-cdbg px-2 text-[10px] text-cdmuted uppercase font-bold">Of plak tekst</span>
                     <textarea
-                        className="w-full h-32 bg-slate-800 border border-slate-700 rounded p-3 text-xs font-mono text-white focus:border-yellow-400 outline-none transition-colors"
+                        className="w-full h-32 bg-cdsurface border border-cdborder rounded p-3 text-xs font-mono text-cdtext focus:border-yellow-400 outline-none transition-colors"
                         placeholder="Plak de CSV tekst hier..."
                         value={importText}
                         onChange={e => setImportText(e.target.value)}

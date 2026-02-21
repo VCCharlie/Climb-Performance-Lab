@@ -1,4 +1,4 @@
-/**
+﻿/**
  * src/utils/calculations.js
  * Mathematical models, Physics, and Power Analysis
  */
@@ -70,15 +70,15 @@ export const calculateClimbCategory = (lengthKm, avgGrade) => {
     // Simple Score = Length (km) * Grade (%)
     // This is a simplified version of standard categorization.
 
-    if (!lengthKm || !avgGrade) return { label: '-', className: 'text-slate-500', score: 0 };
+    if (!lengthKm || !avgGrade) return { label: '-', className: 'text-cdmuted', score: 0 };
 
     let score = lengthKm * avgGrade;
     // Bump score for >10% briefly
     if (avgGrade > 10) score *= 1.25;
 
-    if (score > 100 || (lengthKm > 15 && avgGrade > 6)) return { label: 'HC', className: 'text-slate-900 bg-white border border-slate-300 shadow-sm font-black', score, full: 'Hors Catégorie' };
-    if (score > 60) return { label: '1', className: 'text-white bg-red-600 shadow-sm font-bold', score, full: 'Cat 1' };
-    if (score > 35) return { label: '2', className: 'text-white bg-orange-500 shadow-sm font-bold', score, full: 'Cat 2' };
-    if (score > 16) return { label: '3', className: 'text-white bg-yellow-500 shadow-sm font-bold', score, full: 'Cat 3' };
-    return { label: '4', className: 'text-white bg-green-500 shadow-sm font-bold', score, full: 'Cat 4' };
+    if (score > 100 || (lengthKm > 15 && avgGrade > 6)) return { label: 'HC', className: 'text-slate-900 bg-white border border-slate-300 shadow-sm font-black', score, full: 'Hors CatÃ©gorie' };
+    if (score > 60) return { label: '1', className: 'text-cdtext bg-red-600 shadow-sm font-bold', score, full: 'Cat 1' };
+    if (score > 35) return { label: '2', className: 'text-cdtext bg-orange-500 shadow-sm font-bold', score, full: 'Cat 2' };
+    if (score > 16) return { label: '3', className: 'text-cdtext bg-yellow-500 shadow-sm font-bold', score, full: 'Cat 3' };
+    return { label: '4', className: 'text-cdtext bg-green-500 shadow-sm font-bold', score, full: 'Cat 4' };
 };

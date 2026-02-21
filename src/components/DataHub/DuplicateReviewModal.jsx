@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { X, AlertTriangle, Check, ArrowRight, Activity, Calendar, Clock, MapPin } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
 
@@ -55,21 +55,21 @@ const DuplicateReviewModal = ({ conflicts, onResolve, onClose }) => {
         const isMatch = valA === valB; // exact match
 
         return (
-            <div className="grid grid-cols-[1fr_20px_1fr] items-center gap-2 text-xs border-b border-slate-700/50 py-2 last:border-0">
-                <div className={`text-right ${isMatch ? 'text-slate-400' : 'text-slate-200 font-bold'}`}>{a || '-'}</div>
+            <div className="grid grid-cols-[1fr_20px_1fr] items-center gap-2 text-xs border-b border-cdborder/50 py-2 last:border-0">
+                <div className={`text-right ${isMatch ? 'text-cdmuted' : 'text-cdtext font-bold'}`}>{a || '-'}</div>
                 <div className="flex justify-center text-slate-600"><Icon size={12} /></div>
-                <div className={`text-left ${isMatch ? 'text-slate-400' : 'text-slate-200 font-bold'}`}>{b || '-'}</div>
+                <div className={`text-left ${isMatch ? 'text-cdmuted' : 'text-cdtext font-bold'}`}>{b || '-'}</div>
             </div>
         );
     };
 
     const Card = ({ item, title }) => (
-        <div className="flex-1 bg-slate-800 rounded-lg p-4 border border-slate-600 flex flex-col">
-            <div className="text-xs uppercase font-bold text-slate-500 mb-2 tracking-wider text-center">{title}</div>
+        <div className="flex-1 bg-cdsurface rounded-lg p-4 border border-cdborder flex flex-col">
+            <div className="text-xs uppercase font-bold text-cdmuted mb-2 tracking-wider text-center">{title}</div>
             <div className="text-center mb-4">
-                <div className="font-bold text-white text-lg truncate" title={item.title}>{item.title}</div>
-                <div className="text-xs text-slate-400 flex justify-center gap-2 items-center mt-1">
-                    <span className="bg-slate-700 px-2 py-0.5 rounded text-slate-300">{item.type}</span>
+                <div className="font-bold text-cdtext text-lg truncate" title={item.title}>{item.title}</div>
+                <div className="text-xs text-cdmuted flex justify-center gap-2 items-center mt-1">
+                    <span className="bg-cdborder px-2 py-0.5 rounded text-cdtext">{item.type}</span>
                     <span>{item.id}</span>
                 </div>
             </div>
@@ -83,18 +83,18 @@ const DuplicateReviewModal = ({ conflicts, onResolve, onClose }) => {
     );
 
     return (
-        <div className="fixed inset-0 bg-slate-900/95 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="bg-slate-800 border border-slate-600 rounded-xl shadow-2xl w-full max-w-4xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 bg-cdbg/95 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="bg-cdsurface border border-cdborder rounded-xl shadow-2xl w-full max-w-4xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
                 {/* Header */}
-                <div className="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900">
+                <div className="p-4 border-b border-cdborder flex justify-between items-center bg-cdbg">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-yellow-400/10 rounded-full"><AlertTriangle size={20} className="text-yellow-400" /></div>
                         <div>
-                            <h3 className="font-bold text-white">Duplicate Detector</h3>
-                            <p className="text-xs text-slate-400">Conflict {currentIndex + 1} of {conflicts.length}</p>
+                            <h3 className="font-bold text-cdtext">Duplicate Detector</h3>
+                            <p className="text-xs text-cdmuted">Conflict {currentIndex + 1} of {conflicts.length}</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white"><X size={20} /></button>
+                    <button onClick={onClose} className="p-2 hover:bg-cdsurface rounded-full text-cdmuted hover:text-cdtext"><X size={20} /></button>
                 </div>
 
                 {/* Body */}
@@ -104,8 +104,8 @@ const DuplicateReviewModal = ({ conflicts, onResolve, onClose }) => {
 
                         {/* Center Comparison Column */}
                         <div className="w-1/3 flex flex-col justify-center gap-1">
-                            <div className="text-center text-xs text-slate-500 mb-2 uppercase font-bold">Differences</div>
-                            <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700">
+                            <div className="text-center text-xs text-cdmuted mb-2 uppercase font-bold">Differences</div>
+                            <div className="bg-cdbg/50 rounded-lg p-3 border border-cdborder">
                                 <DiffRow icon={Calendar} valA={itemA.date} valB={itemB.date} formatFn={formatDateDDMMYYYY} />
                                 <DiffRow icon={Clock} valA={itemA.moving_time} valB={itemB.moving_time} formatFn={formatTime} />
                                 <DiffRow icon={MapPin} valA={itemA.distance} valB={itemB.distance} formatFn={(v) => `${Number(v).toFixed(1)} km`} />
@@ -113,7 +113,7 @@ const DuplicateReviewModal = ({ conflicts, onResolve, onClose }) => {
                                 <DiffRow icon={Activity} valA={itemA.norm_power} valB={itemB.norm_power} formatFn={(v) => `${Math.round(v || 0)} np`} />
                             </div>
                             <div className="flex justify-center mt-4">
-                                <button onClick={() => { onResolve([]); /* Keep both implies no deletion, just remove from list */ }} className="text-xs text-slate-500 hover:text-slate-300 underline">Switch to next (Keep Both)</button>
+                                <button onClick={() => { onResolve([]); /* Keep both implies no deletion, just remove from list */ }} className="text-xs text-cdmuted hover:text-cdtext underline">Switch to next (Keep Both)</button>
                             </div>
                         </div>
 
@@ -123,8 +123,8 @@ const DuplicateReviewModal = ({ conflicts, onResolve, onClose }) => {
 
                 {/* Footer */}
                 {conflicts.length > 1 && (
-                    <div className="p-3 bg-slate-900 border-t border-slate-700 flex justify-between items-center">
-                        <div className="text-xs text-slate-500">Resolving duplicates cleans up your analytics.</div>
+                    <div className="p-3 bg-cdbg border-t border-cdborder flex justify-between items-center">
+                        <div className="text-xs text-cdmuted">Resolving duplicates cleans up your analytics.</div>
                         <div className="flex gap-2">
                             {/* Optional: Skip button if we want to defer decision */}
                             <button onClick={() => {
@@ -132,7 +132,7 @@ const DuplicateReviewModal = ({ conflicts, onResolve, onClose }) => {
                                 // Just remove from local view or advance index
                                 // Ideally we emit 'skip'
                                 onResolve([]);
-                            }} className="px-3 py-1 text-xs text-slate-400 hover:text-white">Skip</button>
+                            }} className="px-3 py-1 text-xs text-cdmuted hover:text-cdtext">Skip</button>
                         </div>
                     </div>
                 )}

@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Map } from 'lucide-react';
 
 const ClimbProfileCard = ({ climb }) => {
@@ -11,37 +11,37 @@ const ClimbProfileCard = ({ climb }) => {
     ];
 
     return (
-        <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 h-full animate-in fade-in">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-4">
+        <div className="bg-cdsurface p-6 rounded-xl border border-cdborder h-full animate-in fade-in">
+            <h3 className="text-lg font-bold text-cdtext flex items-center gap-2 mb-4">
                 <Map className="text-yellow-400" size={20}/> Tactical Profile: {climb.name}
             </h3>
             
             <div className="flex gap-4 mb-6">
-                 <div className="bg-slate-900 p-3 rounded flex-1 text-center">
-                    <div className="text-xs text-slate-500 uppercase">Length</div>
-                    <div className="text-xl font-bold text-white">{climb.lengthKm} km</div>
+                 <div className="bg-cdbg p-3 rounded flex-1 text-center">
+                    <div className="text-xs text-cdmuted uppercase">Length</div>
+                    <div className="text-xl font-bold text-cdtext">{climb.lengthKm} km</div>
                  </div>
-                 <div className="bg-slate-900 p-3 rounded flex-1 text-center">
-                    <div className="text-xs text-slate-500 uppercase">Elevation</div>
-                    <div className="text-xl font-bold text-white">{climb.elevation} m</div>
+                 <div className="bg-cdbg p-3 rounded flex-1 text-center">
+                    <div className="text-xs text-cdmuted uppercase">Elevation</div>
+                    <div className="text-xl font-bold text-cdtext">{climb.elevation} m</div>
                  </div>
-                 <div className="bg-slate-900 p-3 rounded flex-1 text-center">
-                    <div className="text-xs text-slate-500 uppercase">Avg Grade</div>
+                 <div className="bg-cdbg p-3 rounded flex-1 text-center">
+                    <div className="text-xs text-cdmuted uppercase">Avg Grade</div>
                     <div className="text-xl font-bold text-yellow-400">{climb.avgGrade}%</div>
                  </div>
             </div>
 
             <div className="space-y-3">
-                <h4 className="text-xs uppercase text-slate-400 font-bold mb-2">Key Sectors</h4>
+                <h4 className="text-xs uppercase text-cdmuted font-bold mb-2">Key Sectors</h4>
                 {sectors.map((s, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 bg-slate-900/50 rounded border-l-2 border-yellow-400">
+                    <div key={i} className="flex items-center justify-between p-3 bg-cdbg/50 rounded border-l-2 border-yellow-400">
                         <div>
-                            <span className="text-white font-bold text-sm block">{s.name}</span>
-                            <span className="text-xs text-slate-500">{s.km} km</span>
+                            <span className="text-cdtext font-bold text-sm block">{s.name}</span>
+                            <span className="text-xs text-cdmuted">{s.km} km</span>
                         </div>
                         <div className="text-right">
                              <span className="text-yellow-400 font-bold block">{s.grade}%</span>
-                             <span className="text-[10px] text-slate-400">{s.focus}</span>
+                             <span className="text-[10px] text-cdmuted">{s.focus}</span>
                         </div>
                     </div>
                 ))}

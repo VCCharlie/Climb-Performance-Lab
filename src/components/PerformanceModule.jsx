@@ -1,7 +1,7 @@
-import React from 'react';
+﻿import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, ComposedChart } from 'recharts';
 import { Activity, TrendingUp, Zap, Calendar, ArrowUp, ArrowDown } from 'lucide-react';
-import { formatDateDDMMYYYY } from '../utils'; // <--- ZORG DAT DEZE GEÏMPORTEERD IS
+import { formatDateDDMMYYYY } from '../utils'; // <--- ZORG DAT DEZE GEÃMPORTEERD IS
 
 const formatNumber = (num) => {
     if (num === null || num === undefined) return '-';
@@ -9,42 +9,42 @@ const formatNumber = (num) => {
 };
 
 const StatCard = ({ title, value, unit, subtitle, icon: Icon, trend, colorClass, split }) => (
-    <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg relative overflow-hidden group hover:border-slate-600 transition-all">
+    <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-lg relative overflow-hidden group hover:border-cdborder transition-all">
         <div className={`absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity ${colorClass}`}>
             <Icon size={64} />
         </div>
 
         <div className="relative z-10">
             <div className="flex items-center gap-2 mb-2">
-                <div className={`p-2 rounded-lg bg-slate-700/50 ${colorClass} text-white`}>
+                <div className={`p-2 rounded-lg bg-cdborder/50 ${colorClass} text-cdtext`}>
                     <Icon size={18} />
                 </div>
-                <h3 className="text-slate-400 text-sm font-bold uppercase tracking-wider">{title}</h3>
+                <h3 className="text-cdmuted text-sm font-bold uppercase tracking-wider">{title}</h3>
             </div>
 
             <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-black text-white">{formatNumber(value)}</span>
-                {unit && <span className="text-sm font-bold text-slate-400">{unit}</span>}
+                <span className="text-3xl font-black text-cdtext">{formatNumber(value)}</span>
+                {unit && <span className="text-sm font-bold text-cdmuted">{unit}</span>}
             </div>
 
             {subtitle && (
                 <div className="mt-2 flex items-center gap-2 text-xs font-medium">
                     {trend === 'up' && <ArrowUp size={12} className="text-green-400" />}
                     {trend === 'down' && <ArrowDown size={12} className="text-red-400" />}
-                    <span className="text-slate-400">{subtitle}</span>
+                    <span className="text-cdmuted">{subtitle}</span>
                 </div>
             )}
 
             {/* SPLIT DATA (Indoor / Outdoor) */}
             {split && (
-                <div className="mt-4 pt-3 border-t border-slate-700/50 space-y-1">
+                <div className="mt-4 pt-3 border-t border-cdborder/50 space-y-1">
                     <div className="flex justify-between text-xs">
-                        <span className="text-slate-400">Outdoor</span>
-                        <span className="font-mono text-white">{formatNumber(split.outdoor)} {unit}</span>
+                        <span className="text-cdmuted">Outdoor</span>
+                        <span className="font-mono text-cdtext">{formatNumber(split.outdoor)} {unit}</span>
                     </div>
                     <div className="flex justify-between text-xs">
-                        <span className="text-slate-400">Indoor</span>
-                        <span className="font-mono text-white">{formatNumber(split.indoor)} {unit}</span>
+                        <span className="text-cdmuted">Indoor</span>
+                        <span className="font-mono text-cdtext">{formatNumber(split.indoor)} {unit}</span>
                     </div>
                 </div>
             )}
@@ -96,11 +96,11 @@ const PeriodStatistics = ({ data }) => {
     const outdoorDist = totalDistance - indoorDist;
 
     return (
-        <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl mb-6"> {/* Added mb-6 */}
-            <div className="flex items-center gap-2 mb-6 border-b border-slate-700 pb-4">
+        <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl mb-6"> {/* Added mb-6 */}
+            <div className="flex items-center gap-2 mb-6 border-b border-cdborder pb-4">
                 <Calendar className="text-yellow-400" size={20} />
-                <h3 className="text-lg font-bold text-white">Period Statistics</h3>
-                <span className="text-xs text-slate-400 ml-auto font-mono">
+                <h3 className="text-lg font-bold text-cdtext">Period Statistics</h3>
+                <span className="text-xs text-cdmuted ml-auto font-mono">
                     {formatDateDDMMYYYY(data[0].date)} - {formatDateDDMMYYYY(data[data.length - 1].date)}
                 </span>
             </div>
@@ -109,75 +109,75 @@ const PeriodStatistics = ({ data }) => {
                 {/* ... Volume & Intensity Columns ... */}
                 {/* COLUMN 1: VOLUME */}
                 <div className="space-y-4">
-                    <h4 className="text-xs uppercase font-bold text-slate-500 mb-2">Volume</h4>
+                    <h4 className="text-xs uppercase font-bold text-cdmuted mb-2">Volume</h4>
                     <div>
-                        <div className="text-2xl font-black text-white">{formatNumber(totalDistance)} <span className="text-xs text-slate-500 font-normal">km</span></div>
-                        <div className="text-xs text-slate-400">Total Distance</div>
+                        <div className="text-2xl font-black text-cdtext">{formatNumber(totalDistance)} <span className="text-xs text-cdmuted font-normal">km</span></div>
+                        <div className="text-xs text-cdmuted">Total Distance</div>
                     </div>
                     <div>
-                        <div className="text-2xl font-black text-white">{formatNumber(totalElevation)} <span className="text-xs text-slate-500 font-normal">m</span></div>
-                        <div className="text-xs text-slate-400">Elevation Gain</div>
+                        <div className="text-2xl font-black text-cdtext">{formatNumber(totalElevation)} <span className="text-xs text-cdmuted font-normal">m</span></div>
+                        <div className="text-xs text-cdmuted">Elevation Gain</div>
                     </div>
                     <div>
-                        <div className="text-xl font-bold text-slate-300">{formatNumber(totalTimeHours)} <span className="text-xs text-slate-500 font-normal">hrs</span></div>
-                        <div className="text-xs text-slate-400">Moving Time</div>
+                        <div className="text-xl font-bold text-cdtext">{formatNumber(totalTimeHours)} <span className="text-xs text-cdmuted font-normal">hrs</span></div>
+                        <div className="text-xs text-cdmuted">Moving Time</div>
                     </div>
                 </div>
 
                 {/* COLUMN 2: INTENSITY */}
                 <div className="space-y-4">
-                    <h4 className="text-xs uppercase font-bold text-slate-500 mb-2">Intensity (Avg)</h4>
+                    <h4 className="text-xs uppercase font-bold text-cdmuted mb-2">Intensity (Avg)</h4>
                     <div>
-                        <div className="text-2xl font-black text-green-400">{formatNumber(avgPower)} <span className="text-xs text-slate-500 font-normal">W</span></div>
-                        <div className="text-xs text-slate-400">Avg Power</div>
+                        <div className="text-2xl font-black text-green-400">{formatNumber(avgPower)} <span className="text-xs text-cdmuted font-normal">W</span></div>
+                        <div className="text-xs text-cdmuted">Avg Power</div>
                     </div>
                     <div>
-                        <div className="text-xl font-bold text-red-400">{avgHr === 0 ? '-' : avgHr} <span className="text-xs text-slate-500 font-normal">bpm</span></div>
-                        <div className="text-xs text-slate-400">Avg Heart Rate</div>
+                        <div className="text-xl font-bold text-red-400">{avgHr === 0 ? '-' : avgHr} <span className="text-xs text-cdmuted font-normal">bpm</span></div>
+                        <div className="text-xs text-cdmuted">Avg Heart Rate</div>
                     </div>
                     <div>
-                        <div className="text-lg font-bold text-yellow-400">{formatNumber(totalEnergy)} <span className="text-xs text-slate-500 font-normal">kJ</span></div>
-                        <div className="text-xs text-slate-400">Total Work</div>
+                        <div className="text-lg font-bold text-yellow-400">{formatNumber(totalEnergy)} <span className="text-xs text-cdmuted font-normal">kJ</span></div>
+                        <div className="text-xs text-cdmuted">Total Work</div>
                     </div>
                 </div>
 
                 {/* COLUMN 3: MAXIMA */}
                 <div className="space-y-4">
-                    <h4 className="text-xs uppercase font-bold text-slate-500 mb-2">Period Maxima</h4>
-                    <div className="bg-slate-700/30 p-3 rounded-lg border border-slate-700">
+                    <h4 className="text-xs uppercase font-bold text-cdmuted mb-2">Period Maxima</h4>
+                    <div className="bg-cdborder/30 p-3 rounded-lg border border-cdborder">
                         <div className="flex justify-between items-center">
                             <div className="flex flex-col">
-                                <span className="text-xs text-slate-400">Max Power</span>
+                                <span className="text-xs text-cdmuted">Max Power</span>
                                 <span className="text-xs font-bold text-blue-400">{maxPowerLabel.replace(/[()]/g, '')}</span>
                             </div>
-                            <span className="text-xl font-bold text-white">{formatNumber(maxPower)} W</span>
+                            <span className="text-xl font-bold text-cdtext">{formatNumber(maxPower)} W</span>
                         </div>
                     </div>
-                    <div className="bg-slate-700/30 p-3 rounded-lg border border-slate-700">
+                    <div className="bg-cdborder/30 p-3 rounded-lg border border-cdborder">
                         <div className="flex justify-between items-end">
-                            <span className="text-xs text-slate-400">Max HR</span>
-                            <span className="text-xl font-bold text-white">{maxHr === 0 ? '-' : maxHr} bpm</span>
+                            <span className="text-xs text-cdmuted">Max HR</span>
+                            <span className="text-xl font-bold text-cdtext">{maxHr === 0 ? '-' : maxHr} bpm</span>
                         </div>
                     </div>
                 </div>
 
                 {/* COLUMN 4: CONTEXT */}
                 <div className="space-y-4">
-                    <h4 className="text-xs uppercase font-bold text-slate-500 mb-2">Environment</h4>
+                    <h4 className="text-xs uppercase font-bold text-cdmuted mb-2">Environment</h4>
                     <div className="space-y-2">
                         <div className="flex justify-between items-center text-sm">
-                            <span className="text-slate-400">Outdoor</span>
-                            <span className="font-bold text-white">{formatNumber(outdoorDist)} km <span className="text-slate-500 text-xs">({outdoorRides.length})</span></span>
+                            <span className="text-cdmuted">Outdoor</span>
+                            <span className="font-bold text-cdtext">{formatNumber(outdoorDist)} km <span className="text-cdmuted text-xs">({outdoorRides.length})</span></span>
                         </div>
-                        <div className="w-full bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                        <div className="w-full bg-cdborder h-1.5 rounded-full overflow-hidden">
                             <div className="bg-blue-500 h-full" style={{ width: `${(outdoorDist / totalDistance) * 100}%` }}></div>
                         </div>
 
                         <div className="flex justify-between items-center text-sm mt-3">
-                            <span className="text-slate-400">Indoor (Virtual)</span>
-                            <span className="font-bold text-white">{formatNumber(indoorDist)} km <span className="text-slate-500 text-xs">({indoorRides.length})</span></span>
+                            <span className="text-cdmuted">Indoor (Virtual)</span>
+                            <span className="font-bold text-cdtext">{formatNumber(indoorDist)} km <span className="text-cdmuted text-xs">({indoorRides.length})</span></span>
                         </div>
-                        <div className="w-full bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                        <div className="w-full bg-cdborder h-1.5 rounded-full overflow-hidden">
                             <div className="bg-purple-500 h-full" style={{ width: `${(indoorDist / totalDistance) * 100}%` }}></div>
                         </div>
                     </div>
@@ -299,9 +299,9 @@ const PerformanceModule = ({
             <PeriodStatistics data={filteredData} />
 
             <div className="grid grid-cols-1 gap-6">
-                <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
+                <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl">
                     <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
-                        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                        <h3 className="text-lg font-bold text-cdtext flex items-center gap-2">
                             <Activity className="text-blue-400" size={20} />
                             FTP Progression & Load
                         </h3>
@@ -317,13 +317,13 @@ const PerformanceModule = ({
                                         <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
 
                                 <XAxis
                                     dataKey="dateNum"
                                     type="number"
                                     domain={['dataMin', 'dataMax']}
-                                    stroke="#94a3b8"
+                                    stroke="#64748b"
                                     ticks={axisTicks}
                                     interval={0}
                                     scale="time"
@@ -339,13 +339,13 @@ const PerformanceModule = ({
                                     }}
                                 />
 
-                                <YAxis yAxisId="left" stroke="#94a3b8" domain={['auto', 'auto']} />
+                                <YAxis yAxisId="left" stroke="#64748b" domain={['auto', 'auto']} />
                                 <YAxis yAxisId="right" orientation="right" stroke="#8b5cf6" domain={[0, 'auto']} hide />
 
                                 <Tooltip
-                                    contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc' }}
-                                    itemStyle={{ color: '#fff' }}
-                                    labelStyle={{ color: '#94a3b8' }}
+                                    contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', color: '#1e2330' }}
+                                    itemStyle={{ color: '#1e2330' }}
+                                    labelStyle={{ color: '#64748b' }}
                                     labelFormatter={(label) => formatDateDDMMYYYY(label)}
                                 // Use formatted numbers in tooltip too if possible, but default is okay
                                 />

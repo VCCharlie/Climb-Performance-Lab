@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import { Search, Trash, Loader2, AlertTriangle, ChevronDown, ChevronRight, Zap } from 'lucide-react';
 import TableHeader from './TableHeader';
 import ActivityRow from './ActivityRow';
@@ -107,8 +107,8 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
             )}
             <div className="flex justify-between items-center mb-4 gap-4">
                 <div className="relative flex-1">
-                    <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
-                    <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." className="w-full bg-slate-900 border border-slate-600 rounded pl-10 pr-4 py-2 text-sm text-white outline-none" />
+                    <Search className="absolute left-3 top-2.5 w-4 h-4 text-cdmuted" />
+                    <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." className="w-full bg-cdbg border border-cdborder rounded pl-10 pr-4 py-2 text-sm text-cdtext outline-none" />
                 </div>
                 <button
                     onClick={handleScanDuplicates}
@@ -130,20 +130,20 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
             </div>
 
             {!activities ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-slate-500 gap-4"><Loader2 className="animate-spin text-yellow-400" size={32} /><p>Loading Activities...</p></div>
+                <div className="flex-1 flex flex-col items-center justify-center text-cdmuted gap-4"><Loader2 className="animate-spin text-yellow-400" size={32} /><p>Loading Activities...</p></div>
             ) : processedActivities.length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-slate-500 gap-2 border border-dashed border-slate-700 rounded-lg"><AlertTriangle size={32} className="text-slate-600" /><p>No activities found. Start with an Import!</p></div>
+                <div className="flex-1 flex flex-col items-center justify-center text-cdmuted gap-2 border border-dashed border-cdborder rounded-lg"><AlertTriangle size={32} className="text-slate-600" /><p>No activities found. Start with an Import!</p></div>
             ) : (
-                <div className="overflow-x-auto flex-1 border border-slate-700 rounded-lg custom-scrollbar">
+                <div className="overflow-x-auto flex-1 border border-cdborder rounded-lg custom-scrollbar">
                     <table className="w-full text-left text-xs whitespace-nowrap">
                         <TableHeader config={sortConfig} requestSort={requestSort} hasActions={true} isPreview={false} />
-                        <tbody className="divide-y divide-slate-700 bg-slate-800">
+                        <tbody className="divide-y divide-cdborder bg-cdsurface">
                             {isGroupedView && groupedActivities && Object.keys(groupedActivities).sort((a, b) => sortConfig.direction === 'asc' ? a - b : b - a).map(year => (
                                 <React.Fragment key={year}>
-                                    <tr className="bg-slate-700/50"><td colSpan={ACTIVITY_COLUMNS.length + 1} className="p-2 font-bold text-slate-300"><button onClick={() => toggleYear(year)} className="flex items-center gap-2">{expandedYears[year] ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {year}</button></td></tr>
+                                    <tr className="bg-cdborder/50"><td colSpan={ACTIVITY_COLUMNS.length + 1} className="p-2 font-bold text-cdtext"><button onClick={() => toggleYear(year)} className="flex items-center gap-2">{expandedYears[year] ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {year}</button></td></tr>
                                     {expandedYears[year] && Object.keys(groupedActivities[year]).sort((a, b) => { const diff = MONTH_ORDER.indexOf(b) - MONTH_ORDER.indexOf(a); return sortConfig.direction === 'asc' ? -diff : diff; }).map(month => (
                                         <React.Fragment key={month}>
-                                            <tr className="bg-slate-700/20"><td colSpan={ACTIVITY_COLUMNS.length + 1} className="px-8 py-1 text-[10px] uppercase font-bold text-slate-500">{month}</td></tr>
+                                            <tr className="bg-cdborder/20"><td colSpan={ACTIVITY_COLUMNS.length + 1} className="px-8 py-1 text-[10px] uppercase font-bold text-cdmuted">{month}</td></tr>
                                             {groupedActivities[year][month].map(act => <ActivityRow key={act.id} act={act} onDelete={onDelete} deleteConfirm={deleteConfirm} setDeleteConfirm={setDeleteConfirm} onViewDetail={setSelectedDetailActivity} />)}
                                         </React.Fragment>
                                     ))}

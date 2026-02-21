@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Search, Loader2, AlertTriangle, Trash, Split } from 'lucide-react';
 import { doc, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from '../firebase';
@@ -217,7 +217,7 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
                 await Promise.all(writePromises);
                 savedCount = toImport.length;
             } catch (e) {
-                alert("Let op: Data lokaal geïmporteerd, maar Cloud backup mislukt: " + e.message);
+                alert("Let op: Data lokaal geÃ¯mporteerd, maar Cloud backup mislukt: " + e.message);
             }
         }
 
@@ -249,7 +249,7 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
 
 
     return (
-        <div className="bg-slate-800 rounded-xl border border-slate-700 shadow-xl overflow-hidden min-h-[500px] flex flex-col relative animate-in fade-in">
+        <div className="bg-cdsurface rounded-xl border border-cdborder shadow-xl overflow-hidden min-h-[500px] flex flex-col relative animate-in fade-in">
             {/* MODALS */}
             {editingActivity && (
                 <EditActivityModal
@@ -280,10 +280,10 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
             )}
 
             {/* TABS */}
-            <div className="flex border-b border-slate-700">
-                <button onClick={() => setInternalTab('log')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'log' ? 'bg-slate-700 text-yellow-400' : 'text-slate-400 hover:bg-slate-700/50'}`}>Activity Log</button>
-                <button onClick={() => setInternalTab('intervals')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'intervals' ? 'bg-slate-700 text-orange-400' : 'text-slate-400 hover:bg-slate-700/50'}`}>Sync (API)</button>
-                <button onClick={() => setInternalTab('import')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'import' ? 'bg-slate-700 text-yellow-400' : 'text-slate-400 hover:bg-slate-700/50'}`}>Import (CSV/JSON)</button>
+            <div className="flex border-b border-cdborder">
+                <button onClick={() => setInternalTab('log')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'log' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Activity Log</button>
+                <button onClick={() => setInternalTab('intervals')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'intervals' ? 'bg-cdborder text-orange-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Sync (API)</button>
+                <button onClick={() => setInternalTab('import')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'import' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Import (CSV/JSON)</button>
             </div>
 
             <div className="p-4 flex-1 overflow-hidden flex flex-col">
@@ -292,13 +292,13 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
                             <div className="flex gap-2 w-full md:w-auto flex-1">
                                 <div className="relative flex-1">
-                                    <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
-                                    <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search (name or 4-2-2024)..." className="w-full bg-slate-900 border border-slate-600 rounded pl-10 pr-4 py-2 text-sm text-white outline-none focus:border-yellow-400" />
+                                    <Search className="absolute left-3 top-2.5 w-4 h-4 text-cdmuted" />
+                                    <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search (name or 4-2-2024)..." className="w-full bg-cdbg border border-cdborder rounded pl-10 pr-4 py-2 text-sm text-cdtext outline-none focus:border-yellow-400" />
                                 </div>
-                                <div className="flex bg-slate-900 rounded border border-slate-600 p-1">
-                                    <button onClick={() => setIndoorFilter('all')} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'all' ? 'bg-slate-700 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}>All</button>
-                                    <button onClick={() => setIndoorFilter('outdoor')} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'outdoor' ? 'bg-green-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}>Out</button>
-                                    <button onClick={() => setIndoorFilter('indoor')} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'indoor' ? 'bg-orange-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}>In</button>
+                                <div className="flex bg-cdbg rounded border border-cdborder p-1">
+                                    <button onClick={() => setIndoorFilter('all')} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'all' ? 'bg-cdborder text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}>All</button>
+                                    <button onClick={() => setIndoorFilter('outdoor')} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'outdoor' ? 'bg-green-600 text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}>Out</button>
+                                    <button onClick={() => setIndoorFilter('indoor')} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'indoor' ? 'bg-orange-600 text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}>In</button>
                                 </div>
                             </div>
                             <div className="flex gap-2">
@@ -317,9 +317,9 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
                         )}
 
                         {!activities ? (
-                            <div className="flex-1 flex flex-col items-center justify-center text-slate-500 gap-4"><Loader2 className="animate-spin text-yellow-400" size={32} /><p>Loading Activities...</p></div>
+                            <div className="flex-1 flex flex-col items-center justify-center text-cdmuted gap-4"><Loader2 className="animate-spin text-yellow-400" size={32} /><p>Loading Activities...</p></div>
                         ) : processedActivities.length === 0 ? (
-                            <div className="flex-1 flex flex-col items-center justify-center text-slate-500 gap-2 border border-dashed border-slate-700 rounded-lg"><AlertTriangle size={32} className="text-slate-600" /><p>No activities found. Start with an Import!</p></div>
+                            <div className="flex-1 flex flex-col items-center justify-center text-cdmuted gap-2 border border-dashed border-cdborder rounded-lg"><AlertTriangle size={32} className="text-slate-600" /><p>No activities found. Start with an Import!</p></div>
                         ) : (
                             <ActivityTable
                                 activities={isGroupedView ? groupedActivities : processedActivities}

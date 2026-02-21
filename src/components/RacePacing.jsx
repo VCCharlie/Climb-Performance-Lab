@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import { Mountain, Plus, Trash2, AlertTriangle, TrendingDown, Battery, Zap, Clock, Utensils, Search, Filter } from 'lucide-react';
 import { CLIMB_DATABASE } from '../climbs';
 
@@ -20,8 +20,8 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
 
     // Physics constants
     const CRR = 0.004; // Rolling resistance
-    const CDA = 0.32; // Drag coefficient (m²)
-    const AIR_DENSITY = 1.225; // kg/m³
+    const CDA = 0.32; // Drag coefficient (mÂ²)
+    const AIR_DENSITY = 1.225; // kg/mÂ³
     const DRIVETRAIN_LOSS = 0.975; // 2.5% loss
     const GRAVITY = 9.81;
 
@@ -142,7 +142,7 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
         const totalCarbs = climbDetails.reduce((sum, c) => sum + c.carbsGrams, 0);
 
         // Glycogen depletion estimate
-        // Trained athlete: ~500g glycogen = 2000 kcal = 500g × 4 kcal/g
+        // Trained athlete: ~500g glycogen = 2000 kcal = 500g Ã— 4 kcal/g
         const maxGlycogenKcal = 2000; // kcal
         const metabolicEnergyKcal = totalEnergy / 0.23 * 0.239; // Convert mechanical kJ to metabolic kcal
         const glycogenUsedKcal = metabolicEnergyKcal * 0.6; // 60% from glycogen at race intensity
@@ -181,26 +181,26 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
     }, [selectedClimbs, recoveryMinutes, targetIntensity, userSettings]);
 
     return (
-        <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl space-y-6">
+        <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl space-y-6">
             <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <h2 className="text-xl font-bold text-cdtext flex items-center gap-2">
                     <Mountain className="text-yellow-400" />
                     Multi-Climb Race Pacing Strategy
                 </h2>
-                <div className="text-xs text-slate-400 bg-slate-900 px-3 py-1 rounded-full border border-slate-700">
+                <div className="text-xs text-cdmuted bg-cdbg px-3 py-1 rounded-full border border-cdborder">
                     Physics-Based Pacing
                 </div>
             </div>
 
             {/* Methodology Info */}
             <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-                <h4 className="text-blue-400 font-bold text-sm mb-2">ℹ️ Hoe werkt dit?</h4>
-                <div className="text-xs text-slate-300 space-y-1">
-                    <p><strong>• Climb tijden:</strong> Berekend via physics engine (zwaartekracht, luchtweerstand, rolweerstand)</p>
-                    <p><strong>• Energie verbruik:</strong> Mechanisch vermogen (kJ) → Metabolisch verbruik (lichaam is ~23% efficient)</p>
-                    <p><strong>• Koolhydraten:</strong> Bij race intensiteit komt ~60% energie uit glycogeen. 1g carbs = 4 kcal</p>
-                    <p><strong>• Glycogeen depot:</strong> Getrainde atleet heeft ~500g glycogeen (~2000 kcal) beschikbaar</p>
-                    <p><strong>💡 Tip:</strong> Vermijd depletie &gt;80% - je hebt ook nog energie nodig voor vlakke stukken!</p>
+                <h4 className="text-blue-400 font-bold text-sm mb-2">â„¹ï¸ Hoe werkt dit?</h4>
+                <div className="text-xs text-cdtext space-y-1">
+                    <p><strong>â€¢ Climb tijden:</strong> Berekend via physics engine (zwaartekracht, luchtweerstand, rolweerstand)</p>
+                    <p><strong>â€¢ Energie verbruik:</strong> Mechanisch vermogen (kJ) â†’ Metabolisch verbruik (lichaam is ~23% efficient)</p>
+                    <p><strong>â€¢ Koolhydraten:</strong> Bij race intensiteit komt ~60% energie uit glycogeen. 1g carbs = 4 kcal</p>
+                    <p><strong>â€¢ Glycogeen depot:</strong> Getrainde atleet heeft ~500g glycogeen (~2000 kcal) beschikbaar</p>
+                    <p><strong>ðŸ’¡ Tip:</strong> Vermijd depletie &gt;80% - je hebt ook nog energie nodig voor vlakke stukken!</p>
                 </div>
             </div>
 
@@ -208,34 +208,34 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Left: Climb Selection */}
                 <div className="space-y-4">
-                    <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wide">Voeg Beklimmingen Toe</h3>
+                    <h3 className="text-sm font-bold text-cdtext uppercase tracking-wide">Voeg Beklimmingen Toe</h3>
 
                     {/* Search Field */}
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-cdmuted" size={16} />
                         <input
                             type="text"
                             placeholder="Zoek climb (bijv. Ventoux, Alpe)..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-3 py-2 bg-slate-700 border border-slate-600 rounded text-white text-sm focus:border-yellow-400 outline-none"
+                            className="w-full pl-10 pr-3 py-2 bg-cdborder border border-cdborder rounded text-cdtext text-sm focus:border-yellow-400 outline-none"
                         />
                     </div>
 
                     {/* Region Filter */}
                     {selectedClimbs.length > 0 && (
                         <div className="flex items-center gap-2 text-xs">
-                            <Filter size={14} className="text-slate-400" />
-                            <span className="text-slate-400">Filter:</span>
+                            <Filter size={14} className="text-cdmuted" />
+                            <span className="text-cdmuted">Filter:</span>
                             <button
                                 onClick={() => setFilterRegion('all')}
-                                className={`px-2 py-1 rounded ${filterRegion === 'all' ? 'bg-yellow-400 text-slate-900 font-bold' : 'bg-slate-700 text-slate-300'}`}
+                                className={`px-2 py-1 rounded ${filterRegion === 'all' ? 'bg-yellow-400 text-slate-900 font-bold' : 'bg-cdborder text-cdtext'}`}
                             >
                                 Alle
                             </button>
                             <button
                                 onClick={() => setFilterRegion(selectedClimbs[selectedClimbs.length - 1].country)}
-                                className={`px-2 py-1 rounded ${filterRegion !== 'all' ? 'bg-yellow-400 text-slate-900 font-bold' : 'bg-slate-700 text-slate-300'}`}
+                                className={`px-2 py-1 rounded ${filterRegion !== 'all' ? 'bg-yellow-400 text-slate-900 font-bold' : 'bg-cdborder text-cdtext'}`}
                             >
                                 {selectedClimbs[selectedClimbs.length - 1].flag} Zelfde regio
                             </button>
@@ -250,7 +250,7 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
                                 e.target.value = '';
                             }
                         }}
-                        className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm"
+                        className="w-full bg-cdborder border border-cdborder rounded px-3 py-2 text-cdtext text-sm"
                         value=""
                     >
                         <option value="">Selecteer een climb... ({filteredClimbs.length} resultaten)</option>
@@ -262,8 +262,8 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
                     </select>
 
                     {/* Target Intensity Slider */}
-                    <div className="bg-slate-900/50 p-4 rounded border border-slate-700">
-                        <div className="flex justify-between text-xs text-slate-300 mb-2">
+                    <div className="bg-cdbg/50 p-4 rounded border border-cdborder">
+                        <div className="flex justify-between text-xs text-cdtext mb-2">
                             <span>Race Intensity (IF)</span>
                             <span className="font-mono text-yellow-400">{(targetIntensity * 100).toFixed(0)}%</span>
                         </div>
@@ -274,9 +274,9 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
                             step="0.01"
                             value={targetIntensity}
                             onChange={e => setTargetIntensity(parseFloat(e.target.value))}
-                            className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-yellow-400"
+                            className="w-full h-2 bg-cdborder rounded-lg appearance-none cursor-pointer accent-yellow-400"
                         />
-                        <div className="text-xs text-slate-400 mt-1">
+                        <div className="text-xs text-cdmuted mt-1">
                             {targetIntensity < 0.75 && "Endurance pace - goed voor ultralange races"}
                             {targetIntensity >= 0.75 && targetIntensity < 0.85 && "Tempo pace - houdbaar voor 3-5 uur"}
                             {targetIntensity >= 0.85 && targetIntensity < 0.95 && "Race pace - houdbaar voor 1-3 uur"}
@@ -287,25 +287,25 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
 
                 {/* Right: Selected Climbs List */}
                 <div className="space-y-4">
-                    <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wide">
+                    <h3 className="text-sm font-bold text-cdtext uppercase tracking-wide">
                         Race Plan ({selectedClimbs.length} climbs)
                     </h3>
 
                     <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
                         {selectedClimbs.length === 0 ? (
-                            <div className="text-center py-8 text-slate-500 text-sm">
+                            <div className="text-center py-8 text-cdmuted text-sm">
                                 Nog geen beklimmingen toegevoegd
                             </div>
                         ) : (
                             selectedClimbs.map((climb, idx) => (
-                                <div key={climb.id} className="bg-slate-900 border border-slate-700 rounded p-3 space-y-2">
+                                <div key={climb.id} className="bg-cdbg border border-cdborder rounded p-3 space-y-2">
                                     <div className="flex items-start justify-between">
                                         <div className="flex-1">
-                                            <div className="text-white font-bold text-sm">
+                                            <div className="text-cdtext font-bold text-sm">
                                                 {idx + 1}. {climb.flag} {climb.name}
                                             </div>
-                                            <div className="text-xs text-slate-400">
-                                                {climb.lengthKm}km • {climb.elevation}m • {climb.avgGrade}%
+                                            <div className="text-xs text-cdmuted">
+                                                {climb.lengthKm}km â€¢ {climb.elevation}m â€¢ {climb.avgGrade}%
                                             </div>
                                         </div>
                                         <button
@@ -318,7 +318,7 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
 
                                     {/* Recovery Time Input */}
                                     <div className="flex items-center gap-2 text-xs">
-                                        <span className="text-slate-400">Recovery na climb:</span>
+                                        <span className="text-cdmuted">Recovery na climb:</span>
                                         <input
                                             type="number"
                                             value={recoveryMinutes[climb.id] || 0}
@@ -326,9 +326,9 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
                                                 ...recoveryMinutes,
                                                 [climb.id]: parseInt(e.target.value) || 0
                                             })}
-                                            className="w-16 bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white"
+                                            className="w-16 bg-cdsurface border border-cdborder rounded px-2 py-1 text-cdtext"
                                         />
-                                        <span className="text-slate-400">minuten</span>
+                                        <span className="text-cdmuted">minuten</span>
                                     </div>
                                 </div>
                             ))
@@ -339,15 +339,15 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
 
             {/* Results Panel */}
             {raceStrategy && (
-                <div className="space-y-6 bg-slate-900 p-6 rounded-lg border border-slate-700">
+                <div className="space-y-6 bg-cdbg p-6 rounded-lg border border-cdborder">
                     {/* Warnings */}
                     {raceStrategy.warnings.length > 0 && (
-                        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                             <div className="flex items-start gap-3">
-                                <AlertTriangle className="text-red-400 flex-shrink-0 mt-0.5" size={20} />
+                                <AlertTriangle className="text-red-500 flex-shrink-0 mt-0.5" size={20} />
                                 <div className="space-y-1">
                                     {raceStrategy.warnings.map((warning, idx) => (
-                                        <div key={idx} className="text-sm text-red-300">{warning}</div>
+                                        <div key={idx} className="text-sm text-red-700">{warning}</div>
                                     ))}
                                 </div>
                             </div>
@@ -356,48 +356,48 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
 
                     {/* KPI Cards */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="bg-slate-800 p-4 rounded border border-slate-700 text-center">
+                        <div className="bg-cdsurface p-4 rounded border border-cdborder text-center">
                             <Clock className="w-5 h-5 text-blue-400 mx-auto mb-2" />
-                            <div className="text-2xl font-bold text-white">
+                            <div className="text-2xl font-bold text-cdtext">
                                 {Math.floor(raceStrategy.totalTime / 60)}h{Math.round(raceStrategy.totalTime % 60)}m
                             </div>
-                            <div className="text-xs text-slate-400 uppercase">Total Time</div>
+                            <div className="text-xs text-cdmuted uppercase">Total Time</div>
                         </div>
 
-                        <div className="bg-slate-800 p-4 rounded border border-slate-700 text-center">
-                            <Zap className="w-5 h-5 text-yellow-400 mx-auto mb-2" />
-                            <div className="text-2xl font-bold text-white">{Math.round(raceStrategy.avgPower)}W</div>
-                            <div className="text-xs text-slate-400 uppercase">
+                        <div className="bg-cdsurface p-4 rounded border border-cdborder text-center">
+                            <Zap className="w-5 h-5 text-yellow-500 mx-auto mb-2" />
+                            <div className="text-2xl font-bold text-cdtext">{Math.round(raceStrategy.avgPower)}W</div>
+                            <div className="text-xs text-cdmuted uppercase">
                                 {raceStrategy.avgWPerKg.toFixed(1)} W/kg
                             </div>
                         </div>
 
-                        <div className="bg-slate-800 p-4 rounded border border-slate-700 text-center">
-                            <Battery className={`w-5 h-5 mx-auto mb-2 ${raceStrategy.glycogenPercent > 70 ? 'text-red-400' : 'text-green-400'}`} />
-                            <div className="text-2xl font-bold text-white">
+                        <div className="bg-cdsurface p-4 rounded border border-cdborder text-center">
+                            <Battery className={`w-5 h-5 mx-auto mb-2 ${raceStrategy.glycogenPercent > 70 ? 'text-red-500' : 'text-green-500'}`} />
+                            <div className="text-2xl font-bold text-cdtext">
                                 {Math.round(raceStrategy.glycogenPercent)}%
                             </div>
-                            <div className="text-xs text-slate-400 uppercase">Glycogen Used</div>
+                            <div className="text-xs text-cdmuted uppercase">Glycogen Used</div>
                         </div>
 
-                        <div className="bg-slate-800 p-4 rounded border border-slate-700 text-center">
-                            <TrendingDown className="w-5 h-5 text-orange-400 mx-auto mb-2" />
-                            <div className="text-2xl font-bold text-white">
+                        <div className="bg-cdsurface p-4 rounded border border-cdborder text-center">
+                            <TrendingDown className="w-5 h-5 text-orange-500 mx-auto mb-2" />
+                            <div className="text-2xl font-bold text-cdtext">
                                 {Math.round(raceStrategy.carbsPerHour)}g/h
                             </div>
-                            <div className="text-xs text-slate-400 uppercase">Carbs Needed</div>
+                            <div className="text-xs text-cdmuted uppercase">Carbs Needed</div>
                         </div>
                     </div>
 
                     {/* Climb-by-Climb Breakdown */}
                     <div>
-                        <h3 className="text-white font-bold mb-3 text-sm uppercase tracking-wide">
+                        <h3 className="text-cdtext font-bold mb-3 text-sm uppercase tracking-wide">
                             Climb-by-Climb Analysis
                         </h3>
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead>
-                                    <tr className="border-b border-slate-700 text-slate-400 text-xs">
+                                    <tr className="border-b border-cdborder text-cdmuted text-xs">
                                         <th className="text-left py-2 px-2">#</th>
                                         <th className="text-left py-2 px-2">Climb</th>
                                         <th className="text-right py-2 px-2">Power</th>
@@ -408,21 +408,21 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
                                 </thead>
                                 <tbody>
                                     {raceStrategy.climbDetails.map((detail, idx) => (
-                                        <tr key={detail.climb.id} className="border-b border-slate-800 hover:bg-slate-800/50">
-                                            <td className="py-2 px-2 text-slate-400">{idx + 1}</td>
-                                            <td className="py-2 px-2 text-white font-medium">
+                                        <tr key={detail.climb.id} className="border-b border-cdborder hover:bg-cdsurface/80">
+                                            <td className="py-2 px-2 text-cdmuted">{idx + 1}</td>
+                                            <td className="py-2 px-2 text-cdtext font-medium">
                                                 {detail.climb.name}
                                             </td>
-                                            <td className="py-2 px-2 text-right text-yellow-400 font-mono">
+                                            <td className="py-2 px-2 text-right text-yellow-600 font-mono">
                                                 {Math.round(detail.power)}W
                                             </td>
-                                            <td className="py-2 px-2 text-right text-slate-300 font-mono">
+                                            <td className="py-2 px-2 text-right text-cdtext font-mono">
                                                 {Math.round(detail.timeMinutes)}m
                                             </td>
-                                            <td className="py-2 px-2 text-right text-orange-400 font-mono">
+                                            <td className="py-2 px-2 text-right text-orange-500 font-mono">
                                                 {Math.round(detail.carbsGrams)}g
                                             </td>
-                                            <td className="py-2 px-2 text-right text-slate-400 font-mono text-xs">
+                                            <td className="py-2 px-2 text-right text-cdmuted font-mono text-xs">
                                                 {Math.floor(detail.cumulativeTime / 60)}h{Math.round(detail.cumulativeTime % 60)}m
                                             </td>
                                         </tr>
@@ -433,11 +433,11 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
                     </div>
 
                     {/* Nutrition Recommendation */}
-                    <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                             <div className="flex-1">
-                                <h4 className="text-green-400 font-bold text-sm mb-2">💡 Voedingsstrategie</h4>
-                                <p className="text-sm text-slate-300">
+                                <h4 className="text-green-700 font-bold text-sm mb-2">💡 Voedingsstrategie</h4>
+                                <p className="text-sm text-cdtext">
                                     Voor deze race heb je <strong>{Math.round(raceStrategy.totalCarbs)}g koolhydraten</strong> nodig
                                     ({Math.round(raceStrategy.carbsPerHour)}g/uur).
                                     {raceStrategy.carbsPerHour <= 60 && " Dit is goed haalbaar met standaard sportvoeding."}
@@ -450,10 +450,10 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
                             {onExportToFueling && (
                                 <button
                                     onClick={() => onExportToFueling(raceStrategy.totalTime, targetIntensity)}
-                                    className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm font-bold transition-colors whitespace-nowrap w-full sm:w-auto justify-center"
+                                    className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-cdtext px-4 py-2 rounded text-sm font-bold transition-colors whitespace-nowrap w-full sm:w-auto justify-center"
                                 >
                                     <Utensils size={16} />
-                                    Open in Fueling →
+                                    Open in Fueling â†’
                                 </button>
                             )}
                         </div>

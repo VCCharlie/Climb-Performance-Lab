@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import { Settings, TrendingUp, AlertCircle, CheckCircle, Bike } from 'lucide-react';
 import { CLIMB_DATABASE } from '../climbs';
 
@@ -155,13 +155,13 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
     }, [gearAnalysis, cassette, selectedClimb]);
 
     return (
-        <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl space-y-6">
+        <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl space-y-6">
             <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <h2 className="text-xl font-bold text-cdtext flex items-center gap-2">
                     <Settings className="text-blue-400" />
                     Gear Ratio Optimizer
                 </h2>
-                <div className="text-xs text-slate-400 bg-slate-900 px-3 py-1 rounded-full border border-slate-700">
+                <div className="text-xs text-cdmuted bg-cdbg px-3 py-1 rounded-full border border-cdborder">
                     Find Your Perfect Gearing
                 </div>
             </div>
@@ -169,79 +169,79 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Left: Configuration */}
                 <div className="space-y-4">
-                    <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wide">Huidige Setup</h3>
+                    <h3 className="text-sm font-bold text-cdtext uppercase tracking-wide">Huidige Setup</h3>
 
                     {/* Chainrings Preset */}
-                    <div className="bg-slate-900/50 p-4 rounded border border-slate-700 space-y-3">
-                        <label className="text-xs text-slate-400 uppercase">Kettingbladen</label>
+                    <div className="bg-cdbg/50 p-4 rounded border border-cdborder space-y-3">
+                        <label className="text-xs text-cdmuted uppercase">Kettingbladen</label>
                         <select
                             onChange={(e) => setChainrings(gearingPresets[e.target.value].chainrings)}
-                            className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm"
+                            className="w-full bg-cdborder border border-cdborder rounded px-3 py-2 text-cdtext text-sm"
                         >
                             {Object.keys(gearingPresets).map(key => (
                                 <option key={key} value={key}>{gearingPresets[key].name}</option>
                             ))}
                         </select>
-                        <div className="text-xs text-slate-500">
+                        <div className="text-xs text-cdmuted">
                             Current: {chainrings.join(' / ')}T
                         </div>
                     </div>
 
                     {/* Cassette Preset */}
-                    <div className="bg-slate-900/50 p-4 rounded border border-slate-700 space-y-3">
-                        <label className="text-xs text-slate-400 uppercase">Cassette</label>
+                    <div className="bg-cdbg/50 p-4 rounded border border-cdborder space-y-3">
+                        <label className="text-xs text-cdmuted uppercase">Cassette</label>
                         <select
                             onChange={(e) => setCassette(cassettePresets[e.target.value].cogs)}
-                            className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm"
+                            className="w-full bg-cdborder border border-cdborder rounded px-3 py-2 text-cdtext text-sm"
                         >
                             {Object.keys(cassettePresets).map(key => (
                                 <option key={key} value={key}>{cassettePresets[key].name}</option>
                             ))}
                         </select>
-                        <div className="text-xs text-slate-500">
+                        <div className="text-xs text-cdmuted">
                             Current: {cassette[0]}-{cassette[cassette.length - 1]}T ({cassette.length} speed)
                         </div>
                     </div>
 
                     {/* Wheels */}
-                    <div className="bg-slate-900/50 p-4 rounded border border-slate-700 space-y-3">
-                        <label className="text-xs text-slate-400 uppercase">Wielmaat</label>
+                    <div className="bg-cdbg/50 p-4 rounded border border-cdborder space-y-3">
+                        <label className="text-xs text-cdmuted uppercase">Wielmaat</label>
                         <div className="grid grid-cols-2 gap-2">
                             <button
                                 onClick={() => setWheelDiameter(700)}
-                                className={`px-3 py-2 text-sm rounded ${wheelDiameter === 700 ? 'bg-blue-500 text-white' : 'bg-slate-700 text-slate-300'}`}
+                                className={`px-3 py-2 text-sm rounded ${wheelDiameter === 700 ? 'bg-blue-500 text-cdtext' : 'bg-cdborder text-cdtext'}`}
                             >
                                 700c (Road)
                             </button>
                             <button
                                 onClick={() => setWheelDiameter(26)}
-                                className={`px-3 py-2 text-sm rounded ${wheelDiameter === 26 ? 'bg-blue-500 text-white' : 'bg-slate-700 text-slate-300'}`}
+                                className={`px-3 py-2 text-sm rounded ${wheelDiameter === 26 ? 'bg-blue-500 text-cdtext' : 'bg-cdborder text-cdtext'}`}
                             >
                                 26" (MTB)
                             </button>
                         </div>
 
                         <div>
-                            <label className="text-xs text-slate-400">Bandenmaat (mm)</label>
+                            <label className="text-xs text-cdmuted">Bandenmaat (mm)</label>
                             <input
                                 type="number"
                                 value={tyreMm}
                                 onChange={(e) => setTyreMm(parseInt(e.target.value) || 25)}
-                                className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm mt-1"
+                                className="w-full bg-cdborder border border-cdborder rounded px-3 py-2 text-cdtext text-sm mt-1"
                             />
                         </div>
                     </div>
 
                     {/* Climb Selection */}
-                    <div className="bg-slate-900/50 p-4 rounded border border-slate-700 space-y-3">
-                        <label className="text-xs text-slate-400 uppercase">Test Climb</label>
+                    <div className="bg-cdbg/50 p-4 rounded border border-cdborder space-y-3">
+                        <label className="text-xs text-cdmuted uppercase">Test Climb</label>
                         <select
                             onChange={(e) => {
                                 const climb = CLIMB_DATABASE.find(c => c.id === e.target.value);
                                 if (climb) setSelectedClimb(climb);
                             }}
                             value={selectedClimb.id}
-                            className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm"
+                            className="w-full bg-cdborder border border-cdborder rounded px-3 py-2 text-cdtext text-sm"
                         >
                             {CLIMB_DATABASE.map(climb => (
                                 <option key={climb.id} value={climb.id}>
@@ -252,9 +252,9 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
                     </div>
 
                     {/* Target Power & Cadence */}
-                    <div className="bg-slate-900/50 p-4 rounded border border-slate-700 space-y-3">
+                    <div className="bg-cdbg/50 p-4 rounded border border-cdborder space-y-3">
                         <div>
-                            <div className="flex justify-between text-xs text-slate-300 mb-1">
+                            <div className="flex justify-between text-xs text-cdtext mb-1">
                                 <span>Target Power</span>
                                 <span className="font-mono text-yellow-400">{Math.round(targetPower)}W</span>
                             </div>
@@ -265,12 +265,12 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
                                 step="5"
                                 value={targetPower}
                                 onChange={(e) => setTargetPower(parseInt(e.target.value))}
-                                className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-yellow-400"
+                                className="w-full h-2 bg-cdborder rounded-lg appearance-none cursor-pointer accent-yellow-400"
                             />
                         </div>
 
                         <div>
-                            <div className="flex justify-between text-xs text-slate-300 mb-1">
+                            <div className="flex justify-between text-xs text-cdtext mb-1">
                                 <span>Preferred Cadence</span>
                                 <span className="font-mono text-blue-400">{targetCadence} rpm</span>
                             </div>
@@ -281,7 +281,7 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
                                 step="5"
                                 value={targetCadence}
                                 onChange={(e) => setTargetCadence(parseInt(e.target.value))}
-                                className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-400"
+                                className="w-full h-2 bg-cdborder rounded-lg appearance-none cursor-pointer accent-blue-400"
                             />
                         </div>
                     </div>
@@ -289,24 +289,24 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
 
                 {/* Right: Results */}
                 <div className="space-y-4">
-                    <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wide">Analysis</h3>
+                    <h3 className="text-sm font-bold text-cdtext uppercase tracking-wide">Analysis</h3>
 
                     {/* Key Metrics */}
                     <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-slate-900 p-4 rounded border border-slate-700 text-center">
+                        <div className="bg-cdbg p-4 rounded border border-cdborder text-center">
                             <TrendingUp className="w-5 h-5 text-green-400 mx-auto mb-2" />
-                            <div className="text-xl font-bold text-white">
+                            <div className="text-xl font-bold text-cdtext">
                                 {gearAnalysis.targetSpeedKmh.toFixed(1)} km/h
                             </div>
-                            <div className="text-xs text-slate-400 uppercase">Estimated Speed</div>
+                            <div className="text-xs text-cdmuted uppercase">Estimated Speed</div>
                         </div>
 
-                        <div className="bg-slate-900 p-4 rounded border border-slate-700 text-center">
+                        <div className="bg-cdbg p-4 rounded border border-cdborder text-center">
                             <Bike className="w-5 h-5 text-blue-400 mx-auto mb-2" />
-                            <div className="text-xl font-bold text-white">
+                            <div className="text-xl font-bold text-cdtext">
                                 {gearAnalysis.optimal.chainring}/{gearAnalysis.optimal.cog}
                             </div>
-                            <div className="text-xs text-slate-400 uppercase">Optimal Gear</div>
+                            <div className="text-xs text-cdmuted uppercase">Optimal Gear</div>
                         </div>
                     </div>
 
@@ -333,30 +333,30 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
                     </div>
 
                     {/* Gear Chart */}
-                    <div className="bg-slate-900 border border-slate-700 rounded p-4">
-                        <h4 className="text-white font-bold text-sm mb-3">Alle Verzetten (Cadans @ {Math.round(gearAnalysis.targetSpeedKmh)} km/h)</h4>
+                    <div className="bg-cdbg border border-cdborder rounded p-4">
+                        <h4 className="text-cdtext font-bold text-sm mb-3">Alle Verzetten (Cadans @ {Math.round(gearAnalysis.targetSpeedKmh)} km/h)</h4>
                         <div className="max-h-64 overflow-y-auto custom-scrollbar space-y-1">
                             {gearAnalysis.gears.map((gear, idx) => (
                                 <div
                                     key={idx}
                                     className={`flex items-center justify-between p-2 rounded text-xs ${gear.isSuitable
                                             ? 'bg-green-500/10 border border-green-500/20'
-                                            : 'bg-slate-800 border border-slate-700'
+                                            : 'bg-cdsurface border border-cdborder'
                                         } ${gear === gearAnalysis.optimal ? 'ring-2 ring-yellow-400' : ''}`}
                                 >
-                                    <span className="text-white font-mono">
+                                    <span className="text-cdtext font-mono">
                                         {gear.chainring}x{gear.cog}
                                     </span>
-                                    <span className={`font-mono ${gear.isSuitable ? 'text-green-400' : 'text-slate-500'}`}>
+                                    <span className={`font-mono ${gear.isSuitable ? 'text-green-400' : 'text-cdmuted'}`}>
                                         {Math.round(gear.cadenceNeeded)} rpm
                                     </span>
-                                    <span className="text-slate-500">
+                                    <span className="text-cdmuted">
                                         {gear.development.toFixed(2)}m
                                     </span>
                                 </div>
                             ))}
                         </div>
-                        <div className="text-xs text-slate-500 mt-2">
+                        <div className="text-xs text-cdmuted mt-2">
                             Groene verzetten: 60-100 rpm | Geel = optimaal voor {targetCadence} rpm<br />
                             Development (m) = afstand per trapomwenteling
                         </div>

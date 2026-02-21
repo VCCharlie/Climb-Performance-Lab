@@ -5,9 +5,36 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Climb Lab Pro</title>
+    <!-- Google Fonts: Barlow & Barlow Condensed -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;900&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              cdbg: '#f0f2f5',
+              cdsurface: '#ffffff',
+              cdborder: '#e2e8f0',
+              cdaccent: '#f97316',
+              cdblue: '#3b82f6',
+              cdtext: '#1e2330',
+              cdmuted: '#64748b',
+              cdgreen: '#16a34a',
+              cdred: '#dc2626'
+            },
+            fontFamily: {
+              sans: ['Barlow', 'sans-serif'],
+              head: ['"Barlow Condensed"', 'sans-serif']
+            }
+          }
+        }
+      }
+    </script>
   </head>
-  <body>
+  <body class="bg-cdbg text-cdtext font-sans antialiased">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
