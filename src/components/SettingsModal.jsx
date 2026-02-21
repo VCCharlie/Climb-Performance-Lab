@@ -1,15 +1,46 @@
 ﻿import React, { useState } from 'react';
 import { Settings, Activity, RefreshCw, Save, Moon, Sun, Shield, Target, Bell, Database, Download, Upload, Zap, X } from 'lucide-react';
 import { calculatePowerZones } from '../utils';
+import SyncPanel from './data-hub/SyncPanel';
 
 const SettingsModal = ({
     onClose,
     intervalsConfig, updateIntervalsConfig,
     userSettings, updateUserSettings,
     onSaveToCloud, theme, setTheme,
-    fullData, onImportBackup
+    fullData, onImportBackup,
+    syncState, onSyncComplete
 }) => {
     const [isSaving, setIsSaving] = useState(false);
+
+    // -- Sync Wrapper --
+    const { syncDates, setSyncDates, sportFilters, setSportFilters, isSyncing, syncProgress, syncIntervals } = syncState || {};
+
+    const toggleSportFilter = (type) => {
+        if (setSportFilters) setSportFilters(prev => ({ ...prev, [type]: !prev[type] }));
+    };
+
+    const setAllSportFilters = (val) => {
+        import('../../config').then(({ SPORT_TYPES }) => {
+            if (setSportFilters) setSportFilters(SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: val }), {}));
+        });
+    };
+
+    const handleIntervalsSyncWrapper = async () => {
+        if (!syncIntervals || !syncDates || !sportFilters) return;
+        const selectedTypes = Object.keys(sportFilters).filter(k => sportFilters[k]);
+        try {
+            const newRides = await syncIntervals(syncDates.start, syncDates.end, selectedTypes);
+            if (newRides && newRides.length > 0) {
+                if (onSyncComplete) onSyncComplete(newRides);
+                alert(`Sync successful! Handled ${newRides.length} activities.`);
+            } else if (newRides) {
+                alert("No activities found in range.");
+            }
+        } catch (e) {
+            alert(e.message);
+        }
+    };
 
     const handleSave = async () => {
         setIsSaving(true);
@@ -118,11 +149,26 @@ const SettingsModal = ({
                                     <label className={`block text-xs uppercase font-bold mb-1 ${labelClass}`}>Athlete ID</label>
                                     <input type="text" value={intervalsConfig.athleteId} onChange={e => updateIntervalsConfig('athleteId', e.target.value)} className={`w-full border rounded p-3 outline-none ${inputClass}`} />
                                 </div>
-                                <div>
+                                <div className="pt-2">
                                     <label className={`block text-xs uppercase font-bold mb-1 ${labelClass}`}>API Key</label>
                                     <input type="password" value={intervalsConfig.apiKey} onChange={e => updateIntervalsConfig('apiKey', e.target.value)} className={`w-full border rounded p-3 outline-none ${inputClass}`} />
                                 </div>
                             </div>
+
+                            {syncState && (
+                                <div className="mt-6 pt-6 border-t border-cdborder/50">
+                                    <SyncPanel
+                                        syncDates={syncDates}
+                                        setSyncDates={setSyncDates}
+                                        sportFilters={sportFilters}
+                                        toggleSportFilter={toggleSportFilter}
+                                        setAllSportFilters={setAllSportFilters}
+                                        isSyncing={isSyncing}
+                                        syncProgress={syncProgress}
+                                        handleIntervalsSync={handleIntervalsSyncWrapper}
+                                    />
+                                </div>
+                            )}
                         </div>
 
                         {/* BACKUP & RESTORE */}

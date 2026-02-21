@@ -10,17 +10,15 @@ import { SPORT_TYPES } from '../config';
 import EditActivityModal from './data-hub/EditActivityModal';
 import ActivityTable from './data-hub/ActivityTable';
 import ImportModal from './data-hub/ImportModal';
-import SyncPanel from './data-hub/SyncPanel';
 import DuplicateResolver from './data-hub/DuplicateResolver';
 import QuickNav from './data-hub/QuickNav';
 import ImportSection from './data-hub/ImportSection';
 
 // Hooks
-import useIntervalsSync from '../hooks/useIntervalsSync';
 import useActivityFilter from '../hooks/useActivityFilter';
 
 // --- MAIN COMPONENT ---
-const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) => {
+const DataHub = ({ activities, onImport, onDelete, onClear }) => {
     // UI State
     const [internalTab, setInternalTab] = useState('log');
     const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -34,17 +32,6 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
     const [selectedActivities, setSelectedActivities] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [rawData, setRawData] = useState(null); // Debug
-    const [syncDates, setSyncDates] = useState({
-        start: new Date(new Date().setDate(new Date().getDate() - 90)).toISOString().split('T')[0],
-        end: new Date().toISOString().split('T')[0]
-    });
-    const [sportFilters, setSportFilters] = useState(
-        SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: true }), {})
-    );
-
-    // Helpers for SyncPanel
-    const toggleSportFilter = (type) => setSportFilters(prev => ({ ...prev, [type]: !prev[type] }));
-    const setAllSportFilters = (val) => setSportFilters(SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: val }), {}));
 
     // --- HOOKS ---
 
@@ -53,12 +40,10 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
         search, setSearch,
         indoorFilter, setIndoorFilter,
         sortConfig, requestSort,
-        expandedYears, toggleYear,
+        isYearExpanded, toggleYear,
+        isMonthExpanded, toggleMonth,
         processedActivities, groupedActivities, isGroupedView
     } = useActivityFilter(activities);
-
-    // 2. Sync
-    const { syncIntervals, isSyncing, syncProgress } = useIntervalsSync(intervalsConfig);
 
     // --- ACTIONS ---
 
@@ -148,21 +133,6 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
         setSelectedActivities(parsedData.map(r => r.id));
         setRawData(parsedData[0]); // debug
         setShowModal(true);
-    };
-
-    const handleIntervalsSyncWrapper = async () => {
-        const selectedTypes = Object.keys(sportFilters).filter(k => sportFilters[k]);
-        try {
-            const newRides = await syncIntervals(syncDates.start, syncDates.end, selectedTypes);
-            if (newRides && newRides.length > 0) {
-                handleDataDetected(newRides);
-                setInternalTab('import');
-            } else if (newRides) {
-                alert("No activities found in range.");
-            }
-        } catch (e) {
-            alert(e.message);
-        }
     };
 
     const toggleActivityTypeInPreview = (id) => {
@@ -282,8 +252,7 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
             {/* TABS */}
             <div className="flex border-b border-cdborder">
                 <button onClick={() => setInternalTab('log')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'log' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Activity Log</button>
-                <button onClick={() => setInternalTab('intervals')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'intervals' ? 'bg-cdborder text-orange-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Sync (API)</button>
-                <button onClick={() => setInternalTab('import')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'import' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Import (CSV/JSON)</button>
+                <button onClick={() => setInternalTab('import')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'import' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Import Data</button>
             </div>
 
             <div className="p-4 flex-1 overflow-hidden flex flex-col">
@@ -313,7 +282,7 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
                         </div>
 
                         {isGroupedView && (
-                            <QuickNav groupedActivities={groupedActivities} expandedYears={expandedYears} onToggleYear={toggleYear} />
+                            <QuickNav groupedActivities={groupedActivities} isYearExpanded={isYearExpanded} onToggleYear={toggleYear} />
                         )}
 
                         {!activities ? (
@@ -328,8 +297,10 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
                                 onDelete={handleDeleteSingle}
                                 onEdit={setEditingActivity}
                                 isGroupedView={isGroupedView}
-                                expandedYears={expandedYears}
+                                isYearExpanded={isYearExpanded}
                                 onToggleYear={toggleYear}
+                                isMonthExpanded={isMonthExpanded}
+                                onToggleMonth={toggleMonth}
                                 deleteConfirm={deleteConfirm}
                                 setDeleteConfirm={setDeleteConfirm}
                             />
@@ -337,22 +308,8 @@ const DataHub = ({ activities, onImport, onDelete, onClear, intervalsConfig }) =
                     </>
                 )}
 
-                {internalTab === 'intervals' && (
-                    <SyncPanel
-                        syncDates={syncDates}
-                        setSyncDates={setSyncDates}
-                        sportFilters={sportFilters}
-                        toggleSportFilter={toggleSportFilter}
-                        setAllSportFilters={setAllSportFilters}
-                        isSyncing={isSyncing}
-                        syncProgress={syncProgress}
-                        handleIntervalsSync={handleIntervalsSyncWrapper}
-                    />
-                )}
-
                 {internalTab === 'import' && (
                     <ImportSection
-                        intervalsConfig={intervalsConfig}
                         onDataDetected={handleDataDetected}
                     />
                 )}

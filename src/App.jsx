@@ -22,12 +22,25 @@ import RecoveryAdvisor from './components/RecoveryAdvisor';
 import BucketList from './components/BucketList';
 import WeatherClimb from './components/WeatherClimb';
 
+import useIntervalsSync from './hooks/useIntervalsSync';
+import { SPORT_TYPES } from './config';
+
 const App = () => {
     const [activeTab, setActiveTab] = useState('dashboard');
     const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [syncStatus, setSyncStatus] = useState('idle'); // 'idle', 'syncing', 'synced', 'error'
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+    // --- Sync State for SettingsModal ---
+    const { syncIntervals, isSyncing, syncProgress } = useIntervalsSync(intervalsConfig);
+    const [syncDates, setSyncDates] = useState({
+        start: new Date(new Date().setDate(new Date().getDate() - 90)).toISOString().split('T')[0],
+        end: new Date().toISOString().split('T')[0]
+    });
+    const [sportFilters, setSportFilters] = useState(
+        SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: true }), {})
+    );
 
     const [userSettings, setUserSettings] = useState({
         weight: 70.0,
@@ -240,7 +253,7 @@ const App = () => {
                                 { id: 'dashboard', label: 'Dashboard' },
                                 { id: 'coach', label: 'AI Coach' },
                                 { id: 'physics', label: 'Physics' },
-                                { id: 'data', label: 'Data Hub' },
+                                { id: 'activities', label: 'Activities' },
                                 { id: 'fueling', label: 'Fueling' },
                                 { id: 'racepacing', label: 'Race Pacing' },
                                 { id: 'gearoptimizer', label: 'Gear Optimizer' },
@@ -259,7 +272,7 @@ const App = () => {
                                 { id: 'dashboard', label: 'Dashboard', icon: Gauge },
                                 { id: 'coach', label: 'AI Coach', icon: Brain },
                                 { id: 'physics', label: 'Physics', icon: Mountain },
-                                { id: 'data', label: 'Data Hub', icon: Activity },
+                                { id: 'activities', label: 'Activities', icon: Activity },
                                 { id: 'fueling', label: 'Fueling', icon: Utensils },
                                 { id: 'racepacing', label: 'Race Pacing', icon: Route },
                                 { id: 'gearoptimizer', label: 'Gear Optimizer', icon: SettingsIcon },
@@ -295,14 +308,14 @@ const App = () => {
                             { id: 'dashboard', label: 'Dashboard', icon: Gauge },
                             { id: 'coach', label: 'AI Coach', icon: Brain },
                             { id: 'physics', label: 'Physics', icon: Mountain },
-                            { id: 'data', label: 'Data Hub', icon: Activity },
+                            { id: 'activities', label: 'Activities', icon: Activity },
                             { id: 'fueling', label: 'Fueling', icon: Utensils },
-                            { id: 'racepacing', label: 'Pacing', icon: Route },
-                            { id: 'gearoptimizer', label: 'Gear', icon: SettingsIcon },
-                            { id: 'profiler', label: 'Profiler', icon: TrendingUp },
-                            { id: 'recovery', label: 'Recovery', icon: Heart },
-                            { id: 'bucketlist', label: 'Bucket', icon: Trophy },
-                            { id: 'weather', label: 'Weather', icon: Cloud },
+                            { id: 'racepacing', label: 'Race Pacing', icon: Route },
+                            { id: 'gearoptimizer', label: 'Gear Optimizer', icon: SettingsIcon },
+                            { id: 'profiler', label: 'Climb Profiler', icon: TrendingUp },
+                            { id: 'recovery', label: 'Recovery Advisor', icon: Heart },
+                            { id: 'bucketlist', label: 'Bucket List', icon: Trophy },
+                            { id: 'weather', label: 'Weather Climb', icon: Cloud },
                         ].map(item => {
                             const isActive = activeTab === item.id;
                             return (
@@ -341,7 +354,7 @@ const App = () => {
 
                         {activeTab === 'physics' && <PhysicsEngine userSettings={userSettings} setUserSettings={setUserSettings} selectedClimb={selectedClimb} onUpdateClimb={setSelectedClimb} />}
 
-                        {activeTab === 'data' && (
+                        {activeTab === 'activities' && (
                             <DataHub
                                 activities={activities}
                                 onImport={(n) => {
@@ -353,7 +366,6 @@ const App = () => {
                                 }}
                                 onDelete={(id) => setActivities(activities.filter(a => a.id !== id))}
                                 onClear={() => setActivities([])} // NIEUW: Prop om alles leeg te maken
-                                intervalsConfig={intervalsConfig}
                             />
                         )}
 
@@ -424,6 +436,16 @@ const App = () => {
                                 }}
                                 fullData={{ activities, settings: userSettings, intervals: intervalsConfig, bucketList: bucketListState }}
                                 onImportBackup={handleImportBackup}
+                                // Sync handlers
+                                syncState={{ syncDates, setSyncDates, sportFilters, setSportFilters, isSyncing, syncProgress, syncIntervals }}
+                                onSyncComplete={(newActs) => {
+                                    setActivities(prev => {
+                                        const map = new Map();
+                                        prev.forEach(act => map.set(act.id, act));
+                                        newActs.forEach(act => map.set(act.id, act));
+                                        return Array.from(map.values());
+                                    });
+                                }}
                             />
                         )}
                     </>

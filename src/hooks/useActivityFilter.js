@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 
-
 // Helper inside hook or import
 const isValid = (act) => act && act.id && act.date;
 
@@ -8,11 +7,26 @@ const useActivityFilter = (activities) => {
     const [search, setSearch] = useState("");
     const [indoorFilter, setIndoorFilter] = useState('all'); // 'all', 'indoor', 'outdoor'
     const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
+
+    // We store explicit collapse state. If a key is not present, it is considered expanded (true)
     const [expandedYears, setExpandedYears] = useState({});
+    const [expandedMonths, setExpandedMonths] = useState({});
 
     // -- Actions --
     const requestSort = (key) => setSortConfig({ key, direction: sortConfig.key === key && sortConfig.direction === 'desc' ? 'asc' : 'desc' });
-    const toggleYear = (year) => setExpandedYears(p => ({ ...p, [year]: !p[year] }));
+
+    // Toggle year (default is true, so if undefined we set to false)
+    const toggleYear = (year) => setExpandedYears(p => ({ ...p, [year]: p[year] === false ? true : false }));
+
+    // Toggle month (default is true, so if undefined we set to false)
+    const toggleMonth = (year, month) => {
+        const key = `${year}-${month}`;
+        setExpandedMonths(p => ({ ...p, [key]: p[key] === false ? true : false }));
+    };
+
+    // Checkers
+    const isYearExpanded = (year) => expandedYears[year] !== false;
+    const isMonthExpanded = (year, month) => expandedMonths[`${year}-${month}`] !== false;
 
     // -- Derived State --
     const processedActivities = useMemo(() => {
@@ -84,7 +98,8 @@ const useActivityFilter = (activities) => {
         search, setSearch,
         indoorFilter, setIndoorFilter,
         sortConfig, requestSort,
-        expandedYears, toggleYear,
+        isYearExpanded, toggleYear,
+        isMonthExpanded, toggleMonth,
         processedActivities,
         groupedActivities,
         isGroupedView

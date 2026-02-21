@@ -106,7 +106,7 @@ export const Row = React.memo(({ act, onDelete, onEdit, deleteConfirm, setDelete
     );
 });
 
-const ActivityTable = ({ activities, sortConfig, onSort, onDelete, onEdit, isGroupedView, expandedYears, onToggleYear, deleteConfirm, setDeleteConfirm }) => {
+const ActivityTable = ({ activities, sortConfig, onSort, onDelete, onEdit, isGroupedView, isYearExpanded, onToggleYear, isMonthExpanded, onToggleMonth, deleteConfirm, setDeleteConfirm }) => {
     // Logic for grouping is assumed handled by parent or we move it here?
     // For now, let's keep it simple: props pass in the processed activities or we do the grouping here.
     // The previous implementation used `isGroupedView` and `groupedActivities` calculated in parent.
@@ -131,11 +131,11 @@ const ActivityTable = ({ activities, sortConfig, onSort, onDelete, onEdit, isGro
                         // We need groupedActivities passed in
                         Object.keys(activities).sort((a, b) => sortConfig.direction === 'asc' ? a - b : b - a).map(year => (
                             <React.Fragment key={year}>
-                                <tr id={`year-${year}`} className="bg-cdborder/50 scroll-mt-10"><td colSpan={ACTIVITY_COLUMNS.length + 1} className="p-2 font-bold text-cdtext"><button onClick={() => onToggleYear(year)} className="flex items-center gap-2">{expandedYears[year] ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {year}</button></td></tr>
-                                {expandedYears[year] && Object.keys(activities[year]).sort((a, b) => { const diff = MONTH_ORDER.indexOf(b) - MONTH_ORDER.indexOf(a); return sortConfig.direction === 'asc' ? -diff : diff; }).map(month => (
+                                <tr id={`year-${year}`} className="bg-cdborder/50 scroll-mt-10"><td colSpan={ACTIVITY_COLUMNS.length + 1} className="p-2 font-bold text-cdtext"><button onClick={() => onToggleYear(year)} className="flex items-center gap-2 w-full text-left hover:text-yellow-400">{isYearExpanded(year) ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {year}</button></td></tr>
+                                {isYearExpanded(year) && Object.keys(activities[year]).sort((a, b) => { const diff = MONTH_ORDER.indexOf(b) - MONTH_ORDER.indexOf(a); return sortConfig.direction === 'asc' ? -diff : diff; }).map(month => (
                                     <React.Fragment key={month}>
-                                        <tr id={`month-${year}-${month}`} className="bg-cdborder/20 scroll-mt-12"><td colSpan={ACTIVITY_COLUMNS.length + 1} className="px-8 py-1 text-[10px] uppercase font-bold text-cdmuted">{month}</td></tr>
-                                        {activities[year][month].map(act => <Row key={act.id} act={act} onDelete={onDelete} onEdit={onEdit} deleteConfirm={deleteConfirm} setDeleteConfirm={setDeleteConfirm} />)}
+                                        <tr id={`month-${year}-${month}`} className="bg-cdborder/20 scroll-mt-12"><td colSpan={ACTIVITY_COLUMNS.length + 1} className="px-8 py-1 text-[10px] uppercase font-bold text-cdmuted"><button onClick={() => onToggleMonth(year, month)} className="flex items-center gap-1 hover:text-cdtext text-left w-full transition-colors">{isMonthExpanded(year, month) ? <ChevronDown size={12} /> : <ChevronRight size={12} />} {month}</button></td></tr>
+                                        {isMonthExpanded(year, month) && activities[year][month].map(act => <Row key={act.id} act={act} onDelete={onDelete} onEdit={onEdit} deleteConfirm={deleteConfirm} setDeleteConfirm={setDeleteConfirm} />)}
                                     </React.Fragment>
                                 ))}
                             </React.Fragment>

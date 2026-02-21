@@ -2,7 +2,7 @@
 import React from 'react';
 import { MONTH_ORDER } from '../../config';
 
-const QuickNav = ({ groupedActivities, expandedYears, onToggleYear, scrollToId }) => {
+const QuickNav = ({ groupedActivities, isYearExpanded, onToggleYear, scrollToId }) => {
     if (!groupedActivities) return null;
 
     const years = Object.keys(groupedActivities).sort((a, b) => b - a);
@@ -24,7 +24,7 @@ const QuickNav = ({ groupedActivities, expandedYears, onToggleYear, scrollToId }
                             // Quick timeout to allow expansion before scrolling
                             setTimeout(() => handleScroll(`year-${year}`), 50);
                         }}
-                        className={`px-3 py-1 text-xs font-bold rounded transition-colors ${expandedYears[year] ? 'bg-yellow-500 text-slate-900' : 'bg-cdsurface text-cdmuted hover:bg-cdborder hover:text-cdtext'}`}
+                        className={`px-3 py-1 text-xs font-bold rounded transition-colors ${isYearExpanded(year) ? 'bg-yellow-500 text-slate-900' : 'bg-cdsurface text-cdmuted hover:bg-cdborder hover:text-cdtext'}`}
                     >
                         {year}
                     </button>
@@ -38,7 +38,7 @@ const QuickNav = ({ groupedActivities, expandedYears, onToggleYear, scrollToId }
                                     key={month}
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        if (!expandedYears[year]) onToggleYear(year);
+                                        if (!isYearExpanded(year)) onToggleYear(year);
                                         setTimeout(() => handleScroll(`month-${year}-${month}`), 50);
                                     }}
                                     className="block w-full text-left px-3 py-1.5 text-[10px] text-cdtext hover:bg-cdborder hover:text-yellow-400 capitalize"
