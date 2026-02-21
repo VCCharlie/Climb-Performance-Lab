@@ -1,5 +1,5 @@
 ﻿import React, { useMemo } from 'react';
-import { Activity, TrendingUp, TrendingDown, Calendar, AlertTriangle, CheckCircle, Zap } from 'lucide-react';
+import { Activity, TrendingUp, TrendingDown, Calendar, AlertTriangle, CheckCircle, Zap , Info, Lightbulb} from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts';
 
 const RecoveryAdvisor = ({ activities }) => {

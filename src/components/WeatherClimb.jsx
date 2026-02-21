@@ -1,5 +1,5 @@
 ﻿import React, { useState, useMemo } from 'react';
-import { Cloud, Wind, Thermometer, Droplets, Sun, CloudRain, AlertTriangle, Search, RefreshCw } from 'lucide-react';
+import { Cloud, Wind, Thermometer, Droplets, Sun, CloudRain, AlertTriangle, Search, RefreshCw, Info, Lightbulb } from 'lucide-react';
 import { CLIMB_DATABASE } from '../climbs';
 
 // Approximate locations for popular climbs (city/town for weather lookup)
@@ -222,21 +222,21 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
         // Warnings
         const warnings = [];
         if (temperature > 30) {
-            warnings.push('ðŸ”¥ Hoge temperatuur (>30°C): verhoogd risico op hyperthermie. Extra hydratatie nodig!');
+            warnings.push('Hoge temperatuur (>30°C): verhoogd risico op hyperthermie. Extra hydratatie nodig!');
         } else if (temperature > 25) {
             warnings.push('☀️ Warme omstandigheden: drink extra en overweeg vroeger te starten.');
         }
 
         if (temperature < 5) {
-            warnings.push('ðŸ¥¶ Lage temperatuur (<5°C): zorg voor voldoende warmte kleding!');
+            warnings.push('Lage temperatuur (<5°C): zorg voor voldoende warmte kleding!');
         }
 
         if (windDirection === 'headwind' && windSpeed > 20) {
-            warnings.push('ðŸ’¨ Sterke tegenwind (>20 km/h): verwacht significant lagere snelheid.');
+            warnings.push('Sterke tegenwind (>20 km/h): verwacht significant lagere snelheid.');
         }
 
         if (humidity > 80) {
-            warnings.push('ðŸ’§ Hoge luchtvochtigheid (>80%): zweet verdampt slecht, risico op oververhitting.');
+            warnings.push('Hoge luchtvochtigheid (>80%): zweet verdampt slecht, risico op oververhitting.');
         }
 
         return {
@@ -321,11 +321,10 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                             <button
                                 onClick={fetchWeather}
                                 disabled={isLoadingWeather || !apiKey}
-                                className={`px-4 py-2 rounded text-sm font-bold transition-colors flex items-center gap-2 ${
-                                    isLoadingWeather || !apiKey
+                                className={`px-4 py-2 rounded text-sm font-bold transition-colors flex items-center gap-2 ${isLoadingWeather || !apiKey
                                         ? 'bg-cdborder text-cdmuted cursor-not-allowed'
                                         : 'bg-cyan-500 hover:bg-cyan-600 text-cdtext'
-                                }`}
+                                    }`}
                             >
                                 {isLoadingWeather ? (
                                     <>
@@ -351,8 +350,8 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                 )}
 
                 {!weatherError && !isLoadingWeather && location && (
-                    <div className="text-xs text-cdmuted">
-                        💡 Klik op "Haal op" om actuele weersgegevens voor {location} te laden
+                    <div className="text-xs text-cdmuted flex items-center gap-1">
+                        <Lightbulb size={12} className="text-yellow-500" /> Klik op "Haal op" om actuele weersgegevens voor {location} te laden
                     </div>
                 )}
             </div>
@@ -458,8 +457,8 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                                         key={option.id}
                                         onClick={() => setWindDirection(option.id)}
                                         className={`px-2 py-1 text-xs rounded uppercase ${windDirection === option.id
-                                                ? 'bg-cyan-500 text-cdtext font-bold'
-                                                : 'bg-cdsurface text-cdmuted hover:bg-cdborder'
+                                            ? 'bg-cyan-500 text-cdtext font-bold'
+                                            : 'bg-cdsurface text-cdmuted hover:bg-cdborder'
                                             }`}
                                     >
                                         {option.label}
@@ -526,10 +525,10 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
 
                 {/* Time Difference */}
                 <div className={`p-3 rounded border text-center ${Math.abs(weatherAdjustedCalculation.timeDifference) < 1
-                        ? 'bg-green-500/10 border-green-500/30 text-green-300'
-                        : weatherAdjustedCalculation.timeDifference > 5
-                            ? 'bg-red-500/10 border-red-500/30 text-red-300'
-                            : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-300'
+                    ? 'bg-green-50 border-green-200 text-green-700'
+                    : weatherAdjustedCalculation.timeDifference > 5
+                        ? 'bg-red-50 border-red-200 text-red-700'
+                        : 'bg-yellow-50 border-yellow-200 text-yellow-700'
                     }`}>
                     <p className="font-bold text-sm">
                         {weatherAdjustedCalculation.timeDifference > 0 ? '+' : ''}
@@ -547,9 +546,9 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                 {weatherAdjustedCalculation.warnings.length > 0 && (
                     <div className="space-y-2">
                         {weatherAdjustedCalculation.warnings.map((warning, idx) => (
-                            <div key={idx} className="bg-yellow-500/10 border border-yellow-500/30 rounded p-3 flex items-start gap-2">
-                                <AlertTriangle className="text-yellow-400 flex-shrink-0 mt-0.5" size={16} />
-                                <p className="text-sm text-yellow-300">{warning}</p>
+                            <div key={idx} className="bg-yellow-50 border border-yellow-200 rounded p-3 flex items-start gap-2">
+                                <AlertTriangle className="text-yellow-600 flex-shrink-0 mt-0.5" size={16} />
+                                <p className="text-sm text-yellow-800">{warning}</p>
                             </div>
                         ))}
                     </div>

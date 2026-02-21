@@ -1,5 +1,5 @@
 ﻿import React, { useState, useMemo } from 'react';
-import { Mountain, Plus, Trash2, AlertTriangle, TrendingDown, Battery, Zap, Clock, Utensils, Search, Filter } from 'lucide-react';
+import { Mountain, Plus, Trash2, AlertTriangle, TrendingDown, Battery, Zap, Clock, Utensils, Search, Filter , Info, Lightbulb} from 'lucide-react';
 import { CLIMB_DATABASE } from '../climbs';
 
 const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueling }) => {
