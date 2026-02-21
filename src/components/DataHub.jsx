@@ -60,7 +60,7 @@ const DataHub = ({ activities, onImport, onDelete, onClear }) => {
         }
     };
 
-    const handleDeleteSingle = async (id) => {
+    const handleDeleteSingle = React.useCallback(async (id) => {
         if (db) {
             try {
                 await deleteDoc(doc(db, "activities", String(id)));
@@ -72,7 +72,7 @@ const DataHub = ({ activities, onImport, onDelete, onClear }) => {
         }
         onDelete(id);
         setDeleteConfirm(null);
-    };
+    }, [db, onDelete]);
 
     const handleClearDatabase = async () => {
         if (!confirm("WEET JE HET ZEKER?\n\nHiermee verwijder je ALLE activiteiten uit de database.")) return;

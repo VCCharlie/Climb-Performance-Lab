@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 
 // Helper inside hook or import
 const isValid = (act) => act && act.id && act.date;
@@ -13,20 +13,24 @@ const useActivityFilter = (activities) => {
     const [expandedMonths, setExpandedMonths] = useState({});
 
     // -- Actions --
-    const requestSort = (key) => setSortConfig({ key, direction: sortConfig.key === key && sortConfig.direction === 'desc' ? 'asc' : 'desc' });
+    const requestSort = useCallback((key) => {
+        setSortConfig(prev => ({ key, direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc' }));
+    }, []);
 
     // Toggle year (default is true, so if undefined we set to false)
-    const toggleYear = (year) => setExpandedYears(p => ({ ...p, [year]: p[year] === false ? true : false }));
+    const toggleYear = useCallback((year) => {
+        setExpandedYears(p => ({ ...p, [year]: p[year] === false ? true : false }));
+    }, []);
 
     // Toggle month (default is true, so if undefined we set to false)
-    const toggleMonth = (year, month) => {
+    const toggleMonth = useCallback((year, month) => {
         const key = `${year}-${month}`;
         setExpandedMonths(p => ({ ...p, [key]: p[key] === false ? true : false }));
-    };
+    }, []);
 
     // Checkers
-    const isYearExpanded = (year) => expandedYears[year] !== false;
-    const isMonthExpanded = (year, month) => expandedMonths[`${year}-${month}`] !== false;
+    const isYearExpanded = useCallback((year) => expandedYears[year] !== false, [expandedYears]);
+    const isMonthExpanded = useCallback((year, month) => expandedMonths[`${year}-${month}`] !== false, [expandedMonths]);
 
     // -- Derived State --
     const processedActivities = useMemo(() => {

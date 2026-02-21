@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Gauge, Mountain, Activity, Utensils, Brain, Route, Settings as SettingsIcon, TrendingUp, Menu, X, Heart, Trophy, Cloud } from 'lucide-react';
 import { doc, setDoc, getDoc, collection, getDocs, onSnapshot } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
@@ -59,6 +59,23 @@ const App = () => {
     );
 
     const [activities, setActivities] = useState([]);
+
+    // Stable DataHub Handlers
+    const handleImportActivities = useCallback((n) => {
+        setActivities(prev => {
+            const map = new Map(prev.map(a => [a.id, a]));
+            n.forEach(act => map.set(act.id, act));
+            return Array.from(map.values());
+        });
+    }, []);
+
+    const handleDeleteActivity = useCallback((id) => {
+        setActivities(prev => prev.filter(a => a.id !== id));
+    }, []);
+
+    const handleClearActivities = useCallback(() => {
+        setActivities([]);
+    }, []);
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -360,15 +377,9 @@ const App = () => {
                         {activeTab === 'activities' && (
                             <DataHub
                                 activities={activities}
-                                onImport={(n) => {
-                                    setActivities(prev => {
-                                        const map = new Map(prev.map(a => [a.id, a]));
-                                        n.forEach(act => map.set(act.id, act));
-                                        return Array.from(map.values());
-                                    });
-                                }}
-                                onDelete={(id) => setActivities(activities.filter(a => a.id !== id))}
-                                onClear={() => setActivities([])} // NIEUW: Prop om alles leeg te maken
+                                onImport={handleImportActivities}
+                                onDelete={handleDeleteActivity}
+                                onClear={handleClearActivities}
                             />
                         )}
 
