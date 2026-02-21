@@ -32,15 +32,7 @@ const App = () => {
     const [syncStatus, setSyncStatus] = useState('idle'); // 'idle', 'syncing', 'synced', 'error'
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-    // --- Sync State for SettingsModal ---
-    const { syncIntervals, isSyncing, syncProgress } = useIntervalsSync(intervalsConfig);
-    const [syncDates, setSyncDates] = useState({
-        start: new Date(new Date().setDate(new Date().getDate() - 90)).toISOString().split('T')[0],
-        end: new Date().toISOString().split('T')[0]
-    });
-    const [sportFilters, setSportFilters] = useState(
-        SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: true }), {})
-    );
+
 
     const [userSettings, setUserSettings] = useState({
         weight: 70.0,
@@ -55,6 +47,17 @@ const App = () => {
 
     const [selectedClimb, setSelectedClimb] = useState(CLIMB_DATABASE?.[0] || { id: 'dummy', name: 'Loading', lengthKm: 0, elevation: 0, avgGrade: 0 });
     const [intervalsConfig, setIntervalsConfig] = useState({ apiKey: '', athleteId: '' });
+
+    // --- Sync State for SettingsModal ---
+    const { syncIntervals, isSyncing, syncProgress } = useIntervalsSync(intervalsConfig);
+    const [syncDates, setSyncDates] = useState({
+        start: new Date(new Date().setDate(new Date().getDate() - 90)).toISOString().split('T')[0],
+        end: new Date().toISOString().split('T')[0]
+    });
+    const [sportFilters, setSportFilters] = useState(
+        SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: true }), {})
+    );
+
     const [activities, setActivities] = useState([]);
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
