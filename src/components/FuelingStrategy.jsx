@@ -1,10 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { Utensils, Zap, Droplets, Battery, CheckCircle, Thermometer, CloudRain, Mountain, Clock } from 'lucide-react';
 
-const FuelingStrategy = () => {
+const FuelingStrategy = ({ initialDuration, initialIntensity }) => {
     // --- BASIC INPUTS ---
-    const [duration, setDuration] = useState(180); // minutes
-    const [intensity, setIntensity] = useState(0.85); // IF
+    const [duration, setDuration] = useState(initialDuration || 180); // minutes
+    const [intensity, setIntensity] = useState(initialIntensity || 0.85); // IF
+
+    // Update when props change (from RacePacing export)
+    React.useEffect(() => {
+        if (initialDuration) setDuration(initialDuration);
+        if (initialIntensity) setIntensity(initialIntensity);
+    }, [initialDuration, initialIntensity]);
 
     // --- EQUIPMENT ---
     const [bidonSize, setBidonSize] = useState(750); // ml

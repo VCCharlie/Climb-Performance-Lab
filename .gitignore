@@ -12,6 +12,13 @@ dist
 dist-ssr
 *.local
 
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -22,3 +29,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# MCP Server secrets and tokens
+.env
+.strava-tokens.json
+mcp-server/.strava-tokens.json

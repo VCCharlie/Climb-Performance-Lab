@@ -291,7 +291,7 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
 
         {/* PERMANENT FILTER PANEL */}
         <div className="bg-slate-900/50 p-4 rounded-lg border border-slate-700 space-y-4">
-          <div className="flex gap-4">
+          <div className="flex flex-col lg:flex-row gap-4">
             {/* Search Bar - Flex 1 to take available space */}
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
@@ -303,8 +303,8 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
               />
             </div>
 
-            {/* Numeric Filters - Compact grid */}
-            <div className="flex gap-3">
+            {/* Numeric Filters - Compact grid with wrapping */}
+            <div className="flex flex-wrap gap-3">
               <NumberFilter label="Min Km" value={minDist} onChange={setMinDist} min={0} max={maxDist} step={5} />
               <NumberFilter label="Max Km" value={maxDist} onChange={setMaxDist} min={minDist} max={200} step={5} />
               <NumberFilter label="Min %" value={minGrade} onChange={setMinGrade} min={0} max={maxGrade} step={1} showDecimals />
