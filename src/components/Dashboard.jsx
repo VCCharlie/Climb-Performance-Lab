@@ -26,15 +26,18 @@ const Dashboard = ({ theme, manualFtp }) => {
 
                 // 2. ENHANCE (Dashboard specific: eFTP, Sea Level Power)
                 let eFTP = d.best_20min ? Math.round(d.best_20min * 0.95) : null;
+                let eFTP60 = d.best_60min ? Math.round(d.best_60min) : null; // 60-min power = FTP estimate
 
                 // Filter uitschieters (bad sensor data)
                 if (eFTP > 600) eFTP = null;
+                if (eFTP60 > 600) eFTP60 = null;
 
                 const seaLevelPower = d.avg_altitude ? calculateBassettCorrection(d.avg_power, d.avg_altitude) : null;
 
                 return {
                     ...d,
                     eFTP,
+                    eFTP60,
                     ftp: d.ftp || userFtp,
                     seaLevelPower
                 };

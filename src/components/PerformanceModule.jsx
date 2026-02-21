@@ -222,6 +222,8 @@ const PerformanceModule = ({
 
     // eFTP: Show MAX of the period, not just "Latest". User wants to see the best "Est. FTP" in that timeframe.
     const maxEftp = filteredData.reduce((max, d) => Math.max(max, d.eFTP || 0), 0);
+    // eFTP60: Max 60-min best power in the period (directly comparable to threshold power)
+    const maxEftp60 = filteredData.reduce((max, d) => Math.max(max, d.eFTP60 || 0), 0);
     // Use Max for display to be dynamic
     const displayEftp = maxEftp;
 
@@ -256,7 +258,7 @@ const PerformanceModule = ({
 
     return (
         <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
                 <StatCard
                     title="Current FTP"
                     value={displayFtp}
@@ -266,14 +268,22 @@ const PerformanceModule = ({
                     colorClass="text-blue-500"
                 />
                 <StatCard
-                    title="Peak eFTP"
+                    title="Peak eFTP (20m)"
                     value={displayEftp}
                     unit="W"
-                    subtitle="Period Maximum"
+                    subtitle="Best 20min × 0.95"
                     icon={TrendingUp}
                     trend={displayEftp >= displayFtp ? 'up' : 'down'}
                     colorClass="text-green-500"
                     split={{ indoor: maxEftpIndoor, outdoor: maxEftpOutdoor }}
+                />
+                <StatCard
+                    title="Peak eFTP (60m)"
+                    value={maxEftp60 || null}
+                    unit="W"
+                    subtitle="Best 60-min power"
+                    icon={TrendingUp}
+                    colorClass="text-emerald-400"
                 />
                 <StatCard
                     title="Avg Load"

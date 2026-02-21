@@ -106,11 +106,17 @@ const PowerTab = ({ data }) => {
                             <Tooltip
                                 contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f1f5f9' }}
                                 itemStyle={{ color: '#94a3b8' }}
+                                itemSorter={(item) => {
+                                    // Force tooltip rows to appear in 5 → 20 → 60 order
+                                    const order = { '5 min': 0, '20 min': 1, '60 min': 2 };
+                                    return order[item.name] ?? 99;
+                                }}
                             />
                             <Legend iconType="circle" wrapperStyle={{ paddingTop: '16px' }} />
                             <Line
                                 type="monotone"
                                 dataKey="5 min"
+                                name="5 min"
                                 stroke="#3b82f6"
                                 strokeWidth={2}
                                 dot={{ r: 3 }}
@@ -119,6 +125,7 @@ const PowerTab = ({ data }) => {
                             <Line
                                 type="monotone"
                                 dataKey="20 min"
+                                name="20 min"
                                 stroke="#f97316"
                                 strokeWidth={2}
                                 dot={{ r: 3 }}
@@ -127,6 +134,7 @@ const PowerTab = ({ data }) => {
                             <Line
                                 type="monotone"
                                 dataKey="60 min"
+                                name="60 min"
                                 stroke="#22c55e"
                                 strokeWidth={2}
                                 dot={{ r: 3 }}
