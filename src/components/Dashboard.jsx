@@ -1,7 +1,9 @@
 ﻿import React, { useState, useEffect, useMemo } from 'react';
 import { fetchIntervalsData } from '../services/intervalsService';
 import { calculateBassettCorrection, normalizeIntervalsActivity } from '../utils';
-import PerformanceModule from './PerformanceModule';
+import OverviewTab from './dashboard/OverviewTab';
+import FormTab from './dashboard/FormTab';
+import PowerTab from './dashboard/PowerTab';
 
 const Dashboard = ({ theme, manualFtp }) => {
     const [chartData, setChartData] = useState([]);
@@ -10,6 +12,7 @@ const Dashboard = ({ theme, manualFtp }) => {
     const [timeRange, setTimeRange] = useState(() => localStorage.getItem('dashboard_timeRange') || '1Y');
     const [customStart, setCustomStart] = useState('');
     const [customEnd, setCustomEnd] = useState('');
+    const [dashboardTab, setDashboardTab] = useState('overview');
 
     useEffect(() => {
         localStorage.setItem('dashboard_timeRange', timeRange);
