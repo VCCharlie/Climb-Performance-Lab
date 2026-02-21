@@ -1,5 +1,5 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
-import { Mountain, Info, Minus, Plus, Search, Filter } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Mountain, Info, Minus, Plus, Search, Filter, Globe } from 'lucide-react';
 import { CLIMB_DATABASE, COGGAN_ZONES } from '../climbs';
 import { parseDurationToSeconds, calculateFerrariWatts, calculateClimbCategory } from '../utils';
 
@@ -321,7 +321,7 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                   onClick={() => handleCountryChange(c)}
                   className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${countryFilter === c ? 'bg-yellow-400 text-slate-900 border border-yellow-400' : 'bg-cdsurface border-cdborder border text-cdmuted hover:text-cdtext'}`}
                 >
-                  {c === 'All' ? 'ðŸŒ All' : c}
+                  {c === 'All' ? <span className="flex items-center gap-1"><Globe size={14} /> All</span> : c}
                 </button>
               ))}
             </div>
