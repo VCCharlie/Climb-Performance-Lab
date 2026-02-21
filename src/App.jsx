@@ -82,7 +82,15 @@ const App = () => {
 
     useEffect(() => {
         localStorage.setItem('bucketListState', JSON.stringify(bucketListState));
-    }, [bucketListState]);
+
+        // Auto-save to Firebase
+        if (db && user && bucketListState && Object.keys(bucketListState.climbStatus || {}).length > 0) {
+            const settingsId = `user_${user.uid}`;
+            setDoc(doc(db, "settings", settingsId), {
+                bucketList: bucketListState
+            }, { merge: true }).catch(e => console.error("Error auto-saving bucketlist:", e));
+        }
+    }, [bucketListState, user]);
 
     const [weatherClimbState, setWeatherClimbState] = useState({
         selectedClimb: CLIMB_DATABASE[0],
