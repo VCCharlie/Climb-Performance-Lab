@@ -68,9 +68,22 @@ const App = () => {
         duration: 180,
         intensity: 0.85
     });
-    const [bucketListState, setBucketListState] = useState({
-        climbStatus: {}
+    const [bucketListState, setBucketListState] = useState(() => {
+        const saved = localStorage.getItem('bucketListState');
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                console.error("Failed to parse bucketListState from localStorage", e);
+            }
+        }
+        return { climbStatus: {} };
     });
+
+    useEffect(() => {
+        localStorage.setItem('bucketListState', JSON.stringify(bucketListState));
+    }, [bucketListState]);
+
     const [weatherClimbState, setWeatherClimbState] = useState({
         selectedClimb: CLIMB_DATABASE[0],
         targetPower: 280 * 0.85,
@@ -108,6 +121,10 @@ const App = () => {
                     if (data.theme) {
                         setTheme(data.theme);
                         localStorage.setItem('theme', data.theme);
+                    }
+                    if (data.bucketList) {
+                        setBucketListState(data.bucketList);
+                        localStorage.setItem('bucketListState', JSON.stringify(data.bucketList));
                     }
                 }
             } catch (e) {
@@ -164,11 +181,12 @@ const App = () => {
         if (!db) return;
         try {
             const settingsId = user ? `user_${user.uid}` : "user_prefs";
-            console.log("Saving Settings to Cloud:", { intervals: intervalsConfig, body: userSettings, theme });
+            console.log("Saving Settings to Cloud:", { intervals: intervalsConfig, body: userSettings, theme, bucketList: bucketListState });
             await setDoc(doc(db, "settings", settingsId), {
                 intervals: intervalsConfig,
                 body: userSettings,
-                theme: theme
+                theme: theme,
+                bucketList: bucketListState
             }, { merge: true });
             alert("Settings saved! Bike Weight: " + (userSettings.bikeWeight || 'N/A'));
         } catch (e) { alert("Error saving settings: " + e.message); }
@@ -178,6 +196,7 @@ const App = () => {
         if (backupData.settings) setUserSettings(prev => ({ ...prev, ...backupData.settings }));
         if (backupData.intervals) setIntervalsConfig(backupData.intervals);
         if (backupData.activities) setActivities(backupData.activities);
+        if (backupData.bucketList) setBucketListState(backupData.bucketList);
         alert("Backup succesvol hersteld!");
     };
 
@@ -395,7 +414,7 @@ const App = () => {
                                     setTheme(newTheme);
                                     localStorage.setItem('theme', newTheme);
                                 }}
-                                fullData={{ activities, settings: userSettings, intervals: intervalsConfig }}
+                                fullData={{ activities, settings: userSettings, intervals: intervalsConfig, bucketList: bucketListState }}
                                 onImportBackup={handleImportBackup}
                             />
                         )}
