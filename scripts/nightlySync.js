@@ -82,48 +82,164 @@ function getDateRange(lookbackDays) {
     };
 }
 
-// ─── Cloud Function Call ──────────────────────────────────────────────────────
+// ─── Direct Intervals API Fetch & Transform ───────────────────────────────────
+
+function determineActivityType(apiType, title, isIndoor) {
+    let cleanType = apiType ? String(apiType).replace(/\s+/g, '') : 'Ride';
+    const typeLower = cleanType.toLowerCase();
+
+    if (typeLower === 'virtualride') return 'VirtualRide';
+    if (typeLower === 'run') return 'Run';
+    if (typeLower === 'walk') return 'Walk';
+    if (typeLower === 'hike') return 'Hike';
+
+    const virtualKeywords = ['virtual', 'indoor', 'zwift', 'watopia', 'rouvy', 'fulgaz', 'bkool', 'indievelo', 'tacx', 'trainerroad', 'wahoo'];
+    const titleLower = title ? String(title).toLowerCase() : '';
+
+    if (isIndoor || virtualKeywords.some(kw => titleLower.includes(kw))) {
+        return 'VirtualRide';
+    }
+
+    if (typeLower === 'ride' || typeLower === 'cycling' || !cleanType) return 'Ride';
+    return cleanType;
+}
+
+function normalizeActivity(item) {
+    const getNum = (val) => { const n = Number(val); return isNaN(n) ? 0 : n; };
+    const getVal = (...keys) => { for (const k of keys) { if (item[k] !== undefined && item[k] !== null && item[k] !== "") return item[k]; } return null; };
+
+    const id = String(getVal('id', 'activity_id') || Math.random().toString(36).substr(2, 9));
+    const dtSource = getVal('startDate', 'start_date_local', 'start_date', 'date') || new Date().toISOString();
+    const dateStr = dtSource.split('T')[0];
+    const title = getVal('name', 'title') || "Untitled";
+
+    const movingTime = getNum(getVal('movingTime', 'moving_time', 'icu_recording_time', 'elapsedTime', 'elapsed_time', 'time'));
+    const distanceMeters = getNum(getVal('distance', 'icu_distance', 'total_distance'));
+    const climbing = getNum(getVal('elevationGain', 'total_elevation_gain', 'total_elevation_loss', 'climbing'));
+    const avgSpeedMs = getNum(getVal('avg_speed', 'avgSpeed', 'average_speed', 'velocity_smooth'));
+    const normPower = getNum(getVal('norm_power', 'normalizedPower', 'icu_weighted_avg_watts', 'weighted_average_watts', 'np', 'normalized_power'));
+    const avgPower = getNum(getVal('avgWatts', 'icu_average_watts', 'average_watts', 'device_watts', 'avg_power', 'power'));
+    const avgHr = getNum(getVal('average_heartrate', 'avg_hr', 'average_hr', 'hr', 'icu_average_heartrate', 'avg_heartrate', 'icu_avg_hr'));
+    const load = getNum(getVal('load', 'trainingLoad', 'icu_training_load', 'training_load', 'power_load', 'hr_load', 'pace_load', 'tss'));
+
+    let work = getNum(getVal('work', 'total_work', 'kilojoules', 'energy'));
+    if (work === 0 && avgPower > 0 && movingTime > 0) {
+        const joules = getNum(getVal('icu_joules', 'joules'));
+        if (joules > 0) {
+            work = joules / 1000;
+        } else {
+            work = (avgPower * movingTime) / 1000;
+        }
+    }
+
+    const rpe = getNum(getVal('rpe', 'icu_rpe', 'perceived_exertion', 'feel', 'session_rpe'));
+    const ftp = getNum(getVal('ftp', 'icu_ftp', 'icu_pm_ftp', 'cp'));
+
+    let maxPower = getNum(getVal('max_power', 'maxWatts', 'icu_max_watts', 'max_watts', 'p_max', 'icu_pm_p_max'));
+    let maxPowerSource = 'Instant';
+
+    if (maxPower === 0 && item.icu_intervals && Array.isArray(item.icu_intervals)) {
+        const intervalMax = Math.max(...item.icu_intervals.map(i => Number(i.max_watts) || 0));
+        if (intervalMax > 0) {
+            maxPower = intervalMax;
+            maxPowerSource = 'Interval';
+        }
+    }
+
+    let best1min = getNum(getVal('best_1min', 'Best1minpower', 'best_1min_power', 'w1min'));
+    if (best1min > 1200) best1min = 0;
+
+    if (maxPower === 0 && best1min > 0) {
+        maxPower = best1min;
+        maxPowerSource = '1 min';
+    }
+
+    const maxHr = getNum(getVal('max_hr', 'max_heartrate', 'max_heart_rate', 'icu_max_hr', 'athlete_max_hr', 'icu_max_heartrate'));
+
+    const best5min = getNum(getVal('best_5min', 'Best5minpower', 'best_5min_power', 'w5min'));
+    const best10min = getNum(getVal('best_10min', 'Best10minpower', 'best_10min_power', 'w10min'));
+    const best20min = getNum(getVal('best_20min', 'Best20minpower', 'best_20min_power', 'w20min'));
+    const best60min = getNum(getVal('best_60min', 'Best60minpower', 'best_60min_power', 'w60min'));
+
+    const avgAltitude = getNum(getVal('avgAltitude', 'average_altitude', 'avg_altitude'));
+    const maxAltitude = getNum(getVal('maxAltitude', 'maximum_altitude', 'max_altitude'));
+
+    const rawType = getVal('type', 'sub_type', 'activity_type');
+    const isIndoor = item.trainer === true;
+    const finalType = determineActivityType(rawType, title, isIndoor);
+
+    return {
+        id: id,
+        date: dateStr,
+        title: title,
+        type: finalType,
+        moving_time: movingTime,
+        distance: distanceMeters > 1000 ? Number((distanceMeters / 1000).toFixed(2)) : distanceMeters,
+        climbing: Math.round(climbing),
+        avg_speed: (avgSpeedMs > 0 && avgSpeedMs < 15) ? Number((avgSpeedMs * 3.6).toFixed(1)) : avgSpeedMs,
+        norm_power: Math.round(normPower),
+        avg_power: Math.round(avgPower),
+        avg_hr: Math.round(avgHr),
+        load: Math.round(load),
+        work: Math.round(work),
+        rpe: rpe,
+        ftp: Math.round(ftp),
+        max_power: Math.round(maxPower),
+        max_power_source: maxPowerSource,
+        max_hr: Math.round(maxHr),
+        best_1min: Math.round(best1min),
+        best_5min: Math.round(best5min),
+        best_10min: Math.round(best10min),
+        best_20min: Math.round(best20min),
+        best_60min: Math.round(best60min),
+        avg_altitude: Math.round(avgAltitude),
+        max_altitude: Math.round(maxAltitude)
+    };
+}
 
 /**
- * Calls the Cloud Function to fetch and transform activities from Intervals.icu.
- * The Cloud Function handles all API auth and data transformation — we reuse it
- * exactly as the front-end does, ensuring consistent data shapes in Firestore.
- *
- * @param {{ athleteId: string, apiKey: string, startDate: string, endDate: string }} params
- * @returns {Promise<object[]>} Transformed activity objects ready for Firestore.
+ * Fetches directly from Intervals.icu and normalizes the payload.
  */
-async function fetchFromCloudFunction({ athleteId, apiKey, startDate, endDate }) {
+async function fetchFromIntervalsAPI({ athleteId, apiKey, startDate, endDate }) {
     console.log(`[SYNC] Activiteiten ophalen van ${startDate} t/m ${endDate}...`);
 
-    const payload = {
-        start_date: startDate,
-        end_date: endDate,
-        sport_types: SPORT_TYPES,
-        // Cloud Function prefers its own secrets, but we pass as fallback
-        // for environments where the Cloud Function secrets aren't set.
-        athlete_id: athleteId,
-        api_key: apiKey,
-        debug: false,
-    };
+    const url = `https://intervals.icu/api/v1/athlete/${athleteId}/activities?oldest=${startDate}&newest=${endDate}`;
+    const authString = Buffer.from(`API_KEY:${apiKey}`).toString('base64');
 
-    const response = await fetch(CLOUD_FUNCTION_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+    const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Basic ${authString}`,
+            'Accept': 'application/json'
+        }
     });
 
     if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Cloud Function gaf fout ${response.status}: ${errorText}`);
+        throw new Error(`Intervals.icu gaf fout ${response.status}: ${errorText}`);
     }
 
-    const activities = await response.json();
+    const rawActivities = await response.json();
 
-    if (!Array.isArray(activities)) {
-        throw new Error(`Onverwacht response van Cloud Function: geen array ontvangen.`);
+    if (!Array.isArray(rawActivities)) {
+        throw new Error(`Onverwacht response van Intervals: geen array ontvangen.`);
     }
 
-    return activities;
+    let transformed = rawActivities.map(normalizeActivity);
+
+    // Filter by configured sport types
+    if (SPORT_TYPES && SPORT_TYPES.length > 0) {
+        transformed = transformed.filter(act => SPORT_TYPES.includes(act.type));
+    }
+
+    // Filter out invalid activities (same as UI)
+    transformed = transformed.filter(act =>
+        (act.distance && act.distance > 0) ||
+        (act.moving_time && act.moving_time > 0) ||
+        (act.avg_power && act.avg_power > 0)
+    );
+
+    return transformed;
 }
 
 // ─── Firestore Upsert ─────────────────────────────────────────────────────────
@@ -214,7 +330,7 @@ async function runNightlySync() {
     const { startDate, endDate } = getDateRange(LOOKBACK_DAYS);
 
     try {
-        const activities = await fetchFromCloudFunction({
+        const activities = await fetchFromIntervalsAPI({
             athleteId: config.athleteId,
             apiKey: config.apiKey,
             startDate,
