@@ -181,12 +181,12 @@ const RecoveryAdvisor = ({ activities }) => {
 
             {/* Methodology Info */}
             <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-                <h4 className="text-blue-400 font-bold text-sm mb-2">â„¹ï¸ Hoe werkt dit?</h4>
+                <h4 className="text-blue-400 font-bold text-sm mb-2">ℹ️ Hoe werkt dit?</h4>
                 <div className="text-xs text-cdtext space-y-1">
-                    <p><strong>â€¢ CTL (Fitness):</strong> 42-daags gemiddelde van training load. Hogere waarde = betere conditie</p>
-                    <p><strong>â€¢ ATL (Fatigue):</strong> 7-daags gemiddelde. Hogere waarde = meer vermoeidheid</p>
-                    <p><strong>â€¢ TSB (Form):</strong> CTL - ATL. Negatief = vermoeid, Positief = fris, 5-25 = race ready</p>
-                    <p><strong>ðŸ’¡ Ideaal TSB voor races:</strong> +5 tot +25 (fris maar niet deconditioned)</p>
+                    <p><strong>• CTL (Fitness):</strong> 42-daags gemiddelde van training load. Hogere waarde = betere conditie</p>
+                    <p><strong>• ATL (Fatigue):</strong> 7-daags gemiddelde. Hogere waarde = meer vermoeidheid</p>
+                    <p><strong>• TSB (Form):</strong> CTL - ATL. Negatief = vermoeid, Positief = fris, 5-25 = race ready</p>
+                    <p><strong>💡 Ideaal TSB voor races:</strong> +5 tot +25 (fris maar niet deconditioned)</p>
                 </div>
             </div>
 

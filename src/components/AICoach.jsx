@@ -20,7 +20,7 @@ const AICoach = ({ activities, userSettings }) => {
         if (last30Days.length >= 12) {
             strengths.push({
                 label: "Hoge consistentie",
-                context: `Je hebt ${last30Days.length} keer getraind in de afgelopen 30 dagen (>3x/week). Consistentie is de belangrijkste factor voor mitochondriÃ«le aanpassing en aerobe basis.`
+                context: `Je hebt ${last30Days.length} keer getraind in de afgelopen 30 dagen (>3x/week). Consistentie is de belangrijkste factor voor mitochondriële aanpassing en aerobe basis.`
             });
         } else if (last30Days.length < 4) {
             weaknesses.push({
@@ -70,7 +70,7 @@ const AICoach = ({ activities, userSettings }) => {
         }
 
         // Fillers if empty
-        if (strengths.length === 0) strengths.push({ label: "Geen recente uitschieters", context: "Je training is stabiel, blijf bouwen aan consistentie om uitschieters te creÃ«ren." });
+        if (strengths.length === 0) strengths.push({ label: "Geen recente uitschieters", context: "Je training is stabiel, blijf bouwen aan consistentie om uitschieters te creëren." });
         if (weaknesses.length === 0) weaknesses.push({ label: "Geen duidelijke zwaktes", context: "Je profiel is goed gebalanceerd. Tijd om te specificeren naar je hoofddoel." });
         if (opportunities.length === 0) opportunities.push({ label: "Consolideer vorm", context: "Je load is stabiel. Dit is een goed moment om te werken aan techniek of specifieke zwaktes zonder de totale load te verhogen." });
         if (threats.length === 0) threats.push({ label: "Geen acuut risico", context: "Je training stress balance lijkt gezond. Luister wel altijd naar je lichaam." });
@@ -156,7 +156,7 @@ const AICoach = ({ activities, userSettings }) => {
                         title: "VO2 Max: Micro-Bursts",
                         duration: "1u 15m",
                         focus: "3 sets, 10x (30s ON / 15s OFF)",
-                        description: "Korte, hevige prikkels om je zuurstofopname (VO2max) te verhogen. 30s @ 120% FTP, 15s rust. Zeer zwaar maar efficiÃ«nt.",
+                        description: "Korte, hevige prikkels om je zuurstofopname (VO2max) te verhogen. 30s @ 120% FTP, 15s rust. Zeer zwaar maar efficiënt.",
                         type: "interval",
                         zwoSteps: [
                             { type: 'Warmup', duration: 900, powerLow: 0.50, powerHigh: 0.75 },

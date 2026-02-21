@@ -171,7 +171,7 @@ const FuelingStrategy = ({ initialDuration, initialIntensity }) => {
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="text-[10px] text-cdmuted uppercase">Temp (Â°C)</label>
+                                <label className="text-[10px] text-cdmuted uppercase">Temp (°C)</label>
                                 <input type="number" value={temp} onChange={e => setTemp(parseInt(e.target.value))} className="w-full bg-cdsurface border-cdborder rounded text-sm text-cdtext px-2 py-1 mt-1 focus:border-yellow-400 outline-none" />
                             </div>
                             <div>

@@ -142,7 +142,7 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
         const totalCarbs = climbDetails.reduce((sum, c) => sum + c.carbsGrams, 0);
 
         // Glycogen depletion estimate
-        // Trained athlete: ~500g glycogen = 2000 kcal = 500g Ã— 4 kcal/g
+        // Trained athlete: ~500g glycogen = 2000 kcal = 500g × 4 kcal/g
         const maxGlycogenKcal = 2000; // kcal
         const metabolicEnergyKcal = totalEnergy / 0.23 * 0.239; // Convert mechanical kJ to metabolic kcal
         const glycogenUsedKcal = metabolicEnergyKcal * 0.6; // 60% from glycogen at race intensity
@@ -194,13 +194,13 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
 
             {/* Methodology Info */}
             <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-                <h4 className="text-blue-400 font-bold text-sm mb-2">â„¹ï¸ Hoe werkt dit?</h4>
+                <h4 className="text-blue-400 font-bold text-sm mb-2">ℹ️ Hoe werkt dit?</h4>
                 <div className="text-xs text-cdtext space-y-1">
-                    <p><strong>â€¢ Climb tijden:</strong> Berekend via physics engine (zwaartekracht, luchtweerstand, rolweerstand)</p>
-                    <p><strong>â€¢ Energie verbruik:</strong> Mechanisch vermogen (kJ) â†’ Metabolisch verbruik (lichaam is ~23% efficient)</p>
-                    <p><strong>â€¢ Koolhydraten:</strong> Bij race intensiteit komt ~60% energie uit glycogeen. 1g carbs = 4 kcal</p>
-                    <p><strong>â€¢ Glycogeen depot:</strong> Getrainde atleet heeft ~500g glycogeen (~2000 kcal) beschikbaar</p>
-                    <p><strong>ðŸ’¡ Tip:</strong> Vermijd depletie &gt;80% - je hebt ook nog energie nodig voor vlakke stukken!</p>
+                    <p><strong>• Climb tijden:</strong> Berekend via physics engine (zwaartekracht, luchtweerstand, rolweerstand)</p>
+                    <p><strong>• Energie verbruik:</strong> Mechanisch vermogen (kJ) → Metabolisch verbruik (lichaam is ~23% efficient)</p>
+                    <p><strong>• Koolhydraten:</strong> Bij race intensiteit komt ~60% energie uit glycogeen. 1g carbs = 4 kcal</p>
+                    <p><strong>• Glycogeen depot:</strong> Getrainde atleet heeft ~500g glycogeen (~2000 kcal) beschikbaar</p>
+                    <p><strong>💡 Tip:</strong> Vermijd depletie &gt;80% - je hebt ook nog energie nodig voor vlakke stukken!</p>
                 </div>
             </div>
 
@@ -305,7 +305,7 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
                                                 {idx + 1}. {climb.flag} {climb.name}
                                             </div>
                                             <div className="text-xs text-cdmuted">
-                                                {climb.lengthKm}km â€¢ {climb.elevation}m â€¢ {climb.avgGrade}%
+                                                {climb.lengthKm}km • {climb.elevation}m • {climb.avgGrade}%
                                             </div>
                                         </div>
                                         <button
@@ -453,7 +453,7 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
                                     className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-cdtext px-4 py-2 rounded text-sm font-bold transition-colors whitespace-nowrap w-full sm:w-auto justify-center"
                                 >
                                     <Utensils size={16} />
-                                    Open in Fueling â†’
+                                    Open in Fueling →
                                 </button>
                             )}
                         </div>

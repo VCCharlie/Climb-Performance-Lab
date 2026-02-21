@@ -51,7 +51,7 @@ const ImportModal = ({
                     <span className="text-xs text-cdmuted">{selectedActivities.length} van {fetchedActivities.length} geselecteerd</span>
                     <div className="flex gap-2">
                         <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-cdmuted hover:text-cdtext">Cancel</button>
-                        <button onClick={confirmImport} disabled={selectedActivities.length === 0} className="px-6 py-2 text-sm font-bold bg-green-500 hover:bg-green-400 disabled:bg-slate-600 disabled:text-cdmuted text-cdtext rounded-lg shadow-lg shadow-green-500/20 transition-all">âœ“ Import {selectedActivities.length}</button>
+                        <button onClick={confirmImport} disabled={selectedActivities.length === 0} className="px-6 py-2 text-sm font-bold bg-green-500 hover:bg-green-400 disabled:bg-slate-600 disabled:text-cdmuted text-cdtext rounded-lg shadow-lg shadow-green-500/20 transition-all">✓ Import {selectedActivities.length}</button>
                     </div>
                 </div>
 

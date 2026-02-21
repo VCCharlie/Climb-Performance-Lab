@@ -240,7 +240,7 @@ const SettingsModal = ({
                                         <span className={`w-24 text-xs font-bold ${isDark ? 'text-cdtext' : 'text-slate-700'}`}>{zone.label}</span>
 
                                         <div className={`flex-1 text-right text-xs font-mono opacity-80 ${isDark ? 'text-cdmuted' : 'text-slate-600'}`}>
-                                            {zone.min} - {zone.max < 9999 ? zone.max : 'âˆž'} W
+                                            {zone.min} - {zone.max < 9999 ? zone.max : '∞'} W
                                         </div>
                                     </div>
                                 ))}

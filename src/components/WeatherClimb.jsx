@@ -121,7 +121,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
         // --- Weather Adjustments ---
 
         // 1. Air density adjustment (temperature + humidity)
-        // Density decreases ~0.4% per degree C above 15Â°C
+        // Density decreases ~0.4% per degree C above 15°C
         const tempFactor = 1 - ((temperature - 15) * 0.004);
         // Humidity increases air density slightly (water vapor is lighter than dry air)
         const humidityFactor = 1 - (humidity / 100) * 0.015;
@@ -183,8 +183,8 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
         }
 
         // 3. Temperature effect on power output
-        // Performance decreases ~1% per 5Â°C above 20Â°C (heat stress)
-        // Performance decreases ~0.5% per 5Â°C below 10Â°C (cold)
+        // Performance decreases ~1% per 5°C above 20°C (heat stress)
+        // Performance decreases ~0.5% per 5°C below 10°C (cold)
         let powerOutputFactor = 1.0;
         if (temperature > 20) {
             powerOutputFactor = 1 - ((temperature - 20) / 5) * 0.01;
@@ -222,13 +222,13 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
         // Warnings
         const warnings = [];
         if (temperature > 30) {
-            warnings.push('ðŸ”¥ Hoge temperatuur (>30Â°C): verhoogd risico op hyperthermie. Extra hydratatie nodig!');
+            warnings.push('ðŸ”¥ Hoge temperatuur (>30°C): verhoogd risico op hyperthermie. Extra hydratatie nodig!');
         } else if (temperature > 25) {
-            warnings.push('â˜€ï¸ Warme omstandigheden: drink extra en overweeg vroeger te starten.');
+            warnings.push('☀️ Warme omstandigheden: drink extra en overweeg vroeger te starten.');
         }
 
         if (temperature < 5) {
-            warnings.push('ðŸ¥¶ Lage temperatuur (<5Â°C): zorg voor voldoende warmte kleding!');
+            warnings.push('ðŸ¥¶ Lage temperatuur (<5°C): zorg voor voldoende warmte kleding!');
         }
 
         if (windDirection === 'headwind' && windSpeed > 20) {
@@ -265,12 +265,12 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
 
             {/* Info */}
             <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-                <h4 className="text-blue-400 font-bold text-sm mb-2">â„¹ï¸ Hoe werkt dit?</h4>
+                <h4 className="text-blue-400 font-bold text-sm mb-2">ℹ️ Hoe werkt dit?</h4>
                 <div className="text-xs text-cdtext space-y-1">
-                    <p><strong>â€¢ Temperatuur:</strong> BeÃ¯nvloedt luchtdichtheid (-0.4%/Â°C) Ã©n power output (warmte/koude stress)</p>
-                    <p><strong>â€¢ Wind:</strong> Tegenwind verhoogt luchtweerstand, meewind verlaagt deze</p>
-                    <p><strong>â€¢ Luchtvochtigheid:</strong> Hoge vochtigheid vermindert zweet verdamping (oververhitting risico)</p>
-                    <p><strong>ðŸ’¡ Tip:</strong> Plan je beklimmingen in de ochtend bij warme dagen!</p>
+                    <p><strong>• Temperatuur:</strong> Beïnvloedt luchtdichtheid (-0.4%/°C) én power output (warmte/koude stress)</p>
+                    <p><strong>• Wind:</strong> Tegenwind verhoogt luchtweerstand, meewind verlaagt deze</p>
+                    <p><strong>• Luchtvochtigheid:</strong> Hoge vochtigheid vermindert zweet verdamping (oververhitting risico)</p>
+                    <p><strong>💡 Tip:</strong> Plan je beklimmingen in de ochtend bij warme dagen!</p>
                 </div>
             </div>
 
@@ -292,7 +292,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                                 rel="noopener noreferrer"
                                 className="text-blue-400 hover:underline ml-2"
                             >
-                                (Gratis aanmaken â†’)
+                                (Gratis aanmaken →)
                             </a>
                         </label>
                         <input
@@ -346,13 +346,13 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                 {/* Error/Success Messages */}
                 {weatherError && (
                     <div className="bg-red-500/10 border border-red-500/30 rounded p-3 text-red-300 text-sm">
-                        âš ï¸ {weatherError}
+                        ⚠️ {weatherError}
                     </div>
                 )}
 
                 {!weatherError && !isLoadingWeather && location && (
                     <div className="text-xs text-cdmuted">
-                        ðŸ’¡ Klik op "Haal op" om actuele weersgegevens voor {location} te laden
+                        💡 Klik op "Haal op" om actuele weersgegevens voor {location} te laden
                     </div>
                 )}
             </div>
@@ -412,7 +412,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                                     <Thermometer size={12} />
                                     Temperatuur
                                 </span>
-                                <span className="font-mono text-orange-400">{temperature}Â°C</span>
+                                <span className="font-mono text-orange-400">{temperature}°C</span>
                             </div>
                             <input
                                 type="range"

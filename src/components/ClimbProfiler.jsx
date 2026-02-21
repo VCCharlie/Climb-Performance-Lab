@@ -353,19 +353,19 @@ const ClimbProfiler = ({ userSettings, initialState, onStateChange }) => {
 
             {/* Pacing Strategy */}
             <div className="bg-blue-500/10 border border-blue-500/30 rounded p-4">
-                <h4 className="text-blue-400 font-bold text-sm mb-2">ðŸ’¡ Pacing Strategie</h4>
+                <h4 className="text-blue-400 font-bold text-sm mb-2">💡 Pacing Strategie</h4>
                 <div className="text-sm text-cdtext space-y-1">
                     <p>
-                        â€¢ <strong>Start:</strong> Begin rustig, bouw power op naar 85% FTP in eerste km
+                        • <strong>Start:</strong> Begin rustig, bouw power op naar 85% FTP in eerste km
                     </p>
                     <p>
-                        â€¢ <strong>Steile secties:</strong> Houd power constant, laat snelheid zakken - niet stuk rijden!
+                        • <strong>Steile secties:</strong> Houd power constant, laat snelheid zakken - niet stuk rijden!
                     </p>
                     <p>
-                        â€¢ <strong>Vlakkere secties:</strong> Push iets harder ({Math.round(userSettings.ftp * 0.92)}W) om tijd goed te maken
+                        • <strong>Vlakkere secties:</strong> Push iets harder ({Math.round(userSettings.ftp * 0.92)}W) om tijd goed te maken
                     </p>
                     <p>
-                        â€¢ <strong>Laatste km:</strong> Als je nog energie hebt, push naar threshold (
+                        • <strong>Laatste km:</strong> Als je nog energie hebt, push naar threshold (
                         {Math.round(userSettings.ftp)}W)
                     </p>
                 </div>

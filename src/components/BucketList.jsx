@@ -33,7 +33,7 @@ const BucketList = ({ initialState, onStateChange }) => {
 
         // First climb
         if (done.length >= 1) {
-            badges.push({ title: 'ðŸš´ First Ascent', description: 'Voltooid je eerste beklimming!' });
+            badges.push({ title: '🚴 First Ascent', description: 'Voltooid je eerste beklimming!' });
         }
 
         // Milestones
@@ -44,10 +44,10 @@ const BucketList = ({ initialState, onStateChange }) => {
             badges.push({ title: 'ðŸ… Klim Specialist', description: '10 beklimmingen voltooid' });
         }
         if (done.length >= 25) {
-            badges.push({ title: 'ðŸ‘‘ Klim Koning', description: '25 beklimmingen voltooid' });
+            badges.push({ title: '👑 Klim Koning', description: '25 beklimmingen voltooid' });
         }
         if (done.length >= 50) {
-            badges.push({ title: 'ðŸ¦… Berg Legende', description: '50 beklimmingen voltooid' });
+            badges.push({ title: '🦅 Berg Legende', description: '50 beklimmingen voltooid' });
         }
 
         // Specific regions
@@ -57,22 +57,22 @@ const BucketList = ({ initialState, onStateChange }) => {
         const zwiftClimbs = doneClimbs.filter(c => c.country === 'ZWIFT').length;
 
         if (frenchClimbs >= 10) {
-            badges.push({ title: 'ðŸ‡«ðŸ‡· Alpen Expert', description: '10 Franse cols voltooid' });
+            badges.push({ title: '🇫🇷 Alpen Expert', description: '10 Franse cols voltooid' });
         }
         if (italianClimbs >= 5) {
-            badges.push({ title: 'ðŸ‡®ðŸ‡¹ Giro Specialist', description: '5 Italiaanse cols voltooid' });
+            badges.push({ title: '🇮🇹 Giro Specialist', description: '5 Italiaanse cols voltooid' });
         }
         if (swissClimbs >= 3) {
-            badges.push({ title: 'ðŸ‡¨ðŸ‡­ Swiss Master', description: '3 Zwitserse cols voltooid' });
+            badges.push({ title: '🇨🇭 Swiss Master', description: '3 Zwitserse cols voltooid' });
         }
         if (zwiftClimbs >= 5) {
-            badges.push({ title: 'ðŸŽ® Virtual Climber', description: '5 Zwift climbs voltooid' });
+            badges.push({ title: '🎮 Virtual Climber', description: '5 Zwift climbs voltooid' });
         }
 
         // Difficulty badges
         const hardClimbs = doneClimbs.filter(c => c.avgGrade > 8).length;
         if (hardClimbs >= 5) {
-            badges.push({ title: 'â›°ï¸ Steep Master', description: '5 cols >8% gemiddeld voltooid' });
+            badges.push({ title: '⛰️ Steep Master', description: '5 cols >8% gemiddeld voltooid' });
         }
 
         // Iconic climbs
@@ -85,7 +85,7 @@ const BucketList = ({ initialState, onStateChange }) => {
         // Total elevation
         const totalElevation = doneClimbs.reduce((sum, c) => sum + c.elevation, 0);
         if (totalElevation >= 10000) {
-            badges.push({ title: 'ðŸ“ˆ Everest Challenge', description: `${Math.round(totalElevation)}m totaal geklommen!` });
+            badges.push({ title: '📈 Everest Challenge', description: `${Math.round(totalElevation)}m totaal geklommen!` });
         }
 
         return {
