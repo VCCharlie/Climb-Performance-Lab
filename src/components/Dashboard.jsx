@@ -5,8 +5,35 @@ import OverviewTab from './dashboard/OverviewTab';
 import FormTab from './dashboard/FormTab';
 import PowerTab from './dashboard/PowerTab';
 
-const Dashboard = ({ theme, manualFtp }) => {
-    const [chartData, setChartData] = useState([]);
+/**
+ * Enriches a single activity record with dashboard-specific derived fields:
+ *  - eFTP:   Best 20-min power × 0.95 (classic threshold estimate)
+ *  - eFTP60: Best 60-min power (direct threshold equivalent)
+ *  - seaLevelPower: altitude-corrected avg power via Bassett model
+ * Does NOT re-normalize — expects the record to already have correct field names.
+ */
+const enhanceActivity = (d, userFtp) => {
+    let eFTP = d.best_20min ? Math.round(d.best_20min * 0.95) : null;
+    let eFTP60 = d.best_60min ? Math.round(d.best_60min) : null;
+
+    // Sanity filter — real FTP above 600W is extremely unusual
+    if (eFTP > 600) eFTP = null;
+    if (eFTP60 > 600) eFTP60 = null;
+
+    const seaLevelPower = d.avg_altitude ? calculateBassettCorrection(d.avg_power, d.avg_altitude) : null;
+
+    return {
+        ...d,
+        eFTP,
+        eFTP60,
+        ftp: d.ftp || userFtp,
+        seaLevelPower,
+    };
+};
+
+const Dashboard = ({ theme, manualFtp, activities: firestoreActivities = [] }) => {
+    // GCF data supplements historical records not yet in Firestore
+    const [gcfData, setGcfData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [timeRange, setTimeRange] = useState(() => localStorage.getItem('dashboard_timeRange') || '1Y');
@@ -18,75 +45,48 @@ const Dashboard = ({ theme, manualFtp }) => {
         localStorage.setItem('dashboard_timeRange', timeRange);
     }, [timeRange]);
 
+    // Fetch GCF data in background for historical data (pre-Firestore records)
     useEffect(() => {
-        const processRawData = (data, userFtp) => {
-            return data.map(raw => {
-                // 1. NORMALIZE (Map keys correctly: work, max_power, etc.)
-                const d = normalizeIntervalsActivity(raw);
-
-                // 2. ENHANCE (Dashboard specific: eFTP, Sea Level Power)
-                let eFTP = d.best_20min ? Math.round(d.best_20min * 0.95) : null;
-                let eFTP60 = d.best_60min ? Math.round(d.best_60min) : null; // 60-min power = FTP estimate
-
-                // Filter uitschieters (bad sensor data)
-                if (eFTP > 600) eFTP = null;
-                if (eFTP60 > 600) eFTP60 = null;
-
-                const seaLevelPower = d.avg_altitude ? calculateBassettCorrection(d.avg_power, d.avg_altitude) : null;
-
-                return {
-                    ...d,
-                    eFTP,
-                    eFTP60,
-                    ftp: d.ftp || userFtp,
-                    seaLevelPower
-                };
-            });
-        };
-
-        const loadData = async () => {
+        const loadGcfHistory = async () => {
             try {
                 setLoading(true);
-
-                // STEP 1: Fast Load (Recent)
                 const recentData = await fetchIntervalsData('2025-01-01', '2026-12-31');
-                const processedRecent = processRawData(recentData, manualFtp);
-
-                setChartData(processedRecent); // Direct tonen
+                const processedRecent = recentData.map(raw => enhanceActivity(normalizeIntervalsActivity(raw), manualFtp));
+                setGcfData(processedRecent);
                 setLoading(false);
-                setError(null);
 
-                // STEP 2: Background Load (Historie)
+                // Background: load older history
                 const historyData = await fetchIntervalsData('2020-01-01', '2024-12-31');
-                const processedHistory = processRawData(historyData, manualFtp);
-
-                // STRICT MERGE & DEDUPE
-                setChartData(prev => {
+                const processedHistory = historyData.map(raw => enhanceActivity(normalizeIntervalsActivity(raw), manualFtp));
+                setGcfData(prev => {
                     const combined = [...processedHistory, ...prev];
-
-                    // Ontdubbelen op basis van unieke ID (Map behoudt laatste versie)
                     const uniqueMap = new Map();
-                    combined.forEach(item => {
-                        if (item.id) uniqueMap.set(item.id, item);
-                    });
-
-                    const uniqueArray = Array.from(uniqueMap.values());
-
-                    // Altijd sorteren op datum
-                    return uniqueArray.sort((a, b) => new Date(a.date) - new Date(b.date));
+                    combined.forEach(item => { if (item.id) uniqueMap.set(item.id, item); });
+                    return Array.from(uniqueMap.values()).sort((a, b) => new Date(a.date) - new Date(b.date));
                 });
-
             } catch (err) {
-                console.error(err);
-                // Alleen error tonen als we helemaal geen data hebben
-                if (chartData.length === 0) setError('Kon data niet ophalen van Intervals.icu');
-            } finally {
+                console.error('[Dashboard] GCF fetch error:', err);
                 setLoading(false);
+                // Don't set error — Firestore data still works
             }
         };
+        loadGcfHistory();
+    }, [manualFtp]);
 
-        loadData();
-    }, [manualFtp]); // Let op: Als manualFtp verandert, herrekent hij alles. Dat is goed.
+    /**
+     * Merge Strategy:
+     *  1. Start with GCF historical data (has eFTP fields, but may lack HR).
+     *  2. Overwrite with Firestore activities (has avg_hr, max_hr from nightlySync).
+     *  3. Firestore records WIN on conflict — they have the most complete data.
+     */
+    const chartData = useMemo(() => {
+        const enhancedFirestore = firestoreActivities.map(a => enhanceActivity(a, manualFtp));
+        const combined = [...gcfData, ...enhancedFirestore];
+        const uniqueMap = new Map();
+        // Process gcf first, then firestore — firestore overwrites on same ID
+        combined.forEach(item => { if (item.id) uniqueMap.set(item.id, item); });
+        return Array.from(uniqueMap.values()).sort((a, b) => new Date(a.date) - new Date(b.date));
+    }, [gcfData, firestoreActivities, manualFtp]);
 
     // --- Filter Logic ---
     const filteredData = useMemo(() => {

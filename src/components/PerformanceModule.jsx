@@ -247,6 +247,8 @@ const PerformanceModule = ({
     // 1. Est FTP Split (Max eFTP per environment)
     const maxEftpIndoor = Math.max(0, ...indoorRides.map(d => d.eFTP || 0));
     const maxEftpOutdoor = Math.max(0, ...outdoorRides.map(d => d.eFTP || 0));
+    const maxEftp60Indoor = Math.max(0, ...indoorRides.map(d => d.eFTP60 || 0));
+    const maxEftp60Outdoor = Math.max(0, ...outdoorRides.map(d => d.eFTP60 || 0));
 
     // 2. Load Split (Avg Load per Ride)
     const avgLoadIndoor = indoorRides.length > 0 ? Math.round(indoorRides.reduce((acc, d) => acc + (d.load || 0), 0) / indoorRides.length) : 0;
@@ -284,6 +286,10 @@ const PerformanceModule = ({
                     subtitle="Best 60-min power"
                     icon={TrendingUp}
                     colorClass="text-emerald-400"
+                    split={maxEftp60Indoor > 0 || maxEftp60Outdoor > 0
+                        ? { indoor: maxEftp60Indoor, outdoor: maxEftp60Outdoor }
+                        : undefined
+                    }
                 />
                 <StatCard
                     title="Avg Load"
