@@ -259,7 +259,7 @@ const App = () => {
                 syncStatus={syncStatus}
             />
 
-            <main className={`mx-auto p-3 space-y-4 transition-all duration-300 ${activeTab === 'data' ? 'max-w-[95%]' : 'max-w-7xl'}`}>
+            <main className={`mx-auto p-3 space-y-4 transition-all duration-300 ${activeTab === 'activities' ? 'max-w-[95%]' : 'max-w-7xl'}`}>
                 {/* Navigation - Desktop & Mobile */}
                 <div className="relative">
                     {/* Mobile: Hamburger Button */}

@@ -176,12 +176,34 @@ const Dashboard = ({ theme, manualFtp }) => {
                 </div>
             </div>
 
-            {/* PERFORMANCE MODULE */}
-            <PerformanceModule
-                data={filteredData}
-                manualFtp={manualFtp}
-                customTicks={customTicks}
-            />
+            {/* SUB-TABS NAVIGATION */}
+            <div className="flex border-b border-cdborder mb-4">
+                <button
+                    onClick={() => setDashboardTab('overview')}
+                    className={`flex-1 py-3 text-sm font-bold ${dashboardTab === 'overview' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
+                >Overview</button>
+                <button
+                    onClick={() => setDashboardTab('form')}
+                    className={`flex-1 py-3 text-sm font-bold ${dashboardTab === 'form' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
+                >Form</button>
+                <button
+                    onClick={() => setDashboardTab('power')}
+                    className={`flex-1 py-3 text-sm font-bold ${dashboardTab === 'power' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
+                >Power</button>
+            </div>
+
+            {/* TAB CONTENT */}
+            {dashboardTab === 'overview' && (
+                <OverviewTab data={filteredData} manualFtp={manualFtp} customTicks={customTicks} />
+            )}
+
+            {dashboardTab === 'form' && (
+                <FormTab data={filteredData} customTicks={customTicks} />
+            )}
+
+            {dashboardTab === 'power' && (
+                <PowerTab data={filteredData} customTicks={customTicks} />
+            )}
         </div>
     );
 };
