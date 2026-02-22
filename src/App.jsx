@@ -1,6 +1,6 @@
-﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { Gauge, Mountain, Activity, Utensils, Brain, Route, Settings as SettingsIcon, TrendingUp, Menu, X, Heart, Trophy, Cloud, ChevronRight } from 'lucide-react';
-import { doc, setDoc, getDoc, collection, getDocs, onSnapshot } from "firebase/firestore";
+import { doc, setDoc, getDoc, collection, onSnapshot } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from './firebase';
 import { CLIMB_DATABASE } from './climbs';
@@ -43,7 +43,8 @@ const App = () => {
         goals: { yearlyKm: 10000, targetFtp: 300, targetWeight: 68 },
         notifications: { highLoad: 150, lowPower: 150, minWeight: 67, restDay: 3 },
         powerZones: [],
-        githubPat: '' // GitHub PAT for manual nightly-sync trigger
+        githubPat: '', // GitHub PAT for manual nightly-sync trigger
+        openweatherApiKey: '' // OpenWeather API Key
     });
 
     const [selectedClimb, setSelectedClimb] = useState(CLIMB_DATABASE?.[0] || { id: 'dummy', name: 'Loading', lengthKm: 0, elevation: 0, avgGrade: 0 });
@@ -251,8 +252,6 @@ const App = () => {
 
     const isDark = theme === 'dark';
     const mainClass = isDark ? 'bg-cdbg text-cdtext' : 'bg-cdbg text-cdtext';
-    const navBtnActive = isDark ? 'bg-cdaccent text-white shadow-lg border border-cdaccent' : 'bg-cdaccent text-white shadow-lg border border-cdaccent';
-    const navBtnInactive = isDark ? 'bg-cdsurface text-cdmuted hover:text-cdtext hover:bg-cdsurface' : 'bg-cdsurface text-cdmuted hover:text-cdtext hover:bg-cdsurface';
 
     return (
         <div className={`min-h-screen font-sans pb-20 transition-colors duration-300 ${mainClass}`}>
@@ -270,9 +269,9 @@ const App = () => {
                     // 9 main tabs (Training = coach+recovery, Race = fueling+racepacing)
                     const mainTabs = [
                         { id: 'dashboard', label: 'Dashboard', icon: Gauge },
-                        { id: 'physics', label: 'Physics', icon: Mountain },
                         { id: 'activities', label: 'Activities', icon: Activity },
                         { id: 'training', label: 'Training', icon: Brain },
+                        { id: 'physics', label: 'Climbs', icon: Mountain },
                         { id: 'race', label: 'Race', icon: Route },
                         { id: 'gearoptimizer', label: 'Gear', icon: SettingsIcon },
                         { id: 'profiler', label: 'Profiler', icon: TrendingUp },

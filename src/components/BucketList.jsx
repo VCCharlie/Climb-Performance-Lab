@@ -26,7 +26,7 @@ const BucketList = ({ initialState, onStateChange }) => {
 
     // Calculate achievements
     const achievements = useMemo(() => {
-        const done = Object.entries(climbStatus).filter(([_, status]) => status === 'done').map(([id]) => id);
+        const done = Object.entries(climbStatus).filter(([, status]) => status === 'done').map(([id]) => id);
         const doneClimbs = done.map(id => CLIMB_DATABASE.find(c => c.id === id)).filter(Boolean);
 
         const badges = [];
@@ -94,7 +94,11 @@ const BucketList = ({ initialState, onStateChange }) => {
                 totalDone: done.length,
                 totalElevation,
                 avgGrade: doneClimbs.length > 0 ? (doneClimbs.reduce((sum, c) => sum + c.avgGrade, 0) / doneClimbs.length).toFixed(1) : 0,
-                hardestClimb: doneClimbs.length > 0 ? doneClimbs.reduce((max, c) => c.avgGrade > max.avgGrade ? c : max, doneClimbs[0]) : null
+                hardestClimb: doneClimbs.length > 0 ? doneClimbs.reduce((max, c) => {
+                    const cScore = (c.elevation * c.elevation) / (c.lengthKm * 10000);
+                    const maxScore = (max.elevation * max.elevation) / (max.lengthKm * 10000);
+                    return cScore > maxScore ? c : max;
+                }, doneClimbs[0]) : null
             }
         };
     }, [climbStatus]);

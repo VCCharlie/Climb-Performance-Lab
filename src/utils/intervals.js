@@ -37,7 +37,7 @@ export const normalizeIntervalsActivity = (item) => {
         }
     }
 
-    const rpe = getNum(getVal('rpe', 'icu_rpe', 'perceived_exertion', 'feel', 'session_rpe'));
+    const rpe = getNum(getVal('rpe', 'icu_rpe', 'perceived_exertion', 'feel', 'session_rpe', 'feeling', 'rating'));
     const ftp = getNum(getVal('ftp', 'icu_ftp', 'icu_pm_ftp', 'cp'));
 
     // Max Power: Try root keys first

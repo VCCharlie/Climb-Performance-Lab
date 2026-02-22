@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import {
     X, Edit2, Save
 } from 'lucide-react';
-import { formatDateDDMMYYYY, formatTime } from '../../utils';
+import { formatTime } from '../../utils';
 import { SPORT_TYPES } from '../../config';
 
 const EditActivityModal = ({ activity, onClose, onSave }) => {
@@ -105,6 +105,46 @@ const EditActivityModal = ({ activity, onClose, onSave }) => {
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Max HR (bpm)</label>
                             <input name="max_hr" type="number" value={formData.max_hr || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                        </div>
+
+                        {/* EXTRA METRICS */}
+                        <div className="col-span-2 h-px bg-cdborder my-2"></div>
+
+                        <div>
+                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">RPE (1-10)</label>
+                            <input name="rpe" type="number" step="0.1" value={formData.rpe || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">FTP (W)</label>
+                            <input name="ftp" type="number" value={formData.ftp || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Avg Speed (km/h)</label>
+                            <input name="avg_speed" type="number" step="0.1" value={formData.avg_speed || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                        </div>
+
+                        {/* POWER CURVE */}
+                        <div className="col-span-2 h-px bg-cdborder my-2"></div>
+
+                        <div>
+                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Best 1 min (W)</label>
+                            <input name="best_1min" type="number" value={formData.best_1min || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Best 5 min (W)</label>
+                            <input name="best_5min" type="number" value={formData.best_5min || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Best 10 min (W)</label>
+                            <input name="best_10min" type="number" value={formData.best_10min || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Best 20 min (W)</label>
+                            <input name="best_20min" type="number" value={formData.best_20min || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Best 60 min (W)</label>
+                            <input name="best_60min" type="number" value={formData.best_60min || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
                         </div>
                     </div>
 

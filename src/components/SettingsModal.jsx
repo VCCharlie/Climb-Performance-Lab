@@ -83,11 +83,6 @@ const SettingsModal = ({
         reader.readAsText(file);
     };
 
-    // 2. POWER ZONES CALCULATOR
-    const handleRecalculateZones = () => {
-        const newZones = calculatePowerZones(userSettings.ftp);
-        updateUserSettings('powerZones', newZones);
-    };
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm bg-black/50 overflow-y-auto">
@@ -177,6 +172,30 @@ const SettingsModal = ({
                                             github.com/settings/tokens
                                         </a>{' '}
                                         met scope <code className="bg-cdborder px-1 rounded">workflow</code>.
+                                    </p>
+                                </div>
+                                {/* OpenWeatherMap API Key */}
+                                <div className="pt-2 border-t border-cdborder/30 mt-2">
+                                    <label className={`block text-xs uppercase font-bold mb-1 ${labelClass}`}>
+                                        OpenWeatherMap API Key
+                                    </label>
+                                    <input
+                                        type="password"
+                                        placeholder="Voer API key in..."
+                                        value={userSettings.openweatherApiKey || ''}
+                                        onChange={e => updateUserSettings('openweatherApiKey', e.target.value)}
+                                        className={`w-full border rounded p-3 outline-none ${inputClass}`}
+                                    />
+                                    <p className="text-xs text-cdmuted mt-1">
+                                        Gratis aan te maken op{' '}
+                                        <a
+                                            href="https://openweathermap.org/api"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-400 hover:underline"
+                                        >
+                                            openweathermap.org
+                                        </a>.
                                     </p>
                                 </div>
                             </div>
