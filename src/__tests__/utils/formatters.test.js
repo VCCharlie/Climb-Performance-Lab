@@ -42,6 +42,18 @@ describe('normalizeDate', () => {
   it('pads single-digit month/day', () => {
     expect(normalizeDate('5/6/2025')).toBe('2025-06-05');
   });
+
+  it('falls back to Date() constructor for unusual formats', () => {
+    // "June 15, 2025" — not DD/MM/YYYY or ISO, hits the Date() fallback
+    const result = normalizeDate('June 15, 2025');
+    expect(result).toBe('2025-06-15');
+  });
+
+  it('returns raw string for truly unparseable dates', () => {
+    const result = normalizeDate('not-a-date-at-all');
+    // Date('not-a-date-at-all') → Invalid Date → returns raw string
+    expect(result).toBe('not-a-date-at-all');
+  });
 });
 
 // ─── formatDateDDMMYYYY ─────────────────────────────────────────────────────

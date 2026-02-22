@@ -115,6 +115,22 @@ describe('normalizeIntervalsActivity - sanity checks', () => {
     expect(norm.max_power).toBe(0);
   });
 
+  it('uses valid best_1min (<=1200) as max_power when max is missing', () => {
+    const activity = {
+      id: 'fallback_test',
+      startDate: '2025-06-20',
+      name: 'Fallback Test',
+      type: 'Ride',
+      movingTime: 3600,
+      distance: 40000,
+      best_1min: 450,
+      // No max_power fields at all
+    };
+    const norm = normalizeIntervalsActivity(activity);
+    expect(norm.max_power).toBe(450);
+    expect(norm.max_power_source).toBe('1 min');
+  });
+
   it('uses icu_intervals max_watts as fallback', () => {
     // Activity 2: icu_pm_p_max = 0, but has icu_intervals with max 350
     const norm = normalizeIntervalsActivity(fixture[2]);

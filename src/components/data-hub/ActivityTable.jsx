@@ -30,7 +30,7 @@ export const TableHeader = ({ config, requestSort, hasActions = true, isPreview 
     </thead>
 );
 
-export const Row = React.memo(({ act, onDelete, onEdit, deleteConfirm, setDeleteConfirm, isPreview = false, isSelected = false, onToggleSelect, onToggleType }) => {
+export const Row = React.memo(({ act, onDelete, onEdit, isConfirmingDelete, setDeleteConfirm, isPreview = false, isSelected = false, onToggleSelect, onToggleType }) => {
     if (!act) return null;
 
     const renderCell = (col) => {
@@ -73,7 +73,7 @@ export const Row = React.memo(({ act, onDelete, onEdit, deleteConfirm, setDelete
             {isPreview && <td className="px-2 py-1.5 w-8"><input type="checkbox" checked={isSelected} readOnly className="w-4 h-4 accent-green-500 cursor-pointer" /></td>}
             {ACTIVITY_COLUMNS.map(col => <td key={col.key} className={`px-2 py-1.5 text-${col.align} text-xs ${col.width || ''}`}>{renderCell(col)}</td>)}
             {!isPreview && <td className="px-2 py-1.5 text-right w-24">
-                {deleteConfirm === act.id ? (
+                {isConfirmingDelete ? (
                     <div className="flex gap-2 justify-end">
                         <button onClick={(e) => { e.stopPropagation(); onDelete(act.id) }} className="text-red-500 font-bold text-xs bg-red-500/10 px-2 py-1 rounded">SURE?</button>
                         <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(null) }} className="text-cdmuted text-xs px-2 py-1">Cancel</button>
@@ -128,20 +128,19 @@ const ActivityTable = ({ activities, sortConfig, onSort, onDelete, onEdit, isGro
                 <TableHeader config={sortConfig} requestSort={onSort} hasActions={true} isPreview={false} />
                 <tbody className="divide-y divide-cdborder bg-cdsurface">
                     {isGroupedView ? (
-                        // We need groupedActivities passed in
                         Object.keys(activities).sort((a, b) => sortConfig.direction === 'asc' ? a - b : b - a).map(year => (
                             <React.Fragment key={year}>
                                 <tr id={`year-${year}`} className="bg-cdborder/50 scroll-mt-10"><td colSpan={ACTIVITY_COLUMNS.length + 1} className="p-2 font-bold text-cdtext"><button onClick={() => onToggleYear(year)} className="flex items-center gap-2 w-full text-left hover:text-yellow-400">{isYearExpanded(year) ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {year}</button></td></tr>
                                 {isYearExpanded(year) && Object.keys(activities[year]).sort((a, b) => { const diff = MONTH_ORDER.indexOf(b) - MONTH_ORDER.indexOf(a); return sortConfig.direction === 'asc' ? -diff : diff; }).map(month => (
                                     <React.Fragment key={month}>
                                         <tr id={`month-${year}-${month}`} className="bg-cdborder/20 scroll-mt-12"><td colSpan={ACTIVITY_COLUMNS.length + 1} className="px-8 py-1 text-[10px] uppercase font-bold text-cdmuted"><button onClick={() => onToggleMonth(year, month)} className="flex items-center gap-1 hover:text-cdtext text-left w-full transition-colors">{isMonthExpanded(year, month) ? <ChevronDown size={12} /> : <ChevronRight size={12} />} {month}</button></td></tr>
-                                        {isMonthExpanded(year, month) && activities[year][month].map(act => <Row key={act.id} act={act} onDelete={onDelete} onEdit={onEdit} deleteConfirm={deleteConfirm} setDeleteConfirm={setDeleteConfirm} />)}
+                                        {isMonthExpanded(year, month) && activities[year][month].map(act => <Row key={act.id} act={act} onDelete={onDelete} onEdit={onEdit} isConfirmingDelete={deleteConfirm === act.id} setDeleteConfirm={setDeleteConfirm} />)}
                                     </React.Fragment>
                                 ))}
                             </React.Fragment>
                         ))
                     ) : (
-                        activities.map(act => <Row key={act.id} act={act} onDelete={onDelete} onEdit={onEdit} deleteConfirm={deleteConfirm} setDeleteConfirm={setDeleteConfirm} />)
+                        activities.map(act => <Row key={act.id} act={act} onDelete={onDelete} onEdit={onEdit} isConfirmingDelete={deleteConfirm === act.id} setDeleteConfirm={setDeleteConfirm} />)
                     )}
                 </tbody>
             </table>

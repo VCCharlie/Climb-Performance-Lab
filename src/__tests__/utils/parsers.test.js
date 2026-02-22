@@ -242,6 +242,25 @@ describe('smartParseCSV', () => {
     expect(result[0].best_5min).toBe(340);
     expect(result[0].best_20min).toBe(275);
   });
+
+  it('handles escaped quotes inside quoted fields', () => {
+    const csv = 'Date,Name,Distance\n2025-06-01,"Ride with ""power"" intervals",50';
+    const result = smartParseCSV(csv);
+    expect(result[0].title).toBe('Ride with "power" intervals');
+  });
+
+  it('returns empty for header-only CSV (no data rows)', () => {
+    const csv = 'Date,Name,Distance';
+    expect(smartParseCSV(csv)).toEqual([]);
+  });
+
+  it('parses max_altitude, max_power, and max_hr headers', () => {
+    const csv = 'Date,Name,Distance,Max Altitude,Max Power,Max Heartrate\n2025-06-01,Test,50,2642,650,178';
+    const result = smartParseCSV(csv);
+    expect(result[0].max_altitude).toBe(2642);
+    expect(result[0].max_power).toBe(650);
+    expect(result[0].max_hr).toBe(178);
+  });
 });
 
 // ─── smartParseJSON (Intervals.icu API) ──────────────────────────────────────
