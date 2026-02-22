@@ -1,5 +1,5 @@
 ﻿import React, { useState } from 'react';
-import { Search, Loader2, AlertTriangle, Trash, Split } from 'lucide-react';
+import { Search, Loader2, AlertTriangle, Trash, Split, RefreshCw, ExternalLink, GitBranch } from 'lucide-react';
 import { doc, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from '../firebase';
 import { findDuplicatesInList } from '../utils';
@@ -18,7 +18,9 @@ import ImportSection from './data-hub/ImportSection';
 import useActivityFilter from '../hooks/useActivityFilter';
 
 // --- MAIN COMPONENT ---
-const DataHub = ({ activities, onImport, onDelete, onClear }) => {
+// githubPat: optional GitHub Personal Access Token for manual workflow dispatch
+// showImport: soft-toggle to show/hide the legacy CSV import section (default: false)
+const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImport = false }) => {
     // UI State
     const [internalTab, setInternalTab] = useState('log');
     const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -32,6 +34,8 @@ const DataHub = ({ activities, onImport, onDelete, onClear }) => {
     const [selectedActivities, setSelectedActivities] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [rawData, setRawData] = useState(null); // Debug
+    const [isSyncingGithub, setIsSyncingGithub] = useState(false);
+    const [syncStatus, setSyncStatus] = useState(null); // 'success' | 'error' | null
 
     // --- HOOKS ---
 
@@ -100,6 +104,50 @@ const DataHub = ({ activities, onImport, onDelete, onClear }) => {
             setShowDuplicateModal(true);
         } else {
             alert("Geen duplicaten gevonden! Je database is clean.");
+        }
+    };
+
+    /**
+     * Triggers the nightly-sync.yml GitHub Actions workflow on demand.
+     * Requires a Personal Access Token (PAT) with `actions:write` scope,
+     * stored in userSettings.githubPat and passed down as `githubPat` prop.
+     */
+    const triggerGithubSync = async () => {
+        if (!githubPat) {
+            alert('Geen GitHub PAT ingesteld. Voeg een Personal Access Token toe onder Instellingen → Sync.');
+            return;
+        }
+        setIsSyncingGithub(true);
+        setSyncStatus(null);
+        try {
+            const res = await fetch(
+                'https://api.github.com/repos/VCCharlie/Climb-Performance-Lab/actions/workflows/nightly-sync.yml/dispatches',
+                {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${githubPat}`,
+                        Accept: 'application/vnd.github+json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ ref: 'main' }),
+                }
+            );
+            if (res.status === 204) {
+                setSyncStatus('success');
+                // Auto-clear after 8s
+                setTimeout(() => setSyncStatus(null), 8000);
+            } else {
+                const errText = await res.text();
+                console.error('[Sync] GitHub API error:', errText);
+                setSyncStatus('error');
+                setTimeout(() => setSyncStatus(null), 6000);
+            }
+        } catch (err) {
+            console.error('[Sync] Fetch error:', err);
+            setSyncStatus('error');
+            setTimeout(() => setSyncStatus(null), 6000);
+        } finally {
+            setIsSyncingGithub(false);
         }
     };
 
@@ -252,12 +300,27 @@ const DataHub = ({ activities, onImport, onDelete, onClear }) => {
             {/* TABS */}
             <div className="flex border-b border-cdborder">
                 <button onClick={() => setInternalTab('log')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'log' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Activity Log</button>
-                <button onClick={() => setInternalTab('import')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'import' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Import Data</button>
+                {/* Import tab is soft-hidden by default — code intact, render behind prop */}
+                {showImport && (
+                    <button onClick={() => setInternalTab('import')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'import' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Import Data</button>
+                )}
             </div>
 
             <div className="p-4 flex-1 overflow-hidden flex flex-col">
                 {internalTab === 'log' && (
                     <>
+                        {/* Sync status feedback banner */}
+                        {syncStatus && (
+                            <div className={`flex items-center gap-2 text-xs font-bold px-3 py-2 rounded-lg mb-3 ${syncStatus === 'success'
+                                    ? 'bg-green-500/10 border border-green-500/30 text-green-400'
+                                    : 'bg-red-500/10 border border-red-500/30 text-red-400'
+                                }`}>
+                                {syncStatus === 'success'
+                                    ? '✅ Sync gestart! Activiteiten worden bijgewerkt in Firebase (duurt ~1 minuut).'
+                                    : '❌ Sync mislukt. Controleer je GitHub PAT in Instellingen.'}
+                            </div>
+                        )}
+
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
                             <div className="flex gap-2 w-full md:w-auto flex-1">
                                 <div className="relative flex-1">
@@ -271,6 +334,19 @@ const DataHub = ({ activities, onImport, onDelete, onClear }) => {
                                 </div>
                             </div>
                             <div className="flex gap-2">
+                                {/* Manual sync trigger — calls GitHub Actions workflow dispatch */}
+                                <button
+                                    onClick={triggerGithubSync}
+                                    disabled={isSyncingGithub}
+                                    title={githubPat ? 'Sync nu uitvoeren via GitHub Actions' : 'Voeg GitHub PAT toe in Instellingen'}
+                                    className={`flex items-center gap-2 px-3 py-2 rounded text-sm font-bold border transition-all ${githubPat
+                                            ? 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border-blue-500/40'
+                                            : 'bg-cdborder/30 text-cdmuted border-cdborder cursor-not-allowed opacity-50'
+                                        }`}
+                                >
+                                    <RefreshCw size={14} className={isSyncingGithub ? 'animate-spin' : ''} />
+                                    {isSyncingGithub ? 'Bezig...' : 'Sync Now'}
+                                </button>
                                 <button onClick={findDuplicates} disabled={!activities || activities.length === 0} className="bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/50 px-3 py-2 rounded flex items-center gap-2 text-sm font-bold transition-all disabled:opacity-50">
                                     <Split size={16} /> Duplicates
                                 </button>

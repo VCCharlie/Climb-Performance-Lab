@@ -153,6 +153,32 @@ const SettingsModal = ({
                                     <label className={`block text-xs uppercase font-bold mb-1 ${labelClass}`}>API Key</label>
                                     <input type="password" value={intervalsConfig.apiKey} onChange={e => updateIntervalsConfig('apiKey', e.target.value)} className={`w-full border rounded p-3 outline-none ${inputClass}`} />
                                 </div>
+                                {/* GitHub PAT for manual sync trigger */}
+                                <div className="pt-2 border-t border-cdborder/30 mt-2">
+                                    <label className={`block text-xs uppercase font-bold mb-1 ${labelClass}`}>
+                                        GitHub PAT
+                                        <span className="text-cdmuted font-normal ml-1 normal-case">(voor "Sync Now" knop)</span>
+                                    </label>
+                                    <input
+                                        type="password"
+                                        placeholder="ghp_xxxxxxxxxxxxxxxxxx"
+                                        value={userSettings.githubPat || ''}
+                                        onChange={e => updateUserSettings('githubPat', e.target.value)}
+                                        className={`w-full border rounded p-3 outline-none ${inputClass}`}
+                                    />
+                                    <p className="text-xs text-cdmuted mt-1">
+                                        Maak een PAT aan op{' '}
+                                        <a
+                                            href="https://github.com/settings/tokens/new?scopes=workflow"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-400 hover:underline"
+                                        >
+                                            github.com/settings/tokens
+                                        </a>{' '}
+                                        met scope <code className="bg-cdborder px-1 rounded">workflow</code>.
+                                    </p>
+                                </div>
                             </div>
 
                             {syncState && (
