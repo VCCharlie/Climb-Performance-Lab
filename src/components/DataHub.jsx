@@ -36,6 +36,7 @@ const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImpor
     const [rawData, setRawData] = useState(null); // Debug
     const [isSyncingGithub, setIsSyncingGithub] = useState(false);
     const [syncStatus, setSyncStatus] = useState(null); // 'success' | 'error' | null
+    const [syncErrorDetail, setSyncErrorDetail] = useState(null); // detailed error string from GitHub API
 
     // --- HOOKS ---
 
@@ -108,9 +109,12 @@ const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImpor
     };
 
     /**
-     * Triggers the nightly-sync.yml GitHub Actions workflow on demand.
-     * Requires a Personal Access Token (PAT) with `actions:write` scope,
-     * stored in userSettings.githubPat and passed down as `githubPat` prop.
+     * Triggers the nightly sync GitHub Actions workflow on demand.
+     * Strategy:
+     *  1. List all workflows in the repo to find the nightly-sync workflow dynamically.
+     *  2. Trigger the found workflow via workflow_dispatch.
+     *
+     * Requires a GitHub PAT (classic or fine-grained) with `workflow` / `actions:write` scope.
      */
     const triggerGithubSync = async () => {
         if (!githubPat) {
@@ -119,33 +123,73 @@ const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImpor
         }
         setIsSyncingGithub(true);
         setSyncStatus(null);
+        setSyncErrorDetail(null);
+
+        const REPO = 'VCCharlie/Climb-Performance-Lab';
+        const HEADERS = {
+            Authorization: `Bearer ${githubPat}`,
+            Accept: 'application/vnd.github+json',
+            'Content-Type': 'application/json',
+            'X-GitHub-Api-Version': '2022-11-28',
+        };
+
         try {
-            const res = await fetch(
-                'https://api.github.com/repos/VCCharlie/Climb-Performance-Lab/actions/workflows/nightly-sync.yml/dispatches',
+            // Step 1: list workflows to find the correct filename/id
+            const listRes = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows`, { headers: HEADERS });
+
+            if (!listRes.ok) {
+                const errBody = await listRes.json().catch(() => listRes.text());
+                const msg = errBody?.message || JSON.stringify(errBody);
+                console.error('[Sync] Workflow list failed:', listRes.status, msg);
+                setSyncErrorDetail(`${listRes.status}: ${msg}`);
+                setSyncStatus('error');
+                return;
+            }
+
+            const { workflows = [] } = await listRes.json();
+            console.log('[Sync] Available workflows:', workflows.map(w => w.path));
+
+            // Pick the nightly / sync workflow (flexible name matching)
+            const target = workflows.find(w =>
+                w.path.toLowerCase().includes('nightly') ||
+                w.path.toLowerCase().includes('sync')
+            );
+
+            if (!target) {
+                const paths = workflows.map(w => w.path).join(', ') || '(geen)';
+                setSyncErrorDetail(`Geen nightly-sync workflow gevonden. Aanwezige workflows: ${paths}`);
+                setSyncStatus('error');
+                return;
+            }
+
+            console.log('[Sync] Triggering workflow:', target.path);
+
+            // Step 2: dispatch the workflow
+            const dispatchRes = await fetch(
+                `https://api.github.com/repos/${REPO}/actions/workflows/${target.id}/dispatches`,
                 {
                     method: 'POST',
-                    headers: {
-                        Authorization: `Bearer ${githubPat}`,
-                        Accept: 'application/vnd.github+json',
-                        'Content-Type': 'application/json',
-                    },
+                    headers: HEADERS,
                     body: JSON.stringify({ ref: 'main' }),
                 }
             );
-            if (res.status === 204) {
+
+            if (dispatchRes.status === 204) {
                 setSyncStatus('success');
-                // Auto-clear after 8s
-                setTimeout(() => setSyncStatus(null), 8000);
+                setTimeout(() => { setSyncStatus(null); setSyncErrorDetail(null); }, 10000);
             } else {
-                const errText = await res.text();
-                console.error('[Sync] GitHub API error:', errText);
+                const errBody = await dispatchRes.json().catch(() => ({ message: `HTTP ${dispatchRes.status}` }));
+                const msg = errBody?.message || `HTTP ${dispatchRes.status}`;
+                console.error('[Sync] Dispatch failed:', dispatchRes.status, errBody);
+                setSyncErrorDetail(`${dispatchRes.status}: ${msg}`);
                 setSyncStatus('error');
-                setTimeout(() => setSyncStatus(null), 6000);
+                setTimeout(() => { setSyncStatus(null); setSyncErrorDetail(null); }, 10000);
             }
         } catch (err) {
             console.error('[Sync] Fetch error:', err);
+            setSyncErrorDetail(err.message);
             setSyncStatus('error');
-            setTimeout(() => setSyncStatus(null), 6000);
+            setTimeout(() => { setSyncStatus(null); setSyncErrorDetail(null); }, 10000);
         } finally {
             setIsSyncingGithub(false);
         }
@@ -311,13 +355,19 @@ const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImpor
                     <>
                         {/* Sync status feedback banner */}
                         {syncStatus && (
-                            <div className={`flex items-center gap-2 text-xs font-bold px-3 py-2 rounded-lg mb-3 ${syncStatus === 'success'
-                                    ? 'bg-green-500/10 border border-green-500/30 text-green-400'
-                                    : 'bg-red-500/10 border border-red-500/30 text-red-400'
-                                }`}>
-                                {syncStatus === 'success'
-                                    ? '✅ Sync gestart! Activiteiten worden bijgewerkt in Firebase (duurt ~1 minuut).'
-                                    : '❌ Sync mislukt. Controleer je GitHub PAT in Instellingen.'}
+                            <div className={`flex flex-col gap-1 text-xs font-bold px-3 py-2 rounded-lg mb-3 ${syncStatus === 'success'
+                                ? 'bg-green-500/10 border border-green-500/30 text-green-400'
+                                : 'bg-red-500/10 border border-red-500/30 text-red-400'
+                                }`}
+                            >
+                                <span>
+                                    {syncStatus === 'success'
+                                        ? '✅ Sync gestart! Activiteiten worden bijgewerkt in Firebase (duurt ~1 minuut).'
+                                        : '❌ Sync mislukt.'}
+                                </span>
+                                {syncStatus === 'error' && syncErrorDetail && (
+                                    <span className="font-mono font-normal opacity-80 break-words">{syncErrorDetail}</span>
+                                )}
                             </div>
                         )}
 
@@ -340,8 +390,8 @@ const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImpor
                                     disabled={isSyncingGithub}
                                     title={githubPat ? 'Sync nu uitvoeren via GitHub Actions' : 'Voeg GitHub PAT toe in Instellingen'}
                                     className={`flex items-center gap-2 px-3 py-2 rounded text-sm font-bold border transition-all ${githubPat
-                                            ? 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border-blue-500/40'
-                                            : 'bg-cdborder/30 text-cdmuted border-cdborder cursor-not-allowed opacity-50'
+                                        ? 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border-blue-500/40'
+                                        : 'bg-cdborder/30 text-cdmuted border-cdborder cursor-not-allowed opacity-50'
                                         }`}
                                 >
                                     <RefreshCw size={14} className={isSyncingGithub ? 'animate-spin' : ''} />
