@@ -1,6 +1,9 @@
 {
   "name": "Gemini Dev Environment",
   "image": "mcr.microsoft.com/devcontainers/typescript-node:1-20-bullseye",
+  "features": {
+    "ghcr.io/devcontainers/features/git-lfs:1": {}
+  },
   "customizations": {
     "vscode": {
       "extensions": [
@@ -10,7 +13,6 @@
       ]
     }
   },
-  // Ensure we use the user that is native to this specific image
   "remoteUser": "node",
   "postCreateCommand": "npm install && npm install -g @google/gemini-cli"
 }
