@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Gauge, Mountain, Activity, Utensils, Brain, Route, Settings as SettingsIcon, TrendingUp, Menu, X, Heart, Trophy, Cloud } from 'lucide-react';
+import { Gauge, Mountain, Activity, Utensils, Brain, Route, Settings as SettingsIcon, TrendingUp, Menu, X, Heart, Trophy, Cloud, ChevronRight } from 'lucide-react';
 import { doc, setDoc, getDoc, collection, getDocs, onSnapshot } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from './firebase';
@@ -134,6 +134,10 @@ const App = () => {
         humidity: 50
     });
 
+    // Sub-tab states for merged tabs
+    const [trainingSubTab, setTrainingSubTab] = useState('coach'); // 'coach' | 'recovery'
+    const [raceSubTab, setRaceSubTab] = useState('fueling');       // 'fueling' | 'racepacing'
+
     // Auth Listener
     useEffect(() => {
         if (!auth) return;
@@ -261,118 +265,87 @@ const App = () => {
 
             <main className={`mx-auto p-3 space-y-4 transition-all duration-300 ${activeTab === 'activities' ? 'max-w-[95%]' : 'max-w-7xl'}`}>
                 {/* Navigation - Desktop & Mobile */}
-                <div className="relative">
-                    {/* Mobile: Hamburger Button */}
-                    <button
-                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                        className="md:hidden flex items-center gap-2 px-4 py-2 bg-cdsurface rounded border border-cdborder text-cdtext mb-4"
-                    >
-                        {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-                        <span className="font-bold text-sm">
-                            {[
-                                { id: 'dashboard', label: 'Dashboard' },
-                                { id: 'coach', label: 'AI Coach' },
-                                { id: 'physics', label: 'Physics' },
-                                { id: 'activities', label: 'Activities' },
-                                { id: 'fueling', label: 'Fueling' },
-                                { id: 'racepacing', label: 'Race Pacing' },
-                                { id: 'gearoptimizer', label: 'Gear Optimizer' },
-                                { id: 'profiler', label: 'Climb Profiler' },
-                                { id: 'recovery', label: 'Recovery Advisor' },
-                                { id: 'bucketlist', label: 'Bucket List' },
-                                { id: 'weather', label: 'Weather Climb' },
-                            ].find(item => item.id === activeTab)?.label || 'Menu'}
-                        </span>
-                    </button>
+                {(() => {
+                    // 9 main tabs (Training = coach+recovery, Race = fueling+racepacing)
+                    const mainTabs = [
+                        { id: 'dashboard',     label: 'Dashboard',     icon: Gauge },
+                        { id: 'physics',       label: 'Physics',       icon: Mountain },
+                        { id: 'activities',    label: 'Activities',    icon: Activity },
+                        { id: 'training',      label: 'Training',      icon: Brain },
+                        { id: 'race',          label: 'Race',          icon: Route },
+                        { id: 'gearoptimizer', label: 'Gear',          icon: SettingsIcon },
+                        { id: 'profiler',      label: 'Profiler',      icon: TrendingUp },
+                        { id: 'bucketlist',    label: 'Bucket List',   icon: Trophy },
+                        { id: 'weather',       label: 'Weather',       icon: Cloud },
+                    ];
 
-                    {/* Mobile: Dropdown Menu */}
-                    {isMobileMenuOpen && (
-                        <div className="md:hidden absolute top-full left-0 right-0 bg-cdsurface border border-cdborder rounded-lg shadow-xl z-50 mb-4">
-                            {[
-                                { id: 'dashboard', label: 'Dashboard', icon: Gauge },
-                                { id: 'coach', label: 'AI Coach', icon: Brain },
-                                { id: 'physics', label: 'Physics', icon: Mountain },
-                                { id: 'activities', label: 'Activities', icon: Activity },
-                                { id: 'fueling', label: 'Fueling', icon: Utensils },
-                                { id: 'racepacing', label: 'Race Pacing', icon: Route },
-                                { id: 'gearoptimizer', label: 'Gear Optimizer', icon: SettingsIcon },
-                                { id: 'profiler', label: 'Climb Profiler', icon: TrendingUp },
-                                { id: 'recovery', label: 'Recovery Advisor', icon: Heart },
-                                { id: 'bucketlist', label: 'Bucket List', icon: Trophy },
-                                { id: 'weather', label: 'Weather Climb', icon: Cloud },
-                            ].map(item => {
-                                const isActive = activeTab === item.id;
-                                return (
-                                    <button
-                                        key={item.id}
-                                        onClick={() => {
-                                            setActiveTab(item.id);
-                                            setIsMobileMenuOpen(false);
-                                        }}
-                                        className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${isActive
-                                            ? 'bg-cdaccent/20 text-cdaccent border-l-4 border-cdaccent'
-                                            : 'text-cdtext hover:bg-cdborder'
-                                            }`}
-                                    >
-                                        <item.icon className="w-4 h-4" />
-                                        {item.label}
-                                    </button>
-                                );
-                            })}
+                    // Map old sub-tabs to their parent for mobile label
+                    const mobileLabel = mainTabs.find(t => t.id === activeTab)?.label || 'Menu';
+
+                    return (
+                        <div className="relative">
+                            {/* Mobile: Hamburger Button */}
+                            <button
+                                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                                className="md:hidden flex items-center gap-2 px-4 py-2 bg-cdsurface rounded border border-cdborder text-cdtext mb-4"
+                            >
+                                {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+                                <span className="font-bold text-sm">{mobileLabel}</span>
+                            </button>
+
+                            {/* Mobile: Dropdown Menu */}
+                            {isMobileMenuOpen && (
+                                <div className="md:hidden absolute top-full left-0 right-0 bg-cdsurface border border-cdborder rounded-lg shadow-xl z-50 mb-4">
+                                    {mainTabs.map(item => {
+                                        const isActive = activeTab === item.id;
+                                        return (
+                                            <button
+                                                key={item.id}
+                                                onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }}
+                                                className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${isActive ? 'bg-cdaccent/20 text-cdaccent border-l-4 border-cdaccent' : 'text-cdtext hover:bg-cdborder'}`}
+                                            >
+                                                <item.icon className="w-4 h-4" />
+                                                {item.label}
+                                                {(item.id === 'training' || item.id === 'race') && (
+                                                    <ChevronRight size={12} className="ml-auto text-cdmuted" />
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
+                            {/* Desktop: Horizontal Tabs */}
+                            <nav className="hidden md:flex overflow-x-auto gap-1 pb-2 border-b border-cdborder/50 mb-4">
+                                {mainTabs.map(item => {
+                                    const isActive = activeTab === item.id;
+                                    return (
+                                        <button
+                                            key={item.id}
+                                            onClick={() => setActiveTab(item.id)}
+                                            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold transition-all border-b-2 whitespace-nowrap ${isActive ? 'border-cdaccent text-cdtext' : 'border-transparent text-cdmuted hover:text-cdtext'}`}
+                                        >
+                                            <item.icon className={`w-3.5 h-3.5 ${isActive ? 'text-cdaccent' : ''}`} />
+                                            {item.label}
+                                        </button>
+                                    );
+                                })}
+                            </nav>
                         </div>
-                    )}
-
-                    {/* Desktop: Horizontal Tabs (more compact) */}
-                    <nav className="hidden md:flex overflow-x-auto gap-1 pb-2 border-b border-cdborder/50 mb-4">
-                        {[
-                            { id: 'dashboard', label: 'Dashboard', icon: Gauge },
-                            { id: 'coach', label: 'AI Coach', icon: Brain },
-                            { id: 'physics', label: 'Physics', icon: Mountain },
-                            { id: 'activities', label: 'Activities', icon: Activity },
-                            { id: 'fueling', label: 'Fueling', icon: Utensils },
-                            { id: 'racepacing', label: 'Race Pacing', icon: Route },
-                            { id: 'gearoptimizer', label: 'Gear Optimizer', icon: SettingsIcon },
-                            { id: 'profiler', label: 'Climb Profiler', icon: TrendingUp },
-                            { id: 'recovery', label: 'Recovery Advisor', icon: Heart },
-                            { id: 'bucketlist', label: 'Bucket List', icon: Trophy },
-                            { id: 'weather', label: 'Weather Climb', icon: Cloud },
-                        ].map(item => {
-                            const isActive = activeTab === item.id;
-                            return (
-                                <button
-                                    key={item.id}
-                                    onClick={() => setActiveTab(item.id)}
-                                    className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold transition-all border-b-2 whitespace-nowrap ${isActive
-                                        ? 'border-cdaccent text-cdtext'
-                                        : 'border-transparent text-cdmuted hover:text-cdtext'
-                                        }`}
-                                >
-                                    <item.icon className={`w-3.5 h-3.5 ${isActive ? 'text-cdaccent' : ''}`} />
-                                    {item.label}
-                                </button>
-                            );
-                        })}
-                    </nav>
-                </div>
+                    );
+                })()}
 
                 {isLoading ? (
                     <div className="flex justify-center items-center h-64 text-cdmuted animate-pulse">Laden van data...</div>
                 ) : (
                     <>
                         {activeTab === 'dashboard' && (
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                                <div className="lg:col-span-2">
-                                    <Dashboard theme={theme} manualFtp={userSettings.ftp} activities={activities} />
-                                </div>
-                                <div className="lg:col-span-1">
-                                    <ClimbProfileCard climb={selectedClimb} />
-                                </div>
-                            </div>
+                            <Dashboard theme={theme} manualFtp={userSettings.ftp} activities={activities} />
                         )}
 
-                        {activeTab === 'coach' && <AICoach activities={activities} userSettings={userSettings} />}
-
-                        {activeTab === 'physics' && <PhysicsEngine userSettings={userSettings} setUserSettings={setUserSettings} selectedClimb={selectedClimb} onUpdateClimb={setSelectedClimb} />}
+                        {activeTab === 'physics' && (
+                            <PhysicsEngine userSettings={userSettings} setUserSettings={setUserSettings} selectedClimb={selectedClimb} onUpdateClimb={setSelectedClimb} />
+                        )}
 
                         {activeTab === 'activities' && (
                             <DataHub
@@ -383,23 +356,63 @@ const App = () => {
                             />
                         )}
 
-                        {activeTab === 'fueling' && (
-                            <FuelingStrategy
-                                initialDuration={fuelingState.duration}
-                                initialIntensity={fuelingState.intensity}
-                            />
+                        {/* Training: AI Coach + Recovery Advisor (sub-tabs) */}
+                        {activeTab === 'training' && (
+                            <div>
+                                <div className="flex gap-1 mb-4 border-b border-cdborder/50 pb-2">
+                                    <button
+                                        onClick={() => setTrainingSubTab('coach')}
+                                        className={`flex items-center gap-1.5 px-4 py-2 text-sm font-bold rounded-t transition-all ${trainingSubTab === 'coach' ? 'bg-cdsurface border border-cdborder border-b-transparent text-cdaccent' : 'text-cdmuted hover:text-cdtext'}`}
+                                    >
+                                        <Brain size={14} /> AI Coach
+                                    </button>
+                                    <button
+                                        onClick={() => setTrainingSubTab('recovery')}
+                                        className={`flex items-center gap-1.5 px-4 py-2 text-sm font-bold rounded-t transition-all ${trainingSubTab === 'recovery' ? 'bg-cdsurface border border-cdborder border-b-transparent text-cdaccent' : 'text-cdmuted hover:text-cdtext'}`}
+                                    >
+                                        <Heart size={14} /> Recovery
+                                    </button>
+                                </div>
+                                {trainingSubTab === 'coach' && <AICoach activities={activities} userSettings={userSettings} />}
+                                {trainingSubTab === 'recovery' && <RecoveryAdvisor activities={activities} />}
+                            </div>
                         )}
 
-                        {activeTab === 'racepacing' && (
-                            <RacePacing
-                                userSettings={userSettings}
-                                initialState={racePacingState}
-                                onStateChange={setRacePacingState}
-                                onExportToFueling={(duration, intensity) => {
-                                    setFuelingState({ duration, intensity });
-                                    setActiveTab('fueling');
-                                }}
-                            />
+                        {/* Race: Fueling + Race Pacing (sub-tabs) */}
+                        {activeTab === 'race' && (
+                            <div>
+                                <div className="flex gap-1 mb-4 border-b border-cdborder/50 pb-2">
+                                    <button
+                                        onClick={() => setRaceSubTab('fueling')}
+                                        className={`flex items-center gap-1.5 px-4 py-2 text-sm font-bold rounded-t transition-all ${raceSubTab === 'fueling' ? 'bg-cdsurface border border-cdborder border-b-transparent text-cdaccent' : 'text-cdmuted hover:text-cdtext'}`}
+                                    >
+                                        <Utensils size={14} /> Fueling
+                                    </button>
+                                    <button
+                                        onClick={() => setRaceSubTab('racepacing')}
+                                        className={`flex items-center gap-1.5 px-4 py-2 text-sm font-bold rounded-t transition-all ${raceSubTab === 'racepacing' ? 'bg-cdsurface border border-cdborder border-b-transparent text-cdaccent' : 'text-cdmuted hover:text-cdtext'}`}
+                                    >
+                                        <Route size={14} /> Race Pacing
+                                    </button>
+                                </div>
+                                {raceSubTab === 'fueling' && (
+                                    <FuelingStrategy
+                                        initialDuration={fuelingState.duration}
+                                        initialIntensity={fuelingState.intensity}
+                                    />
+                                )}
+                                {raceSubTab === 'racepacing' && (
+                                    <RacePacing
+                                        userSettings={userSettings}
+                                        initialState={racePacingState}
+                                        onStateChange={setRacePacingState}
+                                        onExportToFueling={(duration, intensity) => {
+                                            setFuelingState({ duration, intensity });
+                                            setRaceSubTab('fueling');
+                                        }}
+                                    />
+                                )}
+                            </div>
                         )}
 
                         {activeTab === 'gearoptimizer' && (
@@ -410,15 +423,21 @@ const App = () => {
                             />
                         )}
 
+                        {/* Profiler: ClimbProfiler + ClimbProfileCard side by side */}
                         {activeTab === 'profiler' && (
-                            <ClimbProfiler
-                                userSettings={userSettings}
-                                initialState={climbProfilerState}
-                                onStateChange={setClimbProfilerState}
-                            />
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                <div className="lg:col-span-2">
+                                    <ClimbProfiler
+                                        userSettings={userSettings}
+                                        initialState={climbProfilerState}
+                                        onStateChange={setClimbProfilerState}
+                                    />
+                                </div>
+                                <div className="lg:col-span-1">
+                                    <ClimbProfileCard climb={climbProfilerState.selectedClimb} />
+                                </div>
+                            </div>
                         )}
-
-                        {activeTab === 'recovery' && <RecoveryAdvisor activities={activities} />}
 
                         {activeTab === 'bucketlist' && (
                             <BucketList
@@ -450,7 +469,6 @@ const App = () => {
                                 }}
                                 fullData={{ activities, settings: userSettings, intervals: intervalsConfig, bucketList: bucketListState }}
                                 onImportBackup={handleImportBackup}
-                                // Sync handlers
                                 syncState={{ syncDates, setSyncDates, sportFilters, setSportFilters, isSyncing, syncProgress, syncIntervals }}
                                 onSyncComplete={(newActs) => {
                                     setActivities(prev => {

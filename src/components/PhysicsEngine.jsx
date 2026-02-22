@@ -57,31 +57,63 @@ const RepeatButton = ({ onAction, children, className }) => {
 };
 
 // Helper component for numeric filter inputs
-const NumberFilter = ({ label, value, onChange, min, max, step = 1, showDecimals = false }) => (
-  <div className="flex flex-col">
-    <span className="text-[10px] uppercase text-cdmuted font-bold mb-1">{label}</span>
-    <div className="flex items-center bg-cdsurface rounded border border-cdborder">
-      <RepeatButton
-        onAction={() => onChange(Math.max(min, Number((value - step).toFixed(showDecimals ? 1 : 0))))}
-        className="px-2 py-1 text-cdmuted hover:text-cdtext hover:bg-cdborder transition-colors select-none"
-      >
-        <Minus size={12} />
-      </RepeatButton>
-      <input
-        type="number"
-        value={value}
-        onChange={e => onChange(Number(e.target.value))}
-        className="w-12 text-center bg-transparent text-xs text-cdtext outline-none font-mono"
-      />
-      <RepeatButton
-        onAction={() => onChange(Math.min(max, Number((value + step).toFixed(showDecimals ? 1 : 0))))}
-        className="px-2 py-1 text-cdmuted hover:text-cdtext hover:bg-cdborder transition-colors select-none"
-      >
-        <Plus size={12} />
-      </RepeatButton>
+const NumberFilter = ({ label, value, onChange, min, max, step = 1, showDecimals = false }) => {
+  const [inputVal, setInputVal] = React.useState(showDecimals ? Number(value).toFixed(1) : String(value));
+
+  // Sync external value changes (e.g. from RepeatButton)
+  React.useEffect(() => {
+    setInputVal(showDecimals ? Number(value).toFixed(1) : String(value));
+  }, [value, showDecimals]);
+
+  const handleChange = (e) => {
+    const raw = e.target.value;
+    setInputVal(raw); // Always reflect what user typed
+    const num = parseFloat(raw);
+    if (!isNaN(num) && raw !== '' && raw !== '-') {
+      onChange(Math.min(max, Math.max(min, num)));
+    }
+  };
+
+  const handleBlur = () => {
+    const num = parseFloat(inputVal);
+    if (isNaN(num) || inputVal === '') {
+      // Reset to last valid value
+      const clamped = Math.min(max, Math.max(min, value));
+      setInputVal(showDecimals ? clamped.toFixed(1) : String(clamped));
+    } else {
+      const clamped = Math.min(max, Math.max(min, num));
+      onChange(clamped);
+      setInputVal(showDecimals ? clamped.toFixed(1) : String(clamped));
+    }
+  };
+
+  return (
+    <div className="flex flex-col">
+      <span className="text-[10px] uppercase text-cdmuted font-bold mb-1">{label}</span>
+      <div className="flex items-center bg-cdsurface rounded border border-cdborder">
+        <RepeatButton
+          onAction={() => onChange(Math.max(min, Number((value - step).toFixed(showDecimals ? 1 : 0))))}
+          className="px-2 py-1 text-cdmuted hover:text-cdtext hover:bg-cdborder transition-colors select-none"
+        >
+          <Minus size={12} />
+        </RepeatButton>
+        <input
+          type="number"
+          value={inputVal}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          className="w-12 text-center bg-transparent text-xs text-cdtext outline-none font-mono"
+        />
+        <RepeatButton
+          onAction={() => onChange(Math.min(max, Number((value + step).toFixed(showDecimals ? 1 : 0))))}
+          className="px-2 py-1 text-cdmuted hover:text-cdtext hover:bg-cdborder transition-colors select-none"
+        >
+          <Plus size={12} />
+        </RepeatButton>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateClimb }) => {
   const [mode, setMode] = useState('target');
