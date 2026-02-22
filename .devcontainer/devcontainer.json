@@ -10,6 +10,7 @@
       ]
     }
   },
-  "postCreateCommand": "npm install -g @google/gemini-cli",
-  "remoteUser": "vscode"
+  // Ensure we use the user that is native to this specific image
+  "remoteUser": "node",
+  "postCreateCommand": "npm install && npm install -g @google/gemini-cli"
 }
