@@ -2,7 +2,7 @@
 import { Download, Upload, ArrowUpRight } from 'lucide-react';
 import { smartParseCSV, smartParseJSON } from '../../utils';
 
-const ImportSection = ({ intervalsConfig, onDataDetected }) => {
+const ImportSection = ({ intervalsConfig = { athleteId: '' }, onDataDetected }) => {
     const [importText, setImportText] = useState("");
     const [isDragging, setIsDragging] = useState(false);
 

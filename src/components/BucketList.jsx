@@ -38,10 +38,10 @@ const BucketList = ({ initialState, onStateChange }) => {
 
         // Milestones
         if (done.length >= 5) {
-            badges.push({ title: 'â­ Klim Enthousiast', description: '5 beklimmingen voltooid' });
+            badges.push({ title: '⭐ Klim Enthousiast', description: '5 beklimmingen voltooid' });
         }
         if (done.length >= 10) {
-            badges.push({ title: 'ðŸ… Klim Specialist', description: '10 beklimmingen voltooid' });
+            badges.push({ title: '🏅 Klim Specialist', description: '10 beklimmingen voltooid' });
         }
         if (done.length >= 25) {
             badges.push({ title: '👑 Klim Koning', description: '25 beklimmingen voltooid' });
@@ -72,14 +72,14 @@ const BucketList = ({ initialState, onStateChange }) => {
         // Difficulty badges
         const hardClimbs = doneClimbs.filter(c => c.avgGrade > 8).length;
         if (hardClimbs >= 5) {
-            badges.push({ title: '⛰️ Steep Master', description: '5 cols >8% gemiddeld voltooid' });
+            badges.push({ title: '⛰️ Steep Master', description: '5 cols >8% gemiddeld voltooid' });
         }
 
         // Iconic climbs
         const iconicClimbs = ['fr_alpe', 'fr_ventoux', 'fr_tourmalet', 'it_stelvio', 'it_zoncolan'];
         const iconicDone = done.filter(id => iconicClimbs.includes(id)).length;
         if (iconicDone >= 3) {
-            badges.push({ title: 'ðŸ† Iconische Cols', description: '3 legendarische cols voltooid' });
+            badges.push({ title: '🏆 Iconische Cols', description: '3 legendarische cols voltooid' });
         }
 
         // Total elevation
