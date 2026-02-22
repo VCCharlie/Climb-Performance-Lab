@@ -11,5 +11,5 @@
     }
   },
   "postCreateCommand": "npm install -g @google/gemini-cli",
-  "remoteUser": "node"
+  "remoteUser": "vscode"
 }
