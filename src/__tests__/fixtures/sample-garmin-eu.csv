@@ -1,0 +1,4 @@
+Activity ID;Date;Name;Activity Type;Moving Time;Distance;Elevation;Average Power;Normalized Power;Average Heartrate;Max Power;Training Load;Work
+"act_001";"15/06/2025";"Morning Road Ride";"Ride";"2:30:15";"85,5";"1.234,56";"218";"245";"152";"650";"185";"1570"
+"act_002";"16/06/2025";"Zwift Recovery";"VirtualRide";"1:00:00";"42,0";"120";"195";"210";"145";"580";"95";"702"
+"act_003";"17/06/2025";"Evening Spin";"Ride";"0:45:00";"28";"80";"140";"155";"128";"350";"55";"378"

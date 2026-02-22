@@ -1,0 +1,83 @@
+[
+  {
+    "id": "strava_001",
+    "date": "2025-06-15",
+    "title": "Morning Ride",
+    "type": "Ride",
+    "moving_time": 7200,
+    "distance": 85.5,
+    "avg_power": 218
+  },
+  {
+    "id": "intervals_001",
+    "date": "2025-06-15",
+    "title": "Morning Ride - Garmin",
+    "type": "Ride",
+    "moving_time": 7190,
+    "distance": 85.3,
+    "avg_power": 220
+  },
+  {
+    "id": "strava_002",
+    "date": "2025-06-15",
+    "title": "Evening Run",
+    "type": "Run",
+    "moving_time": 3600,
+    "distance": 12.5,
+    "avg_power": 0
+  },
+  {
+    "id": "strava_003",
+    "date": "2025-06-16",
+    "title": "Zwift Morning",
+    "type": "VirtualRide",
+    "moving_time": 3600,
+    "distance": 42.0,
+    "avg_power": 195
+  },
+  {
+    "id": "garmin_003",
+    "date": "2025-06-16",
+    "title": "Zwift Session",
+    "type": "Ride",
+    "moving_time": 3610,
+    "distance": 42.1,
+    "avg_power": 195
+  },
+  {
+    "id": "unique_004",
+    "date": "2025-06-17",
+    "title": "Solo Ride",
+    "type": "Ride",
+    "moving_time": 5400,
+    "distance": 70.0,
+    "avg_power": 180
+  },
+  {
+    "id": "empty_005",
+    "date": "2025-06-18",
+    "title": "Empty Activity",
+    "type": "Ride",
+    "moving_time": 0,
+    "distance": 0,
+    "avg_power": 0
+  },
+  {
+    "id": "empty_006",
+    "date": "2025-06-18",
+    "title": "Another Empty",
+    "type": "Ride",
+    "moving_time": 0,
+    "distance": 0,
+    "avg_power": 0
+  },
+  {
+    "id": "far_apart_007",
+    "date": "2025-06-15",
+    "title": "Afternoon Ride",
+    "type": "Ride",
+    "moving_time": 1800,
+    "distance": 25.0,
+    "avg_power": 150
+  }
+]

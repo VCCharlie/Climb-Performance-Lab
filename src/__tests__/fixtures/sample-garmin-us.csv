@@ -1,0 +1,4 @@
+Activity ID,Start Date,Activity Name,Activity Type,Moving Time,Distance,Elevation Gain,Average Watts,Weighted Avg Power,Average Heartrate,Max Watts,ICU Training Load,Kilojoules,Best 1min,Best 5min,Best 20min
+act_101,2025-06-15,Mountain Pass Ride,Ride,2:30:15,85.5,1234.56,218,245,152,650,185,1570,420,340,275
+act_102,2025-06-16,Indoor Trainer,VirtualRide,1:00:00,42.0,120,195,210,145,580,95,702,380,310,245
+act_103,2025-06-17,"Short, Easy Spin",Ride,0:45:00,28,80,140,155,128,350,55,378,290,200,155
