@@ -42,7 +42,8 @@ const App = () => {
         privacyMode: false,
         goals: { yearlyKm: 10000, targetFtp: 300, targetWeight: 68 },
         notifications: { highLoad: 150, lowPower: 150, minWeight: 67, restDay: 3 },
-        powerZones: []
+        powerZones: [],
+        githubPat: '' // GitHub PAT for manual nightly-sync trigger
     });
 
     const [selectedClimb, setSelectedClimb] = useState(CLIMB_DATABASE?.[0] || { id: 'dummy', name: 'Loading', lengthKm: 0, elevation: 0, avgGrade: 0 });
@@ -268,15 +269,15 @@ const App = () => {
                 {(() => {
                     // 9 main tabs (Training = coach+recovery, Race = fueling+racepacing)
                     const mainTabs = [
-                        { id: 'dashboard',     label: 'Dashboard',     icon: Gauge },
-                        { id: 'physics',       label: 'Physics',       icon: Mountain },
-                        { id: 'activities',    label: 'Activities',    icon: Activity },
-                        { id: 'training',      label: 'Training',      icon: Brain },
-                        { id: 'race',          label: 'Race',          icon: Route },
-                        { id: 'gearoptimizer', label: 'Gear',          icon: SettingsIcon },
-                        { id: 'profiler',      label: 'Profiler',      icon: TrendingUp },
-                        { id: 'bucketlist',    label: 'Bucket List',   icon: Trophy },
-                        { id: 'weather',       label: 'Weather',       icon: Cloud },
+                        { id: 'dashboard', label: 'Dashboard', icon: Gauge },
+                        { id: 'physics', label: 'Physics', icon: Mountain },
+                        { id: 'activities', label: 'Activities', icon: Activity },
+                        { id: 'training', label: 'Training', icon: Brain },
+                        { id: 'race', label: 'Race', icon: Route },
+                        { id: 'gearoptimizer', label: 'Gear', icon: SettingsIcon },
+                        { id: 'profiler', label: 'Profiler', icon: TrendingUp },
+                        { id: 'bucketlist', label: 'Bucket List', icon: Trophy },
+                        { id: 'weather', label: 'Weather', icon: Cloud },
                     ];
 
                     // Map old sub-tabs to their parent for mobile label
@@ -353,6 +354,7 @@ const App = () => {
                                 onImport={handleImportActivities}
                                 onDelete={handleDeleteActivity}
                                 onClear={handleClearActivities}
+                                githubPat={userSettings.githubPat}
                             />
                         )}
 
