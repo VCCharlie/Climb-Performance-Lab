@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import {
     X, Edit2, Save
 } from 'lucide-react';
-import { formatDateDDMMYYYY, formatTime } from '../../utils';
+import { formatTime } from '../../utils';
 import { SPORT_TYPES } from '../../config';
 
 const EditActivityModal = ({ activity, onClose, onSave }) => {
@@ -107,7 +107,23 @@ const EditActivityModal = ({ activity, onClose, onSave }) => {
                             <input name="max_hr" type="number" value={formData.max_hr || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
                         </div>
 
-                        {/* BEST EFFORTS */}
+                        {/* EXTRA METRICS */}
+                        <div className="col-span-2 h-px bg-cdborder my-2"></div>
+
+                        <div>
+                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">RPE (1-10)</label>
+                            <input name="rpe" type="number" step="0.1" value={formData.rpe || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">FTP (W)</label>
+                            <input name="ftp" type="number" value={formData.ftp || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Avg Speed (km/h)</label>
+                            <input name="avg_speed" type="number" step="0.1" value={formData.avg_speed || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                        </div>
+
+                        {/* BEST EFFORTS — gebruikt voor MMP curve */}
                         <div className="col-span-2 h-px bg-cdborder my-2"></div>
                         <div className="col-span-2">
                             <p className="text-xs text-cdmuted uppercase font-bold mb-2">Best Efforts (W) — gebruikt voor MMP curve</p>

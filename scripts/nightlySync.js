@@ -132,7 +132,7 @@ function normalizeActivity(item) {
         }
     }
 
-    const rpe = getNum(getVal('rpe', 'icu_rpe', 'perceived_exertion', 'feel', 'session_rpe'));
+    const rpe = getNum(getVal('rpe', 'icu_rpe', 'perceived_exertion', 'feel', 'session_rpe', 'feeling', 'rating'));
     const ftp = getNum(getVal('ftp', 'icu_ftp', 'icu_pm_ftp', 'cp'));
 
     let maxPower = getNum(getVal('max_power', 'maxWatts', 'icu_max_watts', 'max_watts', 'p_max', 'icu_pm_p_max'));

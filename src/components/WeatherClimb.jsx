@@ -34,7 +34,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
     // Weather API
     const [locationInput, setLocationInput] = useState('');
     const [selectedLocation, setSelectedLocation] = useState(null); // { q, lat, lon, label }
-    const [apiKey, setApiKey] = useState(localStorage.getItem('openweather_api_key') || '');
+    const apiKey = userSettings?.openweatherApiKey || '';
     const [isLoadingWeather, setIsLoadingWeather] = useState(false);
     const [weatherError, setWeatherError] = useState(null);
     const [weatherSuccess, setWeatherSuccess] = useState(null);
@@ -138,7 +138,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
     // Fetch weather from OpenWeatherMap API
     const fetchWeather = async () => {
         if (!apiKey) {
-            setWeatherError('Voer eerst een OpenWeatherMap API key in (gratis op openweathermap.org)');
+            setWeatherError('Voer eerst een OpenWeatherMap API key in via Settings (gratis op openweathermap.org)');
             return;
         }
 
@@ -192,15 +192,6 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
             setWeatherError(error.message || 'Fout bij ophalen weer');
         } finally {
             setIsLoadingWeather(false);
-        }
-    };
-
-    const saveApiKey = (key) => {
-        setApiKey(key);
-        if (key) {
-            localStorage.setItem('openweather_api_key', key);
-        } else {
-            localStorage.removeItem('openweather_api_key');
         }
     };
 
@@ -333,33 +324,8 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* API Key Input */}
-                    <div>
-                        <label className="text-xs text-cdmuted uppercase block mb-1">
-                            OpenWeatherMap API Key
-                            <a
-                                href="https://openweathermap.org/api"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-400 hover:underline ml-2"
-                            >
-                                (Gratis aanmaken →)
-                            </a>
-                        </label>
-                        <input
-                            type="text"
-                            placeholder="Vul je API key in..."
-                            value={apiKey}
-                            onChange={(e) => saveApiKey(e.target.value)}
-                            className="w-full px-3 py-2 bg-cdborder border border-cdborder rounded text-cdtext text-sm focus:border-cyan-400 outline-none"
-                        />
-                        {!apiKey && (
-                            <p className="text-xs text-cdmuted mt-1">Vereist voor live weersdata én locatie-autocomplete</p>
-                        )}
-                    </div>
-
                     {/* Location Search with Autocomplete */}
-                    <div>
+                    <div className="col-span-1 md:col-span-2">
                         <label className="text-xs text-cdmuted uppercase block mb-1">Locatie</label>
                         <div className="flex gap-2">
                             <div className="relative flex-1" ref={suggestionsRef}>
@@ -394,11 +360,10 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                             <button
                                 onClick={fetchWeather}
                                 disabled={isLoadingWeather || !apiKey || !locationInput.trim()}
-                                className={`px-4 py-2 rounded text-sm font-bold transition-colors flex items-center gap-2 whitespace-nowrap ${
-                                    isLoadingWeather || !apiKey || !locationInput.trim()
+                                className={`px-4 py-2 rounded text-sm font-bold transition-colors flex items-center gap-2 whitespace-nowrap ${isLoadingWeather || !apiKey || !locationInput.trim()
                                         ? 'bg-cdborder text-cdmuted cursor-not-allowed'
                                         : 'bg-cyan-500 hover:bg-cyan-600 text-white'
-                                }`}
+                                    }`}
                             >
                                 {isLoadingWeather ? (
                                     <RefreshCw size={14} className="animate-spin" />
