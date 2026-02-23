@@ -14,22 +14,37 @@ import {
  */
 
 const DURATIONS = [
-    { key: 'best_1min', label: '1m', secs: 60 },
-    { key: 'best_5min', label: '5m', secs: 300 },
+    { key: 'best_1min',  label: '1m',  secs: 60 },
+    { key: 'best_5min',  label: '5m',  secs: 300 },
     { key: 'best_10min', label: '10m', secs: 600 },
     { key: 'best_20min', label: '20m', secs: 1200 },
     { key: 'best_60min', label: '60m', secs: 3600 },
 ];
 
-const PowerCurveChart = ({ data }) => {
+// Fysiologisch plausibele maximale verhouding t.o.v. FTP per inspanningsduur.
+// Waarden boven dit plafond worden als data-artefact beschouwd en genegeerd.
+const FTP_CAPS = {
+    best_1min:  4.0,  // Sprint: max 4× FTP
+    best_5min:  2.2,  // VO2max: max 2.2× FTP
+    best_10min: 1.6,  // Aanzienlijk boven threshold
+    best_20min: 1.3,  // Net boven FTP
+    best_60min: 1.1,  // Gelijk aan of net onder FTP
+};
+
+const PowerCurveChart = ({ data, manualFtp }) => {
     const curveData = useMemo(() => {
         if (!data || data.length === 0) return [];
 
         return DURATIONS.map(({ key, label }) => {
-            const peak = Math.max(0, ...data.map(a => Number(a[key]) || 0));
+            // Pas sanity-cap toe als FTP bekend is; gebruik anders absoluut plafond van 1500W
+            const cap = manualFtp > 0 ? manualFtp * FTP_CAPS[key] : 1500;
+            const peak = Math.max(0, ...data
+                .map(a => Number(a[key]) || 0)
+                .filter(v => v <= cap)
+            );
             return { label, watts: peak > 0 ? peak : null };
         }).filter(p => p.watts !== null);
-    }, [data]);
+    }, [data, manualFtp]);
 
     if (curveData.length === 0) {
         return (

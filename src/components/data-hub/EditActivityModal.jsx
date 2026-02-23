@@ -123,9 +123,11 @@ const EditActivityModal = ({ activity, onClose, onSave }) => {
                             <input name="avg_speed" type="number" step="0.1" value={formData.avg_speed || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
                         </div>
 
-                        {/* POWER CURVE */}
+                        {/* BEST EFFORTS — gebruikt voor MMP curve */}
                         <div className="col-span-2 h-px bg-cdborder my-2"></div>
-
+                        <div className="col-span-2">
+                            <p className="text-xs text-cdmuted uppercase font-bold mb-2">Best Efforts (W) — gebruikt voor MMP curve</p>
+                        </div>
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Best 1 min (W)</label>
                             <input name="best_1min" type="number" value={formData.best_1min || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />

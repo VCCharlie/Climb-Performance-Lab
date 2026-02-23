@@ -23,7 +23,7 @@ const StatCard = ({ label, value, unit, color = 'text-cdtext' }) => (
     </div>
 );
 
-const PowerTab = ({ data }) => {
+const PowerTab = ({ data, manualFtp }) => {
     const weightKg = 75; // TODO: derive from userSettings if passed as prop
 
     const stats = useMemo(() => {
@@ -147,7 +147,7 @@ const PowerTab = ({ data }) => {
             </div>
 
             {/* Power Curve (MMP) */}
-            <PowerCurveChart data={data} />
+            <PowerCurveChart data={data} manualFtp={manualFtp} />
         </div>
     );
 };
