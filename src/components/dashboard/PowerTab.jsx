@@ -23,47 +23,70 @@ const StatCard = ({ label, value, unit, color = 'text-cdtext' }) => (
     </div>
 );
 
+// Zelfde plafonds als PowerCurveChart — filtert data-artefacten vóór Math.max.
+const FTP_CAPS = {
+    best_1min:  4.0,
+    best_5min:  2.2,
+    best_10min: 1.6,
+    best_20min: 1.3,
+    best_60min: 1.1,
+};
+
+const cappedMax = (activities, key, manualFtp) => {
+    const cap = manualFtp > 0 ? manualFtp * FTP_CAPS[key] : 1500;
+    return Math.max(0, ...activities.map(a => Number(a[key]) || 0).filter(v => v <= cap));
+};
+
 const PowerTab = ({ data, manualFtp }) => {
     const weightKg = 75; // TODO: derive from userSettings if passed as prop
 
     const stats = useMemo(() => {
         if (!data || data.length === 0) return null;
 
-        const best1m = Math.max(0, ...data.map(a => a.best_1min || 0));
-        const best5m = Math.max(0, ...data.map(a => a.best_5min || 0));
-        const best20m = Math.max(0, ...data.map(a => a.best_20min || 0));
-        const best60m = Math.max(0, ...data.map(a => a.best_60min || 0));
+        const best1m  = cappedMax(data, 'best_1min',  manualFtp);
+        const best5m  = cappedMax(data, 'best_5min',  manualFtp);
+        const best20m = cappedMax(data, 'best_20min', manualFtp);
+        const best60m = cappedMax(data, 'best_60min', manualFtp);
 
         const eFTP = best20m > 0 ? Math.round(best20m * 0.95) : 0;
         const eFTPkg = eFTP > 0 ? (eFTP / weightKg).toFixed(2) : null;
         const wkg20m = best20m > 0 ? (best20m / weightKg).toFixed(2) : null;
 
         return { best1m, best5m, best20m, best60m, eFTP, eFTPkg, wkg20m };
-    }, [data]);
+    }, [data, manualFtp]);
 
     const monthlyBests = useMemo(() => {
         if (!data || data.length === 0) return [];
+
+        const cap5  = manualFtp > 0 ? manualFtp * FTP_CAPS.best_5min  : 1500;
+        const cap20 = manualFtp > 0 ? manualFtp * FTP_CAPS.best_20min : 1500;
+        const cap60 = manualFtp > 0 ? manualFtp * FTP_CAPS.best_60min : 1500;
 
         const map = {};
         data.forEach(a => {
             const mo = getMonthKey(a.date);
             if (!map[mo]) map[mo] = { b5: 0, b20: 0, b60: 0 };
-            if ((a.best_5min || 0) > map[mo].b5) map[mo].b5 = a.best_5min;
-            if ((a.best_20min || 0) > map[mo].b20) map[mo].b20 = a.best_20min;
-            if ((a.best_60min || 0) > map[mo].b60) map[mo].b60 = a.best_60min;
+            const v5  = Number(a.best_5min)  || 0;
+            const v20 = Number(a.best_20min) || 0;
+            const v60 = Number(a.best_60min) || 0;
+            if (v5  <= cap5  && v5  > map[mo].b5)  map[mo].b5  = v5;
+            if (v20 <= cap20 && v20 > map[mo].b20) map[mo].b20 = v20;
+            if (v60 <= cap60 && v60 > map[mo].b60) map[mo].b60 = v60;
         });
 
+        // Sleutelnamen beginnen met a/b/c zodat Recharts de legenda altijd
+        // in de juiste volgorde toont: 5 - 20 - 60 (alfabetisch a < b < c).
         return Object.keys(map).sort().map(mo => {
             const [y, m] = mo.split('-');
             const label = new Date(y, m - 1).toLocaleString('nl-NL', { month: 'short', year: '2-digit' });
             return {
                 label,
-                '5 min': map[mo].b5 || null,
-                '20 min': map[mo].b20 || null,
-                '60 min': map[mo].b60 || null,
+                'a_5min':  map[mo].b5  || null,
+                'b_20min': map[mo].b20 || null,
+                'c_60min': map[mo].b60 || null,
             };
         });
-    }, [data]);
+    }, [data, manualFtp]);
 
     if (!stats) {
         return (
@@ -107,40 +130,22 @@ const PowerTab = ({ data, manualFtp }) => {
                             <Tooltip
                                 contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f1f5f9' }}
                                 itemStyle={{ color: '#94a3b8' }}
-                                itemSorter={(item) => {
-                                    // Recharts sorts ascending by the returned value
-                                    const order = { '5 min': 0, '20 min': 1, '60 min': 2 };
-                                    return order[item.name] ?? 99;
+                                formatter={(value, name) => {
+                                    const labels = { 'a_5min': '5 min', 'b_20min': '20 min', 'c_60min': '60 min' };
+                                    return [value ? `${value} W` : '-', labels[name] ?? name];
                                 }}
                             />
-                            <Legend iconType="circle" wrapperStyle={{ paddingTop: '16px' }} />
-                            <Line
-                                type="monotone"
-                                dataKey="5 min"
-                                name="5 min"
-                                stroke="#3b82f6"
-                                strokeWidth={2}
-                                dot={{ r: 3 }}
-                                connectNulls
+                            <Legend
+                                iconType="circle"
+                                wrapperStyle={{ paddingTop: '16px' }}
+                                formatter={(value) => {
+                                    const labels = { 'a_5min': '5 min', 'b_20min': '20 min', 'c_60min': '60 min' };
+                                    return labels[value] ?? value;
+                                }}
                             />
-                            <Line
-                                type="monotone"
-                                dataKey="20 min"
-                                name="20 min"
-                                stroke="#f97316"
-                                strokeWidth={2}
-                                dot={{ r: 3 }}
-                                connectNulls
-                            />
-                            <Line
-                                type="monotone"
-                                dataKey="60 min"
-                                name="60 min"
-                                stroke="#22c55e"
-                                strokeWidth={2}
-                                dot={{ r: 3 }}
-                                connectNulls
-                            />
+                            <Line type="monotone" dataKey="a_5min"  stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                            <Line type="monotone" dataKey="b_20min" stroke="#f97316" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                            <Line type="monotone" dataKey="c_60min" stroke="#22c55e" strokeWidth={2} dot={{ r: 3 }} connectNulls />
                         </LineChart>
                     </ResponsiveContainer>
                 </div>
