@@ -1,6 +1,5 @@
 ﻿import React, { useState, useEffect, useMemo } from 'react';
-import { fetchIntervalsData } from '../services/intervalsService';
-import { calculateBassettCorrection, normalizeIntervalsActivity } from '../utils';
+import { calculateBassettCorrection } from '../utils';
 import OverviewTab from './dashboard/OverviewTab';
 import FormTab from './dashboard/FormTab';
 import PowerTab from './dashboard/PowerTab';
@@ -32,10 +31,6 @@ const enhanceActivity = (d, userFtp) => {
 };
 
 const Dashboard = ({ theme, manualFtp, activities: firestoreActivities = [] }) => {
-    // GCF data supplements historical records not yet in Firestore
-    const [gcfData, setGcfData] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
     const [timeRange, setTimeRange] = useState(() => localStorage.getItem('dashboard_timeRange') || '1Y');
     const [customStart, setCustomStart] = useState('');
     const [customEnd, setCustomEnd] = useState('');
@@ -45,48 +40,12 @@ const Dashboard = ({ theme, manualFtp, activities: firestoreActivities = [] }) =
         localStorage.setItem('dashboard_timeRange', timeRange);
     }, [timeRange]);
 
-    // Fetch GCF data in background for historical data (pre-Firestore records)
-    useEffect(() => {
-        const loadGcfHistory = async () => {
-            try {
-                setLoading(true);
-                const recentData = await fetchIntervalsData('2025-01-01', '2026-12-31');
-                const processedRecent = recentData.map(raw => enhanceActivity(normalizeIntervalsActivity(raw), manualFtp));
-                setGcfData(processedRecent);
-                setLoading(false);
-
-                // Background: load older history
-                const historyData = await fetchIntervalsData('2020-01-01', '2024-12-31');
-                const processedHistory = historyData.map(raw => enhanceActivity(normalizeIntervalsActivity(raw), manualFtp));
-                setGcfData(prev => {
-                    const combined = [...processedHistory, ...prev];
-                    const uniqueMap = new Map();
-                    combined.forEach(item => { if (item.id) uniqueMap.set(item.id, item); });
-                    return Array.from(uniqueMap.values()).sort((a, b) => new Date(a.date) - new Date(b.date));
-                });
-            } catch (err) {
-                console.error('[Dashboard] GCF fetch error:', err);
-                setLoading(false);
-                // Don't set error — Firestore data still works
-            }
-        };
-        loadGcfHistory();
-    }, [manualFtp]);
-
-    /**
-     * Merge Strategy:
-     *  1. Start with GCF historical data (has eFTP fields, but may lack HR).
-     *  2. Overwrite with Firestore activities (has avg_hr, max_hr from nightlySync).
-     *  3. Firestore records WIN on conflict — they have the most complete data.
-     */
+    // Alle historische data zit in Firestore via de deep sync — GCF niet meer nodig.
     const chartData = useMemo(() => {
-        const enhancedFirestore = firestoreActivities.map(a => enhanceActivity(a, manualFtp));
-        const combined = [...gcfData, ...enhancedFirestore];
-        const uniqueMap = new Map();
-        // Process gcf first, then firestore — firestore overwrites on same ID
-        combined.forEach(item => { if (item.id) uniqueMap.set(item.id, item); });
-        return Array.from(uniqueMap.values()).sort((a, b) => new Date(a.date) - new Date(b.date));
-    }, [gcfData, firestoreActivities, manualFtp]);
+        return firestoreActivities
+            .map(a => enhanceActivity(a, manualFtp))
+            .sort((a, b) => new Date(a.date) - new Date(b.date));
+    }, [firestoreActivities, manualFtp]);
 
     // --- Filter Logic ---
     const filteredData = useMemo(() => {
@@ -136,14 +95,6 @@ const Dashboard = ({ theme, manualFtp, activities: firestoreActivities = [] }) =
         return [...new Set(ticks)];
     }, [filteredData]);
 
-
-    if (loading && chartData.length === 0) {
-        return <div className="flex justify-center items-center h-64 text-cdmuted animate-pulse">Laden van dashboard data...</div>;
-    }
-
-    if (error) {
-        return <div className="p-4 bg-red-900/20 border border-red-800 rounded-lg text-red-200">Error: {error}</div>;
-    }
 
     const ranges = ['1M', '3M', '6M', '1Y', '3Y', '6Y', 'ALL', 'Custom'];
 
@@ -208,7 +159,7 @@ const Dashboard = ({ theme, manualFtp, activities: firestoreActivities = [] }) =
             )}
 
             {dashboardTab === 'power' && (
-                <PowerTab data={filteredData} customTicks={customTicks} />
+                <PowerTab data={filteredData} customTicks={customTicks} manualFtp={manualFtp} />
             )}
         </div>
     );

@@ -106,6 +106,32 @@ const EditActivityModal = ({ activity, onClose, onSave }) => {
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Max HR (bpm)</label>
                             <input name="max_hr" type="number" value={formData.max_hr || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
                         </div>
+
+                        {/* BEST EFFORTS */}
+                        <div className="col-span-2 h-px bg-cdborder my-2"></div>
+                        <div className="col-span-2">
+                            <p className="text-xs text-cdmuted uppercase font-bold mb-2">Best Efforts (W) — gebruikt voor MMP curve</p>
+                        </div>
+                        <div>
+                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Best 1 min (W)</label>
+                            <input name="best_1min" type="number" value={formData.best_1min || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Best 5 min (W)</label>
+                            <input name="best_5min" type="number" value={formData.best_5min || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Best 10 min (W)</label>
+                            <input name="best_10min" type="number" value={formData.best_10min || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Best 20 min (W)</label>
+                            <input name="best_20min" type="number" value={formData.best_20min || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Best 60 min (W)</label>
+                            <input name="best_60min" type="number" value={formData.best_60min || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                        </div>
                     </div>
 
                     <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-cdborder">
