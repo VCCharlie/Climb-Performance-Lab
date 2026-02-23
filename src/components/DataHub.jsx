@@ -1,5 +1,5 @@
-﻿import React, { useState } from 'react';
-import { Search, Loader2, AlertTriangle, Trash, Split, RefreshCw, ExternalLink, GitBranch } from 'lucide-react';
+﻿import React, { useState, useRef, useEffect } from 'react';
+import { Search, Loader2, AlertTriangle, Trash, Split, RefreshCw, ExternalLink, GitBranch, Zap, ChevronDown } from 'lucide-react';
 import { doc, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from '../firebase';
 import { findDuplicatesInList } from '../utils';
@@ -28,6 +28,10 @@ const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImpor
     const [showDuplicateModal, setShowDuplicateModal] = useState(false);
     const [duplicates, setDuplicates] = useState([]);
     const [editingActivity, setEditingActivity] = useState(null);
+    const [showNoPowerModal, setShowNoPowerModal] = useState(false);
+    const [noPowerSelected, setNoPowerSelected] = useState([]);
+    const [showUtilMenu, setShowUtilMenu] = useState(false);
+    const utilMenuRef = useRef(null);
 
     // Import/Sync State
     const [fetchedActivities, setFetchedActivities] = useState([]);
@@ -107,6 +111,45 @@ const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImpor
             alert("Geen duplicaten gevonden! Je database is clean.");
         }
     };
+
+    const openNoPowerFilter = () => {
+        const noPower = (activities || []).filter(a => !(Number(a.avg_power) > 0));
+        if (noPower.length === 0) {
+            alert("Alle activiteiten hebben vermogensdata. Niets te filteren.");
+            return;
+        }
+        setNoPowerSelected(noPower.map(a => a.id));
+        setShowNoPowerModal(true);
+        setShowUtilMenu(false);
+    };
+
+    const deleteNoPowerSelected = async () => {
+        if (noPowerSelected.length === 0) return;
+        setIsDeleting(true);
+        try {
+            for (const id of noPowerSelected) {
+                if (db) await deleteDoc(doc(db, "activities", String(id)));
+                onDelete(id);
+            }
+            setShowNoPowerModal(false);
+            setNoPowerSelected([]);
+        } catch (e) {
+            alert("Fout bij verwijderen: " + e.message);
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    // Sluit het util-menu bij klik buiten het menu
+    useEffect(() => {
+        const handler = (e) => {
+            if (utilMenuRef.current && !utilMenuRef.current.contains(e.target)) {
+                setShowUtilMenu(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
 
     /**
      * Triggers the nightly sync GitHub Actions workflow on demand.
@@ -341,6 +384,63 @@ const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImpor
                 />
             )}
 
+            {/* No Power Modal */}
+            {showNoPowerModal && (() => {
+                const noPowerList = (activities || []).filter(a => !(Number(a.avg_power) > 0));
+                const allSelected = noPowerList.every(a => noPowerSelected.includes(a.id));
+                const toggleAll = () => setNoPowerSelected(allSelected ? [] : noPowerList.map(a => a.id));
+                const toggleOne = (id) => setNoPowerSelected(prev =>
+                    prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+                );
+                return (
+                    <div className="fixed inset-0 bg-cdbg/95 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+                        <div className="bg-cdsurface border border-cdborder rounded-xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[85vh]">
+                            <div className="flex justify-between items-center p-4 border-b border-cdborder">
+                                <div>
+                                    <h3 className="text-cdtext font-bold flex items-center gap-2">
+                                        <Zap size={16} className="text-yellow-400" />
+                                        Activiteiten zonder vermogen ({noPowerList.length})
+                                    </h3>
+                                    <p className="text-xs text-cdmuted mt-0.5">Selecteer welke je wilt verwijderen.</p>
+                                </div>
+                                <button onClick={() => setShowNoPowerModal(false)} className="text-cdmuted hover:text-cdtext text-lg font-bold px-2">✕</button>
+                            </div>
+                            <div className="flex items-center gap-3 px-4 py-2 border-b border-cdborder bg-cdbg/40">
+                                <input type="checkbox" checked={allSelected} onChange={toggleAll} className="accent-yellow-400 w-4 h-4" />
+                                <span className="text-xs text-cdmuted font-bold uppercase">Alles selecteren</span>
+                                <span className="ml-auto text-xs text-cdmuted">{noPowerSelected.length} geselecteerd</span>
+                            </div>
+                            <div className="overflow-y-auto flex-1 custom-scrollbar">
+                                {noPowerList.map(a => (
+                                    <div key={a.id} className="flex items-center gap-3 px-4 py-2.5 border-b border-cdborder/40 hover:bg-cdborder/20">
+                                        <input
+                                            type="checkbox"
+                                            checked={noPowerSelected.includes(a.id)}
+                                            onChange={() => toggleOne(a.id)}
+                                            className="accent-yellow-400 w-4 h-4 shrink-0"
+                                        />
+                                        <span className="text-xs text-cdmuted w-24 shrink-0">{a.date}</span>
+                                        <span className="text-sm text-cdtext flex-1 truncate">{a.title || 'Untitled'}</span>
+                                        <span className="text-xs text-cdmuted w-16 text-right shrink-0">{a.distance ? `${a.distance} km` : '-'}</span>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="flex justify-end gap-3 p-4 border-t border-cdborder">
+                                <button onClick={() => setShowNoPowerModal(false)} className="px-4 py-2 text-cdmuted hover:text-cdtext font-bold text-sm">Sluiten</button>
+                                <button
+                                    onClick={deleteNoPowerSelected}
+                                    disabled={isDeleting || noPowerSelected.length === 0}
+                                    className="px-5 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded text-sm flex items-center gap-2 disabled:opacity-50"
+                                >
+                                    {isDeleting ? <Loader2 className="animate-spin" size={14} /> : <Trash size={14} />}
+                                    Verwijder {noPowerSelected.length} activiteiten
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
+
             {/* TABS */}
             <div className="flex border-b border-cdborder">
                 <button onClick={() => setInternalTab('log')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'log' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Activity Log</button>
@@ -384,26 +484,51 @@ const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImpor
                                 </div>
                             </div>
                             <div className="flex gap-2">
-                                {/* Manual sync trigger — calls GitHub Actions workflow dispatch */}
-                                <button
-                                    onClick={triggerGithubSync}
-                                    disabled={isSyncingGithub}
-                                    title={githubPat ? 'Sync nu uitvoeren via GitHub Actions' : 'Voeg GitHub PAT toe in Instellingen'}
-                                    className={`flex items-center gap-2 px-3 py-2 rounded text-sm font-bold border transition-all ${githubPat
-                                        ? 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border-blue-500/40'
-                                        : 'bg-cdborder/30 text-cdmuted border-cdborder cursor-not-allowed opacity-50'
-                                        }`}
-                                >
-                                    <RefreshCw size={14} className={isSyncingGithub ? 'animate-spin' : ''} />
-                                    {isSyncingGithub ? 'Bezig...' : 'Sync Now'}
-                                </button>
-                                <button onClick={findDuplicates} disabled={!activities || activities.length === 0} className="bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/50 px-3 py-2 rounded flex items-center gap-2 text-sm font-bold transition-all disabled:opacity-50">
-                                    <Split size={16} /> Duplicates
-                                </button>
-                                <button onClick={handleClearDatabase} disabled={isDeleting || !activities || activities.length === 0} className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/50 px-3 py-2 rounded flex items-center gap-2 text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                                    {isDeleting ? <Loader2 className="animate-spin" size={16} /> : <Trash size={16} />}
-                                    {isDeleting ? 'Wissen...' : 'Clear DB'}
-                                </button>
+                                {/* Utility menu — Sync Now / Duplicates / No Power / Clear DB */}
+                                <div className="relative" ref={utilMenuRef}>
+                                    <button
+                                        onClick={() => setShowUtilMenu(v => !v)}
+                                        className="flex items-center gap-1.5 px-3 py-2 rounded text-sm font-bold border bg-cdsurface border-cdborder text-cdtext hover:border-yellow-400 transition-all"
+                                    >
+                                        Tools <ChevronDown size={14} className={showUtilMenu ? 'rotate-180 transition-transform' : 'transition-transform'} />
+                                    </button>
+                                    {showUtilMenu && (
+                                        <div className="absolute right-0 top-full mt-1 w-48 bg-cdsurface border border-cdborder rounded-lg shadow-xl z-50 overflow-hidden">
+                                            <button
+                                                onClick={() => { triggerGithubSync(); setShowUtilMenu(false); }}
+                                                disabled={isSyncingGithub || !githubPat}
+                                                title={githubPat ? 'Sync via GitHub Actions (laatste 14 dagen)' : 'Voeg GitHub PAT toe in Instellingen'}
+                                                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-blue-400 hover:bg-cdborder disabled:opacity-40 disabled:cursor-not-allowed"
+                                            >
+                                                <RefreshCw size={14} className={isSyncingGithub ? 'animate-spin' : ''} />
+                                                {isSyncingGithub ? 'Bezig...' : 'Sync Now'}
+                                            </button>
+                                            <button
+                                                onClick={() => { findDuplicates(); setShowUtilMenu(false); }}
+                                                disabled={!activities || activities.length === 0}
+                                                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-orange-400 hover:bg-cdborder disabled:opacity-40"
+                                            >
+                                                <Split size={14} /> Duplicates
+                                            </button>
+                                            <button
+                                                onClick={openNoPowerFilter}
+                                                disabled={!activities || activities.length === 0}
+                                                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-yellow-400 hover:bg-cdborder disabled:opacity-40"
+                                            >
+                                                <Zap size={14} /> No Power
+                                            </button>
+                                            <div className="border-t border-cdborder" />
+                                            <button
+                                                onClick={() => { handleClearDatabase(); setShowUtilMenu(false); }}
+                                                disabled={isDeleting || !activities || activities.length === 0}
+                                                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-cdborder disabled:opacity-40"
+                                            >
+                                                {isDeleting ? <Loader2 className="animate-spin" size={14} /> : <Trash size={14} />}
+                                                Clear DB
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
 

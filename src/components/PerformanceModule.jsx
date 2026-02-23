@@ -55,44 +55,39 @@ const StatCard = ({ title, value, unit, subtitle, icon: Icon, trend, colorClass,
 const PeriodStatistics = ({ data }) => {
     if (!data || data.length === 0) return null;
 
-    // Aggregates
-    const totalRides = data.length;
-    // Distance (safe sum)
-    const totalDistance = Math.round(data.reduce((acc, d) => acc + (d.distance || 0), 0));
+    // Number() converteert ook string-waarden (bijv. uit CSV-import) veilig naar getal.
+    // isNaN-check voorkomt dat NaN-waarden de som besmetten.
+    const safeNum = (v) => { const n = Number(v); return isNaN(n) ? 0 : n; };
 
-    // Elevation (safe sum)
-    const totalElevation = Math.round(data.reduce((acc, d) => acc + (d.climbing || 0), 0));
+    const totalRides      = data.length;
+    const totalDistance   = Math.round(data.reduce((acc, d) => acc + safeNum(d.distance),    0));
+    const totalElevation  = Math.round(data.reduce((acc, d) => acc + safeNum(d.climbing),    0));
+    const totalTimeHours  = Math.round(data.reduce((acc, d) => acc + safeNum(d.moving_time), 0) / 3600);
+    const totalEnergy     = Math.round(data.reduce((acc, d) => acc + safeNum(d.work),        0));
 
-    // Time (safe sum)
-    const totalTimeHours = Math.round(data.reduce((acc, d) => acc + (d.moving_time || 0), 0) / 3600);
-
-    // Work: Sum 'work' (kJ). If missing, try to calc from power? No, relying on utils to normalize.
-    const totalEnergy = Math.round(data.reduce((acc, d) => acc + (d.work || 0), 0));
-
-    // Averages (Ignore 0 values for correct average!)
-    const ridesWithPower = data.filter(d => d.avg_power > 0);
+    // Averages — sla 0-waarden over voor eerlijk gemiddelde
+    const ridesWithPower = data.filter(d => safeNum(d.avg_power) > 0);
     const avgPower = ridesWithPower.length > 0
-        ? Math.round(ridesWithPower.reduce((acc, d) => acc + d.avg_power, 0) / ridesWithPower.length)
+        ? Math.round(ridesWithPower.reduce((acc, d) => acc + safeNum(d.avg_power), 0) / ridesWithPower.length)
         : 0;
 
-    const ridesWithHr = data.filter(d => d.avg_hr > 0);
+    const ridesWithHr = data.filter(d => safeNum(d.avg_hr) > 0);
     const avgHr = ridesWithHr.length > 0
-        ? Math.round(ridesWithHr.reduce((acc, d) => acc + d.avg_hr, 0) / ridesWithHr.length)
+        ? Math.round(ridesWithHr.reduce((acc, d) => acc + safeNum(d.avg_hr), 0) / ridesWithHr.length)
         : 0;
 
     // Maxima
-    const maxPower = Math.max(0, ...data.map(d => d.max_power || 0));
-    const maxHr = Math.max(0, ...data.map(d => d.max_hr || 0));
+    const maxPower = Math.max(0, ...data.map(d => safeNum(d.max_power)));
+    const maxHr    = Math.max(0, ...data.map(d => safeNum(d.max_hr)));
 
-    // Find the label for the max power (e.g. Instant vs 1 min)
-    const maxPowerItem = data.find(d => d.max_power === maxPower);
+    const maxPowerItem  = data.find(d => safeNum(d.max_power) === maxPower);
     const maxPowerLabel = maxPowerItem ? `(${maxPowerItem.max_power_source || 'Instant'})` : '';
 
     // Indoor vs Outdoor
-    const indoorRides = data.filter(d => d.type === 'VirtualRide');
+    const indoorRides  = data.filter(d => d.type === 'VirtualRide');
     const outdoorRides = data.filter(d => d.type !== 'VirtualRide');
 
-    const indoorDist = Math.round(indoorRides.reduce((acc, d) => acc + (d.distance || 0), 0));
+    const indoorDist  = Math.round(indoorRides.reduce((acc, d) => acc + safeNum(d.distance), 0));
     const outdoorDist = totalDistance - indoorDist;
 
     return (
