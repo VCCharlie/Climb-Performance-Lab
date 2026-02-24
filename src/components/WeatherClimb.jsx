@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Cloud, Wind, Thermometer, Droplets, Sun, AlertTriangle, Search, RefreshCw, Lightbulb } from 'lucide-react';
 import { CLIMB_DATABASE } from '../climbs';
+import WeatherForecastStrip from './WeatherForecastStrip';
 
 // Approximate locations for popular climbs (city/town for weather lookup)
 const CLIMB_LOCATIONS = {
@@ -39,6 +40,10 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
     const [weatherError, setWeatherError] = useState(null);
     const [weatherSuccess, setWeatherSuccess] = useState(null);
 
+    // 14-day forecast (Open-Meteo, geen API key nodig)
+    const [forecastData, setForecastData] = useState(null);
+    const [forecastLocation, setForecastLocation] = useState('');
+
     // Autocomplete state
     const [suggestions, setSuggestions] = useState([]);
     const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
@@ -71,6 +76,8 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
         }
         setWeatherError(null);
         setWeatherSuccess(null);
+        setForecastData(null);
+        setForecastLocation('');
     }, [selectedClimb]);
 
     // Close suggestions when clicking outside
@@ -188,10 +195,59 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
             setWindDirection('none');
             setWeatherSuccess(`Weersdata geladen voor ${data.name} (${data.sys?.country || ''})`);
             setWeatherError(null);
+
+            // Haal ook de 14-daagse prognose op via Open-Meteo
+            fetchForecast(
+                selectedLocation?.lat ?? data.coord?.lat,
+                selectedLocation?.lon ?? data.coord?.lon,
+                data.name
+            );
         } catch (error) {
             setWeatherError(error.message || 'Fout bij ophalen weer');
         } finally {
             setIsLoadingWeather(false);
+        }
+    };
+
+    // Fetch 14-day daily forecast from Open-Meteo (gratis, geen API key)
+    const fetchForecast = async (lat, lon, cityName) => {
+        try {
+            let fLat = lat;
+            let fLon = lon;
+
+            // Geen coördinaten? Open-Meteo geocoding als fallback
+            if (fLat == null || fLon == null) {
+                const geoRes = await fetch(
+                    `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&format=json`
+                );
+                const geoData = await geoRes.json();
+                if (!geoData.results?.length) return;
+                fLat = geoData.results[0].latitude;
+                fLon = geoData.results[0].longitude;
+            }
+
+            const res = await fetch(
+                `https://api.open-meteo.com/v1/forecast?latitude=${fLat}&longitude=${fLon}` +
+                `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max,winddirection_10m_dominant` +
+                `&timezone=auto&forecast_days=14`
+            );
+            if (!res.ok) return;
+            const data = await res.json();
+            if (!data.daily?.time) return;
+
+            setForecastData(data.daily.time.map((time, i) => ({
+                time,
+                // weather_code is the current name; weathercode kept as fallback
+                weathercode: data.daily.weather_code?.[i] ?? data.daily.weathercode?.[i] ?? 0,
+                temperature_2m_max: data.daily.temperature_2m_max[i],
+                temperature_2m_min: data.daily.temperature_2m_min[i],
+                precipitation_sum: data.daily.precipitation_sum?.[i] || 0,
+                windspeed_10m_max: data.daily.windspeed_10m_max?.[i] || 0,
+                winddirection_10m_dominant: data.daily.winddirection_10m_dominant?.[i] || 0,
+            })));
+            setForecastLocation(cityName);
+        } catch {
+            // Stil falen — prognose is optioneel
         }
     };
 
@@ -391,6 +447,9 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                         ✓ {weatherSuccess}
                     </div>
                 )}
+
+                {/* 14-daagse visuele prognose */}
+                <WeatherForecastStrip forecastData={forecastData} locationLabel={forecastLocation} />
                 {!weatherError && !weatherSuccess && !isLoadingWeather && locationInput && (
                     <div className="text-xs text-cdmuted flex items-center gap-1">
                         <Lightbulb size={12} className="text-yellow-500" />
