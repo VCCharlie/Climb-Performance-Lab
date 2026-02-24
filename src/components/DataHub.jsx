@@ -291,7 +291,8 @@ const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImpor
                     if (existing.type !== newAct.type && existing.type !== 'Ride' && newAct.type !== 'Ride') return false;
                     const timeDiff = Math.abs((existing.moving_time || 0) - (newAct.moving_time || 0));
                     const distDiff = Math.abs((existing.distance || 0) - (newAct.distance || 0));
-                    return timeDiff < 300 || distDiff < 1.0;
+                    // Require BOTH duration AND distance to match (AND, not OR)
+                    return timeDiff < 300 && distDiff < 0.5;
                 });
 
                 if (duplicate) {
