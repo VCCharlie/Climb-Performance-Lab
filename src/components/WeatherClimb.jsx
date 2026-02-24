@@ -417,8 +417,8 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                                 onClick={fetchWeather}
                                 disabled={isLoadingWeather || !apiKey || !locationInput.trim()}
                                 className={`px-4 py-2 rounded text-sm font-bold transition-colors flex items-center gap-2 whitespace-nowrap ${isLoadingWeather || !apiKey || !locationInput.trim()
-                                        ? 'bg-cdborder text-cdmuted cursor-not-allowed'
-                                        : 'bg-cyan-500 hover:bg-cyan-600 text-white'
+                                    ? 'bg-cdborder text-cdmuted cursor-not-allowed'
+                                    : 'bg-cyan-500 hover:bg-cyan-600 text-white'
                                     }`}
                             >
                                 {isLoadingWeather ? (
@@ -437,13 +437,13 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
 
                 {/* Error/Success Messages */}
                 {weatherError && (
-                    <div className="bg-red-500/10 border border-red-500/30 rounded p-3 text-red-300 text-sm flex items-start gap-2">
+                    <div className="bg-red-500/20 border border-red-500/50 rounded p-3 text-red-100 text-sm flex items-start gap-2">
                         <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
                         {weatherError}
                     </div>
                 )}
                 {weatherSuccess && !weatherError && (
-                    <div className="bg-green-500/10 border border-green-500/30 rounded p-3 text-green-300 text-sm">
+                    <div className="bg-green-500/20 border border-green-500/50 rounded p-3 text-green-100 text-sm">
                         ✓ {weatherSuccess}
                     </div>
                 )}
@@ -579,10 +579,10 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                 </div>
 
                 <div className={`p-3 rounded border text-center ${Math.abs(weatherAdjustedCalculation.timeDifference) < 1
-                    ? 'bg-green-500/10 border-green-500/30 text-green-300'
+                    ? 'bg-green-500/20 border-green-500/50 text-green-100'
                     : weatherAdjustedCalculation.timeDifference > 5
-                        ? 'bg-red-500/10 border-red-500/30 text-red-300'
-                        : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-300'
+                        ? 'bg-red-500/20 border-red-500/50 text-red-100'
+                        : 'bg-yellow-500/20 border-yellow-500/50 text-yellow-100'
                     }`}>
                     <p className="font-bold text-sm">
                         {weatherAdjustedCalculation.timeDifference > 0 ? '+' : ''}
@@ -599,9 +599,9 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                 {weatherAdjustedCalculation.warnings.length > 0 && (
                     <div className="space-y-2">
                         {weatherAdjustedCalculation.warnings.map((warning, idx) => (
-                            <div key={idx} className="bg-yellow-500/10 border border-yellow-500/30 rounded p-3 flex items-start gap-2">
+                            <div key={idx} className="bg-yellow-500/20 border border-yellow-500/50 rounded p-3 flex items-start gap-2">
                                 <AlertTriangle className="text-yellow-400 flex-shrink-0 mt-0.5" size={16} />
-                                <p className="text-sm text-yellow-200">{warning}</p>
+                                <p className="text-sm text-yellow-100">{warning}</p>
                             </div>
                         ))}
                     </div>

@@ -1,6 +1,23 @@
 ﻿import React, { useMemo } from 'react';
-import { Activity, TrendingUp, TrendingDown, Calendar, AlertTriangle, CheckCircle, Zap , Info, Lightbulb} from 'lucide-react';
+import { Activity, TrendingUp, TrendingDown, Calendar, AlertTriangle, CheckCircle, Zap, Info, Lightbulb } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts';
+
+// Custom tooltip moved outside component body
+const CustomTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+        const data = payload[0].payload;
+        return (
+            <div className="bg-cdsurface border border-cdborder p-3 rounded shadow-lg">
+                <p className="text-cdtext text-sm font-bold mb-2">{new Date(data.date).toLocaleDateString('nl-NL')}</p>
+                <p className="text-blue-400 text-xs">CTL (Fitness): {data.ctl}</p>
+                <p className="text-red-400 text-xs">ATL (Fatigue): {data.atl}</p>
+                <p className="text-yellow-400 text-xs">TSB (Form): {data.tsb}</p>
+                {data.load > 0 && <p className="text-cdtext text-xs mt-1">Training Load: {data.load}</p>}
+            </div>
+        );
+    }
+    return null;
+};
 
 const RecoveryAdvisor = ({ activities }) => {
     // Calculate Training Load metrics (CTL, ATL, TSB)
@@ -134,22 +151,7 @@ const RecoveryAdvisor = ({ activities }) => {
         return { chartData, current, recommendations };
     }, [activities]);
 
-    // Custom tooltip
-    const CustomTooltip = ({ active, payload }) => {
-        if (active && payload && payload.length) {
-            const data = payload[0].payload;
-            return (
-                <div className="bg-cdsurface border border-cdborder p-3 rounded shadow-lg">
-                    <p className="text-cdtext text-sm font-bold mb-2">{new Date(data.date).toLocaleDateString('nl-NL')}</p>
-                    <p className="text-blue-400 text-xs">CTL (Fitness): {data.ctl}</p>
-                    <p className="text-red-400 text-xs">ATL (Fatigue): {data.atl}</p>
-                    <p className="text-yellow-400 text-xs">TSB (Form): {data.tsb}</p>
-                    {data.load > 0 && <p className="text-cdtext text-xs mt-1">Training Load: {data.load}</p>}
-                </div>
-            );
-        }
-        return null;
-    };
+
 
     if (!trainingMetrics.current) {
         return (
@@ -247,12 +249,12 @@ const RecoveryAdvisor = ({ activities }) => {
                             <div
                                 key={idx}
                                 className={`p-3 rounded border text-sm flex items-start gap-3 ${rec.type === 'success'
-                                    ? 'bg-green-500/10 border-green-500/30 text-green-300'
+                                    ? 'bg-green-500/20 border-green-500/50 text-green-100'
                                     : rec.type === 'warning'
-                                        ? 'bg-red-500/10 border-red-500/30 text-red-300'
+                                        ? 'bg-red-500/20 border-red-500/50 text-red-100'
                                         : rec.type === 'caution'
-                                            ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-300'
-                                            : 'bg-blue-500/10 border-blue-500/30 text-blue-300'
+                                            ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-100'
+                                            : 'bg-blue-500/20 border-blue-500/50 text-blue-100'
                                     }`}
                             >
                                 <Icon size={18} className="flex-shrink-0 mt-0.5" />

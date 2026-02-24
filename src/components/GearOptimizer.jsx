@@ -44,36 +44,38 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
         return (totalDiameter * Math.PI) / 1000; // meters
     }, [wheelDiameter, tyreMm]);
 
-    // Calculate speed at given power on the climb
-    const calculateSpeed = (power) => {
-        const CRR = 0.004;
-        const CDA = 0.32;
-        const AIR_DENSITY = 1.225;
-        const DRIVETRAIN_LOSS = 0.975;
-        const GRAVITY = 9.81;
 
-        const totalMass = userSettings.weight + userSettings.bikeWeight;
-        const gradeRad = Math.atan(selectedClimb.avgGrade / 100);
-
-        const gravityForce = totalMass * GRAVITY * Math.sin(gradeRad);
-        const rollingForce = totalMass * GRAVITY * CRR * Math.cos(gradeRad);
-
-        // Iteratively solve for speed
-        let v = 5; // m/s initial guess
-        for (let i = 0; i < 20; i++) {
-            const airResistance = 0.5 * CDA * AIR_DENSITY * v * v;
-            const totalForce = gravityForce + rollingForce + airResistance;
-            const powerNeeded = totalForce * v / DRIVETRAIN_LOSS;
-
-            if (Math.abs(powerNeeded - power) < 0.5) break;
-            v = v * Math.pow(power / powerNeeded, 0.3);
-        }
-
-        return v * 3.6; // km/h
-    };
 
     // Calculate gear ratio and resulting cadence/speed
     const gearAnalysis = useMemo(() => {
+        // Local calculateSpeed function
+        const calculateSpeed = (power) => {
+            const CRR = 0.004;
+            const CDA = 0.32;
+            const AIR_DENSITY = 1.225;
+            const DRIVETRAIN_LOSS = 0.975;
+            const GRAVITY = 9.81;
+
+            const totalMass = userSettings.weight + userSettings.bikeWeight;
+            const gradeRad = Math.atan(selectedClimb.avgGrade / 100);
+
+            const gravityForce = totalMass * GRAVITY * Math.sin(gradeRad);
+            const rollingForce = totalMass * GRAVITY * CRR * Math.cos(gradeRad);
+
+            // Iteratively solve for speed
+            let v = 5; // m/s initial guess
+            for (let i = 0; i < 20; i++) {
+                const airResistance = 0.5 * CDA * AIR_DENSITY * v * v;
+                const totalForce = gravityForce + rollingForce + airResistance;
+                const powerNeeded = totalForce * v / DRIVETRAIN_LOSS;
+
+                if (Math.abs(powerNeeded - power) < 0.5) break;
+                v = v * Math.pow(power / powerNeeded, 0.3);
+            }
+
+            return v * 3.6; // km/h
+        };
+
         const speedKmh = calculateSpeed(targetPower);
         const speedMs = speedKmh / 3.6;
 
@@ -102,9 +104,17 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
         });
 
         // Find optimal gear (closest to target cadence)
-        const sorted = [...gears].sort((a, b) =>
-            Math.abs(a.cadenceNeeded - targetCadence) - Math.abs(b.cadenceNeeded - targetCadence)
-        );
+        const sorted = [...gears].sort((a, b) => {
+            const diffA = Math.abs(a.cadenceNeeded - targetCadence);
+            const diffB = Math.abs(b.cadenceNeeded - targetCadence);
+
+            // If cadences are very similar (within 3 rpm), prefer the smaller chainring
+            // to avoid cross-chaining (e.g., 50x34 is usually worse than 34x23)
+            if (Math.abs(diffA - diffB) < 3.0) {
+                return a.chainring - b.chainring;
+            }
+            return diffA - diffB;
+        });
 
         const optimal = sorted[0];
         const easiest = gears[gears.length - 1]; // Smallest chainring, biggest cog
@@ -115,7 +125,7 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
             easiest,
             targetSpeedKmh: speedKmh
         };
-    }, [chainrings, cassette, selectedClimb, targetPower, targetCadence, wheelCircumference]);
+    }, [chainrings, cassette, selectedClimb, targetPower, targetCadence, wheelCircumference, userSettings.weight, userSettings.bikeWeight]);
 
     // Recommendations
     const recommendations = useMemo(() => {
@@ -316,12 +326,12 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
                             <div
                                 key={idx}
                                 className={`p-3 rounded border text-sm flex items-start gap-2 ${rec.type === 'success'
-                                        ? 'bg-green-500/10 border-green-500/30 text-green-300'
-                                        : rec.type === 'warning'
-                                            ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-300'
-                                            : rec.type === 'info'
-                                                ? 'bg-blue-500/10 border-blue-500/30 text-blue-300'
-                                                : 'bg-red-500/10 border-red-500/30 text-red-300'
+                                    ? 'bg-green-500/20 border-green-500/50 text-green-100'
+                                    : rec.type === 'warning'
+                                        ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-100'
+                                        : rec.type === 'info'
+                                            ? 'bg-blue-500/20 border-blue-500/50 text-blue-100'
+                                            : 'bg-red-500/20 border-red-500/50 text-red-100'
                                     }`}
                             >
                                 {rec.type === 'success' && <CheckCircle size={16} className="flex-shrink-0 mt-0.5" />}
@@ -340,8 +350,8 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
                                 <div
                                     key={idx}
                                     className={`flex items-center justify-between p-2 rounded text-xs ${gear.isSuitable
-                                            ? 'bg-green-500/10 border border-green-500/20'
-                                            : 'bg-cdsurface border border-cdborder'
+                                        ? 'bg-green-500/10 border border-green-500/20'
+                                        : 'bg-cdsurface border border-cdborder'
                                         } ${gear === gearAnalysis.optimal ? 'ring-2 ring-yellow-400' : ''}`}
                                 >
                                     <span className="text-cdtext font-mono">

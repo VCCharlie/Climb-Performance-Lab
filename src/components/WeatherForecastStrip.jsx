@@ -22,14 +22,14 @@ const windAbbr = (deg) => NL_WIND_DIR[Math.round((deg ?? 0) / 45) % 8];
 const wmoIcon = (code) =>
     WMO_ICONS[code] ??
     (code <= 3 ? '⛅' : code <= 49 ? '🌫️' : code <= 69 ? '🌧️' :
-     code <= 79 ? '❄️' : code <= 82 ? '🌦️' : '⛈️');
+        code <= 79 ? '❄️' : code <= 82 ? '🌦️' : '⛈️');
 
 const tempClass = (t) =>
     t >= 30 ? 'text-red-400' :
-    t >= 22 ? 'text-orange-400' :
-    t >= 14 ? 'text-yellow-400' :
-    t >= 5  ? 'text-green-400' :
-              'text-blue-400';
+        t >= 22 ? 'text-orange-400' :
+            t >= 14 ? 'text-yellow-400' :
+                t >= 5 ? 'text-green-400' :
+                    'text-blue-400';
 
 // A day is "good for climbing" when conditions are comfortable
 const isGoodDay = (day) =>
@@ -73,7 +73,7 @@ const WeatherForecastStrip = ({ forecastData, locationLabel }) => {
                                 ${isToday
                                     ? 'border-cyan-500/50 bg-cyan-500/10'
                                     : good
-                                        ? 'border-green-500/30 bg-green-500/5'
+                                        ? 'border-green-500/50 bg-green-500/15'
                                         : 'border-cdborder bg-cdbg/40'
                                 }`}
                         >
