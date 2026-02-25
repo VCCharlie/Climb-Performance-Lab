@@ -45,7 +45,7 @@ const WeatherForecastStrip = ({ forecastData, locationLabel }) => {
     return (
         <div className="space-y-2 pt-1">
             <div className="flex items-center justify-between flex-wrap gap-1">
-                <span className="text-xs font-bold text-cdmuted uppercase tracking-wide">
+                <span className="text-s font-bold text-cdmuted uppercase tracking-wide">
                     14-daagse prognose
                     {locationLabel && (
                         <span className="ml-1 font-normal normal-case text-cdmuted/60">
@@ -53,7 +53,7 @@ const WeatherForecastStrip = ({ forecastData, locationLabel }) => {
                         </span>
                     )}
                 </span>
-                <span className="text-xs text-cdmuted/40 italic">Open-Meteo</span>
+                <span className="text-s text-cdmuted/40 italic">Open-Meteo</span>
             </div>
 
             {/* Scrollable day cards */}
@@ -78,12 +78,12 @@ const WeatherForecastStrip = ({ forecastData, locationLabel }) => {
                                 }`}
                         >
                             {/* Day name */}
-                            <span className={`text-xs font-semibold leading-none ${isToday ? 'text-cyan-500' : 'text-cdtext'}`}>
+                            <span className={`text-s font-semibold leading-none ${isToday ? 'text-cyan-500' : 'text-cdtext'}`}>
                                 {isToday ? 'nu' : NL_DAYS[d.getDay()]}
                             </span>
 
                             {/* Short date */}
-                            <span className="text-xs text-cdmuted/50 leading-none">
+                            <span className="text-s text-cdmuted/50 leading-none">
                                 {d.getDate()}/{d.getMonth() + 1}
                             </span>
 
@@ -96,17 +96,17 @@ const WeatherForecastStrip = ({ forecastData, locationLabel }) => {
                             </div>
 
                             {/* Max temperature */}
-                            <span className={`text-xs font-bold leading-none mt-0.5 ${tempClass(day.temperature_2m_max)}`}>
+                            <span className={`text-s font-bold leading-none mt-0.5 ${tempClass(day.temperature_2m_max)}`}>
                                 {Math.round(day.temperature_2m_max)}°
                             </span>
 
                             {/* Min temperature */}
-                            <span className={`text-xs leading-none opacity-60 ${tempClass(day.temperature_2m_min)}`}>
+                            <span className={`text-s leading-none opacity-60 ${tempClass(day.temperature_2m_min)}`}>
                                 {Math.round(day.temperature_2m_min)}°
                             </span>
 
                             {/* Precipitation */}
-                            <span className={`text-xs leading-none flex items-center gap-px mt-0.5
+                            <span className={`text-s leading-none flex items-center gap-px mt-0.5
                                 ${precip >= 2 ? 'text-blue-500' : precip > 0 ? 'text-blue-500/80' : 'text-cdmuted/25'}`}>
                                 <Droplets size={8} />
                                 <span>{precip > 0 ? (precip < 1 ? '<1' : Math.round(precip)) : '—'}</span>
@@ -122,7 +122,7 @@ const WeatherForecastStrip = ({ forecastData, locationLabel }) => {
             </div>
 
             {/* Legend */}
-            <div className="flex flex-wrap gap-x-3 text-xs text-cdmuted/40">
+            <div className="flex flex-wrap gap-x-3 text-s text-cdmuted/40">
                 <span>💧 neerslag (mm) · wind: richting + km/h</span>
                 <span className="text-green-500">✓ goede klimdag (5-25°C, droog, rustig)</span>
             </div>
