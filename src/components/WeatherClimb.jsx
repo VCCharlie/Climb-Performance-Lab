@@ -5,7 +5,7 @@ import WeatherForecastStrip from './WeatherForecastStrip';
 
 // Approximate locations for popular climbs (city/town for weather lookup)
 const CLIMB_LOCATIONS = {
-    fr_alpe: { q: 'Bourg-d\'Oisans,FR', label: 'Bourg-d\'Oisans, France' },
+    fr_alpe: { q: 'Le Bourg-d\'Oisans,FR', label: 'Bourg-d\'Oisans, France' },
     fr_ventoux: { q: 'Bedoin,FR', label: 'Bédoin, France' },
     fr_ventoux_mal: { q: 'Malaucene,FR', label: 'Malaucène, France' },
     fr_tourmalet: { q: 'Luz-Saint-Sauveur,FR', label: 'Luz-Saint-Sauveur, France' },
@@ -599,9 +599,9 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                 {weatherAdjustedCalculation.warnings.length > 0 && (
                     <div className="space-y-2">
                         {weatherAdjustedCalculation.warnings.map((warning, idx) => (
-                            <div key={idx} className="bg-yellow-500/20 border border-yellow-500/50 rounded p-3 flex items-start gap-2">
-                                <AlertTriangle className="text-yellow-400 flex-shrink-0 mt-0.5" size={16} />
-                                <p className="text-sm text-yellow-300">{warning}</p>
+                            <div key={idx} className="bg-yellow-100 border border-yellow-500/50 rounded p-3 flex items-start gap-2">
+                                <AlertTriangle className="text-yellow-500 flex-shrink-0 mt-0.5" size={16} />
+                                <p className="text-sm text-yellow-400">{warning}</p>
                             </div>
                         ))}
                     </div>
