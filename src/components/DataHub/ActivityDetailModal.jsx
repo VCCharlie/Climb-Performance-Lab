@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Clock, MapPin, Zap, ExternalLink, Mountain, TrendingUp, Loader2, AlertCircle } from 'lucide-react';
+import { X, Calendar, Clock, MapPin, Zap, ExternalLink, Mountain, TrendingUp, Loader2, AlertCircle, Star } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
 import StravaMap from './StravaMap';
 import { formatSegmentTime } from '../../utils/strava';
@@ -194,12 +194,15 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken }) => {
                                             <div className="space-y-1 max-h-60 overflow-y-auto custom-scrollbar">
                                                 {segments.map((seg, i) => (
                                                     <div key={i} className="flex items-center gap-2 bg-cdbg/50 rounded px-3 py-2 border border-cdborder/30 text-xs">
-                                                        <div className="flex-1 truncate">
+                                                        <div className="flex-1 truncate flex items-center gap-1">
+                                                            {seg.segment?.starred && (
+                                                                <Star size={11} className="text-yellow-400 fill-yellow-400 shrink-0" />
+                                                            )}
                                                             <a
                                                                 href={`https://www.strava.com/segments/${seg.segment?.id}`}
                                                                 target="_blank"
                                                                 rel="noreferrer"
-                                                                className="text-cdtext hover:text-orange-400 font-medium transition-colors"
+                                                                className="text-cdtext hover:text-orange-400 font-medium transition-colors truncate"
                                                                 onClick={e => e.stopPropagation()}
                                                             >
                                                                 {seg.name}
