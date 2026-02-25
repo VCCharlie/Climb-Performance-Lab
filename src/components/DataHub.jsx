@@ -23,7 +23,8 @@ import useActivityFilter from '../hooks/useActivityFilter';
 // githubPat: optional GitHub Personal Access Token for manual workflow dispatch
 // showImport: soft-toggle to show/hide the legacy CSV import section (default: false)
 // stravaGetToken: function to get a valid Strava access token (or null if not connected)
-const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImport = false, stravaGetToken }) => {
+// startDate / endDate: globale datumrange vanuit App.jsx tab-lint
+const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImport = false, stravaGetToken, startDate, endDate }) => {
     // UI State
     const [internalTab, setInternalTab] = useState('log');
     const [detailActivity, setDetailActivity] = useState(null);
@@ -605,6 +606,8 @@ const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImpor
                         activities={activities}
                         getStravaToken={stravaGetToken}
                         onImportNew={handleImportFromStrava}
+                        startDate={startDate}
+                        endDate={endDate}
                     />
                 )}
             </div>
