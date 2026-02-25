@@ -24,7 +24,8 @@ import useActivityFilter from '../hooks/useActivityFilter';
 // showImport: soft-toggle to show/hide the legacy CSV import section (default: false)
 // stravaGetToken: function to get a valid Strava access token (or null if not connected)
 // startDate / endDate: globale datumrange vanuit App.jsx tab-lint
-const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImport = false, stravaGetToken, startDate, endDate }) => {
+// stravaEnrichResults / onStravaEnrichResults: persistente match-resultaten over tab-wissels
+const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImport = false, stravaGetToken, startDate, endDate, stravaEnrichResults, onStravaEnrichResults }) => {
     // UI State
     const [internalTab, setInternalTab] = useState('log');
     const [detailActivity, setDetailActivity] = useState(null);
@@ -608,6 +609,8 @@ const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImpor
                         onImportNew={handleImportFromStrava}
                         startDate={startDate}
                         endDate={endDate}
+                        persistedResults={stravaEnrichResults}
+                        onResultsChange={onStravaEnrichResults}
                     />
                 )}
             </div>
