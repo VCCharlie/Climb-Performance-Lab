@@ -5,7 +5,7 @@ import WeatherForecastStrip from './WeatherForecastStrip';
 
 // Approximate locations for popular climbs (city/town for weather lookup)
 const CLIMB_LOCATIONS = {
-    fr_alpe: { q: 'Bourg-d\'Oisans,FR', label: 'Le Bourg-d\'Oisans, France' },
+    fr_alpe: { q: 'Bourg-d\'Oisans,FR', label: 'Le Bourg-d\'Oisans, Auvergne-Rhône-Alpes, France' },
     fr_ventoux: { q: 'Bedoin,FR', label: 'Bédoin, France' },
     fr_ventoux_mal: { q: 'Malaucene,FR', label: 'Malaucène, France' },
     fr_tourmalet: { q: 'Luz-Saint-Sauveur,FR', label: 'Luz-Saint-Sauveur, France' },
