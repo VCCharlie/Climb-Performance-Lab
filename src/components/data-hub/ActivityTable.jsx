@@ -1,8 +1,8 @@
-﻿
+
 import React from 'react';
 import {
     ArrowUpDown, ChevronUp, ChevronDown, ChevronRight, Monitor, Bike, Footprints,
-    Mountain, Edit2, Trash2, ExternalLink
+    Mountain, Edit2, Trash2, ExternalLink, Eye
 } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
 import { ACTIVITY_COLUMNS, MONTH_ORDER } from '../../config';
@@ -25,12 +25,19 @@ export const TableHeader = ({ config, requestSort, hasActions = true, isPreview 
                     </span>
                 </th>
             ))}
-            {hasActions && <th className="px-2 py-2 text-right w-24">Action</th>}
+            {hasActions && <th className="px-2 py-2 text-right w-28">Action</th>}
         </tr>
     </thead>
 );
 
-export const Row = React.memo(({ act, onDelete, onEdit, isConfirmingDelete, setDeleteConfirm, isPreview = false, isSelected = false, onToggleSelect, onToggleType }) => {
+// Strava logo SVG (inline, geen extra dependency)
+const StravaIcon = () => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+        <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />
+    </svg>
+);
+
+export const Row = React.memo(({ act, onDelete, onEdit, onViewDetail, isConfirmingDelete, setDeleteConfirm, isPreview = false, isSelected = false, onToggleSelect, onToggleType }) => {
     if (!act) return null;
 
     const renderCell = (col) => {
@@ -69,59 +76,51 @@ export const Row = React.memo(({ act, onDelete, onEdit, isConfirmingDelete, setD
     };
 
     return (
-        <tr className={`hover:bg-cdborder/50 transition-colors border-b border-cdborder/50 ${isSelected ? 'bg-cdborder/30' : ''}`} onClick={onToggleSelect ? () => onToggleSelect(act.id) : undefined}>
+        <tr className={`group hover:bg-cdborder/50 transition-colors border-b border-cdborder/50 ${isSelected ? 'bg-cdborder/30' : ''}`} onClick={onToggleSelect ? () => onToggleSelect(act.id) : undefined}>
             {isPreview && <td className="px-2 py-1.5 w-8"><input type="checkbox" checked={isSelected} readOnly className="w-4 h-4 accent-green-500 cursor-pointer" /></td>}
             {ACTIVITY_COLUMNS.map(col => <td key={col.key} className={`px-2 py-1.5 text-${col.align} text-xs ${col.width || ''}`}>{renderCell(col)}</td>)}
-            {!isPreview && <td className="px-2 py-1.5 text-right w-24">
+            {!isPreview && <td className="px-2 py-1.5 text-right w-28">
                 {isConfirmingDelete ? (
                     <div className="flex gap-2 justify-end">
                         <button onClick={(e) => { e.stopPropagation(); onDelete(act.id) }} className="text-red-500 font-bold text-xs bg-red-500/10 px-2 py-1 rounded">SURE?</button>
                         <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(null) }} className="text-cdmuted text-xs px-2 py-1">Cancel</button>
                     </div>
                 ) : (
-                    <div className="flex gap-1 justify-end">
-                        {/* EXTERNAL LINK */}
-                        <a
-                            href={`https://intervals.icu/activities/${act.id}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-slate-600 hover:text-blue-400 p-1 flex items-center"
-                            onClick={(e) => e.stopPropagation()}
-                            title="Open in Intervals.icu"
-                        >
-                            <ExternalLink size={14} />
-                        </a >
-                        {/* EDIT BUTTON */}
-                        < button onClick={(e) => { e.stopPropagation(); onEdit(act) }} className="text-slate-600 hover:text-yellow-400 p-1" >
+                    <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                        {/* DETAIL VIEW */}
+                        {onViewDetail && (
+                            <button onClick={(e) => { e.stopPropagation(); onViewDetail(act); }} className="text-slate-600 hover:text-green-400 p-1" title="Bekijk details">
+                                <Eye size={14} />
+                            </button>
+                        )}
+                        {/* INTERVALS.ICU LINK */}
+                        {!String(act.id).startsWith('csv_') && (
+                            <a href={`https://intervals.icu/activities/${act.id}`} target="_blank" rel="noreferrer" className="text-slate-600 hover:text-blue-400 p-1 flex items-center" onClick={(e) => e.stopPropagation()} title="Open in Intervals.icu">
+                                <ExternalLink size={14} />
+                            </a>
+                        )}
+                        {/* STRAVA LINK */}
+                        {act.strava_id && (
+                            <a href={`https://www.strava.com/activities/${act.strava_id}`} target="_blank" rel="noreferrer" className="text-slate-600 hover:text-orange-400 p-1 flex items-center" onClick={(e) => e.stopPropagation()} title="Open in Strava">
+                                <StravaIcon />
+                            </a>
+                        )}
+                        {/* EDIT */}
+                        <button onClick={(e) => { e.stopPropagation(); onEdit(act) }} className="text-slate-600 hover:text-yellow-400 p-1">
                             <Edit2 size={14} />
-                        </button >
-                        {/* DELETE BUTTON */}
-                        < button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(act.id) }} className="text-slate-600 hover:text-red-400 p-1" >
+                        </button>
+                        {/* DELETE */}
+                        <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(act.id) }} className="text-slate-600 hover:text-red-400 p-1">
                             <Trash2 size={14} />
-                        </button >
-                    </div >
+                        </button>
+                    </div>
                 )}
-            </td >}
-        </tr >
+            </td>}
+        </tr>
     );
 });
 
-const ActivityTable = ({ activities, sortConfig, onSort, onDelete, onEdit, isGroupedView, isYearExpanded, onToggleYear, isMonthExpanded, onToggleMonth, deleteConfirm, setDeleteConfirm }) => {
-    // Logic for grouping is assumed handled by parent or we move it here?
-    // For now, let's keep it simple: props pass in the processed activities or we do the grouping here.
-    // The previous implementation used `isGroupedView` and `groupedActivities` calculated in parent.
-    // Let's expect `groupedActivities` if isGroupedView is true, else `activities`.
-
-    // Wait, the parent calculates `processedActivities` and `groupedActivities`. 
-    // To keep it clean, let's pass both or just the relevant data.
-    // Let's stick to the previous pattern: Parent passes logic.
-
-    // Actually, `activities` prop here should be `processedActivities` (filtered & sorted).
-    // And if `isGroupedView` is true, we expect `activities` to be the object? 
-    // No, `groupedActivities` was a separate memo.
-
-    // Let's accept `groupedActivities` as an optional prop.
-
+const ActivityTable = ({ activities, sortConfig, onSort, onDelete, onEdit, onViewDetail, isGroupedView, isYearExpanded, onToggleYear, isMonthExpanded, onToggleMonth, deleteConfirm, setDeleteConfirm }) => {
     return (
         <div className="overflow-x-auto overflow-y-auto flex-1 border border-cdborder rounded-lg custom-scrollbar relative max-h-[65vh]">
             <table className="w-full text-left text-xs whitespace-nowrap">
@@ -134,13 +133,17 @@ const ActivityTable = ({ activities, sortConfig, onSort, onDelete, onEdit, isGro
                                 {isYearExpanded(year) && Object.keys(activities[year]).sort((a, b) => { const diff = MONTH_ORDER.indexOf(b) - MONTH_ORDER.indexOf(a); return sortConfig.direction === 'asc' ? -diff : diff; }).map(month => (
                                     <React.Fragment key={month}>
                                         <tr id={`month-${year}-${month}`} className="bg-cdborder/20 scroll-mt-12"><td colSpan={ACTIVITY_COLUMNS.length + 1} className="px-8 py-1 text-[10px] uppercase font-bold text-cdmuted"><button onClick={() => onToggleMonth(year, month)} className="flex items-center gap-1 hover:text-cdtext text-left w-full transition-colors">{isMonthExpanded(year, month) ? <ChevronDown size={12} /> : <ChevronRight size={12} />} {month}</button></td></tr>
-                                        {isMonthExpanded(year, month) && activities[year][month].map(act => <Row key={act.id} act={act} onDelete={onDelete} onEdit={onEdit} isConfirmingDelete={deleteConfirm === act.id} setDeleteConfirm={setDeleteConfirm} />)}
+                                        {isMonthExpanded(year, month) && activities[year][month].map(act => (
+                                            <Row key={act.id} act={act} onDelete={onDelete} onEdit={onEdit} onViewDetail={onViewDetail} isConfirmingDelete={deleteConfirm === act.id} setDeleteConfirm={setDeleteConfirm} />
+                                        ))}
                                     </React.Fragment>
                                 ))}
                             </React.Fragment>
                         ))
                     ) : (
-                        activities.map(act => <Row key={act.id} act={act} onDelete={onDelete} onEdit={onEdit} isConfirmingDelete={deleteConfirm === act.id} setDeleteConfirm={setDeleteConfirm} />)
+                        activities.map(act => (
+                            <Row key={act.id} act={act} onDelete={onDelete} onEdit={onEdit} onViewDetail={onViewDetail} isConfirmingDelete={deleteConfirm === act.id} setDeleteConfirm={setDeleteConfirm} />
+                        ))
                     )}
                 </tbody>
             </table>

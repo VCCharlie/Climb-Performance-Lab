@@ -15,6 +15,7 @@
   "dependencies": {
     "firebase": "^12.7.0",
     "framer-motion": "^12.24.7",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.562.0",
     "next.js": "^1.0.3",
     "react": "^19.2.3",

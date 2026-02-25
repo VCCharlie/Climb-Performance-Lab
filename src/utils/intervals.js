@@ -5,6 +5,7 @@
 
 import { normalizeDate } from './formatters';
 import { determineActivityType } from './parsers';
+import { extractStravaId } from './strava';
 
 export const normalizeIntervalsActivity = (item) => {
     const getNum = (val) => { const n = Number(val); return isNaN(n) ? 0 : n; };
@@ -80,8 +81,12 @@ export const normalizeIntervalsActivity = (item) => {
     const rawType = getVal('type', 'sub_type', 'activity_type');
     const finalType = determineActivityType(rawType, title);
 
+    // Strava ID: Intervals.icu slaat dit op als external_id (bijv. "strava-12345678")
+    const stravaId = extractStravaId(getVal('external_id', 'externalId'));
+
     return {
         id: id,
+        strava_id: stravaId,
         date: normalizeDate(dateStr),
         title: title,
         type: finalType,
