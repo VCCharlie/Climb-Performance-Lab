@@ -1,5 +1,5 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
-import { Gauge, Mountain, Activity, Utensils, Brain, Route, Settings as SettingsIcon, TrendingUp, Menu, X, Heart, Trophy, Cloud, ChevronRight, CalendarRange } from 'lucide-react';
+﻿import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Gauge, Mountain, Activity, Utensils, Brain, Route, Settings as SettingsIcon, TrendingUp, Menu, X, Heart, Trophy, Cloud, ChevronRight } from 'lucide-react';
 import { doc, setDoc, getDoc, collection, onSnapshot } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from './firebase';
@@ -68,13 +68,33 @@ const App = () => {
 
     const stravaAuth = useStravaAuth(stravaConfig, setStravaConfig);
 
-    // Globale datumrange: gedeeld tussen tabs (Strava verrijking, etc.)
-    const [globalStartDate, setGlobalStartDate] = useState(
-        () => new Date(Date.now() - 365 * 24 * 3600 * 1000).toISOString().split('T')[0]
-    );
-    const [globalEndDate, setGlobalEndDate] = useState(
-        () => new Date().toISOString().split('T')[0]
-    );
+    // Globale periode-selector: gedeeld tussen Dashboard en andere tabs
+    const [timeRange, setTimeRange] = useState(() => localStorage.getItem('dashboard_timeRange') || '1Y');
+    const [customStart, setCustomStart] = useState('');
+    const [customEnd, setCustomEnd] = useState('');
+
+    useEffect(() => {
+        localStorage.setItem('dashboard_timeRange', timeRange);
+    }, [timeRange]);
+
+    // Berekende start/end strings (voor StravaEnrichTab e.a.)
+    const globalStartDate = useMemo(() => {
+        if (timeRange === 'Custom') return customStart || '';
+        const d = new Date();
+        if (timeRange === '1M') d.setMonth(d.getMonth() - 1);
+        else if (timeRange === '3M') d.setMonth(d.getMonth() - 3);
+        else if (timeRange === '6M') d.setMonth(d.getMonth() - 6);
+        else if (timeRange === '1Y') d.setFullYear(d.getFullYear() - 1);
+        else if (timeRange === '3Y') d.setFullYear(d.getFullYear() - 3);
+        else if (timeRange === '6Y') d.setFullYear(d.getFullYear() - 6);
+        else if (timeRange === 'ALL') return '2000-01-01';
+        return d.toISOString().split('T')[0];
+    }, [timeRange, customStart]);
+
+    const globalEndDate = useMemo(() => {
+        if (timeRange === 'Custom') return customEnd || new Date().toISOString().split('T')[0];
+        return new Date().toISOString().split('T')[0];
+    }, [timeRange, customEnd]);
 
     // --- Sync State for SettingsModal ---
     const { syncIntervals, isSyncing, syncProgress } = useIntervalsSync(intervalsConfig);
@@ -369,41 +389,52 @@ const App = () => {
                                 </div>
                             )}
 
-                            {/* Desktop: Horizontal Tabs + globale datumrange rechts */}
-                            <nav className="hidden md:flex items-end justify-between pb-2 border-b border-cdborder/50 mb-4">
-                                <div className="flex overflow-x-auto gap-1">
-                                    {mainTabs.map(item => {
-                                        const isActive = activeTab === item.id;
-                                        return (
+                            {/* Desktop: Horizontal Tabs + globale periode-selector rechts */}
+                            <div className="hidden md:block border-b border-cdborder/50 mb-4">
+                                <div className="flex items-end justify-between pb-2">
+                                    <nav className="flex overflow-x-auto gap-1">
+                                        {mainTabs.map(item => {
+                                            const isActive = activeTab === item.id;
+                                            return (
+                                                <button
+                                                    key={item.id}
+                                                    onClick={() => setActiveTab(item.id)}
+                                                    className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold transition-all border-b-2 whitespace-nowrap ${isActive ? 'border-cdaccent text-cdtext' : 'border-transparent text-cdmuted hover:text-cdtext'}`}
+                                                >
+                                                    <item.icon className={`w-3.5 h-3.5 ${isActive ? 'text-cdaccent' : ''}`} />
+                                                    {item.label}
+                                                </button>
+                                            );
+                                        })}
+                                    </nav>
+                                    {/* Periode-selector – altijd zichtbaar in tab-lint */}
+                                    <div className="flex items-center gap-1 bg-cdbg/50 rounded-lg p-1 border border-cdborder shrink-0 ml-4">
+                                        {['1M','3M','6M','1Y','3Y','6Y','ALL','Custom'].map(r => (
                                             <button
-                                                key={item.id}
-                                                onClick={() => setActiveTab(item.id)}
-                                                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold transition-all border-b-2 whitespace-nowrap ${isActive ? 'border-cdaccent text-cdtext' : 'border-transparent text-cdmuted hover:text-cdtext'}`}
+                                                key={r}
+                                                onClick={() => setTimeRange(r)}
+                                                className={`px-2.5 py-1 text-[10px] font-bold uppercase rounded transition-all ${timeRange === r
+                                                    ? 'bg-cdaccent text-white shadow border border-cdaccent'
+                                                    : 'text-cdmuted hover:text-cdtext hover:bg-cdsurface border border-transparent'}`}
                                             >
-                                                <item.icon className={`w-3.5 h-3.5 ${isActive ? 'text-cdaccent' : ''}`} />
-                                                {item.label}
+                                                {r}
                                             </button>
-                                        );
-                                    })}
+                                        ))}
+                                    </div>
                                 </div>
-                                {/* Globale datumrange – altijd zichtbaar in tab-lint */}
-                                <div className="flex items-center gap-1.5 shrink-0 ml-4 pb-0.5">
-                                    <CalendarRange size={13} className="text-cdmuted" />
-                                    <input
-                                        type="date"
-                                        value={globalStartDate}
-                                        onChange={e => setGlobalStartDate(e.target.value)}
-                                        className="bg-cdbg border border-cdborder rounded px-2 py-1 text-xs text-cdtext outline-none focus:border-cdaccent"
-                                    />
-                                    <span className="text-cdmuted text-xs">–</span>
-                                    <input
-                                        type="date"
-                                        value={globalEndDate}
-                                        onChange={e => setGlobalEndDate(e.target.value)}
-                                        className="bg-cdbg border border-cdborder rounded px-2 py-1 text-xs text-cdtext outline-none focus:border-cdaccent"
-                                    />
-                                </div>
-                            </nav>
+                                {/* Custom datum-inputs – toon alleen bij Custom */}
+                                {timeRange === 'Custom' && (
+                                    <div className="flex justify-end pb-1.5 -mt-1 animate-in fade-in slide-in-from-right-2">
+                                        <div className="flex items-center gap-2 bg-cdbg/50 p-1.5 rounded-lg border border-cdborder">
+                                            <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)}
+                                                className="bg-cdsurface text-cdtext text-[10px] rounded px-2 py-1 outline-none border border-cdborder" />
+                                            <span className="text-cdmuted text-[10px]">–</span>
+                                            <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)}
+                                                className="bg-cdsurface text-cdtext text-[10px] rounded px-2 py-1 outline-none border border-cdborder" />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     );
                 })()}
@@ -413,7 +444,14 @@ const App = () => {
                 ) : (
                     <>
                         {activeTab === 'dashboard' && (
-                            <Dashboard theme={theme} manualFtp={userSettings.ftp} activities={activities} />
+                            <Dashboard
+                                theme={theme}
+                                manualFtp={userSettings.ftp}
+                                activities={activities}
+                                timeRange={timeRange}
+                                customStart={customStart}
+                                customEnd={customEnd}
+                            />
                         )}
 
                         {activeTab === 'physics' && (

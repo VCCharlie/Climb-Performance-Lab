@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import { calculateBassettCorrection } from '../utils';
 import OverviewTab from './dashboard/OverviewTab';
 import FormTab from './dashboard/FormTab';
@@ -30,15 +30,8 @@ const enhanceActivity = (d, userFtp) => {
     };
 };
 
-const Dashboard = ({ theme, manualFtp, activities: firestoreActivities = [] }) => {
-    const [timeRange, setTimeRange] = useState(() => localStorage.getItem('dashboard_timeRange') || '1Y');
-    const [customStart, setCustomStart] = useState('');
-    const [customEnd, setCustomEnd] = useState('');
+const Dashboard = ({ theme, manualFtp, activities: firestoreActivities = [], timeRange = '1Y', customStart = '', customEnd = '' }) => {
     const [dashboardTab, setDashboardTab] = useState('overview');
-
-    useEffect(() => {
-        localStorage.setItem('dashboard_timeRange', timeRange);
-    }, [timeRange]);
 
     // Alle historische data zit in Firestore via de deep sync — GCF niet meer nodig.
     const chartData = useMemo(() => {
@@ -96,41 +89,12 @@ const Dashboard = ({ theme, manualFtp, activities: firestoreActivities = [] }) =
     }, [filteredData]);
 
 
-    const ranges = ['1M', '3M', '6M', '1Y', '3Y', '6Y', 'ALL', 'Custom'];
-
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* HEADER SECTION WITH CONTROLS */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-cdsurface p-4 rounded-xl border border-cdborder shadow-md">
-                <div>
-                    <h2 className="text-2xl font-bold text-yellow-500 tracking-tight">Dashboard</h2>
-                    <p className="text-cdmuted text-sm">Performance metrics overview</p>
-                </div>
-
-                {/* GLOBAL TIME CONTROLS */}
-                <div className="flex flex-col items-end gap-2">
-                    <div className="flex flex-wrap items-center gap-1 bg-cdbg/50 rounded-lg p-1 border border-cdborder">
-                        {ranges.map(range => (
-                            <button
-                                key={range}
-                                onClick={() => setTimeRange(range)}
-                                className={`px-3 py-1 text-[10px] font-bold uppercase rounded transition-all ${timeRange === range
-                                    ? 'bg-cdaccent text-white shadow-lg border border-cdaccent'
-                                    : 'text-cdmuted hover:text-cdtext hover:bg-cdsurface border border-transparent'}`}
-                            >
-                                {range}
-                            </button>
-                        ))}
-                    </div>
-
-                    {timeRange === 'Custom' && (
-                        <div className="flex items-center gap-2 bg-cdbg/50 p-1.5 rounded-lg border border-cdborder animate-in fade-in slide-in-from-right-2">
-                            <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="bg-cdsurface text-cdtext text-[10px] rounded px-2 py-1 outline-none border border-cdborder" />
-                            <span className="text-cdmuted text-[10px]">-</span>
-                            <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="bg-cdsurface text-cdtext text-[10px] rounded px-2 py-1 outline-none border border-cdborder" />
-                        </div>
-                    )}
-                </div>
+            {/* HEADER SECTION */}
+            <div className="bg-cdsurface p-4 rounded-xl border border-cdborder shadow-md">
+                <h2 className="text-2xl font-bold text-yellow-500 tracking-tight">Dashboard</h2>
+                <p className="text-cdmuted text-sm">Performance metrics overview</p>
             </div>
 
             {/* SUB-TABS NAVIGATION */}
