@@ -437,13 +437,13 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
 
                 {/* Error/Success Messages */}
                 {weatherError && (
-                    <div className="bg-red-500/20 border border-red-500/50 rounded p-3 text-red-300 text-sm flex items-start gap-2">
+                    <div className="bg-red-500/20 border border-red-500/50 rounded p-3 text-red-500 text-sm flex items-start gap-2">
                         <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
                         {weatherError}
                     </div>
                 )}
                 {weatherSuccess && !weatherError && (
-                    <div className="bg-green-500/20 border border-green-500/50 rounded p-3 text-green-300 text-sm">
+                    <div className="bg-green-100 border border-green-500/50 rounded p-3 text-green-500 text-sm">
                         ✓ {weatherSuccess}
                     </div>
                 )}
