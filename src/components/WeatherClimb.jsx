@@ -558,7 +558,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                 <div className="grid grid-cols-2 gap-4">
                     <div className="bg-cdsurface p-4 rounded border border-cdborder">
                         <div className="flex items-center gap-2 mb-2">
-                            <Sun className="text-yellow-400" size={16} />
+                            <Sun className="text-center-yellow-500" size={16} />
                             <span className="text-xs text-cdmuted uppercase">Ideale omstandigheden</span>
                         </div>
                         <div className="text-2xl font-bold text-cdtext">
@@ -601,7 +601,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                         {weatherAdjustedCalculation.warnings.map((warning, idx) => (
                             <div key={idx} className="bg-yellow-100 border border-yellow-500/50 rounded p-3 flex items-start gap-2">
                                 <AlertTriangle className="text-yellow-500 flex-shrink-0 mt-0.5" size={16} />
-                                <p className="text-sm text-yellow-400">{warning}</p>
+                                <p className="text-sm text-center-yellow-500">{warning}</p>
                             </div>
                         ))}
                     </div>
