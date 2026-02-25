@@ -26,10 +26,10 @@ const wmoIcon = (code) =>
 
 const tempClass = (t) =>
     t >= 30 ? 'text-red-400' :
-        t >= 22 ? 'text-orange-400' :
-            t >= 14 ? 'text-yellow-400' :
-                t >= 5 ? 'text-green-400' :
-                    'text-blue-400';
+        t >= 22 ? 'text-orange-500' :
+            t >= 14 ? 'text-yellow-500' :
+                t >= 5 ? 'text-green-500' :
+                    'text-blue-500';
 
 // A day is "good for climbing" when conditions are comfortable
 const isGoodDay = (day) =>
@@ -71,14 +71,14 @@ const WeatherForecastStrip = ({ forecastData, locationLabel }) => {
                             key={day.time}
                             className={`flex-shrink-0 w-[56px] rounded-lg border flex flex-col items-center gap-0.5 py-2 px-1 text-center
                                 ${isToday
-                                    ? 'border-cyan-500/50 bg-cyan-500/10'
+                                    ? 'border-cyan-500/70 bg-cyan-500/10'
                                     : good
-                                        ? 'border-green-500/50 bg-green-500/15'
+                                        ? 'border-green-500/70 bg-green-100'
                                         : 'border-cdborder bg-cdbg/40'
                                 }`}
                         >
                             {/* Day name */}
-                            <span className={`text-xs font-semibold leading-none ${isToday ? 'text-cyan-400' : 'text-cdtext'}`}>
+                            <span className={`text-xs font-semibold leading-none ${isToday ? 'text-cyan-500' : 'text-cdtext'}`}>
                                 {isToday ? 'nu' : NL_DAYS[d.getDay()]}
                             </span>
 
@@ -91,7 +91,7 @@ const WeatherForecastStrip = ({ forecastData, locationLabel }) => {
                             <div className="relative mt-0.5">
                                 <span className="text-xl leading-none">{icon}</span>
                                 {good && (
-                                    <span className="absolute -top-1 -right-2 text-green-400 text-[10px] font-bold">✓</span>
+                                    <span className="absolute -top-1 -right-2 text-green-500 text-[10px] font-bold">✓</span>
                                 )}
                             </div>
 
@@ -107,13 +107,13 @@ const WeatherForecastStrip = ({ forecastData, locationLabel }) => {
 
                             {/* Precipitation */}
                             <span className={`text-xs leading-none flex items-center gap-px mt-0.5
-                                ${precip >= 2 ? 'text-blue-400' : precip > 0 ? 'text-blue-400/50' : 'text-cdmuted/25'}`}>
+                                ${precip >= 2 ? 'text-blue-500' : precip > 0 ? 'text-blue-500/80' : 'text-cdmuted/25'}`}>
                                 <Droplets size={8} />
                                 <span>{precip > 0 ? (precip < 1 ? '<1' : Math.round(precip)) : '—'}</span>
                             </span>
 
                             {/* Wind: direction abbreviation + max speed */}
-                            <span className="text-[10px] leading-none text-cyan-400/70 mt-0.5">
+                            <span className="text-[10px] leading-none text-cyan-500/80 mt-0.5">
                                 {windAbbr(day.winddirection_10m_dominant)}&nbsp;{Math.round(day.windspeed_10m_max || 0)}
                             </span>
                         </div>
@@ -124,7 +124,7 @@ const WeatherForecastStrip = ({ forecastData, locationLabel }) => {
             {/* Legend */}
             <div className="flex flex-wrap gap-x-3 text-xs text-cdmuted/40">
                 <span>💧 neerslag (mm) · wind: richting + km/h</span>
-                <span className="text-green-400/60">✓ goede klimdag (5-25°C, droog, rustig)</span>
+                <span className="text-green-500">✓ goede klimdag (5-25°C, droog, rustig)</span>
             </div>
         </div>
     );
