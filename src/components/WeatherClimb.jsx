@@ -579,10 +579,10 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                 </div>
 
                 <div className={`p-3 rounded border text-center ${Math.abs(weatherAdjustedCalculation.timeDifference) < 1
-                    ? 'bg-green-500/20 border-green-500/50 text-green-300'
+                    ? 'bg-green-100 border-green-500/50 text-green-500'
                     : weatherAdjustedCalculation.timeDifference > 5
-                        ? 'bg-red-500/20 border-red-500/50 text-red-300'
-                        : 'bg-yellow-500/20 border-yellow-500/50 text-yellow-300'
+                        ? 'bg-red-100 border-red-500/50 text-red-500'
+                        : 'bg-yellow-100 border-yellow-500/50 text-yellow-500'
                     }`}>
                     <p className="font-bold text-sm">
                         {weatherAdjustedCalculation.timeDifference > 0 ? '+' : ''}
