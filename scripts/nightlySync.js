@@ -235,11 +235,19 @@ async function fetchFromIntervalsAPI({ athleteId, apiKey, startDate, endDate }) 
     let transformed = rawActivities.map(normalizeActivity);
 
     // Allow activities that have distance, time, OR power.
-    transformed = transformed.filter(act =>
-        (act.distance && act.distance > 0) ||
-        (act.moving_time && act.moving_time > 0) ||
-        (act.avg_power && act.avg_power > 0)
-    );
+    // BUT: filter out short rides (< 5km) without power data completely
+    transformed = transformed.filter(act => {
+        const noPower = !act.avg_power || act.avg_power === 0;
+        const isShort = !act.distance || act.distance < 5;
+        if (noPower && isShort) {
+            console.log(`[SYNC] Genegeerd: Korte rit zonder vermogen ("${act.title}", ${act.distance}km)`);
+            return false;
+        }
+
+        return (act.distance && act.distance > 0) ||
+            (act.moving_time && act.moving_time > 0) ||
+            (act.avg_power && act.avg_power > 0);
+    });
 
     return transformed;
 }

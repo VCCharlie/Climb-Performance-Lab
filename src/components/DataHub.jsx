@@ -212,7 +212,16 @@ const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImpor
                         page++;
                     }
 
-                    const bikeActivities = allActivities.filter(a => STRAVA_BIKE_TYPES.has(a.sport_type || a.type));
+                    const bikeActivities = allActivities.filter(a => {
+                        if (!STRAVA_BIKE_TYPES.has(a.sport_type || a.type)) return false;
+
+                        // Filter out short rides (< 5km) without power data
+                        const noPower = !a.average_watts || a.average_watts === 0;
+                        const isShort = !a.distance || (a.distance / 1000) < 5;
+                        if (noPower && isShort) return false;
+
+                        return true;
+                    });
                     const result = matchStravaToSite(bikeActivities, activities);
 
                     // 1. Import unmatched New Strava rides
