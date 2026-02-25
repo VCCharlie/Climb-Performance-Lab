@@ -13,6 +13,7 @@ import ImportModal from './data-hub/ImportModal';
 import DuplicateResolver from './data-hub/DuplicateResolver';
 import QuickNav from './data-hub/QuickNav';
 import ImportSection from './data-hub/ImportSection';
+import ActivityDetailModal from './DataHub/ActivityDetailModal';
 
 // Hooks
 import useActivityFilter from '../hooks/useActivityFilter';
@@ -20,9 +21,11 @@ import useActivityFilter from '../hooks/useActivityFilter';
 // --- MAIN COMPONENT ---
 // githubPat: optional GitHub Personal Access Token for manual workflow dispatch
 // showImport: soft-toggle to show/hide the legacy CSV import section (default: false)
-const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImport = false }) => {
+// stravaGetToken: function to get a valid Strava access token (or null if not connected)
+const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImport = false, stravaGetToken }) => {
     // UI State
     const [internalTab, setInternalTab] = useState('log');
+    const [detailActivity, setDetailActivity] = useState(null);
     const [deleteConfirm, setDeleteConfirm] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [showDuplicateModal, setShowDuplicateModal] = useState(false);
@@ -357,6 +360,13 @@ const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImpor
     return (
         <div className="bg-cdsurface rounded-xl border border-cdborder shadow-xl overflow-hidden min-h-[500px] flex flex-col relative animate-in fade-in">
             {/* MODALS */}
+            {detailActivity && (
+                <ActivityDetailModal
+                    activity={detailActivity}
+                    onClose={() => setDetailActivity(null)}
+                    getStravaToken={stravaGetToken}
+                />
+            )}
             {editingActivity && (
                 <EditActivityModal
                     activity={editingActivity}
@@ -548,6 +558,7 @@ const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImpor
                                 onSort={requestSort}
                                 onDelete={handleDeleteSingle}
                                 onEdit={setEditingActivity}
+                                onViewDetail={setDetailActivity}
                                 isGroupedView={isGroupedView}
                                 isYearExpanded={isYearExpanded}
                                 onToggleYear={toggleYear}

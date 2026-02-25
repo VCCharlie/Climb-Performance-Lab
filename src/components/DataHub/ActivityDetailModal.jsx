@@ -1,8 +1,16 @@
-﻿import React from 'react';
-import { X, Calendar, Clock, Activity, MapPin, Zap, ExternalLink, Mountain, TrendingUp } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Calendar, Clock, MapPin, Zap, ExternalLink, Mountain, TrendingUp, Loader2, AlertCircle } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
+import StravaMap from './StravaMap';
+import { formatSegmentTime } from '../../utils/strava';
 
-// Helper to render a stat box
+// Strava logo SVG
+const StravaIcon = ({ size = 14 }) => (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor">
+        <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />
+    </svg>
+);
+
 const StatBox = ({ label, value, unit, icon: Icon, color = "text-cdmuted" }) => (
     <div className="bg-cdbg/50 p-3 rounded-lg border border-cdborder/50 flex flex-col items-center justify-center relative overflow-hidden group">
         <div className={`absolute top-2 right-2 opacity-10 group-hover:opacity-20 transition-opacity ${color}`}>
@@ -10,18 +18,43 @@ const StatBox = ({ label, value, unit, icon: Icon, color = "text-cdmuted" }) => 
         </div>
         <span className="text-[10px] uppercase font-bold text-cdmuted mb-1">{label}</span>
         <div className="flex items-baseline gap-1">
-            <span className={`text-xl font-bold text-cdtext`}>{value || '-'}</span>
+            <span className="text-xl font-bold text-cdtext">{value || '-'}</span>
             <span className="text-xs text-cdmuted">{unit}</span>
         </div>
     </div>
 );
 
-const ActivityDetailModal = ({ activity, onClose }) => {
+const ActivityDetailModal = ({ activity, onClose, getStravaToken }) => {
+    const [stravaData, setStravaData] = useState(null);
+    const [stravaLoading, setStravaLoading] = useState(false);
+    const [stravaError, setStravaError] = useState(null);
+
+    useEffect(() => {
+        if (!activity?.strava_id || !getStravaToken) return;
+
+        setStravaLoading(true);
+        setStravaError(null);
+
+        getStravaToken()
+            .then(token =>
+                fetch(`https://www.strava.com/api/v3/activities/${activity.strava_id}?include_all_efforts=true`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                })
+            )
+            .then(r => {
+                if (!r.ok) throw new Error(`Strava API fout: ${r.status}`);
+                return r.json();
+            })
+            .then(data => setStravaData(data))
+            .catch(e => setStravaError(e.message))
+            .finally(() => setStravaLoading(false));
+    }, [activity?.strava_id, getStravaToken]);
+
     if (!activity) return null;
 
-    const hasMapData = activity.map && (activity.map.summary_polyline || activity.map.polyline);
+    const polyline = stravaData?.map?.summary_polyline;
+    const segments = stravaData?.segment_efforts || [];
 
-    // Config for Power Curve
     const powerCurve = [
         { label: '1m', val: activity.best_1min },
         { label: '5m', val: activity.best_5min },
@@ -42,10 +75,15 @@ const ActivityDetailModal = ({ activity, onClose }) => {
                             <span className="text-cdmuted text-xs flex items-center gap-1"><Calendar size={12} /> {formatDateDDMMYYYY(activity.date)}</span>
                         </div>
                         <h2 className="text-xl font-bold text-cdtext">{activity.title}</h2>
-                        <div className="flex items-center gap-4 mt-2">
+                        <div className="flex items-center gap-4 mt-2 flex-wrap">
                             {activity.id && !String(activity.id).startsWith('csv_') && (
                                 <a href={`https://intervals.icu/activities/${activity.id}`} target="_blank" rel="noreferrer" className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
-                                    View on Intervals.icu <ExternalLink size={10} />
+                                    Intervals.icu <ExternalLink size={10} />
+                                </a>
+                            )}
+                            {activity.strava_id && (
+                                <a href={`https://www.strava.com/activities/${activity.strava_id}`} target="_blank" rel="noreferrer" className="text-xs text-orange-400 hover:text-orange-300 flex items-center gap-1">
+                                    <StravaIcon size={12} /> Strava <ExternalLink size={10} />
                                 </a>
                             )}
                         </div>
@@ -54,10 +92,10 @@ const ActivityDetailModal = ({ activity, onClose }) => {
                 </div>
 
                 {/* Body */}
-                <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-6">
 
                     {/* Primary Stats */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         <StatBox label="Time" value={formatTime(activity.moving_time)} unit="" icon={Clock} color="text-blue-500" />
                         <StatBox label="Distance" value={Number(activity.distance).toFixed(1)} unit="km" icon={MapPin} color="text-green-500" />
                         <StatBox label="Elevation" value={activity.climbing} unit="m" icon={Mountain} color="text-yellow-500" />
@@ -66,7 +104,7 @@ const ActivityDetailModal = ({ activity, onClose }) => {
 
                     {/* Power Stats */}
                     {(activity.avg_power > 0 || activity.norm_power > 0) && (
-                        <div className="mb-6">
+                        <div>
                             <h3 className="text-xs uppercase font-bold text-cdmuted mb-3 flex items-center gap-2"><Zap size={14} className="text-yellow-400" /> Power Metrics</h3>
                             <div className="grid grid-cols-3 md:grid-cols-4 gap-2 mb-4">
                                 <div className="bg-cdborder/30 p-2 rounded text-center">
@@ -74,7 +112,7 @@ const ActivityDetailModal = ({ activity, onClose }) => {
                                     <div className="font-bold text-cdtext">{activity.avg_power}w</div>
                                 </div>
                                 <div className="bg-cdborder/30 p-2 rounded text-center border-l-2 border-yellow-400">
-                                    <div className="text-xs text-cdmuted">NPÂ®</div>
+                                    <div className="text-xs text-cdmuted">NP®</div>
                                     <div className="font-bold text-yellow-400">{activity.norm_power}w</div>
                                 </div>
                                 <div className="bg-cdborder/30 p-2 rounded text-center">
@@ -83,7 +121,7 @@ const ActivityDetailModal = ({ activity, onClose }) => {
                                 </div>
                                 <div className="bg-cdborder/30 p-2 rounded text-center">
                                     <div className="text-xs text-cdmuted">Work</div>
-                                    <div className="font-bold text-cdtext">{activity.kj ? Math.round(activity.kj) : Math.round((activity.avg_power * activity.moving_time) / 1000)}kJ</div>
+                                    <div className="font-bold text-cdtext">{Math.round((activity.avg_power * activity.moving_time) / 1000)}kJ</div>
                                 </div>
                             </div>
 
@@ -91,25 +129,20 @@ const ActivityDetailModal = ({ activity, onClose }) => {
                             {powerCurve.length > 0 && (
                                 <div className="bg-cdbg/50 rounded-lg p-3 border border-cdborder/50">
                                     <div className="text-[10px] text-cdmuted mb-2 uppercase font-bold text-center">Peak Power Curve</div>
-                                    <div className="flex justify-between items-end h-32 gap-2 px-2">
+                                    <div className="flex justify-between items-end h-28 gap-2 px-2">
                                         {powerCurve.map((p, idx) => {
                                             const maxVal = Math.max(...powerCurve.map(i => i.val));
                                             const heightPct = (p.val / maxVal) * 100;
                                             return (
                                                 <div key={idx} className="flex-1 flex flex-col h-full justify-end items-center group relative">
-                                                    {/* Tooltip positioned absolutely above the chart area */}
                                                     <div className="absolute top-0 w-full text-center">
                                                         <span className="text-[10px] font-bold text-cdtext opacity-0 group-hover:opacity-100 transition-opacity bg-cdsurface px-1 rounded border border-cdborder shadow-sm z-10">{p.val}w</span>
                                                     </div>
-
-                                                    {/* Chart Area: Flex-1 fills available space. Items-end aligns bar to bottom. */}
                                                     <div className="flex-1 w-full flex items-end">
-                                                        <div className="w-full bg-yellow-500/20 group-hover:bg-yellow-500/40 rounded-t relative transition-all" style={{ height: `${heightPct}%` }}>
+                                                        <div className="w-full bg-yellow-500/20 group-hover:bg-yellow-500/40 rounded-t transition-all" style={{ height: `${heightPct}%` }}>
                                                             <div className="absolute top-0 w-full h-0.5 bg-yellow-400/50"></div>
                                                         </div>
                                                     </div>
-
-                                                    {/* Label */}
                                                     <div className="text-[10px] text-cdmuted mt-1 h-4 flex items-center">{p.label}</div>
                                                 </div>
                                             );
@@ -120,19 +153,82 @@ const ActivityDetailModal = ({ activity, onClose }) => {
                         </div>
                     )}
 
-                    {/* Map Placeholder - ONLY RENDER IF DATA EXISTS */}
-                    {hasMapData && (
+                    {/* Strava Sectie: kaart + segmenten */}
+                    {activity.strava_id && (
                         <div>
-                            <h3 className="text-xs uppercase font-bold text-cdmuted mb-3 flex items-center gap-2"><MapPin size={14} className="text-green-400" /> Map</h3>
-                            <div className="h-48 bg-cdbg rounded-lg border border-cdborder flex items-center justify-center relative overflow-hidden">
-                                {/* Since we don't have Leaflet yet, we show a clean message or could try a static image API if key available. 
-                                      For now, just a placeholder that acknowledges data exists but renderer is missing. */}
-                                <div className="text-center">
-                                    <MapPin size={32} className="mx-auto text-slate-600 mb-2" />
-                                    <p className="text-xs text-cdmuted">Map Data Available (Polyline)</p>
-                                    <p className="text-[10px] text-slate-600">Renderer not yet implemented</p>
+                            <h3 className="text-xs uppercase font-bold text-cdmuted mb-3 flex items-center gap-2">
+                                <span className="text-orange-400"><StravaIcon size={14} /></span>
+                                Strava Data
+                            </h3>
+
+                            {stravaLoading && (
+                                <div className="flex items-center gap-2 text-cdmuted text-xs py-4">
+                                    <Loader2 size={16} className="animate-spin text-orange-400" />
+                                    Strava data ophalen...
                                 </div>
-                            </div>
+                            )}
+
+                            {stravaError && (
+                                <div className="flex items-start gap-2 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                                    <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                                    <span>{stravaError}</span>
+                                </div>
+                            )}
+
+                            {!stravaLoading && !stravaError && stravaData && (
+                                <div className="space-y-4">
+                                    {/* Kaart */}
+                                    {polyline && (
+                                        <div>
+                                            <div className="text-[10px] text-cdmuted uppercase font-bold mb-2">Route</div>
+                                            <StravaMap polyline={polyline} />
+                                        </div>
+                                    )}
+
+                                    {/* Segmenten */}
+                                    {segments.length > 0 && (
+                                        <div>
+                                            <div className="text-[10px] text-cdmuted uppercase font-bold mb-2">
+                                                Segmenten ({segments.length})
+                                            </div>
+                                            <div className="space-y-1 max-h-60 overflow-y-auto custom-scrollbar">
+                                                {segments.map((seg, i) => (
+                                                    <div key={i} className="flex items-center gap-2 bg-cdbg/50 rounded px-3 py-2 border border-cdborder/30 text-xs">
+                                                        <div className="flex-1 truncate">
+                                                            <a
+                                                                href={`https://www.strava.com/segments/${seg.segment?.id}`}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="text-cdtext hover:text-orange-400 font-medium transition-colors"
+                                                                onClick={e => e.stopPropagation()}
+                                                            >
+                                                                {seg.name}
+                                                            </a>
+                                                        </div>
+                                                        <span className="text-cdmuted font-mono shrink-0">{formatSegmentTime(seg.elapsed_time)}</span>
+                                                        {seg.average_watts > 0 && (
+                                                            <span className="text-yellow-400 font-bold shrink-0">{Math.round(seg.average_watts)}w</span>
+                                                        )}
+                                                        {seg.pr_rank === 1 && (
+                                                            <span className="text-xs bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded font-bold shrink-0">PR</span>
+                                                        )}
+                                                        {seg.kom_rank && seg.kom_rank <= 10 && (
+                                                            <span className="text-xs bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded font-bold shrink-0">KOM#{seg.kom_rank}</span>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Geen Strava connectie */}
+                            {!stravaLoading && !stravaError && !stravaData && !getStravaToken && (
+                                <div className="text-xs text-cdmuted bg-cdbg/50 rounded-lg p-3 border border-cdborder/30">
+                                    Verbind Strava in Settings om kaart en segmenten te zien.
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

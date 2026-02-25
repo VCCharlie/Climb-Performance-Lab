@@ -23,6 +23,7 @@ import BucketList from './components/BucketList';
 import WeatherClimb from './components/WeatherClimb';
 
 import useIntervalsSync from './hooks/useIntervalsSync';
+import useStravaAuth from './hooks/useStravaAuth';
 import { SPORT_TYPES } from './config';
 
 const App = () => {
@@ -49,6 +50,23 @@ const App = () => {
 
     const [selectedClimb, setSelectedClimb] = useState(CLIMB_DATABASE?.[0] || { id: 'dummy', name: 'Loading', lengthKm: 0, elevation: 0, avgGrade: 0 });
     const [intervalsConfig, setIntervalsConfig] = useState({ apiKey: '', athleteId: '' });
+
+    // Strava config: opgeslagen in localStorage (enkelvoudige gebruiker)
+    const [stravaConfig, setStravaConfig] = useState(() => {
+        const saved = localStorage.getItem('stravaConfig');
+        if (saved) { try { return JSON.parse(saved); } catch (e) { /* */ } }
+        return { client_id: '', client_secret: '' };
+    });
+
+    const updateStravaConfig = (key, value) => {
+        setStravaConfig(prev => {
+            const updated = { ...prev, [key]: value };
+            localStorage.setItem('stravaConfig', JSON.stringify(updated));
+            return updated;
+        });
+    };
+
+    const stravaAuth = useStravaAuth(stravaConfig, setStravaConfig);
 
     // --- Sync State for SettingsModal ---
     const { syncIntervals, isSyncing, syncProgress } = useIntervalsSync(intervalsConfig);
@@ -147,6 +165,19 @@ const App = () => {
             setUser(firebaseUser);
         });
         return () => unsubscribe();
+    }, []);
+
+    // Strava OAuth callback: verwerk ?code= parameter bij terugkeer van Strava
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('code');
+        if (code && stravaConfig?.client_id && stravaConfig?.client_secret) {
+            stravaAuth.handleOAuthCallback(code).catch(e => {
+                console.error('Strava OAuth fout:', e);
+                alert('Strava koppeling mislukt: ' + e.message);
+            });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // 1. Settings Laden (One-time fetch)
@@ -354,6 +385,7 @@ const App = () => {
                                 onDelete={handleDeleteActivity}
                                 onClear={handleClearActivities}
                                 githubPat={userSettings.githubPat}
+                                stravaGetToken={stravaAuth.isConnected ? stravaAuth.getValidToken : null}
                             />
                         )}
 
@@ -479,6 +511,9 @@ const App = () => {
                                         return Array.from(map.values());
                                     });
                                 }}
+                                stravaConfig={stravaConfig}
+                                updateStravaConfig={updateStravaConfig}
+                                stravaAuth={stravaAuth}
                             />
                         )}
                     </>

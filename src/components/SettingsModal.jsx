@@ -1,7 +1,14 @@
 ﻿import React, { useState } from 'react';
-import { Settings, Activity, RefreshCw, Save, Moon, Sun, Shield, Target, Bell, Database, Download, Upload, Zap, X } from 'lucide-react';
+import { Settings, Activity, RefreshCw, Save, Moon, Sun, Shield, Target, Bell, Database, Download, Upload, Zap, X, Link, Unlink } from 'lucide-react';
 import { calculatePowerZones } from '../utils';
 import SyncPanel from './data-hub/SyncPanel';
+
+// Strava logo SVG
+const StravaIcon = ({ size = 16 }) => (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor">
+        <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />
+    </svg>
+);
 
 const SettingsModal = ({
     onClose,
@@ -9,7 +16,8 @@ const SettingsModal = ({
     userSettings, updateUserSettings,
     onSaveToCloud, theme, setTheme,
     fullData, onImportBackup,
-    syncState, onSyncComplete
+    syncState, onSyncComplete,
+    stravaConfig, updateStravaConfig, stravaAuth
 }) => {
     const [isSaving, setIsSaving] = useState(false);
 
@@ -215,6 +223,76 @@ const SettingsModal = ({
                                 </div>
                             )}
                         </div>
+
+                        {/* STRAVA KOPPELING */}
+                        {stravaAuth && (
+                            <div className={`border rounded-xl p-6 ${cardClass}`}>
+                                <div className="flex items-center gap-2 pb-2 border-b border-cdborder/50 mb-4">
+                                    <span className="text-orange-400"><StravaIcon size={18} /></span>
+                                    <h3 className={`font-bold ${titleClass}`}>Strava Koppeling</h3>
+                                    {stravaAuth.isConnected && (
+                                        <span className="ml-auto text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded font-bold flex items-center gap-1">
+                                            <Link size={10} /> Verbonden
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="space-y-3">
+                                    <div>
+                                        <label className={`block text-xs uppercase font-bold mb-1 ${labelClass}`}>Client ID</label>
+                                        <input
+                                            type="text"
+                                            placeholder="12345"
+                                            value={stravaConfig?.client_id || ''}
+                                            onChange={e => updateStravaConfig('client_id', e.target.value)}
+                                            className={`w-full border rounded p-3 outline-none ${inputClass}`}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className={`block text-xs uppercase font-bold mb-1 ${labelClass}`}>Client Secret</label>
+                                        <input
+                                            type="password"
+                                            placeholder="••••••••••••••••"
+                                            value={stravaConfig?.client_secret || ''}
+                                            onChange={e => updateStravaConfig('client_secret', e.target.value)}
+                                            className={`w-full border rounded p-3 outline-none ${inputClass}`}
+                                        />
+                                        <p className="text-xs text-cdmuted mt-1">
+                                            Vind je gegevens op{' '}
+                                            <a href="https://www.strava.com/settings/api" target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:underline">
+                                                strava.com/settings/api
+                                            </a>
+                                            . Redirect URI invullen:{' '}
+                                            <code className="bg-cdborder px-1 rounded text-[10px]">{window.location.origin + window.location.pathname}</code>
+                                        </p>
+                                    </div>
+                                    <div className="flex gap-2 pt-1">
+                                        {stravaAuth.isConnected ? (
+                                            <>
+                                                {stravaConfig?.athlete_name && (
+                                                    <span className="flex-1 text-sm text-cdtext flex items-center gap-1">
+                                                        <span className="text-orange-400"><StravaIcon size={14} /></span>
+                                                        {stravaConfig.athlete_name}
+                                                    </span>
+                                                )}
+                                                <button
+                                                    onClick={stravaAuth.disconnectStrava}
+                                                    className="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded font-bold text-sm transition-colors"
+                                                >
+                                                    <Unlink size={14} /> Ontkoppelen
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <button
+                                                onClick={stravaAuth.connectStrava}
+                                                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded font-bold text-sm transition-colors"
+                                            >
+                                                <StravaIcon size={16} /> Verbinden met Strava
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* BACKUP & RESTORE */}
                         <div className={`border rounded-xl p-6 ${cardClass}`}>

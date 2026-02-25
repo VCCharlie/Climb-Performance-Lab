@@ -1,0 +1,40 @@
+/**
+ * src/utils/strava.js
+ * Strava API utility functions
+ */
+
+// Decode Google's Encoded Polyline Algorithm Format
+// Used by Strava's map.summary_polyline field
+export const decodePolyline = (encoded) => {
+    if (!encoded) return [];
+    let index = 0, lat = 0, lng = 0;
+    const coords = [];
+    while (index < encoded.length) {
+        let shift = 0, result = 0, byte;
+        do { byte = encoded.charCodeAt(index++) - 63; result |= (byte & 0x1f) << shift; shift += 5; } while (byte >= 0x20);
+        lat += (result & 1) ? ~(result >> 1) : (result >> 1);
+        shift = 0; result = 0;
+        do { byte = encoded.charCodeAt(index++) - 63; result |= (byte & 0x1f) << shift; shift += 5; } while (byte >= 0x20);
+        lng += (result & 1) ? ~(result >> 1) : (result >> 1);
+        coords.push([lat / 1e5, lng / 1e5]);
+    }
+    return coords;
+};
+
+// Extract numeric Strava activity ID from Intervals.icu external_id field
+// Intervals.icu stores it as e.g. "strava-12345678" or "strava:12345678"
+export const extractStravaId = (externalId) => {
+    if (!externalId) return null;
+    const match = String(externalId).match(/strava[:\-]?(\d+)/i);
+    return match ? match[1] : null;
+};
+
+// Format seconds to M:SS or H:MM:SS
+export const formatSegmentTime = (seconds) => {
+    if (!seconds || seconds <= 0) return '-';
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    return `${m}:${String(s).padStart(2, '0')}`;
+};
