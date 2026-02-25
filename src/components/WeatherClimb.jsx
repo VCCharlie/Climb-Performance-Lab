@@ -601,7 +601,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                         {weatherAdjustedCalculation.warnings.map((warning, idx) => (
                             <div key={idx} className="bg-yellow-100 border border-yellow-500/50 rounded p-3 flex items-start gap-2">
                                 <AlertTriangle className="text-yellow-500 flex-shrink-0 mt-0.5" size={16} />
-                                <p className="text-sm text-center-yellow-500">{warning}</p>
+                                <p className="text-sm text-yellow-600">{warning}</p>
                             </div>
                         ))}
                     </div>
