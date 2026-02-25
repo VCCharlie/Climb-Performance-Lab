@@ -46,21 +46,42 @@ const SectionHeader = ({ icon: Icon, iconColor, title, count, children }) => {
  * Stap 2: fuzzy match op datum + afstand + duur
  * Stap 3: review + bevestig → schrijf strava_id naar Firestore
  */
-const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, endDate }) => {
+const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, endDate, persistedResults, onResultsChange }) => {
     const [isFetching, setIsFetching] = useState(false);
     const [fetchProgress, setFetchProgress] = useState('');
     const [error, setError] = useState(null);
-    const [results, setResults] = useState(null);
-    const [selectedMatches, setSelectedMatches] = useState(new Set());
+
+    // Herstel opgehaalde resultaten na een tab-wissel
+    const [results, setResults] = useState(persistedResults ?? null);
+    const [selectedMatches, setSelectedMatches] = useState(() => {
+        if (!persistedResults?.matched) return new Set();
+        return new Set(
+            persistedResults.matched
+                .filter(m => m.confidence !== 'low')
+                .map(m => String(m.strava.id))
+        );
+    });
     const [selectedNew, setSelectedNew] = useState(new Set());
     const [isApplying, setIsApplying] = useState(false);
     const [appliedCount, setAppliedCount] = useState(0);
+
+    const applyResults = useCallback((result) => {
+        setResults(result);
+        onResultsChange?.(result);
+        setSelectedMatches(new Set(
+            result.matched
+                .filter(m => m.confidence !== 'low')
+                .map(m => String(m.strava.id))
+        ));
+        setSelectedNew(new Set());
+    }, [onResultsChange]);
 
     const fetchAndMatch = useCallback(async () => {
         if (!getStravaToken) return;
         setIsFetching(true);
         setError(null);
         setResults(null);
+        onResultsChange?.(null);
         setAppliedCount(0);
 
         try {
@@ -93,22 +114,14 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
             setFetchProgress(`${bikeActivities.length} fietsactiviteiten gevonden, matching...`);
 
             const result = matchStravaToSite(bikeActivities, activities);
-            setResults(result);
-
-            // Selecteer automatisch high + medium confidence matches
-            setSelectedMatches(new Set(
-                result.matched
-                    .filter(m => m.confidence !== 'low')
-                    .map(m => String(m.strava.id))
-            ));
-            setSelectedNew(new Set());
+            applyResults(result);
         } catch (e) {
             setError(e.message);
         } finally {
             setIsFetching(false);
             setFetchProgress('');
         }
-    }, [getStravaToken, startDate, endDate, activities]);
+    }, [getStravaToken, startDate, endDate, activities, applyResults]);
 
     const applyEnrichment = async () => {
         if (!results) return;
@@ -162,17 +175,24 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
 
             {/* Ophalen-knop – datumrange via tab-lint boven */}
             <div className="flex items-center justify-between gap-3">
-                <p className="text-xs text-cdmuted">
-                    Periode: <span className="text-cdtext font-mono">{startDate}</span> – <span className="text-cdtext font-mono">{endDate}</span>
-                    <span className="ml-1 opacity-70">(aanpasbaar in de tab-balk bovenaan)</span>
-                </p>
+                <div>
+                    <p className="text-xs text-cdmuted">
+                        Periode: <span className="text-cdtext font-mono">{startDate}</span> – <span className="text-cdtext font-mono">{endDate}</span>
+                        <span className="ml-1 opacity-70">(aanpasbaar in de tab-balk bovenaan)</span>
+                    </p>
+                    {results && !isFetching && (
+                        <p className="text-[10px] text-orange-400 mt-0.5">
+                            ↩ Resultaten hersteld na tab-wissel — klik "Opnieuw ophalen" voor actuele data
+                        </p>
+                    )}
+                </div>
                 <button
                     onClick={fetchAndMatch}
                     disabled={isFetching || !getStravaToken}
                     className="flex items-center gap-2 px-5 py-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded text-sm transition-colors shrink-0"
                 >
                     {isFetching ? <Loader2 size={14} className="animate-spin" /> : <StravaIcon size={14} />}
-                    {isFetching ? fetchProgress || 'Ophalen...' : 'Ophalen van Strava'}
+                    {isFetching ? fetchProgress || 'Ophalen...' : (results ? 'Opnieuw ophalen' : 'Ophalen van Strava')}
                 </button>
             </div>
 
