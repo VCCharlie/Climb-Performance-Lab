@@ -3,6 +3,7 @@ import { Search, Loader2, AlertTriangle, Trash, Split, RefreshCw, ExternalLink, 
 import { doc, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from '../firebase';
 import { findDuplicatesInList } from '../utils';
+import { matchStravaToSite, normalizeStravaActivity, STRAVA_BIKE_TYPES } from '../utils/stravaMatch';
 
 import { SPORT_TYPES } from '../config';
 
@@ -173,12 +174,10 @@ const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImpor
     }, []);
 
     /**
-     * Triggers the nightly sync GitHub Actions workflow on demand.
-     * Strategy:
-     *  1. List all workflows in the repo to find the nightly-sync workflow dynamically.
-     *  2. Trigger the found workflow via workflow_dispatch.
-     *
-     * Requires a GitHub PAT (classic or fine-grained) with `workflow` / `actions:write` scope.
+     * UNIVERSAL SYNC
+     * Step 1: fetch new items from Strava (if connected) directly from the browser.
+     * Step 2: list workflows in the repo to find the nightly-sync workflow dynamically.
+     * Step 3: dispatch the workflow via workflow_dispatch to trigger the Deep Merge backend.
      */
     const triggerGithubSync = async () => {
         if (!githubPat) {
@@ -188,6 +187,53 @@ const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImpor
         setIsSyncingGithub(true);
         setSyncStatus(null);
         setSyncErrorDetail(null);
+
+        // --- PHASE 1: SILENT STRAVA IMPORT ---
+        if (stravaGetToken) {
+            try {
+                setSyncErrorDetail("Stap 1/2: Controleren op nieuwe Strava ritten...");
+                const token = await stravaGetToken();
+                if (token) {
+                    const afterTs = Math.floor(new Date(startDate).getTime() / 1000);
+                    const beforeTs = Math.floor(new Date(endDate).getTime() / 1000) + 86400;
+
+                    let page = 1;
+                    let allActivities = [];
+                    while (true) {
+                        const resp = await fetch(
+                            `https://www.strava.com/api/v3/athlete/activities?after=${afterTs}&before=${beforeTs}&per_page=200&page=${page}`,
+                            { headers: { Authorization: `Bearer ${token}` } }
+                        );
+                        if (!resp.ok) break;
+                        const data = await resp.json();
+                        if (!Array.isArray(data) || data.length === 0) break;
+                        allActivities = allActivities.concat(data);
+                        if (data.length < 200) break;
+                        page++;
+                    }
+
+                    const bikeActivities = allActivities.filter(a => STRAVA_BIKE_TYPES.has(a.sport_type || a.type));
+                    const result = matchStravaToSite(bikeActivities, activities);
+
+                    // Import only unmatched New Strava rides
+                    if (result && result.unmatchedStrava && result.unmatchedStrava.length > 0) {
+                        const newActs = result.unmatchedStrava.map(normalizeStravaActivity);
+                        if (db) {
+                            await Promise.all(newActs.map(act =>
+                                setDoc(doc(db, 'activities', String(act.id)), act, { merge: true })
+                            ));
+                        }
+                        if (onImport) onImport(newActs);
+                        console.log(`[Universal Sync] ${newActs.length} nieuwe Strava ritten geïmporteerd.`);
+                    }
+                }
+            } catch (err) {
+                console.error("[Universal Sync] Strava voorfase overgeslagen door fout:", err);
+            }
+        }
+
+        // --- PHASE 2: TRIGGER GITHUB BACKEND ---
+        setSyncErrorDetail("Stap 2/2: Backend Intervals Deep Merge starten...");
 
         const REPO = 'VCCharlie/Climb-Performance-Lab';
         const HEADERS = {
@@ -245,13 +291,13 @@ const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImpor
                 const errBody = await dispatchRes.json().catch(() => ({ message: `HTTP ${dispatchRes.status}` }));
                 const msg = errBody?.message || `HTTP ${dispatchRes.status}`;
                 console.error('[Sync] Dispatch failed:', dispatchRes.status, errBody);
-                setSyncErrorDetail(`${dispatchRes.status}: ${msg}`);
+                setSyncErrorDetail(`GitHub Dispatch Fout: ${dispatchRes.status}: ${msg}`);
                 setSyncStatus('error');
                 setTimeout(() => { setSyncStatus(null); setSyncErrorDetail(null); }, 10000);
             }
         } catch (err) {
             console.error('[Sync] Fetch error:', err);
-            setSyncErrorDetail(err.message);
+            setSyncErrorDetail(`Netwerkfout: ${err.message}`);
             setSyncStatus('error');
             setTimeout(() => { setSyncStatus(null); setSyncErrorDetail(null); }, 10000);
         } finally {
