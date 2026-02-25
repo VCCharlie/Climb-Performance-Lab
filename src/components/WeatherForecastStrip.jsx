@@ -107,13 +107,13 @@ const WeatherForecastStrip = ({ forecastData, locationLabel }) => {
 
                             {/* Precipitation */}
                             <span className={`text-s leading-none flex items-center gap-px mt-0.5
-                                ${precip >= 2 ? 'text-blue-500' : precip > 0 ? 'text-blue-500/80' : 'text-cdmuted/25'}`}>
-                                <Droplets size={8} />
+                                ${precip >= 2 ? 'text-blue-500' : precip > 0 ? 'text-blue-500' : 'text-cdmuted/25'}`}>
+                                <Droplets size={10} />
                                 <span>{precip > 0 ? (precip < 1 ? '<1' : Math.round(precip)) : '—'}</span>
                             </span>
 
                             {/* Wind: direction abbreviation + max speed */}
-                            <span className="text-[10px] leading-none text-cyan-500/80 mt-0.5">
+                            <span className="text-[12px] leading-none text-cyan-500 mt-0.5">
                                 {windAbbr(day.winddirection_10m_dominant)}&nbsp;{Math.round(day.windspeed_10m_max || 0)}
                             </span>
                         </div>
