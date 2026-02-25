@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useCallback } from 'react';
-import { Gauge, Mountain, Activity, Utensils, Brain, Route, Settings as SettingsIcon, TrendingUp, Menu, X, Heart, Trophy, Cloud, ChevronRight } from 'lucide-react';
+import { Gauge, Mountain, Activity, Utensils, Brain, Route, Settings as SettingsIcon, TrendingUp, Menu, X, Heart, Trophy, Cloud, ChevronRight, CalendarRange } from 'lucide-react';
 import { doc, setDoc, getDoc, collection, onSnapshot } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from './firebase';
@@ -51,7 +51,7 @@ const App = () => {
     const [selectedClimb, setSelectedClimb] = useState(CLIMB_DATABASE?.[0] || { id: 'dummy', name: 'Loading', lengthKm: 0, elevation: 0, avgGrade: 0 });
     const [intervalsConfig, setIntervalsConfig] = useState({ apiKey: '', athleteId: '' });
 
-    // Strava config: opgeslagen in localStorage (enkelvoudige gebruiker)
+    // Strava config: opgeslagen in localStorage + Firestore (cross-device)
     const [stravaConfig, setStravaConfig] = useState(() => {
         const saved = localStorage.getItem('stravaConfig');
         if (saved) { try { return JSON.parse(saved); } catch (e) { /* */ } }
@@ -67,6 +67,14 @@ const App = () => {
     };
 
     const stravaAuth = useStravaAuth(stravaConfig, setStravaConfig);
+
+    // Globale datumrange: gedeeld tussen tabs (Strava verrijking, etc.)
+    const [globalStartDate, setGlobalStartDate] = useState(
+        () => new Date(Date.now() - 365 * 24 * 3600 * 1000).toISOString().split('T')[0]
+    );
+    const [globalEndDate, setGlobalEndDate] = useState(
+        () => new Date().toISOString().split('T')[0]
+    );
 
     // --- Sync State for SettingsModal ---
     const { syncIntervals, isSyncing, syncProgress } = useIntervalsSync(intervalsConfig);
@@ -145,6 +153,16 @@ const App = () => {
         }
     }, [bucketListState, user]);
 
+    // Auto-save stravaConfig naar Firestore zodra er een client_id is ingesteld
+    useEffect(() => {
+        if (db && user && stravaConfig?.client_id) {
+            const settingsId = `user_${user.uid}`;
+            setDoc(doc(db, "settings", settingsId), {
+                strava: stravaConfig
+            }, { merge: true }).catch(e => console.error("Error auto-saving stravaConfig:", e));
+        }
+    }, [stravaConfig, user]);
+
     const [weatherClimbState, setWeatherClimbState] = useState({
         selectedClimb: CLIMB_DATABASE[0],
         targetPower: 280 * 0.85,
@@ -203,6 +221,10 @@ const App = () => {
                     if (data.bucketList) {
                         setBucketListState(data.bucketList);
                         localStorage.setItem('bucketListState', JSON.stringify(data.bucketList));
+                    }
+                    if (data.strava) {
+                        setStravaConfig(data.strava);
+                        localStorage.setItem('stravaConfig', JSON.stringify(data.strava));
                     }
                 }
             } catch (e) {
@@ -264,7 +286,8 @@ const App = () => {
                 intervals: intervalsConfig,
                 body: userSettings,
                 theme: theme,
-                bucketList: bucketListState
+                bucketList: bucketListState,
+                strava: stravaConfig
             }, { merge: true });
             alert("Settings saved! Bike Weight: " + (userSettings.bikeWeight || 'N/A'));
         } catch (e) { alert("Error saving settings: " + e.message); }
@@ -346,21 +369,40 @@ const App = () => {
                                 </div>
                             )}
 
-                            {/* Desktop: Horizontal Tabs */}
-                            <nav className="hidden md:flex overflow-x-auto gap-1 pb-2 border-b border-cdborder/50 mb-4">
-                                {mainTabs.map(item => {
-                                    const isActive = activeTab === item.id;
-                                    return (
-                                        <button
-                                            key={item.id}
-                                            onClick={() => setActiveTab(item.id)}
-                                            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold transition-all border-b-2 whitespace-nowrap ${isActive ? 'border-cdaccent text-cdtext' : 'border-transparent text-cdmuted hover:text-cdtext'}`}
-                                        >
-                                            <item.icon className={`w-3.5 h-3.5 ${isActive ? 'text-cdaccent' : ''}`} />
-                                            {item.label}
-                                        </button>
-                                    );
-                                })}
+                            {/* Desktop: Horizontal Tabs + globale datumrange rechts */}
+                            <nav className="hidden md:flex items-end justify-between pb-2 border-b border-cdborder/50 mb-4">
+                                <div className="flex overflow-x-auto gap-1">
+                                    {mainTabs.map(item => {
+                                        const isActive = activeTab === item.id;
+                                        return (
+                                            <button
+                                                key={item.id}
+                                                onClick={() => setActiveTab(item.id)}
+                                                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold transition-all border-b-2 whitespace-nowrap ${isActive ? 'border-cdaccent text-cdtext' : 'border-transparent text-cdmuted hover:text-cdtext'}`}
+                                            >
+                                                <item.icon className={`w-3.5 h-3.5 ${isActive ? 'text-cdaccent' : ''}`} />
+                                                {item.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                {/* Globale datumrange – altijd zichtbaar in tab-lint */}
+                                <div className="flex items-center gap-1.5 shrink-0 ml-4 pb-0.5">
+                                    <CalendarRange size={13} className="text-cdmuted" />
+                                    <input
+                                        type="date"
+                                        value={globalStartDate}
+                                        onChange={e => setGlobalStartDate(e.target.value)}
+                                        className="bg-cdbg border border-cdborder rounded px-2 py-1 text-xs text-cdtext outline-none focus:border-cdaccent"
+                                    />
+                                    <span className="text-cdmuted text-xs">–</span>
+                                    <input
+                                        type="date"
+                                        value={globalEndDate}
+                                        onChange={e => setGlobalEndDate(e.target.value)}
+                                        className="bg-cdbg border border-cdborder rounded px-2 py-1 text-xs text-cdtext outline-none focus:border-cdaccent"
+                                    />
+                                </div>
                             </nav>
                         </div>
                     );
@@ -386,6 +428,8 @@ const App = () => {
                                 onClear={handleClearActivities}
                                 githubPat={userSettings.githubPat}
                                 stravaGetToken={stravaAuth.isConnected ? stravaAuth.getValidToken : null}
+                                startDate={globalStartDate}
+                                endDate={globalEndDate}
                             />
                         )}
 

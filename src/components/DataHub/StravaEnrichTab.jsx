@@ -46,12 +46,7 @@ const SectionHeader = ({ icon: Icon, iconColor, title, count, children }) => {
  * Stap 2: fuzzy match op datum + afstand + duur
  * Stap 3: review + bevestig → schrijf strava_id naar Firestore
  */
-const StravaEnrichTab = ({ activities, getStravaToken, onImportNew }) => {
-    const today = new Date().toISOString().split('T')[0];
-    const oneYearAgo = new Date(Date.now() - 365 * 24 * 3600 * 1000).toISOString().split('T')[0];
-
-    const [startDate, setStartDate] = useState(oneYearAgo);
-    const [endDate, setEndDate] = useState(today);
+const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, endDate }) => {
     const [isFetching, setIsFetching] = useState(false);
     const [fetchProgress, setFetchProgress] = useState('');
     const [error, setError] = useState(null);
@@ -165,20 +160,12 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew }) => {
     return (
         <div className="space-y-4 flex-1 overflow-y-auto custom-scrollbar pr-1">
 
-            {/* Datumbereik + ophalen */}
-            <div className="flex flex-col sm:flex-row gap-3 items-end">
-                <div className="flex gap-2 flex-1">
-                    <div className="flex-1">
-                        <label className="text-[10px] uppercase font-bold text-cdmuted block mb-1">Van</label>
-                        <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
-                            className="w-full bg-cdbg border border-cdborder rounded px-3 py-2 text-sm text-cdtext outline-none focus:border-orange-400" />
-                    </div>
-                    <div className="flex-1">
-                        <label className="text-[10px] uppercase font-bold text-cdmuted block mb-1">Tot</label>
-                        <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
-                            className="w-full bg-cdbg border border-cdborder rounded px-3 py-2 text-sm text-cdtext outline-none focus:border-orange-400" />
-                    </div>
-                </div>
+            {/* Ophalen-knop – datumrange via tab-lint boven */}
+            <div className="flex items-center justify-between gap-3">
+                <p className="text-xs text-cdmuted">
+                    Periode: <span className="text-cdtext font-mono">{startDate}</span> – <span className="text-cdtext font-mono">{endDate}</span>
+                    <span className="ml-1 opacity-70">(aanpasbaar in de tab-balk bovenaan)</span>
+                </p>
                 <button
                     onClick={fetchAndMatch}
                     disabled={isFetching || !getStravaToken}
