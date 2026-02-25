@@ -24,7 +24,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 
 const CLOUD_FUNCTION_URL = 'https://sync-intervals-97555677694.europe-west1.run.app';
 const FIRESTORE_COLLECTION = 'activities';
-const LOOKBACK_DAYS = 4650;
+const LOOKBACK_DAYS = 14;
 // We no longer strictly filter on SPORT_TYPES before storing, to ensure we catch Workouts with power data.
 const ACCEPTED_TYPES = ['Ride', 'VirtualRide', 'Workout', 'IndoorCycling'];
 
