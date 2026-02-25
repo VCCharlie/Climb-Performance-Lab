@@ -1,0 +1,309 @@
+import React, { useState, useCallback } from 'react';
+import { Loader2, Check, AlertCircle, RefreshCw, Link2, Plus, ChevronDown, ChevronRight } from 'lucide-react';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '../../firebase';
+import { matchStravaToSite, normalizeStravaActivity, STRAVA_BIKE_TYPES } from '../../utils/stravaMatch';
+
+// Strava logo SVG
+const StravaIcon = ({ size = 14 }) => (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor">
+        <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />
+    </svg>
+);
+
+const ConfidenceBadge = ({ confidence }) => {
+    const styles = {
+        high: 'bg-green-500/20 text-green-400',
+        medium: 'bg-yellow-500/20 text-yellow-400',
+        low: 'bg-orange-500/20 text-orange-400'
+    };
+    const labels = { high: 'Hoog', medium: 'Midden', low: 'Laag' };
+    return (
+        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${styles[confidence]}`}>
+            {labels[confidence]}
+        </span>
+    );
+};
+
+const SectionHeader = ({ icon: Icon, iconColor, title, count, children }) => {
+    const [open, setOpen] = useState(true);
+    return (
+        <div>
+            <button onClick={() => setOpen(v => !v)} className="flex items-center gap-2 w-full text-left mb-2 hover:text-cdtext transition-colors">
+                {open ? <ChevronDown size={12} className="text-cdmuted" /> : <ChevronRight size={12} className="text-cdmuted" />}
+                <Icon size={12} className={iconColor} />
+                <span className="text-xs uppercase font-bold text-cdmuted">{title}</span>
+                <span className="text-xs text-cdmuted ml-auto">{count}</span>
+            </button>
+            {open && children}
+        </div>
+    );
+};
+
+/**
+ * Tab voor het koppelen van Strava-activiteiten aan bestaande site-activiteiten.
+ * Stap 1: haal Strava op (gefilterd op fietstypes)
+ * Stap 2: fuzzy match op datum + afstand + duur
+ * Stap 3: review + bevestig → schrijf strava_id naar Firestore
+ */
+const StravaEnrichTab = ({ activities, getStravaToken, onImportNew }) => {
+    const today = new Date().toISOString().split('T')[0];
+    const oneYearAgo = new Date(Date.now() - 365 * 24 * 3600 * 1000).toISOString().split('T')[0];
+
+    const [startDate, setStartDate] = useState(oneYearAgo);
+    const [endDate, setEndDate] = useState(today);
+    const [isFetching, setIsFetching] = useState(false);
+    const [fetchProgress, setFetchProgress] = useState('');
+    const [error, setError] = useState(null);
+    const [results, setResults] = useState(null);
+    const [selectedMatches, setSelectedMatches] = useState(new Set());
+    const [selectedNew, setSelectedNew] = useState(new Set());
+    const [isApplying, setIsApplying] = useState(false);
+    const [appliedCount, setAppliedCount] = useState(0);
+
+    const fetchAndMatch = useCallback(async () => {
+        if (!getStravaToken) return;
+        setIsFetching(true);
+        setError(null);
+        setResults(null);
+        setAppliedCount(0);
+
+        try {
+            const token = await getStravaToken();
+            const afterTs = Math.floor(new Date(startDate).getTime() / 1000);
+            const beforeTs = Math.floor(new Date(endDate).getTime() / 1000) + 86400;
+
+            // Haal alle activiteiten op, gepagineerd (max 200 per pagina)
+            let page = 1;
+            let allActivities = [];
+            while (true) {
+                setFetchProgress(`Pagina ${page} ophalen...`);
+                const resp = await fetch(
+                    `https://www.strava.com/api/v3/athlete/activities?after=${afterTs}&before=${beforeTs}&per_page=200&page=${page}`,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+                if (!resp.ok) throw new Error(`Strava API fout: ${resp.status}`);
+                const data = await resp.json();
+                if (!Array.isArray(data) || data.length === 0) break;
+                allActivities = allActivities.concat(data);
+                if (data.length < 200) break;
+                page++;
+            }
+
+            // Alleen fietstypes (Ride, VirtualRide, GravelRide, MountainBikeRide)
+            const bikeActivities = allActivities.filter(a =>
+                STRAVA_BIKE_TYPES.has(a.sport_type || a.type)
+            );
+
+            setFetchProgress(`${bikeActivities.length} fietsactiviteiten gevonden, matching...`);
+
+            const result = matchStravaToSite(bikeActivities, activities);
+            setResults(result);
+
+            // Selecteer automatisch high + medium confidence matches
+            setSelectedMatches(new Set(
+                result.matched
+                    .filter(m => m.confidence !== 'low')
+                    .map(m => String(m.strava.id))
+            ));
+            setSelectedNew(new Set());
+        } catch (e) {
+            setError(e.message);
+        } finally {
+            setIsFetching(false);
+            setFetchProgress('');
+        }
+    }, [getStravaToken, startDate, endDate, activities]);
+
+    const applyEnrichment = async () => {
+        if (!results) return;
+        setIsApplying(true);
+
+        let count = 0;
+
+        // 1. Schrijf strava_id naar gekoppelde activiteiten in Firestore
+        const toEnrich = results.matched.filter(m => selectedMatches.has(String(m.strava.id)));
+        for (const { strava, site } of toEnrich) {
+            try {
+                if (db) {
+                    await setDoc(
+                        doc(db, 'activities', String(site.id)),
+                        { strava_id: String(strava.id) },
+                        { merge: true }
+                    );
+                }
+                count++;
+            } catch (e) {
+                console.error('Enrichment fout voor', site.id, e);
+            }
+        }
+
+        // 2. Importeer nieuwe activiteiten (alleen in Strava, niet op site)
+        if (selectedNew.size > 0) {
+            const newActs = results.unmatchedStrava
+                .filter(a => selectedNew.has(String(a.id)))
+                .map(normalizeStravaActivity);
+            if (onImportNew && newActs.length > 0) onImportNew(newActs);
+        }
+
+        setAppliedCount(count);
+        setIsApplying(false);
+
+        // Herlaad resultaten om al-gekoppeld status te reflecteren
+        await fetchAndMatch();
+    };
+
+    const toggleMatch = (stravaId) => {
+        const id = String(stravaId);
+        setSelectedMatches(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
+    };
+    const toggleNew = (stravaId) => {
+        const id = String(stravaId);
+        setSelectedNew(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
+    };
+
+    return (
+        <div className="space-y-4 flex-1 overflow-y-auto custom-scrollbar pr-1">
+
+            {/* Datumbereik + ophalen */}
+            <div className="flex flex-col sm:flex-row gap-3 items-end">
+                <div className="flex gap-2 flex-1">
+                    <div className="flex-1">
+                        <label className="text-[10px] uppercase font-bold text-cdmuted block mb-1">Van</label>
+                        <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+                            className="w-full bg-cdbg border border-cdborder rounded px-3 py-2 text-sm text-cdtext outline-none focus:border-orange-400" />
+                    </div>
+                    <div className="flex-1">
+                        <label className="text-[10px] uppercase font-bold text-cdmuted block mb-1">Tot</label>
+                        <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
+                            className="w-full bg-cdbg border border-cdborder rounded px-3 py-2 text-sm text-cdtext outline-none focus:border-orange-400" />
+                    </div>
+                </div>
+                <button
+                    onClick={fetchAndMatch}
+                    disabled={isFetching || !getStravaToken}
+                    className="flex items-center gap-2 px-5 py-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded text-sm transition-colors shrink-0"
+                >
+                    {isFetching ? <Loader2 size={14} className="animate-spin" /> : <StravaIcon size={14} />}
+                    {isFetching ? fetchProgress || 'Ophalen...' : 'Ophalen van Strava'}
+                </button>
+            </div>
+
+            {!getStravaToken && (
+                <div className="text-xs text-orange-400 bg-orange-500/10 border border-orange-500/20 rounded-lg p-3">
+                    Koppel eerst Strava via <strong>Settings → Strava Koppeling</strong>.
+                </div>
+            )}
+
+            {error && (
+                <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-3 flex gap-2">
+                    <AlertCircle size={14} className="shrink-0 mt-0.5" /> {error}
+                </div>
+            )}
+
+            {appliedCount > 0 && !isApplying && (
+                <div className="text-xs text-green-400 bg-green-500/10 border border-green-500/20 rounded-lg p-3 flex items-center gap-2">
+                    <Check size={14} /> <strong>{appliedCount}</strong> activiteiten verrijkt met Strava ID — kaart &amp; segmenten nu beschikbaar!
+                </div>
+            )}
+
+            {results && (
+                <div className="space-y-5">
+                    {/* Samenvatting */}
+                    <div className="grid grid-cols-3 gap-3">
+                        <div className="bg-cdbg/50 rounded-lg border border-cdborder/50 p-3 text-center">
+                            <div className="text-2xl font-bold text-green-400">{results.matched.length}</div>
+                            <div className="text-[10px] text-cdmuted uppercase mt-0.5">Gekoppeld</div>
+                        </div>
+                        <div className="bg-cdbg/50 rounded-lg border border-cdborder/50 p-3 text-center">
+                            <div className="text-2xl font-bold text-orange-400">{results.unmatchedStrava.length}</div>
+                            <div className="text-[10px] text-cdmuted uppercase mt-0.5">Alleen Strava</div>
+                        </div>
+                        <div className="bg-cdbg/50 rounded-lg border border-cdborder/50 p-3 text-center">
+                            <div className="text-2xl font-bold text-blue-400">{results.alreadyLinked.length}</div>
+                            <div className="text-[10px] text-cdmuted uppercase mt-0.5">Al Verbonden</div>
+                        </div>
+                    </div>
+
+                    {/* Gekoppelde activiteiten */}
+                    {results.matched.length > 0 && (
+                        <SectionHeader icon={Link2} iconColor="text-green-400" title="Voeg Strava ID toe aan bestaande activiteiten" count={`${selectedMatches.size}/${results.matched.length} geselecteerd`}>
+                            <div className="flex justify-end mb-1.5">
+                                <label className="flex items-center gap-1.5 text-xs text-cdmuted cursor-pointer select-none">
+                                    <input type="checkbox" checked={selectedMatches.size === results.matched.length}
+                                        onChange={e => setSelectedMatches(e.target.checked ? new Set(results.matched.map(m => String(m.strava.id))) : new Set())}
+                                        className="accent-green-500" />
+                                    Alles selecteren
+                                </label>
+                            </div>
+                            <div className="space-y-1 max-h-64 overflow-y-auto custom-scrollbar">
+                                {results.matched.map(({ strava, site, confidence, distDiff }) => (
+                                    <label key={strava.id} className={`flex items-center gap-2 rounded px-3 py-2 border text-xs cursor-pointer select-none transition-colors ${selectedMatches.has(String(strava.id)) ? 'bg-green-500/5 border-green-500/30' : 'bg-cdbg/50 border-cdborder/30 hover:border-cdborder'}`}>
+                                        <input type="checkbox" checked={selectedMatches.has(String(strava.id))} onChange={() => toggleMatch(strava.id)} className="accent-green-500 shrink-0" />
+                                        <span className="w-20 text-cdmuted shrink-0">{site.date?.split('T')[0]}</span>
+                                        <span className="flex-1 truncate text-cdtext font-medium" title={site.title}>{site.title}</span>
+                                        <span className="text-cdmuted shrink-0 w-16 text-right">{site.distance} km</span>
+                                        <span className="text-cdmuted shrink-0 text-[10px]">{(distDiff * 100).toFixed(1)}%</span>
+                                        <ConfidenceBadge confidence={confidence} />
+                                    </label>
+                                ))}
+                            </div>
+                        </SectionHeader>
+                    )}
+
+                    {/* Alleen op Strava */}
+                    {results.unmatchedStrava.length > 0 && (
+                        <SectionHeader icon={Plus} iconColor="text-orange-400" title="Alleen op Strava — optioneel importeren" count={`${selectedNew.size}/${results.unmatchedStrava.length} geselecteerd`}>
+                            <div className="flex justify-end mb-1.5">
+                                <label className="flex items-center gap-1.5 text-xs text-cdmuted cursor-pointer select-none">
+                                    <input type="checkbox" checked={selectedNew.size === results.unmatchedStrava.length}
+                                        onChange={e => setSelectedNew(e.target.checked ? new Set(results.unmatchedStrava.map(a => String(a.id))) : new Set())}
+                                        className="accent-orange-500" />
+                                    Alles selecteren
+                                </label>
+                            </div>
+                            <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
+                                {results.unmatchedStrava.map(strava => (
+                                    <label key={strava.id} className={`flex items-center gap-2 rounded px-3 py-2 border text-xs cursor-pointer select-none transition-colors ${selectedNew.has(String(strava.id)) ? 'bg-orange-500/5 border-orange-500/30' : 'bg-cdbg/50 border-cdborder/30 hover:border-cdborder'}`}>
+                                        <input type="checkbox" checked={selectedNew.has(String(strava.id))} onChange={() => toggleNew(strava.id)} className="accent-orange-500 shrink-0" />
+                                        <span className="w-20 text-cdmuted shrink-0">{strava.start_date_local?.split('T')[0]}</span>
+                                        <span className="flex-1 truncate text-cdtext font-medium" title={strava.name}>{strava.name}</span>
+                                        <span className="text-cdmuted shrink-0">{Math.round(strava.distance / 100) / 10} km</span>
+                                        {strava.average_watts > 0 && <span className="text-yellow-400 font-bold shrink-0">{Math.round(strava.average_watts)}w</span>}
+                                    </label>
+                                ))}
+                            </div>
+                        </SectionHeader>
+                    )}
+
+                    {results.matched.length === 0 && results.unmatchedStrava.length === 0 && (
+                        <div className="text-sm text-cdmuted text-center py-6">
+                            Geen nieuwe koppelingen gevonden voor deze periode.
+                        </div>
+                    )}
+
+                    {/* Bevestig-knop */}
+                    {(selectedMatches.size > 0 || selectedNew.size > 0) && (
+                        <div className="border-t border-cdborder/50 pt-4 flex items-center justify-between gap-4">
+                            <span className="text-xs text-cdmuted">
+                                {selectedMatches.size > 0 && <span className="text-green-400 font-bold">{selectedMatches.size} verrijken</span>}
+                                {selectedMatches.size > 0 && selectedNew.size > 0 && ' · '}
+                                {selectedNew.size > 0 && <span className="text-orange-400 font-bold">{selectedNew.size} importeren</span>}
+                            </span>
+                            <button
+                                onClick={applyEnrichment}
+                                disabled={isApplying}
+                                className="flex items-center gap-2 px-5 py-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white font-bold rounded text-sm transition-colors shrink-0"
+                            >
+                                {isApplying ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                                {isApplying ? 'Bezig...' : 'Toepassen'}
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default StravaEnrichTab;

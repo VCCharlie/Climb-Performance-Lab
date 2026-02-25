@@ -14,6 +14,7 @@ import DuplicateResolver from './data-hub/DuplicateResolver';
 import QuickNav from './data-hub/QuickNav';
 import ImportSection from './data-hub/ImportSection';
 import ActivityDetailModal from './DataHub/ActivityDetailModal';
+import StravaEnrichTab from './DataHub/StravaEnrichTab';
 
 // Hooks
 import useActivityFilter from '../hooks/useActivityFilter';
@@ -58,6 +59,21 @@ const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImpor
     } = useActivityFilter(activities);
 
     // --- ACTIONS ---
+
+    // Importeer nieuwe activiteiten vanuit Strava (ongematchte activiteiten)
+    const handleImportFromStrava = async (newActs) => {
+        if (!newActs || newActs.length === 0) return;
+        onImport(newActs);
+        if (db) {
+            try {
+                await Promise.all(newActs.map(act =>
+                    setDoc(doc(db, 'activities', String(act.id)), act, { merge: true })
+                ));
+            } catch (e) {
+                console.error('Strava import Firestore fout:', e);
+            }
+        }
+    };
 
     const handleSaveEdit = async (updatedActivity) => {
         try {
@@ -455,6 +471,13 @@ const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImpor
             {/* TABS */}
             <div className="flex border-b border-cdborder">
                 <button onClick={() => setInternalTab('log')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'log' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Activity Log</button>
+                {/* Strava Verrijking tab — zichtbaar als Strava is gekoppeld */}
+                {stravaGetToken && (
+                    <button onClick={() => setInternalTab('strava')} className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-1.5 ${internalTab === 'strava' ? 'bg-cdborder text-orange-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" /></svg>
+                        Strava Verrijking
+                    </button>
+                )}
                 {/* Import tab is soft-hidden by default — code intact, render behind prop */}
                 {showImport && (
                     <button onClick={() => setInternalTab('import')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'import' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Import Data</button>
@@ -574,6 +597,14 @@ const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImpor
                 {internalTab === 'import' && (
                     <ImportSection
                         onDataDetected={handleDataDetected}
+                    />
+                )}
+
+                {internalTab === 'strava' && (
+                    <StravaEnrichTab
+                        activities={activities}
+                        getStravaToken={stravaGetToken}
+                        onImportNew={handleImportFromStrava}
                     />
                 )}
             </div>
