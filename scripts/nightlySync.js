@@ -1,3 +1,4 @@
+/* global process, Buffer */
 /**
  * scripts/nightlySync.js
  *
@@ -23,8 +24,9 @@ import { getFirestore } from 'firebase-admin/firestore';
 
 const CLOUD_FUNCTION_URL = 'https://sync-intervals-97555677694.europe-west1.run.app';
 const FIRESTORE_COLLECTION = 'activities';
-const LOOKBACK_DAYS = 14;
-const SPORT_TYPES = ['Ride', 'VirtualRide'];
+const LOOKBACK_DAYS = 4650;
+// We no longer strictly filter on SPORT_TYPES before storing, to ensure we catch Workouts with power data.
+const ACCEPTED_TYPES = ['Ride', 'VirtualRide', 'Workout', 'IndoorCycling'];
 
 // Firestore limits batch writes to 500 documents at a time.
 const FIRESTORE_BATCH_LIMIT = 500;
@@ -166,7 +168,12 @@ function normalizeActivity(item) {
 
     const rawType = getVal('type', 'sub_type', 'activity_type');
     const isIndoor = item.trainer === true;
-    const finalType = determineActivityType(rawType, title, isIndoor);
+    let finalType = determineActivityType(rawType, title, isIndoor);
+
+    // If it's a workout but has power data, we'll treat it as a Ride/VirtualRide
+    if ((finalType === 'Workout' || finalType === 'IndoorCycling') && (avgPower > 0 || maxPower > 0)) {
+        finalType = isIndoor ? 'VirtualRide' : 'Ride';
+    }
 
     return {
         id: id,
@@ -227,12 +234,7 @@ async function fetchFromIntervalsAPI({ athleteId, apiKey, startDate, endDate }) 
 
     let transformed = rawActivities.map(normalizeActivity);
 
-    // Filter by configured sport types
-    if (SPORT_TYPES && SPORT_TYPES.length > 0) {
-        transformed = transformed.filter(act => SPORT_TYPES.includes(act.type));
-    }
-
-    // Filter out invalid activities (same as UI)
+    // Allow activities that have distance, time, OR power.
     transformed = transformed.filter(act =>
         (act.distance && act.distance > 0) ||
         (act.moving_time && act.moving_time > 0) ||
@@ -261,36 +263,86 @@ function chunkArray(array, size) {
 }
 
 /**
- * Upserts (set + merge) a list of activities into Firestore.
- * Uses batched writes for efficiency and respects Firestore's 500-doc batch limit.
- * `merge: true` ensures we never accidentally overwrite fields not returned by the
- * Cloud Function (e.g. user-added notes or manual overrides).
+ * Smart Upsert (Deep Merge Strategy)
+ * 1. Fetches all existing activities from Firestore.
+ * 2. Compares incoming Intervals.icu activities against existing (Strava) activities based on Date, Time and Distance.
+ * 3. If a match is found: updates the existing Strava document with Intervals power data (keeping Strava ID, Title, Type).
+ *    If NO match is found: creates a new document with the Intervals ID.
  *
  * @param {import('firebase-admin/firestore').Firestore} db
- * @param {object[]} activities
- * @param {boolean} isDryRun — When true, logs what would be written but does nothing.
- * @returns {Promise<number>} Number of successfully upserted documents.
+ * @param {object[]} newActivities
+ * @param {boolean} isDryRun
  */
-async function upsertToFirestore(db, activities, isDryRun) {
-    const validActivities = activities.filter((act) => act && act.id);
+async function upsertToFirestore(db, newActivities, isDryRun) {
+    const validActivities = newActivities.filter((act) => act && act.id);
 
     if (validActivities.length === 0) {
         console.log('[SYNC] Geen activiteiten om op te slaan.');
         return 0;
     }
 
-    if (isDryRun) {
-        console.log(`[DRY-RUN] Zou ${validActivities.length} activiteiten opslaan in Firestore:`);
-        validActivities.slice(0, 5).forEach((act) =>
-            console.log(`  → ${act.id} | ${act.date} | ${act.title}`)
-        );
-        if (validActivities.length > 5) {
-            console.log(`  ... en ${validActivities.length - 5} meer.`);
+    console.log('[SYNC] Bestaande activiteiten ophalen uit Firestore voor deduplicatie/merge...');
+    const existingDocs = await db.collection(FIRESTORE_COLLECTION).get();
+    const existingActivities = existingDocs.docs.map(d => ({ ...d.data(), firestoreId: d.id }));
+    console.log(`[SYNC] ${existingActivities.length} activiteiten gevonden in Firestore.`);
+
+    const toProcess = [];
+    let mergedCount = 0;
+    let newCount = 0;
+
+    for (const newAct of validActivities) {
+        // Find duplicate based on Date + Duration/Distance logic
+        const newDate = newAct.date?.split('T')[0];
+
+        const duplicate = existingActivities.find(existing => {
+            if (existing.id === newAct.id) return false; // Not a duplicate if it's the exact same Intervals activity
+
+            const exDate = existing.date?.split('T')[0];
+            if (exDate !== newDate) return false;
+
+            // Loose type check (Ride vs VirtualRide is ok)
+            const isRideEx = ['Ride', 'VirtualRide'].includes(existing.type);
+            const isRideNew = ['Ride', 'VirtualRide'].includes(newAct.type);
+            if (isRideEx !== isRideNew) return false;
+
+            const timeDiff = Math.abs((existing.moving_time || 0) - (newAct.moving_time || 0));
+            const distDiff = Math.abs((existing.distance || 0) - (newAct.distance || 0));
+
+            // Require BOTH duration AND distance to be similar (300s, 0.5km)
+            return timeDiff < 300 && distDiff < 0.5;
+        });
+
+        if (duplicate) {
+            // MERGE MODE!
+            // We keep the duplicate's ID, title, and type, but add the power data from intervals
+            const mergedAct = {
+                ...newAct,
+                id: duplicate.firestoreId,   // Preserve original Firestore ID (e.g. Strava numeric ID)
+                title: duplicate.title,      // Preserve personalized title
+                type: duplicate.type,        // Preserve original type
+            };
+
+            // If the existing activity has better data for something, preserve it?
+            // (For now, we overwrite metrics with Intervals' normalized calculations as they are usually better)
+
+            toProcess.push(mergedAct);
+            mergedCount++;
+            if (isDryRun) console.log(`[DRY-RUN] MERGE: "${duplicate.title}" (${duplicate.firestoreId}) <== Intervals Power Data`);
+        } else {
+            // NEW MODE!
+            toProcess.push(newAct);
+            newCount++;
+            if (isDryRun) console.log(`[DRY-RUN] NEW:   "${newAct.title}" (${newAct.id})`);
         }
+    }
+
+    console.log(`[SYNC] Resultaat deduplicatie: ${mergedCount} ritten worden gemerged, ${newCount} nieuwe ritten.`);
+
+    if (isDryRun) {
         return validActivities.length;
     }
 
-    const chunks = chunkArray(validActivities, FIRESTORE_BATCH_LIMIT);
+    const chunks = chunkArray(toProcess, FIRESTORE_BATCH_LIMIT);
     let totalSaved = 0;
 
     for (const [index, chunk] of chunks.entries()) {
@@ -303,9 +355,7 @@ async function upsertToFirestore(db, activities, isDryRun) {
 
         await batch.commit();
         totalSaved += chunk.length;
-        console.log(
-            `[SYNC] Batch ${index + 1}/${chunks.length} opgeslagen (${chunk.length} activiteiten)`
-        );
+        console.log(`[SYNC] Batch ${index + 1}/${chunks.length} opgeslagen (${chunk.length} activiteiten)`);
     }
 
     return totalSaved;
