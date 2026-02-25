@@ -24,9 +24,9 @@ import useActivityFilter from '../hooks/useActivityFilter';
 // githubPat: optional GitHub Personal Access Token for manual workflow dispatch
 // showImport: soft-toggle to show/hide the legacy CSV import section (default: false)
 // stravaGetToken: function to get a valid Strava access token (or null if not connected)
-// startDate / endDate: globale datumrange vanuit App.jsx tab-lint
 // stravaEnrichResults / onStravaEnrichResults: persistente match-resultaten over tab-wissels
-const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImport = false, stravaGetToken, startDate, endDate, stravaEnrichResults, onStravaEnrichResults }) => {
+// onRefresh: optional prop to trigger a full refetch of activities from Firestore
+const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat, showImport = false, stravaGetToken, startDate, endDate, stravaEnrichResults, onStravaEnrichResults }) => {
     // UI State
     const [internalTab, setInternalTab] = useState('log');
     const [detailActivity, setDetailActivity] = useState(null);
@@ -596,11 +596,22 @@ const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImpor
                                 </div>
                             </div>
                             <div className="flex gap-2">
+                                {/* REFRESH BUTTON */}
+                                {onRefresh && (
+                                    <button
+                                        onClick={() => onRefresh()}
+                                        className="flex items-center justify-center w-9 h-9 rounded border bg-cdsurface border-cdborder text-cdmuted hover:text-green-400 hover:border-green-500/50 transition-colors group"
+                                        title="Data verversen"
+                                    >
+                                        <RefreshCw size={14} className="group-active:animate-spin" />
+                                    </button>
+                                )}
+
                                 {/* Utility menu — Sync Now / Duplicates / No Power / Clear DB */}
                                 <div className="relative" ref={utilMenuRef}>
                                     <button
                                         onClick={() => setShowUtilMenu(v => !v)}
-                                        className="flex items-center gap-1.5 px-3 py-2 rounded text-sm font-bold border bg-cdsurface border-cdborder text-cdtext hover:border-yellow-400 transition-all"
+                                        className="flex items-center gap-1.5 px-3 h-9 rounded text-sm font-bold border bg-cdsurface border-cdborder text-cdtext hover:border-yellow-400 transition-all"
                                     >
                                         Tools <ChevronDown size={14} className={showUtilMenu ? 'rotate-180 transition-transform' : 'transition-transform'} />
                                     </button>
