@@ -60,7 +60,11 @@ export const Row = React.memo(({ act, onDelete, onEdit, onViewDetail, isConfirmi
                                         <Bike size={16} className="text-green-400" title="Ride" />}
                     </div>
                 );
-                case 'title': return <span className="font-medium text-cdtext block max-w-[200px] truncate" title={val}>{val}</span>;
+                case 'title': return (
+                    <span className="font-medium text-cdtext block truncate" title={val} style={{ maxWidth: 'none' }}>
+                        {val}
+                    </span>
+                );
                 case 'moving_time': return <span className="text-cdmuted font-mono">{formatTime(val)}</span>;
                 case 'distance': case 'avg_speed': return <span className="text-cdmuted">{Number(val).toFixed(1)}</span>;
                 case 'climbing': case 'avg_power': return <span className="text-cdmuted">{Math.round(val || 0)}</span>;

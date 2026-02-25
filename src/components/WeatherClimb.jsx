@@ -437,13 +437,13 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
 
                 {/* Error/Success Messages */}
                 {weatherError && (
-                    <div className="bg-red-500/20 border border-red-500/50 rounded p-3 text-red-100 text-sm flex items-start gap-2">
+                    <div className="bg-red-500/20 border border-red-500/50 rounded p-3 text-red-300 text-sm flex items-start gap-2">
                         <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
                         {weatherError}
                     </div>
                 )}
                 {weatherSuccess && !weatherError && (
-                    <div className="bg-green-500/20 border border-green-500/50 rounded p-3 text-green-100 text-sm">
+                    <div className="bg-green-500/20 border border-green-500/50 rounded p-3 text-green-300 text-sm">
                         ✓ {weatherSuccess}
                     </div>
                 )}
@@ -579,16 +579,16 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                 </div>
 
                 <div className={`p-3 rounded border text-center ${Math.abs(weatherAdjustedCalculation.timeDifference) < 1
-                    ? 'bg-green-500/20 border-green-500/50 text-green-100'
+                    ? 'bg-green-500/20 border-green-500/50 text-green-300'
                     : weatherAdjustedCalculation.timeDifference > 5
-                        ? 'bg-red-500/20 border-red-500/50 text-red-100'
-                        : 'bg-yellow-500/20 border-yellow-500/50 text-yellow-100'
+                        ? 'bg-red-500/20 border-red-500/50 text-red-300'
+                        : 'bg-yellow-500/20 border-yellow-500/50 text-yellow-300'
                     }`}>
                     <p className="font-bold text-sm">
                         {weatherAdjustedCalculation.timeDifference > 0 ? '+' : ''}
                         {Math.round(weatherAdjustedCalculation.timeDifference)} minuten verschil
                     </p>
-                    <p className="text-xs mt-1 opacity-80">
+                    <p className="text-xs mt-1">
                         {Math.abs(weatherAdjustedCalculation.timeDifference) < 1 && 'Minimale impact van weersomstandigheden'}
                         {weatherAdjustedCalculation.timeDifference >= 1 && weatherAdjustedCalculation.timeDifference <= 5 && 'Matige impact – plan extra tijd in'}
                         {weatherAdjustedCalculation.timeDifference > 5 && 'Sterke impact – overweeg andere dag of lagere power'}
@@ -601,7 +601,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                         {weatherAdjustedCalculation.warnings.map((warning, idx) => (
                             <div key={idx} className="bg-yellow-500/20 border border-yellow-500/50 rounded p-3 flex items-start gap-2">
                                 <AlertTriangle className="text-yellow-400 flex-shrink-0 mt-0.5" size={16} />
-                                <p className="text-sm text-yellow-100">{warning}</p>
+                                <p className="text-sm text-yellow-300">{warning}</p>
                             </div>
                         ))}
                     </div>

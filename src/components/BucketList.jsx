@@ -169,7 +169,7 @@ const BucketList = ({ initialState, onStateChange }) => {
                         </div>
                         <div>
                             <p className="text-cdmuted text-xs">Totaal hoogtemeters</p>
-                            <p className="text-cdtext font-bold text-lg">{Math.round(achievements.stats.totalElevation)}m</p>
+                            <p className="text-cdtext font-bold text-lg">{Math.round(achievements.stats.totalElevation).toLocaleString('nl-NL')}m</p>
                         </div>
                         <div>
                             <p className="text-cdmuted text-xs">Gem. hellingspercentage</p>

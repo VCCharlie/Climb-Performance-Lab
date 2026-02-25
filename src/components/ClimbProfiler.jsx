@@ -11,7 +11,7 @@ const CustomTooltip = ({ active, payload, showPowerZones, powerRecommendations }
         return (
             <div className="bg-cdsurface border border-cdborder p-3 rounded shadow-lg">
                 <p className="text-cdtext text-sm font-bold">{data.distance.toFixed(1)} km</p>
-                <p className="text-cdtext text-xs">Hoogte: {data.elevation.toFixed(0)}m</p>
+                <p className="text-cdtext text-xs">Hoogte: {Math.round(data.elevation).toLocaleString('nl-NL')}m</p>
                 <p className="text-yellow-400 text-xs font-bold">Hellingspercentage: {data.gradient.toFixed(1)}%</p>
                 {showPowerZones && powerData && (
                     <p className="text-blue-400 text-xs">
@@ -200,7 +200,7 @@ const ClimbProfiler = ({ userSettings, initialState, onStateChange }) => {
                 >
                     {CLIMB_DATABASE.map(climb => (
                         <option key={climb.id} value={climb.id}>
-                            {climb.flag} {climb.name} - {climb.lengthKm}km @ {climb.avgGrade}% ({climb.elevation}m)
+                            {climb.flag} {climb.name} - {climb.lengthKm}km @ {climb.avgGrade}% ({climb.elevation.toLocaleString('nl-NL')}m)
                         </option>
                     ))}
                 </select>

@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import L from 'leaflet';
+import { Maximize2, Minimize2 } from 'lucide-react';
 import { decodePolyline } from '../../utils/strava';
 
 /**
@@ -9,11 +10,11 @@ import { decodePolyline } from '../../utils/strava';
 const StravaMap = ({ polyline }) => {
     const containerRef = useRef(null);
     const mapRef = useRef(null);
+    const [expanded, setExpanded] = useState(false);
 
-    useEffect(() => {
+    const initMap = useCallback(() => {
         if (!polyline || !containerRef.current) return;
 
-        // Ruim bestaande kaart op (React StrictMode voert effect twee keer uit)
         if (mapRef.current) {
             mapRef.current.remove();
             mapRef.current = null;
@@ -35,16 +36,42 @@ const StravaMap = ({ polyline }) => {
         const line = L.polyline(coords, { color: '#f97316', weight: 3, opacity: 0.85 });
         line.addTo(map);
         map.fitBounds(line.getBounds(), { padding: [16, 16] });
+    }, [polyline]);
 
+    useEffect(() => {
+        initMap();
         return () => {
             if (mapRef.current) {
                 mapRef.current.remove();
                 mapRef.current = null;
             }
         };
-    }, [polyline]);
+    }, [initMap]);
 
-    return <div ref={containerRef} style={{ height: '200px' }} className="rounded-lg overflow-hidden border border-cdborder/50" />;
+    // Re-initialize map after height change so Leaflet recalculates tile layout
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            if (mapRef.current) {
+                mapRef.current.invalidateSize();
+            }
+        }, 50);
+        return () => clearTimeout(timeout);
+    }, [expanded]);
+
+    const height = expanded ? '420px' : '200px';
+
+    return (
+        <div className="relative">
+            <div ref={containerRef} style={{ height }} className="rounded-lg overflow-hidden border border-cdborder/50 transition-all duration-300" />
+            <button
+                onClick={() => setExpanded(e => !e)}
+                className="absolute top-2 right-2 z-[500] bg-cdbg/80 hover:bg-cdbg text-cdmuted hover:text-cdtext border border-cdborder/50 rounded p-1 transition-colors"
+                title={expanded ? 'Verkleinen' : 'Vergroten'}
+            >
+                {expanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+            </button>
+        </div>
+    );
 };
 
 export default StravaMap;
