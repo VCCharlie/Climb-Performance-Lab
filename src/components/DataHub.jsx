@@ -215,7 +215,7 @@ const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImpor
                     const bikeActivities = allActivities.filter(a => STRAVA_BIKE_TYPES.has(a.sport_type || a.type));
                     const result = matchStravaToSite(bikeActivities, activities);
 
-                    // Import only unmatched New Strava rides
+                    // 1. Import unmatched New Strava rides
                     if (result && result.unmatchedStrava && result.unmatchedStrava.length > 0) {
                         const newActs = result.unmatchedStrava.map(normalizeStravaActivity);
                         if (db) {
@@ -226,9 +226,30 @@ const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImpor
                         if (onImport) onImport(newActs);
                         console.log(`[Universal Sync] ${newActs.length} nieuwe Strava ritten geïmporteerd.`);
                     }
+
+                    // 2. Enrich already matched / linked rides with Strava Title & Type
+                    const toEnrich = [];
+                    if (result?.matched?.length > 0) {
+                        toEnrich.push(...result.matched.filter(m => m.confidence !== 'low'));
+                    }
+                    if (result?.alreadyLinked?.length > 0) {
+                        toEnrich.push(...result.alreadyLinked);
+                    }
+
+                    if (toEnrich.length > 0 && db) {
+                        await Promise.all(toEnrich.map(m => {
+                            const norm = normalizeStravaActivity(m.strava);
+                            return setDoc(doc(db, 'activities', String(m.site.id)), {
+                                strava_id: norm.strava_id,
+                                title: norm.title,
+                                type: norm.type
+                            }, { merge: true });
+                        }));
+                        console.log(`[Universal Sync] ${toEnrich.length} bestaande ritten verrijkt met Strava titels.`);
+                    }
                 }
             } catch (err) {
-                console.error("[Universal Sync] Strava voorfase overgeslagen door fout:", err);
+                console.error("[Universal Sync] Strava voorfase mislukt:", err);
             }
         }
 
