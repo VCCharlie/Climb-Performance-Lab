@@ -33,7 +33,7 @@ const tempClass = (t) =>
 
 // A day is "good for climbing" when conditions are comfortable
 const isGoodDay = (day) =>
-    day.temperature_2m_max >= 5 &&
+    day.temperature_2m_max >= 8 &&
     day.temperature_2m_max <= 25 &&
     (day.precipitation_sum || 0) < 2 &&
     (day.windspeed_10m_max || 0) < 25 &&
