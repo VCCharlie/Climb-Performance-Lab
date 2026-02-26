@@ -27,29 +27,31 @@ const ActivityRow = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview
                     </div>
                 );
                 case 'title': return (
-                    <div>
-                        <div className="flex items-center gap-2">
-                            <span className="font-medium text-cdtext block max-w-[200px] truncate" title={val}>{val}</span>
-                            {act.id && !String(act.id).startsWith('csv_') && (
-                                <a
-                                    href={`https://intervals.icu/activities/${act.id}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-cdmuted hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={e => e.stopPropagation()}
-                                    title="Open in Intervals.icu"
-                                >
-                                    <ExternalLink size={12} />
-                                </a>
-                            )}
-                        </div>
-                        {act.gear_name && (
-                            <span className="flex items-center gap-1 text-[10px] text-orange-400/70 mt-0.5">
-                                <Bike size={9} />{act.gear_name}
-                            </span>
+                    <div className="flex items-center gap-2">
+                        <span className="font-medium text-cdtext block max-w-[200px] truncate" title={val}>{val}</span>
+                        {act.id && !String(act.id).startsWith('csv_') && (
+                            <a
+                                href={`https://intervals.icu/activities/${act.id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-cdmuted hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={e => e.stopPropagation()}
+                                title="Open in Intervals.icu"
+                            >
+                                <ExternalLink size={12} />
+                            </a>
                         )}
                     </div>
                 );
+                case 'gear_name': {
+                    if (!val) return <span className="text-cdmuted">-</span>;
+                    return (
+                        <span className="flex items-center gap-1 text-orange-400/80" title={val}>
+                            <Bike size={11} className="shrink-0" />
+                            <span className="truncate max-w-[100px] text-xs">{val}</span>
+                        </span>
+                    );
+                }
                 case 'moving_time': return <span className="text-cdmuted font-mono">{formatTime(val)}</span>;
                 case 'distance': case 'avg_speed': return <span className="text-cdmuted">{Number(val).toFixed(1)}</span>;
                 case 'climbing': case 'avg_power': return <span className="text-cdmuted">{Math.round(val || 0)}</span>;

@@ -11,6 +11,7 @@ export const ACTIVITY_COLUMNS = [
     { key: 'date', label: 'Date', align: 'left', width: 'w-20' },
     { key: 'type', label: 'Type', align: 'center', width: 'w-10' },
     { key: 'title', label: 'Title', align: 'left', width: 'min-w-[120px] max-w-[200px] truncate' },
+    { key: 'gear_name', label: 'Fiets', align: 'left', width: 'w-28' },
     { key: 'moving_time', label: 'Time', align: 'right', width: 'w-14' },
     { key: 'distance', label: 'Dist', align: 'right', width: 'w-12' },
     { key: 'climbing', label: 'Elev', align: 'right', width: 'w-12' },
