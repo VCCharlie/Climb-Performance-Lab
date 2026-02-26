@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 
 import { MONTH_ORDER } from '../config';
 
@@ -101,33 +101,43 @@ const useActivityFilter = (activities) => {
     }, [processedActivities, isGroupedView]);
 
     // Auto-expand last 6 ACTIVE months only ONCE when data first arrives or when grouping changes
-    import { useEffect } from 'react';
     useEffect(() => {
-        if (!groupedActivities || expandedYears !== null) return;
+        if (!groupedActivities) return;
 
-        const initialY = {};
-        const initialM = {};
+        // Decouple from render cycle to avoid cascading render warnings
+        const timer = setTimeout(() => {
+            setExpandedYears(prev => {
+                if (prev !== null) return prev;
 
-        // Extract all absolute month strings present
-        const activeMonthKeys = [];
-        Object.keys(groupedActivities).sort((a, b) => b - a).forEach(y => {
-            Object.keys(groupedActivities[y]).sort((a, b) => MONTH_ORDER.indexOf(b) - MONTH_ORDER.indexOf(a)).forEach(m => {
-                activeMonthKeys.push({ year: y, month: m });
+                const initialY = {};
+                const initialM = {};
+
+                // Extract all absolute month strings present
+                const activeMonthKeys = [];
+                Object.keys(groupedActivities).sort((a, b) => b - a).forEach(y => {
+                    Object.keys(groupedActivities[y]).sort((a, b) => MONTH_ORDER.indexOf(b) - MONTH_ORDER.indexOf(a)).forEach(m => {
+                        activeMonthKeys.push({ year: y, month: m });
+                    });
+                });
+
+                if (activeMonthKeys.length > 0) {
+                    // Take top 6
+                    const top6 = activeMonthKeys.slice(0, 6);
+                    top6.forEach(({ year, month }) => {
+                        initialY[year] = true;
+                        initialM[`${year}-${month}`] = true;
+                    });
+
+                    // Set secondary state
+                    setExpandedMonths(initialM);
+                }
+
+                return initialY;
             });
-        });
+        }, 10);
 
-        if (activeMonthKeys.length > 0) {
-            // Take top 6
-            const top6 = activeMonthKeys.slice(0, 6);
-            top6.forEach(({ year, month }) => {
-                initialY[year] = true;
-                initialM[`${year}-${month}`] = true;
-            });
-
-            setExpandedYears(initialY);
-            setExpandedMonths(initialM);
-        }
-    }, [groupedActivities, expandedYears]);
+        return () => clearTimeout(timer);
+    }, [groupedActivities]);
 
     return {
         search, setSearch,
