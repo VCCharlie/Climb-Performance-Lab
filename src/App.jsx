@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Gauge, Mountain, Activity, Utensils, Brain, Route, Settings as SettingsIcon, TrendingUp, Menu, X, Heart, Trophy, Cloud, ChevronRight } from 'lucide-react';
-import { doc, setDoc, getDoc, collection, onSnapshot } from "firebase/firestore";
+import { doc, setDoc, getDoc, collection, onSnapshot, getDocs } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from './firebase';
 import { CLIMB_DATABASE } from './climbs';
@@ -128,6 +128,28 @@ const App = () => {
     const handleClearActivities = useCallback(() => {
         setActivities([]);
     }, []);
+
+    // Manual refresh to bypass Firebase local cache
+    const forceRefreshActivities = useCallback(async () => {
+        if (!db) return;
+        try {
+            const actCol = collection(db, "activities");
+            // getDocs with source: 'server' forces a network roundtrip instead of using the local cache
+            const snapshot = await getDocs(actCol, { source: 'server' });
+            const loadedActs = snapshot.docs.map(d => d.data());
+
+            if (loadedActs.length > 0) {
+                loadedActs.sort((a, b) => new Date(b.date) - new Date(a.date));
+                setActivities(loadedActs);
+                console.log(`[Refresh] Forceren ophalen van ${loadedActs.length} activiteiten.`);
+            } else {
+                setActivities([]);
+            }
+        } catch (e) {
+            console.error("Fout tijdens handmatig vernieuwen:", e);
+        }
+    }, [db]);
+
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -413,7 +435,7 @@ const App = () => {
                                     </nav>
                                     {/* Periode-selector – altijd zichtbaar in tab-lint */}
                                     <div className="flex items-center gap-1 bg-cdbg/50 rounded-lg p-1 border border-cdborder shrink-0 ml-4">
-                                        {['1M','3M','6M','1Y','3Y','6Y','ALL','Custom'].map(r => (
+                                        {['1M', '3M', '6M', '1Y', '3Y', '6Y', 'ALL', 'Custom'].map(r => (
                                             <button
                                                 key={r}
                                                 onClick={() => setTimeRange(r)}
@@ -477,6 +499,7 @@ const App = () => {
                                 stravaAthleteId={stravaConfig?.athlete_id}
                                 stravaProfileData={stravaProfileData}
                                 onStravaProfileData={setStravaProfileData}
+                                onRefresh={forceRefreshActivities}
                             />
                         )}
 

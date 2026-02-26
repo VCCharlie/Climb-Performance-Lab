@@ -5,7 +5,7 @@ import WeatherForecastStrip from './WeatherForecastStrip';
 
 // Approximate locations for popular climbs (city/town for weather lookup)
 const CLIMB_LOCATIONS = {
-    fr_alpe: { q: 'Bourg-d\'Oisans,FR', label: 'Bourg-d\'Oisans, France' },
+    fr_alpe: { q: 'Bourg-d\'Oisans,FR', label: 'Le Bourg-d\'Oisans, Auvergne-Rhône-Alpes, France' },
     fr_ventoux: { q: 'Bedoin,FR', label: 'Bédoin, France' },
     fr_ventoux_mal: { q: 'Malaucene,FR', label: 'Malaucène, France' },
     fr_tourmalet: { q: 'Luz-Saint-Sauveur,FR', label: 'Luz-Saint-Sauveur, France' },
@@ -437,13 +437,13 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
 
                 {/* Error/Success Messages */}
                 {weatherError && (
-                    <div className="bg-red-500/20 border border-red-500/50 rounded p-3 text-red-300 text-sm flex items-start gap-2">
+                    <div className="bg-red-500/20 border border-red-500/50 rounded p-3 text-red-500 text-sm flex items-start gap-2">
                         <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
                         {weatherError}
                     </div>
                 )}
                 {weatherSuccess && !weatherError && (
-                    <div className="bg-green-500/20 border border-green-500/50 rounded p-3 text-green-300 text-sm">
+                    <div className="bg-green-100 border border-green-500/50 rounded p-3 text-green-500 text-sm">
                         ✓ {weatherSuccess}
                     </div>
                 )}
@@ -558,7 +558,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                 <div className="grid grid-cols-2 gap-4">
                     <div className="bg-cdsurface p-4 rounded border border-cdborder">
                         <div className="flex items-center gap-2 mb-2">
-                            <Sun className="text-yellow-400" size={16} />
+                            <Sun className="text-center-yellow-500" size={16} />
                             <span className="text-xs text-cdmuted uppercase">Ideale omstandigheden</span>
                         </div>
                         <div className="text-2xl font-bold text-cdtext">
@@ -579,10 +579,10 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                 </div>
 
                 <div className={`p-3 rounded border text-center ${Math.abs(weatherAdjustedCalculation.timeDifference) < 1
-                    ? 'bg-green-500/20 border-green-500/50 text-green-300'
+                    ? 'bg-green-100 border-green-500/50 text-green-500'
                     : weatherAdjustedCalculation.timeDifference > 5
-                        ? 'bg-red-500/20 border-red-500/50 text-red-300'
-                        : 'bg-yellow-500/20 border-yellow-500/50 text-yellow-300'
+                        ? 'bg-red-100 border-red-500/50 text-red-500'
+                        : 'bg-yellow-100 border-yellow-500/50 text-yellow-500'
                     }`}>
                     <p className="font-bold text-sm">
                         {weatherAdjustedCalculation.timeDifference > 0 ? '+' : ''}
@@ -599,9 +599,9 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                 {weatherAdjustedCalculation.warnings.length > 0 && (
                     <div className="space-y-2">
                         {weatherAdjustedCalculation.warnings.map((warning, idx) => (
-                            <div key={idx} className="bg-yellow-500/20 border border-yellow-500/50 rounded p-3 flex items-start gap-2">
-                                <AlertTriangle className="text-yellow-400 flex-shrink-0 mt-0.5" size={16} />
-                                <p className="text-sm text-yellow-300">{warning}</p>
+                            <div key={idx} className="bg-yellow-100 border border-yellow-500/50 rounded p-3 flex items-start gap-2">
+                                <AlertTriangle className="text-yellow-500 flex-shrink-0 mt-0.5" size={16} />
+                                <p className="text-sm text-yellow-600">{warning}</p>
                             </div>
                         ))}
                     </div>

@@ -26,14 +26,14 @@ const wmoIcon = (code) =>
 
 const tempClass = (t) =>
     t >= 30 ? 'text-red-400' :
-        t >= 22 ? 'text-orange-400' :
-            t >= 14 ? 'text-yellow-400' :
-                t >= 5 ? 'text-green-400' :
-                    'text-blue-400';
+        t >= 22 ? 'text-orange-500' :
+            t >= 14 ? 'text-yellow-500' :
+                t >= 5 ? 'text-green-500' :
+                    'text-blue-500';
 
 // A day is "good for climbing" when conditions are comfortable
 const isGoodDay = (day) =>
-    day.temperature_2m_max >= 5 &&
+    day.temperature_2m_max >= 8 &&
     day.temperature_2m_max <= 25 &&
     (day.precipitation_sum || 0) < 2 &&
     (day.windspeed_10m_max || 0) < 25 &&
@@ -45,7 +45,7 @@ const WeatherForecastStrip = ({ forecastData, locationLabel }) => {
     return (
         <div className="space-y-2 pt-1">
             <div className="flex items-center justify-between flex-wrap gap-1">
-                <span className="text-xs font-bold text-cdmuted uppercase tracking-wide">
+                <span className="text-s font-bold text-cdmuted uppercase tracking-wide">
                     14-daagse prognose
                     {locationLabel && (
                         <span className="ml-1 font-normal normal-case text-cdmuted/60">
@@ -53,7 +53,7 @@ const WeatherForecastStrip = ({ forecastData, locationLabel }) => {
                         </span>
                     )}
                 </span>
-                <span className="text-xs text-cdmuted/40 italic">Open-Meteo</span>
+                <span className="text-s text-cdmuted/40 italic">Open-Meteo</span>
             </div>
 
             {/* Scrollable day cards */}
@@ -71,19 +71,19 @@ const WeatherForecastStrip = ({ forecastData, locationLabel }) => {
                             key={day.time}
                             className={`flex-shrink-0 w-[56px] rounded-lg border flex flex-col items-center gap-0.5 py-2 px-1 text-center
                                 ${isToday
-                                    ? 'border-cyan-500/50 bg-cyan-500/10'
+                                    ? 'border-cyan-500/70 bg-cyan-500/10'
                                     : good
-                                        ? 'border-green-500/50 bg-green-500/15'
+                                        ? 'border-green-500/70 bg-green-100'
                                         : 'border-cdborder bg-cdbg/40'
                                 }`}
                         >
                             {/* Day name */}
-                            <span className={`text-xs font-semibold leading-none ${isToday ? 'text-cyan-400' : 'text-cdtext'}`}>
+                            <span className={`text-s font-semibold leading-none ${isToday ? 'text-cyan-500' : 'text-cdtext'}`}>
                                 {isToday ? 'nu' : NL_DAYS[d.getDay()]}
                             </span>
 
                             {/* Short date */}
-                            <span className="text-xs text-cdmuted/50 leading-none">
+                            <span className="text-s text-cdmuted/50 leading-none">
                                 {d.getDate()}/{d.getMonth() + 1}
                             </span>
 
@@ -91,29 +91,29 @@ const WeatherForecastStrip = ({ forecastData, locationLabel }) => {
                             <div className="relative mt-0.5">
                                 <span className="text-xl leading-none">{icon}</span>
                                 {good && (
-                                    <span className="absolute -top-1 -right-2 text-green-400 text-[10px] font-bold">✓</span>
+                                    <span className="absolute -top-1 -right-2 text-green-500 text-[10px] font-bold">✓</span>
                                 )}
                             </div>
 
                             {/* Max temperature */}
-                            <span className={`text-xs font-bold leading-none mt-0.5 ${tempClass(day.temperature_2m_max)}`}>
+                            <span className={`text-s font-bold leading-none mt-0.5 ${tempClass(day.temperature_2m_max)}`}>
                                 {Math.round(day.temperature_2m_max)}°
                             </span>
 
                             {/* Min temperature */}
-                            <span className={`text-xs leading-none opacity-60 ${tempClass(day.temperature_2m_min)}`}>
+                            <span className={`text-s leading-none opacity-60 ${tempClass(day.temperature_2m_min)}`}>
                                 {Math.round(day.temperature_2m_min)}°
                             </span>
 
                             {/* Precipitation */}
-                            <span className={`text-xs leading-none flex items-center gap-px mt-0.5
-                                ${precip >= 2 ? 'text-blue-400' : precip > 0 ? 'text-blue-400/50' : 'text-cdmuted/25'}`}>
-                                <Droplets size={8} />
+                            <span className={`text-s leading-none flex items-center gap-px mt-0.5
+                                ${precip >= 2 ? 'text-blue-500' : precip > 0 ? 'text-blue-500' : 'text-cdmuted/25'}`}>
+                                <Droplets size={10} />
                                 <span>{precip > 0 ? (precip < 1 ? '<1' : Math.round(precip)) : '—'}</span>
                             </span>
 
                             {/* Wind: direction abbreviation + max speed */}
-                            <span className="text-[10px] leading-none text-cyan-400/70 mt-0.5">
+                            <span className="text-[12px] leading-none text-cyan-500 mt-0.5">
                                 {windAbbr(day.winddirection_10m_dominant)}&nbsp;{Math.round(day.windspeed_10m_max || 0)}
                             </span>
                         </div>
@@ -122,9 +122,9 @@ const WeatherForecastStrip = ({ forecastData, locationLabel }) => {
             </div>
 
             {/* Legend */}
-            <div className="flex flex-wrap gap-x-3 text-xs text-cdmuted/40">
+            <div className="flex flex-wrap gap-x-3 text-s text-cdmuted/40">
                 <span>💧 neerslag (mm) · wind: richting + km/h</span>
-                <span className="text-green-400/60">✓ goede klimdag (5-25°C, droog, rustig)</span>
+                <span className="text-green-500">✓ goede klimdag (5-25°C, droog, rustig)</span>
             </div>
         </div>
     );

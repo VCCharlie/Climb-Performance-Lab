@@ -326,12 +326,12 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
                             <div
                                 key={idx}
                                 className={`p-3 rounded border text-sm flex items-start gap-2 ${rec.type === 'success'
-                                    ? 'bg-green-500/20 border-green-500/50 text-green-300'
+                                    ? 'bg-green-500/20 border-green-500/50 text-green-500'
                                     : rec.type === 'warning'
-                                        ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-300'
+                                        ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-500'
                                         : rec.type === 'info'
-                                            ? 'bg-blue-500/20 border-blue-500/50 text-blue-300'
-                                            : 'bg-red-500/20 border-red-500/50 text-red-300'
+                                            ? 'bg-blue-500/20 border-blue-500/50 text-blue-500'
+                                            : 'bg-red-500/20 border-red-500/50 text-red-500'
                                     }`}
                             >
                                 {rec.type === 'success' && <CheckCircle size={16} className="flex-shrink-0 mt-0.5" />}

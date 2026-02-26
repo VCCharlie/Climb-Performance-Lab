@@ -249,9 +249,9 @@ const RecoveryAdvisor = ({ activities }) => {
                             <div
                                 key={idx}
                                 className={`p-3 rounded border text-sm flex items-start gap-3 ${rec.type === 'success'
-                                    ? 'bg-green-500/20 border-green-500/50 text-green-100'
+                                    ? 'bg-green-500/20 border-green-500/50 text-green-500'
                                     : rec.type === 'warning'
-                                        ? 'bg-red-500/20 border-red-500/50 text-red-100'
+                                        ? 'bg-red-500/20 border-red-500/50 text-red-500'
                                         : rec.type === 'caution'
                                             ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-100'
                                             : 'bg-blue-500/20 border-blue-500/50 text-blue-100'

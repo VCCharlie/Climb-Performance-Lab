@@ -3,6 +3,7 @@ import { Search, Loader2, AlertTriangle, Trash, Split, RefreshCw, ExternalLink, 
 import { doc, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from '../firebase';
 import { findDuplicatesInList } from '../utils';
+import { matchStravaToSite, normalizeStravaActivity, STRAVA_BIKE_TYPES } from '../utils/stravaMatch';
 
 import { SPORT_TYPES } from '../config';
 
@@ -24,11 +25,12 @@ import useActivityFilter from '../hooks/useActivityFilter';
 // githubPat: optional GitHub Personal Access Token for manual workflow dispatch
 // showImport: soft-toggle to show/hide the legacy CSV import section (default: false)
 // stravaGetToken: function to get a valid Strava access token (or null if not connected)
-// startDate / endDate: globale datumrange vanuit App.jsx tab-lint
 // stravaEnrichResults / onStravaEnrichResults: persistente match-resultaten over tab-wissels
 // stravaAthleteId: Strava athlete ID voor profile/stats/KOM endpoints
 // stravaProfileData / onStravaProfileData: persistente profieldata over tab-wissels
 const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImport = false, stravaGetToken, startDate, endDate, stravaEnrichResults, onStravaEnrichResults, stravaAthleteId, stravaProfileData, onStravaProfileData }) => {
+// onRefresh: optional prop to trigger a full refetch of activities from Firestore
+const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat, showImport = false, stravaGetToken, startDate, endDate, stravaEnrichResults, onStravaEnrichResults }) => {
     // UI State
     const [internalTab, setInternalTab] = useState('log');
     const [detailActivity, setDetailActivity] = useState(null);
@@ -176,12 +178,10 @@ const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImpor
     }, []);
 
     /**
-     * Triggers the nightly sync GitHub Actions workflow on demand.
-     * Strategy:
-     *  1. List all workflows in the repo to find the nightly-sync workflow dynamically.
-     *  2. Trigger the found workflow via workflow_dispatch.
-     *
-     * Requires a GitHub PAT (classic or fine-grained) with `workflow` / `actions:write` scope.
+     * UNIVERSAL SYNC
+     * Step 1: fetch new items from Strava (if connected) directly from the browser.
+     * Step 2: list workflows in the repo to find the nightly-sync workflow dynamically.
+     * Step 3: dispatch the workflow via workflow_dispatch to trigger the Deep Merge backend.
      */
     const triggerGithubSync = async () => {
         if (!githubPat) {
@@ -191,6 +191,83 @@ const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImpor
         setIsSyncingGithub(true);
         setSyncStatus(null);
         setSyncErrorDetail(null);
+
+        // --- PHASE 1: SILENT STRAVA IMPORT ---
+        if (stravaGetToken) {
+            try {
+                setSyncErrorDetail("Stap 1/2: Controleren op nieuwe Strava ritten...");
+                const token = await stravaGetToken();
+                if (token) {
+                    const afterTs = Math.floor(new Date(startDate).getTime() / 1000);
+                    const beforeTs = Math.floor(new Date(endDate).getTime() / 1000) + 86400;
+
+                    let page = 1;
+                    let allActivities = [];
+                    while (true) {
+                        const resp = await fetch(
+                            `https://www.strava.com/api/v3/athlete/activities?after=${afterTs}&before=${beforeTs}&per_page=200&page=${page}`,
+                            { headers: { Authorization: `Bearer ${token}` } }
+                        );
+                        if (!resp.ok) break;
+                        const data = await resp.json();
+                        if (!Array.isArray(data) || data.length === 0) break;
+                        allActivities = allActivities.concat(data);
+                        if (data.length < 200) break;
+                        page++;
+                    }
+
+                    const bikeActivities = allActivities.filter(a => {
+                        if (!STRAVA_BIKE_TYPES.has(a.sport_type || a.type)) return false;
+
+                        // Filter out short rides (< 5km) without power data
+                        const noPower = !a.average_watts || a.average_watts === 0;
+                        const isShort = !a.distance || (a.distance / 1000) < 5;
+                        if (noPower && isShort) return false;
+
+                        return true;
+                    });
+                    const result = matchStravaToSite(bikeActivities, activities);
+
+                    // 1. Import unmatched New Strava rides
+                    if (result && result.unmatchedStrava && result.unmatchedStrava.length > 0) {
+                        const newActs = result.unmatchedStrava.map(normalizeStravaActivity);
+                        if (db) {
+                            await Promise.all(newActs.map(act =>
+                                setDoc(doc(db, 'activities', String(act.id)), act, { merge: true })
+                            ));
+                        }
+                        if (onImport) onImport(newActs);
+                        console.log(`[Universal Sync] ${newActs.length} nieuwe Strava ritten geïmporteerd.`);
+                    }
+
+                    // 2. Enrich already matched / linked rides with Strava Title & Type
+                    const toEnrich = [];
+                    if (result?.matched?.length > 0) {
+                        toEnrich.push(...result.matched.filter(m => m.confidence !== 'low'));
+                    }
+                    if (result?.alreadyLinked?.length > 0) {
+                        toEnrich.push(...result.alreadyLinked);
+                    }
+
+                    if (toEnrich.length > 0 && db) {
+                        await Promise.all(toEnrich.map(m => {
+                            const norm = normalizeStravaActivity(m.strava);
+                            return setDoc(doc(db, 'activities', String(m.site.id)), {
+                                strava_id: norm.strava_id,
+                                title: norm.title,
+                                type: norm.type
+                            }, { merge: true });
+                        }));
+                        console.log(`[Universal Sync] ${toEnrich.length} bestaande ritten verrijkt met Strava titels.`);
+                    }
+                }
+            } catch (err) {
+                console.error("[Universal Sync] Strava voorfase mislukt:", err);
+            }
+        }
+
+        // --- PHASE 2: TRIGGER GITHUB BACKEND ---
+        setSyncErrorDetail("Stap 2/2: Backend Intervals Deep Merge starten...");
 
         const REPO = 'VCCharlie/Climb-Performance-Lab';
         const HEADERS = {
@@ -248,13 +325,13 @@ const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImpor
                 const errBody = await dispatchRes.json().catch(() => ({ message: `HTTP ${dispatchRes.status}` }));
                 const msg = errBody?.message || `HTTP ${dispatchRes.status}`;
                 console.error('[Sync] Dispatch failed:', dispatchRes.status, errBody);
-                setSyncErrorDetail(`${dispatchRes.status}: ${msg}`);
+                setSyncErrorDetail(`GitHub Dispatch Fout: ${dispatchRes.status}: ${msg}`);
                 setSyncStatus('error');
                 setTimeout(() => { setSyncStatus(null); setSyncErrorDetail(null); }, 10000);
             }
         } catch (err) {
             console.error('[Sync] Fetch error:', err);
-            setSyncErrorDetail(err.message);
+            setSyncErrorDetail(`Netwerkfout: ${err.message}`);
             setSyncStatus('error');
             setTimeout(() => { setSyncStatus(null); setSyncErrorDetail(null); }, 10000);
         } finally {
@@ -527,11 +604,22 @@ const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImpor
                                 </div>
                             </div>
                             <div className="flex gap-2">
+                                {/* REFRESH BUTTON */}
+                                {onRefresh && (
+                                    <button
+                                        onClick={() => onRefresh()}
+                                        className="flex items-center justify-center w-9 h-9 rounded border bg-cdsurface border-cdborder text-cdmuted hover:text-green-400 hover:border-green-500/50 transition-colors group"
+                                        title="Data verversen"
+                                    >
+                                        <RefreshCw size={14} className="group-active:animate-spin" />
+                                    </button>
+                                )}
+
                                 {/* Utility menu — Sync Now / Duplicates / No Power / Clear DB */}
                                 <div className="relative" ref={utilMenuRef}>
                                     <button
                                         onClick={() => setShowUtilMenu(v => !v)}
-                                        className="flex items-center gap-1.5 px-3 py-2 rounded text-sm font-bold border bg-cdsurface border-cdborder text-cdtext hover:border-yellow-400 transition-all"
+                                        className="flex items-center gap-1.5 px-3 h-9 rounded text-sm font-bold border bg-cdsurface border-cdborder text-cdtext hover:border-yellow-400 transition-all"
                                     >
                                         Tools <ChevronDown size={14} className={showUtilMenu ? 'rotate-180 transition-transform' : 'transition-transform'} />
                                     </button>
