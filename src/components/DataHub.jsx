@@ -52,8 +52,9 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
     const [syncErrorDetail, setSyncErrorDetail] = useState(null); // detailed error string from GitHub API
 
     // --- HOOKS ---
+    const deferredActivities = React.useDeferredValue(activities);
 
-    // 1. Filtering & Sorting
+    // 1. Filtering & Sorting (Deferred to prevent UI block)
     const {
         search, setSearch,
         indoorFilter, setIndoorFilter,
@@ -61,7 +62,7 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
         isYearExpanded, toggleYear,
         isMonthExpanded, toggleMonth,
         processedActivities, groupedActivities, isGroupedView
-    } = useActivityFilter(activities);
+    } = useActivityFilter(deferredActivities);
 
     // --- ACTIONS ---
 

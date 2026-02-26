@@ -320,9 +320,13 @@ const App = () => {
 
             if (loadedActs.length > 0) {
                 loadedActs.sort((a, b) => new Date(b.date) - new Date(a.date));
-                setActivities(loadedActs);
+                React.startTransition(() => {
+                    setActivities(loadedActs);
+                });
             } else {
-                setActivities([]);
+                React.startTransition(() => {
+                    setActivities([]);
+                });
             }
 
             // Check if changes are local (latency compensation) or synced
