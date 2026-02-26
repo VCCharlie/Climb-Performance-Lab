@@ -16,6 +16,7 @@ import QuickNav from './data-hub/QuickNav';
 import ImportSection from './data-hub/ImportSection';
 import ActivityDetailModal from './DataHub/ActivityDetailModal';
 import StravaEnrichTab from './DataHub/StravaEnrichTab';
+import StravaProfileTab from './DataHub/StravaProfileTab';
 
 // Hooks
 import useActivityFilter from '../hooks/useActivityFilter';
@@ -25,6 +26,9 @@ import useActivityFilter from '../hooks/useActivityFilter';
 // showImport: soft-toggle to show/hide the legacy CSV import section (default: false)
 // stravaGetToken: function to get a valid Strava access token (or null if not connected)
 // stravaEnrichResults / onStravaEnrichResults: persistente match-resultaten over tab-wissels
+// stravaAthleteId: Strava athlete ID voor profile/stats/KOM endpoints
+// stravaProfileData / onStravaProfileData: persistente profieldata over tab-wissels
+const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImport = false, stravaGetToken, startDate, endDate, stravaEnrichResults, onStravaEnrichResults, stravaAthleteId, stravaProfileData, onStravaProfileData }) => {
 // onRefresh: optional prop to trigger a full refetch of activities from Firestore
 const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat, showImport = false, stravaGetToken, startDate, endDate, stravaEnrichResults, onStravaEnrichResults }) => {
     // UI State
@@ -549,13 +553,17 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
             {/* TABS */}
             <div className="flex border-b border-cdborder">
                 <button onClick={() => setInternalTab('log')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'log' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Activity Log</button>
-                {/* Strava Verrijking tab — zichtbaar als Strava is gekoppeld */}
-                {stravaGetToken && (
+                {/* Strava tabs — zichtbaar als Strava is gekoppeld */}
+                {stravaGetToken && (<>
                     <button onClick={() => setInternalTab('strava')} className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-1.5 ${internalTab === 'strava' ? 'bg-cdborder text-orange-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>
                         <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" /></svg>
                         Strava Verrijking
                     </button>
-                )}
+                    <button onClick={() => setInternalTab('strava-profile')} className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-1.5 ${internalTab === 'strava-profile' ? 'bg-cdborder text-orange-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" /></svg>
+                        Strava Profiel
+                    </button>
+                </>)}
                 {/* Import tab is soft-hidden by default — code intact, render behind prop */}
                 {showImport && (
                     <button onClick={() => setInternalTab('import')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'import' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Import Data</button>
@@ -698,6 +706,15 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
                         endDate={endDate}
                         persistedResults={stravaEnrichResults}
                         onResultsChange={onStravaEnrichResults}
+                    />
+                )}
+
+                {internalTab === 'strava-profile' && (
+                    <StravaProfileTab
+                        getStravaToken={stravaGetToken}
+                        athleteId={stravaAthleteId}
+                        persistedData={stravaProfileData}
+                        onDataChange={onStravaProfileData}
                     />
                 )}
             </div>

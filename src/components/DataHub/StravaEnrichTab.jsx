@@ -113,7 +113,18 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
 
             setFetchProgress(`${bikeActivities.length} fietsactiviteiten gevonden, matching...`);
 
+            // Haal athlete bikes op voor gear_name lookup
+            const athleteResp = await fetch('https://www.strava.com/api/v3/athlete', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const athleteData = athleteResp.ok ? await athleteResp.json() : {};
+            const bikesMap = {};
+            (athleteData.bikes || []).forEach(b => {
+                bikesMap[b.id] = b.name || [b.brand_name, b.model_name].filter(Boolean).join(' ') || 'Onbekend';
+            });
+
             const result = matchStravaToSite(bikeActivities, activities);
+            result.bikesMap = bikesMap;
             applyResults(result);
         } catch (e) {
             setError(e.message);
@@ -129,14 +140,21 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
 
         let count = 0;
 
-        // 1. Schrijf strava_id naar gekoppelde activiteiten in Firestore
+        // 1. Schrijf strava_id + gear naar gekoppelde activiteiten in Firestore
+        const bikesMap = results.bikesMap || {};
         const toEnrich = results.matched.filter(m => selectedMatches.has(String(m.strava.id)));
         for (const { strava, site } of toEnrich) {
             try {
                 if (db) {
+                    const gearId = strava.gear_id || null;
+                    const gearName = gearId ? (bikesMap[gearId] || null) : null;
                     await setDoc(
                         doc(db, 'activities', String(site.id)),
-                        { strava_id: String(strava.id) },
+                        {
+                            strava_id: String(strava.id),
+                            ...(gearId && { gear_id: gearId }),
+                            ...(gearName && { gear_name: gearName }),
+                        },
                         { merge: true }
                     );
                 }

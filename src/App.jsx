@@ -68,8 +68,9 @@ const App = () => {
 
     const stravaAuth = useStravaAuth(stravaConfig, setStravaConfig);
 
-    // Strava verrijkingsresultaten: bewaard over tab-wissels heen
+    // Strava verrijkingsresultaten + profieldata: bewaard over tab-wissels heen
     const [stravaEnrichResults, setStravaEnrichResults] = useState(null);
+    const [stravaProfileData, setStravaProfileData] = useState(null);
 
     // Globale periode-selector: gedeeld tussen Dashboard en andere tabs
     const [timeRange, setTimeRange] = useState(() => localStorage.getItem('dashboard_timeRange') || '1Y');
@@ -495,6 +496,9 @@ const App = () => {
                                 endDate={globalEndDate}
                                 stravaEnrichResults={stravaEnrichResults}
                                 onStravaEnrichResults={setStravaEnrichResults}
+                                stravaAthleteId={stravaConfig?.athlete_id}
+                                stravaProfileData={stravaProfileData}
+                                onStravaProfileData={setStravaProfileData}
                                 onRefresh={forceRefreshActivities}
                             />
                         )}
