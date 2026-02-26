@@ -117,8 +117,10 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
     }
 
     const { stats, koms, starred, bikes } = data || {};
-    const komCount = koms ? koms.filter(e => !e.segment?.private).length : 0;
-    const crCount = koms ? koms.filter(e => !!e.segment?.private).length : 0;
+    // is_kom: true = KOM/QOM (publiek segment), false = CR (privé/lokaal segment)
+    // segment.private is niet altijd aanwezig in SummarySegment
+    const komCount = koms ? koms.filter(e => e.is_kom !== false).length : 0;
+    const crCount = koms ? koms.filter(e => e.is_kom === false).length : 0;
 
     return (
         <div className="space-y-5">
@@ -212,7 +214,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                     ) : (
                         <div className="max-h-72 overflow-y-auto custom-scrollbar space-y-1 pr-1">
                             {koms.map((effort) => {
-                                const isKOM = !effort.segment?.private;
+                                const isKOM = effort.is_kom !== false;
                                 return (
                                     <div key={effort.id} className={`flex items-center gap-3 bg-cdbg/50 border rounded px-3 py-1.5 text-xs transition-colors ${isKOM ? 'border-cdborder/40 hover:border-yellow-400/30' : 'border-cdborder/40 hover:border-purple-400/30'}`}>
                                         {isKOM

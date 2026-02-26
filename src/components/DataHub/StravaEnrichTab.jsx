@@ -121,7 +121,8 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
             const athleteData = athleteResp.ok ? await athleteResp.json() : {};
             const bikesMap = {};
             (athleteData.bikes || []).forEach(b => {
-                bikesMap[b.id] = b.name || [b.brand_name, b.model_name].filter(Boolean).join(' ') || 'Onbekend';
+                // SummaryGear heeft alleen id/name/distance — brand_name/model_name niet beschikbaar
+                bikesMap[b.id] = b.name || 'Fiets';
             });
 
             const result = matchStravaToSite(bikeActivities, activities);
@@ -148,13 +149,12 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
             try {
                 if (db) {
                     const gearId = strava.gear_id || null;
-                    const gearName = gearId ? (bikesMap[gearId] || null) : null;
+                    const gearName = gearId ? (bikesMap[gearId] || 'Strava fiets') : null;
                     await setDoc(
                         doc(db, 'activities', String(site.id)),
                         {
                             strava_id: String(strava.id),
-                            ...(gearId && { gear_id: gearId }),
-                            ...(gearName && { gear_name: gearName }),
+                            ...(gearId && { gear_id: gearId, gear_name: gearName }),
                         },
                         { merge: true }
                     );
@@ -172,8 +172,8 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                 .map(a => {
                     const norm = normalizeStravaActivity(a);
                     const gearId = a.gear_id || null;
-                    const gearName = gearId ? (bikesMap[gearId] || null) : null;
-                    return { ...norm, ...(gearId && { gear_id: gearId }), ...(gearName && { gear_name: gearName }) };
+                    const gearName = gearId ? (bikesMap[gearId] || 'Strava fiets') : null;
+                    return { ...norm, ...(gearId && { gear_id: gearId, gear_name: gearName }) };
                 });
             if (onImportNew && newActs.length > 0) onImportNew(newActs);
         }
@@ -187,11 +187,11 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                 try {
                     if (db) {
                         const gearId = strava.gear_id || null;
-                        const gearName = gearId ? (bikesMap[gearId] || null) : null;
+                        const gearName = gearId ? (bikesMap[gearId] || 'Strava fiets') : null;
                         if (gearId) {
                             await setDoc(
                                 doc(db, 'activities', String(site.id)),
-                                { gear_id: gearId, ...(gearName && { gear_name: gearName }) },
+                                { gear_id: gearId, gear_name: gearName },
                                 { merge: true }
                             );
                             count++;
@@ -362,7 +362,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                                 </div>
                                 <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
                                     {gearItems.map(({ strava, site }) => {
-                                        const gearName = results.bikesMap?.[strava.gear_id] || 'Onbekende fiets';
+                                        const gearName = results.bikesMap?.[strava.gear_id] || 'Strava fiets (naamloos)';
                                         return (
                                             <label key={strava.id} className={`flex items-center gap-2 rounded px-3 py-2 border text-xs cursor-pointer select-none transition-colors ${selectedGearUpdate.has(String(strava.id)) ? 'bg-orange-500/5 border-orange-500/30' : 'bg-cdbg/50 border-cdborder/30 hover:border-cdborder'}`}>
                                                 <input type="checkbox" checked={selectedGearUpdate.has(String(strava.id))} onChange={() => toggleGearUpdate(strava.id)} className="accent-orange-500 shrink-0" />
