@@ -44,7 +44,7 @@ const ActivityRow = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview
                     </div>
                 );
                 case 'gear_name': {
-                    if (!val) return <span className="text-cdmuted">-</span>;
+                    if (!val || typeof val !== 'string') return <span className="text-cdmuted">-</span>;
                     return (
                         <span className="flex items-center gap-1 text-orange-400/80" title={val}>
                             <Bike size={11} className="shrink-0" />
