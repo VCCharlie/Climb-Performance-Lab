@@ -68,9 +68,15 @@ const App = () => {
 
     const stravaAuth = useStravaAuth(stravaConfig, setStravaConfig);
 
-    // Strava verrijkingsresultaten + profieldata: bewaard over tab-wissels heen
+    // Strava verrijkingsresultaten: bewaard over tab-wissels heen (niet persistent)
     const [stravaEnrichResults, setStravaEnrichResults] = useState(null);
-    const [stravaProfileData, setStravaProfileData] = useState(null);
+
+    // Strava profieldata: bewaard over tab-wissels én persistent via localStorage + Firestore
+    const [stravaProfileData, setStravaProfileData] = useState(() => {
+        const saved = localStorage.getItem('stravaProfileData');
+        if (saved) { try { return JSON.parse(saved); } catch (e) { /* */ } }
+        return null;
+    });
 
     // Globale periode-selector: gedeeld tussen Dashboard en andere tabs
     const [timeRange, setTimeRange] = useState(() => localStorage.getItem('dashboard_timeRange') || '1Y');
@@ -209,6 +215,18 @@ const App = () => {
         }
     }, [stravaConfig, user]);
 
+    // Auto-save stravaProfileData naar localStorage + Firestore (cross-device)
+    useEffect(() => {
+        if (!stravaProfileData) return;
+        localStorage.setItem('stravaProfileData', JSON.stringify(stravaProfileData));
+        if (db && user) {
+            const settingsId = `user_${user.uid}`;
+            setDoc(doc(db, "settings", settingsId), {
+                stravaProfile: stravaProfileData
+            }, { merge: true }).catch(e => console.error("Error auto-saving stravaProfile:", e));
+        }
+    }, [stravaProfileData, user]);
+
     const [weatherClimbState, setWeatherClimbState] = useState({
         selectedClimb: CLIMB_DATABASE[0],
         targetPower: 280 * 0.85,
@@ -271,6 +289,10 @@ const App = () => {
                     if (data.strava) {
                         setStravaConfig(data.strava);
                         localStorage.setItem('stravaConfig', JSON.stringify(data.strava));
+                    }
+                    if (data.stravaProfile) {
+                        setStravaProfileData(data.stravaProfile);
+                        localStorage.setItem('stravaProfileData', JSON.stringify(data.stravaProfile));
                     }
                 }
             } catch (e) {

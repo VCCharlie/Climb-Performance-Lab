@@ -121,7 +121,8 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
             const athleteData = athleteResp.ok ? await athleteResp.json() : {};
             const bikesMap = {};
             (athleteData.bikes || []).forEach(b => {
-                bikesMap[b.id] = b.name || [b.brand_name, b.model_name].filter(Boolean).join(' ') || 'Onbekend';
+                // SummaryGear heeft alleen id/name/distance — brand_name/model_name niet beschikbaar
+                bikesMap[b.id] = b.name || 'Fiets';
             });
 
             const result = matchStravaToSite(bikeActivities, activities);
