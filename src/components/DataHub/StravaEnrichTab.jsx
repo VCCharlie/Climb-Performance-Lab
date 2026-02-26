@@ -114,16 +114,35 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
 
             setFetchProgress(`${bikeActivities.length} fietsactiviteiten gevonden, matching...`);
 
-            // Haal athlete bikes op voor gear_name lookup
+            // Haal default/active bikes op via /athlete (geeft alleen default-gear terug, niet alle fietsen)
             const athleteResp = await fetch('https://www.strava.com/api/v3/athlete', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             const athleteData = athleteResp.ok ? await athleteResp.json() : {};
             const bikesMap = {};
             (athleteData.bikes || []).forEach(b => {
-                // SummaryGear heeft alleen id/name/distance — brand_name/model_name niet beschikbaar
                 bikesMap[b.id] = b.name || 'Fiets';
             });
+
+            // Haal gear-naam op voor fietsen die niet via /athlete zijn teruggegeven
+            // (Strava geeft via /athlete alleen default-gear; andere fietsen via /gear/{id})
+            const unknownGearIds = [...new Set(
+                bikeActivities.map(a => a.gear_id).filter(id => id && !bikesMap[id])
+            )];
+            if (unknownGearIds.length > 0) {
+                setFetchProgress(`Fietsnamen ophalen (${unknownGearIds.length})...`);
+                await Promise.all(unknownGearIds.map(async gearId => {
+                    try {
+                        const r = await fetch(`https://www.strava.com/api/v3/gear/${gearId}`, {
+                            headers: { Authorization: `Bearer ${token}` }
+                        });
+                        if (r.ok) {
+                            const g = await r.json();
+                            bikesMap[gearId] = g.name || [g.brand_name, g.model_name].filter(Boolean).join(' ') || 'Fiets';
+                        }
+                    } catch { /* stille fout — gear_id blijft onbekend */ }
+                }));
+            }
 
             const result = matchStravaToSite(bikeActivities, activities);
             result.bikesMap = bikesMap;
