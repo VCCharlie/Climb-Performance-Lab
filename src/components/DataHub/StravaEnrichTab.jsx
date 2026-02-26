@@ -144,6 +144,9 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                 }));
             }
 
+            // Cache bikesMap in localStorage voor gebruik in EditActivityModal
+            try { localStorage.setItem('stravaBikesMap', JSON.stringify(bikesMap)); } catch { /* quota */ }
+
             const result = matchStravaToSite(bikeActivities, activities);
             result.bikesMap = bikesMap;
             applyResults(result);

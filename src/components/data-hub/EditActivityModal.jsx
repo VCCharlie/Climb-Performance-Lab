@@ -1,14 +1,23 @@
 ﻿
-import React, { useState } from 'react';
-import {
-    X, Edit2, Save
-} from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { X, Edit2, Save, Bike } from 'lucide-react';
 import { formatTime } from '../../utils';
 import { SPORT_TYPES } from '../../config';
 
 const EditActivityModal = ({ activity, onClose, onSave }) => {
     // Lokale state voor het formulier
     const [formData, setFormData] = useState(activity);
+
+    // Beschikbare fietsen uit de gecachte bikesMap (gebouwd bij Strava-verrijking)
+    const availableBikes = useMemo(() => {
+        try {
+            const saved = localStorage.getItem('stravaBikesMap');
+            if (!saved) return [];
+            return Object.entries(JSON.parse(saved))
+                .map(([id, name]) => ({ id, name }))
+                .sort((a, b) => a.name.localeCompare(b.name));
+        } catch { return []; }
+    }, []);
 
     const handleChange = (e) => {
         const { name, value, type } = e.target;
@@ -57,6 +66,33 @@ const EditActivityModal = ({ activity, onClose, onSave }) => {
                                 {SPORT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                             </select>
                         </div>
+
+                        {/* FIETS */}
+                        {availableBikes.length > 0 && (
+                            <div className="col-span-2">
+                                <label className="text-xs text-cdmuted uppercase font-bold flex items-center gap-1.5 mb-1">
+                                    <Bike size={12} /> Fiets
+                                </label>
+                                <select
+                                    value={formData.gear_id || ''}
+                                    onChange={(e) => {
+                                        const gearId = e.target.value;
+                                        const map = availableBikes.reduce((acc, b) => ({ ...acc, [b.id]: b.name }), {});
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            gear_id: gearId || null,
+                                            gear_name: gearId ? (map[gearId] || null) : null
+                                        }));
+                                    }}
+                                    className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none"
+                                >
+                                    <option value="">— geen fiets —</option>
+                                    {availableBikes.map(({ id, name }) => (
+                                        <option key={id} value={id}>{name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
 
                         {/* METRICS */}
                         <div className="col-span-2 h-px bg-cdborder my-2"></div>
