@@ -4,20 +4,22 @@ import { X, Edit2, Save, Bike } from 'lucide-react';
 import { formatTime } from '../../utils';
 import { SPORT_TYPES } from '../../config';
 
+const getStoredBikes = () => {
+    try {
+        const saved = localStorage.getItem('stravaBikesMap');
+        if (!saved) return [];
+        return Object.entries(JSON.parse(saved))
+            .map(([id, name]) => ({ id, name }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+    } catch { return []; }
+};
+
 const EditActivityModal = ({ activity, onClose, onSave }) => {
     // Lokale state voor het formulier
     const [formData, setFormData] = useState(activity);
 
     // Beschikbare fietsen uit de gecachte bikesMap (gebouwd bij Strava-verrijking)
-    const availableBikes = useMemo(() => {
-        try {
-            const saved = localStorage.getItem('stravaBikesMap');
-            if (!saved) return [];
-            return Object.entries(JSON.parse(saved))
-                .map(([id, name]) => ({ id, name }))
-                .sort((a, b) => a.name.localeCompare(b.name));
-        } catch { return []; }
-    }, []);
+    const availableBikes = useMemo(() => getStoredBikes(), []);
 
     const handleChange = (e) => {
         const { name, value, type } = e.target;
@@ -68,11 +70,11 @@ const EditActivityModal = ({ activity, onClose, onSave }) => {
                         </div>
 
                         {/* FIETS */}
-                        {availableBikes.length > 0 && (
-                            <div className="col-span-2">
-                                <label className="text-xs text-cdmuted uppercase font-bold flex items-center gap-1.5 mb-1">
-                                    <Bike size={12} /> Fiets
-                                </label>
+                        <div className="col-span-2">
+                            <label className="text-xs text-cdmuted uppercase font-bold flex items-center gap-1.5 mb-1">
+                                <Bike size={12} /> Fiets
+                            </label>
+                            {availableBikes.length > 0 ? (
                                 <select
                                     value={formData.gear_id || ''}
                                     onChange={(e) => {
@@ -86,13 +88,22 @@ const EditActivityModal = ({ activity, onClose, onSave }) => {
                                     }}
                                     className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none"
                                 >
-                                    <option value="">— geen fiets —</option>
+                                    <option value="">— geen fiets geselecteerd —</option>
                                     {availableBikes.map(({ id, name }) => (
                                         <option key={id} value={id}>{name}</option>
                                     ))}
                                 </select>
-                            </div>
-                        )}
+                            ) : (
+                                <input
+                                    name="gear_name"
+                                    type="text"
+                                    value={formData.gear_name || ''}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, gear_name: e.target.value }))}
+                                    placeholder="Naam van je fiets..."
+                                    className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none"
+                                />
+                            )}
+                        </div>
 
                         {/* METRICS */}
                         <div className="col-span-2 h-px bg-cdborder my-2"></div>

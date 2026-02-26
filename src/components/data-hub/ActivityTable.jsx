@@ -65,6 +65,15 @@ export const Row = React.memo(({ act, onDelete, onEdit, onViewDetail, isConfirmi
                         {val}
                     </span>
                 );
+                case 'gear_name': {
+                    if (!val || typeof val !== 'string') return <span className="text-cdmuted">-</span>;
+                    return (
+                        <span className="flex items-center gap-1 text-orange-400/80" title={val}>
+                            <Bike size={11} className="shrink-0" />
+                            <span className="truncate max-w-[100px] text-xs">{val}</span>
+                        </span>
+                    );
+                }
                 case 'moving_time': return <span className="text-cdmuted font-mono">{formatTime(val)}</span>;
                 case 'distance': case 'avg_speed': return <span className="text-cdmuted">{Number(val).toFixed(1)}</span>;
                 case 'climbing': case 'avg_power': return <span className="text-cdmuted">{Math.round(val || 0)}</span>;
