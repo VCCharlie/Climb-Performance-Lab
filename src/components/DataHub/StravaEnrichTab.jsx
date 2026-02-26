@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Loader2, Check, AlertCircle, RefreshCw, Link2, Plus, ChevronDown, ChevronRight } from 'lucide-react';
+import { Loader2, Check, AlertCircle, RefreshCw, Link2, Plus, ChevronDown, ChevronRight, Bike } from 'lucide-react';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { matchStravaToSite, normalizeStravaActivity, STRAVA_BIKE_TYPES } from '../../utils/stravaMatch';
@@ -62,6 +62,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
         );
     });
     const [selectedNew, setSelectedNew] = useState(new Set());
+    const [selectedGearUpdate, setSelectedGearUpdate] = useState(new Set());
     const [isApplying, setIsApplying] = useState(false);
     const [appliedCount, setAppliedCount] = useState(0);
 
@@ -164,19 +165,60 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
             }
         }
 
-        // 2. Importeer nieuwe activiteiten (alleen in Strava, niet op site)
+        // 2. Importeer nieuwe activiteiten (alleen in Strava, niet op site) — inclusief gear
         if (selectedNew.size > 0) {
             const newActs = results.unmatchedStrava
                 .filter(a => selectedNew.has(String(a.id)))
-                .map(normalizeStravaActivity);
+                .map(a => {
+                    const norm = normalizeStravaActivity(a);
+                    const gearId = a.gear_id || null;
+                    const gearName = gearId ? (bikesMap[gearId] || null) : null;
+                    return { ...norm, ...(gearId && { gear_id: gearId }), ...(gearName && { gear_name: gearName }) };
+                });
             if (onImportNew && newActs.length > 0) onImportNew(newActs);
+        }
+
+        // 3. Gear bijwerken voor al-verbonden activiteiten zonder fiets
+        if (selectedGearUpdate.size > 0) {
+            const toUpdate = (results.alreadyLinked || []).filter(m =>
+                m.needsGear && selectedGearUpdate.has(String(m.strava.id))
+            );
+            for (const { strava, site } of toUpdate) {
+                try {
+                    if (db) {
+                        const gearId = strava.gear_id || null;
+                        const gearName = gearId ? (bikesMap[gearId] || null) : null;
+                        if (gearId) {
+                            await setDoc(
+                                doc(db, 'activities', String(site.id)),
+                                { gear_id: gearId, ...(gearName && { gear_name: gearName }) },
+                                { merge: true }
+                            );
+                            count++;
+                        }
+                    }
+                } catch (e) {
+                    console.error('Gear update fout voor', site.id, e);
+                }
+            }
+            // Markeer bijgewerkte activiteiten lokaal als gear opgelost (prop wordt niet direct ververst)
+            const updatedIds = new Set([...selectedGearUpdate]);
+            setResults(prev => ({
+                ...prev,
+                alreadyLinked: prev.alreadyLinked.map(m =>
+                    updatedIds.has(String(m.strava.id)) ? { ...m, needsGear: false } : m
+                )
+            }));
+            setSelectedGearUpdate(new Set());
         }
 
         setAppliedCount(count);
         setIsApplying(false);
 
-        // Herlaad resultaten om al-gekoppeld status te reflecteren
-        await fetchAndMatch();
+        // Herlaad resultaten om al-gekoppeld status te reflecteren (alleen bij strava_id of import)
+        if (selectedMatches.size > 0 || selectedNew.size > 0) {
+            await fetchAndMatch();
+        }
     };
 
     const toggleMatch = (stravaId) => {
@@ -186,6 +228,10 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
     const toggleNew = (stravaId) => {
         const id = String(stravaId);
         setSelectedNew(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
+    };
+    const toggleGearUpdate = (stravaId) => {
+        const id = String(stravaId);
+        setSelectedGearUpdate(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
     };
 
     return (
@@ -228,7 +274,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
 
             {appliedCount > 0 && !isApplying && (
                 <div className="text-xs text-green-400 bg-green-500/10 border border-green-500/20 rounded-lg p-3 flex items-center gap-2">
-                    <Check size={14} /> <strong>{appliedCount}</strong> activiteiten verrijkt met Strava ID — kaart &amp; segmenten nu beschikbaar!
+                    <Check size={14} /> <strong>{appliedCount}</strong> activiteiten bijgewerkt — herlaad de pagina om fiets &amp; kaartsymbolen te zien in de activiteitenlijst.
                 </div>
             )}
 
@@ -301,19 +347,51 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                         </SectionHeader>
                     )}
 
-                    {results.matched.length === 0 && results.unmatchedStrava.length === 0 && (
+                    {/* Al verbonden maar fiets nog niet opgeslagen */}
+                    {(results.alreadyLinked || []).some(m => m.needsGear) && (() => {
+                        const gearItems = results.alreadyLinked.filter(m => m.needsGear);
+                        return (
+                            <SectionHeader icon={Bike} iconColor="text-orange-400" title="Al verbonden — fiets nog niet opgeslagen" count={`${selectedGearUpdate.size}/${gearItems.length} geselecteerd`}>
+                                <div className="flex justify-end mb-1.5">
+                                    <label className="flex items-center gap-1.5 text-xs text-cdmuted cursor-pointer select-none">
+                                        <input type="checkbox" checked={selectedGearUpdate.size === gearItems.length}
+                                            onChange={e => setSelectedGearUpdate(e.target.checked ? new Set(gearItems.map(m => String(m.strava.id))) : new Set())}
+                                            className="accent-orange-500" />
+                                        Alles selecteren
+                                    </label>
+                                </div>
+                                <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
+                                    {gearItems.map(({ strava, site }) => {
+                                        const gearName = results.bikesMap?.[strava.gear_id] || 'Onbekende fiets';
+                                        return (
+                                            <label key={strava.id} className={`flex items-center gap-2 rounded px-3 py-2 border text-xs cursor-pointer select-none transition-colors ${selectedGearUpdate.has(String(strava.id)) ? 'bg-orange-500/5 border-orange-500/30' : 'bg-cdbg/50 border-cdborder/30 hover:border-cdborder'}`}>
+                                                <input type="checkbox" checked={selectedGearUpdate.has(String(strava.id))} onChange={() => toggleGearUpdate(strava.id)} className="accent-orange-500 shrink-0" />
+                                                <span className="w-20 text-cdmuted shrink-0">{site.date?.split('T')[0]}</span>
+                                                <span className="flex-1 truncate text-cdtext font-medium" title={site.title}>{site.title}</span>
+                                                <span className="flex items-center gap-1 text-orange-400 text-[10px] shrink-0"><Bike size={10} />{gearName}</span>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            </SectionHeader>
+                        );
+                    })()}
+
+                    {results.matched.length === 0 && results.unmatchedStrava.length === 0 && !(results.alreadyLinked || []).some(m => m.needsGear) && (
                         <div className="text-sm text-cdmuted text-center py-6">
                             Geen nieuwe koppelingen gevonden voor deze periode.
                         </div>
                     )}
 
                     {/* Bevestig-knop */}
-                    {(selectedMatches.size > 0 || selectedNew.size > 0) && (
+                    {(selectedMatches.size > 0 || selectedNew.size > 0 || selectedGearUpdate.size > 0) && (
                         <div className="border-t border-cdborder/50 pt-4 flex items-center justify-between gap-4">
-                            <span className="text-xs text-cdmuted">
+                            <span className="text-xs text-cdmuted flex flex-wrap gap-1">
                                 {selectedMatches.size > 0 && <span className="text-green-400 font-bold">{selectedMatches.size} verrijken</span>}
-                                {selectedMatches.size > 0 && selectedNew.size > 0 && ' · '}
+                                {selectedMatches.size > 0 && (selectedNew.size > 0 || selectedGearUpdate.size > 0) && <span>·</span>}
                                 {selectedNew.size > 0 && <span className="text-orange-400 font-bold">{selectedNew.size} importeren</span>}
+                                {selectedNew.size > 0 && selectedGearUpdate.size > 0 && <span>·</span>}
+                                {selectedGearUpdate.size > 0 && <span className="text-orange-400 font-bold">{selectedGearUpdate.size} fiets bijwerken</span>}
                             </span>
                             <button
                                 onClick={applyEnrichment}
