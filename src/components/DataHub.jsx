@@ -28,9 +28,8 @@ import useActivityFilter from '../hooks/useActivityFilter';
 // stravaEnrichResults / onStravaEnrichResults: persistente match-resultaten over tab-wissels
 // stravaAthleteId: Strava athlete ID voor profile/stats/KOM endpoints
 // stravaProfileData / onStravaProfileData: persistente profieldata over tab-wissels
-const DataHub = ({ activities, onImport, onDelete, onClear, githubPat, showImport = false, stravaGetToken, startDate, endDate, stravaEnrichResults, onStravaEnrichResults, stravaAthleteId, stravaProfileData, onStravaProfileData }) => {
 // onRefresh: optional prop to trigger a full refetch of activities from Firestore
-const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat, showImport = false, stravaGetToken, startDate, endDate, stravaEnrichResults, onStravaEnrichResults }) => {
+const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat, showImport = false, stravaGetToken, startDate, endDate, stravaEnrichResults, onStravaEnrichResults, stravaAthleteId, stravaProfileData, onStravaProfileData }) => {
     // UI State
     const [internalTab, setInternalTab] = useState('log');
     const [detailActivity, setDetailActivity] = useState(null);
