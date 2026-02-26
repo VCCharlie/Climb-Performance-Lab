@@ -97,19 +97,26 @@ const useActivityFilter = (activities) => {
             } catch (e) { }
         });
 
-        // Auto-expand last 6 ACTIVE months if not already defined
-        if (expandedYears === null && expandedMonths === null && Object.keys(groups).length > 0) {
-            const initialY = {};
-            const initialM = {};
+        return groups;
+    }, [processedActivities, isGroupedView]);
 
-            // Extract all absolute month strings present
-            const activeMonthKeys = [];
-            Object.keys(groups).sort((a, b) => b - a).forEach(y => {
-                Object.keys(groups[y]).sort((a, b) => MONTH_ORDER.indexOf(b) - MONTH_ORDER.indexOf(a)).forEach(m => {
-                    activeMonthKeys.push({ year: y, month: m });
-                });
+    // Auto-expand last 6 ACTIVE months only ONCE when data first arrives or when grouping changes
+    import { useEffect } from 'react';
+    useEffect(() => {
+        if (!groupedActivities || expandedYears !== null) return;
+
+        const initialY = {};
+        const initialM = {};
+
+        // Extract all absolute month strings present
+        const activeMonthKeys = [];
+        Object.keys(groupedActivities).sort((a, b) => b - a).forEach(y => {
+            Object.keys(groupedActivities[y]).sort((a, b) => MONTH_ORDER.indexOf(b) - MONTH_ORDER.indexOf(a)).forEach(m => {
+                activeMonthKeys.push({ year: y, month: m });
             });
+        });
 
+        if (activeMonthKeys.length > 0) {
             // Take top 6
             const top6 = activeMonthKeys.slice(0, 6);
             top6.forEach(({ year, month }) => {
@@ -117,16 +124,10 @@ const useActivityFilter = (activities) => {
                 initialM[`${year}-${month}`] = true;
             });
 
-            // We set state directly inside useMemo (anti-pattern) or useEffect?
-            // Safer to do it via timeout to avoid React warnings during render phase
-            setTimeout(() => {
-                setExpandedYears(prev => prev || initialY);
-                setExpandedMonths(prev => prev || initialM);
-            }, 0);
+            setExpandedYears(initialY);
+            setExpandedMonths(initialM);
         }
-
-        return groups;
-    }, [processedActivities, isGroupedView, expandedYears, expandedMonths]);
+    }, [groupedActivities, expandedYears]);
 
     return {
         search, setSearch,
