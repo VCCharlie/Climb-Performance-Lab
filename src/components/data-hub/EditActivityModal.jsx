@@ -17,6 +17,7 @@ const getStoredBikes = () => {
 const EditActivityModal = ({ activity, allActivities = [], onClose, onSave }) => {
     // Lokale state voor het formulier
     const [formData, setFormData] = useState(activity);
+    const [isCustomGear, setIsCustomGear] = useState(false);
 
     // Beschikbare fietsen uit de gecachte bikesMap (gebouwd bij Strava-verrijking)
     const availableBikes = useMemo(() => getStoredBikes(), []);
@@ -60,17 +61,14 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave }) =>
         return list.sort((a, b) => a.name.localeCompare(b.name));
     }, [availableBikes, uniqueBikesFallback]);
 
-    // Handler voor invoer van fietsnaam: probeer automatisch gear_id te matchen
-    const handleGearNameChange = (e) => {
-        const val = e.target.value;
-        const matchedStravaBike = availableBikes.find(b => b.name === val);
-
-        setFormData(prev => ({
-            ...prev,
-            gear_name: val,
-            gear_id: matchedStravaBike ? matchedStravaBike.id : null
-        }));
-    };
+    // Activeer custom mode als de huidige fiets niet in de lijst staat
+    React.useEffect(() => {
+        if (formData.gear_name && unifiedBikesList.length > 0) {
+            if (!unifiedBikesList.some(b => b.name === formData.gear_name)) {
+                setIsCustomGear(true);
+            }
+        }
+    }, [formData.gear_name, unifiedBikesList]);
 
     return (
         <div className="fixed inset-0 bg-cdbg/95 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
@@ -102,23 +100,67 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave }) =>
 
                         {/* FIETS */}
                         <div className="col-span-2">
-                            <label className="text-xs text-cdmuted uppercase font-bold flex items-center gap-1.5 mb-1">
-                                <Bike size={12} /> Fiets
+                            <label className="text-xs text-cdmuted uppercase font-bold flex items-center justify-between mb-1">
+                                <span className="flex items-center gap-1.5"><Bike size={12} /> Fiets</span>
+                                {isCustomGear && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsCustomGear(false);
+                                            setFormData(prev => ({ ...prev, gear_id: null, gear_name: '' }));
+                                        }}
+                                        className="text-[10px] text-yellow-500 hover:text-yellow-400 font-bold"
+                                    >
+                                        Terug naar lijst
+                                    </button>
+                                )}
                             </label>
-                            <input
-                                name="gear_name"
-                                type="text"
-                                list="unified-bikes-list"
-                                value={formData.gear_name || ''}
-                                onChange={handleGearNameChange}
-                                placeholder="Selecteer of typ een fietsnaam..."
-                                className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none"
-                            />
-                            <datalist id="unified-bikes-list">
-                                {unifiedBikesList.map(({ id, name }) => (
-                                    <option key={id} value={name} />
-                                ))}
-                            </datalist>
+
+                            {isCustomGear || unifiedBikesList.length === 0 ? (
+                                <input
+                                    name="gear_name"
+                                    type="text"
+                                    value={formData.gear_name || ''}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, gear_id: null, gear_name: e.target.value }))}
+                                    placeholder="Typ de naam van de fiets..."
+                                    className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none"
+                                />
+                            ) : (
+                                <select
+                                    value={formData.gear_id || formData.gear_name || ''}
+                                    onChange={(e) => {
+                                        const selectedVal = e.target.value;
+                                        if (selectedVal === '___custom___') {
+                                            setIsCustomGear(true);
+                                            setFormData(prev => ({ ...prev, gear_id: null, gear_name: '' }));
+                                            return;
+                                        }
+                                        if (!selectedVal) {
+                                            setFormData(prev => ({ ...prev, gear_id: null, gear_name: null }));
+                                            return;
+                                        }
+
+                                        if (selectedVal.startsWith('hist_')) {
+                                            const name = selectedVal.replace('hist_', '');
+                                            setFormData(prev => ({ ...prev, gear_id: null, gear_name: name }));
+                                        } else {
+                                            const map = unifiedBikesList.reduce((acc, b) => ({ ...acc, [b.id]: b.name }), {});
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                gear_id: selectedVal,
+                                                gear_name: map[selectedVal] || null
+                                            }));
+                                        }
+                                    }}
+                                    className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none"
+                                >
+                                    <option value="">— geen fiets geselecteerd —</option>
+                                    {unifiedBikesList.map(({ id, name }) => (
+                                        <option key={id} value={id}>{name}</option>
+                                    ))}
+                                    <option value="___custom___">+ Ontbrekende fiets toevoegen...</option>
+                                </select>
+                            )}
                         </div>
 
                         {/* METRICS */}
