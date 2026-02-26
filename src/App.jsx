@@ -128,7 +128,8 @@ const App = () => {
     }, []);
 
     const handleDeleteActivity = useCallback((id) => {
-        setActivities(prev => prev.filter(a => a.id !== id));
+        // Firebase onSnapshot listener (regel ~317) vangt de delete automatisch op.
+        // Geen lokale mutatie nodig; voorkomt dure double-renders.
     }, []);
 
     const handleClearActivities = useCallback(() => {

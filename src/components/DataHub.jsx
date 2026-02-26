@@ -97,6 +97,9 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
     const handleDeleteSingle = React.useCallback(async (id) => {
         if (db) {
             try {
+                // We wachten niet op de state update hier. 
+                // Zodra deleteDoc slaagt, pushed de Firebase onSnapshot listener (zie App.jsx) 
+                // automatisch de nieuwe lijst naar de UI zonder double-renders.
                 await deleteDoc(doc(db, "activities", String(id)));
             } catch (e) {
                 console.error("Firebase delete failed:", e);
@@ -104,9 +107,8 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
                 return;
             }
         }
-        onDelete(id);
         setDeleteConfirm(null);
-    }, [db, onDelete]);
+    }, [db]);
 
     const handleClearDatabase = async () => {
         if (!confirm("WEET JE HET ZEKER?\n\nHiermee verwijder je ALLE activiteiten uit de database.")) return;
@@ -152,9 +154,9 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
         if (noPowerSelected.length === 0) return;
         setIsDeleting(true);
         try {
+            // Delete operaties wuren verwerkt in batches. De onSnapshot listener pakt de wijzigingen op.
             for (const id of noPowerSelected) {
                 if (db) await deleteDoc(doc(db, "activities", String(id)));
-                onDelete(id);
             }
             setShowNoPowerModal(false);
             setNoPowerSelected([]);
