@@ -127,7 +127,12 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave }) =>
                                 />
                             ) : (
                                 <select
-                                    value={formData.gear_id || formData.gear_name || ''}
+                                    value={
+                                        formData.gear_id ? formData.gear_id :
+                                            (formData.gear_name ?
+                                                (unifiedBikesList.some(b => b.id === `hist_${formData.gear_name}`) ? `hist_${formData.gear_name}` : '')
+                                                : '')
+                                    }
                                     onChange={(e) => {
                                         const selectedVal = e.target.value;
                                         if (selectedVal === '___custom___') {
