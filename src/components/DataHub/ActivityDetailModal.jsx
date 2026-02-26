@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Clock, MapPin, Zap, ExternalLink, Mountain, TrendingUp, Loader2, AlertCircle, Star } from 'lucide-react';
+import { X, Calendar, Clock, MapPin, Zap, ExternalLink, Mountain, TrendingUp, Loader2, AlertCircle, Star, Bike } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
 import StravaMap from './StravaMap';
 import { formatSegmentTime } from '../../utils/strava';
@@ -101,6 +101,14 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken }) => {
                         <StatBox label="Elevation" value={activity.climbing} unit="m" icon={Mountain} color="text-yellow-500" />
                         <StatBox label="Load" value={activity.load} unit="TSS" icon={TrendingUp} color="text-purple-500" />
                     </div>
+
+                    {/* Gear */}
+                    {activity.gear_name && (
+                        <div className="flex items-center gap-2 text-xs text-cdmuted bg-cdbg/50 border border-cdborder rounded px-3 py-2">
+                            <Bike size={13} className="text-orange-400 shrink-0" />
+                            <span>Gereden op: <span className="text-cdtext font-medium">{activity.gear_name}</span></span>
+                        </div>
+                    )}
 
                     {/* Power Stats */}
                     {(activity.avg_power > 0 || activity.norm_power > 0) && (

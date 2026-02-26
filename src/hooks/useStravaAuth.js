@@ -86,6 +86,7 @@ const useStravaAuth = (stravaConfig, setStravaConfig) => {
             access_token: data.access_token,
             refresh_token: data.refresh_token,
             expires_at: data.expires_at,
+            athlete_id: data.athlete?.id || null,
             athlete_name: data.athlete ? `${data.athlete.firstname} ${data.athlete.lastname}` : null
         };
         setStravaConfig(updated);
