@@ -467,6 +467,7 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
             {editingActivity && (
                 <EditActivityModal
                     activity={editingActivity}
+                    allActivities={activities}
                     onClose={() => setEditingActivity(null)}
                     onSave={handleSaveEdit}
                 />

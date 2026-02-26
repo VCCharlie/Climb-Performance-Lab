@@ -47,7 +47,6 @@ const ActivityRow = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview
                     if (!val || typeof val !== 'string') return <span className="text-cdmuted">-</span>;
                     return (
                         <span className="flex items-center gap-1 text-orange-400/80" title={val}>
-                            <Bike size={11} className="shrink-0" />
                             <span className="truncate max-w-[100px] text-xs">{val}</span>
                         </span>
                     );

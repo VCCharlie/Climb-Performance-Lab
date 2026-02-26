@@ -14,7 +14,7 @@ const getStoredBikes = () => {
     } catch { return []; }
 };
 
-const EditActivityModal = ({ activity, onClose, onSave }) => {
+const EditActivityModal = ({ activity, allActivities = [], onClose, onSave }) => {
     // Lokale state voor het formulier
     const [formData, setFormData] = useState(activity);
 
@@ -40,6 +40,25 @@ const EditActivityModal = ({ activity, onClose, onSave }) => {
 
     // Datum helper voor input type="date" (vereist YYYY-MM-DD)
     const dateValue = formData.date ? new Date(formData.date).toISOString().split('T')[0] : '';
+
+    // Bereken unieke fietsnamen uit eerdere activiteiten als fallback
+    const uniqueBikesFallback = useMemo(() => {
+        if (!allActivities || allActivities.length === 0) return [];
+        const names = [...new Set(allActivities.map(a => a.gear_name).filter(Boolean))];
+        return names.sort((a, b) => a.localeCompare(b));
+    }, [allActivities]);
+
+    // Gecombineerde lijst van fietsen (Strava cache + Historische unieke namen)
+    const unifiedBikesList = useMemo(() => {
+        const list = [...availableBikes];
+        uniqueBikesFallback.forEach(name => {
+            if (!list.some(b => b.name === name)) {
+                // Gebruik de naam als ID omdat Strava ID onbekend is
+                list.push({ id: `hist_${name}`, name });
+            }
+        });
+        return list.sort((a, b) => a.name.localeCompare(b.name));
+    }, [availableBikes, uniqueBikesFallback]);
 
     return (
         <div className="fixed inset-0 bg-cdbg/95 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
@@ -74,25 +93,39 @@ const EditActivityModal = ({ activity, onClose, onSave }) => {
                             <label className="text-xs text-cdmuted uppercase font-bold flex items-center gap-1.5 mb-1">
                                 <Bike size={12} /> Fiets
                             </label>
-                            {availableBikes.length > 0 ? (
-                                <select
-                                    value={formData.gear_id || ''}
-                                    onChange={(e) => {
-                                        const gearId = e.target.value;
-                                        const map = availableBikes.reduce((acc, b) => ({ ...acc, [b.id]: b.name }), {});
-                                        setFormData(prev => ({
-                                            ...prev,
-                                            gear_id: gearId || null,
-                                            gear_name: gearId ? (map[gearId] || null) : null
-                                        }));
-                                    }}
-                                    className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none"
-                                >
-                                    <option value="">— geen fiets geselecteerd —</option>
-                                    {availableBikes.map(({ id, name }) => (
-                                        <option key={id} value={id}>{name}</option>
-                                    ))}
-                                </select>
+                            {unifiedBikesList.length > 0 ? (
+                                <div className="flex gap-2">
+                                    <select
+                                        value={formData.gear_id || formData.gear_name || ''}
+                                        onChange={(e) => {
+                                            const selectedVal = e.target.value;
+                                            if (!selectedVal) {
+                                                setFormData(prev => ({ ...prev, gear_id: null, gear_name: null }));
+                                                return;
+                                            }
+
+                                            // Extract base value if historical
+                                            if (selectedVal.startsWith('hist_')) {
+                                                const name = selectedVal.replace('hist_', '');
+                                                setFormData(prev => ({ ...prev, gear_id: null, gear_name: name }));
+                                            } else {
+                                                const gearId = selectedVal;
+                                                const map = unifiedBikesList.reduce((acc, b) => ({ ...acc, [b.id]: b.name }), {});
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    gear_id: gearId,
+                                                    gear_name: map[gearId] || null
+                                                }));
+                                            }
+                                        }}
+                                        className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none"
+                                    >
+                                        <option value="">— geen fiets geselecteerd —</option>
+                                        {unifiedBikesList.map(({ id, name }) => (
+                                            <option key={id} value={id}>{name}</option>
+                                        ))}
+                                    </select>
+                                </div>
                             ) : (
                                 <input
                                     name="gear_name"
