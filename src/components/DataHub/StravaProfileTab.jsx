@@ -190,7 +190,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                         {bikes.map(bike => (
                             <div key={bike.id} className={`flex items-center gap-3 bg-cdbg/60 border rounded-lg px-3 py-2 text-xs ${bike.retired ? 'border-cdborder/30 opacity-60' : 'border-cdborder'}`}>
                                 <Bike size={13} className={bike.retired ? 'text-cdmuted shrink-0' : 'text-orange-400 shrink-0'} />
-                                <span className="flex-1 font-medium text-cdtext truncate">{bike.name}</span>
+                                <span className="flex-1 font-medium text-cdtext truncate">{bike.name || <span className="text-cdmuted italic">geen naam</span>}</span>
                                 <span className="text-cdmuted shrink-0">{fmt.dist(bike.distance || 0)}</span>
                                 {bike.retired && <span className="text-[10px] text-cdmuted shrink-0">gepensioneerd</span>}
                             </div>
