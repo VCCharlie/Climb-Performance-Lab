@@ -37,7 +37,9 @@ const StravaIcon = () => (
     </svg>
 );
 
-export const Row = React.memo(({ act, onDelete, onEdit, onViewDetail, isConfirmingDelete, setDeleteConfirm, isPreview = false, isSelected = false, onToggleSelect, onToggleType }) => {
+export const Row = React.memo(({ act, onDelete, onEdit, onViewDetail, isPreview = false, isSelected = false, onToggleSelect, onToggleType }) => {
+    const [isConfirmingDelete, setIsConfirmingDelete] = React.useState(false);
+
     if (!act) return null;
 
     const renderCell = (col) => {
@@ -94,8 +96,8 @@ export const Row = React.memo(({ act, onDelete, onEdit, onViewDetail, isConfirmi
             {!isPreview && <td className="px-2 py-1.5 text-right w-28">
                 {isConfirmingDelete ? (
                     <div className="flex gap-2 justify-end">
-                        <button onClick={(e) => { e.stopPropagation(); onDelete(act.id) }} className="text-red-500 font-bold text-xs bg-red-500/10 px-2 py-1 rounded">SURE?</button>
-                        <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(null) }} className="text-cdmuted text-xs px-2 py-1">Cancel</button>
+                        <button onClick={(e) => { e.stopPropagation(); setIsConfirmingDelete(false); onDelete(act.id); }} className="text-red-500 font-bold text-xs bg-red-500/10 px-2 py-1 rounded">SURE?</button>
+                        <button onClick={(e) => { e.stopPropagation(); setIsConfirmingDelete(false); }} className="text-cdmuted text-xs px-2 py-1">Cancel</button>
                     </div>
                 ) : (
                     <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
@@ -122,7 +124,7 @@ export const Row = React.memo(({ act, onDelete, onEdit, onViewDetail, isConfirmi
                             <Edit2 size={14} />
                         </button>
                         {/* DELETE */}
-                        <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(act.id) }} className="text-slate-600 hover:text-red-400 p-1">
+                        <button onClick={(e) => { e.stopPropagation(); setIsConfirmingDelete(true); }} className="text-slate-600 hover:text-red-400 p-1">
                             <Trash2 size={14} />
                         </button>
                     </div>
@@ -130,9 +132,18 @@ export const Row = React.memo(({ act, onDelete, onEdit, onViewDetail, isConfirmi
             </td>}
         </tr>
     );
+}, (prevProps, nextProps) => {
+    // Custom equality check for React.memo to prevent massive re-renders on list changes
+    // Only re-render a row if the specific activity data changes, or its selection state changes.
+    // We ignore function reference changes (onDelete, onEdit) because they are stable by design
+    return (
+        prevProps.act === nextProps.act &&
+        prevProps.isSelected === nextProps.isSelected &&
+        prevProps.isPreview === nextProps.isPreview
+    );
 });
 
-const ActivityTable = ({ activities, sortConfig, onSort, onDelete, onEdit, onViewDetail, isGroupedView, isYearExpanded, onToggleYear, isMonthExpanded, onToggleMonth, deleteConfirm, setDeleteConfirm }) => {
+const ActivityTable = React.memo(({ activities, sortConfig, onSort, onDelete, onEdit, onViewDetail, isGroupedView, isYearExpanded, onToggleYear, isMonthExpanded, onToggleMonth }) => {
     return (
         <div className="overflow-x-auto overflow-y-auto flex-1 border border-cdborder rounded-lg custom-scrollbar relative max-h-[65vh]">
             <table className="w-full text-left text-xs whitespace-nowrap">
@@ -146,7 +157,7 @@ const ActivityTable = ({ activities, sortConfig, onSort, onDelete, onEdit, onVie
                                     <React.Fragment key={month}>
                                         <tr id={`month-${year}-${month}`} className="bg-cdborder/20 scroll-mt-12"><td colSpan={ACTIVITY_COLUMNS.length + 1} className="px-8 py-1 text-[10px] uppercase font-bold text-cdmuted"><button onClick={() => onToggleMonth(year, month)} className="flex items-center gap-1 hover:text-cdtext text-left w-full transition-colors">{isMonthExpanded(year, month) ? <ChevronDown size={12} /> : <ChevronRight size={12} />} {month}</button></td></tr>
                                         {isMonthExpanded(year, month) && activities[year][month].map(act => (
-                                            <Row key={act.id} act={act} onDelete={onDelete} onEdit={onEdit} onViewDetail={onViewDetail} isConfirmingDelete={deleteConfirm === act.id} setDeleteConfirm={setDeleteConfirm} />
+                                            <Row key={act.id} act={act} onDelete={onDelete} onEdit={onEdit} onViewDetail={onViewDetail} />
                                         ))}
                                     </React.Fragment>
                                 ))}
@@ -154,13 +165,13 @@ const ActivityTable = ({ activities, sortConfig, onSort, onDelete, onEdit, onVie
                         ))
                     ) : (
                         activities.map(act => (
-                            <Row key={act.id} act={act} onDelete={onDelete} onEdit={onEdit} onViewDetail={onViewDetail} isConfirmingDelete={deleteConfirm === act.id} setDeleteConfirm={setDeleteConfirm} />
+                            <Row key={act.id} act={act} onDelete={onDelete} onEdit={onEdit} onViewDetail={onViewDetail} />
                         ))
                     )}
                 </tbody>
             </table>
         </div>
     );
-};
+});
 
 export default ActivityTable;

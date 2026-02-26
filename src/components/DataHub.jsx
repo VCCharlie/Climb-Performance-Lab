@@ -33,7 +33,6 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
     // UI State
     const [internalTab, setInternalTab] = useState('log');
     const [detailActivity, setDetailActivity] = useState(null);
-    const [deleteConfirm, setDeleteConfirm] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [showDuplicateModal, setShowDuplicateModal] = useState(false);
     const [duplicates, setDuplicates] = useState([]);
@@ -107,7 +106,6 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
                 return;
             }
         }
-        setDeleteConfirm(null);
     }, [db]);
 
     const handleClearDatabase = async () => {
@@ -686,8 +684,6 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
                                 onToggleYear={toggleYear}
                                 isMonthExpanded={isMonthExpanded}
                                 onToggleMonth={toggleMonth}
-                                deleteConfirm={deleteConfirm}
-                                setDeleteConfirm={setDeleteConfirm}
                             />
                         )}
                     </>
