@@ -4,7 +4,7 @@
  * Data wordt opgehaald via de Strava REST API en gepersisteerd in App.jsx.
  */
 import React, { useState, useCallback } from 'react';
-import { Loader2, RefreshCw, Trophy, Star, TrendingUp, Clock, Mountain, Bike, ExternalLink, AlertCircle } from 'lucide-react';
+import { Loader2, RefreshCw, Trophy, Star, TrendingUp, Clock, Mountain, Bike, ExternalLink, AlertCircle, Crown } from 'lucide-react';
 
 const STRAVA_BASE = 'https://www.strava.com/api/v3';
 
@@ -95,7 +95,11 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
             setFetchProgress('Starred segments ophalen...');
             const starred = await fetchPaginated(`${STRAVA_BASE}/segments/starred`, token);
 
-            applyData({ stats, koms, starred, fetchedAt: new Date().toISOString() });
+            setFetchProgress('Fietsen ophalen...');
+            const athleteResp = await fetch(`${STRAVA_BASE}/athlete`, { headers: { Authorization: `Bearer ${token}` } });
+            const bikes = athleteResp.ok ? ((await athleteResp.json()).bikes || []).sort((a, b) => (b.distance || 0) - (a.distance || 0)) : [];
+
+            applyData({ stats, koms, starred, bikes, fetchedAt: new Date().toISOString() });
         } catch (e) {
             setError(e.message);
         } finally {
@@ -112,7 +116,9 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
         );
     }
 
-    const { stats, koms, starred } = data || {};
+    const { stats, koms, starred, bikes } = data || {};
+    const komCount = koms ? koms.filter(e => !e.segment?.private).length : 0;
+    const crCount = koms ? koms.filter(e => !!e.segment?.private).length : 0;
 
     return (
         <div className="space-y-5">
@@ -172,33 +178,64 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                 </section>
             )}
 
+            {/* Fietsen */}
+            {bikes && bikes.length > 0 && (
+                <section className="space-y-2">
+                    <h3 className="text-xs font-bold text-cdtext uppercase tracking-wide flex items-center gap-2">
+                        <Bike size={13} className="text-orange-400" /> Fietsen ({bikes.length})
+                    </h3>
+                    <div className="space-y-1">
+                        {bikes.map(bike => (
+                            <div key={bike.id} className={`flex items-center gap-3 bg-cdbg/60 border rounded-lg px-3 py-2 text-xs ${bike.retired ? 'border-cdborder/30 opacity-60' : 'border-cdborder'}`}>
+                                <Bike size={13} className={bike.retired ? 'text-cdmuted shrink-0' : 'text-orange-400 shrink-0'} />
+                                <span className="flex-1 font-medium text-cdtext truncate">{bike.name}</span>
+                                <span className="text-cdmuted shrink-0">{fmt.dist(bike.distance || 0)}</span>
+                                {bike.retired && <span className="text-[10px] text-cdmuted shrink-0">gepensioneerd</span>}
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            )}
+
             {/* KOMs / CRs */}
             {koms && (
                 <section className="space-y-2">
                     <h3 className="text-xs font-bold text-cdtext uppercase tracking-wide flex items-center gap-2">
-                        <Trophy size={13} className="text-yellow-400" /> KOM / CR ({koms.length})
+                        <Trophy size={13} className="text-yellow-400" /> KOM / CR
+                        <span className="ml-auto flex items-center gap-2 font-normal">
+                            {komCount > 0 && <span className="flex items-center gap-1 text-yellow-400"><Trophy size={10} /> {komCount} KOM</span>}
+                            {crCount > 0 && <span className="flex items-center gap-1 text-purple-400"><Crown size={10} /> {crCount} CR</span>}
+                        </span>
                     </h3>
                     {koms.length === 0 ? (
                         <p className="text-xs text-cdmuted italic">Geen KOMs gevonden.</p>
                     ) : (
                         <div className="max-h-72 overflow-y-auto custom-scrollbar space-y-1 pr-1">
-                            {koms.map((effort) => (
-                                <div key={effort.id} className="flex items-center gap-3 bg-cdbg/50 border border-cdborder/40 rounded px-3 py-1.5 text-xs hover:border-yellow-400/30 transition-colors">
-                                    <Trophy size={11} className="text-yellow-400 shrink-0" />
-                                    <a
-                                        href={`https://www.strava.com/segments/${effort.segment?.id}`}
-                                        target="_blank" rel="noreferrer"
-                                        className="flex-1 font-medium text-cdtext hover:text-orange-400 truncate transition-colors"
-                                    >
-                                        {effort.name}
-                                    </a>
-                                    <span className="text-cdmuted shrink-0">{fmt.segTime(effort.elapsed_time)}</span>
-                                    <span className="text-cdmuted shrink-0">{(effort.segment?.distance / 1000).toFixed(1)} km</span>
-                                    <a href={`https://www.strava.com/segments/${effort.segment?.id}`} target="_blank" rel="noreferrer" className="text-cdmuted hover:text-orange-400 shrink-0">
-                                        <ExternalLink size={10} />
-                                    </a>
-                                </div>
-                            ))}
+                            {koms.map((effort) => {
+                                const isKOM = !effort.segment?.private;
+                                return (
+                                    <div key={effort.id} className={`flex items-center gap-3 bg-cdbg/50 border rounded px-3 py-1.5 text-xs transition-colors ${isKOM ? 'border-cdborder/40 hover:border-yellow-400/30' : 'border-cdborder/40 hover:border-purple-400/30'}`}>
+                                        {isKOM
+                                            ? <Trophy size={11} className="text-yellow-400 shrink-0" title="KOM" />
+                                            : <Crown size={11} className="text-purple-400 shrink-0" title="CR" />}
+                                        <span className={`text-[9px] font-bold px-1 py-0.5 rounded shrink-0 ${isKOM ? 'bg-yellow-500/20 text-yellow-400' : 'bg-purple-500/20 text-purple-400'}`}>
+                                            {isKOM ? 'KOM' : 'CR'}
+                                        </span>
+                                        <a
+                                            href={`https://www.strava.com/segments/${effort.segment?.id}`}
+                                            target="_blank" rel="noreferrer"
+                                            className="flex-1 font-medium text-cdtext hover:text-orange-400 truncate transition-colors"
+                                        >
+                                            {effort.name}
+                                        </a>
+                                        <span className="text-cdmuted shrink-0">{fmt.segTime(effort.elapsed_time)}</span>
+                                        <span className="text-cdmuted shrink-0">{(effort.segment?.distance / 1000).toFixed(1)} km</span>
+                                        <a href={`https://www.strava.com/segments/${effort.segment?.id}`} target="_blank" rel="noreferrer" className="text-cdmuted hover:text-orange-400 shrink-0">
+                                            <ExternalLink size={10} />
+                                        </a>
+                                    </div>
+                                );
+                            })}
                         </div>
                     )}
                 </section>

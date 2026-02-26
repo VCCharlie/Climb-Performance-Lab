@@ -27,19 +27,26 @@ const ActivityRow = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview
                     </div>
                 );
                 case 'title': return (
-                    <div className="flex items-center gap-2">
-                        <span className="font-medium text-cdtext block max-w-[200px] truncate" title={val}>{val}</span>
-                        {act.id && !String(act.id).startsWith('csv_') && (
-                            <a
-                                href={`https://intervals.icu/activities/${act.id}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-cdmuted hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={e => e.stopPropagation()}
-                                title="Open in Intervals.icu"
-                            >
-                                <ExternalLink size={12} />
-                            </a>
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <span className="font-medium text-cdtext block max-w-[200px] truncate" title={val}>{val}</span>
+                            {act.id && !String(act.id).startsWith('csv_') && (
+                                <a
+                                    href={`https://intervals.icu/activities/${act.id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-cdmuted hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={e => e.stopPropagation()}
+                                    title="Open in Intervals.icu"
+                                >
+                                    <ExternalLink size={12} />
+                                </a>
+                            )}
+                        </div>
+                        {act.gear_name && (
+                            <span className="flex items-center gap-1 text-[10px] text-orange-400/70 mt-0.5">
+                                <Bike size={9} />{act.gear_name}
+                            </span>
                         )}
                     </div>
                 );
