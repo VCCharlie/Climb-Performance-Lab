@@ -135,8 +135,9 @@ const App = () => {
     }, []);
 
     const handleDeleteActivity = useCallback((id) => {
-        // Firebase onSnapshot listener (regel ~317) vangt de delete automatisch op.
-        // Geen lokale mutatie nodig; voorkomt dure double-renders.
+        // Optimistic local update: verwijder direct uit state zodat de UI meteen reageert.
+        // De Firebase onSnapshot listener (regel ~317) bevestigt de delete daarna vanuit de server.
+        setActivities(prev => prev.filter(a => String(a.id) !== String(id)));
     }, []);
 
     const handleClearActivities = useCallback(() => {
@@ -162,7 +163,7 @@ const App = () => {
         } catch (e) {
             console.error("Fout tijdens handmatig vernieuwen:", e);
         }
-    }, [db]);
+    }, []); // db is een module-level constante, geen reactive state
 
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -555,7 +556,14 @@ const App = () => {
                                         <Heart size={14} /> Recovery
                                     </button>
                                 </div>
-                                {trainingSubTab === 'coach' && <AICoach activities={activities} userSettings={userSettings} />}
+                                {trainingSubTab === 'coach' && (
+                                    <AICoach
+                                        activities={activities}
+                                        userSettings={userSettings}
+                                        startDate={globalStartDate}
+                                        endDate={globalEndDate}
+                                    />
+                                )}
                                 {trainingSubTab === 'recovery' && (
                                     <RecoveryAdvisor
                                         activities={activities}

@@ -1,19 +1,8 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React from 'react';
 import { Activity, Settings, LogIn, LogOut, User, Cloud, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
-import { loginWithGoogle, logout, auth } from '../firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { loginWithGoogle, logout } from '../firebase';
 
 const Header = ({ userSettings, onOpenSettings, user, syncStatus, lastActivityDate }) => {
-  const [localUser, setLocalUser] = useState(null); // Rename to avoid conflict if prop is user
-
-  useEffect(() => {
-    if (!auth) return;
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setLocalUser(currentUser);
-    });
-    return () => unsubscribe();
-  }, []);
-
   const handleAuth = async () => {
     if (user) {
       await logout();

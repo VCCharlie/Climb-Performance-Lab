@@ -1,15 +1,35 @@
 ﻿import React, { useMemo } from 'react';
 import { Brain, TrendingUp, AlertTriangle, Calendar, CheckCircle, Activity, Battery, Download, Shuffle } from 'lucide-react';
 
-const AICoach = ({ activities, userSettings }) => {
+const AICoach = ({ activities, userSettings, startDate, endDate }) => {
 
     // --- 1. SWOT ENGINE (Expanded Context) ---
     const swot = useMemo(() => {
-        const now = new Date();
-        const last30Days = activities.filter(a => {
+        const endD = endDate ? new Date(endDate) : new Date();
+        const startD = startDate ? new Date(startDate) : (() => {
+            const d = new Date(endD);
+            d.setDate(d.getDate() - 30);
+            return d;
+        })();
+
+        const periodActivities = activities.filter(a => {
             const d = new Date(a.date);
-            return (now - d) / (1000 * 60 * 60 * 24) <= 30;
+            return d >= startD && d <= endD;
         });
+
+        const periodDays = Math.max(1, (endD - startD) / (1000 * 60 * 60 * 24));
+        const weeksInPeriod = Math.max(1, periodDays / 7);
+
+        // Drempelwaarden schalen naar de periodelengte (basisreferentie = 30 dagen)
+        const consistencyHigh = Math.round(12 * periodDays / 30);  // >3x/week
+        const consistencyLow  = Math.round(4  * periodDays / 30);  // <2x/week
+        const intensityHigh   = Math.round(8  * periodDays / 30);  // te veel intensiteit
+        const intensityLow    = Math.round(2  * periodDays / 30);  // te weinig intensiteit
+
+        const fmtOpts = { day: 'numeric', month: 'short', year: 'numeric' };
+        const periodLabel = (startDate || endDate)
+            ? `${startD.toLocaleDateString('nl-NL', fmtOpts)} – ${endD.toLocaleDateString('nl-NL', fmtOpts)}`
+            : 'afgelopen 30 dagen';
 
         const strengths = [];
         const weaknesses = [];
@@ -17,21 +37,21 @@ const AICoach = ({ activities, userSettings }) => {
         const threats = [];
 
         // Consistency Check
-        if (last30Days.length >= 12) {
+        if (periodActivities.length >= consistencyHigh) {
             strengths.push({
                 label: "Hoge consistentie",
-                context: `Je hebt ${last30Days.length} keer getraind in de afgelopen 30 dagen (>3x/week). Consistentie is de belangrijkste factor voor mitochondriële aanpassing en aerobe basis.`
+                context: `Je hebt ${periodActivities.length} keer getraind in de ${periodLabel} (>3x/week). Consistentie is de belangrijkste factor voor mitochondriële aanpassing en aerobe basis.`
             });
-        } else if (last30Days.length < 4) {
+        } else if (periodActivities.length < consistencyLow) {
             weaknesses.push({
                 label: "Lage frequentie",
-                context: `Slechts ${last30Days.length} ritten in afgelopen maand. Zonder regelmatige prikkels (minimaal 2-3x per week) zal je conditie stagneren of achteruitgaan.`
+                context: `Slechts ${periodActivities.length} ritten in de ${periodLabel}. Zonder regelmatige prikkels (minimaal 2-3x per week) zal je conditie stagneren of achteruitgaan.`
             });
         }
 
         // Load Trend (TSB proxy)
-        const recentLoad = last30Days.reduce((acc, curr) => acc + (curr.load || 0), 0);
-        const avgWeeklyLoad = recentLoad / 4;
+        const recentLoad = periodActivities.reduce((acc, curr) => acc + (curr.load || 0), 0);
+        const avgWeeklyLoad = recentLoad / weeksInPeriod;
 
         if (avgWeeklyLoad > 400) {
             strengths.push({
@@ -46,14 +66,14 @@ const AICoach = ({ activities, userSettings }) => {
         }
 
         // Intensity Distribution
-        const highIntensity = last30Days.filter(a => (a.norm_power || 0) > (userSettings.ftp * 0.9)).length;
-        if (highIntensity > 8) {
+        const highIntensity = periodActivities.filter(a => (a.norm_power || 0) > (userSettings.ftp * 0.9)).length;
+        if (highIntensity > intensityHigh) {
             threats.push({
                 label: "Monotony & Burnout Risico",
-                context: `Je hebt ${highIntensity} zware sessies (>90% FTP) gedaan in 30 dagen. Te veel intensiteit zonder rustige duurtraining leidt tot een plateau en verhoogt het risico op overtraining.`
+                context: `Je hebt ${highIntensity} zware sessies (>90% FTP) gedaan in de ${periodLabel}. Te veel intensiteit zonder rustige duurtraining leidt tot een plateau en verhoogt het risico op overtraining.`
             });
         }
-        if (highIntensity < 2) {
+        if (highIntensity < intensityLow) {
             weaknesses.push({
                 label: "Gebrek aan intensiteit",
                 context: "Je hebt amper boven je FTP getraind. Om je plafond (VO2 Max) te verhogen, zijn specifieke intervalprikkels noodzakelijk."
@@ -61,7 +81,7 @@ const AICoach = ({ activities, userSettings }) => {
         }
 
         // Power Profile (Best 5m)
-        const best5m = Math.max(...last30Days.map(a => a.best_5min || 0));
+        const best5m = Math.max(...periodActivities.map(a => a.best_5min || 0));
         if (best5m > userSettings.ftp * 1.15) {
             strengths.push({
                 label: "Sterke VO2 Max Engine",
@@ -75,8 +95,8 @@ const AICoach = ({ activities, userSettings }) => {
         if (opportunities.length === 0) opportunities.push({ label: "Consolideer vorm", context: "Je load is stabiel. Dit is een goed moment om te werken aan techniek of specifieke zwaktes zonder de totale load te verhogen." });
         if (threats.length === 0) threats.push({ label: "Geen acuut risico", context: "Je training stress balance lijkt gezond. Luister wel altijd naar je lichaam." });
 
-        return { strengths, weaknesses, opportunities, threats, avgWeeklyLoad };
-    }, [activities, userSettings]);
+        return { strengths, weaknesses, opportunities, threats, avgWeeklyLoad, periodLabel };
+    }, [activities, userSettings, startDate, endDate]);
 
     // --- 2. DUAL RECOMMENDATION ENGINE ---
     const recommendations = useMemo(() => {
@@ -292,7 +312,7 @@ ${workout.zwoSteps.map(step => {
             <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl flex items-center justify-between">
                 <div>
                     <h2 className="text-xl font-bold text-cdtext flex items-center gap-2"><Brain className="text-purple-400" /> AI Performance Coach</h2>
-                    <p className="text-sm text-cdmuted">Gebaseerd op je data van de laatste 30 dagen & beschikbaarheid.</p>
+                    <p className="text-sm text-cdmuted">Gebaseerd op je data van {swot.periodLabel}.</p>
                 </div>
                 <div className="text-right hidden md:block">
                     <div className="text-2xl font-bold text-cdtext">{Math.round(swot.avgWeeklyLoad)} TSS</div>
