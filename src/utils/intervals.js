@@ -4,7 +4,7 @@
  */
 
 import { normalizeDate } from './formatters';
-import { determineActivityType } from './parsers';
+import { determineActivityType } from './activityTypes';
 import { extractStravaId } from './strava';
 
 export const normalizeIntervalsActivity = (item) => {
