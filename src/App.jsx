@@ -106,13 +106,6 @@ const App = () => {
         return new Date().toISOString().split('T')[0];
     }, [timeRange, customEnd]);
 
-    // Meest recente activiteitsdatum voor de "Bijgewerkt" indicator in de header
-    const lastActivityDate = useMemo(() => {
-        if (!activities || activities.length === 0) return null;
-        // activities zijn al gesorteerd op datum (nieuwste eerst) door de Firebase listener
-        return activities[0]?.date || null;
-    }, [activities]);
-
     // --- Sync State for SettingsModal ---
     const { syncIntervals, isSyncing, syncProgress } = useIntervalsSync(intervalsConfig);
     const [syncDates, setSyncDates] = useState({
@@ -124,6 +117,13 @@ const App = () => {
     );
 
     const [activities, setActivities] = useState([]);
+
+    // Meest recente activiteitsdatum voor de "Bijgewerkt" indicator in de header
+    const lastActivityDate = useMemo(() => {
+        if (!activities || activities.length === 0) return null;
+        // activities zijn al gesorteerd op datum (nieuwste eerst) door de Firebase listener
+        return activities[0]?.date || null;
+    }, [activities]);
 
     // Stable DataHub Handlers
     const handleImportActivities = useCallback((n) => {
