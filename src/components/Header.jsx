@@ -3,7 +3,7 @@ import { Activity, Settings, LogIn, LogOut, User, Cloud, CheckCircle, AlertCircl
 import { loginWithGoogle, logout, auth } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 
-const Header = ({ userSettings, onOpenSettings, user, syncStatus }) => {
+const Header = ({ userSettings, onOpenSettings, user, syncStatus, lastActivityDate }) => {
   const [localUser, setLocalUser] = useState(null); // Rename to avoid conflict if prop is user
 
   useEffect(() => {
@@ -24,6 +24,10 @@ const Header = ({ userSettings, onOpenSettings, user, syncStatus }) => {
 
   const displayWeight = userSettings.privacyMode ? '***' : `${userSettings.weight} kg`;
   const displayFtp = userSettings.privacyMode ? '***' : `${userSettings.ftp} W`;
+
+  const formattedDate = lastActivityDate
+    ? new Date(lastActivityDate).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' })
+    : null;
 
   return (
     <header className="bg-cdbg border-b border-cdborder p-3 md:p-4 sticky top-0 z-40 backdrop-blur-md bg-opacity-80">
@@ -52,6 +56,14 @@ const Header = ({ userSettings, onOpenSettings, user, syncStatus }) => {
               {syncStatus === 'synced' ? 'Synced' : syncStatus === 'syncing' ? 'Syncing' : syncStatus === 'error' ? 'Offline' : 'Idle'}
             </span>
           </div>
+          {formattedDate && (
+            <div className="hidden md:flex flex-col justify-center mr-4 border-r border-cdborder pr-4">
+              <span className="text-[10px] uppercase tracking-widest text-cdmuted font-mono whitespace-nowrap">
+                Bijgewerkt: {formattedDate}
+              </span>
+            </div>
+          )}
+
           <div className="hidden md:flex gap-4 text-xs font-mono mr-4 border-r border-cdborder pr-4">
             <div className="text-right">
               <span className="block text-cdmuted uppercase text-[10px]">Weight</span>
