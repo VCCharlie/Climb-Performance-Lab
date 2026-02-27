@@ -91,6 +91,11 @@ const RecoveryAdvisor = ({ activities, startDate, endDate }) => {
         // Current metrics (last data point in display range)
         const current = chartData[chartData.length - 1];
 
+        // Guard: no data points in range (e.g. custom range with no activities)
+        if (!current) {
+            return { chartData: [], current: null, recommendations: [], rangeLabel };
+        }
+
         // Generate recommendations
         const recommendations = [];
 
