@@ -106,6 +106,13 @@ const App = () => {
         return new Date().toISOString().split('T')[0];
     }, [timeRange, customEnd]);
 
+    // Meest recente activiteitsdatum voor de "Bijgewerkt" indicator in de header
+    const lastActivityDate = useMemo(() => {
+        if (!activities || activities.length === 0) return null;
+        // activities zijn al gesorteerd op datum (nieuwste eerst) door de Firebase listener
+        return activities[0]?.date || null;
+    }, [activities]);
+
     // --- Sync State for SettingsModal ---
     const { syncIntervals, isSyncing, syncProgress } = useIntervalsSync(intervalsConfig);
     const [syncDates, setSyncDates] = useState({
@@ -388,6 +395,7 @@ const App = () => {
                 onOpenSettings={() => setIsSettingsOpen(true)}
                 user={user}
                 syncStatus={syncStatus}
+                lastActivityDate={lastActivityDate}
             />
 
             <main className={`mx-auto p-3 space-y-4 transition-all duration-300 ${activeTab === 'activities' ? 'max-w-[95%]' : 'max-w-7xl'}`}>
@@ -548,7 +556,13 @@ const App = () => {
                                     </button>
                                 </div>
                                 {trainingSubTab === 'coach' && <AICoach activities={activities} userSettings={userSettings} />}
-                                {trainingSubTab === 'recovery' && <RecoveryAdvisor activities={activities} />}
+                                {trainingSubTab === 'recovery' && (
+                                    <RecoveryAdvisor
+                                        activities={activities}
+                                        startDate={globalStartDate}
+                                        endDate={globalEndDate}
+                                    />
+                                )}
                             </div>
                         )}
 
