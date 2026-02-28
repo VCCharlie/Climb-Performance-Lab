@@ -5,21 +5,13 @@
 
 import { normalizeDate, parseDurationToSeconds } from './formatters';
 import { normalizeIntervalsActivity } from './intervals';
+// determineActivityType is defined in activityTypes.js to break the circular
+// dependency (intervals.js → parsers.js → intervals.js). Imported for local
+// use and re-exported so existing imports from parsers.js keep working.
+import { determineActivityType } from './activityTypes';
+export { determineActivityType };
 
 // --- DATA CLEANING ---
-
-export const determineActivityType = (type, title) => {
-    let cleanType = type ? type.toString().replace(/\s+/g, '') : 'Ride';
-    if (cleanType.toLowerCase() === 'virtualride') return 'VirtualRide';
-    if (cleanType.toLowerCase() === 'run') return 'Run';
-    if (cleanType.toLowerCase() === 'walk') return 'Walk';
-    if (cleanType.toLowerCase() === 'hike') return 'Hike';
-    if (['nordicski', 'alpineski', 'iceskate'].includes(cleanType.toLowerCase())) return 'Run';
-    const name = title ? title.toLowerCase() : '';
-    const virtualKeywords = ['virtual', 'indoor', 'zwift', 'watopia', 'rouvy', 'fulgaz', 'bkool', 'indievelo', 'tacx', 'trainerroad', 'wahoo'];
-    if (virtualKeywords.some(keyword => name.includes(keyword))) return 'VirtualRide';
-    return 'Ride';
-};
 
 export const cleanNumber = (val) => {
     if (!val) return 0;

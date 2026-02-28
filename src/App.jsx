@@ -118,6 +118,13 @@ const App = () => {
 
     const [activities, setActivities] = useState([]);
 
+    // Meest recente activiteitsdatum voor de "Bijgewerkt" indicator in de header
+    const lastActivityDate = useMemo(() => {
+        if (!activities || activities.length === 0) return null;
+        // activities zijn al gesorteerd op datum (nieuwste eerst) door de Firebase listener
+        return activities[0]?.date || null;
+    }, [activities]);
+
     // Stable DataHub Handlers
     const handleImportActivities = useCallback((n) => {
         setActivities(prev => {
@@ -128,8 +135,9 @@ const App = () => {
     }, []);
 
     const handleDeleteActivity = useCallback((id) => {
-        // Firebase onSnapshot listener (regel ~317) vangt de delete automatisch op.
-        // Geen lokale mutatie nodig; voorkomt dure double-renders.
+        // Optimistic local update: verwijder direct uit state zodat de UI meteen reageert.
+        // De Firebase onSnapshot listener (regel ~317) bevestigt de delete daarna vanuit de server.
+        setActivities(prev => prev.filter(a => String(a.id) !== String(id)));
     }, []);
 
     const handleClearActivities = useCallback(() => {
@@ -155,7 +163,7 @@ const App = () => {
         } catch (e) {
             console.error("Fout tijdens handmatig vernieuwen:", e);
         }
-    }, [db]);
+    }, []); // db is een module-level constante, geen reactive state
 
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -388,6 +396,7 @@ const App = () => {
                 onOpenSettings={() => setIsSettingsOpen(true)}
                 user={user}
                 syncStatus={syncStatus}
+                lastActivityDate={lastActivityDate}
             />
 
             <main className={`mx-auto p-3 space-y-4 transition-all duration-300 ${activeTab === 'activities' ? 'max-w-[95%]' : 'max-w-7xl'}`}>
@@ -547,8 +556,21 @@ const App = () => {
                                         <Heart size={14} /> Recovery
                                     </button>
                                 </div>
-                                {trainingSubTab === 'coach' && <AICoach activities={activities} userSettings={userSettings} />}
-                                {trainingSubTab === 'recovery' && <RecoveryAdvisor activities={activities} />}
+                                {trainingSubTab === 'coach' && (
+                                    <AICoach
+                                        activities={activities}
+                                        userSettings={userSettings}
+                                        startDate={globalStartDate}
+                                        endDate={globalEndDate}
+                                    />
+                                )}
+                                {trainingSubTab === 'recovery' && (
+                                    <RecoveryAdvisor
+                                        activities={activities}
+                                        startDate={globalStartDate}
+                                        endDate={globalEndDate}
+                                    />
+                                )}
                             </div>
                         )}
 

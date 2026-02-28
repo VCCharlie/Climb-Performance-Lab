@@ -19,11 +19,11 @@ const CustomTooltip = ({ active, payload }) => {
     return null;
 };
 
-const RecoveryAdvisor = ({ activities }) => {
+const RecoveryAdvisor = ({ activities, startDate, endDate }) => {
     // Calculate Training Load metrics (CTL, ATL, TSB)
     const trainingMetrics = useMemo(() => {
         if (!activities || activities.length === 0) {
-            return { chartData: [], current: null, recommendations: [] };
+            return { chartData: [], current: null, recommendations: [], rangeLabel: '' };
         }
 
         // Sort activities by date
@@ -32,6 +32,8 @@ const RecoveryAdvisor = ({ activities }) => {
         // Calculate rolling metrics
         const CTL_DAYS = 42; // Chronic Training Load (fitness) - 42 day exponential average
         const ATL_DAYS = 7;  // Acute Training Load (fatigue) - 7 day exponential average
+        const ctlAlpha = 2 / (CTL_DAYS + 1);
+        const atlAlpha = 2 / (ATL_DAYS + 1);
 
         let ctl = 0;
         let atl = 0;
@@ -47,36 +49,52 @@ const RecoveryAdvisor = ({ activities }) => {
             activitiesByDate[dateKey].push(activity);
         });
 
-        // Get date range (last 90 days)
-        const today = new Date();
-        const ninetyDaysAgo = new Date(today);
-        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+        // Determine display range from props (default: last 90 days)
+        const endD = endDate ? new Date(endDate) : new Date();
+        const startD = startDate ? new Date(startDate) : (() => {
+            const d = new Date(endD);
+            d.setDate(d.getDate() - 90);
+            return d;
+        })();
 
-        // Calculate CTL/ATL for each day
-        for (let d = new Date(ninetyDaysAgo); d <= today; d.setDate(d.getDate() + 1)) {
+        // Warmup: begin CTL/ATL computation 42 dagen vóór de weergaveperiode
+        const warmupStart = new Date(startD);
+        warmupStart.setDate(warmupStart.getDate() - CTL_DAYS);
+
+        // Calculate CTL/ATL for each day; add to chartData only within display range
+        for (let d = new Date(warmupStart); d <= endD; d.setDate(d.getDate() + 1)) {
             const dateKey = d.toISOString().split('T')[0];
             const dayActivities = activitiesByDate[dateKey] || [];
             const dailyLoad = dayActivities.reduce((sum, act) => sum + (act.load || 0), 0);
-
-            // Exponential moving average
-            const ctlAlpha = 2 / (CTL_DAYS + 1);
-            const atlAlpha = 2 / (ATL_DAYS + 1);
 
             ctl = (dailyLoad * ctlAlpha) + (ctl * (1 - ctlAlpha));
             atl = (dailyLoad * atlAlpha) + (atl * (1 - atlAlpha));
             const tsb = ctl - atl;
 
-            chartData.push({
-                date: dateKey,
-                ctl: Math.round(ctl * 10) / 10,
-                atl: Math.round(atl * 10) / 10,
-                tsb: Math.round(tsb * 10) / 10,
-                load: dailyLoad
-            });
+            if (d >= startD) {
+                chartData.push({
+                    date: dateKey,
+                    ctl: Math.round(ctl * 10) / 10,
+                    atl: Math.round(atl * 10) / 10,
+                    tsb: Math.round(tsb * 10) / 10,
+                    load: dailyLoad
+                });
+            }
         }
 
-        // Current metrics (last data point)
+        // Label for chart heading
+        const fmtOpts = { day: 'numeric', month: 'short', year: 'numeric' };
+        const rangeLabel = startDate || endDate
+            ? `${startD.toLocaleDateString('nl-NL', fmtOpts)} – ${endD.toLocaleDateString('nl-NL', fmtOpts)}`
+            : 'Laatste 90 Dagen';
+
+        // Current metrics (last data point in display range)
         const current = chartData[chartData.length - 1];
+
+        // Guard: no data points in range (e.g. custom range with no activities)
+        if (!current) {
+            return { chartData: [], current: null, recommendations: [], rangeLabel };
+        }
 
         // Generate recommendations
         const recommendations = [];
@@ -148,8 +166,8 @@ const RecoveryAdvisor = ({ activities }) => {
             }
         }
 
-        return { chartData, current, recommendations };
-    }, [activities]);
+        return { chartData, current, recommendations, rangeLabel };
+    }, [activities, startDate, endDate]);
 
 
 
@@ -162,8 +180,8 @@ const RecoveryAdvisor = ({ activities }) => {
                 </h2>
                 <div className="text-center py-12 text-cdmuted">
                     <Calendar size={48} className="mx-auto mb-4 opacity-50" />
-                    <p>Geen activiteiten gevonden in de laatste 90 dagen.</p>
-                    <p className="text-sm mt-2">Import je trainingsdata via de Data Hub tab.</p>
+                    <p>Geen activiteiten gevonden in de geselecteerde periode.</p>
+                    <p className="text-sm mt-2">Import je trainingsdata via de Data Hub tab of pas de periode-selector aan.</p>
                 </div>
             </div>
         );
@@ -253,8 +271,8 @@ const RecoveryAdvisor = ({ activities }) => {
                                     : rec.type === 'warning'
                                         ? 'bg-red-500/20 border-red-500/50 text-red-500'
                                         : rec.type === 'caution'
-                                            ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-100'
-                                            : 'bg-blue-500/20 border-blue-500/50 text-blue-100'
+                                            ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-500'
+                                            : 'bg-blue-500/20 border-blue-500/50 text-blue-500'
                                     }`}
                             >
                                 <Icon size={18} className="flex-shrink-0 mt-0.5" />
@@ -271,20 +289,20 @@ const RecoveryAdvisor = ({ activities }) => {
             {/* Chart */}
             <div className="bg-cdbg p-4 rounded border border-cdborder">
                 <h3 className="text-cdtext font-bold text-sm mb-4 uppercase tracking-wide">
-                    Laatste 90 Dagen - Performance Management Chart
+                    {trainingMetrics.rangeLabel} — Performance Management Chart
                 </h3>
                 <ResponsiveContainer width="100%" height={300}>
                     <LineChart data={trainingMetrics.chartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--color-cdborder, #e2e8f0)" />
                         <XAxis
                             dataKey="date"
-                            stroke="#64748b"
-                            tick={{ fill: '#64748b', fontSize: 10 }}
+                            stroke="var(--color-cdmuted, #64748b)"
+                            tick={{ fill: 'var(--color-cdmuted, #64748b)', fontSize: 10 }}
                             tickFormatter={(date) => new Date(date).toLocaleDateString('nl-NL', { month: 'short', day: 'numeric' })}
                         />
                         <YAxis
-                            stroke="#64748b"
-                            tick={{ fill: '#64748b', fontSize: 12 }}
+                            stroke="var(--color-cdmuted, #64748b)"
+                            tick={{ fill: 'var(--color-cdmuted, #64748b)', fontSize: 12 }}
                         />
                         <Tooltip content={<CustomTooltip />} />
                         <Legend wrapperStyle={{ fontSize: '12px' }} />
