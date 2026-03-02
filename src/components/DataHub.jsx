@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Search, Loader2, AlertTriangle, Trash, Split, RefreshCw, ExternalLink, GitBranch, Zap, ChevronDown } from 'lucide-react';
 import { doc, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from '../firebase';
@@ -21,14 +21,6 @@ import StravaProfileTab from './DataHub/StravaProfileTab';
 // Hooks
 import useActivityFilter from '../hooks/useActivityFilter';
 
-// --- MAIN COMPONENT ---
-// githubPat: optional GitHub Personal Access Token for manual workflow dispatch
-// showImport: soft-toggle to show/hide the legacy CSV import section (default: false)
-// stravaGetToken: function to get a valid Strava access token (or null if not connected)
-// stravaEnrichResults / onStravaEnrichResults: persistente match-resultaten over tab-wissels
-// stravaAthleteId: Strava athlete ID voor profile/stats/KOM endpoints
-// stravaProfileData / onStravaProfileData: persistente profieldata over tab-wissels
-// onRefresh: optional prop to trigger a full refetch of activities from Firestore
 const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat, showImport = false, stravaGetToken, startDate, endDate, stravaEnrichResults, onStravaEnrichResults, stravaAthleteId, stravaProfileData, onStravaProfileData }) => {
     // UI State
     const [internalTab, setInternalTab] = useState('log');
@@ -46,15 +38,17 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
     const [fetchedActivities, setFetchedActivities] = useState([]);
     const [selectedActivities, setSelectedActivities] = useState([]);
     const [showModal, setShowModal] = useState(false);
-    const [rawData, setRawData] = useState(null); // Debug
+    const [rawData, setRawData] = useState(null); 
     const [isSyncingGithub, setIsSyncingGithub] = useState(false);
-    const [syncStatus, setSyncStatus] = useState(null); // 'success' | 'error' | null
-    const [syncErrorDetail, setSyncErrorDetail] = useState(null); // detailed error string from GitHub API
+    
+    // VERBETERDE SYNC STATE
+    const [syncStatus, setSyncStatus] = useState(null); // 'started' | 'success' | 'error' | 'enriching' | 'done' | null
+    const [syncErrorDetail, setSyncErrorDetail] = useState(null); 
+    const [expectedNewSync, setExpectedNewSync] = useState(false); // Houdt bij of we wachten op Firebase
+    const prevActivityCount = useRef(activities?.length || 0);
 
-    // --- HOOKS ---
     const deferredActivities = React.useDeferredValue(activities);
 
-    // 1. Filtering & Sorting (Deferred to prevent UI block)
     const {
         search, setSearch,
         indoorFilter, setIndoorFilter,
@@ -64,9 +58,162 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
         processedActivities, groupedActivities, isGroupedView
     } = useActivityFilter(deferredActivities);
 
-    // --- ACTIONS ---
 
-    // Importeer nieuwe activiteiten vanuit Strava (ongematchte activiteiten)
+    // --- 1. NIEUW: STANDALONE STRAVA ENRICHMENT FUNCTIE ---
+    // Deze kan nu zowel handmatig als automatisch (door de watcher) worden aangeroepen
+    const performSilentStravaEnrichment = async (actsToEnrich) => {
+        if (!stravaGetToken) return 0;
+        try {
+            const token = await stravaGetToken();
+            if (!token) return 0;
+
+            const afterTs = Math.floor(new Date(startDate).getTime() / 1000);
+            const beforeTs = Math.floor(new Date(endDate).getTime() / 1000) + 86400;
+
+            let page = 1;
+            let allActivities = [];
+            while (true) {
+                const resp = await fetch(
+                    `https://www.strava.com/api/v3/athlete/activities?after=${afterTs}&before=${beforeTs}&per_page=200&page=${page}`,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+                if (!resp.ok) break;
+                const data = await resp.json();
+                if (!Array.isArray(data) || data.length === 0) break;
+                allActivities = allActivities.concat(data);
+                if (data.length < 200) break;
+                page++;
+            }
+
+            const bikeActivities = allActivities.filter(a => {
+                if (!STRAVA_BIKE_TYPES.has(a.sport_type || a.type)) return false;
+                const noPower = !a.average_watts || a.average_watts === 0;
+                const isShort = !a.distance || (a.distance / 1000) < 5;
+                if (noPower && isShort) return false;
+                return true;
+            });
+            
+            const result = matchStravaToSite(bikeActivities, actsToEnrich);
+            const toEnrich = [];
+            
+            if (result?.matched?.length > 0) {
+                toEnrich.push(...result.matched.filter(m => m.confidence !== 'low'));
+            }
+            if (result?.alreadyLinked?.length > 0) {
+                toEnrich.push(...result.alreadyLinked);
+            }
+
+            if (toEnrich.length > 0 && db) {
+                await Promise.all(toEnrich.map(m => {
+                    const norm = normalizeStravaActivity(m.strava);
+                    return setDoc(doc(db, 'activities', String(m.site.id)), {
+                        strava_id: norm.strava_id,
+                        title: norm.title,
+                        type: norm.type,
+                        ...(m.strava.gear_id && { gear_id: m.strava.gear_id })
+                    }, { merge: true });
+                }));
+                return toEnrich.length;
+            }
+        } catch (err) {
+            console.error("[Silent Enrichment] Failed:", err);
+        }
+        return 0;
+    };
+
+
+    // --- 2. NIEUW: DE REACTIVE WATCHER (Wacht op Firebase push) ---
+    useEffect(() => {
+        let fallbackTimer;
+
+        const runAutoEnrich = async () => {
+            console.log("🔥 Auto-Enrichment getriggerd!");
+            setExpectedNewSync(false); // Stop de watcher
+            setSyncStatus('enriching');
+            setSyncErrorDetail('Nieuwe Intervals data ontvangen! Bezig met automatische Strava koppeling...');
+            
+            const enrichedCount = await performSilentStravaEnrichment(activities);
+            
+            setSyncStatus('done');
+            setSyncErrorDetail(`Klaar! ${enrichedCount} rit(ten) succesvol verrijkt met Strava GPS & Titels.`);
+            setTimeout(() => { setSyncStatus(null); setSyncErrorDetail(null); }, 8000);
+        };
+
+        if (expectedNewSync) {
+            // SCENARIO A: Lijst is gegroeid (Nieuwe rit direct gedetecteerd)
+            if (activities?.length > prevActivityCount.current) {
+                runAutoEnrich();
+            } else {
+                // SCENARIO B: Fallback (Na 90s voor de zekerheid toch Strava checken, bijv. bij updates)
+                fallbackTimer = setTimeout(() => {
+                    if (expectedNewSync) runAutoEnrich();
+                }, 90000);
+            }
+        }
+
+        prevActivityCount.current = activities?.length || 0;
+        
+        return () => clearTimeout(fallbackTimer);
+    }, [activities, expectedNewSync]);
+
+
+    // --- 3. AANGEPASTE UNIVERSAL SYNC TRIGGER ---
+    const triggerGithubSync = async () => {
+        if (!githubPat) {
+            alert('Geen GitHub PAT ingesteld. Voeg een Personal Access Token toe onder Instellingen → Sync.');
+            return;
+        }
+        setIsSyncingGithub(true);
+        setSyncStatus('started');
+        
+        // Fase 1: Verrijk eerst bestaande ritten snel, voordat we Intervals bellen
+        setSyncErrorDetail("Stap 1/2: Bestaande ritten updaten met Strava...");
+        await performSilentStravaEnrichment(activities);
+
+        // Fase 2: Trigger GitHub Workflow
+        setSyncErrorDetail("Stap 2/2: Backend Intervals Deep Merge starten...");
+        const REPO = 'VCCharlie/Climb-Performance-Lab';
+        const HEADERS = {
+            Authorization: `Bearer ${githubPat}`,
+            Accept: 'application/vnd.github+json',
+            'Content-Type': 'application/json',
+            'X-GitHub-Api-Version': '2022-11-28',
+        };
+
+        try {
+            const listRes = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows`, { headers: HEADERS });
+            if (!listRes.ok) throw new Error("Workflow list failed");
+
+            const { workflows = [] } = await listRes.json();
+            const target = workflows.find(w => w.path.toLowerCase().includes('nightly') || w.path.toLowerCase().includes('sync'));
+
+            if (!target) throw new Error("Workflow not found");
+
+            const dispatchRes = await fetch(
+                `https://api.github.com/repos/${REPO}/actions/workflows/${target.id}/dispatches`,
+                { method: 'POST', headers: HEADERS, body: JSON.stringify({ ref: 'main' }) }
+            );
+
+            if (dispatchRes.status === 204) {
+                setSyncStatus('success');
+                setSyncErrorDetail('✅ Intervals sync draait op de achtergrond. Strava wordt automatisch gekoppeld zodra de ritten binnenkomen (kan ~1 minuut duren).');
+                // HIER ZETTEN WE DE WATCHER AAN
+                setExpectedNewSync(true); 
+            } else {
+                throw new Error(`Dispatch failed with status ${dispatchRes.status}`);
+            }
+        } catch (err) {
+            console.error('[Sync] Fetch error:', err);
+            setSyncErrorDetail(`Netwerkfout: ${err.message}`);
+            setSyncStatus('error');
+            setTimeout(() => { setSyncStatus(null); setSyncErrorDetail(null); }, 10000);
+        } finally {
+            setIsSyncingGithub(false);
+        }
+    };
+
+
+    // --- OVERIGE BESTAANDE ACTIONS (Ongewijzigd) ---
     const handleImportFromStrava = async (newActs) => {
         if (!newActs || newActs.length === 0) return;
         onImport(newActs);
@@ -85,11 +232,9 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
         try {
             if (db) {
                 await setDoc(doc(db, "activities", String(updatedActivity.id)), updatedActivity, { merge: true });
-                console.log("Activity updated in Firebase");
             }
             setEditingActivity(null);
         } catch (e) {
-            console.error("Error updating activity:", e);
             alert("Fout bij opslaan wijziging: " + e.message);
         }
     };
@@ -97,14 +242,9 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
     const handleDeleteSingle = React.useCallback(async (id) => {
         if (db) {
             try {
-                // We wachten niet op de state update hier. 
-                // Zodra deleteDoc slaagt, pushed de Firebase onSnapshot listener (zie App.jsx) 
-                // automatisch de nieuwe lijst naar de UI zonder double-renders.
                 await deleteDoc(doc(db, "activities", String(id)));
             } catch (e) {
-                console.error("Firebase delete failed:", e);
                 alert("Kon activiteit niet verwijderen uit database.");
-                return;
             }
         }
     }, [db]);
@@ -153,7 +293,6 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
         if (noPowerSelected.length === 0) return;
         setIsDeleting(true);
         try {
-            // Delete operaties wuren verwerkt in batches. De onSnapshot listener pakt de wijzigingen op.
             for (const id of noPowerSelected) {
                 if (db) await deleteDoc(doc(db, "activities", String(id)));
             }
@@ -166,7 +305,6 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
         }
     };
 
-    // Sluit het util-menu bij klik buiten het menu
     useEffect(() => {
         const handler = (e) => {
             if (utilMenuRef.current && !utilMenuRef.current.contains(e.target)) {
@@ -177,171 +315,8 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
         return () => document.removeEventListener('mousedown', handler);
     }, []);
 
-    /**
-     * UNIVERSAL SYNC
-     * Step 1: fetch new items from Strava (if connected) directly from the browser.
-     * Step 2: list workflows in the repo to find the nightly-sync workflow dynamically.
-     * Step 3: dispatch the workflow via workflow_dispatch to trigger the Deep Merge backend.
-     */
-    const triggerGithubSync = async () => {
-        if (!githubPat) {
-            alert('Geen GitHub PAT ingesteld. Voeg een Personal Access Token toe onder Instellingen → Sync.');
-            return;
-        }
-        setIsSyncingGithub(true);
-        setSyncStatus(null);
-        setSyncErrorDetail(null);
-
-        // --- PHASE 1: SILENT STRAVA IMPORT ---
-        if (stravaGetToken) {
-            try {
-                setSyncErrorDetail("Stap 1/2: Controleren op nieuwe Strava ritten...");
-                const token = await stravaGetToken();
-                if (token) {
-                    const afterTs = Math.floor(new Date(startDate).getTime() / 1000);
-                    const beforeTs = Math.floor(new Date(endDate).getTime() / 1000) + 86400;
-
-                    let page = 1;
-                    let allActivities = [];
-                    while (true) {
-                        const resp = await fetch(
-                            `https://www.strava.com/api/v3/athlete/activities?after=${afterTs}&before=${beforeTs}&per_page=200&page=${page}`,
-                            { headers: { Authorization: `Bearer ${token}` } }
-                        );
-                        if (!resp.ok) break;
-                        const data = await resp.json();
-                        if (!Array.isArray(data) || data.length === 0) break;
-                        allActivities = allActivities.concat(data);
-                        if (data.length < 200) break;
-                        page++;
-                    }
-
-                    const bikeActivities = allActivities.filter(a => {
-                        if (!STRAVA_BIKE_TYPES.has(a.sport_type || a.type)) return false;
-
-                        // Filter out short rides (< 5km) without power data
-                        const noPower = !a.average_watts || a.average_watts === 0;
-                        const isShort = !a.distance || (a.distance / 1000) < 5;
-                        if (noPower && isShort) return false;
-
-                        return true;
-                    });
-                    const result = matchStravaToSite(bikeActivities, activities);
-
-                    // 1. Import unmatched New Strava rides
-                    if (result && result.unmatchedStrava && result.unmatchedStrava.length > 0) {
-                        const newActs = result.unmatchedStrava.map(normalizeStravaActivity);
-                        if (db) {
-                            await Promise.all(newActs.map(act =>
-                                setDoc(doc(db, 'activities', String(act.id)), act, { merge: true })
-                            ));
-                        }
-                        if (onImport) onImport(newActs);
-                        console.log(`[Universal Sync] ${newActs.length} nieuwe Strava ritten geïmporteerd.`);
-                    }
-
-                    // 2. Enrich already matched / linked rides with Strava Title & Type
-                    const toEnrich = [];
-                    if (result?.matched?.length > 0) {
-                        toEnrich.push(...result.matched.filter(m => m.confidence !== 'low'));
-                    }
-                    if (result?.alreadyLinked?.length > 0) {
-                        toEnrich.push(...result.alreadyLinked);
-                    }
-
-                    if (toEnrich.length > 0 && db) {
-                        await Promise.all(toEnrich.map(m => {
-                            const norm = normalizeStravaActivity(m.strava);
-                            return setDoc(doc(db, 'activities', String(m.site.id)), {
-                                strava_id: norm.strava_id,
-                                title: norm.title,
-                                type: norm.type
-                            }, { merge: true });
-                        }));
-                        console.log(`[Universal Sync] ${toEnrich.length} bestaande ritten verrijkt met Strava titels.`);
-                    }
-                }
-            } catch (err) {
-                console.error("[Universal Sync] Strava voorfase mislukt:", err);
-            }
-        }
-
-        // --- PHASE 2: TRIGGER GITHUB BACKEND ---
-        setSyncErrorDetail("Stap 2/2: Backend Intervals Deep Merge starten...");
-
-        const REPO = 'VCCharlie/Climb-Performance-Lab';
-        const HEADERS = {
-            Authorization: `Bearer ${githubPat}`,
-            Accept: 'application/vnd.github+json',
-            'Content-Type': 'application/json',
-            'X-GitHub-Api-Version': '2022-11-28',
-        };
-
-        try {
-            // Step 1: list workflows to find the correct filename/id
-            const listRes = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows`, { headers: HEADERS });
-
-            if (!listRes.ok) {
-                const errBody = await listRes.json().catch(() => listRes.text());
-                const msg = errBody?.message || JSON.stringify(errBody);
-                console.error('[Sync] Workflow list failed:', listRes.status, msg);
-                setSyncErrorDetail(`${listRes.status}: ${msg}`);
-                setSyncStatus('error');
-                return;
-            }
-
-            const { workflows = [] } = await listRes.json();
-            console.log('[Sync] Available workflows:', workflows.map(w => w.path));
-
-            // Pick the nightly / sync workflow (flexible name matching)
-            const target = workflows.find(w =>
-                w.path.toLowerCase().includes('nightly') ||
-                w.path.toLowerCase().includes('sync')
-            );
-
-            if (!target) {
-                const paths = workflows.map(w => w.path).join(', ') || '(geen)';
-                setSyncErrorDetail(`Geen nightly-sync workflow gevonden. Aanwezige workflows: ${paths}`);
-                setSyncStatus('error');
-                return;
-            }
-
-            console.log('[Sync] Triggering workflow:', target.path);
-
-            // Step 2: dispatch the workflow
-            const dispatchRes = await fetch(
-                `https://api.github.com/repos/${REPO}/actions/workflows/${target.id}/dispatches`,
-                {
-                    method: 'POST',
-                    headers: HEADERS,
-                    body: JSON.stringify({ ref: 'main' }),
-                }
-            );
-
-            if (dispatchRes.status === 204) {
-                setSyncStatus('success');
-                setTimeout(() => { setSyncStatus(null); setSyncErrorDetail(null); }, 10000);
-            } else {
-                const errBody = await dispatchRes.json().catch(() => ({ message: `HTTP ${dispatchRes.status}` }));
-                const msg = errBody?.message || `HTTP ${dispatchRes.status}`;
-                console.error('[Sync] Dispatch failed:', dispatchRes.status, errBody);
-                setSyncErrorDetail(`GitHub Dispatch Fout: ${dispatchRes.status}: ${msg}`);
-                setSyncStatus('error');
-                setTimeout(() => { setSyncStatus(null); setSyncErrorDetail(null); }, 10000);
-            }
-        } catch (err) {
-            console.error('[Sync] Fetch error:', err);
-            setSyncErrorDetail(`Netwerkfout: ${err.message}`);
-            setSyncStatus('error');
-            setTimeout(() => { setSyncStatus(null); setSyncErrorDetail(null); }, 10000);
-        } finally {
-            setIsSyncingGithub(false);
-        }
-    };
-
     const resolveDuplicate = async (action, dup) => {
         const { a, b } = dup;
-        // ACTIONS: 'keepA' (delete B), 'keepB' (delete A), 'keepBoth' (delete None), 'deleteBoth' (delete A & B)
         let idsToDelete = [];
         if (action === 'keepA') idsToDelete.push(b.id);
         if (action === 'keepB') idsToDelete.push(a.id);
@@ -361,13 +336,11 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
         if (duplicates.length <= 1) setShowDuplicateModal(false);
     };
 
-    // --- IMPORT & SYNC HANDLERS ---
-
     const handleDataDetected = (parsedData) => {
         if (!parsedData || parsedData.length === 0) return;
         setFetchedActivities(parsedData);
         setSelectedActivities(parsedData.map(r => r.id));
-        setRawData(parsedData[0]); // debug
+        setRawData(parsedData[0]); 
         setShowModal(true);
     };
 
@@ -381,7 +354,6 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
         let replacedCount = 0;
         const idsToDelete = [];
 
-        // Deduplication Check
         if (activities && activities.length > 0) {
             toImport.forEach(newAct => {
                 const newDate = newAct.date.split('T')[0];
@@ -392,7 +364,6 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
                     if (existing.type !== newAct.type && existing.type !== 'Ride' && newAct.type !== 'Ride') return false;
                     const timeDiff = Math.abs((existing.moving_time || 0) - (newAct.moving_time || 0));
                     const distDiff = Math.abs((existing.distance || 0) - (newAct.distance || 0));
-                    // Require BOTH duration AND distance to match (AND, not OR)
                     return timeDiff < 300 && distDiff < 0.5;
                 });
 
@@ -403,7 +374,6 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
             });
         }
 
-        // Action
         if (idsToDelete.length > 0) {
             idsToDelete.forEach(id => onDelete(id));
             if (db) {
@@ -424,7 +394,7 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
                 await Promise.all(writePromises);
                 savedCount = toImport.length;
             } catch (e) {
-                alert("Let op: Data lokaal geÃ¯mporteerd, maar Cloud backup mislukt: " + e.message);
+                alert("Let op: Data lokaal geïmporteerd, maar Cloud backup mislukt: " + e.message);
             }
         }
 
@@ -434,7 +404,6 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
         alert(`Import Successful!\n\nImported: ${savedCount}\nReplaced Duplicates: ${replacedCount}`);
     };
 
-    // Sort setup for Import Modal (local to modal logic, keeping it simple here)
     const [previewSortConfig, setPreviewSortConfig] = useState({ key: 'date', direction: 'desc' });
     const requestPreviewSort = (key) => setPreviewSortConfig({ key, direction: previewSortConfig.key === key && previewSortConfig.direction === 'desc' ? 'asc' : 'desc' });
     const sortedFetchedActivities = React.useMemo(() => {
@@ -554,7 +523,6 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
             {/* TABS */}
             <div className="flex border-b border-cdborder">
                 <button onClick={() => setInternalTab('log')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'log' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Activity Log</button>
-                {/* Strava tabs — zichtbaar als Strava is gekoppeld */}
                 {stravaGetToken && (<>
                     <button onClick={() => setInternalTab('strava')} className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-1.5 ${internalTab === 'strava' ? 'bg-cdborder text-orange-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>
                         <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" /></svg>
@@ -565,7 +533,6 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
                         Strava Profiel
                     </button>
                 </>)}
-                {/* Import tab is soft-hidden by default — code intact, render behind prop */}
                 {showImport && (
                     <button onClick={() => setInternalTab('import')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'import' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Import Data</button>
                 )}
@@ -574,21 +541,21 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
             <div className="p-4 flex-1 overflow-hidden flex flex-col">
                 {internalTab === 'log' && (
                     <>
-                        {/* Sync status feedback banner */}
+                        {/* DYNAMISCHE SYNC STATUS BANNER */}
                         {syncStatus && (
-                            <div className={`flex flex-col gap-1 text-xs font-bold px-3 py-2 rounded-lg mb-3 ${syncStatus === 'success'
-                                ? 'bg-green-500/10 border border-green-500/30 text-green-400'
+                            <div className={`flex flex-col gap-1 text-xs font-bold px-3 py-2 rounded-lg mb-3 ${
+                                syncStatus === 'success' || syncStatus === 'done' || syncStatus === 'enriching'
+                                ? 'bg-blue-500/10 border border-blue-500/30 text-blue-400'
                                 : 'bg-red-500/10 border border-red-500/30 text-red-400'
                                 }`}
                             >
-                                <span>
-                                    {syncStatus === 'success'
-                                        ? '✅ Sync gestart! Activiteiten worden bijgewerkt in Firebase (duurt ~1 minuut).'
-                                        : '❌ Sync mislukt.'}
+                                <span className="flex items-center gap-2">
+                                    {(syncStatus === 'started' || syncStatus === 'enriching') && <Loader2 size={14} className="animate-spin" />}
+                                    {syncStatus === 'done' && '✅ '}
+                                    {syncStatus === 'success' && '⏳ '}
+                                    {syncStatus === 'error' && '❌ '}
+                                    {syncErrorDetail}
                                 </span>
-                                {syncStatus === 'error' && syncErrorDetail && (
-                                    <span className="font-mono font-normal opacity-80 break-words">{syncErrorDetail}</span>
-                                )}
                             </div>
                         )}
 
@@ -605,7 +572,6 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
                                 </div>
                             </div>
                             <div className="flex gap-2">
-                                {/* REFRESH BUTTON */}
                                 {onRefresh && (
                                     <button
                                         onClick={() => onRefresh()}
@@ -616,7 +582,6 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
                                     </button>
                                 )}
 
-                                {/* Utility menu — Sync Now / Duplicates / No Power / Clear DB */}
                                 <div className="relative" ref={utilMenuRef}>
                                     <button
                                         onClick={() => setShowUtilMenu(v => !v)}
@@ -628,12 +593,12 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
                                         <div className="absolute right-0 top-full mt-1 w-48 bg-cdsurface border border-cdborder rounded-lg shadow-xl z-50 overflow-hidden">
                                             <button
                                                 onClick={() => { triggerGithubSync(); setShowUtilMenu(false); }}
-                                                disabled={isSyncingGithub || !githubPat}
+                                                disabled={isSyncingGithub || !githubPat || expectedNewSync}
                                                 title={githubPat ? 'Sync via GitHub Actions (laatste 14 dagen)' : 'Voeg GitHub PAT toe in Instellingen'}
                                                 className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-blue-400 hover:bg-cdborder disabled:opacity-40 disabled:cursor-not-allowed"
                                             >
                                                 <RefreshCw size={14} className={isSyncingGithub ? 'animate-spin' : ''} />
-                                                {isSyncingGithub ? 'Bezig...' : 'Sync Now'}
+                                                {isSyncingGithub || expectedNewSync ? 'Bezig...' : 'Sync Now'}
                                             </button>
                                             <button
                                                 onClick={() => { findDuplicates(); setShowUtilMenu(false); }}
