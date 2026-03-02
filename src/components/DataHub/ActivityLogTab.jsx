@@ -137,20 +137,54 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
                 <div className="overflow-x-auto flex-1 border border-cdborder rounded-lg custom-scrollbar">
                     <table className="w-full text-left text-xs whitespace-nowrap">
                         <TableHeader config={sortConfig} requestSort={requestSort} hasActions={true} isPreview={false} />
-                        <tbody className="divide-y divide-cdborder bg-cdsurface">
-                            {isGroupedView && groupedActivities && Object.keys(groupedActivities).sort((a, b) => sortConfig.direction === 'asc' ? a - b : b - a).map(year => (
-                                <React.Fragment key={year}>
-                                    <tr className="bg-cdborder/50"><td colSpan={ACTIVITY_COLUMNS.length + 1} className="p-2 font-bold text-cdtext"><button onClick={() => toggleYear(year)} className="flex items-center gap-2">{expandedYears[year] ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {year}</button></td></tr>
-                                    {expandedYears[year] && Object.keys(groupedActivities[year]).sort((a, b) => { const diff = MONTH_ORDER.indexOf(b) - MONTH_ORDER.indexOf(a); return sortConfig.direction === 'asc' ? -diff : diff; }).map(month => (
-                                        <React.Fragment key={month}>
-                                            <tr className="bg-cdborder/20"><td colSpan={ACTIVITY_COLUMNS.length + 1} className="px-8 py-1 text-[10px] uppercase font-bold text-cdmuted">{month}</td></tr>
-                                            {groupedActivities[year][month].map(act => <ActivityRow key={act.id} act={act} onDelete={onDelete} deleteConfirm={deleteConfirm} setDeleteConfirm={setDeleteConfirm} onViewDetail={setSelectedDetailActivity} />)}
-                                        </React.Fragment>
-                                    ))}
-                                </React.Fragment>
-                            ))}
-                            {!isGroupedView && processedActivities.map(act => <ActivityRow key={act.id} act={act} onDelete={onDelete} deleteConfirm={deleteConfirm} setDeleteConfirm={setDeleteConfirm} onViewDetail={setSelectedDetailActivity} />)}
-                        </tbody>
+                            <tbody className="divide-y divide-cdborder bg-cdsurface">
+                                {isGroupedView && groupedActivities && Object.keys(groupedActivities).sort((a, b) => sortConfig.direction === 'asc' ? a - b : b - a).map(year => (
+                                    <React.Fragment key={`year-group-${year}`}>
+                                        <tr className="bg-cdborder/50">
+                                            <td colSpan={ACTIVITY_COLUMNS.length + 1} className="p-2 font-bold text-cdtext">
+                                                <button onClick={() => toggleYear(year)} className="flex items-center gap-2 outline-none">
+                                                    {expandedYears[year] ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {year}
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        
+                                        {expandedYears[year] && Object.keys(groupedActivities[year]).sort((a, b) => { 
+                                            const diff = MONTH_ORDER.indexOf(b) - MONTH_ORDER.indexOf(a); 
+                                            return sortConfig.direction === 'asc' ? -diff : diff; 
+                                        }).map(month => (
+                                            <React.Fragment key={`month-group-${year}-${month}`}>
+                                                <tr className="bg-cdborder/20">
+                                                    <td colSpan={ACTIVITY_COLUMNS.length + 1} className="px-8 py-1 text-[10px] uppercase font-bold text-cdmuted">
+                                                        {month}
+                                                    </td>
+                                                </tr>
+                                                {/* CRUCIAAL: Gebruik altijd act.id als key, nooit de datum of maand, om sync-crashes te voorkomen */}
+                                                {groupedActivities[year][month].map(act => (
+                                                    <ActivityRow 
+                                                        key={`act-${act.id}`} 
+                                                        act={act} 
+                                                        onDelete={onDelete} 
+                                                        deleteConfirm={deleteConfirm} 
+                                                        setDeleteConfirm={setDeleteConfirm} 
+                                                        onViewDetail={setSelectedDetailActivity} 
+                                                    />
+                                                ))}
+                                            </React.Fragment>
+                                        ))}
+                                    </React.Fragment>
+                                ))}
+                                
+                                {!isGroupedView && processedActivities.map(act => (
+                                    <ActivityRow 
+                                        key={`act-flat-${act.id}`} 
+                                        act={act} 
+                                        onDelete={onDelete} 
+                                        deleteConfirm={deleteConfirm} 
+                                        setDeleteConfirm={setDeleteConfirm} 
+                                        onViewDetail={setSelectedDetailActivity} 
+                                    />
+                                ))}
+                            </tbody>
                     </table>
                 </div>
             )}
