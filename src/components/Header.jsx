@@ -1,8 +1,21 @@
-﻿import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Activity, Settings, LogIn, LogOut, User, Cloud, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { loginWithGoogle, logout } from '../firebase';
 
 const Header = ({ userSettings, onOpenSettings, user, syncStatus, lastActivityDate }) => {
+  // 1. NIEUW: State om de échte laatste sync tijd bij te houden (uit de browser cache)
+  const [lastSyncTime, setLastSyncTime] = useState(() => localStorage.getItem('app_last_sync_time'));
+
+  // 2. NIEUW: Luister naar de syncStatus. Zodra deze op 'succes' springt, sla de huidige tijd op!
+  useEffect(() => {
+    // Afhankelijk van de plek in de app kan status 'synced', 'success' of 'done' zijn
+    if (syncStatus === 'synced' || syncStatus === 'success' || syncStatus === 'done') {
+      const now = new Date().toISOString();
+      setLastSyncTime(now);
+      localStorage.setItem('app_last_sync_time', now);
+    }
+  }, [syncStatus]);
+
   const handleAuth = async () => {
     if (user) {
       await logout();
@@ -14,9 +27,27 @@ const Header = ({ userSettings, onOpenSettings, user, syncStatus, lastActivityDa
   const displayWeight = userSettings.privacyMode ? '***' : `${userSettings.weight} kg`;
   const displayFtp = userSettings.privacyMode ? '***' : `${userSettings.ftp} W`;
 
-  const formattedDate = lastActivityDate
-    ? new Date(lastActivityDate).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' })
-    : null;
+  // 3. NIEUW: Slimme datum-formattering. Kies de sync-tijd als die er is, anders fallback naar laatste rit.
+  const dateToDisplay = lastSyncTime || lastActivityDate;
+  let formattedDate = null;
+  
+  if (dateToDisplay) {
+      const d = new Date(dateToDisplay);
+      const today = new Date();
+      const isToday = d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+
+      if (isToday) {
+          // Als het vandaag is, toon we: "Vandaag, 14:30"
+          formattedDate = `Vandaag, ${d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}`;
+      } else {
+          // Anders: "4 mrt. 14:30"
+          formattedDate = d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+      }
+  }
+
+  // 4. Uitgebreide status check voor de icoontjes
+  const isSynced = syncStatus === 'synced' || syncStatus === 'success' || syncStatus === 'done';
+  const isSyncing = syncStatus === 'syncing' || syncStatus === 'started' || syncStatus === 'enriching';
 
   return (
     <header className="bg-cdbg border-b border-cdborder p-3 md:p-4 sticky top-0 z-40 backdrop-blur-md bg-opacity-80">
@@ -35,16 +66,18 @@ const Header = ({ userSettings, onOpenSettings, user, syncStatus, lastActivityDa
 
         <div className="flex items-center gap-2 md:gap-4">
           {/* SYNC INDICATOR */}
-          <div className="flex items-center gap-2 md:mr-4 md:border-r md:border-cdborder md:pr-4" title={`Sync Status: ${syncStatus}`}>
-            {syncStatus === 'synced' && <CheckCircle size={16} className="text-green-500" />}
-            {syncStatus === 'syncing' && <RefreshCw size={16} className="text-yellow-400 animate-spin" />}
+          <div className="flex items-center gap-2 md:mr-4 md:border-r md:border-cdborder md:pr-4" title={`Sync Status: ${syncStatus || 'idle'}`}>
+            {isSynced && <CheckCircle size={16} className="text-green-500" />}
+            {isSyncing && <RefreshCw size={16} className="text-yellow-400 animate-spin" />}
             {syncStatus === 'error' && <AlertCircle size={16} className="text-red-500" />}
             {(syncStatus === 'idle' || !syncStatus) && <Cloud size={16} className="text-cdmuted" />}
 
             <span className="text-[10px] uppercase font-bold text-cdmuted hidden md:block">
-              {syncStatus === 'synced' ? 'Synced' : syncStatus === 'syncing' ? 'Syncing' : syncStatus === 'error' ? 'Offline' : 'Idle'}
+              {isSynced ? 'Synced' : isSyncing ? 'Syncing' : syncStatus === 'error' ? 'Offline' : 'Idle'}
             </span>
           </div>
+          
+          {/* LAATST BIJGEWERKT TEKST */}
           {formattedDate && (
             <div className="hidden md:flex flex-col justify-center mr-4 border-r border-cdborder pr-4">
               <span className="text-[10px] uppercase tracking-widest text-cdmuted font-mono whitespace-nowrap">
