@@ -297,18 +297,21 @@ async function upsertToFirestore(db, newActivities, isDryRun) {
     const toProcess = [];
     let mergedCount = 0;
     let newCount = 0;
+    let updatedCount = 0;
 
     for (const newAct of validActivities) {
-        // Find duplicate based on Date + Duration/Distance logic
         const newDate = newAct.date?.split('T')[0];
 
-        const duplicate = existingActivities.find(existing => {
-            if (existing.id === newAct.id) return false; // Not a duplicate if it's the exact same Intervals activity
+        // 1. Zoek naar een EXACTE match (De rit bestaat al, dit is een update)
+        const exactMatch = existingActivities.find(ex => ex.firestoreId === String(newAct.id));
+
+        // 2. Zoek naar een FUZZY dubbeling (Ander ID, zelfde rit - bv. Strava import)
+        const duplicateMatch = existingActivities.find(existing => {
+            if (existing.firestoreId === String(newAct.id)) return false; // Exacte matches slaan we hier over
 
             const exDate = existing.date?.split('T')[0];
             if (exDate !== newDate) return false;
 
-            // Loose type check (Ride vs VirtualRide is ok)
             const isRideEx = ['Ride', 'VirtualRide'].includes(existing.type);
             const isRideNew = ['Ride', 'VirtualRide'].includes(newAct.type);
             if (isRideEx !== isRideNew) return false;
@@ -316,33 +319,75 @@ async function upsertToFirestore(db, newActivities, isDryRun) {
             const timeDiff = Math.abs((existing.moving_time || 0) - (newAct.moving_time || 0));
             const distDiff = Math.abs((existing.distance || 0) - (newAct.distance || 0));
 
-            // Require BOTH duration AND distance to be similar (300s, 0.5km)
             return timeDiff < 300 && distDiff < 0.5;
         });
 
-        if (duplicate) {
-            // MERGE MODE!
-            // We keep the duplicate's ID, title, and type, but add the power data from intervals
-            const mergedAct = {
-                ...newAct,
-                id: duplicate.firestoreId,   // Preserve original Firestore ID (e.g. Strava numeric ID)
-                title: duplicate.title,      // Preserve personalized title
-                type: duplicate.type,        // Preserve original type
-            };
+        // Maak het basisobject klaar met de nieuwe Intervals data
+        let actToSave = { ...newAct };
 
-            // If the existing activity has better data for something, preserve it?
-            // (For now, we overwrite metrics with Intervals' normalized calculations as they are usually better)
+        if (exactMatch) {
+            // SCENARIO 1: UPDATE MODUS
+            // De rit bestond al. Bescherm handmatige edits!
+            if (exactMatch.title && exactMatch.title.trim() !== '') actToSave.title = exactMatch.title;
+            if (exactMatch.type) actToSave.type = exactMatch.type;
+            if (exactMatch.rpe !== undefined && exactMatch.rpe !== null) actToSave.rpe = exactMatch.rpe;
+            if (exactMatch.strava_id) actToSave.strava_id = exactMatch.strava_id;
+            if (exactMatch.gear_id) actToSave.gear_id = exactMatch.gear_id;
 
-            toProcess.push(mergedAct);
+            toProcess.push(actToSave);
+            updatedCount++;
+            if (isDryRun) console.log(`[DRY-RUN] UPDATE: Beschermde velden behouden voor "${actToSave.title}" (${actToSave.id})`);
+
+        } else if (duplicateMatch) {
+            // SCENARIO 2: MERGE MODUS (Deduplicatie)
+            // Overschrijf het nieuwe ID met het bestaande ID in de database
+            actToSave.id = duplicateMatch.firestoreId; 
+            
+            // Bescherm ook hier de handmatige edits van de bestaande dubbele rit
+            if (duplicateMatch.title && duplicateMatch.title.trim() !== '') actToSave.title = duplicateMatch.title;
+            if (duplicateMatch.type) actToSave.type = duplicateMatch.type;
+            if (duplicateMatch.rpe !== undefined && duplicateMatch.rpe !== null) actToSave.rpe = duplicateMatch.rpe;
+            if (duplicateMatch.strava_id) actToSave.strava_id = duplicateMatch.strava_id;
+            if (duplicateMatch.gear_id) actToSave.gear_id = duplicateMatch.gear_id;
+
+            toProcess.push(actToSave);
             mergedCount++;
-            if (isDryRun) console.log(`[DRY-RUN] MERGE: "${duplicate.title}" (${duplicate.firestoreId}) <== Intervals Power Data`);
+            if (isDryRun) console.log(`[DRY-RUN] MERGE: "${actToSave.title}" (${actToSave.id}) <== Verrijkt met Intervals data`);
+
         } else {
-            // NEW MODE!
-            toProcess.push(newAct);
+            // SCENARIO 3: NEW MODUS
+            // Volledig nieuwe rit, geen bescherming nodig.
+            toProcess.push(actToSave);
             newCount++;
-            if (isDryRun) console.log(`[DRY-RUN] NEW:   "${newAct.title}" (${newAct.id})`);
+            if (isDryRun) console.log(`[DRY-RUN] NEW: "${actToSave.title}" (${actToSave.id})`);
         }
     }
+
+    console.log(`[SYNC] Resultaat: ${updatedCount} updates (beschermd), ${mergedCount} deduplicaties, ${newCount} nieuwe ritten.`);
+
+    if (isDryRun) {
+        return validActivities.length;
+    }
+
+    // Jouw bestaande chunking & batch opslag logica blijft 100% intact
+    const chunks = chunkArray(toProcess, FIRESTORE_BATCH_LIMIT);
+    let totalSaved = 0;
+
+    for (const [index, chunk] of chunks.entries()) {
+        const batch = db.batch();
+
+        for (const activity of chunk) {
+            const docRef = db.collection(FIRESTORE_COLLECTION).doc(String(activity.id));
+            batch.set(docRef, activity, { merge: true });
+        }
+
+        await batch.commit();
+        totalSaved += chunk.length;
+        console.log(`[SYNC] Batch ${index + 1}/${chunks.length} opgeslagen (${chunk.length} activiteiten)`);
+    }
+
+    return totalSaved;
+}
 
     console.log(`[SYNC] Resultaat deduplicatie: ${mergedCount} ritten worden gemerged, ${newCount} nieuwe ritten.`);
 
