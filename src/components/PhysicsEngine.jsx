@@ -251,7 +251,7 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
     const groups = {};
     filteredClimbs.forEach(c => {
       let key = c.country;
-      if (c.country === 'Zwift') key = `Zwift - ${c.region}`;
+      if (c.country === 'ZWIFT') key = `Zwift - ${c.region}`;
       if (!groups[key]) groups[key] = [];
       groups[key].push(c);
     });
@@ -268,7 +268,16 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
     return (width / VISUAL_MAX) * 100;
   };
 
-  const uniqueCountries = useMemo(() => ['All', ...new Set(CLIMB_DATABASE.map(c => c.country))].sort(), []);
+  const COUNTRY_FLAGS = {
+    'FR': '🇫🇷', 'IT': '🇮🇹', 'ES': '🇪🇸', 'BE': '🇧🇪', 'NL': '🇳🇱',
+    'AT': '🇦🇹', 'DE': '🇩🇪', 'CH': '🇨🇭', 'AD': '🇦🇩', 'GB': '🇬🇧',
+    'UK': '🇬🇧', 'US': '🇺🇸', 'USA': '🇺🇸', 'ZWIFT': '🎮', 'TW': '🇹🇼'
+  };
+
+  const uniqueCountries = useMemo(() => {
+    const countries = [...new Set(CLIMB_DATABASE.map(c => c.country))].sort();
+    return ['All', ...countries];
+  }, []);
   const uniqueRegions = useMemo(() => {
     if (countryFilter === 'All') return [];
     const regions = CLIMB_DATABASE.filter(c => c.country === countryFilter).map(c => c.region);
@@ -353,7 +362,14 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                   onClick={() => handleCountryChange(c)}
                   className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${countryFilter === c ? 'bg-yellow-400 text-slate-900 border border-yellow-400' : 'bg-cdsurface border-cdborder border text-cdmuted hover:text-cdtext'}`}
                 >
-                  {c === 'All' ? <span className="flex items-center gap-1"><Globe size={14} /> All</span> : c}
+                  {c === 'All' ? (
+                    <span className="flex items-center gap-1"><Globe size={14} /> All</span>
+                  ) : (
+                    <span className="flex items-center gap-1">
+                      <span>{COUNTRY_FLAGS[c] || '🏳️'}</span>
+                      <span>{c}</span>
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
