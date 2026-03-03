@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Mountain, Info, Minus, Plus, Search, Filter, Globe } from 'lucide-react';
 import { CLIMB_DATABASE, COGGAN_ZONES } from '../climbs';
 import { parseDurationToSeconds, calculateFerrariWatts, calculateClimbCategory } from '../utils';
+import FlagIcon from './FlagIcon';
 
 // Helper for repeating button actions with acceleration
 const RepeatButton = ({ onAction, children, className }) => {
@@ -268,11 +269,7 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
     return (width / VISUAL_MAX) * 100;
   };
 
-  const COUNTRY_FLAGS = {
-    'FR': '🇫🇷', 'IT': '🇮🇹', 'ES': '🇪🇸', 'BE': '🇧🇪', 'NL': '🇳🇱',
-    'AT': '🇦🇹', 'DE': '🇩🇪', 'CH': '🇨🇭', 'AD': '🇦🇩', 'GB': '🇬🇧',
-    'UK': '🇬🇧', 'US': '🇺🇸', 'USA': '🇺🇸', 'ZWIFT': '🎮', 'TW': '🇹🇼'
-  };
+  // Removed COUNTRY_FLAGS constant as it's now handled by FlagIcon component
 
   const uniqueCountries = useMemo(() => {
     const countries = [...new Set(CLIMB_DATABASE.map(c => c.country))].sort();
@@ -365,8 +362,8 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                   {c === 'All' ? (
                     <span className="flex items-center gap-1"><Globe size={14} /> All</span>
                   ) : (
-                    <span className="flex items-center gap-1">
-                      <span>{COUNTRY_FLAGS[c] || '🏳️'}</span>
+                    <span className="flex items-center gap-2">
+                      <FlagIcon country={c} size="sm" />
                       <span>{c}</span>
                     </span>
                   )}

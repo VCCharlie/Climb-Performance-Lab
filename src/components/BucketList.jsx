@@ -1,6 +1,7 @@
 ﻿import React, { useState, useMemo } from 'react';
 import { Mountain, Check, Clock, Star, Trophy, Filter, Search } from 'lucide-react';
 import { CLIMB_DATABASE } from '../climbs';
+import FlagIcon from './FlagIcon';
 
 const BucketList = ({ initialState, onStateChange }) => {
     // State: climb status (done, planned, want)
@@ -269,7 +270,8 @@ const BucketList = ({ initialState, onStateChange }) => {
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="flex-1">
                                         <h4 className="text-cdtext font-bold text-sm flex items-center gap-2">
-                                            {climb.flag} {climb.name}
+                                            <FlagIcon country={climb.country} size="sm" />
+                                            {climb.name}
                                             {status === 'done' && <Check className="text-green-500" size={16} />}
                                         </h4>
                                         <p className="text-cdmuted text-xs mt-1">

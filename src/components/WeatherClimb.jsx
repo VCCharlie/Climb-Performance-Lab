@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Cloud, Wind, Thermometer, Droplets, Sun, AlertTriangle, Search, RefreshCw, Lightbulb } from 'lucide-react';
 import { CLIMB_DATABASE } from '../climbs';
 import WeatherForecastStrip from './WeatherForecastStrip';
+import FlagIcon from './FlagIcon';
 
 // Approximate locations for popular climbs (city/town for weather lookup)
 const CLIMB_LOCATIONS = {
@@ -479,7 +480,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                             >
                                 {CLIMB_DATABASE.map(climb => (
                                     <option key={climb.id} value={climb.id}>
-                                        {climb.flag} {climb.name} ({climb.lengthKm}km @ {climb.avgGrade}%)
+                                        {climb.country} - {climb.name} ({climb.lengthKm}km @ {climb.avgGrade}%)
                                     </option>
                                 ))}
                             </select>
