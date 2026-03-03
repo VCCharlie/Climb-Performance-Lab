@@ -35,26 +35,35 @@ const App = () => {
 
 
 
-    const [userSettings, setUserSettings] = useState({
-        weight: 70.0,
-        bikeWeight: 7.5,
-        ftp: 280,
-        maxHr: 190,
-        privacyMode: false,
-        goals: { yearlyKm: 10000, targetFtp: 300, targetWeight: 68 },
-        notifications: { highLoad: 150, lowPower: 150, minWeight: 67, restDay: 3 },
-        powerZones: [],
-        githubPat: '', // GitHub PAT for manual nightly-sync trigger
-        openweatherApiKey: '' // OpenWeather API Key
+    const [userSettings, setUserSettings] = useState(() => {
+        const saved = localStorage.getItem('userSettings');
+        if (saved) { try { return JSON.parse(saved); } catch { /* */ } }
+        return {
+            weight: 70.0,
+            bikeWeight: 7.5,
+            ftp: 280,
+            maxHr: 190,
+            privacyMode: false,
+            goals: { yearlyKm: 10000, targetFtp: 300, targetWeight: 68 },
+            notifications: { highLoad: 150, lowPower: 150, minWeight: 67, restDay: 3 },
+            powerZones: [],
+            githubPat: '', // GitHub PAT for manual nightly-sync trigger
+            openweatherApiKey: '' // OpenWeather API Key
+        };
     });
 
     const [selectedClimb, setSelectedClimb] = useState(CLIMB_DATABASE?.[0] || { id: 'dummy', name: 'Loading', lengthKm: 0, elevation: 0, avgGrade: 0 });
-    const [intervalsConfig, setIntervalsConfig] = useState({ apiKey: '', athleteId: '' });
+
+    const [intervalsConfig, setIntervalsConfig] = useState(() => {
+        const saved = localStorage.getItem('intervalsConfig');
+        if (saved) { try { return JSON.parse(saved); } catch { /* */ } }
+        return { apiKey: '', athleteId: '' };
+    });
 
     // Strava config: opgeslagen in localStorage + Firestore (cross-device)
     const [stravaConfig, setStravaConfig] = useState(() => {
         const saved = localStorage.getItem('stravaConfig');
-        if (saved) { try { return JSON.parse(saved); } catch (e) { /* */ } }
+        if (saved) { try { return JSON.parse(saved); } catch { /* */ } }
         return { client_id: '', client_secret: '' };
     });
 
@@ -74,7 +83,7 @@ const App = () => {
     // Strava profieldata: bewaard over tab-wissels én persistent via localStorage + Firestore
     const [stravaProfileData, setStravaProfileData] = useState(() => {
         const saved = localStorage.getItem('stravaProfileData');
-        if (saved) { try { return JSON.parse(saved); } catch (e) { /* */ } }
+        if (saved) { try { return JSON.parse(saved); } catch { /* */ } }
         return null;
     });
 
@@ -236,6 +245,28 @@ const App = () => {
         }
     }, [stravaProfileData, user]);
 
+    // Auto-save userSettings naar localStorage + Firestore
+    useEffect(() => {
+        localStorage.setItem('userSettings', JSON.stringify(userSettings));
+        if (db && user) {
+            const settingsId = `user_${user.uid}`;
+            setDoc(doc(db, "settings", settingsId), {
+                body: userSettings
+            }, { merge: true }).catch(e => console.error("Error auto-saving userSettings:", e));
+        }
+    }, [userSettings, user]);
+
+    // Auto-save intervalsConfig naar localStorage + Firestore
+    useEffect(() => {
+        localStorage.setItem('intervalsConfig', JSON.stringify(intervalsConfig));
+        if (db && user) {
+            const settingsId = `user_${user.uid}`;
+            setDoc(doc(db, "settings", settingsId), {
+                intervals: intervalsConfig
+            }, { merge: true }).catch(e => console.error("Error auto-saving intervalsConfig:", e));
+        }
+    }, [intervalsConfig, user]);
+
     const [weatherClimbState, setWeatherClimbState] = useState({
         selectedClimb: CLIMB_DATABASE[0],
         targetPower: 280 * 0.85,
@@ -311,7 +342,7 @@ const App = () => {
             }
         };
         loadSettings();
-    }, [user]);
+    }, [user, activities.length]);
 
     // 2. Real-time Activities Sync (onSnapshot)
     useEffect(() => {
@@ -356,7 +387,7 @@ const App = () => {
         if (userSettings.ftp && (!userSettings.powerZones || userSettings.powerZones.length === 0)) {
             setUserSettings(prev => ({ ...prev, powerZones: calculatePowerZones(prev.ftp) }));
         }
-    }, [userSettings.ftp]);
+    }, [userSettings.ftp, userSettings.powerZones]);
 
     const saveSettingsToCloud = async () => {
         if (!db) return;
