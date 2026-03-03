@@ -7,7 +7,7 @@
 const getClimbUrl = (name, country) => {
   if (country === 'Zwift') return `https://zwiftinsider.com/?s=${name.replace(/\s+/g, '+')}`;
   return `https://climbfinder.com/en/climbs/${name.toLowerCase().replace(/[\s/().']+/g, '-').replace(/-+$/, '')}`;
-},
+};
 
 export const COGGAN_ZONES = [
   { name: 'Z1 Recovery', min: 0, max: 0.55, color: '#9ca3af' },
