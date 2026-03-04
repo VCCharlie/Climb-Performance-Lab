@@ -6,7 +6,7 @@ import useIntervalsSync from '../../hooks/useIntervalsSync';
 // Let op: we hebben getStravaToken hier als prop toegevoegd!
 const SyncTab = ({ intervalsConfig, existingActivities, onSyncResults, getStravaToken }) => {
     const [syncDates, setSyncDates] = useState({
-        start: new Date(new Date().setDate(new Date().getDate() - 90)).toISOString().split('T')[0],
+        start: new Date(new Date().setDate(new Date().getDate() - 14)).toISOString().split('T')[0],
         end: new Date().toISOString().split('T')[0]
     });
 

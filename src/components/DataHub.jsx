@@ -141,28 +141,27 @@ const DataHub = ({
     const handleSync = async () => {
         setShowUtilMenu(false);
         setSyncStatus('started');
-        setSyncErrorDetail('Stap 1/2: Nieuwe activiteiten ophalen van Intervals.icu...');
+        setSyncErrorDetail('Stap 1/2: Nieuwe ritten ophalen (laatste 14 dagen)...');
 
         try {
             const sportFilters = SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: true }), {});
             const selectedTypes = Object.keys(sportFilters).filter(k => sportFilters[k]);
 
-            // Validatie: als startDate of endDate leeg zijn (bijv. bij Custom range zonder selectie), stop dan
-            if (!startDate || !endDate) {
-                setSyncStatus('error');
-                setSyncErrorDetail('❌ Fout: Selecteer eerst een geldige start- en einddatum (check de tijdsperiode rechtsboven).');
-                setTimeout(() => setSyncStatus(null), 5000);
-                return;
-            }
+            // NIEUW: Altijd de laatste 14 dagen voor Sync Now (ongeacht dashboard periode)
+            const today = new Date();
+            const syncEnd = today.toISOString().split('T')[0];
+            const fourteenDaysAgo = new Date();
+            fourteenDaysAgo.setDate(today.getDate() - 14);
+            const syncStart = fourteenDaysAgo.toISOString().split('T')[0];
 
             // 1. Haal nieuwe ritten op van Intervals
-            const newActivities = await syncIntervals(startDate, endDate, selectedTypes);
+            const newActivities = await syncIntervals(syncStart, syncEnd, selectedTypes);
 
             // 2. Bepaal welke bestaande ritten nog geen Strava koppeling hebben
-            // We filteren op de huidige periode (globalStartDate/globalEndDate) om de API call efficient te houden
+            // We filteren nu ook op deze 14-daagse periode
             const existingWithoutStrava = (activities || []).filter(act => {
                 const actDate = act.date?.split('T')[0];
-                return !act.strava_id && actDate >= startDate && actDate <= endDate;
+                return !act.strava_id && actDate >= syncStart && actDate <= syncEnd;
             });
 
             const totalToEnrich = [...newActivities, ...existingWithoutStrava];
