@@ -519,6 +519,7 @@ const App = () => {
                                 onDelete={handleDeleteActivity}
                                 onClear={handleClearActivities}
                                 githubPat={userSettings.githubPat}
+                                intervalsConfig={intervalsConfig}
                                 stravaGetToken={stravaAuth.isConnected ? stravaAuth.getValidToken : null}
                                 startDate={globalStartDate}
                                 endDate={globalEndDate}

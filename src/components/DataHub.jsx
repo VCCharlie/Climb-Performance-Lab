@@ -20,8 +20,26 @@ import StravaProfileTab from './DataHub/StravaProfileTab';
 
 // Hooks
 import useActivityFilter from '../hooks/useActivityFilter';
+import useIntervalsSync from '../hooks/useIntervalsSync';
 
-const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat, showImport = false, stravaGetToken, startDate, endDate, stravaEnrichResults, onStravaEnrichResults, stravaAthleteId, stravaProfileData, onStravaProfileData }) => {
+const DataHub = ({ 
+    activities, 
+    onImport, 
+    onDelete, 
+    onClear, 
+    onRefresh, 
+    githubPat, 
+    intervalsConfig, // New Prop
+    showImport = false, 
+    stravaGetToken, 
+    startDate, 
+    endDate, 
+    stravaEnrichResults, 
+    onStravaEnrichResults, 
+    stravaAthleteId, 
+    stravaProfileData, 
+    onStravaProfileData 
+}) => {
     // UI State
     const [internalTab, setInternalTab] = useState('log');
     const [detailActivity, setDetailActivity] = useState(null);
@@ -39,13 +57,11 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
     const [selectedActivities, setSelectedActivities] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [rawData, setRawData] = useState(null); 
-    const [isSyncingGithub, setIsSyncingGithub] = useState(false);
     
-    // VERBETERDE SYNC STATE
-    const [syncStatus, setSyncStatus] = useState(null); // 'started' | 'success' | 'error' | 'enriching' | 'done' | null
-    const [syncErrorDetail, setSyncErrorDetail] = useState(null); 
-    const [expectedNewSync, setExpectedNewSync] = useState(false); // Houdt bij of we wachten op Firebase
-    const prevActivityCount = useRef(activities?.length || 0);
+    // NEW DIRECT SYNC STATE
+    const { syncIntervals, isSyncing, syncProgress, error: syncError } = useIntervalsSync(intervalsConfig);
+    const [syncStatus, setSyncStatus] = useState(null);
+    const [syncErrorDetail, setSyncErrorDetail] = useState(null);
 
     const deferredActivities = React.useDeferredValue(activities);
 
@@ -59,8 +75,7 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
     } = useActivityFilter(deferredActivities);
 
 
-    // --- 1. NIEUW: STANDALONE STRAVA ENRICHMENT FUNCTIE ---
-    // Deze kan nu zowel handmatig als automatisch (door de watcher) worden aangeroepen
+    // --- 1. STANDALONE STRAVA ENRICHMENT FUNCTIE ---
     const performSilentStravaEnrichment = async (actsToEnrich) => {
         if (!stravaGetToken) return 0;
         try {
@@ -122,93 +137,48 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
     };
 
 
-    // --- 2. NIEUW: DE REACTIVE WATCHER (Wacht op Firebase push) ---
-    useEffect(() => {
-        let fallbackTimer;
-
-        const runAutoEnrich = async () => {
-            console.log("🔥 Auto-Enrichment getriggerd!");
-            setExpectedNewSync(false); // Stop de watcher
-            setSyncStatus('enriching');
-            setSyncErrorDetail('Nieuwe Intervals data ontvangen! Bezig met automatische Strava koppeling...');
-            
-            const enrichedCount = await performSilentStravaEnrichment(activities);
-            
-            setSyncStatus('done');
-            setSyncErrorDetail(`Klaar! ${enrichedCount} rit(ten) succesvol verrijkt met Strava GPS & Titels.`);
-            setTimeout(() => { setSyncStatus(null); setSyncErrorDetail(null); }, 8000);
-        };
-
-        if (expectedNewSync) {
-            // SCENARIO A: Lijst is gegroeid (Nieuwe rit direct gedetecteerd)
-            if (activities?.length > prevActivityCount.current) {
-                runAutoEnrich();
-            } else {
-                // SCENARIO B: Fallback (Na 90s voor de zekerheid toch Strava checken, bijv. bij updates)
-                fallbackTimer = setTimeout(() => {
-                    if (expectedNewSync) runAutoEnrich();
-                }, 90000);
-            }
-        }
-
-        prevActivityCount.current = activities?.length || 0;
-        
-        return () => clearTimeout(fallbackTimer);
-    }, [activities, expectedNewSync]);
-
-
-    // --- 3. AANGEPASTE UNIVERSAL SYNC TRIGGER ---
-    const triggerGithubSync = async () => {
-        if (!githubPat) {
-            alert('Geen GitHub PAT ingesteld. Voeg een Personal Access Token toe onder Instellingen → Sync.');
-            return;
-        }
-        setIsSyncingGithub(true);
+    // --- 2. REFACTORED DIRECT SYNC TRIGGER ---
+    const handleSync = async () => {
+        setShowUtilMenu(false);
         setSyncStatus('started');
-        
-        // Fase 1: Verrijk eerst bestaande ritten snel, voordat we Intervals bellen
-        setSyncErrorDetail("Stap 1/2: Bestaande ritten updaten met Strava...");
-        await performSilentStravaEnrichment(activities);
-
-        // Fase 2: Trigger GitHub Workflow
-        setSyncErrorDetail("Stap 2/2: Backend Intervals Deep Merge starten...");
-        const REPO = 'VCCharlie/Climb-Performance-Lab';
-        const HEADERS = {
-            Authorization: `Bearer ${githubPat}`,
-            Accept: 'application/vnd.github+json',
-            'Content-Type': 'application/json',
-            'X-GitHub-Api-Version': '2022-11-28',
-        };
+        setSyncErrorDetail('Stap 1/2: Nieuwe activiteiten ophalen van Intervals.icu...');
 
         try {
-            const listRes = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows`, { headers: HEADERS });
-            if (!listRes.ok) throw new Error("Workflow list failed");
+            const sportFilters = SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: true }), {});
+            const selectedTypes = Object.keys(sportFilters).filter(k => sportFilters[k]);
 
-            const { workflows = [] } = await listRes.json();
-            const target = workflows.find(w => w.path.toLowerCase().includes('nightly') || w.path.toLowerCase().includes('sync'));
+            const newActivities = await syncIntervals(startDate, endDate, selectedTypes);
 
-            if (!target) throw new Error("Workflow not found");
-
-            const dispatchRes = await fetch(
-                `https://api.github.com/repos/${REPO}/actions/workflows/${target.id}/dispatches`,
-                { method: 'POST', headers: HEADERS, body: JSON.stringify({ ref: 'main' }) }
-            );
-
-            if (dispatchRes.status === 204) {
-                setSyncStatus('success');
-                setSyncErrorDetail('✅ Intervals sync draait op de achtergrond. Strava wordt automatisch gekoppeld zodra de ritten binnenkomen (kan ~1 minuut duren).');
-                // HIER ZETTEN WE DE WATCHER AAN
-                setExpectedNewSync(true); 
-            } else {
-                throw new Error(`Dispatch failed with status ${dispatchRes.status}`);
+            if (!newActivities || newActivities.length === 0) {
+                setSyncStatus('done');
+                setSyncErrorDetail('✅ Je bent helemaal bij! Geen nieuwe activiteiten gevonden in de geselecteerde periode.');
+                setTimeout(() => setSyncStatus(null), 5000);
+                return;
             }
-        } catch (err) {
-            console.error('[Sync] Fetch error:', err);
-            setSyncErrorDetail(`Netwerkfout: ${err.message}`);
+
+            setSyncErrorDetail(`Stap 2/2: ${newActivities.length} nieuwe activiteit(en) gevonden. Bezig met Strava verrijking...`);
+            setSyncStatus('enriching');
+
+            const enrichedCount = await performSilentStravaEnrichment(newActivities);
+            
+            // Save to database
+            if (db) {
+                await Promise.all(newActivities.map(act =>
+                    setDoc(doc(db, 'activities', String(act.id)), act, { merge: true })
+                ));
+            }
+            
+            // Update local state
+            onImport(newActivities);
+
+            setSyncStatus('done');
+            setSyncErrorDetail(`✅ Sync voltooid! ${newActivities.length} activiteit(en) toegevoegd, waarvan ${enrichedCount} verrijkt met Strava data.`);
+            setTimeout(() => setSyncStatus(null), 8000);
+
+        } catch (e) {
+            console.error('[Sync Error]', e);
             setSyncStatus('error');
-            setTimeout(() => { setSyncStatus(null); setSyncErrorDetail(null); }, 10000);
-        } finally {
-            setIsSyncingGithub(false);
+            setSyncErrorDetail(`❌ Fout bij synchroniseren: ${e.message}`);
         }
     };
 
@@ -544,17 +514,16 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
                         {/* DYNAMISCHE SYNC STATUS BANNER */}
                         {syncStatus && (
                             <div className={`flex flex-col gap-1 text-xs font-bold px-3 py-2 rounded-lg mb-3 ${
-                                syncStatus === 'success' || syncStatus === 'done' || syncStatus === 'enriching'
+                                syncStatus === 'success' || syncStatus === 'done' || syncStatus === 'enriching' || syncStatus === 'started'
                                 ? 'bg-blue-500/10 border border-blue-500/30 text-blue-400'
                                 : 'bg-red-500/10 border border-red-500/30 text-red-400'
                                 }`}
                             >
                                 <span className="flex items-center gap-2">
-                                    {(syncStatus === 'started' || syncStatus === 'enriching') && <Loader2 size={14} className="animate-spin" />}
+                                    {(syncStatus === 'started' || syncStatus === 'enriching' || isSyncing) && <Loader2 size={14} className="animate-spin" />}
                                     {syncStatus === 'done' && '✅ '}
-                                    {syncStatus === 'success' && '⏳ '}
                                     {syncStatus === 'error' && '❌ '}
-                                    {syncErrorDetail}
+                                    {isSyncing ? (syncProgress || 'Bezig met synchroniseren...') : syncErrorDetail}
                                 </span>
                             </div>
                         )}
@@ -592,13 +561,13 @@ const DataHub = ({ activities, onImport, onDelete, onClear, onRefresh, githubPat
                                     {showUtilMenu && (
                                         <div className="absolute right-0 top-full mt-1 w-48 bg-cdsurface border border-cdborder rounded-lg shadow-xl z-50 overflow-hidden">
                                             <button
-                                                onClick={() => { triggerGithubSync(); setShowUtilMenu(false); }}
-                                                disabled={isSyncingGithub || !githubPat || expectedNewSync}
-                                                title={githubPat ? 'Sync via GitHub Actions (laatste 14 dagen)' : 'Voeg GitHub PAT toe in Instellingen'}
+                                                onClick={handleSync}
+                                                disabled={isSyncing}
+                                                title={'Sync activities from Intervals.icu'}
                                                 className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-blue-400 hover:bg-cdborder disabled:opacity-40 disabled:cursor-not-allowed"
                                             >
-                                                <RefreshCw size={14} className={isSyncingGithub ? 'animate-spin' : ''} />
-                                                {isSyncingGithub || expectedNewSync ? 'Bezig...' : 'Sync Now'}
+                                                <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
+                                                {isSyncing ? 'Bezig...' : 'Sync Now'}
                                             </button>
                                             <button
                                                 onClick={() => { findDuplicates(); setShowUtilMenu(false); }}
