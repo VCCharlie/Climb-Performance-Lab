@@ -421,7 +421,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                                                 <span className="flex-1 truncate text-cdtext font-medium" title={site.title}>{site.title}</span>
                                                 <div className="flex items-center gap-2 shrink-0">
                                                     {needsGear && <span className="flex items-center gap-1 text-orange-400 text-[10px] whitespace-nowrap"><Bike size={10} /> {gearName}</span>}
-                                                    {needsRpe && <span className="bg-cdaccent/20 text-cdaccent text-[9px] font-bold px-1.5 py-0.5 rounded leading-none">MISST RPE ({strava.perceived_exertion})</span>}
+                                                    {needsRpe && <span className="bg-cdaccent/20 text-cdaccent text-[9px] font-bold px-1.5 py-0.5 rounded leading-none">MIST RPE ({strava.perceived_exertion})</span>}
                                                 </div>
                                             </label>
                                         );
