@@ -201,35 +201,40 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
             if (onImportNew && newActs.length > 0) onImportNew(newActs);
         }
 
-        // 3. Gear bijwerken voor al-verbonden activiteiten zonder fiets
+        // 3. Gear of RPE bijwerken voor al-verbonden activiteiten zonder deze data
         if (selectedGearUpdate.size > 0) {
             const toUpdate = (results.alreadyLinked || []).filter(m =>
-                m.needsGear && selectedGearUpdate.has(String(m.strava.id))
+                (m.needsGear || m.needsRpe) && selectedGearUpdate.has(String(m.strava.id))
             );
             for (const { strava, site } of toUpdate) {
                 try {
                     if (db) {
                         const gearId = strava.gear_id || null;
                         const gearName = gearId ? (bikesMap[gearId] || 'Strava fiets') : null;
-                        if (gearId) {
+                        const updateData = {
+                            ...(gearId && { gear_id: gearId, gear_name: gearName }),
+                            ...((!site.rpe || site.rpe === 0) && strava.perceived_exertion && { rpe: strava.perceived_exertion })
+                        };
+
+                        if (Object.keys(updateData).length > 0) {
                             await setDoc(
                                 doc(db, 'activities', String(site.id)),
-                                { gear_id: gearId, gear_name: gearName },
+                                updateData,
                                 { merge: true }
                             );
                             count++;
                         }
                     }
                 } catch (e) {
-                    console.error('Gear update fout voor', site.id, e);
+                    console.error('Data update fout voor', site.id, e);
                 }
             }
-            // Markeer bijgewerkte activiteiten lokaal als gear opgelost (prop wordt niet direct ververst)
+            // Markeer bijgewerkte activiteiten lokaal
             const updatedIds = new Set([...selectedGearUpdate]);
             setResults(prev => ({
                 ...prev,
                 alreadyLinked: prev.alreadyLinked.map(m =>
-                    updatedIds.has(String(m.strava.id)) ? { ...m, needsGear: false } : m
+                    updatedIds.has(String(m.strava.id)) ? { ...m, needsGear: false, needsRpe: false } : m
                 )
             }));
             setSelectedGearUpdate(new Set());
@@ -238,7 +243,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
         setAppliedCount(count);
         setIsApplying(false);
 
-        // Herlaad resultaten om al-gekoppeld status te reflecteren (alleen bij strava_id of import)
+        // Herlaad resultaten om al-gekoppeld status te reflecteren
         if (selectedMatches.size > 0 || selectedNew.size > 0) {
             await fetchAndMatch();
         }
@@ -370,28 +375,31 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                         </SectionHeader>
                     )}
 
-                    {/* Al verbonden maar fiets nog niet opgeslagen */}
-                    {(results.alreadyLinked || []).some(m => m.needsGear) && (() => {
-                        const gearItems = results.alreadyLinked.filter(m => m.needsGear);
+                    {/* Al verbonden maar data nog niet compleet */}
+                    {(results.alreadyLinked || []).some(m => m.needsGear || m.needsRpe) && (() => {
+                        const needsEnrichItems = results.alreadyLinked.filter(m => m.needsGear || m.needsRpe);
                         return (
-                            <SectionHeader icon={Bike} iconColor="text-orange-400" title="Al verbonden — fiets nog niet opgeslagen" count={`${selectedGearUpdate.size}/${gearItems.length} geselecteerd`}>
+                            <SectionHeader icon={RefreshCw} iconColor="text-orange-400" title="Data nog niet compleet (Fiets/RPE)" count={`${selectedGearUpdate.size}/${needsEnrichItems.length} geselecteerd`}>
                                 <div className="flex justify-end mb-1.5">
                                     <label className="flex items-center gap-1.5 text-xs text-cdmuted cursor-pointer select-none">
-                                        <input type="checkbox" checked={selectedGearUpdate.size === gearItems.length}
-                                            onChange={e => setSelectedGearUpdate(e.target.checked ? new Set(gearItems.map(m => String(m.strava.id))) : new Set())}
+                                        <input type="checkbox" checked={selectedGearUpdate.size === needsEnrichItems.length}
+                                            onChange={e => setSelectedGearUpdate(e.target.checked ? new Set(needsEnrichItems.map(m => String(m.strava.id))) : new Set())}
                                             className="accent-orange-500" />
                                         Alles selecteren
                                     </label>
                                 </div>
                                 <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
-                                    {gearItems.map(({ strava, site }) => {
-                                        const gearName = results.bikesMap?.[strava.gear_id] || 'Strava fiets (naamloos)';
+                                    {needsEnrichItems.map(({ strava, site, needsGear, needsRpe }) => {
+                                        const gearName = results.bikesMap?.[strava.gear_id] || 'Strava fiets';
                                         return (
                                             <label key={strava.id} className={`flex items-center gap-2 rounded px-3 py-2 border text-xs cursor-pointer select-none transition-colors ${selectedGearUpdate.has(String(strava.id)) ? 'bg-orange-500/5 border-orange-500/30' : 'bg-cdbg/50 border-cdborder/30 hover:border-cdborder'}`}>
                                                 <input type="checkbox" checked={selectedGearUpdate.has(String(strava.id))} onChange={() => toggleGearUpdate(strava.id)} className="accent-orange-500 shrink-0" />
                                                 <span className="w-20 text-cdmuted shrink-0">{site.date?.split('T')[0]}</span>
                                                 <span className="flex-1 truncate text-cdtext font-medium" title={site.title}>{site.title}</span>
-                                                <span className="flex items-center gap-1 text-orange-400 text-[10px] shrink-0"><Bike size={10} />{gearName}</span>
+                                                <div className="flex items-center gap-2 shrink-0">
+                                                    {needsGear && <span className="flex items-center gap-1 text-orange-400 text-[10px] whitespace-nowrap"><Bike size={10} /> {gearName}</span>}
+                                                    {needsRpe && <span className="bg-cdaccent/20 text-cdaccent text-[9px] font-bold px-1.5 py-0.5 rounded leading-none">MISST RPE ({strava.perceived_exertion})</span>}
+                                                </div>
                                             </label>
                                         );
                                     })}
@@ -400,9 +408,9 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                         );
                     })()}
 
-                    {results.matched.length === 0 && results.unmatchedStrava.length === 0 && !(results.alreadyLinked || []).some(m => m.needsGear) && (
+                    {results.matched.length === 0 && results.unmatchedStrava.length === 0 && !(results.alreadyLinked || []).some(m => m.needsGear || m.needsRpe) && (
                         <div className="text-sm text-cdmuted text-center py-6">
-                            Geen nieuwe koppelingen gevonden voor deze periode.
+                            Geen nieuwe of te verrijken activiteiten gevonden voor deze periode.
                         </div>
                     )}
 

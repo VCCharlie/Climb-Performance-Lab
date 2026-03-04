@@ -155,9 +155,8 @@ const DataHub = ({
                 toEnrich.push(...result.matched.filter(m => m.confidence !== 'low'));
             }
             if (result?.alreadyLinked?.length > 0) {
-                // Al gekoppeld maar misschien ontbreekt gear_id of gear_name in de database?
-                // We voegen ze toe om zeker te zijn dat alles up-to-date is
-                toEnrich.push(...result.alreadyLinked);
+                // Al gekoppeld maar misschien ontbreekt gear of RPE?
+                toEnrich.push(...result.alreadyLinked.filter(m => m.needsGear || m.needsRpe));
             }
 
             if (toEnrich.length > 0 && db) {
@@ -175,7 +174,7 @@ const DataHub = ({
                         ...((!m.site.rpe || m.site.rpe === 0) && m.strava.perceived_exertion && { rpe: m.strava.perceived_exertion })
                     };
 
-                    // CRITIEK: Muteren van het oorspronkelijke object zodat de UI (onImport) de data direct ziet!
+                    // CRITIEK: Muteren van het oorspronkelijke object zodat de UI de data direct ziet!
                     Object.assign(m.site, updateData);
 
                     // Opslaan in database
