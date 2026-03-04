@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Search, Loader2, AlertTriangle, Trash, Split, RefreshCw, ExternalLink, GitBranch, Zap, ChevronDown } from 'lucide-react';
 import { doc, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from '../firebase';
-import { findDuplicatesInList } from '../utils';
+import { findDuplicatesInList, runInBatches } from '../utils';
 import { matchStravaToSite, normalizeStravaActivity, STRAVA_BIKE_TYPES } from '../utils/stravaMatch';
 
 import { SPORT_TYPES } from '../config';
@@ -164,7 +164,8 @@ const DataHub = ({
             // 4. CRITIEK: RPE (perceived_exertion) zit niet in de lijst-API. 
             // We halen voor alle kandidaten die potentieel RPE missen de DETAILS op.
             const toEnrichFinal = [];
-            await Promise.all(candidates.map(async m => {
+
+            await runInBatches(candidates, 5, async (m) => {
                 const siteNeedsRpe = !m.site.rpe || m.site.rpe === 0;
                 const siteNeedsGear = !m.site.gear_id && !!m.strava.gear_id;
 
@@ -178,7 +179,7 @@ const DataHub = ({
                         headers: { Authorization: `Bearer ${token}` }
                     });
                     if (detResp.ok) {
-                        stravaDetailed = await detResp.json();
+                        stravaDetailed = await detResp.ok ? await detResp.json() : m.strava;
                     }
                 } catch { console.warn("Detail fetch failed for Strava", m.strava.id); }
 
@@ -201,7 +202,7 @@ const DataHub = ({
                     Object.assign(m.site, updateData);
                     toEnrichFinal.push({ id: m.site.id, data: updateData });
                 }
-            }));
+            });
 
             if (toEnrichFinal.length > 0 && db) {
                 await Promise.all(toEnrichFinal.map(({ id, data }) =>

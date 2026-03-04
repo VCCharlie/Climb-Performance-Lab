@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { Loader2, Check, AlertCircle, RefreshCw, Link2, Plus, ChevronDown, ChevronRight, Bike } from 'lucide-react';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
+import { runInBatches } from '../../utils';
 import { matchStravaToSite, normalizeStravaActivity, STRAVA_BIKE_TYPES } from '../../utils/stravaMatch';
 
 // Strava logo SVG
@@ -153,7 +154,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
             // CRITIEK: RPE ophalen voor al-gekoppelde ritten die het missen
             if (result.alreadyLinked.length > 0) {
                 setFetchProgress('Checking details for RPE...');
-                await Promise.all(result.alreadyLinked.map(async m => {
+                await runInBatches(result.alreadyLinked, 5, async (m) => {
                     // Als we al een RPE hebben lokaal, hoeven we niets te doen
                     if (m.site.rpe && m.site.rpe > 0) return;
 
@@ -169,7 +170,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                             }
                         }
                     } catch { console.warn("Detail fetch failed for Strava", m.strava.id); }
-                }));
+                });
             }
 
             applyResults(result);

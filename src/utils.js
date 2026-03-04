@@ -9,3 +9,4 @@ export * from './utils/calculations';
 export * from './utils/parsers';
 export * from './utils/intervals';
 export * from './utils/dedup';
+export * from './utils/async';

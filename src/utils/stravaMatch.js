@@ -74,17 +74,34 @@ export const normalizeStravaActivity = (act) => ({
  *   alreadyLinked:   Strava-activiteiten die al aan een site-activiteit zijn gekoppeld
  */
 export const matchStravaToSite = (stravaActivities, siteActivities) => {
-    const usedSiteIds = new Set();
     const matched = [];
     const alreadyLinked = [];
+    const usedSiteIds = new Set();
+
+    // 1. Index site activities by strava_id for O(1) already-linked check
+    // 2. Index site activities by date for O(1) candidate lookup
+    const siteByStravaId = new Map();
+    const siteByDate = new Map();
+
+    for (const site of siteActivities) {
+        if (site.strava_id) {
+            siteByStravaId.set(String(site.strava_id), site);
+        }
+        const dateKey = site.date?.split('T')[0];
+        if (dateKey) {
+            if (!siteByDate.has(dateKey)) siteByDate.set(dateKey, []);
+            siteByDate.get(dateKey).push(site);
+        }
+    }
 
     for (const stravaAct of stravaActivities) {
+        const stravaIdStr = String(stravaAct.id);
         const stravaDate = stravaAct.start_date_local.split('T')[0];
         const stravaDistKm = stravaAct.distance / 1000;
         const stravaTimeSec = stravaAct.moving_time || 0;
 
-        // Al gekoppeld? Sla over maar registreer
-        const existing = siteActivities.find(s => s.strava_id === String(stravaAct.id));
+        // Efficient O(1) Check: Al gekoppeld?
+        const existing = siteByStravaId.get(stravaIdStr);
         if (existing) {
             alreadyLinked.push({
                 strava: stravaAct,
@@ -96,17 +113,18 @@ export const matchStravaToSite = (stravaActivities, siteActivities) => {
             continue;
         }
 
-        // Kandidaten op dezelfde datum die nog niet zijn gebruikt/gekoppeld
-        const candidates = siteActivities.filter(site => {
-            if (usedSiteIds.has(site.id)) return false;
-            if (site.strava_id) return false;
-            return site.date?.split('T')[0] === stravaDate;
+        // Efficient O(1) Group lookup: Kandidaten op dezelfde datum
+        const candidatesOnDate = siteByDate.get(stravaDate) || [];
+        const candidates = candidatesOnDate.filter(site => {
+            return !usedSiteIds.has(site.id) && !site.strava_id;
         });
 
         if (candidates.length === 0) continue;
 
         // Scoor elke kandidaat: 70% gewicht op afstand, 30% op duur
-        const scored = candidates.map(site => {
+        let best = null;
+
+        for (const site of candidates) {
             const siteDist = site.distance || 0;
             const distDiff = siteDist > 0 && stravaDistKm > 0
                 ? Math.abs(siteDist - stravaDistKm) / Math.max(siteDist, stravaDistKm)
@@ -117,26 +135,33 @@ export const matchStravaToSite = (stravaActivities, siteActivities) => {
                 ? Math.abs(stravaTimeSec - siteTimeSec) / Math.max(stravaTimeSec, siteTimeSec)
                 : 0.5;
 
-            return { site, score: distDiff * 0.7 + timeDiff * 0.3, distDiff, timeDiff };
-        });
+            const score = distDiff * 0.7 + timeDiff * 0.3;
 
-        scored.sort((a, b) => a.score - b.score);
-        const best = scored[0];
+            // Bepaal confidence op basis van afstandsverschil (primair)
+            let confidence = null;
+            if (distDiff < 0.02 && timeDiff < 0.05) {
+                confidence = 'high';
+            } else if (distDiff < 0.05) {
+                confidence = 'medium';
+            } else if (distDiff < 0.10) {
+                confidence = 'low';
+            }
 
-        // Bepaal confidence op basis van afstandsverschil (primair)
-        let confidence;
-        if (best.distDiff < 0.02 && best.timeDiff < 0.05) {
-            confidence = 'high';
-        } else if (best.distDiff < 0.05) {
-            confidence = 'medium';
-        } else if (best.distDiff < 0.10) {
-            confidence = 'low';
-        } else {
-            continue; // Geen match — afstand te groot
+            if (confidence && (!best || score < best.score)) {
+                best = { site, confidence, distDiff, timeDiff, score };
+            }
         }
 
-        matched.push({ strava: stravaAct, site: best.site, confidence, distDiff: best.distDiff, timeDiff: best.timeDiff });
-        usedSiteIds.add(best.site.id);
+        if (best) {
+            matched.push({
+                strava: stravaAct,
+                site: best.site,
+                confidence: best.confidence,
+                distDiff: best.distDiff,
+                timeDiff: best.timeDiff
+            });
+            usedSiteIds.add(best.site.id);
+        }
     }
 
     const matchedStravaIds = new Set([
