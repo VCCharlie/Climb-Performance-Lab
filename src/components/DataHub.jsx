@@ -76,14 +76,17 @@ const DataHub = ({
 
 
     // --- 1. STANDALONE STRAVA ENRICHMENT FUNCTIE ---
-    const performSilentStravaEnrichment = async (actsToEnrich) => {
+    const performSilentStravaEnrichment = async (actsToEnrich, customStart, customEnd) => {
         if (!stravaGetToken) return 0;
         try {
             const token = await stravaGetToken();
             if (!token) return 0;
 
-            const afterTs = Math.floor(new Date(startDate).getTime() / 1000);
-            const beforeTs = Math.floor(new Date(endDate).getTime() / 1000) + 86400;
+            const start = customStart || startDate;
+            const end = customEnd || endDate;
+
+            const afterTs = Math.floor(new Date(start).getTime() / 1000);
+            const beforeTs = Math.floor(new Date(end).getTime() / 1000) + 86400;
 
             let page = 1;
             let allActivities = [];
@@ -177,7 +180,7 @@ const DataHub = ({
             setSyncStatus('enriching');
 
             // De performSilentStravaEnrichment functie doet de matching en de Firestore writes voor verrijking
-            const enrichedCount = await performSilentStravaEnrichment(totalToEnrich);
+            const enrichedCount = await performSilentStravaEnrichment(totalToEnrich, syncStart, syncEnd);
 
             // 3. Alleen de ECHT NIEUWE ritten opslaan in de database (de verrijking voor bestaande is al gedaan in performSilentStravaEnrichment)
             if (db && newActivities.length > 0) {
