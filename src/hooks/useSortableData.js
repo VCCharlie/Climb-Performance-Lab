@@ -10,21 +10,17 @@ const useSortableData = (items, config = null) => {
                 let aVal = a[sortConfig.key];
                 let bVal = b[sortConfig.key];
 
-                // Handle string comparison (case-insensitive)
-                if (typeof aVal === 'string') {
-                    aVal = aVal.toLowerCase();
-                    bVal = bVal ? bVal.toLowerCase() : '';
+                // Robust comparison handling mixed types and nulls
+                if (typeof aVal === 'string' || typeof bVal === 'string') {
+                    const aStr = String(aVal || '').toLowerCase();
+                    const bStr = String(bVal || '').toLowerCase();
+                    if (aStr < bStr) return sortConfig.direction === 'asc' ? -1 : 1;
+                    if (aStr > bStr) return sortConfig.direction === 'asc' ? 1 : -1;
                 } else {
-                    // Handle numeric comparison
-                    aVal = Number(aVal) || 0;
-                    bVal = Number(bVal) || 0;
-                }
-
-                if (aVal < bVal) {
-                    return sortConfig.direction === 'asc' ? -1 : 1;
-                }
-                if (aVal > bVal) {
-                    return sortConfig.direction === 'asc' ? 1 : -1;
+                    const aNum = Number(aVal) || 0;
+                    const bNum = Number(bVal) || 0;
+                    if (aNum < bNum) return sortConfig.direction === 'asc' ? -1 : 1;
+                    if (aNum > bNum) return sortConfig.direction === 'asc' ? 1 : -1;
                 }
                 return 0;
             });
