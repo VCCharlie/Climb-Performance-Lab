@@ -56,7 +56,7 @@ export const normalizeStravaActivity = (act) => ({
     avg_power: Math.round(act.average_watts || 0),
     norm_power: Math.round(act.weighted_average_watts || 0),
     load: 0,
-    rpe: 0,
+    rpe: act.perceived_exertion || 0,
     moving_time: formatMovingTime(act.moving_time || 0)
 });
 

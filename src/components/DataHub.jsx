@@ -170,7 +170,9 @@ const DataHub = ({
                         strava_id: norm.strava_id,
                         title: norm.title,
                         type: norm.type,
-                        ...(gearId && { gear_id: gearId, gear_name: gearName })
+                        ...(gearId && { gear_id: gearId, gear_name: gearName }),
+                        // RPE alleen invullen als site deze nog niet heeft (of 0 is) én Strava heeft 'm wél
+                        ...((!m.site.rpe || m.site.rpe === 0) && m.strava.perceived_exertion && { rpe: m.strava.perceived_exertion })
                     };
 
                     // CRITIEK: Muteren van het oorspronkelijke object zodat de UI (onImport) de data direct ziet!

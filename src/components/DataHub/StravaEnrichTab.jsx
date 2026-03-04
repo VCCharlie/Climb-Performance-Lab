@@ -156,7 +156,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
             setIsFetching(false);
             setFetchProgress('');
         }
-    }, [getStravaToken, startDate, endDate, activities, applyResults]);
+    }, [getStravaToken, startDate, endDate, activities, applyResults, onResultsChange]);
 
     const applyEnrichment = async () => {
         if (!results) return;
@@ -177,6 +177,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                         {
                             strava_id: String(strava.id),
                             ...(gearId && { gear_id: gearId, gear_name: gearName }),
+                            ...((!site.rpe || site.rpe === 0) && strava.perceived_exertion && { rpe: strava.perceived_exertion })
                         },
                         { merge: true }
                     );
