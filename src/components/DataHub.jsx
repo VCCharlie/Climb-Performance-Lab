@@ -62,6 +62,7 @@ const DataHub = ({
     const { syncIntervals, isSyncing, syncProgress } = useIntervalsSync(intervalsConfig);
     const [syncStatus, setSyncStatus] = useState(null);
     const [syncErrorDetail, setSyncErrorDetail] = useState(null);
+    const [isManualRefreshing, setIsManualRefreshing] = useState(false);
 
     const deferredActivities = React.useDeferredValue(activities);
 
@@ -649,11 +650,16 @@ const DataHub = ({
                             <div className="flex gap-2">
                                 {onRefresh && (
                                     <button
-                                        onClick={() => onRefresh()}
-                                        className="flex items-center justify-center w-9 h-9 rounded border bg-cdsurface border-cdborder text-cdmuted hover:text-green-400 hover:border-green-500/50 transition-colors group"
+                                        onClick={async () => {
+                                            setIsManualRefreshing(true);
+                                            try { await onRefresh(); } catch (e) { console.error(e); }
+                                            finally { setIsManualRefreshing(false); }
+                                        }}
+                                        disabled={isManualRefreshing}
+                                        className="flex items-center justify-center w-9 h-9 rounded border bg-cdsurface border-cdborder text-cdmuted hover:text-green-400 hover:border-green-500/50 transition-colors group disabled:opacity-50"
                                         title="Data verversen"
                                     >
-                                        <RefreshCw size={14} className="group-active:animate-spin" />
+                                        <RefreshCw size={14} className={isManualRefreshing ? 'animate-spin' : 'group-active:animate-spin'} />
                                     </button>
                                 )}
 
