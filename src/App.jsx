@@ -413,17 +413,58 @@ const App = () => {
                     return (
                         <div className="relative">
                             {/* Mobile: Hamburger Button */}
-                            <button
-                                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                                className="md:hidden flex items-center gap-2 px-4 py-2 bg-cdsurface rounded border border-cdborder text-cdtext mb-4"
-                            >
-                                {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-                                <span className="font-bold text-sm">{mobileLabel}</span>
-                            </button>
+                            <div className="flex items-center gap-2 mb-4 md:hidden">
+                                <button
+                                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-cdsurface rounded border border-cdborder text-cdtext flex-1"
+                                >
+                                    {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+                                    <span className="font-bold text-sm">{mobileLabel}</span>
+                                </button>
+
+                                {/* Mobile-only Range Display / Quick Toggle */}
+                                <div className="flex bg-cdbg/50 rounded border border-cdborder p-1 gap-1">
+                                    {(timeRange === 'Custom' ? ['Custom'] : [timeRange, '1Y']).filter((v, i, a) => a.indexOf(v) === i).map(r => (
+                                        <button
+                                            key={`mob-quick-${r}`}
+                                            onClick={() => setTimeRange(r)}
+                                            className={`px-2 py-1 text-[10px] font-bold rounded ${timeRange === r ? 'bg-cdaccent text-white' : 'text-cdmuted'}`}
+                                        >
+                                            {r}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Mobile Range Selector (Scrollable Bar) */}
+                            <div className="md:hidden flex items-center gap-1 overflow-x-auto pb-3 mb-1 no-scrollbar -mx-1 px-1">
+                                {['1M', '3M', '6M', '1Y', '3Y', '6Y', 'ALL', 'Custom'].map(r => (
+                                    <button
+                                        key={`mob-range-${r}`}
+                                        onClick={() => setTimeRange(r)}
+                                        className={`px-3 py-1.5 text-[10px] font-bold uppercase rounded whitespace-nowrap transition-all border ${timeRange === r
+                                            ? 'bg-cdaccent text-white border-cdaccent shadow'
+                                            : 'text-cdmuted hover:text-cdtext bg-cdbg/50 border-cdborder'}`}
+                                    >
+                                        {r}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Mobile Custom Date Inputs */}
+                            {timeRange === 'Custom' && (
+                                <div className="md:hidden flex items-center gap-2 bg-cdbg/50 p-2 rounded-lg border border-cdborder mb-4 animate-in fade-in slide-in-from-top-2">
+                                    <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)}
+                                        className="bg-cdsurface text-cdtext text-[10px] rounded px-2 py-1.5 outline-none border border-cdborder flex-1" />
+                                    <span className="text-cdmuted text-[10px]">–</span>
+                                    <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)}
+                                        className="bg-cdsurface text-cdtext text-[10px] rounded px-2 py-1.5 outline-none border border-cdborder flex-1" />
+                                </div>
+                            )}
 
                             {/* Mobile: Dropdown Menu */}
                             {isMobileMenuOpen && (
-                                <div className="md:hidden absolute top-full left-0 right-0 bg-cdsurface border border-cdborder rounded-lg shadow-xl z-50 mb-4">
+                                <div className="md:hidden absolute top-12 left-0 right-0 bg-cdsurface border border-cdborder rounded-lg shadow-xl z-50 mb-4">
                                     {mainTabs.map(item => {
                                         const isActive = activeTab === item.id;
                                         return (
@@ -465,7 +506,7 @@ const App = () => {
                                     <div className="flex items-center gap-1 bg-cdbg/50 rounded-lg p-1 border border-cdborder shrink-0 ml-4">
                                         {['1M', '3M', '6M', '1Y', '3Y', '6Y', 'ALL', 'Custom'].map(r => (
                                             <button
-                                                key={r}
+                                                key={`desk-range-${r}`}
                                                 onClick={() => setTimeRange(r)}
                                                 className={`px-2.5 py-1 text-[10px] font-bold uppercase rounded transition-all ${timeRange === r
                                                     ? 'bg-cdaccent text-white shadow border border-cdaccent'
