@@ -14,7 +14,7 @@ const SyncTab = ({ intervalsConfig, existingActivities, onSyncResults, getStrava
         SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: true }), {})
     );
 
-    const { syncActivities, isSyncing } = useIntervalsSync(intervalsConfig);
+    const { syncIntervals, isSyncing } = useIntervalsSync(intervalsConfig);
 
     // Nieuwe state om aan te geven dat we Strava data aan het toevoegen zijn
     const [isEnriching, setIsEnriching] = useState(false);
@@ -23,9 +23,15 @@ const SyncTab = ({ intervalsConfig, existingActivities, onSyncResults, getStrava
     const setAllSportFilters = (val) => setSportFilters(SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: val }), {}));
 
     const handleSync = async () => {
+        // Validatie: als dates leeg zijn, stop dan
+        if (!syncDates.start || !syncDates.end) {
+            alert("Selecteer eerst een geldige start- en einddatum.");
+            return;
+        }
+
         try {
             // STAP 1: Basisdata ophalen (Source of Truth)
-            const { newActivities } = await syncActivities(syncDates.start, syncDates.end, sportFilters, existingActivities);
+            const newActivities = await syncIntervals(syncDates.start, syncDates.end, sportFilters, existingActivities);
 
             // Bepaal welke bestaande ritten nog geen Strava koppeling hebben
             const existingWithoutStrava = (existingActivities || []).filter(act => {
@@ -79,11 +85,6 @@ const SyncTab = ({ intervalsConfig, existingActivities, onSyncResults, getStrava
                                     return act;
                                 });
                             }
-
-                            // Nota: Verrijking voor BESTAANDE ritten in SyncTab is complexer omdat onSyncResults 
-                            // meestal alleen nieuwe ritten aan de list toevoegt. Voor nu verrijken we 
-                            // vooral de nieuwe ritten. Bestaande ritten worden verrijkt via de Tools > Sync Now 
-                            // knop in de Activity Log (die de handleSync in DataHub gebruikt).
                         }
                     }
                 } catch (err) {

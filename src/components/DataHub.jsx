@@ -147,6 +147,14 @@ const DataHub = ({
             const sportFilters = SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: true }), {});
             const selectedTypes = Object.keys(sportFilters).filter(k => sportFilters[k]);
 
+            // Validatie: als startDate of endDate leeg zijn (bijv. bij Custom range zonder selectie), stop dan
+            if (!startDate || !endDate) {
+                setSyncStatus('error');
+                setSyncErrorDetail('❌ Fout: Selecteer eerst een geldige start- en einddatum (check de tijdsperiode rechtsboven).');
+                setTimeout(() => setSyncStatus(null), 5000);
+                return;
+            }
+
             // 1. Haal nieuwe ritten op van Intervals
             const newActivities = await syncIntervals(startDate, endDate, selectedTypes);
 
