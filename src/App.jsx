@@ -211,61 +211,21 @@ const App = () => {
         return { climbStatus: {} };
     });
 
-    useEffect(() => {
-        localStorage.setItem('bucketListState', JSON.stringify(bucketListState));
 
-        // Auto-save to Firebase
-        if (db && user && bucketListState && Object.keys(bucketListState.climbStatus || {}).length > 0) {
-            const settingsId = `user_${user.uid}`;
-            setDoc(doc(db, "settings", settingsId), {
-                bucketList: bucketListState
-            }, { merge: true }).catch(e => console.error("Error auto-saving bucketlist:", e));
-        }
-    }, [bucketListState, user]);
 
-    // Auto-save stravaConfig naar Firestore zodra er een client_id is ingesteld
-    useEffect(() => {
-        if (db && user && stravaConfig?.client_id) {
-            const settingsId = `user_${user.uid}`;
-            setDoc(doc(db, "settings", settingsId), {
-                strava: stravaConfig
-            }, { merge: true }).catch(e => console.error("Error auto-saving stravaConfig:", e));
-        }
-    }, [stravaConfig, user]);
 
-    // Auto-save stravaProfileData naar localStorage + Firestore (cross-device)
-    useEffect(() => {
-        if (!stravaProfileData) return;
-        localStorage.setItem('stravaProfileData', JSON.stringify(stravaProfileData));
-        if (db && user) {
-            const settingsId = `user_${user.uid}`;
-            setDoc(doc(db, "settings", settingsId), {
-                stravaProfile: stravaProfileData
-            }, { merge: true }).catch(e => console.error("Error auto-saving stravaProfile:", e));
-        }
-    }, [stravaProfileData, user]);
 
-    // Auto-save userSettings naar localStorage + Firestore
+
+
+    // Auto-save userSettings naar localStorage
     useEffect(() => {
         localStorage.setItem('userSettings', JSON.stringify(userSettings));
-        if (db && user) {
-            const settingsId = `user_${user.uid}`;
-            setDoc(doc(db, "settings", settingsId), {
-                body: userSettings
-            }, { merge: true }).catch(e => console.error("Error auto-saving userSettings:", e));
-        }
-    }, [userSettings, user]);
+    }, [userSettings]);
 
-    // Auto-save intervalsConfig naar localStorage + Firestore
+    // Auto-save intervalsConfig naar localStorage
     useEffect(() => {
         localStorage.setItem('intervalsConfig', JSON.stringify(intervalsConfig));
-        if (db && user) {
-            const settingsId = `user_${user.uid}`;
-            setDoc(doc(db, "settings", settingsId), {
-                intervals: intervalsConfig
-            }, { merge: true }).catch(e => console.error("Error auto-saving intervalsConfig:", e));
-        }
-    }, [intervalsConfig, user]);
+    }, [intervalsConfig]);
 
     const [weatherClimbState, setWeatherClimbState] = useState({
         selectedClimb: CLIMB_DATABASE[0],
@@ -393,13 +353,14 @@ const App = () => {
         if (!db) return;
         try {
             const settingsId = user ? `user_${user.uid}` : "user_prefs";
-            console.log("Saving Settings to Cloud:", { intervals: intervalsConfig, body: userSettings, theme, bucketList: bucketListState });
+            console.log("Saving Settings to Cloud:", { intervals: intervalsConfig, body: userSettings, theme, bucketList: bucketListState, strava: stravaConfig, stravaProfile: stravaProfileData });
             await setDoc(doc(db, "settings", settingsId), {
                 intervals: intervalsConfig,
                 body: userSettings,
                 theme: theme,
                 bucketList: bucketListState,
-                strava: stravaConfig
+                strava: stravaConfig,
+                stravaProfile: stravaProfileData
             }, { merge: true });
             alert("Settings saved! Bike Weight: " + (userSettings.bikeWeight || 'N/A'));
         } catch (e) { alert("Error saving settings: " + e.message); }
