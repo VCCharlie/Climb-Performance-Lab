@@ -15,7 +15,7 @@ const SyncTab = ({ intervalsConfig, existingActivities, onSyncResults, getStrava
     );
 
     const { syncActivities, isSyncing } = useIntervalsSync(intervalsConfig);
-    
+
     // Nieuwe state om aan te geven dat we Strava data aan het toevoegen zijn
     const [isEnriching, setIsEnriching] = useState(false);
 
@@ -25,18 +25,25 @@ const SyncTab = ({ intervalsConfig, existingActivities, onSyncResults, getStrava
     const handleSync = async () => {
         try {
             // STAP 1: Basisdata ophalen (Source of Truth)
-            const { count, newActivities } = await syncActivities(syncDates.start, syncDates.end, sportFilters, existingActivities);
+            const { newActivities } = await syncActivities(syncDates.start, syncDates.end, sportFilters, existingActivities);
 
-            if (count === 0 || !newActivities || newActivities.length === 0) {
-                alert("Je bent helemaal bij! Alle gevonden ritten staan al in je dashboard (of er waren er geen).");
+            // Bepaal welke bestaande ritten nog geen Strava koppeling hebben
+            const existingWithoutStrava = (existingActivities || []).filter(act => {
+                const actDate = act.date?.split('T')[0];
+                return !act.strava_id && actDate >= syncDates.start && actDate <= syncDates.end;
+            });
+
+            if ((!newActivities || newActivities.length === 0) && existingWithoutStrava.length === 0) {
+                alert("Je bent helemaal bij! Alle gevonden ritten staan al in je dashboard en zijn verrijkt.");
                 return;
             }
 
             // STAP 2: Automatische Strava Verrijking (Match & Merge)
-            let finalActivities = [...newActivities];
+            let enrichedNewActivities = newActivities ? [...newActivities] : [];
+            const totalToEnrich = [...enrichedNewActivities, ...existingWithoutStrava];
 
             // Als we een Strava token hebben, proberen we de ritten direct te verrijken
-            if (getStravaToken) {
+            if (getStravaToken && totalToEnrich.length > 0) {
                 setIsEnriching(true);
                 try {
                     const token = await getStravaToken();
@@ -53,37 +60,41 @@ const SyncTab = ({ intervalsConfig, existingActivities, onSyncResults, getStrava
                         if (resp.ok) {
                             const stravaActivities = await resp.json();
 
-                            // Match logica toepassen
-                            finalActivities = finalActivities.map(act => {
-                                const actTime = new Date(act.date).getTime();
-                                
-                                // Zoek Strava rit binnen 15 minuten (900.000 ms) marge
-                                const matchedStrava = stravaActivities.find(s => {
-                                    const sTime = new Date(s.start_date_local || s.start_date).getTime();
-                                    return Math.abs(actTime - sTime) < 900000;
-                                });
+                            // Match logica toepassen op de nieuwe ritten (om ze te verrijken voor opslag)
+                            if (enrichedNewActivities.length > 0) {
+                                enrichedNewActivities = enrichedNewActivities.map(act => {
+                                    const actTime = new Date(act.date).getTime();
+                                    const matchedStrava = stravaActivities.find(s => {
+                                        const sTime = new Date(s.start_date_local || s.start_date).getTime();
+                                        return Math.abs(actTime - sTime) < 900000;
+                                    });
 
-                                if (matchedStrava) {
-                                    // We voegen alleen Strava ID en gear ID toe. De Intervals vermogensdata blijft intact!
-                                    return {
-                                        ...act,
-                                        strava_id: String(matchedStrava.id),
-                                        gear_id: matchedStrava.gear_id || null
-                                    };
-                                }
-                                return act;
-                            });
+                                    if (matchedStrava) {
+                                        return {
+                                            ...act,
+                                            strava_id: String(matchedStrava.id),
+                                            gear_id: matchedStrava.gear_id || null
+                                        };
+                                    }
+                                    return act;
+                                });
+                            }
+
+                            // Nota: Verrijking voor BESTAANDE ritten in SyncTab is complexer omdat onSyncResults 
+                            // meestal alleen nieuwe ritten aan de list toevoegt. Voor nu verrijken we 
+                            // vooral de nieuwe ritten. Bestaande ritten worden verrijkt via de Tools > Sync Now 
+                            // knop in de Activity Log (die de handleSync in DataHub gebruikt).
                         }
                     }
                 } catch (err) {
-                    console.warn("Auto-enrichment via Strava mislukt. Ritten worden zonder Strava-ID in lijst gezet.", err);
+                    console.warn("Auto-enrichment via Strava mislukt.", err);
                 } finally {
                     setIsEnriching(false);
                 }
             }
 
-            // STAP 3: Geef de samengevoegde lijst terug aan DataHub (om lokaal op te slaan)
-            onSyncResults(finalActivities);
+            // STAP 3: Geef de resultaten terug
+            onSyncResults(enrichedNewActivities);
 
         } catch (e) {
             alert("Sync Fout: " + e.message);
@@ -97,15 +108,15 @@ const SyncTab = ({ intervalsConfig, existingActivities, onSyncResults, getStrava
     return (
         <div className="bg-cdbg/50 border border-cdborder rounded-lg p-6 space-y-6">
             <h3 className="text-lg font-bold text-cdtext flex items-center gap-2">
-                <RefreshCw size={20} className={`text-orange-400 ${isLoading ? 'animate-spin' : ''}`} /> 
+                <RefreshCw size={20} className={`text-orange-400 ${isLoading ? 'animate-spin' : ''}`} />
                 Sync Activities
             </h3>
-            
+
             <div className="grid grid-cols-2 gap-4">
                 <div><span className="text-xs text-cdmuted block mb-1">From</span><input type="date" value={syncDates.start} onChange={e => setSyncDates(s => ({ ...s, start: e.target.value }))} className="w-full bg-cdsurface border border-cdborder rounded p-2 text-cdtext text-sm" /></div>
                 <div><span className="text-xs text-cdmuted block mb-1">To</span><input type="date" value={syncDates.end} onChange={e => setSyncDates(s => ({ ...s, end: e.target.value }))} className="w-full bg-cdsurface border border-cdborder rounded p-2 text-cdtext text-sm" /></div>
             </div>
-            
+
             <div>
                 <div className="flex justify-between mb-2">
                     <label className="text-xs uppercase font-bold text-cdmuted">Types</label>
@@ -123,11 +134,11 @@ const SyncTab = ({ intervalsConfig, existingActivities, onSyncResults, getStrava
                     ))}
                 </div>
             </div>
-            
+
             <div className="pt-4 border-t border-cdborder">
-                <button 
-                    onClick={handleSync} 
-                    disabled={isLoading} 
+                <button
+                    onClick={handleSync}
+                    disabled={isLoading}
                     className="w-full py-3 flex justify-center items-center gap-2 rounded bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold transition-all shadow-lg shadow-orange-500/20"
                 >
                     {isLoading && <Loader2 size={18} className="animate-spin" />}

@@ -22,23 +22,23 @@ import StravaProfileTab from './DataHub/StravaProfileTab';
 import useActivityFilter from '../hooks/useActivityFilter';
 import useIntervalsSync from '../hooks/useIntervalsSync';
 
-const DataHub = ({ 
-    activities, 
-    onImport, 
-    onDelete, 
-    onClear, 
-    onRefresh, 
-    githubPat, 
+const DataHub = ({
+    activities,
+    onImport,
+    onDelete,
+    onClear,
+    onRefresh,
+    // githubPat,
     intervalsConfig, // New Prop
-    showImport = false, 
-    stravaGetToken, 
-    startDate, 
-    endDate, 
-    stravaEnrichResults, 
-    onStravaEnrichResults, 
-    stravaAthleteId, 
-    stravaProfileData, 
-    onStravaProfileData 
+    showImport = false,
+    stravaGetToken,
+    startDate,
+    endDate,
+    stravaEnrichResults,
+    onStravaEnrichResults,
+    stravaAthleteId,
+    stravaProfileData,
+    onStravaProfileData
 }) => {
     // UI State
     const [internalTab, setInternalTab] = useState('log');
@@ -56,10 +56,10 @@ const DataHub = ({
     const [fetchedActivities, setFetchedActivities] = useState([]);
     const [selectedActivities, setSelectedActivities] = useState([]);
     const [showModal, setShowModal] = useState(false);
-    const [rawData, setRawData] = useState(null); 
-    
+    const [rawData, setRawData] = useState(null);
+
     // NEW DIRECT SYNC STATE
-    const { syncIntervals, isSyncing, syncProgress, error: syncError } = useIntervalsSync(intervalsConfig);
+    const { syncIntervals, isSyncing, syncProgress } = useIntervalsSync(intervalsConfig);
     const [syncStatus, setSyncStatus] = useState(null);
     const [syncErrorDetail, setSyncErrorDetail] = useState(null);
 
@@ -107,10 +107,10 @@ const DataHub = ({
                 if (noPower && isShort) return false;
                 return true;
             });
-            
+
             const result = matchStravaToSite(bikeActivities, actsToEnrich);
             const toEnrich = [];
-            
+
             if (result?.matched?.length > 0) {
                 toEnrich.push(...result.matched.filter(m => m.confidence !== 'low'));
             }
@@ -147,32 +147,45 @@ const DataHub = ({
             const sportFilters = SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: true }), {});
             const selectedTypes = Object.keys(sportFilters).filter(k => sportFilters[k]);
 
+            // 1. Haal nieuwe ritten op van Intervals
             const newActivities = await syncIntervals(startDate, endDate, selectedTypes);
 
-            if (!newActivities || newActivities.length === 0) {
+            // 2. Bepaal welke bestaande ritten nog geen Strava koppeling hebben
+            // We filteren op de huidige periode (globalStartDate/globalEndDate) om de API call efficient te houden
+            const existingWithoutStrava = (activities || []).filter(act => {
+                const actDate = act.date?.split('T')[0];
+                return !act.strava_id && actDate >= startDate && actDate <= endDate;
+            });
+
+            const totalToEnrich = [...newActivities, ...existingWithoutStrava];
+
+            if (totalToEnrich.length === 0) {
                 setSyncStatus('done');
-                setSyncErrorDetail('✅ Je bent helemaal bij! Geen nieuwe activiteiten gevonden in de geselecteerde periode.');
+                setSyncErrorDetail('✅ Je bent helemaal bij! Geen nieuwe of onverrijkte activiteiten gevonden.');
                 setTimeout(() => setSyncStatus(null), 5000);
                 return;
             }
 
-            setSyncErrorDetail(`Stap 2/2: ${newActivities.length} nieuwe activiteit(en) gevonden. Bezig met Strava verrijking...`);
+            setSyncErrorDetail(`Stap 2/2: ${newActivities.length} nieuwe ritten, ${existingWithoutStrava.length} te verrijken. Bezig met Strava...`);
             setSyncStatus('enriching');
 
-            const enrichedCount = await performSilentStravaEnrichment(newActivities);
-            
-            // Save to database
-            if (db) {
+            // De performSilentStravaEnrichment functie doet de matching en de Firestore writes voor verrijking
+            const enrichedCount = await performSilentStravaEnrichment(totalToEnrich);
+
+            // 3. Alleen de ECHT NIEUWE ritten opslaan in de database (de verrijking voor bestaande is al gedaan in performSilentStravaEnrichment)
+            if (db && newActivities.length > 0) {
                 await Promise.all(newActivities.map(act =>
                     setDoc(doc(db, 'activities', String(act.id)), act, { merge: true })
                 ));
             }
-            
-            // Update local state
-            onImport(newActivities);
+
+            // Update local state voor de nieuwe ritten
+            if (newActivities.length > 0) {
+                onImport(newActivities);
+            }
 
             setSyncStatus('done');
-            setSyncErrorDetail(`✅ Sync voltooid! ${newActivities.length} activiteit(en) toegevoegd, waarvan ${enrichedCount} verrijkt met Strava data.`);
+            setSyncErrorDetail(`✅ Sync voltooid! ${newActivities.length} nieuw, ${enrichedCount} ritten (extra) verrijkt met Strava data.`);
             setTimeout(() => setSyncStatus(null), 8000);
 
         } catch (e) {
@@ -213,11 +226,11 @@ const DataHub = ({
         if (db) {
             try {
                 await deleteDoc(doc(db, "activities", String(id)));
-            } catch (e) {
+            } catch {
                 alert("Kon activiteit niet verwijderen uit database.");
             }
         }
-    }, [db]);
+    }, []);
 
     const handleClearDatabase = async () => {
         if (!confirm("WEET JE HET ZEKER?\n\nHiermee verwijder je ALLE activiteiten uit de database.")) return;
@@ -310,7 +323,7 @@ const DataHub = ({
         if (!parsedData || parsedData.length === 0) return;
         setFetchedActivities(parsedData);
         setSelectedActivities(parsedData.map(r => r.id));
-        setRawData(parsedData[0]); 
+        setRawData(parsedData[0]);
         setShowModal(true);
     };
 
@@ -513,8 +526,7 @@ const DataHub = ({
                     <>
                         {/* DYNAMISCHE SYNC STATUS BANNER */}
                         {syncStatus && (
-                            <div className={`flex flex-col gap-1 text-xs font-bold px-3 py-2 rounded-lg mb-3 ${
-                                syncStatus === 'success' || syncStatus === 'done' || syncStatus === 'enriching' || syncStatus === 'started'
+                            <div className={`flex flex-col gap-1 text-xs font-bold px-3 py-2 rounded-lg mb-3 ${syncStatus === 'success' || syncStatus === 'done' || syncStatus === 'enriching' || syncStatus === 'started'
                                 ? 'bg-blue-500/10 border border-blue-500/30 text-blue-400'
                                 : 'bg-red-500/10 border border-red-500/30 text-red-400'
                                 }`}
