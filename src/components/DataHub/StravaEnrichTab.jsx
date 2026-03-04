@@ -25,13 +25,13 @@ const ConfidenceBadge = ({ confidence }) => {
     );
 };
 
-const SectionHeader = ({ icon: Icon, iconColor, title, count, children }) => {
+const SectionHeader = ({ icon: IconComponent, iconColor, title, count, children }) => {
     const [open, setOpen] = useState(true);
     return (
         <div>
             <button onClick={() => setOpen(v => !v)} className="flex items-center gap-2 w-full text-left mb-2 hover:text-cdtext transition-colors">
                 {open ? <ChevronDown size={12} className="text-cdmuted" /> : <ChevronRight size={12} className="text-cdmuted" />}
-                <Icon size={12} className={iconColor} />
+                <IconComponent size={12} className={iconColor} />
                 <span className="text-xs uppercase font-bold text-cdmuted">{title}</span>
                 <span className="text-xs text-cdmuted ml-auto">{count}</span>
             </button>
@@ -149,6 +149,29 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
 
             const result = matchStravaToSite(bikeActivities, activities);
             result.bikesMap = bikesMap;
+
+            // CRITIEK: RPE ophalen voor al-gekoppelde ritten die het missen
+            if (result.alreadyLinked.length > 0) {
+                setFetchProgress('Checking details for RPE...');
+                await Promise.all(result.alreadyLinked.map(async m => {
+                    // Als we al een RPE hebben lokaal, hoeven we niets te doen
+                    if (m.site.rpe && m.site.rpe > 0) return;
+
+                    try {
+                        const detResp = await fetch(`https://www.strava.com/api/v3/activities/${m.strava.id}`, {
+                            headers: { Authorization: `Bearer ${token}` }
+                        });
+                        if (detResp.ok) {
+                            const detailed = await detResp.json();
+                            if (detailed.perceived_exertion) {
+                                m.strava.perceived_exertion = detailed.perceived_exertion;
+                                m.needsRpe = true;
+                            }
+                        }
+                    } catch { console.warn("Detail fetch failed for Strava", m.strava.id); }
+                }));
+            }
+
             applyResults(result);
         } catch (e) {
             setError(e.message);

@@ -87,7 +87,7 @@ const DataHub = ({
             const afterTs = Math.floor(new Date(start).getTime() / 1000);
             const beforeTs = Math.floor(new Date(end).getTime() / 1000) + 86400;
 
-            // 1. Haal Strava activiteiten op
+            // 1. Haal Strava activiteiten op (List view)
             let page = 1;
             let allActivities = [];
             while (true) {
@@ -113,7 +113,7 @@ const DataHub = ({
 
             if (bikeActivities.length === 0) return 0;
 
-            // 2. Haal Fietsnamen (Gear) op om consistent te zijn met de manual tab
+            // 2. Haal Fietsnamen (Gear) op
             const bikesMap = {};
             try {
                 const athleteResp = await fetch('https://www.strava.com/api/v3/athlete', {
@@ -126,7 +126,6 @@ const DataHub = ({
                     });
                 }
 
-                // Ook gear ophalen die niet de default is
                 const uniqueGearIds = [...new Set(bikeActivities.map(a => a.gear_id).filter(id => id && !bikesMap[id]))];
                 if (uniqueGearIds.length > 0) {
                     await Promise.all(uniqueGearIds.map(async gid => {
@@ -141,46 +140,73 @@ const DataHub = ({
                         } catch { /* ignore */ }
                     }));
                 }
-                // Cache voor EditModal
                 if (Object.keys(bikesMap).length > 0) {
                     localStorage.setItem('stravaBikesMap', JSON.stringify(bikesMap));
                 }
             } catch (err) { console.warn("[Silent Enrichment] Gear fetch failed", err); }
 
-            // 3. Match en verrijk
+            // 3. Match
             const result = matchStravaToSite(bikeActivities, actsToEnrich);
-            const toEnrich = [];
+            const candidates = [];
 
+            // Case A: Nieuw gematched (fuzzy)
             if (result?.matched?.length > 0) {
-                toEnrich.push(...result.matched.filter(m => m.confidence !== 'low'));
+                candidates.push(...result.matched.filter(m => m.confidence !== 'low'));
             }
+            // Case B: Al gekoppeld maar misschien data-update nodig
             if (result?.alreadyLinked?.length > 0) {
-                // Al gekoppeld maar misschien ontbreekt gear of RPE?
-                toEnrich.push(...result.alreadyLinked.filter(m => m.needsGear || m.needsRpe));
+                candidates.push(...result.alreadyLinked);
             }
 
-            if (toEnrich.length > 0 && db) {
-                await Promise.all(toEnrich.map(async m => {
-                    const norm = normalizeStravaActivity(m.strava);
-                    const gearId = m.strava.gear_id || null;
-                    const gearName = gearId ? (bikesMap[gearId] || 'Strava fiets') : null;
+            if (candidates.length === 0) return 0;
 
-                    const updateData = {
-                        strava_id: norm.strava_id,
-                        title: norm.title,
-                        type: norm.type,
-                        ...(gearId && { gear_id: gearId, gear_name: gearName }),
-                        // RPE alleen invullen als site deze nog niet heeft (of 0 is) én Strava heeft 'm wél
-                        ...((!m.site.rpe || m.site.rpe === 0) && m.strava.perceived_exertion && { rpe: m.strava.perceived_exertion })
-                    };
+            // 4. CRITIEK: RPE (perceived_exertion) zit niet in de lijst-API. 
+            // We halen voor alle kandidaten die potentieel RPE missen de DETAILS op.
+            const toEnrichFinal = [];
+            await Promise.all(candidates.map(async m => {
+                const siteNeedsRpe = !m.site.rpe || m.site.rpe === 0;
+                const siteNeedsGear = !m.site.gear_id && !!m.strava.gear_id;
 
-                    // CRITIEK: Muteren van het oorspronkelijke object zodat de UI de data direct ziet!
+                // Als we al een strava_id hebben en alles is er al (rpe & gear), dan overslaan
+                if (m.site.strava_id && !siteNeedsRpe && !siteNeedsGear) return;
+
+                // Haal details op van Strava voor RPE
+                let stravaDetailed = m.strava;
+                try {
+                    const detResp = await fetch(`https://www.strava.com/api/v3/activities/${m.strava.id}`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    if (detResp.ok) {
+                        stravaDetailed = await detResp.json();
+                    }
+                } catch { console.warn("Detail fetch failed for Strava", m.strava.id); }
+
+                const norm = normalizeStravaActivity(stravaDetailed);
+                const gearId = stravaDetailed.gear_id || null;
+                const gearName = gearId ? (bikesMap[gearId] || 'Strava fiets') : null;
+
+                const updateData = {
+                    strava_id: norm.strava_id,
+                    title: norm.title,
+                    type: norm.type,
+                    ...(gearId && { gear_id: gearId, gear_name: gearName }),
+                    // RPE alleen invullen als site deze nog niet heeft én Strava heeft 'm wél
+                    ...((!m.site.rpe || m.site.rpe === 0) && stravaDetailed.perceived_exertion && { rpe: stravaDetailed.perceived_exertion })
+                };
+
+                // Filter out if no actual changes
+                const hasChanges = Object.keys(updateData).some(k => updateData[k] !== m.site[k]);
+                if (hasChanges) {
                     Object.assign(m.site, updateData);
+                    toEnrichFinal.push({ id: m.site.id, data: updateData });
+                }
+            }));
 
-                    // Opslaan in database
-                    return setDoc(doc(db, 'activities', String(m.site.id)), updateData, { merge: true });
-                }));
-                return toEnrich.length;
+            if (toEnrichFinal.length > 0 && db) {
+                await Promise.all(toEnrichFinal.map(({ id, data }) =>
+                    setDoc(doc(db, 'activities', String(id)), data, { merge: true })
+                ));
+                return toEnrichFinal.length;
             }
         } catch (err) {
             console.error("[Silent Enrichment] Failed:", err);
@@ -209,30 +235,30 @@ const DataHub = ({
             // 1. Haal nieuwe ritten op van Intervals
             const newActivities = await syncIntervals(syncStart, syncEnd, selectedTypes);
 
-            // 2. Bepaal welke bestaande ritten nog geen Strava koppeling hebben
-            // We filteren nu ook op deze 14-daagse periode
-            const existingWithoutStrava = (activities || []).filter(act => {
+            // 2. Bepaal welke bestaande ritten (in dashboard) we mee willen sturen naar Strava check
+            // We sturen ALLE ritten in het venster mee, de verrijking filtert zelf of er wat moet gebeuren.
+            const existingInWindow = (activities || []).filter(act => {
                 const actDate = act.date?.split('T')[0];
-                return !act.strava_id && actDate >= syncStart && actDate <= syncEnd;
+                return actDate >= syncStart && actDate <= syncEnd;
             });
 
-            const totalToEnrich = [...newActivities, ...existingWithoutStrava];
+            const totalCheckList = [...newActivities, ...existingInWindow];
 
-            if (totalToEnrich.length === 0) {
+            if (totalCheckList.length === 0) {
                 setSyncStatus('done');
-                setSyncErrorDetail('✅ Je bent helemaal bij! Geen nieuwe of onverrijkte activiteiten gevonden.');
+                setSyncErrorDetail('✅ Je bent helemaal bij! Geen activiteiten gevonden in de laatste 14 dagen.');
                 setTimeout(() => setSyncStatus(null), 5000);
                 return;
             }
 
-            setSyncErrorDetail(`Stap 2/2: ${newActivities.length} nieuwe ritten, ${existingWithoutStrava.length} te verrijken. Bezig met Strava...`);
+            setSyncErrorDetail(`Stap 2/2: ${newActivities.length} nieuwe ritten gevonden. Bezig met Strava verrijking...`);
             setSyncStatus('enriching');
 
-            // De performSilentStravaEnrichment functie doet de matching en de Firestore writes voor verrijking
+            // De performSilentStravaEnrichment functie doet de matching, detail fetches en Firestore writes.
             // Het update ook de objecten in de array IN-PLACE.
-            const enrichedCount = await performSilentStravaEnrichment(totalToEnrich, syncStart, syncEnd);
+            const enrichedCount = await performSilentStravaEnrichment(totalCheckList, syncStart, syncEnd);
 
-            // 3. Alleen de ECHT NIEUWE ritten opslaan in de database
+            // 3. De ECHT NIEUWE ritten opslaan in de database
             if (db && newActivities.length > 0) {
                 await Promise.all(newActivities.map(act =>
                     setDoc(doc(db, 'activities', String(act.id)), act, { merge: true })
@@ -240,12 +266,12 @@ const DataHub = ({
             }
 
             // Update local state met de (nu verrijkte!) ritten. 
-            // We sturen ZOWEL de nieuwe ritten ALS de verrijkte bestaande ritten naar onImport
-            // zodat de UI direct het Strava-logootje toont.
             const allUpdated = [...newActivities];
-            // Alleen die ritten toevoegen die ook echt verrijkt zijn
-            existingWithoutStrava.forEach(act => {
-                if (act.strava_id) allUpdated.push(act);
+            // Voeg bestaande ritten toe die tijdens de silent enrichment zijn aangepast (strava_id nu aanwezig of rpe gewijzigd)
+            existingInWindow.forEach(act => {
+                // We kunnen checken of act gemuteerd is. Een simpele manier is kijken of er iets is toegevoegd.
+                // In performSilentStravaEnrichment doen we Object.assign(m.site, updateData).
+                allUpdated.push(act);
             });
 
             if (allUpdated.length > 0) {
@@ -253,13 +279,13 @@ const DataHub = ({
             }
 
             setSyncStatus('done');
-            setSyncErrorDetail(`✅ Sync voltooid! ${newActivities.length} nieuw, ${enrichedCount} ritten verrijkt met Strava data.`);
+            setSyncErrorDetail(`✅ Sync voltooid! ${newActivities.length} nieuw, ${enrichedCount} ritten bijgewerkt met Strava data.`);
             setTimeout(() => setSyncStatus(null), 8000);
 
         } catch (e) {
-            console.error('[Sync Error]', e);
+            console.error('Sync failed:', e);
             setSyncStatus('error');
-            setSyncErrorDetail(`❌ Fout bij synchroniseren: ${e.message}`);
+            setSyncErrorDetail(`❌ Fout: ${e.message}`);
         }
     };
 
