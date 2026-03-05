@@ -83,15 +83,30 @@ function chunkArray(array, size) {
 async function fetchFromIntervalsAPI({ athleteId, apiKey, startDate, endDate }) {
     console.log(`[SYNC] Ophalen Intervals.icu data van ${startDate} tot ${endDate}...`);
     
-    const url = `${CLOUD_FUNCTION_URL}?athleteId=${athleteId}&apiKey=${apiKey}&startDate=${startDate}&endDate=${endDate}`;
+    const url = CLOUD_FUNCTION_URL;
     
-    const response = await fetch(url);
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            athlete_id: athleteId,
+            api_key: apiKey,
+            start_date: startDate,
+            end_date: endDate,
+            // We pass the accepted types to allow the function to pre-filter
+            sport_types: ACCEPTED_TYPES
+        })
+    });
+
     if (!response.ok) {
         throw new Error(`Cloud function returned ${response.status}: ${await response.text()}`);
     }
     
+    // The function now returns the full transformed activity object directly
     const data = await response.json();
-    return data.activities || [];
+    return data;
 }
 
 async function upsertToFirestore(db, newActivities, isDryRun) {
