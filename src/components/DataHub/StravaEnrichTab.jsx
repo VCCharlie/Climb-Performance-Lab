@@ -155,15 +155,8 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
             if (result.alreadyLinked.length > 0) {
                 setFetchProgress('Checking details for RPE/Gear...');
                 await runInBatches(result.alreadyLinked, 5, async (m) => {
-                    const siteHasRpe = m.site.rpe && m.site.rpe > 0;
-
-                    // Skip fetch only if RPE is present AND we are sure no gear is needed.
-                    // m.needsGear is from the list-view check, which is a good heuristic.
-                    if (siteHasRpe && !m.needsGear) {
-                        return;
-                    }
-
                     try {
+                        // Altijd de details ophalen om de meest complete data te hebben
                         const detResp = await fetch(`https://www.strava.com/api/v3/activities/${m.strava.id}`, {
                             headers: { Authorization: `Bearer ${token}` }
                         });
@@ -171,15 +164,16 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                         if (detResp.ok) {
                             const detailed = await detResp.json();
                             
-                            // Final determination of needsRpe is here, with detailed data.
-                            if (!siteHasRpe && detailed.perceived_exertion) {
+                            const siteHasRpe = m.site.rpe && m.site.rpe > 0;
+                            const siteHasGear = !!m.site.gear_id;
+                            
+                            // Bepaal hier definitief of RPE/Gear nodig is
+                            m.needsRpe = !siteHasRpe && !!detailed.perceived_exertion;
+                            m.needsGear = !siteHasGear && !!detailed.gear_id;
+                            
+                            // Voeg de RPE-waarde toe aan het strava-object voor weergave
+                            if (m.needsRpe) {
                                 m.strava.perceived_exertion = detailed.perceived_exertion;
-                                m.needsRpe = true;
-                            }
-
-                            // Final determination of needsGear is also here.
-                            if (!m.site.gear_id && detailed.gear_id) {
-                                m.needsGear = true;
                             }
                         }
                     } catch { console.warn("Detail fetch failed for Strava", m.strava.id); }
