@@ -24,6 +24,7 @@ const getWeekKey = (dateStr) => {
 };
 
 const getMonthKey = (dateStr) => dateStr.slice(0, 7); // "YYYY-MM"
+const getYearKey = (dateStr) => dateStr.slice(0, 4); // "YYYY"
 
 const formatMonthLabel = (key) => {
     const [y, m] = key.split('-');
@@ -39,44 +40,90 @@ const METRIC_FIELD = {
     distance: (a) => Number(a.distance) || 0,
     tss: (a) => Number(a.load) || 0, // 'load' = TSS after normalization
     elevation: (a) => Number(a.climbing) || 0,
+    moving_time: (a) => Number(a.moving_time) || 0,
 };
 
 const BarChartCard = ({ data, metric, title, unit, color }) => {
     const [groupBy, setGroupBy] = useState('week');
+    const [rideType, setRideType] = useState('all'); // 'all', 'indoor', 'outdoor'
 
     const chartData = useMemo(() => {
         if (!data || data.length === 0) return [];
 
+        const isTime = metric === 'moving_time';
+
+        const filtered = data.filter(a => {
+            if (rideType === 'all') return true;
+            const isIndoor = ['VirtualRide', 'VirtualRun'].includes(a.type);
+            return rideType === 'indoor' ? isIndoor : !isIndoor;
+        });
+
         const getValue = METRIC_FIELD[metric];
         const map = {};
 
-        data.forEach(a => {
+        filtered.forEach(a => {
             if (!a.date) return;
-            const key = groupBy === 'week' ? getWeekKey(a.date) : getMonthKey(a.date);
+            let key;
+            if (groupBy === 'week') key = getWeekKey(a.date);
+            else if (groupBy === 'month') key = getMonthKey(a.date);
+            else key = getYearKey(a.date);
             map[key] = (map[key] || 0) + getValue(a);
         });
 
         return Object.keys(map)
             .sort()
-            .map(key => ({
-                label: groupBy === 'week' ? formatWeekLabel(key) : formatMonthLabel(key),
-                value: Math.round(map[key]),
-            }));
-    }, [data, metric, groupBy]);
+            .map(key => {
+                let label;
+                if (groupBy === 'week') label = formatWeekLabel(key);
+                else if (groupBy === 'month') label = formatMonthLabel(key);
+                else label = key; // Year is just the key itself
+
+                let value = map[key];
+                if (isTime) {
+                    value = Math.round((value / 3600) * 10) / 10; // in uren, 1 decimaal
+                } else {
+                    value = Math.round(value);
+                }
+
+                return { label, value };
+            });
+    }, [data, metric, groupBy, rideType]);
+
+    const isTime = metric === 'moving_time';
 
     return (
         <div className="bg-cdsurface border border-cdborder rounded-xl p-5 shadow-xl">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-start justify-between mb-4">
                 <h3 className="text-sm font-bold text-cdtext uppercase tracking-wider">{title}</h3>
-                <div className="flex bg-cdbg/60 border border-cdborder rounded overflow-hidden text-[11px] font-bold">
-                    <button
-                        onClick={() => setGroupBy('week')}
-                        className={`px-3 py-1 transition-colors ${groupBy === 'week' ? 'bg-cdaccent text-white' : 'text-cdmuted hover:text-cdtext'}`}
-                    >Week</button>
-                    <button
-                        onClick={() => setGroupBy('month')}
-                        className={`px-3 py-1 transition-colors ${groupBy === 'month' ? 'bg-cdaccent text-white' : 'text-cdmuted hover:text-cdtext'}`}
-                    >Maand</button>
+                <div className="flex flex-col items-end gap-2">
+                    <div className="flex bg-cdbg/60 border border-cdborder rounded overflow-hidden text-[11px] font-bold">
+                        <button
+                            onClick={() => setGroupBy('week')}
+                            className={`px-3 py-1 transition-colors ${groupBy === 'week' ? 'bg-cdaccent text-white' : 'text-cdmuted hover:text-cdtext'}`}
+                        >Week</button>
+                        <button
+                            onClick={() => setGroupBy('month')}
+                            className={`px-3 py-1 transition-colors ${groupBy === 'month' ? 'bg-cdaccent text-white' : 'text-cdmuted hover:text-cdtext'}`}
+                        >Maand</button>
+                         <button
+                            onClick={() => setGroupBy('year')}
+                            className={`px-3 py-1 transition-colors ${groupBy === 'year' ? 'bg-cdaccent text-white' : 'text-cdmuted hover:text-cdtext'}`}
+                        >Jaar</button>
+                    </div>
+                     <div className="flex bg-cdbg/60 border border-cdborder rounded overflow-hidden text-[11px] font-bold">
+                        <button
+                            onClick={() => setRideType('all')}
+                            className={`px-3 py-1 transition-colors ${rideType === 'all' ? 'bg-cdborder text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}
+                        >Alles</button>
+                        <button
+                            onClick={() => setRideType('outdoor')}
+                            className={`px-3 py-1 transition-colors ${rideType === 'outdoor' ? 'bg-cdborder text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}
+                        >Outdoor</button>
+                         <button
+                            onClick={() => setRideType('indoor')}
+                            className={`px-3 py-1 transition-colors ${rideType === 'indoor' ? 'bg-cdborder text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}
+                        >Indoor</button>
+                    </div>
                 </div>
             </div>
 
@@ -99,7 +146,7 @@ const BarChartCard = ({ data, metric, title, unit, color }) => {
                             <YAxis stroke="#64748b" tick={{ fontSize: 10 }} width={36} />
                             <Tooltip
                                 contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f1f5f9', fontSize: 12 }}
-                                formatter={(val) => [`${val.toLocaleString('nl-NL')} ${unit}`, title]}
+                                formatter={(val) => [`${val.toLocaleString('nl-NL')} ${isTime ? 'uur' : unit}`, title]}
                                 cursor={{ fill: 'rgba(255,255,255,0.04)' }}
                             />
                             <Bar dataKey="value" name={title} fill={color} radius={[3, 3, 0, 0]} />

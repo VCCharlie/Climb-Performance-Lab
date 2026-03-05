@@ -27,14 +27,21 @@ const OverviewTab = ({ data, manualFtp, customTicks }) => {
                 customTicks={customTicks}
             />
 
-            {/* Bar charts: 3 columns, each with their own week/month toggle */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Bar charts: 4 columns, each with their own week/month/year & rideType toggle */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <BarChartCard
                     data={data}
                     metric="distance"
                     title="Afstand"
                     unit="km"
                     color="rgba(59,130,246,0.75)"
+                />
+                <BarChartCard
+                    data={data}
+                    metric="moving_time"
+                    title="Tijd"
+                    unit="uur"
+                    color="rgba(168,85,247,0.75)"
                 />
                 <BarChartCard
                     data={data}
