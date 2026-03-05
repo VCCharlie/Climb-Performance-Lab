@@ -148,7 +148,7 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
                                             </td>
                                         </tr>
                                         
-                                        {expandedYears[year] && Object.keys(groupedActivities[year]).sort((a, b) => { 
+                                        {expandedYears[year] && groupedActivities[year] && Object.keys(groupedActivities[year]).sort((a, b) => { 
                                             const diff = MONTH_ORDER.indexOf(b) - MONTH_ORDER.indexOf(a); 
                                             return sortConfig.direction === 'asc' ? -diff : diff; 
                                         }).map(month => (
