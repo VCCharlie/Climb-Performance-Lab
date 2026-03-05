@@ -52,6 +52,31 @@ const DataHub = ({
     const [showUtilMenu, setShowUtilMenu] = useState(false);
     const utilMenuRef = useRef(null);
 
+    // State for single-day Strava search
+    const [stravaDateOverride, setStravaDateOverride] = useState(null);
+
+    const handleFindOnStrava = (activity) => {
+        if (!activity || !activity.date) return;
+        const activityDate = activity.date.split('T')[0];
+        setStravaDateOverride(activityDate);
+        setEditingActivity(null);
+        setInternalTab('strava');
+    };
+
+    // Reset override when leaving tab
+    useEffect(() => {
+        if (internalTab !== 'strava' && stravaDateOverride) {
+            setStravaDateOverride(null);
+        }
+    }, [internalTab, stravaDateOverride]);
+
+    // Determine which dates to use for Strava tab
+    const stravaSearchDates = useMemo(() => ({
+        startDate: stravaDateOverride || startDate,
+        endDate: stravaDateOverride || endDate,
+    }), [stravaDateOverride, startDate, endDate]);
+
+
     // Import/Sync State
     const [fetchedActivities, setFetchedActivities] = useState([]);
     const [selectedActivities, setSelectedActivities] = useState([]);
@@ -519,6 +544,7 @@ const DataHub = ({
                     allActivities={activities}
                     onClose={() => setEditingActivity(null)}
                     onSave={handleSaveEdit}
+                    onFindOnStrava={handleFindOnStrava}
                 />
             )}
             <ImportModal
@@ -748,8 +774,8 @@ const DataHub = ({
                         activities={activities}
                         getStravaToken={stravaGetToken}
                         onImportNew={handleImportFromStrava}
-                        startDate={startDate}
-                        endDate={endDate}
+                        startDate={stravaSearchDates.startDate}
+                        endDate={stravaSearchDates.endDate}
                         persistedResults={stravaEnrichResults}
                         onResultsChange={onStravaEnrichResults}
                     />

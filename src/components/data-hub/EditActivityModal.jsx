@@ -14,10 +14,11 @@ const getStoredBikes = () => {
     } catch { return []; }
 };
 
-const EditActivityModal = ({ activity, allActivities = [], onClose, onSave }) => {
+const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFindOnStrava }) => {
     // Lokale state voor het formulier
     const [formData, setFormData] = useState(activity);
     const [isCustomGear, setIsCustomGear] = useState(false);
+
 
     // Beschikbare fietsen uit de gecachte bikesMap (gebouwd bij Strava-verrijking)
     const availableBikes = useMemo(() => getStoredBikes(), []);
@@ -74,7 +75,20 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave }) =>
         <div className="fixed inset-0 bg-cdbg/95 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
             <div className="bg-cdsurface border border-cdborder rounded-xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
                 <div className="flex justify-between items-center p-4 border-b border-cdborder bg-cdbg rounded-t-xl">
-                    <h3 className="text-cdtext font-bold flex items-center gap-2"><Edit2 size={18} className="text-yellow-400" /> Activiteit Bewerken</h3>
+                    <div className="flex items-center gap-4">
+                        <h3 className="text-cdtext font-bold flex items-center gap-2"><Edit2 size={18} className="text-yellow-400" /> Activiteit Bewerken</h3>
+                        {onFindOnStrava && activity.date && (
+                            <button
+                                type="button"
+                                onClick={() => onFindOnStrava(activity)}
+                                className="flex items-center gap-1.5 px-2 py-1 rounded text-xs bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 border border-orange-500/30"
+                                title="Zoek deze activiteit op Strava op basis van de datum"
+                            >
+                                <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" /></svg>
+                                Zoek op Strava
+                            </button>
+                        )}
+                    </div>
                     <button onClick={onClose} className="text-cdmuted hover:text-cdtext"><X size={20} /></button>
                 </div>
 
