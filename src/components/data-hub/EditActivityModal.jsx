@@ -1,6 +1,6 @@
 ﻿
 import React, { useState, useMemo } from 'react';
-import { X, Edit2, Save, Bike } from 'lucide-react';
+import { X, Edit2, Save, Bike, ArrowUpRight } from 'lucide-react';
 import { formatTime } from '../../utils';
 import { SPORT_TYPES } from '../../config';
 
@@ -75,19 +75,47 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
         <div className="fixed inset-0 bg-cdbg/95 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
             <div className="bg-cdsurface border border-cdborder rounded-xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
                 <div className="flex justify-between items-center p-4 border-b border-cdborder bg-cdbg rounded-t-xl">
-                    <div className="flex items-center gap-4">
-                        <h3 className="text-cdtext font-bold flex items-center gap-2"><Edit2 size={18} className="text-yellow-400" /> Activiteit Bewerken</h3>
-                        {onFindOnStrava && activity.date && (
-                            <button
-                                type="button"
-                                onClick={() => onFindOnStrava(activity)}
-                                className="flex items-center gap-1.5 px-2 py-1 rounded text-xs bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 border border-orange-500/30"
-                                title="Zoek deze activiteit op Strava op basis van de datum"
-                            >
-                                <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" /></svg>
-                                Zoek op Strava
-                            </button>
-                        )}
+                    <div className="flex items-center gap-2">
+                        <h3 className="text-cdtext font-bold flex items-center gap-2 text-base"><Edit2 size={18} className="text-yellow-400" /> Activiteit Bewerken</h3>
+                        
+                        {/* Externe Links */}
+                        <div className="flex items-center gap-2">
+                            {activity.id && (
+                                <a
+                                    href={`https://intervals.icu/activities/${activity.id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-1.5 px-2 py-1 rounded text-xs bg-sky-500/10 text-sky-400 hover:bg-sky-500/20 border border-sky-500/30"
+                                    title="Bekijk deze activiteit op Intervals.icu"
+                                >
+                                    <ArrowUpRight size={12} />
+                                    <span>Intervals</span>
+                                </a>
+                            )}
+                            {activity.strava_id && (
+                                <a
+                                    href={`https://www.strava.com/activities/${activity.strava_id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-1.5 px-2 py-1 rounded text-xs bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 border border-orange-500/30"
+                                    title="Bekijk deze activiteit op Strava"
+                                >
+                                    <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" /></svg>
+                                    <span>Strava</span>
+                                </a>
+                            )}
+                            {onFindOnStrava && activity.date && !activity.strava_id && (
+                                <button
+                                    type="button"
+                                    onClick={() => onFindOnStrava(activity)}
+                                    className="flex items-center gap-1.5 px-2 py-1 rounded text-xs bg-slate-500/10 text-slate-400 hover:bg-slate-500/20 border border-slate-500/30"
+                                    title="Zoek eventuele nog niet gekoppelde Strava-activiteit op basis van de datum"
+                                >
+                                    <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" /></svg>
+                                    <span>Zoek op Strava</span>
+                                </button>
+                            )}
+                        </div>
                     </div>
                     <button onClick={onClose} className="text-cdmuted hover:text-cdtext"><X size={20} /></button>
                 </div>
