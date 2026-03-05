@@ -106,8 +106,7 @@ export const matchStravaToSite = (stravaActivities, siteActivities) => {
             alreadyLinked.push({
                 strava: stravaAct,
                 site: existing,
-                needsGear: !!stravaAct.gear_id && !existing.gear_id,
-                needsRpe: (!existing.rpe || existing.rpe === 0) && !!stravaAct.perceived_exertion
+                needsGear: !!stravaAct.gear_id && !existing.gear_id
             });
             usedSiteIds.add(existing.id);
             continue;
