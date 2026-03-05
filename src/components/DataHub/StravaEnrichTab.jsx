@@ -406,30 +406,33 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                         </SectionHeader>
                     )}
 
-                    {/* Al verbonden maar data nog niet compleet */}
-                    {(results.alreadyLinked || []).some(m => m.needsGear || m.needsRpe) && (() => {
+                    {/* Al verbonden – status van Fiets/RPE */}
+                    {(results.alreadyLinked || []).length > 0 && (() => {
                         const needsEnrichItems = results.alreadyLinked.filter(m => m.needsGear || m.needsRpe);
                         return (
-                            <SectionHeader icon={RefreshCw} iconColor="text-orange-400" title="Data nog niet compleet (Fiets/RPE)" count={`${selectedGearUpdate.size}/${needsEnrichItems.length} geselecteerd`}>
-                                <div className="flex justify-end mb-1.5">
-                                    <label className="flex items-center gap-1.5 text-xs text-cdmuted cursor-pointer select-none">
-                                        <input type="checkbox" checked={selectedGearUpdate.size === needsEnrichItems.length}
-                                            onChange={e => setSelectedGearUpdate(e.target.checked ? new Set(needsEnrichItems.map(m => String(m.strava.id))) : new Set())}
-                                            className="accent-orange-500" />
-                                        Alles selecteren
-                                    </label>
-                                </div>
+                            <SectionHeader icon={RefreshCw} iconColor="text-blue-400" title="Al Verbonden — Fiets/RPE Status" count={`${needsEnrichItems.length} te verrijken`}>
+                                {needsEnrichItems.length > 0 && (
+                                    <div className="flex justify-end mb-1.5">
+                                        <label className="flex items-center gap-1.5 text-xs text-cdmuted cursor-pointer select-none">
+                                            <input type="checkbox" checked={selectedGearUpdate.size === needsEnrichItems.length}
+                                                onChange={e => setSelectedGearUpdate(e.target.checked ? new Set(needsEnrichItems.map(m => String(m.strava.id))) : new Set())}
+                                                className="accent-orange-500" />
+                                            Selecteer alle {needsEnrichItems.length} te verrijken items
+                                        </label>
+                                    </div>
+                                )}
                                 <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
-                                    {needsEnrichItems.map(({ strava, site, needsGear, needsRpe }) => {
+                                    {results.alreadyLinked.map(({ strava, site, needsGear, needsRpe }) => {
                                         const gearName = results.bikesMap?.[strava.gear_id] || 'Strava fiets';
                                         return (
                                             <label key={strava.id} className={`flex items-center gap-2 rounded px-3 py-2 border text-xs cursor-pointer select-none transition-colors ${selectedGearUpdate.has(String(strava.id)) ? 'bg-orange-500/5 border-orange-500/30' : 'bg-cdbg/50 border-cdborder/30 hover:border-cdborder'}`}>
-                                                <input type="checkbox" checked={selectedGearUpdate.has(String(strava.id))} onChange={() => toggleGearUpdate(strava.id)} className="accent-orange-500 shrink-0" />
+                                                <input type="checkbox" checked={selectedGearUpdate.has(String(strava.id))} onChange={() => toggleGearUpdate(strava.id)} className="accent-orange-500 shrink-0" disabled={!needsGear && !needsRpe} />
                                                 <span className="w-20 text-cdmuted shrink-0">{site.date?.split('T')[0]}</span>
                                                 <span className="flex-1 truncate text-cdtext font-medium" title={site.title}>{site.title}</span>
                                                 <div className="flex items-center gap-2 shrink-0">
-                                                    {needsGear && <span className="flex items-center gap-1 text-orange-400 text-[10px] whitespace-nowrap"><Bike size={10} /> {gearName}</span>}
-                                                    {needsRpe && <span className="bg-cdaccent/20 text-cdaccent text-[9px] font-bold px-1.5 py-0.5 rounded leading-none">MIST RPE ({strava.perceived_exertion})</span>}
+                                                    {needsGear && <span className="flex items-center gap-1 text-orange-400 text-[10px] whitespace-nowrap" title={`Strava: ${gearName}`}><Bike size={10} /> Fietsdata</span>}
+                                                    {needsRpe && <span className="bg-cdaccent/20 text-cdaccent text-[9px] font-bold px-1.5 py-0.5 rounded leading-none" title={`Strava RPE: ${strava.perceived_exertion}`}>MIST RPE</span>}
+                                                    {!needsGear && !needsRpe && <span className="flex items-center gap-1 text-green-400/80 text-[10px]"><Check size={12} /> Synchroon</span>}
                                                 </div>
                                             </label>
                                         );
@@ -439,7 +442,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                         );
                     })()}
 
-                    {results.matched.length === 0 && results.unmatchedStrava.length === 0 && !(results.alreadyLinked || []).some(m => m.needsGear || m.needsRpe) && (
+                    {results.matched.length === 0 && results.unmatchedStrava.length === 0 && (results.alreadyLinked || []).length === 0 && (
                         <div className="text-sm text-cdmuted text-center py-6">
                             Geen nieuwe of te verrijken activiteiten gevonden voor deze periode.
                         </div>
