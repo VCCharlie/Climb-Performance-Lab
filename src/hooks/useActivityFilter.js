@@ -32,6 +32,15 @@ const useActivityFilter = (activities) => {
     const isYearExpanded = useCallback((year) => expandedYears?.[year] === true, [expandedYears]);
     const isMonthExpanded = useCallback((year, month) => expandedMonths?.[`${year}-${month}`] === true, [expandedMonths]);
 
+    // Reset expansion state if the underlying activities are cleared.
+    // This allows the auto-expand effect to run again when new data arrives.
+    useEffect(() => {
+        if (!activities || activities.length === 0) {
+            setExpandedYears(null);
+            setExpandedMonths(null);
+        }
+    }, [activities]);
+
     // -- Derived State --
     const processedActivities = useMemo(() => {
         if (!activities) return [];
