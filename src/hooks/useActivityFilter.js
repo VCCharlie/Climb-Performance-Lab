@@ -79,10 +79,19 @@ const useActivityFilter = (activities) => {
             filtered.sort((a, b) => {
                 let aVal = a[sortConfig.key];
                 let bVal = b[sortConfig.key];
-                if (typeof aVal === 'string') { aVal = aVal.toLowerCase(); bVal = bVal ? bVal.toLowerCase() : ''; }
-                else { aVal = Number(aVal) || 0; bVal = Number(bVal) || 0; }
-                if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
-                if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+
+                // Robust comparison from useSortableData
+                if (typeof aVal === 'string' || typeof bVal === 'string') {
+                    const aStr = String(aVal || '').toLowerCase();
+                    const bStr = String(bVal || '').toLowerCase();
+                    if (aStr < bStr) return sortConfig.direction === 'asc' ? -1 : 1;
+                    if (aStr > bStr) return sortConfig.direction === 'asc' ? 1 : -1;
+                } else {
+                    const aNum = Number(aVal) || 0;
+                    const bNum = Number(bVal) || 0;
+                    if (aNum < bNum) return sortConfig.direction === 'asc' ? -1 : 1;
+                    if (aNum > bNum) return sortConfig.direction === 'asc' ? 1 : -1;
+                }
                 return 0;
             });
         }
