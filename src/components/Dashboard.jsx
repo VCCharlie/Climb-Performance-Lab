@@ -30,7 +30,7 @@ const enhanceActivity = (d, userFtp) => {
     };
 };
 
-const Dashboard = ({ theme, manualFtp, activities: firestoreActivities = [], timeRange = '1Y', customStart = '', customEnd = '' }) => {
+const Dashboard = ({ manualFtp, activities: firestoreActivities = [], timeRange = '1Y', customStart = '', customEnd = '' }) => {
     const [dashboardTab, setDashboardTab] = useState('overview');
 
     // Alle historische data zit in Firestore via de deep sync — GCF niet meer nodig.
