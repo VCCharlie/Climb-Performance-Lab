@@ -26,7 +26,7 @@ const ConfidenceBadge = ({ confidence }) => {
     );
 };
 
-const SectionHeader = ({ icon: IconComponent, iconColor, title, count, children }) => {
+const SectionHeader = ({ IconComponent, iconColor, title, count, children }) => {
     const [open, setOpen] = useState(true);
     return (
         <div>
@@ -512,7 +512,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
 
                     {/* Gekoppelde activiteiten */}
                     {results.matched.length > 0 && (
-                        <SectionHeader icon={Link2} iconColor="text-green-400" title="Voeg Strava ID toe aan bestaande activiteiten" count={`${selectedMatches.size}/${results.matched.length} geselecteerd`}>
+                        <SectionHeader IconComponent={Link2} iconColor="text-green-400" title="Voeg Strava ID toe aan bestaande activiteiten" count={`${selectedMatches.size}/${results.matched.length} geselecteerd`}>
                             <div className="flex justify-end mb-1.5">
                                 <label className="flex items-center gap-1.5 text-xs text-cdmuted cursor-pointer select-none">
                                     <input type="checkbox" checked={selectedMatches.size === results.matched.length}
@@ -538,7 +538,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
 
                     {/* Alleen op Strava */}
                     {results.unmatchedStrava.length > 0 && (
-                        <SectionHeader icon={Plus} iconColor="text-orange-400" title="Alleen op Strava — optioneel importeren" count={`${selectedNew.size}/${results.unmatchedStrava.length} geselecteerd`}>
+                        <SectionHeader IconComponent={Plus} iconColor="text-orange-400" title="Alleen op Strava — optioneel importeren" count={`${selectedNew.size}/${results.unmatchedStrava.length} geselecteerd`}>
                             <div className="flex justify-end mb-1.5">
                                 <label className="flex items-center gap-1.5 text-xs text-cdmuted cursor-pointer select-none">
                                     <input type="checkbox" checked={selectedNew.size === results.unmatchedStrava.length}
@@ -565,7 +565,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                     {(results.alreadyLinked || []).length > 0 && (() => {
                         const needsEnrichItems = results.alreadyLinked.filter(m => m.needsGear || m.needsRpe);
                         return (
-                            <SectionHeader icon={RefreshCw} iconColor="text-blue-400" title="Al Verbonden — Fiets/RPE Status" count={`${needsEnrichItems.length} te verrijken`}>
+                            <SectionHeader IconComponent={RefreshCw} iconColor="text-blue-400" title="Al Verbonden — Fiets/RPE Status" count={`${needsEnrichItems.length} te verrijken`}>
                                 {needsEnrichItems.length > 0 && (
                                     <div className="flex justify-end mb-1.5">
                                         <label className="flex items-center gap-1.5 text-xs text-cdmuted cursor-pointer select-none">
