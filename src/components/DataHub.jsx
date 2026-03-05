@@ -54,10 +54,12 @@ const DataHub = ({
 
     // State for single-day Strava search
     const [stravaDateOverride, setStravaDateOverride] = useState(null);
+    const [enrichmentTarget, setEnrichmentTarget] = useState(null);
 
     const handleFindOnStrava = (activity) => {
         if (!activity || !activity.date) return;
         const activityDate = activity.date.split('T')[0];
+        setEnrichmentTarget(activity);
         setStravaDateOverride(activityDate);
         setEditingActivity(null);
         setInternalTab('strava');
@@ -65,10 +67,11 @@ const DataHub = ({
 
     // Reset override when leaving tab
     useEffect(() => {
-        if (internalTab !== 'strava' && stravaDateOverride) {
+        if (internalTab !== 'strava' && (stravaDateOverride || enrichmentTarget)) {
             setStravaDateOverride(null);
+            setEnrichmentTarget(null);
         }
-    }, [internalTab, stravaDateOverride]);
+    }, [internalTab, stravaDateOverride, enrichmentTarget]);
 
     // Determine which dates to use for Strava tab
     const stravaSearchDates = useMemo(() => ({
@@ -778,6 +781,7 @@ const DataHub = ({
                         endDate={stravaSearchDates.endDate}
                         persistedResults={stravaEnrichResults}
                         onResultsChange={onStravaEnrichResults}
+                        enrichmentTarget={enrichmentTarget}
                     />
                 )}
 

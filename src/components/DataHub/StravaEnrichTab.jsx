@@ -47,7 +47,7 @@ const SectionHeader = ({ icon: IconComponent, iconColor, title, count, children 
  * Stap 2: fuzzy match op datum + afstand + duur
  * Stap 3: review + bevestig → schrijf strava_id naar Firestore
  */
-const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, endDate, persistedResults, onResultsChange }) => {
+const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, endDate, persistedResults, onResultsChange, enrichmentTarget }) => {
     const [isFetching, setIsFetching] = useState(false);
     const [fetchProgress, setFetchProgress] = useState('');
     const [error, setError] = useState(null);
@@ -66,6 +66,71 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
     const [selectedGearUpdate, setSelectedGearUpdate] = useState(new Set());
     const [isApplying, setIsApplying] = useState(false);
     const [appliedCount, setAppliedCount] = useState(0);
+
+    // ---> NEW: State for single activity linking
+    const [manualUrl, setManualUrl] = useState('');
+    const [isLinking, setIsLinking] = useState(false);
+
+    const handleDirectLink = useCallback(async (stravaActivity) => {
+        if (!enrichmentTarget || !db) return;
+        setIsLinking(true);
+        setError(null);
+        try {
+            const token = await getStravaToken();
+            // Fetch details for gear and RPE
+            const detResp = await fetch(`https://www.strava.com/api/v3/activities/${stravaActivity.id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (!detResp.ok) throw new Error("Kon Strava-details niet ophalen");
+            const detailedStrava = await detResp.json();
+
+            // Fetch gear name if not in cache
+            const bikesMap = JSON.parse(localStorage.getItem('stravaBikesMap') || '{}');
+            if (detailedStrava.gear_id && !bikesMap[detailedStrava.gear_id]) {
+                 const r = await fetch(`https://www.strava.com/api/v3/gear/${detailedStrava.gear_id}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                if (r.ok) {
+                    const g = await r.json();
+                    bikesMap[detailedStrava.gear_id] = g.name || [g.brand_name, g.model_name].filter(Boolean).join(' ') || 'Fiets';
+                    localStorage.setItem('stravaBikesMap', JSON.stringify(bikesMap));
+                }
+            }
+            
+            const gearId = detailedStrava.gear_id || null;
+            const gearName = gearId ? (bikesMap[gearId] || 'Strava fiets') : null;
+
+            const updateData = {
+                strava_id: String(detailedStrava.id),
+                strava_map: detailedStrava.map?.summary_polyline || null,
+                ...(gearId && { gear_id: gearId, gear_name: gearName }),
+                ...((!enrichmentTarget.rpe || enrichmentTarget.rpe === 0) && detailedStrava.perceived_exertion && { rpe: detailedStrava.perceived_exertion })
+            };
+
+            await setDoc(doc(db, 'activities', String(enrichmentTarget.id)), updateData, { merge: true });
+            
+            alert(`Activiteit succesvol gekoppeld aan Strava activiteit "${detailedStrava.name}"! Herlaad de pagina om de wijzigingen te zien.`);
+            // TODO: Navigate away or clear target
+        } catch(e) {
+            setError(e.message);
+        } finally {
+            setIsLinking(false);
+        }
+
+    }, [enrichmentTarget, getStravaToken]);
+
+    const handleManualUrlLink = useCallback(async () => {
+        const match = manualUrl.match(/strava\.com\/activities\/(\d+)/);
+        if (!match || !match[1]) {
+            setError("Ongeldige Strava URL. Moet eruit zien als 'strava.com/activities/12345...'");
+            return;
+        }
+        const stravaId = match[1];
+        // Fake a strava activity object to pass to the standard handler
+        await handleDirectLink({ id: stravaId });
+        setManualUrl('');
+    }, [manualUrl, handleDirectLink]);
+
 
     const applyResults = useCallback((result) => {
         setResults(result);
@@ -188,6 +253,13 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
             setFetchProgress('');
         }
     }, [getStravaToken, startDate, endDate, activities, applyResults, onResultsChange]);
+    
+    // Auto-fetch when component loads in single-activity mode
+    useEffect(() => {
+        if (enrichmentTarget && !results) {
+            fetchAndMatch();
+        }
+    }, [enrichmentTarget, results, fetchAndMatch]);
 
     const applyEnrichment = async () => {
         if (!results) return;
@@ -293,6 +365,89 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
         setSelectedGearUpdate(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
     };
 
+    // Vanaf hier: render logic
+    
+    // Single-Activity linking view
+    if (enrichmentTarget) {
+        return (
+            <div className="space-y-4 flex-1 overflow-y-auto custom-scrollbar pr-1">
+                 <div className="p-3 rounded-lg border-2 border-dashed border-yellow-500/50 bg-yellow-500/5">
+                    <h3 className="font-bold text-yellow-400">Activiteit Koppelen</h3>
+                    <p className="text-xs text-cdmuted mt-1">
+                        Je bent bezig <strong className="text-cdtext">{enrichmentTarget.title}</strong> (van {enrichmentTarget.date.split('T')[0]}) te koppelen.
+                    </p>
+                </div>
+
+                {error && (
+                    <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-3 flex gap-2">
+                        <AlertCircle size={14} className="shrink-0 mt-0.5" /> {error}
+                    </div>
+                )}
+
+                {isFetching && (
+                     <div className="flex items-center gap-2 text-sm text-cdmuted">
+                        <Loader2 size={14} className="animate-spin" /> {fetchProgress || 'Strava doorzoeken...'}
+                    </div>
+                )}
+                
+                {isLinking && (
+                     <div className="flex items-center gap-2 text-sm text-green-400">
+                        <Loader2 size={14} className="animate-spin" /> Bezig met koppelen...
+                    </div>
+                )}
+
+                {results && !isFetching && !isLinking && (
+                    <div className="space-y-4 animate-in fade-in">
+                        <div>
+                            <h4 className="text-sm font-bold text-cdtext mb-2">Handmatig koppelen via URL</h4>
+                            <div className="flex gap-2">
+                                <input 
+                                    type="text"
+                                    value={manualUrl}
+                                    onChange={e => setManualUrl(e.target.value)}
+                                    placeholder="Plak Strava activiteit URL..."
+                                    className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none text-sm"
+                                />
+                                <button 
+                                    onClick={handleManualUrlLink}
+                                    disabled={!manualUrl}
+                                    className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-bold rounded shadow-lg shadow-yellow-500/20 flex items-center gap-2 text-sm disabled:opacity-50"
+                                >
+                                    Koppel
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                             <h4 className="text-sm font-bold text-cdtext mb-2">Gevonden op Strava op {startDate}</h4>
+                             <div className="space-y-1 max-h-96 overflow-y-auto custom-scrollbar">
+                                {results.unmatchedStrava.length === 0 && results.matched.length === 0 ? (
+                                    <p className="text-xs text-cdmuted text-center py-4">Geen Strava-activiteiten gevonden op deze dag.</p>
+                                ) : (
+                                    [...results.unmatchedStrava, ...results.matched.map(m => m.strava)].map(strava => (
+                                        <div key={strava.id} className="flex items-center gap-2 rounded px-3 py-2 border text-xs bg-cdbg/50 border-cdborder/30">
+                                            <span className="w-20 text-cdmuted shrink-0">{strava.start_date_local?.split('T')[0]}</span>
+                                            <span className="flex-1 truncate text-cdtext font-medium" title={strava.name}>{strava.name}</span>
+                                            <span className="text-cdmuted shrink-0">{Math.round(strava.distance / 100) / 10} km</span>
+                                            {strava.average_watts > 0 && <span className="text-yellow-400 font-bold shrink-0">{Math.round(strava.average_watts)}w</span>}
+                                            <button 
+                                                onClick={() => handleDirectLink(strava)}
+                                                className="ml-auto px-3 py-1 bg-green-600 hover:bg-green-500 text-white font-bold rounded text-xs transition-colors shrink-0"
+                                            >
+                                                Koppel
+                                            </button>
+                                        </div>
+                                    ))
+                                )}
+                             </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    // Default bulk-linking view
     return (
         <div className="space-y-4 flex-1 overflow-y-auto custom-scrollbar pr-1">
 
@@ -473,5 +628,4 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
         </div>
     );
 };
-
 export default StravaEnrichTab;
