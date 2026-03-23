@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Search, Globe, SortAsc, SortDesc, ChevronDown, ChevronUp, Minus, Plus } from 'lucide-react';
+import { Search, Globe, SortAsc, SortDesc, ChevronDown, ChevronUp, Minus, Plus, LocateFixed, X } from 'lucide-react';
 import { CLIMB_DATABASE } from '../../climbs';
-import { calculateClimbCategory } from '../../utils/calculations';
+import { calculateClimbCategory, haversineDistance } from '../../utils/calculations';
 import FlagIcon from '../FlagIcon';
 
 // RepeatButton: Hold to repeat action (with acceleration)
@@ -109,16 +109,19 @@ const SORT_OPTIONS = [
   { value: 'fiets', label: 'Fiets' },
 ];
 
+const RADIUS_OPTIONS = [50, 100, 200, 500];
+
 /**
  * ClimbSelector – Shared climb filtering + selection component.
  *
  * Props:
- *   mode           'single' | 'multi'  (default: 'single')
- *   selected       climb object | null  (used in single mode for controlled value + category badge)
- *   onSelect       (climb) => void      called on each selection
- *   excludeIds     string[]             climb ids to hide (multi mode: already-added climbs)
- *   showCategoryBadge  bool             show UCI cat badge next to dropdown (single mode)
- *   className      string
+ *   mode               'single' | 'multi'  (default: 'single')
+ *   selected           climb object | null  (used in single mode for controlled value + category badge)
+ *   onSelect           (climb) => void      called on each selection
+ *   excludeIds         string[]             climb ids to hide (multi mode: already-added climbs)
+ *   showCategoryBadge  bool                 show UCI cat badge next to dropdown (single mode)
+ *   showNearbyFilter   bool                 show GPS "in de buurt" filter (default false)
+ *   className          string
  */
 const ClimbSelector = ({
   mode = 'single',
@@ -126,6 +129,7 @@ const ClimbSelector = ({
   onSelect,
   excludeIds = [],
   showCategoryBadge = false,
+  showNearbyFilter = false,
   className = '',
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -133,6 +137,13 @@ const ClimbSelector = ({
   const [regionFilter, setRegionFilter] = useState('All');
   const [catFilter, setCatFilter] = useState('All');
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // GPS nearby state
+  const [userPos, setUserPos] = useState(null);
+  const [nearbyRadius, setNearbyRadius] = useState(100);
+  const [nearbyActive, setNearbyActive] = useState(false);
+  const [locating, setLocating] = useState(false);
+  const [locError, setLocError] = useState('');
 
   // Range filters — initialized to cover full range
   const dataMaxScore = useMemo(() => Math.max(...CLIMB_DATABASE.map(c => c.score || 0)), []);
@@ -176,6 +187,14 @@ const ClimbSelector = ({
 
     if (excludeSet.size > 0) climbs = climbs.filter(c => !excludeSet.has(c.id));
 
+    // GPS nearby filter: verberg Zwift (geen coördinaten) en filter op afstand
+    if (nearbyActive && userPos) {
+      climbs = climbs.filter(c =>
+        c.lat != null && c.lon != null &&
+        haversineDistance(userPos.lat, userPos.lng, c.lat, c.lon) <= nearbyRadius
+      );
+    }
+
     if (searchTerm) {
       const lower = searchTerm.toLowerCase();
       climbs = climbs.filter(c =>
@@ -206,7 +225,7 @@ const ClimbSelector = ({
       if (typeof valA === 'string') return sortDir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
       return sortDir === 'asc' ? valA - valB : valB - valA;
     });
-  }, [searchTerm, countryFilter, regionFilter, catFilter, minKm, maxKm, minGrade, maxGrade, minScore, maxScore, minFiets, maxFiets, sortBy, sortDir, excludeSet]);
+  }, [searchTerm, countryFilter, regionFilter, catFilter, minKm, maxKm, minGrade, maxGrade, minScore, maxScore, minFiets, maxFiets, sortBy, sortDir, excludeSet, nearbyActive, userPos, nearbyRadius]);
 
   // Auto-select on unique match (single mode only)
   useEffect(() => {
@@ -230,6 +249,33 @@ const ClimbSelector = ({
   const handleCountryChange = useCallback((c) => {
     setCountryFilter(c);
     setRegionFilter('All');
+  }, []);
+
+  const locateMe = useCallback(() => {
+    if (!navigator.geolocation) {
+      setLocError('Geolocation niet beschikbaar.');
+      return;
+    }
+    setLocating(true);
+    setLocError('');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setNearbyActive(true);
+        setLocating(false);
+      },
+      (err) => {
+        setLocError('Locatie kon niet worden bepaald.');
+        setLocating(false);
+      },
+      { timeout: 8000 }
+    );
+  }, []);
+
+  const clearNearby = useCallback(() => {
+    setNearbyActive(false);
+    setUserPos(null);
+    setLocError('');
   }, []);
 
   const selectedCategory = useMemo(() => {
@@ -257,7 +303,7 @@ const ClimbSelector = ({
 
   return (
     <div className={`space-y-3 ${className}`}>
-      {/* Row 1: Search + filter toggle */}
+      {/* Row 1: Search + filter toggle + optioneel GPS */}
       <div className="flex gap-2">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-2.5 w-4 h-4 text-cdmuted" />
@@ -268,6 +314,33 @@ const ClimbSelector = ({
             className="w-full bg-cdsurface border border-cdborder rounded pl-10 pr-4 py-2 text-sm text-cdtext outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400"
           />
         </div>
+        {showNearbyFilter && (
+          nearbyActive && userPos ? (
+            <div className="flex items-center gap-1 bg-blue-500/10 border border-blue-500/30 rounded px-2">
+              <LocateFixed size={12} className="text-blue-400 shrink-0" />
+              <select
+                value={nearbyRadius}
+                onChange={e => setNearbyRadius(Number(e.target.value))}
+                className="text-xs bg-transparent text-blue-400 outline-none font-bold"
+              >
+                {RADIUS_OPTIONS.map(r => <option key={r} value={r}>{r} km</option>)}
+              </select>
+              <button onClick={clearNearby} className="text-blue-400 hover:text-blue-200 ml-0.5">
+                <X size={11} />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={locateMe}
+              disabled={locating}
+              title="Filter op klimmen in de buurt"
+              className="flex items-center gap-1 px-2.5 py-2 rounded border text-xs font-bold transition-colors text-cdmuted border-cdborder hover:text-blue-400 hover:border-blue-400"
+            >
+              <LocateFixed size={13} className={locating ? 'animate-pulse text-blue-400' : ''} />
+              {locating ? '...' : 'Nearby'}
+            </button>
+          )
+        )}
         <button
           onClick={() => setShowAdvanced(!showAdvanced)}
           className={`relative px-3 py-2 rounded border text-xs font-bold flex items-center gap-1 transition-colors ${showAdvanced ? 'bg-yellow-400/10 text-yellow-400 border-yellow-400' : 'text-cdmuted border-cdborder hover:text-cdtext'}`}
@@ -280,6 +353,9 @@ const ClimbSelector = ({
           )}
         </button>
       </div>
+      {showNearbyFilter && locError && (
+        <p className="text-xs text-red-400">{locError}</p>
+      )}
 
       {/* Category filter pills (always visible — quick and common filter) */}
       <div className="flex gap-1.5 flex-wrap">

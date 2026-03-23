@@ -183,6 +183,7 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
                         mode="multi"
                         onSelect={addClimb}
                         excludeIds={selectedClimbs.map(c => c.id)}
+                        showNearbyFilter={true}
                     />
 
                     {/* Target Intensity Slider */}

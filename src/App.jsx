@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Gauge, Mountain, Activity, Utensils, Brain, Route, Settings as SettingsIcon, TrendingUp, Menu, X, Heart, Trophy, Cloud, ChevronRight } from 'lucide-react';
+import { Gauge, Mountain, Activity, Utensils, Brain, Route, Settings as SettingsIcon, TrendingUp, Menu, X, Heart, Trophy, Cloud, ChevronRight, Map as MapIcon } from 'lucide-react';
 import { doc, setDoc, getDoc, collection, onSnapshot, getDocs } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from './firebase';
@@ -21,6 +21,7 @@ import ClimbProfiler from './components/ClimbProfiler';
 import RecoveryAdvisor from './components/RecoveryAdvisor';
 import BucketList from './components/BucketList';
 import WeatherClimb from './components/WeatherClimb';
+import ClimbMap from './components/ClimbMap';
 
 import useIntervalsSync from './hooks/useIntervalsSync';
 import useStravaAuth from './hooks/useStravaAuth';
@@ -404,6 +405,7 @@ const App = () => {
                         { id: 'gearoptimizer', label: 'Gear', icon: SettingsIcon },
                         { id: 'profiler', label: 'Profiler', icon: TrendingUp },
                         { id: 'bucketlist', label: 'Bucket List', icon: Trophy },
+                        { id: 'climbmap', label: 'Kaart', icon: MapIcon },
                         { id: 'weather', label: 'Weather', icon: Cloud },
                     ];
 
@@ -673,6 +675,27 @@ const App = () => {
                             <BucketList
                                 initialState={bucketListState}
                                 onStateChange={setBucketListState}
+                            />
+                        )}
+
+                        {activeTab === 'climbmap' && (
+                            <ClimbMap
+                                bucketListState={bucketListState}
+                                onUpdateBucketList={(action, climbId) => {
+                                    setBucketListState(prev => {
+                                        const next = {
+                                            done: [...(prev.done || [])],
+                                            planned: [...(prev.planned || [])],
+                                            want: [...(prev.want || [])],
+                                        };
+                                        // Verwijder uit alle lijsten eerst
+                                        ['done', 'planned', 'want'].forEach(k => {
+                                            next[k] = next[k].filter(id => id !== climbId);
+                                        });
+                                        next[action] = [...next[action], climbId];
+                                        return next;
+                                    });
+                                }}
                             />
                         )}
 
