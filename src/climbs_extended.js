@@ -21787,7 +21787,7 @@ const RAW_CLIMBS = [
   {
     "id": "cu_awenneeast",
     "name": "Awenne-E",
-    "country": "FR",
+    "country": "BE",
     "region": "CyclingUp",
     "lengthKm": 1.92,
     "elevation": 96,
@@ -23371,7 +23371,7 @@ const RAW_CLIMBS = [
   {
     "id": "cu_tinedespot",
     "name": "Tiène des Potîs-NE",
-    "country": "FR",
+    "country": "BE",
     "region": "CyclingUp",
     "lengthKm": 4.2,
     "elevation": 145,
