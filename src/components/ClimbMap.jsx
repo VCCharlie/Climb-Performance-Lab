@@ -60,6 +60,58 @@ const createUserIcon = () => L.divIcon({
     iconAnchor: [7, 7],
 });
 
+const OVERPASS_API = 'https://overpass-api.de/api/interpreter';
+
+/**
+ * Haal de dichtstbijzijnde weg(en) op via Overpass API en geef GeoJSON LineString terug.
+ * We halen alle wegen op in een radius van ~300m rondom het startpunt.
+ */
+const fetchClimbTrack = async (lat, lon, lengthKm) => {
+    // radius in meters: begrensd op 500m zodat we de juiste weg pakken
+    const radius = 300;
+    const query = `[out:json][timeout:15];
+(
+  way(around:${radius},${lat},${lon})[highway~"^(primary|secondary|tertiary|unclassified|residential|track|service)$"];
+)->.roads;
+.roads out geom;`;
+
+    try {
+        const res = await fetch(OVERPASS_API, {
+            method: 'POST',
+            body: `data=${encodeURIComponent(query)}`,
+            signal: AbortSignal.timeout(12000),
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+
+        if (!data.elements?.length) return null;
+
+        // Pak alle wegen als polylines; kies de langste die door/dichtbij startpunt gaat
+        const ways = data.elements
+            .filter(e => e.type === 'way' && e.geometry?.length > 1)
+            .map(e => ({
+                id: e.id,
+                coords: e.geometry.map(n => [n.lat, n.lon]),
+            }));
+
+        if (!ways.length) return null;
+
+        // Vind de weg waarvan een node het dichtst bij ons startpunt ligt
+        let bestWay = null;
+        let bestDist = Infinity;
+        ways.forEach(way => {
+            way.coords.forEach(([wlat, wlon]) => {
+                const d = Math.hypot(wlat - lat, wlon - lon);
+                if (d < bestDist) { bestDist = d; bestWay = way; }
+            });
+        });
+
+        return bestWay ? bestWay.coords : null;
+    } catch {
+        return null;
+    }
+};
+
 const RADIUS_OPTIONS = [50, 100, 200, 500];
 
 const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
@@ -67,18 +119,20 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
     const mapInstanceRef = useRef(null);
     const markersLayerRef = useRef(null);
     const userMarkerRef = useRef(null);
+    const trackLayerRef = useRef(null);
     const containerRef = useRef(null);
 
     const [userPos, setUserPos] = useState(null);
     const [locating, setLocating] = useState(false);
     const [locError, setLocError] = useState('');
-    const [nearbyRadius, setNearbyRadius] = useState(null); // null = geen filter
+    const [nearbyRadius, setNearbyRadius] = useState(null);
     const [showFilters, setShowFilters] = useState(false);
     const [countryFilter, setCountryFilter] = useState('All');
     const [catFilter, setCatFilter] = useState('All');
     const [minGrade, setMinGrade] = useState(0);
     const [maxGrade, setMaxGrade] = useState(25);
     const [selectedClimb, setSelectedClimb] = useState(null);
+    const [trackLoading, setTrackLoading] = useState(false);
     const [totalShown, setTotalShown] = useState(0);
 
     const bucketDone = useMemo(() => new Set(bucketListState?.done || []), [bucketListState]);
@@ -131,6 +185,12 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
     useEffect(() => {
         if (!markersLayerRef.current) return;
         markersLayerRef.current.clearLayers();
+        // Verwijder track van vorige selectie
+        if (trackLayerRef.current) {
+            trackLayerRef.current.remove();
+            trackLayerRef.current = null;
+        }
+        setSelectedClimb(null);
 
         filteredClimbs.forEach(climb => {
             const cat = calculateClimbCategory(climb.lengthKm, climb.avgGrade);
@@ -166,7 +226,27 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
                 { maxWidth: 260 }
             );
 
-            marker.on('click', () => setSelectedClimb(climb));
+            marker.on('click', () => {
+                setSelectedClimb(climb);
+                // Verwijder vorige track
+                if (trackLayerRef.current) {
+                    trackLayerRef.current.remove();
+                    trackLayerRef.current = null;
+                }
+                // Haal Overpass track op als de klim echte GPS heeft
+                if (climb.lat != null && climb.lon != null) {
+                    setTrackLoading(true);
+                    fetchClimbTrack(climb.lat, climb.lon, climb.lengthKm).then(coords => {
+                        setTrackLoading(false);
+                        if (!coords || !mapInstanceRef.current) return;
+                        trackLayerRef.current = L.polyline(coords, {
+                            color: '#f59e0b',
+                            weight: 4,
+                            opacity: 0.85,
+                        }).addTo(mapInstanceRef.current);
+                    });
+                }
+            });
             markersLayerRef.current.addLayer(marker);
         });
 
@@ -241,6 +321,10 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
                         </h2>
                         <p className="text-xs text-cdmuted mt-0.5">
                             {totalShown.toLocaleString('nl-NL')} van {REAL_CLIMBS.length.toLocaleString('nl-NL')} klimmen zichtbaar
+                            {trackLoading && <span className="ml-2 text-yellow-400 animate-pulse">· track laden...</span>}
+                            {selectedClimb && !trackLoading && (
+                                <span className="ml-2 text-yellow-400">· {selectedClimb.name}</span>
+                            )}
                         </p>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">

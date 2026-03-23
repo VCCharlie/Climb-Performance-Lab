@@ -1,12 +1,14 @@
 ﻿import React, { useState, useMemo } from 'react';
-import { Mountain, Plus, Trash2, AlertTriangle, TrendingDown, Battery, Zap, Clock, Utensils, Info, Lightbulb} from 'lucide-react';
+import { Mountain, Plus, Trash2, AlertTriangle, TrendingDown, Battery, Zap, Clock, Utensils, Info, Lightbulb, Map as MapIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import ClimbSelector from './shared/ClimbSelector';
 import FlagIcon from './FlagIcon';
+import RacePacingMap from './RacePacingMap';
 
 const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueling }) => {
     const [selectedClimbs, setSelectedClimbs] = useState(initialState?.selectedClimbs || []);
     const [recoveryMinutes, setRecoveryMinutes] = useState(initialState?.recoveryMinutes || {});
     const [targetIntensity, setTargetIntensity] = useState(initialState?.targetIntensity || 0.85);
+    const [showMap, setShowMap] = useState(false);
 
     // Sync state changes to parent
     React.useEffect(() => {
@@ -259,6 +261,28 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
                             ))
                         )}
                     </div>
+
+                    {/* Kaart toggle */}
+                    {selectedClimbs.length >= 1 && (
+                        <div className="border border-cdborder rounded-lg overflow-hidden">
+                            <button
+                                onClick={() => setShowMap(m => !m)}
+                                className="w-full flex items-center justify-between px-4 py-2.5 bg-cdsurface text-sm font-bold text-cdmuted hover:text-cdtext transition-colors"
+                            >
+                                <span className="flex items-center gap-2">
+                                    <MapIcon size={14} className="text-cdaccent" />
+                                    Route op kaart
+                                    {selectedClimbs.filter(c => c.lat).length < selectedClimbs.length && (
+                                        <span className="text-[10px] text-orange-400 font-normal">
+                                            (Zwift/geen GPS: niet zichtbaar)
+                                        </span>
+                                    )}
+                                </span>
+                                {showMap ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                            </button>
+                            {showMap && <RacePacingMap climbs={selectedClimbs} />}
+                        </div>
+                    )}
                 </div>
             </div>
 
