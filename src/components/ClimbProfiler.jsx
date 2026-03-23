@@ -2,6 +2,7 @@
 import { Mountain, TrendingUp, Flag, AlertTriangle, MapPin } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { CLIMB_DATABASE, COGGAN_ZONES } from '../climbs';
+import ClimbSelector from './shared/ClimbSelector';
 
 // Custom tooltip component (moved outside to avoid recreation on render)
 const CustomTooltip = ({ active, payload, showPowerZones, powerRecommendations }) => {
@@ -190,20 +191,11 @@ const ClimbProfiler = ({ userSettings, initialState, onStateChange }) => {
             {/* Climb Selection */}
             <div className="bg-cdbg/50 p-4 rounded border border-cdborder">
                 <label className="text-xs text-cdmuted uppercase block mb-2">Selecteer Beklimming</label>
-                <select
-                    onChange={(e) => {
-                        const climb = CLIMB_DATABASE.find(c => c.id === e.target.value);
-                        if (climb) setSelectedClimb(climb);
-                    }}
-                    value={selectedClimb.id}
-                    className="w-full bg-cdborder border border-cdborder rounded px-3 py-2 text-cdtext text-sm"
-                >
-                    {CLIMB_DATABASE.map(climb => (
-                        <option key={climb.id} value={climb.id}>
-                            {climb.flag} {climb.name} - {climb.lengthKm}km @ {climb.avgGrade}% ({climb.elevation.toLocaleString('nl-NL')}m)
-                        </option>
-                    ))}
-                </select>
+                <ClimbSelector
+                    mode="single"
+                    selected={selectedClimb}
+                    onSelect={(climb) => setSelectedClimb(climb)}
+                />
             </div>
 
             {/* Stats Cards */}

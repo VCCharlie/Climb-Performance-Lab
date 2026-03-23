@@ -1,15 +1,12 @@
 ﻿import React, { useState, useMemo } from 'react';
-import { Mountain, Plus, Trash2, AlertTriangle, TrendingDown, Battery, Zap, Clock, Utensils, Search, Filter , Info, Lightbulb} from 'lucide-react';
-import { CLIMB_DATABASE } from '../climbs';
+import { Mountain, Plus, Trash2, AlertTriangle, TrendingDown, Battery, Zap, Clock, Utensils, Info, Lightbulb} from 'lucide-react';
+import ClimbSelector from './shared/ClimbSelector';
+import FlagIcon from './FlagIcon';
 
 const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueling }) => {
     const [selectedClimbs, setSelectedClimbs] = useState(initialState?.selectedClimbs || []);
     const [recoveryMinutes, setRecoveryMinutes] = useState(initialState?.recoveryMinutes || {});
     const [targetIntensity, setTargetIntensity] = useState(initialState?.targetIntensity || 0.85);
-
-    // Search and filter state
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterRegion, setFilterRegion] = useState('all'); // 'all' or auto-detect from first climb
 
     // Sync state changes to parent
     React.useEffect(() => {
@@ -50,40 +47,11 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
         return timeSeconds / 60; // Return in minutes
     };
 
-    // Filter climbs based on search and region
-    const filteredClimbs = useMemo(() => {
-        let filtered = CLIMB_DATABASE;
-
-        // Apply search filter
-        if (searchTerm) {
-            filtered = filtered.filter(climb =>
-                climb.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                climb.country.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (climb.region && climb.region.toLowerCase().includes(searchTerm.toLowerCase()))
-            );
-        }
-
-        // Apply region filter (if we have climbs selected, suggest same region)
-        if (filterRegion !== 'all') {
-            filtered = filtered.filter(climb => climb.country === filterRegion);
-        } else if (selectedClimbs.length > 0) {
-            // Auto-suggest climbs from same country as the last added climb
-            const lastClimb = selectedClimbs[selectedClimbs.length - 1];
-            const sameRegion = filtered.filter(c => c.country === lastClimb.country);
-            const otherRegions = filtered.filter(c => c.country !== lastClimb.country);
-            filtered = [...sameRegion, ...otherRegions]; // Same region first
-        }
-
-        return filtered;
-    }, [searchTerm, filterRegion, selectedClimbs]);
-
     // Add climb to race plan
-    const addClimb = (climbId) => {
-        const climb = CLIMB_DATABASE.find(c => c.id === climbId);
-        if (climb && !selectedClimbs.find(c => c.id === climbId)) {
+    const addClimb = (climb) => {
+        if (climb && !selectedClimbs.find(c => c.id === climb.id)) {
             setSelectedClimbs([...selectedClimbs, climb]);
-            setRecoveryMinutes({ ...recoveryMinutes, [climbId]: 30 });
-            setSearchTerm(''); // Clear search after adding
+            setRecoveryMinutes({ ...recoveryMinutes, [climb.id]: 30 });
         }
     };
 
@@ -210,56 +178,12 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
                 <div className="space-y-4">
                     <h3 className="text-sm font-bold text-cdtext uppercase tracking-wide">Voeg Beklimmingen Toe</h3>
 
-                    {/* Search Field */}
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-cdmuted" size={16} />
-                        <input
-                            type="text"
-                            placeholder="Zoek climb (bijv. Ventoux, Alpe)..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-3 py-2 bg-cdborder border border-cdborder rounded text-cdtext text-sm focus:border-yellow-400 outline-none"
-                        />
-                    </div>
-
-                    {/* Region Filter */}
-                    {selectedClimbs.length > 0 && (
-                        <div className="flex items-center gap-2 text-xs">
-                            <Filter size={14} className="text-cdmuted" />
-                            <span className="text-cdmuted">Filter:</span>
-                            <button
-                                onClick={() => setFilterRegion('all')}
-                                className={`px-2 py-1 rounded ${filterRegion === 'all' ? 'bg-yellow-400 text-slate-900 font-bold' : 'bg-cdborder text-cdtext'}`}
-                            >
-                                Alle
-                            </button>
-                            <button
-                                onClick={() => setFilterRegion(selectedClimbs[selectedClimbs.length - 1].country)}
-                                className={`px-2 py-1 rounded ${filterRegion !== 'all' ? 'bg-yellow-400 text-slate-900 font-bold' : 'bg-cdborder text-cdtext'}`}
-                            >
-                                {selectedClimbs[selectedClimbs.length - 1].flag} Zelfde regio
-                            </button>
-                        </div>
-                    )}
-
-                    {/* Filtered Dropdown */}
-                    <select
-                        onChange={(e) => {
-                            if (e.target.value) {
-                                addClimb(e.target.value);
-                                e.target.value = '';
-                            }
-                        }}
-                        className="w-full bg-cdborder border border-cdborder rounded px-3 py-2 text-cdtext text-sm"
-                        value=""
-                    >
-                        <option value="">Selecteer een climb... ({filteredClimbs.length} resultaten)</option>
-                        {filteredClimbs.map(climb => (
-                            <option key={climb.id} value={climb.id}>
-                                {climb.flag} {climb.name} - {climb.lengthKm}km @ {climb.avgGrade}%
-                            </option>
-                        ))}
-                    </select>
+                    {/* Climb Selector */}
+                    <ClimbSelector
+                        mode="multi"
+                        onSelect={addClimb}
+                        excludeIds={selectedClimbs.map(c => c.id)}
+                    />
 
                     {/* Target Intensity Slider */}
                     <div className="bg-cdbg/50 p-4 rounded border border-cdborder">
@@ -302,7 +226,7 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
                                     <div className="flex items-start justify-between">
                                         <div className="flex-1">
                                             <div className="text-cdtext font-bold text-sm">
-                                                {idx + 1}. {climb.flag} {climb.name}
+                                                {idx + 1}. <FlagIcon country={climb.country} size="sm" /> {climb.name}
                                             </div>
                                             <div className="text-xs text-cdmuted">
                                                 {climb.lengthKm}km • {climb.elevation}m • {climb.avgGrade}%

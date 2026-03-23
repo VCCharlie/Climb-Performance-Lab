@@ -1,6 +1,7 @@
 ﻿import React, { useState, useMemo } from 'react';
 import { Settings, TrendingUp, AlertCircle, CheckCircle, Bike } from 'lucide-react';
 import { CLIMB_DATABASE } from '../climbs';
+import ClimbSelector from './shared/ClimbSelector';
 
 const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
     // Gearing configuration
@@ -245,20 +246,11 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
                     {/* Climb Selection */}
                     <div className="bg-cdbg/50 p-4 rounded border border-cdborder space-y-3">
                         <label className="text-xs text-cdmuted uppercase">Test Climb</label>
-                        <select
-                            onChange={(e) => {
-                                const climb = CLIMB_DATABASE.find(c => c.id === e.target.value);
-                                if (climb) setSelectedClimb(climb);
-                            }}
-                            value={selectedClimb.id}
-                            className="w-full bg-cdborder border border-cdborder rounded px-3 py-2 text-cdtext text-sm"
-                        >
-                            {CLIMB_DATABASE.map(climb => (
-                                <option key={climb.id} value={climb.id}>
-                                    {climb.flag} {climb.name} ({climb.avgGrade}%)
-                                </option>
-                            ))}
-                        </select>
+                        <ClimbSelector
+                            mode="single"
+                            selected={selectedClimb}
+                            onSelect={(climb) => setSelectedClimb(climb)}
+                        />
                     </div>
 
                     {/* Target Power & Cadence */}
