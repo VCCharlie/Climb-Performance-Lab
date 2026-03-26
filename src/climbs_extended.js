@@ -14030,6 +14030,7 @@ const RAW_CLIMBS = [
     "cat": "1",
     "fiets": 2688,
     "cf": 266,
+    "cuUrl": "https://cyclingup.eu/english/Austria/Sulzberg-east.php",
     "url": "https://climbfinder.com/en/climbs/sulzberg-oost",
     "source_verified": "Nominatim"
   },
@@ -14081,6 +14082,7 @@ const RAW_CLIMBS = [
     "cat": "2",
     "fiets": 1860,
     "cf": 187,
+    "cuUrl": "https://cyclingup.eu/english/Austria/Sulzberg-south.php",
     "url": "https://climbfinder.com/en/climbs/sulzberg-zuid",
     "source_verified": "Nominatim"
   },
@@ -23878,8 +23880,8 @@ const RAW_CLIMBS = [
     "lengthKm": 11.1,
     "elevation": 780,
     "avgGrade": 7.0,
-    "lat": 45.054,
-    "lon": 6.03,
+    "lat": 45.073758588278174,
+    "lon": 6.064008185539005,
     "score": 65000,
     "cat": "1",
     "url": "https://climbfinder.com/nl/beklimmingen/le-rosai-le-bourg-d-oisans-la-garde"
@@ -23901,17 +23903,17 @@ const RAW_CLIMBS = [
   },
   {
     "id": "fr_cotteyssard",
-    "name": "Bois de Cotteyssard",
+    "name": "Bois de Coteyssard",
     "country": "FR",
     "region": "Alpen",
     "lengthKm": 8.1,
     "elevation": 558,
     "avgGrade": 6.9,
-    "lat": 45.142602,
-    "lon": 6.027908,
+    "lat": 45.073758588278174,
+    "lon": 6.027916531736781,
     "score": 45100,
     "cat": "2",
-    "url": "https://climbfinder.com/nl/beklimmingen/bois-de-cotteyssard",
+    "url": "https://climbfinder.com/nl/beklimmingen/bois-de-coteyssard",
     "source_verified": "Manual-User"
   },
   {
