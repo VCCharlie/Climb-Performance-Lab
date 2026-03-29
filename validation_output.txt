@@ -1,0 +1,289 @@
+GPS Coordinate Validation Report
+Generated: 2025-07-25 (manual analysis via grep/view)
+Total climbs: 3306
+Climbs with coordinates: 3306
+Valid coordinates: 3223
+Invalid coordinates: 77
+Missing coordinates: 0
+
+Note: All 3306 entries contain both lat and lon fields (none missing).
+      6 ZWIFT entries were skipped (virtual/no geographic validation).
+      77 non-ZWIFT entries have coordinates outside their country bounding box.
+      Automated scripts run_coord_validation.mjs (Node.js) and run_gps_coord_validation.py
+      (Python) are available in the project root for exact programmatic validation.
+
+INVALID COORDINATES:
+
+--- NL (Netherlands): lat 50.8-53.6, lng 3.3-7.2 ---
+15 entries in Zuid-Limburg / Belgian border region with lat < 50.8
+
+- Camerig (NL): lat=50.773268, lng=5.925921 - OUTSIDE bounding box
+  Expected: lat 50.8-53.6, lng 3.3-7.2
+
+- Vaalserberg (NL): lat=50.75357001274824, lng=6.021329993382096 - OUTSIDE bounding box
+  Expected: lat 50.8-53.6, lng 3.3-7.2
+
+- Loorberg (NL): lat=50.7823, lng=5.8992 - OUTSIDE bounding box
+  Expected: lat 50.8-53.6, lng 3.3-7.2
+
+- Oude Kwaremont-N (NL): lat=50.76961, lng=3.53037 - OUTSIDE bounding box
+  Expected: lat 50.8-53.6, lng 3.3-7.2
+
+- Kluisberg - Mont-de-l'Enclus-N (NL): lat=50.75772, lng=3.49211 - OUTSIDE bounding box
+  Expected: lat 50.8-53.6, lng 3.3-7.2
+
+- Kluisberg - Mont-de-l'Enclus-SW (NL): lat=50.75772, lng=3.49211 - OUTSIDE bounding box
+  Expected: lat 50.8-53.6, lng 3.3-7.2
+
+- Drielandenpunt-NW (NL): lat=50.75441, lng=6.02095 - OUTSIDE bounding box
+  Expected: lat 50.8-53.6, lng 3.3-7.2
+
+- Drielandenpunt-N (NL): lat=50.75441, lng=6.02095 - OUTSIDE bounding box
+  Expected: lat 50.8-53.6, lng 3.3-7.2
+
+- Drielandenpunt-NE (NL): lat=50.75441, lng=6.02095 - OUTSIDE bounding box
+  Expected: lat 50.8-53.6, lng 3.3-7.2
+
+- Drielandenpunt-S (NL): lat=50.75441, lng=6.02095 - OUTSIDE bounding box
+  Expected: lat 50.8-53.6, lng 3.3-7.2
+
+- Paterberg-NW (NL): lat=50.78206, lng=3.54903 - OUTSIDE bounding box
+  Expected: lat 50.8-53.6, lng 3.3-7.2
+
+- Muur van Geraardsbergen-W (NL): lat=50.77227, lng=3.89026 - OUTSIDE bounding box
+  Expected: lat 50.8-53.6, lng 3.3-7.2
+
+- Vijlenerbos-W (NL): lat=50.76544, lng=5.96474 - OUTSIDE bounding box
+  Expected: lat 50.8-53.6, lng 3.3-7.2
+
+- Vijlenerbos-E (NL): lat=50.76544, lng=5.96474 - OUTSIDE bounding box
+  Expected: lat 50.8-53.6, lng 3.3-7.2
+
+- Vijlenerbos-N (NL): lat=50.76544, lng=5.96474 - OUTSIDE bounding box
+  Expected: lat 50.8-53.6, lng 3.3-7.2
+
+--- ES (Spain): lat 35.9-43.8, lng -9.3-4.3 ---
+16 entries in Canary Islands (Tenerife / Gran Canaria) with lat < 35.9 and lng < -9.3
+
+- Mount Teide (ES): lat=28.2723, lng=-16.6425 - OUTSIDE bounding box
+  Expected: lat 35.9-43.8, lng -9.3-4.3
+
+- Pico de las Nieves-W (ES): lat=27.96284998767078, lng=-15.571989985182881 - OUTSIDE bounding box
+  Expected: lat 35.9-43.8, lng -9.3-4.3
+
+- Pico de las Nieves-S (ES): lat=27.9625, lng=-15.5719 - OUTSIDE bounding box
+  Expected: lat 35.9-43.8, lng -9.3-4.3
+
+- Pico de las Nieves from Las Filipinas (ES): lat=27.9625, lng=-15.5719 - OUTSIDE bounding box
+  Expected: lat 35.9-43.8, lng -9.3-4.3
+
+- Pico de las Nieves-SW (ES): lat=27.9625, lng=-15.5719 - OUTSIDE bounding box
+  Expected: lat 35.9-43.8, lng -9.3-4.3
+
+- Pico de las Nieves-NW (ES): lat=27.9625, lng=-15.5719 - OUTSIDE bounding box
+  Expected: lat 35.9-43.8, lng -9.3-4.3
+
+- Pico de las Nieves-NE (ES): lat=27.9625, lng=-15.5719 - OUTSIDE bounding box
+  Expected: lat 35.9-43.8, lng -9.3-4.3
+
+- Cruz de Tejeda-SW (ES): lat=28.005940010771155, lng=-15.599650014191866 - OUTSIDE bounding box
+  Expected: lat 35.9-43.8, lng -9.3-4.3
+
+- Hoya de la Vieja-N (ES): lat=27.942, lng=-15.485 - OUTSIDE bounding box
+  Expected: lat 35.9-43.8, lng -9.3-4.3
+
+- Hoya de la Vieja (ES): lat=27.95949999243021, lng=-15.627209963276982 - OUTSIDE bounding box
+  Expected: lat 35.9-43.8, lng -9.3-4.3
+
+- Pico de las Nieves-S (ES): lat=27.96284998767078, lng=-15.571989985182881 - OUTSIDE bounding box
+  Expected: lat 35.9-43.8, lng -9.3-4.3
+
+- Pico de las Nieves-SW (ES): lat=27.96284998767078, lng=-15.571989985182881 - OUTSIDE bounding box
+  Expected: lat 35.9-43.8, lng -9.3-4.3
+
+- Pico de las Nieves-NE (ES): lat=27.96284998767078, lng=-15.571989985182881 - OUTSIDE bounding box
+  Expected: lat 35.9-43.8, lng -9.3-4.3
+
+- Cruz de Tejeda-SW (ES): lat=28.005940010771155, lng=-15.599650014191866 - OUTSIDE bounding box
+  Expected: lat 35.9-43.8, lng -9.3-4.3
+
+- Hoya de la Vieja-N (ES): lat=27.95949999243021, lng=-15.627209963276982 - OUTSIDE bounding box
+  Expected: lat 35.9-43.8, lng -9.3-4.3
+
+- Pico de las Nieves-NW (ES): lat=27.961928, lng=-15.571773 - OUTSIDE bounding box
+  Expected: lat 35.9-43.8, lng -9.3-4.3
+
+--- PT (Portugal): lat 36.8-42.2, lng -9.5--6.2 ---
+46 entries on Atlantic islands (Canary Islands labeled PT, Madeira, Azores)
+with lat < 36.8 (islands) or lng < -9.5 (Azores/Madeira)
+
+-- La Palma (Canary Islands), lat~28.75, lng~-17.88 --
+- Roque de los Muchachos (La Palma)-SE (PT): lat=28.75449, lng=-17.88511 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Roque de los Muchachos (La Palma)-NW (PT): lat=28.75449, lng=-17.88511 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+-- Tenerife (Canary Islands), lat~28.25-28.53, lng~-16.26 to -16.63 --
+- Las Cañadas del Teide (Teleférico) (Tenerife)  (PT): lat=28.25479, lng=-16.62584 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Las Cañadas del Teide (Teleférico) (Tenerife)  (PT): lat=28.25479, lng=-16.62584 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Las Cañadas del Teide (Teleférico) (Tenerife)  (PT): lat=28.25479, lng=-16.62584 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Las Cañadas del Teide (Teleférico) (Tenerife)  (PT): lat=28.25479, lng=-16.62584 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Las Cañadas del Teide (Teleférico) (Tenerife) -W (PT): lat=28.25479, lng=-16.62584 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Las Cañadas del Teide (Teleférico) (Tenerife) -N (PT): lat=28.25479, lng=-16.62584 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Pico del Inglés (Tenerife)-NE (PT): lat=28.53309, lng=-16.26409 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Pico del Inglés (Tenerife)-SE (PT): lat=28.53309, lng=-16.26409 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Pico del Inglés (Tenerife) (PT): lat=28.53309, lng=-16.26409 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Pico del Inglés (Tenerife)-NW (PT): lat=28.53309, lng=-16.26409 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Pico del Inglés (Tenerife) (PT): lat=28.53309, lng=-16.26409 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Pico del Inglés (Tenerife)-SW (PT): lat=28.53309, lng=-16.26409 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+-- La Palma - Mirador de La Cumbrecita, lat~28.70, lng~-17.86 --
+- Mirador de La Cumbrecita (La Palma)  (PT): lat=28.69758, lng=-17.85684 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Mirador de La Cumbrecita (La Palma)  (PT): lat=28.69758, lng=-17.85684 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Mirador de La Cumbrecita (La Palma) -SW (PT): lat=28.69758, lng=-17.85684 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+-- Gran Canaria (labeled PT), lat~27.96, lng~-15.57 --
+- Pico (Pozo) de las Nieves (Gran Canaria)-NW (PT): lat=27.96216, lng=-15.57195 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Pico (Pozo) de las Nieves (Gran Canaria)-E (PT): lat=27.96216, lng=-15.57195 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Pico (Pozo) de las Nieves (Gran Canaria) (PT): lat=27.96216, lng=-15.57195 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Pico de las Nieves-south  (PT): lat=27.96285, lng=-15.57199 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Pico (Pozo) de las Nieves (Gran Canaria)-SW (PT): lat=27.96216, lng=-15.57195 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Pico (Pozo) de las Nieves (Gran Canaria) (PT): lat=27.96216, lng=-15.57195 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Pico (Pozo) de las Nieves (Gran Canaria)-NE (PT): lat=27.96216, lng=-15.57195 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+-- La Gomera, lat~28.11, lng~-17.25 --
+- Garajonay (La Gomera) -NE (PT): lat=28.10981, lng=-17.24838 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Garajonay (La Gomera) -S (PT): lat=28.10981, lng=-17.24838 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Garajonay (La Gomera) -NW (PT): lat=28.10981, lng=-17.24838 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Garajonay (La Gomera) -N (PT): lat=28.10981, lng=-17.24838 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Garajonay (La Gomera) -W (PT): lat=28.10981, lng=-17.24838 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Garajonay (La Gomera) -E (PT): lat=28.10981, lng=-17.24838 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+-- Madeira, lat~32.65-32.77, lng~-16.93 to -17.07 --
+- Eira do Serrado (Madeira)-S (PT): lat=32.71019, lng=-16.96256 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Cabo Girão (Madeira)-E (PT): lat=32.65919, lng=-17.00541 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Cabo Girão (Madeira)-W (PT): lat=32.65919, lng=-17.00541 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Pico do Arieiro (Madeira)-S (PT): lat=32.73529, lng=-16.92861 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Pico do Arieiro (Madeira)-N (PT): lat=32.73529, lng=-16.92861 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Bica da Cana (incl. Boca Encumeada) (Madeira) -SE (PT): lat=32.76332, lng=-17.06787 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Bica da Cana (incl. Boca Encumeada) (Madeira) -NE (PT): lat=32.76332, lng=-17.06787 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Bica da Cana (incl. Boca Encumeada) (Madeira) -S (PT): lat=32.76332, lng=-17.06787 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Bica da Cana (incl. Boca Encumeada) (Madeira)  (PT): lat=32.76332, lng=-17.06787 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Bica da Cana (incl. Boca Encumeada) (Madeira)  (PT): lat=32.76332, lng=-17.06787 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+-- Azores (valid lat but lng < -9.5): Ilha de São Miguel lat~37.76-38.58, lng~-25 to -28 --
+- Lagoa do Canário (Ilha de São Miguel)-SE (PT): lat=37.83496, lng=-25.75853 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Lagoa do Canário (Ilha de São Miguel)-N (PT): lat=37.83496, lng=-25.75853 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Lagoa do Canário (Ilha de São Miguel)-S (PT): lat=37.83496, lng=-25.75853 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Pico da Barrosa (Ilha de São Miguel)-SW (PT): lat=37.76016, lng=-25.49219 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Pico da Barrosa (Ilha de São Miguel)-N (PT): lat=37.76016, lng=-25.49219 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+- Caldeira do Faial-SE (PT): lat=38.58053, lng=-28.70549 - OUTSIDE bounding box
+  Expected: lat 36.8-42.2, lng -9.5--6.2
+
+MISSING COORDINATES:
+  (none - all 3306 entries contain lat and lon fields)
+
+---
+COUNTRY BREAKDOWN:
+  FR (France, 869 climbs): 0 invalid
+  IT (Italy, varies): 0 invalid
+  CH (Switzerland, varies): 0 invalid
+  ES (Spain, 419 climbs): 16 invalid  [Canary Islands - outside mainland bbox]
+  BE (Belgium, varies): 0 invalid
+  NL (Netherlands, 39 climbs): 15 invalid  [Zuid-Limburg/Belgian border, lat < 50.8]
+  DE (Germany, varies): 0 invalid
+  AT (Austria, varies): 0 invalid
+  PT (Portugal, 86 climbs): 46 invalid  [Canary Islands (mislabeled), Madeira, Azores]
+  GB (UK, varies): 0 invalid
+  ZWIFT (6 climbs): skipped (virtual)
+
+NOTE ON DATA QUALITY:
+  - NL invalids are real Dutch climbs near the Belgian border; the southern tip of the
+    Netherlands extends to ~50.75°N, slightly below the given bbox minimum of 50.8°N.
+  - ES invalids (Canary Islands): Spanish territory but geographically far from mainland.
+  - PT invalids include Canary Islands erroneously labeled as PT, plus Madeira (lat~32.6°N)
+    and Azores (lat~37.8°N but lon~-25° to -28°), all outside Portugal's mainland bbox.
+  - The given bounding boxes cover mainland Europe only; Atlantic island territories
+    of ES and PT naturally fall outside these bounds.
