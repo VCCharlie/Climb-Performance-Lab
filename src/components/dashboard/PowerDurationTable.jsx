@@ -31,27 +31,31 @@ const PowerDurationTable = ({
     weightKg = 0,
     onOpenActivityInLog,
 }) => {
-    const [hoverTip, setHoverTip] = useState(null);
-    const hideTimerRef = useRef(null);
+    /** Klik-popover: blijft open tot buitenklik of Escape */
+    const [popover, setPopover] = useState(null);
+    const popoverRef = useRef(null);
 
-    const clearHideTimer = useCallback(() => {
-        if (hideTimerRef.current) {
-            clearTimeout(hideTimerRef.current);
-            hideTimerRef.current = null;
-        }
-    }, []);
+    const closePopover = useCallback(() => setPopover(null), []);
 
-    const hideTip = useCallback(() => {
-        clearHideTimer();
-        setHoverTip(null);
-    }, [clearHideTimer]);
+    useEffect(() => {
+        if (!popover) return undefined;
 
-    const scheduleHideTip = useCallback(() => {
-        clearHideTimer();
-        hideTimerRef.current = setTimeout(() => setHoverTip(null), 450);
-    }, [clearHideTimer]);
+        const onDocDown = (e) => {
+            if (popoverRef.current?.contains(e.target)) return;
+            if (e.target.closest?.('[data-power-duration-cell]')) return;
+            closePopover();
+        };
+        const onKey = (e) => {
+            if (e.key === 'Escape') closePopover();
+        };
 
-    useEffect(() => () => clearHideTimer(), [clearHideTimer]);
+        document.addEventListener('mousedown', onDocDown);
+        document.addEventListener('keydown', onKey);
+        return () => {
+            document.removeEventListener('mousedown', onDocDown);
+            document.removeEventListener('keydown', onKey);
+        };
+    }, [popover, closePopover]);
 
     const refEnd = useMemo(() => {
         if (referenceEndDate) return new Date(referenceEndDate);
@@ -110,14 +114,31 @@ const PowerDurationTable = ({
         return (w / weightKg).toFixed(2);
     };
 
-    const showCellTip = (e, cell) => {
-        if (!cell?.activity || cell.watts == null) {
-            setHoverTip(null);
+    const toggleCellPopover = (e, cellKey, cell) => {
+        if (!cell?.activity || cell.watts == null) return;
+        e.stopPropagation();
+        const rect = e.currentTarget.getBoundingClientRect();
+        const pad = 8;
+        const popW = 288;
+
+        if (popover?.cellKey === cellKey) {
+            closePopover();
             return;
         }
-        setHoverTip({
-            x: e.clientX,
-            y: e.clientY,
+
+        let left = rect.left + rect.width / 2 - popW / 2;
+        left = Math.max(pad, Math.min(left, (typeof window !== 'undefined' ? window.innerWidth : 1200) - popW - pad));
+
+        let top = rect.bottom + pad;
+        const maxH = 280;
+        if (typeof window !== 'undefined' && top + maxH > window.innerHeight - pad) {
+            top = Math.max(pad, rect.top - maxH - pad);
+        }
+
+        setPopover({
+            cellKey,
+            left,
+            top,
             watts: cell.watts,
             durationLabel: cell.durationLabel,
             activity: cell.activity,
@@ -125,12 +146,8 @@ const PowerDurationTable = ({
         });
     };
 
-    const moveTip = (e) => {
-        setHoverTip((prev) => (prev ? { ...prev, x: e.clientX, y: e.clientY } : null));
-    };
-
     return (
-        <div className="bg-cdsurface border border-cdborder rounded-xl p-6 shadow-xl overflow-hidden relative">
+        <div className="bg-cdsurface border border-cdborder rounded-xl p-6 shadow-xl overflow-visible relative">
             <h3 className="text-lg font-bold text-cdtext mb-1">Power-duration (intervals.icu-stijl)</h3>
             <p className="text-xs text-cdmuted mb-4 max-w-3xl leading-relaxed">
                 Vergelijkbare opzet als{' '}
@@ -139,49 +156,62 @@ const PowerDurationTable = ({
                 </a>
                 : meerdere tijdvensters naast elkaar. We hebben per rit alleen max power en beste 1/5/10/20/60 min — tussenliggende
                 duur wordt <strong className="text-cdtext">geschat</strong> (log-interpolatie). Blauw = beste waarde in de tabel voor die
-                duur. Zonder lichaamsgewicht in Instellingen tonen we geen W/kg. <strong className="text-cdtext">Hover</strong> over W of W/kg
-                om de <strong className="text-cdtext">bronrit</strong> te zien.
+                duur. Zonder lichaamsgewicht in Instellingen tonen we geen W/kg. <strong className="text-cdtext">Klik</strong> op een cel voor
+                de bronrit; in het venster kun je scrollen naar de links. Sluit met een klik erbuiten of <kbd className="px-1 rounded bg-cdborder text-[10px]">Esc</kbd>.
             </p>
 
-            {hoverTip?.activity && (
+            {popover?.activity && (
                 <div
-                    role="tooltip"
-                    className="fixed z-[200] max-w-xs rounded-lg border border-cdborder bg-cdsurface shadow-2xl p-3 text-left text-xs"
-                    style={{
-                        left: Math.min(hoverTip.x + 14, typeof window !== 'undefined' ? window.innerWidth - 280 : 0),
-                        top: Math.min(hoverTip.y + 14, typeof window !== 'undefined' ? window.innerHeight - 200 : 0),
-                    }}
-                    onMouseEnter={clearHideTimer}
-                    onMouseLeave={hideTip}
+                    ref={popoverRef}
+                    data-power-duration-popover=""
+                    role="dialog"
+                    aria-label="Bronrit"
+                    className="fixed z-[200] w-72 max-h-[min(320px,70vh)] flex flex-col rounded-lg border border-cdborder bg-cdsurface shadow-2xl text-left text-xs"
+                    style={{ left: popover.left, top: popover.top }}
                 >
-                    <div className="font-bold text-cdtext text-sm mb-1 truncate" title={hoverTip.activity.title}>
-                        {hoverTip.activity.title || 'Zonder titel'}
+                    <div className="p-3 border-b border-cdborder shrink-0">
+                        <div className="font-bold text-cdtext text-sm mb-1 line-clamp-2" title={popover.activity.title}>
+                            {popover.activity.title || 'Zonder titel'}
+                        </div>
+                        <div className="text-cdmuted mb-1">{formatDateDDMMYYYY(popover.activity.date)}</div>
+                        <div className="text-cdaccent font-mono">
+                            ~{popover.watts} W @ {popover.durationLabel} (geschat)
+                        </div>
                     </div>
-                    <div className="text-cdmuted mb-1">{formatDateDDMMYYYY(hoverTip.activity.date)}</div>
-                    <div className="text-cdaccent font-mono mb-2">
-                        ~{hoverTip.watts} W @ {hoverTip.durationLabel} (geschat)
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                        {typeof onOpenActivityInLog === 'function' && hoverTip.activity.id != null && (
-                            <button
-                                type="button"
-                                onClick={() => onOpenActivityInLog(hoverTip.activity.id)}
-                                className="text-[11px] font-bold text-cdaccent hover:underline"
-                            >
-                                Activiteiten
-                            </button>
-                        )}
-                        {hoverTip.links.map((l) => (
-                            <a
-                                key={l.label}
-                                href={l.href}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-[11px] font-bold text-blue-400 hover:underline"
-                            >
-                                {l.label}
-                            </a>
-                        ))}
+                    <div className="p-2 overflow-y-auto custom-scrollbar flex-1 min-h-0">
+                        <div className="text-[10px] uppercase text-cdmuted font-bold tracking-wide mb-2 px-1">Links</div>
+                        <ul className="space-y-2">
+                            {typeof onOpenActivityInLog === 'function' && popover.activity.id != null && (
+                                <li>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            onOpenActivityInLog(popover.activity.id);
+                                            closePopover();
+                                        }}
+                                        className="w-full text-left px-2 py-2 rounded-md bg-cdborder/40 hover:bg-cdborder text-cdtext font-bold text-xs"
+                                    >
+                                        Open in Activiteiten-log
+                                    </button>
+                                </li>
+                            )}
+                            {popover.links.map((l) => (
+                                <li key={l.label}>
+                                    <a
+                                        href={l.href}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="block px-2 py-2 rounded-md bg-cdborder/20 hover:bg-cdborder/50 text-blue-400 font-bold text-xs"
+                                    >
+                                        {l.label} →
+                                    </a>
+                                </li>
+                            ))}
+                            {popover.links.length === 0 &&
+                                !(typeof onOpenActivityInLog === 'function' && popover.activity.id != null) && (
+                                    <li className="text-cdmuted px-2 py-2">Geen externe links (o.a. CSV-import).</li>
+                                )}
+                        </ul>
                     </div>
                 </div>
             )}
@@ -236,19 +266,29 @@ const PowerDurationTable = ({
                                         watts != null && cell?.activity
                                             ? { watts, durationLabel: row.label, activity: cell.activity }
                                             : null;
-                                    const cellHandlers = tipPayload
-                                        ? {
-                                              onMouseEnter: (e) => showCellTip(e, tipPayload),
-                                              onMouseMove: moveTip,
-                                              onMouseLeave: scheduleHideTip,
-                                          }
-                                        : {};
+                                    const cellKey = `${col.key}-${row.label}`;
+                                    const isOpen = popover?.cellKey === cellKey;
                                     return (
                                         <td
-                                            key={`${col.key}-${row.label}`}
+                                            key={cellKey}
                                             colSpan={2}
-                                            className={`px-1 py-1 border-r border-cdborder/30 ${tipPayload ? 'cursor-help' : ''}`}
-                                            {...cellHandlers}
+                                            data-power-duration-cell={tipPayload ? '' : undefined}
+                                            role={tipPayload ? 'button' : undefined}
+                                            tabIndex={tipPayload ? 0 : undefined}
+                                            onClick={tipPayload ? (e) => toggleCellPopover(e, cellKey, tipPayload) : undefined}
+                                            onKeyDown={
+                                                tipPayload
+                                                    ? (e) => {
+                                                          if (e.key === 'Enter' || e.key === ' ') {
+                                                              e.preventDefault();
+                                                              toggleCellPopover(e, cellKey, tipPayload);
+                                                          }
+                                                      }
+                                                    : undefined
+                                            }
+                                            className={`px-1 py-1 border-r border-cdborder/30 ${
+                                                tipPayload ? 'cursor-pointer hover:bg-cdborder/30 focus:outline-none focus:ring-2 focus:ring-cdaccent/50' : ''
+                                            } ${isOpen ? 'ring-2 ring-cdaccent/60 bg-cdborder/20' : ''}`}
                                         >
                                             <div className="flex items-center justify-center gap-3 font-mono tabular-nums">
                                                 <span className={wClass}>{watts != null ? watts : '—'}</span>
