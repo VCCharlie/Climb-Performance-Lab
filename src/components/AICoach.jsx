@@ -1,6 +1,7 @@
 ﻿import React, { useMemo, useState } from 'react';
-import { Brain, TrendingUp, AlertTriangle, Calendar, CheckCircle, Activity, Battery, Download, Target, ListChecks } from 'lucide-react';
+import { Brain, TrendingUp, AlertTriangle, Calendar, CheckCircle, Activity, Battery, Download, Target, ListChecks, GitCompareArrows } from 'lucide-react';
 import { buildCoachPlan, COACH_GOAL_OPTIONS, COACH_WORKOUT_LIBRARY } from '../utils/swotCoachPlan';
+import { buildPeriodComparison } from '../utils/swotPeriodCompare';
 
 /** moving_time: seconden (number) of "H:MM:SS" uit CSV */
 function movingTimeToSeconds(val) {
@@ -15,6 +16,12 @@ function movingTimeToSeconds(val) {
         return Number.isNaN(n) ? 0 : n;
     }
     return 0;
+}
+
+function formatVsPrimaryPct(pct) {
+    if (pct == null || Number.isNaN(pct)) return '—';
+    const sign = pct > 0 ? '+' : '';
+    return `${sign}${Math.round(pct)}% t.o.v. gekozen periode`;
 }
 
 const AICoach = ({ activities, userSettings, startDate, endDate }) => {
@@ -52,6 +59,8 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
 
         const periodScope =
             periodDays < 45 ? 'korte' : periodDays < 400 ? 'middellange' : 'lange';
+
+        const periodComparison = buildPeriodComparison(activities, startD, endD, ftp);
 
         const strengths = [];
         const weaknesses = [];
@@ -204,6 +213,16 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
             }
         }
 
+        // Tweede tijdssnede: trend vs direct vorig blok + vs rollend jaar (zonder huidige periode)
+        if (periodActivities.length > 0) {
+            for (const x of periodComparison.swotExtras) {
+                if (x.quadrant === 'strengths') strengths.push({ label: x.label, context: x.context });
+                else if (x.quadrant === 'weaknesses') weaknesses.push({ label: x.label, context: x.context });
+                else if (x.quadrant === 'opportunities') opportunities.push({ label: x.label, context: x.context });
+                else if (x.quadrant === 'threats') threats.push({ label: x.label, context: x.context });
+            }
+        }
+
         // Lege dataset: eigen SWOT i.p.v. generieke fillers met nul-cijfers
         if (periodActivities.length === 0) {
             return {
@@ -239,6 +258,7 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
                     tssSecondHalf,
                 },
                 coachFlags: { noData: true },
+                periodComparison,
             };
         }
 
@@ -306,6 +326,7 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
             periodLabel,
             coachMetrics,
             coachFlags,
+            periodComparison,
         };
     }, [activities, userSettings, startDate, endDate]);
 
@@ -600,6 +621,61 @@ ${workout.zwoSteps.map(step => {
                     <SwotCard title="Opportunities (Kansen)" items={opportunitiesForDisplay} icon={TrendingUp} color="text-blue-500" border="border-blue-500" />
                     <SwotCard title="Threats (Bedreigingen)" items={swot.threats} icon={Activity} color="text-yellow-500" border="border-yellow-500" />
                 </div>
+            </div>
+
+            {/* --- Tweede tijdssnede: recent vs vorig blok / jaar-context --- */}
+            <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl space-y-4">
+                <h3 className="text-lg font-bold text-cdtext flex items-center gap-2">
+                    <GitCompareArrows size={20} className="text-cdaccent shrink-0" />
+                    Periodevergelijking (trend)
+                </h3>
+                <p className="text-xs text-cdmuted leading-relaxed">
+                    Naast je gekozen venster kijken we naar <strong className="text-cdtext font-medium">het even lange stuk ervoor</strong> (directe vergelijking) en — als je periode kort genoeg is — naar het <strong className="text-cdtext font-medium">afgelopen jaar minus je huidige periode</strong> (langere context). Zo zie je bv. of je laatste maand zwaarder of lichter is dan het jaargemiddelde ervoor.
+                </p>
+                <div className="overflow-x-auto rounded-lg border border-cdborder">
+                    <table className="w-full text-left text-sm min-w-[640px]">
+                        <thead>
+                            <tr className="bg-cdborder/40 text-cdmuted text-xs uppercase">
+                                <th className="px-3 py-2 font-semibold">Venster</th>
+                                <th className="px-3 py-2 font-semibold">Datums</th>
+                                <th className="px-3 py-2 font-semibold text-right">Ritten</th>
+                                <th className="px-3 py-2 font-semibold text-right">TSS/wk</th>
+                                <th className="px-3 py-2 font-semibold text-right">km/wk</th>
+                                <th className="px-3 py-2 font-semibold text-right">u/wk</th>
+                                <th className="px-3 py-2 font-semibold text-right">&gt;90% FTP</th>
+                                <th className="px-3 py-2 font-semibold text-right">Δ TSS</th>
+                            </tr>
+                        </thead>
+                        <tbody className="text-cdtext">
+                            {swot.periodComparison.comparisonRows.map((row) => (
+                                <tr key={row.key} className="border-t border-cdborder">
+                                    <td className="px-3 py-2 font-medium text-cdtext">{row.label}</td>
+                                    <td className="px-3 py-2 text-cdmuted text-xs max-w-[200px]">{row.rangeLabel}</td>
+                                    <td className="px-3 py-2 text-right tabular-nums">{row.rides}</td>
+                                    <td className="px-3 py-2 text-right tabular-nums">{row.tssWeek}</td>
+                                    <td className="px-3 py-2 text-right tabular-nums">{row.kmWeek}</td>
+                                    <td className="px-3 py-2 text-right tabular-nums">{row.hoursWeek}</td>
+                                    <td className="px-3 py-2 text-right tabular-nums">{row.hardSessions}</td>
+                                    <td className="px-3 py-2 text-right text-xs text-cdmuted tabular-nums">
+                                        {row.key === 'primary'
+                                            ? '—'
+                                            : formatVsPrimaryPct(row.vsPrimaryTssPct)}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+                {!swot.periodComparison.prior && swot.coachMetrics?.rideCount > 0 && (
+                    <p className="text-xs text-cdmuted">
+                        Geen directe voorganger: je gekozen periode reikt te ver terug of er is onvoldoende marge vóór de startdatum in je activiteitenlijst.
+                    </p>
+                )}
+                {!swot.periodComparison.yearRest && swot.coachMetrics?.rideCount > 0 && (
+                    <p className="text-xs text-cdmuted">
+                        Jaar-context wordt alleen getoond voor periodes van ongeveer 2 weken tot onder de 10 maanden; bij &quot;alles&quot; of zeer lange ranges gebruik je vooral de eerste vergelijkingsrij.
+                    </p>
+                )}
             </div>
 
             {/* --- Coachplan: acties + week + .zwo gekoppeld aan SWOT/data --- */}
