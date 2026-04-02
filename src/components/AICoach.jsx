@@ -1,6 +1,21 @@
 ﻿import React, { useMemo } from 'react';
 import { Brain, TrendingUp, AlertTriangle, Calendar, CheckCircle, Activity, Battery, Download, Shuffle } from 'lucide-react';
 
+/** moving_time: seconden (number) of "H:MM:SS" uit CSV */
+function movingTimeToSeconds(val) {
+    if (val == null) return 0;
+    if (typeof val === 'number' && !Number.isNaN(val)) return val;
+    if (typeof val === 'string') {
+        const parts = val.split(':').map((p) => Number(p));
+        if (parts.length === 3 && parts.every((n) => !Number.isNaN(n))) {
+            return parts[0] * 3600 + parts[1] * 60 + parts[2];
+        }
+        const n = parseFloat(val.replace(',', '.'));
+        return Number.isNaN(n) ? 0 : n;
+    }
+    return 0;
+}
+
 const AICoach = ({ activities, userSettings, startDate, endDate }) => {
 
     // --- 1. SWOT ENGINE (Expanded Context) ---
@@ -19,6 +34,7 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
 
         const periodDays = Math.max(1, (endD - startD) / (1000 * 60 * 60 * 24));
         const weeksInPeriod = Math.max(1, periodDays / 7);
+        const ftp = Number(userSettings?.ftp) || 0;
 
         // Drempelwaarden schalen naar de periodelengte (basisreferentie = 30 dagen)
         const consistencyHigh = Math.round(12 * periodDays / 30);  // >3x/week
@@ -31,10 +47,34 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
             ? `${startD.toLocaleDateString('nl-NL', fmtOpts)} – ${endD.toLocaleDateString('nl-NL', fmtOpts)}`
             : 'afgelopen 30 dagen';
 
+        const periodScope =
+            periodDays < 45 ? 'korte' : periodDays < 400 ? 'middellange' : 'lange';
+
         const strengths = [];
         const weaknesses = [];
         const opportunities = [];
         const threats = [];
+
+        const recentLoad = periodActivities.reduce((acc, curr) => acc + (curr.load || 0), 0);
+        const avgWeeklyLoad = recentLoad / weeksInPeriod;
+        const ridesPerWeek = periodActivities.length / weeksInPeriod;
+
+        const totalKm = periodActivities.reduce((acc, a) => acc + (Number(a.distance) || 0), 0);
+        const totalElev = periodActivities.reduce((acc, a) => acc + (Number(a.climbing) || 0), 0);
+        const totalSeconds = periodActivities.reduce((acc, a) => acc + movingTimeToSeconds(a.moving_time), 0);
+        const avgKmPerWeek = totalKm / weeksInPeriod;
+        const avgHoursPerWeek = totalSeconds / weeksInPeriod / 3600;
+        const avgElevPerWeek = totalElev / weeksInPeriod;
+
+        const virtualCount = periodActivities.filter((a) =>
+            String(a.type || '').toLowerCase().includes('virtual')
+        ).length;
+
+        const LONG_RIDE_SEC = 2 * 3600;
+        const longRideCount = periodActivities.filter(
+            (a) => movingTimeToSeconds(a.moving_time) >= LONG_RIDE_SEC
+        ).length;
+        const expectedLongRidesLo = Math.max(1, Math.floor(weeksInPeriod * 0.2));
 
         // Consistency Check
         if (periodActivities.length >= consistencyHigh) {
@@ -50,9 +90,6 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
         }
 
         // Load Trend (TSB proxy)
-        const recentLoad = periodActivities.reduce((acc, curr) => acc + (curr.load || 0), 0);
-        const avgWeeklyLoad = recentLoad / weeksInPeriod;
-
         if (avgWeeklyLoad > 400) {
             strengths.push({
                 label: "Sterke basisconditie (CTL)",
@@ -66,34 +103,144 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
         }
 
         // Intensity Distribution
-        const highIntensity = periodActivities.filter(a => (a.norm_power || 0) > (userSettings.ftp * 0.9)).length;
-        if (highIntensity > intensityHigh) {
+        const highIntensity = ftp > 0
+            ? periodActivities.filter((a) => (a.norm_power || 0) > ftp * 0.9).length
+            : 0;
+        if (ftp > 0 && highIntensity > intensityHigh) {
             threats.push({
                 label: "Monotony & Burnout Risico",
                 context: `Je hebt ${highIntensity} zware sessies (>90% FTP) gedaan in de ${periodLabel}. Te veel intensiteit zonder rustige duurtraining leidt tot een plateau en verhoogt het risico op overtraining.`
             });
         }
-        if (highIntensity < intensityLow) {
+        if (ftp > 0 && highIntensity < intensityLow) {
             weaknesses.push({
                 label: "Gebrek aan intensiteit",
-                context: "Je hebt amper boven je FTP getraind. Om je plafond (VO2 Max) te verhogen, zijn specifieke intervalprikkels noodzakelijk."
+                context: `In de ${periodLabel} zaten maar weinig sessies boven ~90% FTP (${highIntensity}×, terwijl we bij deze periode minstens ~${intensityLow} zouden verwachten voor een volledig profiel). Voor een hoger plafond (VO2) heb je gerichte intervalprikkels nodig.`
             });
         }
 
         // Power Profile (Best 5m)
-        const best5m = Math.max(...periodActivities.map(a => a.best_5min || 0));
-        if (best5m > userSettings.ftp * 1.15) {
+        const best5m = periodActivities.length
+            ? Math.max(...periodActivities.map((a) => a.best_5min || 0))
+            : 0;
+        if (ftp > 0 && best5m > ftp * 1.15) {
             strengths.push({
                 label: "Sterke VO2 Max Engine",
                 context: `Je 5-minuten power is ${best5m}W, wat erg sterk is t.o.v. je FTP. Dit wijst op een goed ontwikkelde aerobe capaciteit. Je zou dit kunnen uitbuiten in korte, steile beklimmingen.`
             });
+        } else if (ftp > 0 && best5m > 0 && best5m < ftp * 0.92 && periodActivities.length >= 3) {
+            weaknesses.push({
+                label: "Beperkte korte power",
+                context: `Je beste 5 min in deze periode is ${best5m}W vs FTP ${ftp}W. Dat wijst op weinig training rond VO2/threshold-boven. Korte blokken boven FTP kunnen je plafond helpen verhogen.`
+            });
         }
 
-        // Fillers if empty
-        if (strengths.length === 0) strengths.push({ label: "Geen recente uitschieters", context: "Je training is stabiel, blijf bouwen aan consistentie om uitschieters te creëren." });
-        if (weaknesses.length === 0) weaknesses.push({ label: "Geen duidelijke zwaktes", context: "Je profiel is goed gebalanceerd. Tijd om te specificeren naar je hoofddoel." });
-        if (opportunities.length === 0) opportunities.push({ label: "Consolideer vorm", context: "Je load is stabiel. Dit is een goed moment om te werken aan techniek of specifieke zwaktes zonder de totale load te verhogen." });
-        if (threats.length === 0) threats.push({ label: "Geen acuut risico", context: "Je training stress balance lijkt gezond. Luister wel altijd naar je lichaam." });
+        // Volume / duur (periode-afhankelijk)
+        if (periodActivities.length >= 3 && avgKmPerWeek < 35 && avgWeeklyLoad >= 80) {
+            opportunities.push({
+                label: "Meer duur-kilometers",
+                context: `Je rijdt ~${Math.round(avgKmPerWeek)} km/week over ${periodLabel} terwijl de TSS al redelijk is — vaak zitten hier korte of virtuele ritten achter. Meer continue duur kan je aerobe efficiëntie versterken.`
+            });
+        }
+
+        if (weeksInPeriod >= 3 && longRideCount < expectedLongRidesLo && periodActivities.length >= 4) {
+            weaknesses.push({
+                label: "Weinig lange ritten",
+                context: `In ~${Math.round(weeksInPeriod)} weken heb je ${longRideCount}× ≥2u gereden (verwacht minstens ~${expectedLongRidesLo} voor een uitgebalanceerd duurprofiel). Plan af en toe een langere Z2-rit.`
+            });
+        }
+
+        if (periodActivities.length >= 5 && virtualCount / periodActivities.length > 0.65) {
+            threats.push({
+                label: "Zwaar virtueel",
+                context: `${virtualCount} van ${periodActivities.length} sessies zijn virtueel. Dat kan prima, maar te weinig buiten (variatie, techniek, wind) beperkt transfer naar echte beklimmingen.`
+            });
+        }
+
+        if (periodActivities.length >= 4 && avgElevPerWeek < 200 && avgKmPerWeek > 50) {
+            opportunities.push({
+                label: "Meer hoogtemeters",
+                context: `Gemiddeld ~${Math.round(avgElevPerWeek)} hm/week in deze periode bij ${Math.round(avgKmPerWeek)} km/week — relatief vlak. Heuvels en herhaalde beklimmingen trainen kracht-uithouding specifiek voor klimmen.`
+            });
+        }
+
+        // Trend eerste vs tweede helft (alleen zinvol bij langere periodes)
+        if (periodDays >= 56 && periodActivities.length >= 8) {
+            const midMs = (startD.getTime() + endD.getTime()) / 2;
+            let firstLoad = 0;
+            let secondLoad = 0;
+            const firstWeeks = Math.max(1, (midMs - startD.getTime()) / (7 * 24 * 60 * 60 * 1000));
+            const secondWeeks = Math.max(1, (endD.getTime() - midMs) / (7 * 24 * 60 * 60 * 1000));
+            periodActivities.forEach((a) => {
+                const t = new Date(a.date).getTime();
+                const L = a.load || 0;
+                if (t < midMs) firstLoad += L;
+                else secondLoad += L;
+            });
+            const tssW1 = firstLoad / firstWeeks;
+            const tssW2 = secondLoad / secondWeeks;
+            if (tssW2 > tssW1 * 1.15) {
+                opportunities.push({
+                    label: "Oplopende weekload",
+                    context: `In de tweede helft van ${periodLabel} ligt je gemiddelde TSS/week (~${Math.round(tssW2)}) duidelijk hoger dan in de eerste (~${Math.round(tssW1)}). Je zit in opbouw — plan herstel zodra prestatie of motivatie zakt.`
+                });
+            } else if (tssW1 > tssW2 * 1.15) {
+                threats.push({
+                    label: "Afnemende belasting",
+                    context: `Je TSS/week was hoger in de eerste helft (~${Math.round(tssW1)}) dan in de tweede (~${Math.round(tssW2)}) van ${periodLabel}. Als dat geen bewuste rustfase is, dreigt detraining of onderliggende vermoeidheid.`
+                });
+            }
+        }
+
+        // Lege dataset: eigen SWOT i.p.v. generieke fillers met nul-cijfers
+        if (periodActivities.length === 0) {
+            return {
+                strengths: [{
+                    label: "Geen data om te beoordelen",
+                    context: `Er zijn geen activiteiten in ${periodLabel}. Kies een andere datumrange of importeer/sync je training — dan kan de coach patronen zien.`
+                }],
+                weaknesses: [{
+                    label: "Analyse niet mogelijk",
+                    context: "Zonder ritten in dit venster kunnen we geen zwaktes afleiden uit je logs. Controleer of je filter (1M, 3M, …) klopt met je import."
+                }],
+                opportunities: [{
+                    label: "Start met loggen",
+                    context: "Zodra er activiteiten in deze periode staan, verschijnen hier concrete kansen (volume, intensiteit, duur) afgestemd op je gekozen range."
+                }],
+                threats: [{
+                    label: "Blind vliegen",
+                    context: "Zonder data in het gekozen venster mis je signalen (te weinig rust, te veel harde dagen). Gebruik een periode waarin je wél hebt getraind."
+                }],
+                avgWeeklyLoad: 0,
+                periodLabel
+            };
+        }
+
+        // Fillers: periodespecifiek i.p.v. identieke boilerplate
+        if (strengths.length === 0) {
+            strengths.push({
+                label: "Geen opvallende pluspunten",
+                context: `Over ${periodLabel} (${periodScope} venster) vallen er geen duidelijke sterktes op volgens de huidige regels. Dat betekent vooral: geen extreme patronen — vergelijk met een kortere periode voor recente trends.`
+            });
+        }
+        if (weaknesses.length === 0) {
+            weaknesses.push({
+                label: "Geen duidelijke zwakte",
+                context: `In ${periodLabel}: ${periodActivities.length} ritten, ~${ridesPerWeek.toFixed(1)}×/week, ~${Math.round(avgWeeklyLoad)} TSS/week, ~${Math.round(avgKmPerWeek)} km/week, ~${avgHoursPerWeek.toFixed(1)} u/week. Geen rode vlag op frequentie, intensiteit of korte power — je zit in het midden van het profiel.`
+            });
+        }
+        if (opportunities.length === 0) {
+            opportunities.push({
+                label: "Verfijn je focus",
+                context: `Met ~${Math.round(avgWeeklyLoad)} TSS/week over ${periodLabel} is er geen simpele 'hefboom' (te weinig volume of te weinig intensiteit). Kies bewust één doel: meer structuur, specifieke klimtraining, of een rustweek — afhankelijk van wat je buiten deze cijfers voelt.`
+            });
+        }
+        if (threats.length === 0) {
+            threats.push({
+                label: "Geen harde risico's in data",
+                context: `We zien geen overlading aan harde sessies (${highIntensity}× >90% FTP, drempel ~${intensityHigh} voor deze periode). Bij ${periodDays < 60 ? 'korte' : 'langere'} periodes: blijf opletten op opeenstapeling van zware weken en slaap/stress buiten het zadel.`
+            });
+        }
 
         return { strengths, weaknesses, opportunities, threats, avgWeeklyLoad, periodLabel };
     }, [activities, userSettings, startDate, endDate]);
@@ -248,7 +395,7 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
 
         return { dayName: dayNames[today], options };
 
-    }, [swot]);
+    }, []);
 
     // --- 3. DOWNLOAD HANDLER ---
     const handleDownloadZwo = (workout) => {
@@ -377,26 +524,29 @@ ${workout.zwoSteps.map(step => {
 };
 
 // Sub-component for cleaner SWOT rendering
-const SwotCard = ({ title, items, icon: Icon, color, border }) => (
-    <div className={`bg-cdsurface/80 p-4 rounded-lg border-l-4 ${border} h-full`}>
-        <h4 className={`font-bold text-cdtext mb-3 flex items-center gap-2`}>
-            <Icon size={16} className={color} /> {title}
-        </h4>
-        <ul className="space-y-4">
-            {items.map((item, i) => (
-                <li key={i} className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2 text-sm text-cdtext font-bold">
-                        <span className={`w-1.5 h-1.5 rounded-full ${color.replace('text-', 'bg-')}`}></span>
-                        {item.label}
-                    </div>
-                    <div className="text-xs text-cdmuted pl-3.5 leading-relaxed">
-                        {item.context}
-                    </div>
-                </li>
-            ))}
-        </ul>
-    </div>
-);
+const SwotCard = ({ title, items, icon, color, border }) => {
+    const Icon = icon;
+    return (
+        <div className={`bg-cdsurface/80 p-4 rounded-lg border-l-4 ${border} h-full`}>
+            <h4 className={`font-bold text-cdtext mb-3 flex items-center gap-2`}>
+                <Icon size={16} className={color} /> {title}
+            </h4>
+            <ul className="space-y-4">
+                {items.map((item, i) => (
+                    <li key={i} className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2 text-sm text-cdtext font-bold">
+                            <span className={`w-1.5 h-1.5 rounded-full ${color.replace('text-', 'bg-')}`}></span>
+                            {item.label}
+                        </div>
+                        <div className="text-xs text-cdmuted pl-3.5 leading-relaxed">
+                            {item.context}
+                        </div>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+};
 
 // Simple Icon Helper
 const ClockIcon = () => (
