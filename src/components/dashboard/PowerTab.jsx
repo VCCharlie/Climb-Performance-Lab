@@ -3,7 +3,10 @@ import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
     Legend, ResponsiveContainer
 } from 'recharts';
+import { ExternalLink } from 'lucide-react';
 import PowerCurveChart from './charts/PowerCurveChart';
+import { formatDateDDMMYYYY } from '../../utils';
+import { findBestPowerActivity, activityExternalLinks, DASHBOARD_FTP_CAPS } from '../../utils/dashboardActivityPeaks';
 
 /**
  * PowerTab: Shows power-specific metrics:
@@ -23,21 +26,22 @@ const StatCard = ({ label, value, unit, color = 'text-cdtext' }) => (
     </div>
 );
 
-// Zelfde plafonds als PowerCurveChart — filtert data-artefacten vóór Math.max.
-const FTP_CAPS = {
-    best_1min:  4.0,
-    best_5min:  2.2,
-    best_10min: 1.6,
-    best_20min: 1.3,
-    best_60min: 1.1,
-};
+const FTP_CAPS = DASHBOARD_FTP_CAPS;
 
 const cappedMax = (activities, key, manualFtp) => {
     const cap = manualFtp > 0 ? manualFtp * FTP_CAPS[key] : 1500;
     return Math.max(0, ...activities.map(a => Number(a[key]) || 0).filter(v => v <= cap));
 };
 
-const PowerTab = ({ data, manualFtp }) => {
+const POWER_TABLE_KEYS = [
+    { key: 'best_1min', label: '1 min' },
+    { key: 'best_5min', label: '5 min' },
+    { key: 'best_10min', label: '10 min' },
+    { key: 'best_20min', label: '20 min' },
+    { key: 'best_60min', label: '60 min' },
+];
+
+const PowerTab = ({ data, manualFtp, onOpenActivityInLog }) => {
     const weightKg = 75; // TODO: derive from userSettings if passed as prop
 
     const stats = useMemo(() => {
@@ -88,6 +92,14 @@ const PowerTab = ({ data, manualFtp }) => {
         });
     }, [data, manualFtp]);
 
+    const powerPeakRows = useMemo(() => {
+        if (!data?.length) return [];
+        return POWER_TABLE_KEYS.map(({ key, label }) => {
+            const { activity, watts } = findBestPowerActivity(data, key, manualFtp);
+            return { key, label, watts, activity };
+        });
+    }, [data, manualFtp]);
+
     if (!stats) {
         return (
             <div className="flex items-center justify-center h-40 text-cdmuted">
@@ -107,6 +119,75 @@ const PowerTab = ({ data, manualFtp }) => {
                 <StatCard label="eFTP" value={stats.eFTP || null} unit="W" color="text-green-400" />
                 <StatCard label="eFTP W/kg" value={stats.eFTPkg || null} unit="w/kg" color="text-green-400" />
                 <StatCard label="20m W/kg" value={stats.wkg20m || null} unit="w/kg" />
+            </div>
+
+            {/* Power peaks table (Intervals.icu-achtig overzicht) */}
+            <div className="bg-cdsurface border border-cdborder rounded-xl p-6 shadow-xl">
+                <h3 className="text-lg font-bold text-cdtext mb-1">Beste vermogens in deze periode</h3>
+                <p className="text-xs text-cdmuted mb-4">
+                    Per duur de sterkste waarde in je gefilterde data (zelfde plafonds als de grafiek). Vergelijkbaar met het power-overzicht op{' '}
+                    <a href="https://intervals.icu/power" target="_blank" rel="noreferrer" className="text-cdaccent hover:underline">
+                        intervals.icu/power
+                    </a>
+                    .
+                </p>
+                <div className="overflow-x-auto rounded-lg border border-cdborder">
+                    <table className="w-full text-sm text-left min-w-[480px]">
+                        <thead>
+                            <tr className="bg-cdborder/40 text-cdmuted text-xs uppercase">
+                                <th className="px-3 py-2 font-semibold">Duur</th>
+                                <th className="px-3 py-2 font-semibold text-right">Watt</th>
+                                <th className="px-3 py-2 font-semibold">Datum</th>
+                                <th className="px-3 py-2 font-semibold">Activiteit</th>
+                                <th className="px-3 py-2 font-semibold text-right">Links</th>
+                            </tr>
+                        </thead>
+                        <tbody className="text-cdtext">
+                            {powerPeakRows.map((row) => {
+                                const links = row.activity ? activityExternalLinks(row.activity) : [];
+                                return (
+                                    <tr key={row.key} className="border-t border-cdborder">
+                                        <td className="px-3 py-2 font-medium whitespace-nowrap">{row.label}</td>
+                                        <td className="px-3 py-2 text-right font-mono font-bold">
+                                            {row.watts > 0 ? row.watts : '—'}
+                                        </td>
+                                        <td className="px-3 py-2 text-cdmuted text-xs whitespace-nowrap">
+                                            {row.activity ? formatDateDDMMYYYY(row.activity.date) : '—'}
+                                        </td>
+                                        <td className="px-3 py-2 text-xs text-cdmuted max-w-[200px] truncate" title={row.activity?.title}>
+                                            {row.activity?.title || '—'}
+                                        </td>
+                                        <td className="px-3 py-2 text-right">
+                                            <div className="flex flex-wrap justify-end gap-1">
+                                                {row.activity && typeof onOpenActivityInLog === 'function' && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => onOpenActivityInLog(row.activity.id)}
+                                                        className="text-xs font-bold text-cdaccent hover:underline inline-flex items-center gap-0.5"
+                                                        title="Ga naar Activiteiten-log"
+                                                    >
+                                                        <ExternalLink size={12} /> Log
+                                                    </button>
+                                                )}
+                                                {links.map((l) => (
+                                                    <a
+                                                        key={l.label}
+                                                        href={l.href}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="text-xs font-bold text-cdmuted hover:text-cdaccent"
+                                                    >
+                                                        {l.label}
+                                                    </a>
+                                                ))}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             {/* Best efforts per month chart */}

@@ -61,6 +61,8 @@ const TrainingGoalPlanner = ({ activities, userSettings, startDate, endDate, onO
         return zones.find((z) => w >= z.min && w <= z.max) || zones[3];
     }, [ftp, zones, targetPctFtp]);
 
+    const expectedAvgWatts = ftp > 0 ? Math.round((ftp * targetPctFtp) / 100) : null;
+
     return (
         <div className="space-y-6 animate-in fade-in">
             <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl">
@@ -115,7 +117,7 @@ const TrainingGoalPlanner = ({ activities, userSettings, startDate, endDate, onO
                                 placeholder="Bv. Galibier, Stelvio…"
                                 className="w-full bg-cdborder border border-cdborder rounded-lg px-3 py-2 text-cdtext text-sm"
                             />
-                            <div className="max-h-40 overflow-y-auto rounded-lg border border-cdborder divide-y divide-cdborder">
+                            <div className="max-h-36 overflow-y-auto rounded-lg border border-cdborder divide-y divide-cdborder custom-scrollbar">
                                 {filteredClimbs.map((c) => (
                                     <button
                                         key={c.id}
@@ -198,6 +200,16 @@ const TrainingGoalPlanner = ({ activities, userSettings, startDate, endDate, onO
                             <span>55% (Z2–Z3)</span>
                             <span>95% (threshold+)</span>
                         </div>
+                        {expectedAvgWatts != null ? (
+                            <p className="mt-2 text-xs text-cdtext bg-cdborder/40 border border-cdborder rounded-lg px-3 py-2">
+                                Bij jouw FTP van <strong>{ftp} W</strong> komt {targetPctFtp}% neer op ongeveer{' '}
+                                <strong className="text-cdaccent">{expectedAvgWatts} W</strong> als verwacht <em>gemiddeld</em> vermogen over het doel (geen NP; echte ritten wisselen per minuut).
+                            </p>
+                        ) : (
+                            <p className="mt-2 text-xs text-cdmuted">
+                                Vul je FTP in bij Instellingen om hier het verwachte gemiddelde vermogen in watt te zien.
+                            </p>
+                        )}
                     </div>
                 </div>
 

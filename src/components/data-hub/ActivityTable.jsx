@@ -90,7 +90,11 @@ export const Row = React.memo(({ act, onDelete, onEdit, onViewDetail, isPreview 
     };
 
     return (
-        <tr className={`group hover:bg-cdborder/50 transition-colors border-b border-cdborder/50 ${isSelected ? 'bg-cdborder/30' : ''}`} onClick={onToggleSelect ? () => onToggleSelect(act.id) : undefined}>
+        <tr
+            id={act.id != null ? `activity-row-${act.id}` : undefined}
+            className={`group hover:bg-cdborder/50 transition-colors border-b border-cdborder/50 ${isSelected ? 'bg-cdborder/30' : ''}`}
+            onClick={onToggleSelect ? () => onToggleSelect(act.id) : undefined}
+        >
             {isPreview && <td className="px-2 py-1.5 w-8"><input type="checkbox" checked={isSelected} readOnly className="w-4 h-4 accent-green-500 cursor-pointer" /></td>}
             {ACTIVITY_COLUMNS.map(col => <td key={col.key} className={`px-2 py-1.5 text-${col.align} text-xs ${col.width || ''}`}>{renderCell(col)}</td>)}
             {!isPreview && <td className="px-2 py-1.5 text-right w-28">
