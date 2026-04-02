@@ -1,9 +1,12 @@
-/* global process, Buffer */
+/* global process */
 /**
  * scripts/nightlySync.js
  *
- * Nightly automation: fetches the last 14 days of Intervals.icu cycling activities
- * via the existing Cloud Function and upserts them into Firebase Firestore.
+ * Nightly automation:
+ * 1. Fetches the last 14 days of Intervals.icu cycling activities
+ *    via the existing Cloud Function and upserts them into Firebase Firestore.
+ * 2. Enriches activities with Strava data (title, HR, RPE, gear) using
+ *    OAuth tokens stored in Firestore settings.
  *
  * Usage (local dry-run, requires a .env file — see README):
  * node --env-file=.env scripts/nightlySync.js --dry-run
@@ -30,6 +33,10 @@ const ACCEPTED_TYPES = ['Ride', 'VirtualRide', 'Workout', 'IndoorCycling'];
 
 // Firestore limits batch writes to 500 documents at a time.
 const FIRESTORE_BATCH_LIMIT = 500;
+
+const STRAVA_TOKEN_URL = 'https://www.strava.com/oauth/token';
+const STRAVA_API_BASE = 'https://www.strava.com/api/v3';
+const STRAVA_BIKE_TYPES = new Set(['Ride', 'VirtualRide', 'GravelRide', 'MountainBikeRide', 'Cycling']);
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -224,6 +231,237 @@ async function upsertToFirestore(db, newActivities, isDryRun) {
     return totalSaved;
 }
 
+// ─── Strava Enrichment ────────────────────────────────────────────────────────
+
+async function loadStravaConfig(db) {
+    const settingsSnap = await db.collection('settings').get();
+    for (const doc of settingsSnap.docs) {
+        const data = doc.data();
+        if (data.strava?.refresh_token && data.strava?.client_id && data.strava?.client_secret) {
+            return { settingsDocId: doc.id, strava: data.strava };
+        }
+    }
+    return null;
+}
+
+async function getStravaToken(db, stravaSettings) {
+    const { settingsDocId, strava } = stravaSettings;
+    const now = Math.floor(Date.now() / 1000);
+
+    if (strava.access_token && strava.expires_at > now + 60) {
+        return strava.access_token;
+    }
+
+    console.log('[STRAVA] Token verlopen, vernieuwen...');
+    const resp = await fetch(STRAVA_TOKEN_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            client_id: strava.client_id,
+            client_secret: strava.client_secret,
+            refresh_token: strava.refresh_token,
+            grant_type: 'refresh_token'
+        })
+    });
+
+    if (!resp.ok) {
+        const errText = await resp.text().catch(() => '');
+        throw new Error(`Strava token refresh mislukt (${resp.status}): ${errText}`);
+    }
+
+    const data = await resp.json();
+    const updated = {
+        ...strava,
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+        expires_at: data.expires_at
+    };
+
+    await db.collection('settings').doc(settingsDocId).set(
+        { strava: updated },
+        { merge: true }
+    );
+    console.log('[STRAVA] Token vernieuwd en opgeslagen in Firestore.');
+
+    stravaSettings.strava = updated;
+    return data.access_token;
+}
+
+async function fetchStravaActivities(token, startDate, endDate) {
+    const afterTs = Math.floor(new Date(startDate).getTime() / 1000);
+    const beforeTs = Math.floor(new Date(endDate).getTime() / 1000) + 86400;
+
+    let page = 1;
+    let all = [];
+    while (true) {
+        const resp = await fetch(
+            `${STRAVA_API_BASE}/athlete/activities?after=${afterTs}&before=${beforeTs}&per_page=200&page=${page}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (!resp.ok) {
+            console.warn(`[STRAVA] API fout bij ophalen pagina ${page}: ${resp.status}`);
+            break;
+        }
+        const data = await resp.json();
+        if (!Array.isArray(data) || data.length === 0) break;
+        all = all.concat(data);
+        if (data.length < 200) break;
+        page++;
+    }
+
+    return all.filter(a => STRAVA_BIKE_TYPES.has(a.sport_type || a.type));
+}
+
+async function fetchStravaDetail(token, activityId) {
+    const resp = await fetch(`${STRAVA_API_BASE}/activities/${activityId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!resp.ok) return null;
+    return resp.json();
+}
+
+function matchStravaToFirestore(stravaActivities, firestoreActivities) {
+    const results = [];
+    const usedFirestoreIds = new Set();
+
+    const byStravaId = new Map();
+    const byDate = new Map();
+
+    for (const act of firestoreActivities) {
+        if (act.strava_id) byStravaId.set(String(act.strava_id), act);
+        const dateKey = act.date?.split('T')[0];
+        if (dateKey) {
+            if (!byDate.has(dateKey)) byDate.set(dateKey, []);
+            byDate.get(dateKey).push(act);
+        }
+    }
+
+    for (const strava of stravaActivities) {
+        const stravaIdStr = String(strava.id);
+        const stravaDate = strava.start_date_local?.split('T')[0];
+        const stravaDistKm = (strava.distance || 0) / 1000;
+
+        // Al gekoppeld via strava_id?
+        const linked = byStravaId.get(stravaIdStr);
+        if (linked) {
+            results.push({ strava, site: linked, type: 'linked' });
+            usedFirestoreIds.add(linked.firestoreId || linked.id);
+            continue;
+        }
+
+        // Fuzzy match op datum + afstand
+        const candidates = (byDate.get(stravaDate) || []).filter(s =>
+            !usedFirestoreIds.has(s.firestoreId || s.id) && !s.strava_id
+        );
+
+        let best = null;
+        for (const site of candidates) {
+            const siteDist = Number(site.distance) || 0;
+            if (siteDist <= 0 || stravaDistKm <= 0) continue;
+            const distDiff = Math.abs(siteDist - stravaDistKm) / Math.max(siteDist, stravaDistKm);
+            if (distDiff < 0.10 && (!best || distDiff < best.distDiff)) {
+                best = { site, distDiff };
+            }
+        }
+
+        if (best) {
+            results.push({ strava, site: best.site, type: 'matched' });
+            usedFirestoreIds.add(best.site.firestoreId || best.site.id);
+        }
+    }
+
+    return results;
+}
+
+async function enrichWithStrava(db, firestoreActivities, startDate, endDate, isDryRun) {
+    console.log('[STRAVA] === Strava Verrijking ===');
+
+    const stravaSettings = await loadStravaConfig(db);
+    if (!stravaSettings) {
+        console.log('[STRAVA] Geen Strava-configuratie gevonden in Firestore. Overslaan.');
+        return 0;
+    }
+
+    let token;
+    try {
+        token = await getStravaToken(db, stravaSettings);
+    } catch (err) {
+        console.warn('[STRAVA] Kon geen geldige token verkrijgen:', err.message);
+        return 0;
+    }
+
+    console.log(`[STRAVA] Ophalen Strava activiteiten van ${startDate} tot ${endDate}...`);
+    const stravaActivities = await fetchStravaActivities(token, startDate, endDate);
+    console.log(`[STRAVA] ${stravaActivities.length} fietsactiviteiten gevonden op Strava.`);
+
+    if (stravaActivities.length === 0) return 0;
+
+    const matches = matchStravaToFirestore(stravaActivities, firestoreActivities);
+    console.log(`[STRAVA] ${matches.length} matches gevonden (gekoppeld + fuzzy).`);
+
+    if (matches.length === 0) return 0;
+
+    let enrichedCount = 0;
+
+    for (const { strava, site, type } of matches) {
+        const needsTitle = !site.title || site.title === 'Untitled' || isGenericTitle(site.title);
+        const needsHr = !site.avg_hr || site.avg_hr === 0;
+        const needsRpe = !site.rpe || site.rpe === 0;
+        const needsGear = !site.gear_id && !!strava.gear_id;
+        const needsStravaId = !site.strava_id;
+
+        if (!needsTitle && !needsHr && !needsRpe && !needsGear && !needsStravaId) continue;
+
+        // Haal details op voor RPE (zit niet in lijst-API)
+        let detailed = strava;
+        if (needsRpe || needsHr) {
+            try {
+                const det = await fetchStravaDetail(token, strava.id);
+                if (det) detailed = det;
+            } catch { /* use list data */ }
+        }
+
+        const updateData = {};
+
+        if (needsStravaId) updateData.strava_id = String(strava.id);
+        // Strava-titel is altijd leidend
+        if (strava.name) updateData.title = strava.name;
+        if (needsRpe && detailed.perceived_exertion) updateData.rpe = detailed.perceived_exertion;
+        if (needsHr && detailed.average_heartrate) updateData.avg_hr = Math.round(detailed.average_heartrate);
+        if (needsHr && detailed.max_heartrate) updateData.max_hr = Math.round(detailed.max_heartrate);
+        if (needsGear) {
+            updateData.gear_id = strava.gear_id;
+            updateData.gear_name = strava.gear_id; // placeholder, updated below if possible
+        }
+
+        if (Object.keys(updateData).length === 0) continue;
+
+        const docId = String(site.firestoreId || site.id);
+
+        if (isDryRun) {
+            const fields = Object.keys(updateData).join(', ');
+            console.log(`[DRY-RUN] STRAVA ENRICH "${site.title}" → "${updateData.title || site.title}" [${fields}] (${type})`);
+        } else {
+            await db.collection(FIRESTORE_COLLECTION).doc(docId).set(updateData, { merge: true });
+        }
+        enrichedCount++;
+    }
+
+    console.log(`[STRAVA] ✅ ${enrichedCount} activiteiten verrijkt met Strava data.`);
+    return enrichedCount;
+}
+
+function isGenericTitle(title) {
+    if (!title) return true;
+    const generic = [
+        'morning ride', 'afternoon ride', 'evening ride', 'night ride',
+        'lunch ride', 'morning run', 'afternoon run', 'evening run',
+        'untitled', 'workout', 'zwift',
+        'ochtendrit', 'middagrit', 'avondrit', 'nachtrit'
+    ];
+    return generic.includes(title.toLowerCase().trim());
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function runNightlySync() {
@@ -251,16 +489,28 @@ async function runNightlySync() {
         });
 
         if (activities.length === 0) {
-            console.log('[SYNC] Geen activiteiten gevonden in de afgelopen 14 dagen. Klaar.');
-            process.exit(0);
+            console.log('[SYNC] Geen activiteiten gevonden in de afgelopen 14 dagen.');
+        } else {
+            console.log(`[SYNC] ${activities.length} activiteiten ontvangen.`);
+
+            const savedCount = await upsertToFirestore(db, activities, config.isDryRun);
+            const action = config.isDryRun ? 'zouden worden opgeslagen' : 'opgeslagen/bijgewerkt';
+            console.log(`[SYNC] ✅ Succes! ${savedCount} activiteiten ${action} in Firebase.`);
         }
 
-        console.log(`[SYNC] ${activities.length} activiteiten ontvangen.`);
+        // Stap 2: Strava verrijking — altijd draaien, ook als er geen nieuwe Intervals ritten zijn
+        const existingDocs = await db.collection(FIRESTORE_COLLECTION).get();
+        const allActivities = existingDocs.docs.map(d => ({ ...d.data(), firestoreId: d.id }));
+        const windowActivities = allActivities.filter(a => {
+            const d = a.date?.split('T')[0];
+            return d && d >= startDate && d <= endDate;
+        });
 
-        const savedCount = await upsertToFirestore(db, activities, config.isDryRun);
-        const action = config.isDryRun ? 'zouden worden opgeslagen' : 'opgeslagen/bijgewerkt';
-
-        console.log(`[SYNC] ✅ Succes! ${savedCount} activiteiten ${action} in Firebase.`);
+        if (windowActivities.length > 0) {
+            await enrichWithStrava(db, windowActivities, startDate, endDate, config.isDryRun);
+        } else {
+            console.log('[STRAVA] Geen activiteiten in het sync-venster om te verrijken.');
+        }
     } catch (error) {
         console.error('[ERROR] Sync mislukt:', error.message);
         process.exit(1);
