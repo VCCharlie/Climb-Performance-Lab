@@ -219,8 +219,8 @@ const DataHub = ({
                     strava_id: String(stravaDetailed.id),
                     type: stravaDetailed.sport_type || stravaDetailed.type || m.site.type,
                     ...(gearId && { gear_id: gearId, gear_name: gearName }),
-                    // Strava-titel is altijd leidend (Intervals heeft generieke namen)
-                    ...(stravaDetailed.name && { title: stravaDetailed.name }),
+                    // Titel: alleen overschrijven als site geen titel heeft of "Untitled" is
+                    ...(((!m.site.title || m.site.title === 'Untitled') && stravaDetailed.name) && { title: stravaDetailed.name }),
                     // RPE alleen invullen als site deze nog niet heeft én Strava heeft 'm wél
                     ...(siteNeedsRpe && stravaDetailed.perceived_exertion && { rpe: stravaDetailed.perceived_exertion }),
                     // HR alleen invullen als site deze nog niet heeft én Strava heeft 'm wél

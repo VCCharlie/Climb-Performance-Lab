@@ -107,8 +107,8 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                 ...((!enrichmentTarget.rpe || enrichmentTarget.rpe === 0) && detailedStrava.perceived_exertion && { rpe: detailedStrava.perceived_exertion }),
                 ...((!enrichmentTarget.avg_hr || enrichmentTarget.avg_hr === 0) && detailedStrava.average_heartrate && { avg_hr: Math.round(detailedStrava.average_heartrate) }),
                 ...((!enrichmentTarget.max_hr || enrichmentTarget.max_hr === 0) && detailedStrava.max_heartrate && { max_hr: Math.round(detailedStrava.max_heartrate) }),
-                // Strava-titel is altijd leidend
-                ...(detailedStrava.name && { title: detailedStrava.name })
+                // Titel: alleen overschrijven als site geen titel heeft of "Untitled" is
+                ...(((!enrichmentTarget.title || enrichmentTarget.title === 'Untitled') && detailedStrava.name) && { title: detailedStrava.name })
             };
 
             await setDoc(doc(db, 'activities', String(enrichmentTarget.id)), updateData, { merge: true });
