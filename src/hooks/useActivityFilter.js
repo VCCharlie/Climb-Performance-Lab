@@ -20,12 +20,12 @@ const useActivityFilter = (activities) => {
     }, []);
 
     const toggleYear = useCallback((year) => {
-        setExpandedYears(p => ({ ...p, [year]: !p[year] }));
+        setExpandedYears(p => ({ ...(p || {}), [year]: !(p?.[year]) }));
     }, []);
 
     const toggleMonth = useCallback((year, month) => {
         const key = `${year}-${month}`;
-        setExpandedMonths(p => ({ ...p, [key]: !p[key] }));
+        setExpandedMonths(p => ({ ...(p || {}), [key]: !(p?.[key]) }));
     }, []);
 
     // Checkers - Note: Default is now false because we prepopulate true keys!
