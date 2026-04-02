@@ -552,6 +552,8 @@ const App = () => {
                                 timeRange={timeRange}
                                 customStart={customStart}
                                 customEnd={customEnd}
+                                userWeightKg={userSettings.weight}
+                                referenceEndDate={globalEndDate}
                                 onOpenActivityInLog={(id) => {
                                     if (id == null) return;
                                     setActivityFocusId(String(id));
