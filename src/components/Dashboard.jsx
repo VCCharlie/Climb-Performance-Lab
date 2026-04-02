@@ -141,6 +141,7 @@ const Dashboard = ({
                     weightKg={userWeightKg}
                     timeRange={timeRange}
                     referenceEndDate={referenceEndDate}
+                    onOpenActivityInLog={onOpenActivityInLog}
                 />
             )}
 

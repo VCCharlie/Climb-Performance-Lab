@@ -1,11 +1,13 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import {
     POWER_DURATION_ROWS,
-    powerCurveForWindow,
+    powerCurveWithSources,
     filterActivitiesByDaysBeforeEnd,
     filterActivitiesCalendarYear,
     dashboardFilterLabel,
 } from '../../utils/powerDurationTable';
+import { formatDateDDMMYYYY } from '../../utils';
+import { activityExternalLinks } from '../../utils/dashboardActivityPeaks';
 
 const COL_STYLES = [
     { key: 'd42', label: '42 d', headerClass: 'bg-violet-600/90 text-white' },
@@ -27,7 +29,30 @@ const PowerDurationTable = ({
     timeRange,
     referenceEndDate,
     weightKg = 0,
+    onOpenActivityInLog,
 }) => {
+    const [hoverTip, setHoverTip] = useState(null);
+    const hideTimerRef = useRef(null);
+
+    const clearHideTimer = useCallback(() => {
+        if (hideTimerRef.current) {
+            clearTimeout(hideTimerRef.current);
+            hideTimerRef.current = null;
+        }
+    }, []);
+
+    const hideTip = useCallback(() => {
+        clearHideTimer();
+        setHoverTip(null);
+    }, [clearHideTimer]);
+
+    const scheduleHideTip = useCallback(() => {
+        clearHideTimer();
+        hideTimerRef.current = setTimeout(() => setHoverTip(null), 220);
+    }, [clearHideTimer]);
+
+    useEffect(() => () => clearHideTimer(), [clearHideTimer]);
+
     const refEnd = useMemo(() => {
         if (referenceEndDate) return new Date(referenceEndDate);
         return new Date();
@@ -62,8 +87,8 @@ const PowerDurationTable = ({
                 label = `Seizoen ${prevY}`;
             } else acts = allActs;
 
-            const curve = powerCurveForWindow(acts, manualFtp);
-            return { ...c, displayLabel: label, curve, actCount: acts.length };
+            const curveWithSrc = powerCurveWithSources(acts, manualFtp);
+            return { ...c, displayLabel: label, curveWithSrc, actCount: acts.length };
         });
     }, [chartData, filteredData, manualFtp, timeRange, refEnd]);
 
@@ -72,7 +97,7 @@ const PowerDurationTable = ({
         for (const row of POWER_DURATION_ROWS) {
             let maxW = 0;
             for (const col of columns) {
-                const w = col.curve[row.label];
+                const w = col.curveWithSrc[row.label]?.watts;
                 if (w != null && w > maxW) maxW = w;
             }
             best[row.label] = maxW;
@@ -85,8 +110,27 @@ const PowerDurationTable = ({
         return (w / weightKg).toFixed(2);
     };
 
+    const showCellTip = (e, cell) => {
+        if (!cell?.activity || cell.watts == null) {
+            setHoverTip(null);
+            return;
+        }
+        setHoverTip({
+            x: e.clientX,
+            y: e.clientY,
+            watts: cell.watts,
+            durationLabel: cell.durationLabel,
+            activity: cell.activity,
+            links: activityExternalLinks(cell.activity),
+        });
+    };
+
+    const moveTip = (e) => {
+        setHoverTip((prev) => (prev ? { ...prev, x: e.clientX, y: e.clientY } : null));
+    };
+
     return (
-        <div className="bg-cdsurface border border-cdborder rounded-xl p-6 shadow-xl overflow-hidden">
+        <div className="bg-cdsurface border border-cdborder rounded-xl p-6 shadow-xl overflow-hidden relative">
             <h3 className="text-lg font-bold text-cdtext mb-1">Power-duration (intervals.icu-stijl)</h3>
             <p className="text-xs text-cdmuted mb-4 max-w-3xl leading-relaxed">
                 Vergelijkbare opzet als{' '}
@@ -95,8 +139,52 @@ const PowerDurationTable = ({
                 </a>
                 : meerdere tijdvensters naast elkaar. We hebben per rit alleen max power en beste 1/5/10/20/60 min — tussenliggende
                 duur wordt <strong className="text-cdtext">geschat</strong> (log-interpolatie). Blauw = beste waarde in de tabel voor die
-                duur. Zonder lichaamsgewicht in Instellingen tonen we geen W/kg.
+                duur. Zonder lichaamsgewicht in Instellingen tonen we geen W/kg. <strong className="text-cdtext">Hover</strong> over W of W/kg
+                om de <strong className="text-cdtext">bronrit</strong> te zien.
             </p>
+
+            {hoverTip?.activity && (
+                <div
+                    role="tooltip"
+                    className="fixed z-[200] max-w-xs rounded-lg border border-cdborder bg-cdsurface shadow-2xl p-3 text-left text-xs"
+                    style={{
+                        left: Math.min(hoverTip.x + 14, typeof window !== 'undefined' ? window.innerWidth - 280 : 0),
+                        top: Math.min(hoverTip.y + 14, typeof window !== 'undefined' ? window.innerHeight - 200 : 0),
+                    }}
+                    onMouseEnter={clearHideTimer}
+                    onMouseLeave={hideTip}
+                >
+                    <div className="font-bold text-cdtext text-sm mb-1 truncate" title={hoverTip.activity.title}>
+                        {hoverTip.activity.title || 'Zonder titel'}
+                    </div>
+                    <div className="text-cdmuted mb-1">{formatDateDDMMYYYY(hoverTip.activity.date)}</div>
+                    <div className="text-cdaccent font-mono mb-2">
+                        ~{hoverTip.watts} W @ {hoverTip.durationLabel} (geschat)
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {typeof onOpenActivityInLog === 'function' && hoverTip.activity.id != null && (
+                            <button
+                                type="button"
+                                onClick={() => onOpenActivityInLog(hoverTip.activity.id)}
+                                className="text-[11px] font-bold text-cdaccent hover:underline"
+                            >
+                                Activiteiten
+                            </button>
+                        )}
+                        {hoverTip.links.map((l) => (
+                            <a
+                                key={l.label}
+                                href={l.href}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-[11px] font-bold text-blue-400 hover:underline"
+                            >
+                                {l.label}
+                            </a>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             <div className="overflow-x-auto rounded-lg border border-cdborder -mx-1">
                 <table className="w-full text-xs text-center border-collapse min-w-[900px]">
@@ -139,16 +227,34 @@ const PowerDurationTable = ({
                                     {row.label}
                                 </td>
                                 {columns.map((col) => {
-                                    const watts = col.curve[row.label];
+                                    const cell = col.curveWithSrc[row.label];
+                                    const watts = cell?.watts ?? null;
                                     const isPb = watts != null && globalBest[row.label] > 0 && watts === globalBest[row.label];
                                     const wClass = isPb ? 'text-blue-400 font-bold' : 'text-cdtext';
                                     const wkgVal = wkg(watts);
+                                    const tipPayload =
+                                        watts != null && cell?.activity
+                                            ? { watts, durationLabel: row.label, activity: cell.activity }
+                                            : null;
+                                    const cellHandlers = tipPayload
+                                        ? {
+                                              onMouseEnter: (e) => showCellTip(e, tipPayload),
+                                              onMouseMove: moveTip,
+                                              onMouseLeave: scheduleHideTip,
+                                          }
+                                        : {};
                                     return (
                                         <React.Fragment key={`${col.key}-${row.label}`}>
-                                            <td className={`px-1 py-1 font-mono tabular-nums ${wClass}`}>
+                                            <td
+                                                className={`px-1 py-1 font-mono tabular-nums ${wClass} ${tipPayload ? 'cursor-help' : ''}`}
+                                                {...cellHandlers}
+                                            >
                                                 {watts != null ? watts : '—'}
                                             </td>
-                                            <td className={`px-1 py-1 font-mono tabular-nums border-r border-cdborder/30 ${wClass}`}>
+                                            <td
+                                                className={`px-1 py-1 font-mono tabular-nums border-r border-cdborder/30 ${wClass} ${tipPayload ? 'cursor-help' : ''}`}
+                                                {...cellHandlers}
+                                            >
                                                 {wkgVal ?? '—'}
                                             </td>
                                         </React.Fragment>
