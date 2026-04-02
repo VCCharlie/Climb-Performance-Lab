@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Gauge, Mountain, Activity, Utensils, Brain, Route, Settings as SettingsIcon, TrendingUp, Menu, X, Heart, Trophy, Cloud, ChevronRight, Map as MapIcon } from 'lucide-react';
+import { Gauge, Mountain, Activity, Utensils, Brain, Route, Settings as SettingsIcon, TrendingUp, Menu, X, Heart, Trophy, Cloud, ChevronRight, Map as MapIcon, Flag } from 'lucide-react';
 import { doc, setDoc, getDoc, collection, onSnapshot, getDocs } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from './firebase';
@@ -12,6 +12,7 @@ import PhysicsEngine from './components/PhysicsEngine';
 import DataHub from './components/DataHub';
 import FuelingStrategy from './components/FuelingStrategy';
 import AICoach from './components/AICoach';
+import TrainingGoalPlanner from './components/TrainingGoalPlanner';
 import ClimbProfileCard from './components/ClimbProfileCard';
 import Dashboard from './components/Dashboard';
 import SettingsModal from './components/SettingsModal';
@@ -238,7 +239,7 @@ const App = () => {
     });
 
     // Sub-tab states for merged tabs
-    const [trainingSubTab, setTrainingSubTab] = useState('coach'); // 'coach' | 'recovery'
+    const [trainingSubTab, setTrainingSubTab] = useState('coach'); // 'coach' | 'goal' | 'recovery'
     const [raceSubTab, setRaceSubTab] = useState('fueling');       // 'fueling' | 'racepacing'
 
     // Auth Listener
@@ -586,6 +587,12 @@ const App = () => {
                                         <Brain size={14} /> AI Coach
                                     </button>
                                     <button
+                                        onClick={() => setTrainingSubTab('goal')}
+                                        className={`flex items-center gap-1.5 px-4 py-2 text-sm font-bold rounded-t transition-all ${trainingSubTab === 'goal' ? 'bg-cdsurface border border-cdborder border-b-transparent text-cdaccent' : 'text-cdmuted hover:text-cdtext'}`}
+                                    >
+                                        <Flag size={14} /> Doel & planning
+                                    </button>
+                                    <button
                                         onClick={() => setTrainingSubTab('recovery')}
                                         className={`flex items-center gap-1.5 px-4 py-2 text-sm font-bold rounded-t transition-all ${trainingSubTab === 'recovery' ? 'bg-cdsurface border border-cdborder border-b-transparent text-cdaccent' : 'text-cdmuted hover:text-cdtext'}`}
                                     >
@@ -598,6 +605,15 @@ const App = () => {
                                         userSettings={userSettings}
                                         startDate={globalStartDate}
                                         endDate={globalEndDate}
+                                    />
+                                )}
+                                {trainingSubTab === 'goal' && (
+                                    <TrainingGoalPlanner
+                                        activities={activities}
+                                        userSettings={userSettings}
+                                        startDate={globalStartDate}
+                                        endDate={globalEndDate}
+                                        onOpenRecovery={() => setTrainingSubTab('recovery')}
                                     />
                                 )}
                                 {trainingSubTab === 'recovery' && (
