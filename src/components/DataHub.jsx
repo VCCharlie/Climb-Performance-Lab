@@ -3,7 +3,7 @@ import { Search, Loader2, AlertTriangle, Trash, Split, RefreshCw, ExternalLink, 
 import { doc, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from '../firebase';
 import { findDuplicatesInList, runInBatches } from '../utils';
-import { matchStravaToSite, normalizeStravaActivity, STRAVA_BIKE_TYPES } from '../utils/stravaMatch';
+import { matchStravaToSite, STRAVA_BIKE_TYPES } from '../utils/stravaMatch';
 
 import { SPORT_TYPES } from '../config';
 
@@ -189,39 +189,43 @@ const DataHub = ({
 
             if (candidates.length === 0) return 0;
 
-            // 4. CRITIEK: RPE (perceived_exertion) zit niet in de lijst-API. 
-            // We halen voor alle kandidaten die potentieel RPE missen de DETAILS op.
+            // 4. CRITIEK: RPE + HR zitten niet in de lijst-API.
+            // We halen voor alle kandidaten de DETAILS op als er data ontbreekt.
             const toEnrichFinal = [];
 
             await runInBatches(candidates, 5, async (m) => {
                 const siteNeedsRpe = !m.site.rpe || m.site.rpe === 0;
+                const siteNeedsHr = !m.site.avg_hr || m.site.avg_hr === 0;
                 const siteNeedsGear = !m.site.gear_id && !!m.strava.gear_id;
 
-                // Als we al een strava_id hebben en alles is er al (rpe & gear), dan overslaan
-                if (m.site.strava_id && !siteNeedsRpe && !siteNeedsGear) return;
+                // Alleen overslaan als ALLES al compleet is
+                if (m.site.strava_id && !siteNeedsRpe && !siteNeedsGear && !siteNeedsHr) return;
 
-                // Haal details op van Strava voor RPE
+                // Haal details op van Strava (voor RPE + volledige HR)
                 let stravaDetailed = m.strava;
                 try {
                     const detResp = await fetch(`https://www.strava.com/api/v3/activities/${m.strava.id}`, {
                         headers: { Authorization: `Bearer ${token}` }
                     });
                     if (detResp.ok) {
-                        stravaDetailed = await detResp.ok ? await detResp.json() : m.strava;
+                        stravaDetailed = await detResp.json();
                     }
                 } catch { console.warn("Detail fetch failed for Strava", m.strava.id); }
 
-                const norm = normalizeStravaActivity(stravaDetailed);
                 const gearId = stravaDetailed.gear_id || null;
                 const gearName = gearId ? (bikesMap[gearId] || 'Strava fiets') : null;
 
                 const updateData = {
-                    strava_id: norm.strava_id,
-                    title: norm.title,
-                    type: norm.type,
+                    strava_id: String(stravaDetailed.id),
+                    type: stravaDetailed.sport_type || stravaDetailed.type || m.site.type,
                     ...(gearId && { gear_id: gearId, gear_name: gearName }),
+                    // Titel: alleen overschrijven als site geen titel heeft of "Untitled" is
+                    ...(((!m.site.title || m.site.title === 'Untitled') && stravaDetailed.name) && { title: stravaDetailed.name }),
                     // RPE alleen invullen als site deze nog niet heeft én Strava heeft 'm wél
-                    ...((!m.site.rpe || m.site.rpe === 0) && stravaDetailed.perceived_exertion && { rpe: stravaDetailed.perceived_exertion })
+                    ...(siteNeedsRpe && stravaDetailed.perceived_exertion && { rpe: stravaDetailed.perceived_exertion }),
+                    // HR alleen invullen als site deze nog niet heeft én Strava heeft 'm wél
+                    ...(siteNeedsHr && stravaDetailed.average_heartrate && { avg_hr: Math.round(stravaDetailed.average_heartrate) }),
+                    ...((!m.site.max_hr || m.site.max_hr === 0) && stravaDetailed.max_heartrate && { max_hr: Math.round(stravaDetailed.max_heartrate) })
                 };
 
                 // Filter out if no actual changes
@@ -244,6 +248,48 @@ const DataHub = ({
         return 0;
     };
 
+
+    // --- AUTO-ENRICHMENT: draait eenmalig op de achtergrond bij laden ---
+    const autoEnrichRanRef = useRef(false);
+
+    useEffect(() => {
+        if (autoEnrichRanRef.current) return;
+        if (!stravaGetToken || !activities || activities.length === 0) return;
+
+        // Zoek activiteiten van de laatste 30 dagen die data missen
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const cutoff = thirtyDaysAgo.toISOString().split('T')[0];
+
+        const needsEnrichment = activities.filter(act => {
+            const actDate = act.date?.split('T')[0];
+            if (!actDate || actDate < cutoff) return false;
+            const missingHr = !act.avg_hr || act.avg_hr === 0;
+            const missingRpe = !act.rpe || act.rpe === 0;
+            const missingStravaId = !act.strava_id;
+            return missingHr || missingRpe || missingStravaId;
+        });
+
+        if (needsEnrichment.length === 0) return;
+
+        autoEnrichRanRef.current = true;
+
+        const autoStart = cutoff;
+        const autoEnd = new Date().toISOString().split('T')[0];
+
+        console.log(`[Auto-Enrichment] ${needsEnrichment.length} activiteiten missen data, background verrijking starten...`);
+        performSilentStravaEnrichment(activities.filter(a => {
+            const d = a.date?.split('T')[0];
+            return d && d >= autoStart && d <= autoEnd;
+        }), autoStart, autoEnd).then(count => {
+            if (count > 0) {
+                console.log(`[Auto-Enrichment] ✅ ${count} activiteiten automatisch verrijkt met Strava data.`);
+            }
+        }).catch(err => {
+            console.warn("[Auto-Enrichment] Achtergrond verrijking mislukt:", err.message);
+        });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [stravaGetToken, activities]);
 
     // --- 2. REFACTORED DIRECT SYNC TRIGGER ---
     const handleSync = async () => {

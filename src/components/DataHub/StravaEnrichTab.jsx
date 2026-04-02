@@ -104,7 +104,11 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                 strava_id: String(detailedStrava.id),
                 strava_map: detailedStrava.map?.summary_polyline || null,
                 ...(gearId && { gear_id: gearId, gear_name: gearName }),
-                ...((!enrichmentTarget.rpe || enrichmentTarget.rpe === 0) && detailedStrava.perceived_exertion && { rpe: detailedStrava.perceived_exertion })
+                ...((!enrichmentTarget.rpe || enrichmentTarget.rpe === 0) && detailedStrava.perceived_exertion && { rpe: detailedStrava.perceived_exertion }),
+                ...((!enrichmentTarget.avg_hr || enrichmentTarget.avg_hr === 0) && detailedStrava.average_heartrate && { avg_hr: Math.round(detailedStrava.average_heartrate) }),
+                ...((!enrichmentTarget.max_hr || enrichmentTarget.max_hr === 0) && detailedStrava.max_heartrate && { max_hr: Math.round(detailedStrava.max_heartrate) }),
+                // Titel: alleen overschrijven als site geen titel heeft of "Untitled" is
+                ...(((!enrichmentTarget.title || enrichmentTarget.title === 'Untitled') && detailedStrava.name) && { title: detailedStrava.name })
             };
 
             await setDoc(doc(db, 'activities', String(enrichmentTarget.id)), updateData, { merge: true });
@@ -231,14 +235,18 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                             
                             const siteHasRpe = m.site.rpe && m.site.rpe > 0;
                             const siteHasGear = !!m.site.gear_id;
+                            const siteHasHr = m.site.avg_hr && m.site.avg_hr > 0;
                             
-                            // Bepaal hier definitief of RPE/Gear nodig is
                             m.needsRpe = !siteHasRpe && !!detailed.perceived_exertion;
                             m.needsGear = !siteHasGear && !!detailed.gear_id;
+                            m.needsHr = !siteHasHr && !!detailed.average_heartrate;
                             
-                            // Voeg de RPE-waarde toe aan het strava-object voor weergave
                             if (m.needsRpe) {
                                 m.strava.perceived_exertion = detailed.perceived_exertion;
+                            }
+                            if (m.needsHr) {
+                                m.strava.average_heartrate = detailed.average_heartrate;
+                                m.strava.max_heartrate = detailed.max_heartrate;
                             }
                         }
                     } catch { console.warn("Detail fetch failed for Strava", m.strava.id); }
@@ -280,7 +288,9 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                         {
                             strava_id: String(strava.id),
                             ...(gearId && { gear_id: gearId, gear_name: gearName }),
-                            ...((!site.rpe || site.rpe === 0) && strava.perceived_exertion && { rpe: strava.perceived_exertion })
+                            ...((!site.rpe || site.rpe === 0) && strava.perceived_exertion && { rpe: strava.perceived_exertion }),
+                            ...((!site.avg_hr || site.avg_hr === 0) && strava.average_heartrate && { avg_hr: Math.round(strava.average_heartrate) }),
+                            ...((!site.max_hr || site.max_hr === 0) && strava.max_heartrate && { max_hr: Math.round(strava.max_heartrate) })
                         },
                         { merge: true }
                     );
@@ -307,7 +317,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
         // 3. Gear of RPE bijwerken voor al-verbonden activiteiten zonder deze data
         if (selectedGearUpdate.size > 0) {
             const toUpdate = (results.alreadyLinked || []).filter(m =>
-                (m.needsGear || m.needsRpe) && selectedGearUpdate.has(String(m.strava.id))
+                (m.needsGear || m.needsRpe || m.needsHr) && selectedGearUpdate.has(String(m.strava.id))
             );
             for (const { strava, site } of toUpdate) {
                 try {
@@ -316,7 +326,9 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                         const gearName = gearId ? (bikesMap[gearId] || 'Strava fiets') : null;
                         const updateData = {
                             ...(gearId && { gear_id: gearId, gear_name: gearName }),
-                            ...((!site.rpe || site.rpe === 0) && strava.perceived_exertion && { rpe: strava.perceived_exertion })
+                            ...((!site.rpe || site.rpe === 0) && strava.perceived_exertion && { rpe: strava.perceived_exertion }),
+                            ...((!site.avg_hr || site.avg_hr === 0) && strava.average_heartrate && { avg_hr: Math.round(strava.average_heartrate) }),
+                            ...((!site.max_hr || site.max_hr === 0) && strava.max_heartrate && { max_hr: Math.round(strava.max_heartrate) })
                         };
 
                         if (Object.keys(updateData).length > 0) {
@@ -332,12 +344,11 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                     console.error('Data update fout voor', site.id, e);
                 }
             }
-            // Markeer bijgewerkte activiteiten lokaal
             const updatedIds = new Set([...selectedGearUpdate]);
             setResults(prev => ({
                 ...prev,
                 alreadyLinked: prev.alreadyLinked.map(m =>
-                    updatedIds.has(String(m.strava.id)) ? { ...m, needsGear: false, needsRpe: false } : m
+                    updatedIds.has(String(m.strava.id)) ? { ...m, needsGear: false, needsRpe: false, needsHr: false } : m
                 )
             }));
             setSelectedGearUpdate(new Set());
@@ -563,7 +574,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
 
                     {/* Al verbonden – status van Fiets/RPE */}
                     {(results.alreadyLinked || []).length > 0 && (() => {
-                        const needsEnrichItems = results.alreadyLinked.filter(m => m.needsGear || m.needsRpe);
+                        const needsEnrichItems = results.alreadyLinked.filter(m => m.needsGear || m.needsRpe || m.needsHr);
                         return (
                             <SectionHeader IconComponent={RefreshCw} iconColor="text-blue-400" title="Al Verbonden — Fiets/RPE Status" count={`${needsEnrichItems.length} te verrijken`}>
                                 {needsEnrichItems.length > 0 && (
@@ -577,17 +588,18 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                                     </div>
                                 )}
                                 <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
-                                    {results.alreadyLinked.map(({ strava, site, needsGear, needsRpe }) => {
+                                    {results.alreadyLinked.map(({ strava, site, needsGear, needsRpe, needsHr }) => {
                                         const gearName = results.bikesMap?.[strava.gear_id] || 'Strava fiets';
                                         return (
                                             <label key={strava.id} className={`flex items-center gap-2 rounded px-3 py-2 border text-xs cursor-pointer select-none transition-colors ${selectedGearUpdate.has(String(strava.id)) ? 'bg-orange-500/5 border-orange-500/30' : 'bg-cdbg/50 border-cdborder/30 hover:border-cdborder'}`}>
-                                                <input type="checkbox" checked={selectedGearUpdate.has(String(strava.id))} onChange={() => toggleGearUpdate(strava.id)} className="accent-orange-500 shrink-0" disabled={!needsGear && !needsRpe} />
+                                                <input type="checkbox" checked={selectedGearUpdate.has(String(strava.id))} onChange={() => toggleGearUpdate(strava.id)} className="accent-orange-500 shrink-0" disabled={!needsGear && !needsRpe && !needsHr} />
                                                 <span className="w-20 text-cdmuted shrink-0">{site.date?.split('T')[0]}</span>
                                                 <span className="flex-1 truncate text-cdtext font-medium" title={site.title}>{site.title}</span>
                                                 <div className="flex items-center gap-2 shrink-0">
                                                     {needsGear && <span className="flex items-center gap-1 text-orange-400 text-[10px] whitespace-nowrap" title={`Strava: ${gearName}`}><Bike size={10} /> Fietsdata</span>}
                                                     {needsRpe && <span className="bg-cdaccent/20 text-cdaccent text-[9px] font-bold px-1.5 py-0.5 rounded leading-none" title={`Strava RPE: ${strava.perceived_exertion}`}>MIST RPE</span>}
-                                                    {!needsGear && !needsRpe && <span className="flex items-center gap-1 text-green-400/80 text-[10px]"><Check size={12} /> Synchroon</span>}
+                                                    {needsHr && <span className="bg-red-500/20 text-red-400 text-[9px] font-bold px-1.5 py-0.5 rounded leading-none" title={`Strava HR: ${strava.average_heartrate}`}>MIST HR</span>}
+                                                    {!needsGear && !needsRpe && !needsHr && <span className="flex items-center gap-1 text-green-400/80 text-[10px]"><Check size={12} /> Synchroon</span>}
                                                 </div>
                                             </label>
                                         );

@@ -55,6 +55,8 @@ export const normalizeStravaActivity = (act) => ({
     avg_speed: Math.round((act.average_speed * 3.6) * 10) / 10,
     avg_power: Math.round(act.average_watts || 0),
     norm_power: Math.round(act.weighted_average_watts || 0),
+    avg_hr: Math.round(act.average_heartrate || 0),
+    max_hr: Math.round(act.max_heartrate || 0),
     load: 0,
     rpe: act.perceived_exertion || 0,
     moving_time: formatMovingTime(act.moving_time || 0)
@@ -106,7 +108,8 @@ export const matchStravaToSite = (stravaActivities, siteActivities) => {
             alreadyLinked.push({
                 strava: stravaAct,
                 site: existing,
-                needsGear: !!stravaAct.gear_id && !existing.gear_id
+                needsGear: !!stravaAct.gear_id && !existing.gear_id,
+                needsHr: !!stravaAct.average_heartrate && (!existing.avg_hr || existing.avg_hr === 0)
             });
             usedSiteIds.add(existing.id);
             continue;
