@@ -48,7 +48,7 @@ const PowerDurationTable = ({
 
     const scheduleHideTip = useCallback(() => {
         clearHideTimer();
-        hideTimerRef.current = setTimeout(() => setHoverTip(null), 220);
+        hideTimerRef.current = setTimeout(() => setHoverTip(null), 450);
     }, [clearHideTimer]);
 
     useEffect(() => () => clearHideTimer(), [clearHideTimer]);
@@ -244,20 +244,18 @@ const PowerDurationTable = ({
                                           }
                                         : {};
                                     return (
-                                        <React.Fragment key={`${col.key}-${row.label}`}>
-                                            <td
-                                                className={`px-1 py-1 font-mono tabular-nums ${wClass} ${tipPayload ? 'cursor-help' : ''}`}
-                                                {...cellHandlers}
-                                            >
-                                                {watts != null ? watts : '—'}
-                                            </td>
-                                            <td
-                                                className={`px-1 py-1 font-mono tabular-nums border-r border-cdborder/30 ${wClass} ${tipPayload ? 'cursor-help' : ''}`}
-                                                {...cellHandlers}
-                                            >
-                                                {wkgVal ?? '—'}
-                                            </td>
-                                        </React.Fragment>
+                                        <td
+                                            key={`${col.key}-${row.label}`}
+                                            colSpan={2}
+                                            className={`px-1 py-1 border-r border-cdborder/30 ${tipPayload ? 'cursor-help' : ''}`}
+                                            {...cellHandlers}
+                                        >
+                                            <div className="flex items-center justify-center gap-3 font-mono tabular-nums">
+                                                <span className={wClass}>{watts != null ? watts : '—'}</span>
+                                                <span className={`${wClass} text-cdmuted/80`}>|</span>
+                                                <span className={wClass}>{wkgVal ?? '—'}</span>
+                                            </div>
+                                        </td>
                                     );
                                 })}
                             </tr>
