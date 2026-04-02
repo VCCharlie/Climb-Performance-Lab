@@ -1,5 +1,6 @@
-﻿import React, { useMemo } from 'react';
-import { Brain, TrendingUp, AlertTriangle, Calendar, CheckCircle, Activity, Battery, Download, Shuffle } from 'lucide-react';
+﻿import React, { useMemo, useState } from 'react';
+import { Brain, TrendingUp, AlertTriangle, Calendar, CheckCircle, Activity, Battery, Download, Target, ListChecks } from 'lucide-react';
+import { buildCoachPlan, COACH_GOAL_OPTIONS, COACH_WORKOUT_LIBRARY } from '../utils/swotCoachPlan';
 
 /** moving_time: seconden (number) of "H:MM:SS" uit CSV */
 function movingTimeToSeconds(val) {
@@ -17,6 +18,8 @@ function movingTimeToSeconds(val) {
 }
 
 const AICoach = ({ activities, userSettings, startDate, endDate }) => {
+
+    const [coachGoalId, setCoachGoalId] = useState('auto');
 
     // --- 1. SWOT ENGINE (Expanded Context) ---
     const swot = useMemo(() => {
@@ -164,6 +167,11 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
             });
         }
 
+        let loadTrendUp = false;
+        let loadTrendDown = false;
+        let tssFirstHalf = null;
+        let tssSecondHalf = null;
+
         // Trend eerste vs tweede helft (alleen zinvol bij langere periodes)
         if (periodDays >= 56 && periodActivities.length >= 8) {
             const midMs = (startD.getTime() + endD.getTime()) / 2;
@@ -179,12 +187,16 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
             });
             const tssW1 = firstLoad / firstWeeks;
             const tssW2 = secondLoad / secondWeeks;
+            tssFirstHalf = tssW1;
+            tssSecondHalf = tssW2;
             if (tssW2 > tssW1 * 1.15) {
+                loadTrendUp = true;
                 opportunities.push({
                     label: "Oplopende weekload",
                     context: `In de tweede helft van ${periodLabel} ligt je gemiddelde TSS/week (~${Math.round(tssW2)}) duidelijk hoger dan in de eerste (~${Math.round(tssW1)}). Je zit in opbouw — plan herstel zodra prestatie of motivatie zakt.`
                 });
             } else if (tssW1 > tssW2 * 1.15) {
+                loadTrendDown = true;
                 threats.push({
                     label: "Afnemende belasting",
                     context: `Je TSS/week was hoger in de eerste helft (~${Math.round(tssW1)}) dan in de tweede (~${Math.round(tssW2)}) van ${periodLabel}. Als dat geen bewuste rustfase is, dreigt detraining of onderliggende vermoeidheid.`
@@ -212,7 +224,21 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
                     context: "Zonder data in het gekozen venster mis je signalen (te weinig rust, te veel harde dagen). Gebruik een periode waarin je wél hebt getraind."
                 }],
                 avgWeeklyLoad: 0,
-                periodLabel
+                periodLabel,
+                coachMetrics: {
+                    periodLabel,
+                    periodDays,
+                    weeksInPeriod,
+                    avgWeeklyLoad: 0,
+                    ridesPerWeek: 0,
+                    avgKmPerWeek: 0,
+                    avgHoursPerWeek: 0,
+                    avgElevPerWeek: 0,
+                    rideCount: 0,
+                    tssFirstHalf,
+                    tssSecondHalf,
+                },
+                coachFlags: { noData: true },
             };
         }
 
@@ -242,8 +268,64 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
             });
         }
 
-        return { strengths, weaknesses, opportunities, threats, avgWeeklyLoad, periodLabel };
+        const coachMetrics = {
+            periodLabel,
+            periodDays,
+            weeksInPeriod,
+            avgWeeklyLoad,
+            ridesPerWeek,
+            avgKmPerWeek,
+            avgHoursPerWeek,
+            avgElevPerWeek,
+            rideCount: periodActivities.length,
+            tssFirstHalf,
+            tssSecondHalf,
+        };
+
+        const coachFlags = {
+            noData: false,
+            lowFrequency: periodActivities.length < consistencyLow,
+            intensityOverload: ftp > 0 && highIntensity > intensityHigh,
+            intensityGap: ftp > 0 && highIntensity < intensityLow,
+            weakShortPower: ftp > 0 && best5m > 0 && best5m < ftp * 0.92 && periodActivities.length >= 3,
+            fewLongRides: weeksInPeriod >= 3 && longRideCount < expectedLongRidesLo && periodActivities.length >= 4,
+            mostlyVirtual: periodActivities.length >= 5 && virtualCount / periodActivities.length > 0.65,
+            lowElevationOpportunity: periodActivities.length >= 4 && avgElevPerWeek < 200 && avgKmPerWeek > 50,
+            lowWeeklyLoad: avgWeeklyLoad < 100,
+            highWeeklyLoad: avgWeeklyLoad > 400,
+            loadTrendUp,
+            loadTrendDown,
+        };
+
+        return {
+            strengths,
+            weaknesses,
+            opportunities,
+            threats,
+            avgWeeklyLoad,
+            periodLabel,
+            coachMetrics,
+            coachFlags,
+        };
     }, [activities, userSettings, startDate, endDate]);
+
+    const coachPlan = useMemo(
+        () =>
+            buildCoachPlan({
+                metrics: swot.coachMetrics,
+                flags: swot.coachFlags,
+                goalId: coachGoalId,
+            }),
+        [swot.coachMetrics, swot.coachFlags, coachGoalId]
+    );
+
+    const opportunitiesForDisplay = useMemo(() => {
+        return swot.opportunities.map((o) =>
+            o.label === 'Verfijn je focus'
+                ? { ...o, extraActions: coachPlan.actions }
+                : o
+        );
+    }, [swot.opportunities, coachPlan.actions]);
 
     // --- 2. DUAL RECOMMENDATION ENGINE ---
     const recommendations = useMemo(() => {
@@ -515,9 +597,118 @@ ${workout.zwoSteps.map(step => {
                 <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 h-fit">
                     <SwotCard title="Strengths (Kracht)" items={swot.strengths} icon={CheckCircle} color="text-green-500" border="border-green-500" />
                     <SwotCard title="Weaknesses (Zwaktes)" items={swot.weaknesses} icon={AlertTriangle} color="text-red-500" border="border-red-500" />
-                    <SwotCard title="Opportunities (Kansen)" items={swot.opportunities} icon={TrendingUp} color="text-blue-500" border="border-blue-500" />
+                    <SwotCard title="Opportunities (Kansen)" items={opportunitiesForDisplay} icon={TrendingUp} color="text-blue-500" border="border-blue-500" />
                     <SwotCard title="Threats (Bedreigingen)" items={swot.threats} icon={Activity} color="text-yellow-500" border="border-yellow-500" />
                 </div>
+            </div>
+
+            {/* --- Coachplan: acties + week + .zwo gekoppeld aan SWOT/data --- */}
+            <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <h3 className="text-lg font-bold text-cdtext flex items-center gap-2">
+                        <Target size={20} className="text-purple-400 shrink-0" />
+                        {coachPlan.headline}
+                    </h3>
+                    <label className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-cdmuted">
+                        <span className="font-semibold text-cdtext whitespace-nowrap">Trainingsdoel</span>
+                        <select
+                            value={coachGoalId}
+                            onChange={(e) => setCoachGoalId(e.target.value)}
+                            className="bg-cdborder border border-cdborder rounded-lg px-3 py-2 text-cdtext text-sm min-w-[220px]"
+                        >
+                            {COACH_GOAL_OPTIONS.map((g) => (
+                                <option key={g.id} value={g.id}>
+                                    {g.label}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                </div>
+                <p className="text-xs text-cdmuted leading-relaxed">
+                    Dit weekvoorstel combineert je gekozen periode ({swot.periodLabel}), de SWOT-signalen en — bij &quot;Automatisch&quot; — de sterkste aandachtspunten uit je data. Gebruik het als startpunt; pas aan naar schema, weer en herstel.
+                </p>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div>
+                        <h4 className="text-sm font-bold text-cdtext uppercase tracking-wide mb-2 flex items-center gap-2">
+                            <ListChecks size={16} className="text-cdaccent" /> Concrete acties
+                        </h4>
+                        <ul className="list-disc list-inside space-y-2 text-sm text-cdtext leading-relaxed">
+                            {coachPlan.actions.map((line, i) => (
+                                <li key={i}>{line}</li>
+                            ))}
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 className="text-sm font-bold text-cdtext uppercase tracking-wide mb-2">Voorbeeldweek (Ma–Zo)</h4>
+                        <div className="rounded-lg border border-cdborder overflow-hidden text-sm">
+                            <table className="w-full text-left">
+                                <thead>
+                                    <tr className="bg-cdborder/40 text-cdmuted text-xs uppercase">
+                                        <th className="px-3 py-2 font-semibold">Dag</th>
+                                        <th className="px-3 py-2 font-semibold">Focus</th>
+                                        <th className="px-3 py-2 font-semibold w-24 text-right">.zwo</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="text-cdtext">
+                                    {coachPlan.weekPlan.map((row, i) => (
+                                        <tr key={i} className="border-t border-cdborder">
+                                            <td className="px-3 py-2 font-medium whitespace-nowrap">{row.day}</td>
+                                            <td className="px-3 py-2 text-cdmuted">
+                                                <span className="text-cdtext font-medium">{row.session}</span>
+                                                {row.detail ? (
+                                                    <span className="block text-xs mt-0.5">{row.detail}</span>
+                                                ) : null}
+                                            </td>
+                                            <td className="px-3 py-2 text-right align-top">
+                                                {row.workoutId && COACH_WORKOUT_LIBRARY[row.workoutId] ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDownloadZwo(COACH_WORKOUT_LIBRARY[row.workoutId])}
+                                                        className="text-xs font-bold text-cdaccent hover:underline inline-flex items-center gap-1"
+                                                    >
+                                                        <Download size={12} />
+                                                        Download
+                                                    </button>
+                                                ) : (
+                                                    <span className="text-cdmuted text-xs">—</span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                {coachPlan.workouts.length > 0 && (
+                    <div>
+                        <h4 className="text-sm font-bold text-cdtext uppercase tracking-wide mb-3">Workouts uit dit plan (alle .zwo)</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                            {coachPlan.workouts.map((w) => {
+                                const styles = getCardStyles(w.type);
+                                return (
+                                    <div
+                                        key={w.id}
+                                        className={`p-4 rounded-lg border ${styles.container} flex flex-col gap-2`}
+                                    >
+                                        <div className={`font-bold text-sm ${styles.text}`}>{w.title}</div>
+                                        <div className="text-xs text-cdmuted">{w.duration} · {w.focus}</div>
+                                        <p className="text-xs text-cdtext leading-relaxed flex-1">{w.description}</p>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDownloadZwo(w)}
+                                            className="w-full bg-cdsurface hover:bg-cdborder text-cdtext text-xs font-bold py-2 px-3 rounded border border-cdborder flex items-center justify-center gap-2"
+                                        >
+                                            <Download size={14} /> Download .zwo
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -541,6 +732,13 @@ const SwotCard = ({ title, items, icon, color, border }) => {
                         <div className="text-xs text-cdmuted pl-3.5 leading-relaxed">
                             {item.context}
                         </div>
+                        {item.extraActions?.length ? (
+                            <ul className="mt-2 pl-3.5 space-y-1 text-xs text-cdtext list-disc list-inside border-l-2 border-cdborder ml-1">
+                                {item.extraActions.map((line, j) => (
+                                    <li key={j}>{line}</li>
+                                ))}
+                            </ul>
+                        ) : null}
                     </li>
                 ))}
             </ul>
