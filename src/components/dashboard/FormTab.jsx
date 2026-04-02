@@ -80,6 +80,7 @@ const FormTab = ({
     weightKg = 0,
     timeRange = '1Y',
     referenceEndDate,
+    onOpenActivityInLog,
 }) => {
     const fitnessData = useMemo(() => calculateFitnessMetrics(data), [data]);
 
@@ -162,6 +163,7 @@ const FormTab = ({
                     timeRange={timeRange}
                     referenceEndDate={referenceEndDate}
                     weightKg={Number(weightKg) > 0 ? Number(weightKg) : 0}
+                    onOpenActivityInLog={onOpenActivityInLog}
                 />
             )}
 

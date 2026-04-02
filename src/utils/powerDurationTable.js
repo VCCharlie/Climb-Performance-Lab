@@ -48,26 +48,16 @@ function capBestField(w, key, manualFtp) {
 }
 
 /**
- * Bouwt ankers (sec, watt) uit activiteiten in één venster.
+ * Ankers (sec, watt) voor één activiteit — basis voor interpolatie per rit.
  */
-export function buildPowerAnchors(activities, manualFtp) {
-    if (!activities?.length) return [];
-
-    let maxP = 0;
-    let b1 = 0;
-    let b5 = 0;
-    let b10 = 0;
-    let b20 = 0;
-    let b60 = 0;
-
-    for (const a of activities) {
-        maxP = Math.max(maxP, capMaxPowerW(a.max_power, manualFtp));
-        b1 = Math.max(b1, capBestField(a.best_1min, 'best_1min', manualFtp));
-        b5 = Math.max(b5, capBestField(a.best_5min, 'best_5min', manualFtp));
-        b10 = Math.max(b10, capBestField(a.best_10min, 'best_10min', manualFtp));
-        b20 = Math.max(b20, capBestField(a.best_20min, 'best_20min', manualFtp));
-        b60 = Math.max(b60, capBestField(a.best_60min, 'best_60min', manualFtp));
-    }
+export function buildAnchorsForActivity(activity, manualFtp) {
+    if (!activity) return [];
+    const maxP = capMaxPowerW(activity.max_power, manualFtp);
+    const b1 = capBestField(activity.best_1min, 'best_1min', manualFtp);
+    const b5 = capBestField(activity.best_5min, 'best_5min', manualFtp);
+    const b10 = capBestField(activity.best_10min, 'best_10min', manualFtp);
+    const b20 = capBestField(activity.best_20min, 'best_20min', manualFtp);
+    const b60 = capBestField(activity.best_60min, 'best_60min', manualFtp);
 
     const anchors = [];
     if (maxP > 0) anchors.push({ sec: 1, w: maxP });
@@ -78,6 +68,33 @@ export function buildPowerAnchors(activities, manualFtp) {
     if (b60 > 0) anchors.push({ sec: 3600, w: b60 });
 
     return anchors.sort((a, b) => a.sec - b.sec);
+}
+
+/**
+ * @returns {Record<string, { watts: number|null, activity: object|null }>}
+ * Per duur: sterkste rit (max over ritten van geïnterpoleerd vermogen) + bronactiviteit.
+ */
+export function powerCurveWithSources(activities, manualFtp) {
+    const list = activities || [];
+    const out = {};
+    for (const row of POWER_DURATION_ROWS) {
+        let bestW = null;
+        let bestAct = null;
+        for (const a of list) {
+            const anchors = buildAnchorsForActivity(a, manualFtp);
+            const w = interpolatePowerAt(anchors, row.sec);
+            if (w == null) continue;
+            const newer =
+                bestAct &&
+                new Date(a.date).getTime() > new Date(bestAct.date).getTime();
+            if (bestW === null || w > bestW || (w === bestW && newer)) {
+                bestW = w;
+                bestAct = a;
+            }
+        }
+        out[row.label] = { watts: bestW, activity: bestAct };
+    }
+    return out;
 }
 
 /**
@@ -120,10 +137,10 @@ export function filterActivitiesCalendarYear(activities, year) {
  * @returns {Record<string, number|null>} map row label -> watts
  */
 export function powerCurveForWindow(activities, manualFtp) {
-    const anchors = buildPowerAnchors(activities, manualFtp);
+    const src = powerCurveWithSources(activities, manualFtp);
     const out = {};
     for (const row of POWER_DURATION_ROWS) {
-        out[row.label] = interpolatePowerAt(anchors, row.sec);
+        out[row.label] = src[row.label]?.watts ?? null;
     }
     return out;
 }
