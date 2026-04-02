@@ -1,14 +1,17 @@
 ﻿import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, ComposedChart } from 'recharts';
-import { Activity, TrendingUp, Zap, Calendar, ArrowUp, ArrowDown } from 'lucide-react';
+import { Activity, TrendingUp, Zap, Calendar, ArrowUp, ArrowDown, ExternalLink, ListTree } from 'lucide-react';
 import { formatDateDDMMYYYY } from '../utils'; // <--- ZORG DAT DEZE GEÃMPORTEERD IS
+import { findBestPowerActivity, activityExternalLinks } from '../utils/dashboardActivityPeaks';
 
 const formatNumber = (num) => {
     if (num === null || num === undefined) return '-';
     return num.toLocaleString('de-DE'); // 1.000 format
 };
 
-const StatCard = ({ title, value, unit, subtitle, icon: Icon, trend, colorClass, split }) => (
+const StatCard = ({ title, value, unit, subtitle, icon, trend, colorClass, split }) => {
+    const Icon = icon;
+    return (
     <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-lg relative overflow-hidden group hover:border-cdborder transition-all">
         <div className={`absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity ${colorClass}`}>
             <Icon size={64} />
@@ -50,7 +53,8 @@ const StatCard = ({ title, value, unit, subtitle, icon: Icon, trend, colorClass,
             )}
         </div>
     </div>
-);
+    );
+};
 
 const PeriodStatistics = ({ data }) => {
     if (!data || data.length === 0) return null;
@@ -59,7 +63,6 @@ const PeriodStatistics = ({ data }) => {
     // isNaN-check voorkomt dat NaN-waarden de som besmetten.
     const safeNum = (v) => { const n = Number(v); return isNaN(n) ? 0 : n; };
 
-    const totalRides      = data.length;
     const totalDistance   = Math.round(data.reduce((acc, d) => acc + safeNum(d.distance),    0));
     const totalElevation  = Math.round(data.reduce((acc, d) => acc + safeNum(d.climbing),    0));
     const totalTimeHours  = Math.round(data.reduce((acc, d) => acc + safeNum(d.moving_time), 0) / 3600);
@@ -186,7 +189,7 @@ const PerformanceModule = ({
     data,
     manualFtp,
     customTicks,
-    timeRange,
+    onOpenActivityInLog,
     // Note: Control props (setTimeRange etc) not used here anymore as controls moved to Dashboard
 }) => {
     const filteredData = data || [];
@@ -197,9 +200,10 @@ const PerformanceModule = ({
     // Check of we jaartallen moeten tonen
     // Criterium: Als de dataset start in een ander jaar dan hij eindigt, OF als de range > 360 dagen is
     const showYearOnAxis = React.useMemo(() => {
-        if (filteredData.length < 2) return false;
-        const start = new Date(filteredData[0].date);
-        const end = new Date(filteredData[filteredData.length - 1].date);
+        const list = data || [];
+        if (list.length < 2) return false;
+        const start = new Date(list[0].date);
+        const end = new Date(list[list.length - 1].date);
 
         // Verspringen van jaar? (bv 2024 -> 2025)
         if (start.getFullYear() !== end.getFullYear()) return true;
@@ -208,7 +212,7 @@ const PerformanceModule = ({
         const diffTime = Math.abs(end - start);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         return diffDays > 360;
-    }, [filteredData]);
+    }, [data]);
 
 
     // --- 1. Stat Calculation ---
@@ -252,6 +256,12 @@ const PerformanceModule = ({
     // 3. Total Rides Split
     const countIndoor = indoorRides.length;
     const countOutdoor = outdoorRides.length;
+
+    const peak20Source = findBestPowerActivity(filteredData, 'best_20min', manualFtp);
+    const peak60Source = findBestPowerActivity(filteredData, 'best_60min', manualFtp);
+
+    const eftpFromPeak20 =
+        peak20Source.watts > 0 ? Math.round(peak20Source.watts * 0.95) : 0;
 
     return (
         <>
@@ -305,6 +315,85 @@ const PerformanceModule = ({
                     split={{ indoor: countIndoor, outdoor: countOutdoor }}
                 />
             </div>
+
+            {(peak20Source.activity || peak60Source.activity) && (
+                <div className="mb-6 p-4 rounded-xl border border-cdborder bg-cdsurface/80 text-sm">
+                    <div className="flex items-center gap-2 text-cdtext font-bold mb-2">
+                        <ListTree size={16} className="text-cdaccent shrink-0" />
+                        Bronrit(en) piek-eFTP in deze periode
+                    </div>
+                    <p className="text-xs text-cdmuted mb-3">
+                        De kaarten hierboven tonen de hoogste <strong className="text-cdtext">eFTP (20m)</strong> en <strong className="text-cdtext">eFTP (60m)</strong> over alle ritten in je filter. Hieronder staat <strong className="text-cdtext">welke rit</strong> de beste 20m- respectievelijk 60m-power had (na plausibiliteitsfilter t.o.v. je ingestelde FTP).
+                    </p>
+                    <ul className="space-y-3 text-xs text-cdtext">
+                        {peak20Source.activity && (
+                            <li className="border-l-2 border-green-500 pl-3">
+                                <div className="font-semibold text-cdtext">
+                                    eFTP (20m): {peak20Source.watts} W best → {eftpFromPeak20} W (×0.95)
+                                </div>
+                                <div className="text-cdmuted mt-0.5">
+                                    {formatDateDDMMYYYY(peak20Source.activity.date)} — {peak20Source.activity.title || 'Zonder titel'}
+                                </div>
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                    {typeof onOpenActivityInLog === 'function' && (
+                                        <button
+                                            type="button"
+                                            onClick={() => onOpenActivityInLog(peak20Source.activity.id)}
+                                            className="inline-flex items-center gap-1 px-2 py-1 rounded border border-cdborder bg-cdborder/30 hover:bg-cdborder text-cdtext font-bold"
+                                        >
+                                            <ExternalLink size={12} /> Open in Activiteiten
+                                        </button>
+                                    )}
+                                    {activityExternalLinks(peak20Source.activity).map((l) => (
+                                        <a
+                                            key={l.label}
+                                            href={l.href}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="inline-flex items-center gap-1 px-2 py-1 rounded border border-cdborder text-cdaccent hover:underline font-bold"
+                                        >
+                                            {l.label}
+                                        </a>
+                                    ))}
+                                </div>
+                            </li>
+                        )}
+                        {peak60Source.activity && (
+                            <li className="border-l-2 border-emerald-500 pl-3">
+                                <div className="font-semibold text-cdtext">
+                                    Beste 60m-power: {peak60Source.watts} W
+                                </div>
+                                <div className="text-cdmuted mt-0.5">
+                                    {formatDateDDMMYYYY(peak60Source.activity.date)} — {peak60Source.activity.title || 'Zonder titel'}
+                                </div>
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                    {typeof onOpenActivityInLog === 'function' && peak60Source.activity.id !== peak20Source.activity?.id && (
+                                        <button
+                                            type="button"
+                                            onClick={() => onOpenActivityInLog(peak60Source.activity.id)}
+                                            className="inline-flex items-center gap-1 px-2 py-1 rounded border border-cdborder bg-cdborder/30 hover:bg-cdborder text-cdtext font-bold"
+                                        >
+                                            <ExternalLink size={12} /> Open in Activiteiten
+                                        </button>
+                                    )}
+                                    {peak60Source.activity.id !== peak20Source.activity?.id &&
+                                        activityExternalLinks(peak60Source.activity).map((l) => (
+                                            <a
+                                                key={l.label}
+                                                href={l.href}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="inline-flex items-center gap-1 px-2 py-1 rounded border border-cdborder text-cdaccent hover:underline font-bold"
+                                            >
+                                                {l.label}
+                                            </a>
+                                        ))}
+                                </div>
+                            </li>
+                        )}
+                    </ul>
+                </div>
+            )}
 
             {/* MOVED: Period Statistics UP */}
             <PeriodStatistics data={filteredData} />

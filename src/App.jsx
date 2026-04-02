@@ -240,6 +240,9 @@ const App = () => {
 
     // Sub-tab states for merged tabs
     const [trainingSubTab, setTrainingSubTab] = useState('coach'); // 'coach' | 'goal' | 'recovery'
+
+    /** Vanuit Dashboard: focus één activiteit in DataHub log */
+    const [activityFocusId, setActivityFocusId] = useState(null);
     const [raceSubTab, setRaceSubTab] = useState('fueling');       // 'fueling' | 'racepacing'
 
     // Auth Listener
@@ -549,6 +552,11 @@ const App = () => {
                                 timeRange={timeRange}
                                 customStart={customStart}
                                 customEnd={customEnd}
+                                onOpenActivityInLog={(id) => {
+                                    if (id == null) return;
+                                    setActivityFocusId(String(id));
+                                    setActiveTab('activities');
+                                }}
                             />
                         )}
 
@@ -573,6 +581,8 @@ const App = () => {
                                 stravaProfileData={stravaProfileData}
                                 onStravaProfileData={setStravaProfileData}
                                 onRefresh={forceRefreshActivities}
+                                focusActivityId={activityFocusId}
+                                onFocusActivityCleared={() => setActivityFocusId(null)}
                             />
                         )}
 

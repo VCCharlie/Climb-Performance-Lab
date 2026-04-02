@@ -9,7 +9,7 @@ import ActivityHeatmap from './charts/ActivityHeatmap';
  *  - Bar charts: Distance / TSS / Elevation (each with Week/Month toggle)
  *  - 52-week Activity Heatmap
  */
-const OverviewTab = ({ data, manualFtp, customTicks }) => {
+const OverviewTab = ({ data, manualFtp, customTicks, onOpenActivityInLog }) => {
     if (!data || data.length === 0) {
         return (
             <div className="flex items-center justify-center h-40 text-cdmuted">
@@ -25,6 +25,7 @@ const OverviewTab = ({ data, manualFtp, customTicks }) => {
                 data={data}
                 manualFtp={manualFtp}
                 customTicks={customTicks}
+                onOpenActivityInLog={onOpenActivityInLog}
             />
 
             {/* Bar charts: 4 columns, each with their own week/month/year & rideType toggle */}

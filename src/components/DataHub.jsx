@@ -38,7 +38,9 @@ const DataHub = ({
     onStravaEnrichResults,
     stravaAthleteId,
     stravaProfileData,
-    onStravaProfileData
+    onStravaProfileData,
+    focusActivityId = null,
+    onFocusActivityCleared,
 }) => {
     // UI State
     const [internalTab, setInternalTab] = useState('log');
@@ -72,6 +74,26 @@ const DataHub = ({
             setEnrichmentTarget(null);
         }
     }, [internalTab, stravaDateOverride, enrichmentTarget]);
+
+    // Vanuit Dashboard: spring naar rit in het log en highlight kort
+    useEffect(() => {
+        if (!focusActivityId) return;
+        setInternalTab('log');
+        const t = setTimeout(() => {
+            const el = document.getElementById(`activity-row-${focusActivityId}`);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.classList.add('ring-2', 'ring-yellow-400', 'ring-inset', 'bg-cdborder/40');
+                setTimeout(() => {
+                    el.classList.remove('ring-2', 'ring-yellow-400', 'ring-inset', 'bg-cdborder/40');
+                    onFocusActivityCleared?.();
+                }, 4500);
+            } else {
+                onFocusActivityCleared?.();
+            }
+        }, 200);
+        return () => clearTimeout(t);
+    }, [focusActivityId, onFocusActivityCleared]);
 
     // Determine which dates to use for Strava tab
     const stravaSearchDates = useMemo(() => ({

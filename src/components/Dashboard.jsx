@@ -30,7 +30,7 @@ const enhanceActivity = (d, userFtp) => {
     };
 };
 
-const Dashboard = ({ manualFtp, activities: firestoreActivities = [], timeRange = '1Y', customStart = '', customEnd = '' }) => {
+const Dashboard = ({ manualFtp, activities: firestoreActivities = [], timeRange = '1Y', customStart = '', customEnd = '', onOpenActivityInLog }) => {
     const [dashboardTab, setDashboardTab] = useState('overview');
 
     // Alle historische data zit in Firestore via de deep sync — GCF niet meer nodig.
@@ -115,7 +115,12 @@ const Dashboard = ({ manualFtp, activities: firestoreActivities = [], timeRange 
 
             {/* TAB CONTENT */}
             {dashboardTab === 'overview' && (
-                <OverviewTab data={filteredData} manualFtp={manualFtp} customTicks={customTicks} />
+                <OverviewTab
+                    data={filteredData}
+                    manualFtp={manualFtp}
+                    customTicks={customTicks}
+                    onOpenActivityInLog={onOpenActivityInLog}
+                />
             )}
 
             {dashboardTab === 'form' && (
@@ -123,7 +128,12 @@ const Dashboard = ({ manualFtp, activities: firestoreActivities = [], timeRange 
             )}
 
             {dashboardTab === 'power' && (
-                <PowerTab data={filteredData} customTicks={customTicks} manualFtp={manualFtp} />
+                <PowerTab
+                    data={filteredData}
+                    customTicks={customTicks}
+                    manualFtp={manualFtp}
+                    onOpenActivityInLog={onOpenActivityInLog}
+                />
             )}
         </div>
     );
