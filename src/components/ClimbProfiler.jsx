@@ -21,6 +21,14 @@ import {
     estimateClimbPacingMetrics
 } from '../utils/climbProfilerModel';
 
+/** Upper FTP ratio shown on the zone bar; Z7 in data uses max≈∞ for matching — cap here so bar widths match Coggan bands. */
+const ZONE_BAR_MAX_FTP_RATIO = 1.65;
+
+function zoneBarFlexWeight(z) {
+    const cappedEnd = Math.min(z.max, ZONE_BAR_MAX_FTP_RATIO);
+    return Math.max(0, cappedEnd - z.min);
+}
+
 function formatClimbDuration(minutes) {
     if (!minutes || minutes <= 0 || !Number.isFinite(minutes)) return '—';
     if (minutes >= 60) {
@@ -83,7 +91,10 @@ const ClimbProfiler = ({ userSettings, initialState, onStateChange, theme = 'lig
     );
 
     const intensityPct = Math.round(targetIntensity * 100);
-    const zoneMarkerLeftPct = Math.min(100, Math.max(0, (targetIntensity / 1.5) * 100));
+    const zoneMarkerLeftPct = Math.min(
+        100,
+        Math.max(0, (targetIntensity / ZONE_BAR_MAX_FTP_RATIO) * 100)
+    );
 
     return (
         <div className="bg-cdsurface p-5 md:p-6 rounded-xl border border-cdborder shadow-xl space-y-6">
@@ -218,7 +229,9 @@ const ClimbProfiler = ({ userSettings, initialState, onStateChange, theme = 'lig
                     <span className="text-xs font-semibold text-cdtext uppercase tracking-wide">
                         Coggan-zones (t.o.v. FTP)
                     </span>
-                    <span className="text-[10px] text-cdmuted">marker = doel {intensityPct}%</span>
+                    <span className="text-[10px] text-cdmuted">
+                        0–{Math.round(ZONE_BAR_MAX_FTP_RATIO * 100)}% FTP · marker = doel {intensityPct}%
+                    </span>
                 </div>
                 <div className="relative h-3 rounded-full border border-cdborder overflow-hidden">
                     <div className="flex h-full w-full">
@@ -227,7 +240,7 @@ const ClimbProfiler = ({ userSettings, initialState, onStateChange, theme = 'lig
                                 key={z.name}
                                 className="h-full first:rounded-l-full last:rounded-r-full"
                                 style={{
-                                    flexGrow: z.max - z.min,
+                                    flexGrow: zoneBarFlexWeight(z),
                                     flexBasis: 0,
                                     backgroundColor: z.color,
                                     opacity: 0.88

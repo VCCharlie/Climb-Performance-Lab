@@ -39,10 +39,19 @@ const ProfilerCharts = ({
 
     return (
         <div className="space-y-5">
+            <p className="text-xs text-cdmuted leading-relaxed px-1">
+                Geen GPS-segmentdata: de kromme is een <span className="text-cdtext font-medium">eenvoudig model</span> met
+                maar een paar hellingspatronen (afhankelijk van de gemiddelde helling). Nuttig als <span className="text-cdtext font-medium">afstandsschaal</span> en om{' '}
+                <span className="text-cdtext font-medium">vermogenstips in de tooltip</span> te illustreren — niet als
+                exacte locatie van steile stukken.
+            </p>
             <div className="bg-cdbg/60 p-4 rounded-xl border border-cdborder">
                 <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-cdtext font-bold text-sm tracking-wide">Hellingsprofiel</h3>
-                    <span className="text-[10px] text-cdmuted uppercase">% t.o.v. afstand</span>
+                    <div>
+                        <h3 className="text-cdtext font-bold text-sm tracking-wide">Hellingsprofiel (model)</h3>
+                        <p className="text-[10px] text-cdmuted mt-0.5">Geschat · niet de echte klim</p>
+                    </div>
+                    <span className="text-[10px] text-cdmuted uppercase shrink-0">% t.o.v. afstand</span>
                 </div>
                 <ResponsiveContainer width="100%" height={260}>
                     <AreaChart data={profileData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
@@ -94,8 +103,11 @@ const ProfilerCharts = ({
 
             <div className="bg-cdbg/60 p-4 rounded-xl border border-cdborder">
                 <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-cdtext font-bold text-sm tracking-wide">Hoogteprofiel</h3>
-                    <span className="text-[10px] text-cdmuted uppercase">kumulatief</span>
+                    <div>
+                        <h3 className="text-cdtext font-bold text-sm tracking-wide">Hoogte (totaal uit database)</h3>
+                        <p className="text-[10px] text-cdmuted mt-0.5">Lineair verdeeld over de lengte · geen echte bochten</p>
+                    </div>
+                    <span className="text-[10px] text-cdmuted uppercase shrink-0">kumulatief</span>
                 </div>
                 <ResponsiveContainer width="100%" height={220}>
                     <AreaChart data={profileData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
