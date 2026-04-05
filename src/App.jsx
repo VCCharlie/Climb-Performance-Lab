@@ -199,7 +199,8 @@ const App = () => {
     });
     const [climbProfilerState, setClimbProfilerState] = useState({
         selectedClimb: CLIMB_DATABASE[0],
-        showPowerZones: true
+        showPowerZones: true,
+        targetIntensity: 0.85
     });
     const [fuelingState, setFuelingState] = useState({
         duration: 180,
@@ -693,6 +694,7 @@ const App = () => {
                                 <div className="lg:col-span-2">
                                     <ClimbProfiler
                                         userSettings={userSettings}
+                                        theme={theme}
                                         initialState={climbProfilerState}
                                         onStateChange={setClimbProfilerState}
                                     />
