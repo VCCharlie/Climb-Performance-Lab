@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Gauge, Mountain, Activity, Utensils, Brain, Route, Settings as SettingsIcon, TrendingUp, Menu, X, Heart, Trophy, Cloud, ChevronRight, Map as MapIcon, Flag } from 'lucide-react';
-import { doc, setDoc, getDoc, collection, onSnapshot, getDocs } from "firebase/firestore";
+import { doc, setDoc, getDoc, collection, onSnapshot, getDocsFromServer, waitForPendingWrites } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from './firebase';
 import { CLIMB_DATABASE } from './climbs';
@@ -155,19 +155,23 @@ const App = () => {
         setActivities([]);
     }, []);
 
-    // Manual refresh to bypass Firebase local cache
+    // Manual refresh: wacht op lokale writes, haal daarna bewust van de server (niet van cache).
     const forceRefreshActivities = useCallback(async () => {
         if (!db) return;
         try {
+            try {
+                await waitForPendingWrites(db);
+            } catch {
+                // Offline of geen pending writes: toch verversen proberen
+            }
             const actCol = collection(db, "activities");
-            // getDocs with source: 'server' forces a network roundtrip instead of using the local cache
-            const snapshot = await getDocs(actCol, { source: 'server' });
+            const snapshot = await getDocsFromServer(actCol);
             const loadedActs = snapshot.docs.map(d => d.data());
 
             if (loadedActs.length > 0) {
                 loadedActs.sort((a, b) => new Date(b.date) - new Date(a.date));
                 setActivities(loadedActs);
-                console.log(`[Refresh] Forceren ophalen van ${loadedActs.length} activiteiten.`);
+                console.log(`[Refresh] Server-fetch van ${loadedActs.length} activiteiten.`);
             } else {
                 setActivities([]);
             }

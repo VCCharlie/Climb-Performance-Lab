@@ -4,6 +4,7 @@ import { doc, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from '../firebase';
 import { findDuplicatesInList, runInBatches } from '../utils';
 import { matchStravaToSite, STRAVA_BIKE_TYPES } from '../utils/stravaMatch';
+import { protectEnrichedFieldsOnMerge } from '../utils/firestoreActivityMerge';
 
 import { SPORT_TYPES } from '../config';
 
@@ -361,9 +362,11 @@ const DataHub = ({
 
             // 3. De ECHT NIEUWE ritten opslaan in de database
             if (db && newActivities.length > 0) {
-                await Promise.all(newActivities.map(act =>
-                    setDoc(doc(db, 'activities', String(act.id)), act, { merge: true })
-                ));
+                await Promise.all(newActivities.map(act => {
+                    const existing = (activities || []).find(a => String(a.id) === String(act.id));
+                    const payload = protectEnrichedFieldsOnMerge(act, existing);
+                    return setDoc(doc(db, 'activities', String(act.id)), payload, { merge: true });
+                }));
             }
 
             // Update local state met de (nu verrijkte!) ritten. 
@@ -397,9 +400,11 @@ const DataHub = ({
         onImport(newActs);
         if (db) {
             try {
-                await Promise.all(newActs.map(act =>
-                    setDoc(doc(db, 'activities', String(act.id)), act, { merge: true })
-                ));
+                await Promise.all(newActs.map(act => {
+                    const existing = (activities || []).find(a => String(a.id) === String(act.id));
+                    const payload = protectEnrichedFieldsOnMerge(act, existing);
+                    return setDoc(doc(db, 'activities', String(act.id)), payload, { merge: true });
+                }));
             } catch (e) {
                 console.error('Strava import Firestore fout:', e);
             }
@@ -566,8 +571,10 @@ const DataHub = ({
         if (db) {
             try {
                 const writePromises = toImport.map(act => {
-                    if (act.id) return setDoc(doc(db, "activities", String(act.id)), act, { merge: true });
-                    return Promise.resolve();
+                    if (!act.id) return Promise.resolve();
+                    const existing = (activities || []).find(a => String(a.id) === String(act.id));
+                    const payload = protectEnrichedFieldsOnMerge(act, existing);
+                    return setDoc(doc(db, "activities", String(act.id)), payload, { merge: true });
                 });
                 await Promise.all(writePromises);
                 savedCount = toImport.length;
