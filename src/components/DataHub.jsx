@@ -219,9 +219,12 @@ const DataHub = ({
                 const siteNeedsRpe = !m.site.rpe || m.site.rpe === 0;
                 const siteNeedsHr = !m.site.avg_hr || m.site.avg_hr === 0;
                 const siteNeedsGear = !m.site.gear_id && !!m.strava.gear_id;
+                const stravaListTitle = (m.strava.name || '').trim();
+                const titleDiffersFromStrava =
+                    !!stravaListTitle && m.site.title !== stravaListTitle;
 
-                // Alleen overslaan als ALLES al compleet is
-                if (m.site.strava_id && !siteNeedsRpe && !siteNeedsGear && !siteNeedsHr) return;
+                // Overslaan alleen als data compleet is én titel al gelijk is aan Strava (Strava-titel is leidend)
+                if (m.site.strava_id && !siteNeedsRpe && !siteNeedsGear && !siteNeedsHr && !titleDiffersFromStrava) return;
 
                 // Haal details op van Strava (voor RPE + volledige HR)
                 let stravaDetailed = m.strava;
@@ -237,12 +240,12 @@ const DataHub = ({
                 const gearId = stravaDetailed.gear_id || null;
                 const gearName = gearId ? (bikesMap[gearId] || 'Strava fiets') : null;
 
+                const stravaTitle = (stravaDetailed.name || '').trim();
                 const updateData = {
                     strava_id: String(stravaDetailed.id),
                     type: stravaDetailed.sport_type || stravaDetailed.type || m.site.type,
                     ...(gearId && { gear_id: gearId, gear_name: gearName }),
-                    // Titel: alleen overschrijven als site geen titel heeft of "Untitled" is
-                    ...(((!m.site.title || m.site.title === 'Untitled') && stravaDetailed.name) && { title: stravaDetailed.name }),
+                    ...(stravaTitle && { title: stravaTitle }),
                     // RPE alleen invullen als site deze nog niet heeft én Strava heeft 'm wél
                     ...(siteNeedsRpe && stravaDetailed.perceived_exertion && { rpe: stravaDetailed.perceived_exertion }),
                     // HR alleen invullen als site deze nog niet heeft én Strava heeft 'm wél
@@ -310,7 +313,7 @@ const DataHub = ({
         }).catch(err => {
             console.warn("[Auto-Enrichment] Achtergrond verrijking mislukt:", err.message);
         });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [stravaGetToken, activities]);
 
     // --- 2. REFACTORED DIRECT SYNC TRIGGER ---

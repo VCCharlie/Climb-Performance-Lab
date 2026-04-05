@@ -76,10 +76,12 @@ const SyncTab = ({ intervalsConfig, existingActivities, onSyncResults, getStrava
                                     });
 
                                     if (matchedStrava) {
+                                        const stravaTitle = (matchedStrava.name || '').trim();
                                         return {
                                             ...act,
                                             strava_id: String(matchedStrava.id),
-                                            gear_id: matchedStrava.gear_id || null
+                                            gear_id: matchedStrava.gear_id || null,
+                                            ...(stravaTitle && { title: stravaTitle })
                                         };
                                     }
                                     return act;

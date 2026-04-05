@@ -87,7 +87,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
             // Fetch gear name if not in cache
             const bikesMap = JSON.parse(localStorage.getItem('stravaBikesMap') || '{}');
             if (detailedStrava.gear_id && !bikesMap[detailedStrava.gear_id]) {
-                 const r = await fetch(`https://www.strava.com/api/v3/gear/${detailedStrava.gear_id}`, {
+                const r = await fetch(`https://www.strava.com/api/v3/gear/${detailedStrava.gear_id}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 if (r.ok) {
@@ -96,7 +96,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                     localStorage.setItem('stravaBikesMap', JSON.stringify(bikesMap));
                 }
             }
-            
+
             const gearId = detailedStrava.gear_id || null;
             const gearName = gearId ? (bikesMap[gearId] || 'Strava fiets') : null;
 
@@ -107,15 +107,14 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                 ...((!enrichmentTarget.rpe || enrichmentTarget.rpe === 0) && detailedStrava.perceived_exertion && { rpe: detailedStrava.perceived_exertion }),
                 ...((!enrichmentTarget.avg_hr || enrichmentTarget.avg_hr === 0) && detailedStrava.average_heartrate && { avg_hr: Math.round(detailedStrava.average_heartrate) }),
                 ...((!enrichmentTarget.max_hr || enrichmentTarget.max_hr === 0) && detailedStrava.max_heartrate && { max_hr: Math.round(detailedStrava.max_heartrate) }),
-                // Titel: alleen overschrijven als site geen titel heeft of "Untitled" is
-                ...(((!enrichmentTarget.title || enrichmentTarget.title === 'Untitled') && detailedStrava.name) && { title: detailedStrava.name })
+                ...(detailedStrava.name?.trim() && { title: detailedStrava.name.trim() })
             };
 
             await setDoc(doc(db, 'activities', String(enrichmentTarget.id)), updateData, { merge: true });
-            
+
             alert(`Activiteit succesvol gekoppeld aan Strava activiteit "${detailedStrava.name}"! Herlaad de pagina om de wijzigingen te zien.`);
             // TODO: Navigate away or clear target
-        } catch(e) {
+        } catch (e) {
             setError(e.message);
         } finally {
             setIsLinking(false);
@@ -232,15 +231,15 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
 
                         if (detResp.ok) {
                             const detailed = await detResp.json();
-                            
+
                             const siteHasRpe = m.site.rpe && m.site.rpe > 0;
                             const siteHasGear = !!m.site.gear_id;
                             const siteHasHr = m.site.avg_hr && m.site.avg_hr > 0;
-                            
+
                             m.needsRpe = !siteHasRpe && !!detailed.perceived_exertion;
                             m.needsGear = !siteHasGear && !!detailed.gear_id;
                             m.needsHr = !siteHasHr && !!detailed.average_heartrate;
-                            
+
                             if (m.needsRpe) {
                                 m.strava.perceived_exertion = detailed.perceived_exertion;
                             }
@@ -261,7 +260,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
             setFetchProgress('');
         }
     }, [getStravaToken, startDate, endDate, activities, applyResults, onResultsChange]);
-    
+
     // Auto-fetch when component loads in single-activity mode
     useEffect(() => {
         if (enrichmentTarget && !results) {
@@ -283,11 +282,13 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                 if (db) {
                     const gearId = strava.gear_id || null;
                     const gearName = gearId ? (bikesMap[gearId] || 'Strava fiets') : null;
+                    const stravaTitle = (strava.name || '').trim();
                     await setDoc(
                         doc(db, 'activities', String(site.id)),
                         {
                             strava_id: String(strava.id),
                             ...(gearId && { gear_id: gearId, gear_name: gearName }),
+                            ...(stravaTitle && { title: stravaTitle }),
                             ...((!site.rpe || site.rpe === 0) && strava.perceived_exertion && { rpe: strava.perceived_exertion }),
                             ...((!site.avg_hr || site.avg_hr === 0) && strava.average_heartrate && { avg_hr: Math.round(strava.average_heartrate) }),
                             ...((!site.max_hr || site.max_hr === 0) && strava.max_heartrate && { max_hr: Math.round(strava.max_heartrate) })
@@ -324,8 +325,10 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                     if (db) {
                         const gearId = strava.gear_id || null;
                         const gearName = gearId ? (bikesMap[gearId] || 'Strava fiets') : null;
+                        const stravaTitle = (strava.name || '').trim();
                         const updateData = {
                             ...(gearId && { gear_id: gearId, gear_name: gearName }),
+                            ...(stravaTitle && { title: stravaTitle }),
                             ...((!site.rpe || site.rpe === 0) && strava.perceived_exertion && { rpe: strava.perceived_exertion }),
                             ...((!site.avg_hr || site.avg_hr === 0) && strava.average_heartrate && { avg_hr: Math.round(strava.average_heartrate) }),
                             ...((!site.max_hr || site.max_hr === 0) && strava.max_heartrate && { max_hr: Math.round(strava.max_heartrate) })
@@ -377,12 +380,12 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
     };
 
     // Vanaf hier: render logic
-    
+
     // Single-Activity linking view
     if (enrichmentTarget) {
         return (
             <div className="space-y-4 flex-1 overflow-y-auto custom-scrollbar pr-1">
-                 <div className="p-3 rounded-lg border-2 border-dashed border-yellow-500/50 bg-yellow-500/5">
+                <div className="p-3 rounded-lg border-2 border-dashed border-yellow-500/50 bg-yellow-500/5">
                     <h3 className="font-bold text-yellow-400">Activiteit Koppelen</h3>
                     <p className="text-xs text-cdmuted mt-1">
                         Je bent bezig <strong className="text-cdtext">{enrichmentTarget.title}</strong> (van {enrichmentTarget.date.split('T')[0]}) te koppelen.
@@ -396,13 +399,13 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                 )}
 
                 {isFetching && (
-                     <div className="flex items-center gap-2 text-sm text-cdmuted">
+                    <div className="flex items-center gap-2 text-sm text-cdmuted">
                         <Loader2 size={14} className="animate-spin" /> {fetchProgress || 'Strava doorzoeken...'}
                     </div>
                 )}
-                
+
                 {isLinking && (
-                     <div className="flex items-center gap-2 text-sm text-green-400">
+                    <div className="flex items-center gap-2 text-sm text-green-400">
                         <Loader2 size={14} className="animate-spin" /> Bezig met koppelen...
                     </div>
                 )}
@@ -412,14 +415,14 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                         <div>
                             <h4 className="text-sm font-bold text-cdtext mb-2">Handmatig koppelen via URL</h4>
                             <div className="flex gap-2">
-                                <input 
+                                <input
                                     type="text"
                                     value={manualUrl}
                                     onChange={e => setManualUrl(e.target.value)}
                                     placeholder="Plak Strava activiteit URL..."
                                     className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none text-sm"
                                 />
-                                <button 
+                                <button
                                     onClick={handleManualUrlLink}
                                     disabled={!manualUrl}
                                     className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-bold rounded shadow-lg shadow-yellow-500/20 flex items-center gap-2 text-sm disabled:opacity-50"
@@ -430,8 +433,8 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                         </div>
 
                         <div>
-                             <h4 className="text-sm font-bold text-cdtext mb-2">Gevonden op Strava op {startDate}</h4>
-                             <div className="space-y-1 max-h-96 overflow-y-auto custom-scrollbar">
+                            <h4 className="text-sm font-bold text-cdtext mb-2">Gevonden op Strava op {startDate}</h4>
+                            <div className="space-y-1 max-h-96 overflow-y-auto custom-scrollbar">
                                 {results.unmatchedStrava.length === 0 && results.matched.length === 0 ? (
                                     <p className="text-xs text-cdmuted text-center py-4">Geen Strava-activiteiten gevonden op deze dag.</p>
                                 ) : (
@@ -441,7 +444,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                                             <span className="flex-1 truncate text-cdtext font-medium" title={strava.name}>{strava.name}</span>
                                             <span className="text-cdmuted shrink-0">{Math.round(strava.distance / 100) / 10} km</span>
                                             {strava.average_watts > 0 && <span className="text-yellow-400 font-bold shrink-0">{Math.round(strava.average_watts)}w</span>}
-                                            <button 
+                                            <button
                                                 onClick={() => handleDirectLink(strava)}
                                                 className="ml-auto px-3 py-1 bg-green-600 hover:bg-green-500 text-white font-bold rounded text-xs transition-colors shrink-0"
                                             >
@@ -450,7 +453,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                                         </div>
                                     ))
                                 )}
-                             </div>
+                            </div>
                         </div>
                     </div>
                 )}
