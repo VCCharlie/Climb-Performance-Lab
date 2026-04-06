@@ -5,6 +5,9 @@ import {
   formatSignedInt,
   formatSignedDuration,
   addSecondsToTimeStr,
+  horizontalDistanceDeltaInATimeAtBPace,
+  horizontalDistanceDeltaInBTimeAtAPace,
+  formatSignedHorizontalDelta,
   EMPTY_PHYSICS_CALC
 } from '../../utils/physicsEngineCore';
 
@@ -97,5 +100,33 @@ describe('formatSignedDuration', () => {
   it('formats mm:ss and h:mm:ss', () => {
     expect(formatSignedDuration(90)).toBe('+1:30');
     expect(formatSignedDuration(-3665)).toBe('-1:01:05');
+  });
+});
+
+describe('horizontal distance deltas (same climb length)', () => {
+  it('positive when B is faster: extra road in A time at B pace', () => {
+    const d = 10000;
+    const tA = 3600;
+    const tB = 3000;
+    expect(horizontalDistanceDeltaInATimeAtBPace(d, tA, tB)).toBeCloseTo(2000, 5);
+  });
+
+  it('symmetric second perspective', () => {
+    const d = 10000;
+    const tA = 3600;
+    const tB = 3000;
+    expect(horizontalDistanceDeltaInBTimeAtAPace(d, tA, tB)).toBeCloseTo(-1666.67, 1);
+  });
+});
+
+describe('formatSignedHorizontalDelta', () => {
+  it('uses m for small values', () => {
+    expect(formatSignedHorizontalDelta(450)).toBe('+450 m');
+    expect(formatSignedHorizontalDelta(-200)).toBe('-200 m');
+  });
+
+  it('uses km for large values', () => {
+    expect(formatSignedHorizontalDelta(1500)).toContain('km');
+    expect(formatSignedHorizontalDelta(1500)).toContain('+');
   });
 });

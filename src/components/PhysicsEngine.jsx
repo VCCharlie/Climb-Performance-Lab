@@ -10,7 +10,8 @@ import {
   ArrowUpRight,
   GitCompare,
   Timer,
-  Flame
+  Flame,
+  Ruler
 } from 'lucide-react';
 import { COGGAN_ZONES } from '../climbs';
 import { summarizeClimbPhysics } from '../utils';
@@ -21,6 +22,9 @@ import {
   formatSignedInt,
   formatSignedDuration,
   addSecondsToTimeStr,
+  horizontalDistanceDeltaInATimeAtBPace,
+  horizontalDistanceDeltaInBTimeAtAPace,
+  formatSignedHorizontalDelta,
   EMPTY_PHYSICS_CALC
 } from '../utils/physicsEngineCore';
 
@@ -134,6 +138,20 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
   const tssB = useMemo(
     () => estimateSteadyTss(compareCalc.seconds, compareCalc.watts, userSettings.ftp),
     [compareCalc.seconds, compareCalc.watts, userSettings.ftp]
+  );
+
+  const climbLenM = selectedClimb ? selectedClimb.lengthKm * 1000 : 0;
+
+  const distDeltaInATime = useMemo(
+    () =>
+      horizontalDistanceDeltaInATimeAtBPace(climbLenM, calc.seconds, compareCalc.seconds),
+    [climbLenM, calc.seconds, compareCalc.seconds]
+  );
+
+  const distDeltaInBTime = useMemo(
+    () =>
+      horizontalDistanceDeltaInBTimeAtAPace(climbLenM, calc.seconds, compareCalc.seconds),
+    [climbLenM, calc.seconds, compareCalc.seconds]
   );
 
   const calculateZoneWidth = (zone) => {
@@ -270,7 +288,7 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                 />
               </div>
             )}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px]">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 text-[11px]">
               <div className="bg-cdsurface/80 border border-cdborder rounded-lg p-2">
                 <span className="text-cdmuted uppercase text-[9px] font-bold">Δ Power</span>
                 <div className="text-cdtext font-mono font-bold">
@@ -285,6 +303,24 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                     : '—'}
                 </div>
                 <span className="text-[9px] text-cdmuted block">+ = B slower (longer)</span>
+              </div>
+              <div className="bg-cdsurface/80 border border-cdborder rounded-lg p-2">
+                <span className="text-cdmuted uppercase text-[9px] font-bold flex items-center gap-1"><Ruler size={10} /> Δ Road (A’s time)</span>
+                <div className="text-cdtext font-mono font-bold leading-tight">
+                  {calc.seconds > 0 && compareCalc.seconds > 0
+                    ? formatSignedHorizontalDelta(distDeltaInATime)
+                    : '—'}
+                </div>
+                <span className="text-[9px] text-cdmuted block">at B’s avg speed vs climb length</span>
+              </div>
+              <div className="bg-cdsurface/80 border border-cdborder rounded-lg p-2">
+                <span className="text-cdmuted uppercase text-[9px] font-bold flex items-center gap-1"><Ruler size={10} /> Δ Road (B’s time)</span>
+                <div className="text-cdtext font-mono font-bold leading-tight">
+                  {calc.seconds > 0 && compareCalc.seconds > 0
+                    ? formatSignedHorizontalDelta(distDeltaInBTime)
+                    : '—'}
+                </div>
+                <span className="text-[9px] text-cdmuted block">at A’s avg speed vs climb length</span>
               </div>
               <div className="bg-cdsurface/80 border border-cdborder rounded-lg p-2">
                 <span className="text-cdmuted uppercase text-[9px] font-bold flex items-center gap-1"><Flame size={10} /> Δ VAM</span>

@@ -135,3 +135,39 @@ export function addSecondsToTimeStr(timeStr, deltaSec) {
         ? d.toISOString().substr(11, 8)
         : d.toISOString().substr(14, 5);
 }
+
+/**
+ * Same climb length (horizontal, m). How much farther along the road you'd get in scenario A's
+ * duration if you rode at scenario B's average speed: (vB * tA) - distance.
+ * Positive = B is faster → in A's time at B's pace you finish the climb and keep going.
+ */
+export function horizontalDistanceDeltaInATimeAtBPace(distanceM, secondsA, secondsB) {
+    if (!distanceM || distanceM <= 0 || !secondsA || !secondsB || secondsA <= 0 || secondsB <= 0) {
+        return 0;
+    }
+    const vB = distanceM / secondsB;
+    return vB * secondsA - distanceM;
+}
+
+/** Reverse: distance covered in B's time at A's pace minus climb length. */
+export function horizontalDistanceDeltaInBTimeAtAPace(distanceM, secondsA, secondsB) {
+    if (!distanceM || distanceM <= 0 || !secondsA || !secondsB || secondsA <= 0 || secondsB <= 0) {
+        return 0;
+    }
+    const vA = distanceM / secondsA;
+    return vA * secondsB - distanceM;
+}
+
+/** Human-readable signed horizontal delta (m, optional km in parentheses). */
+export function formatSignedHorizontalDelta(meters) {
+    const m = Math.round(meters);
+    if (m === 0) return '0 m';
+    const sign = m > 0 ? '+' : '-';
+    const abs = Math.abs(m);
+    if (abs < 1000) {
+        return `${sign}${abs} m`;
+    }
+    const km = abs / 1000;
+    const kmStr = km >= 10 ? km.toFixed(1) : km.toFixed(2);
+    return `${sign}${kmStr} km (${sign}${abs.toLocaleString('en-US')} m)`;
+}
