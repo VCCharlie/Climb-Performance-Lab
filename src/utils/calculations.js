@@ -95,9 +95,52 @@ export const calculateClimbCategory = (lengthKm, avgGrade) => {
     // Bump score for >10% briefly
     if (avgGrade > 10) score *= 1.25;
 
-    if (score > 100 || (lengthKm > 15 && avgGrade > 6)) return { label: 'HC', className: 'text-slate-900 bg-white border border-slate-300 shadow-sm font-black', score, full: 'Hors CatÃ©gorie' };
+    if (score > 100 || (lengthKm > 15 && avgGrade > 6)) return { label: 'HC', className: 'text-slate-900 bg-white border border-slate-300 shadow-sm font-black', score, full: 'Hors Catégorie' };
     if (score > 60) return { label: '1', className: 'text-cdtext bg-red-600 shadow-sm font-bold', score, full: 'Cat 1' };
     if (score > 35) return { label: '2', className: 'text-cdtext bg-orange-500 shadow-sm font-bold', score, full: 'Cat 2' };
     if (score > 16) return { label: '3', className: 'text-cdtext bg-yellow-500 shadow-sm font-bold', score, full: 'Cat 3' };
     return { label: '4', className: 'text-cdtext bg-green-500 shadow-sm font-bold', score, full: 'Cat 4' };
+};
+
+/**
+ * Compact metrics for the Climbs / physics UI (power vs FTP, energy density, gradient context).
+ */
+export const summarizeClimbPhysics = ({
+    lengthKm,
+    elevation,
+    avgGrade,
+    ftp,
+    watts,
+    seconds,
+    riderWeightKg
+}) => {
+    const dist = Number(lengthKm) || 0;
+    const elev = Number(elevation) || 0;
+    const grade = Number(avgGrade) || 0;
+    const w = Number(watts) || 0;
+    const t = Number(seconds) || 0;
+    const f = Number(ftp) || 0;
+    const rw = Number(riderWeightKg) || 0;
+
+    const pctFtp = f > 0 && w > 0 ? (w / f) * 100 : null;
+    const kJ = t > 0 && w > 0 ? Math.round((w * t) / 1000) : null;
+    const kJperKm = kJ != null && dist > 0 ? Math.round(kJ / dist) : null;
+    const elevPerKm = dist > 0 ? Math.round(elev / dist) : null;
+    const wkg = rw > 0 && w > 0 ? w / rw : null;
+    const category = dist > 0 && grade > 0 ? calculateClimbCategory(dist, grade) : null;
+
+    let gradientNote = null;
+    if (grade >= 10) gradientNote = 'Very steep — short power spikes and traction matter as much as FTP.';
+    else if (grade >= 7) gradientNote = 'Steep — pacing and sustainable torque are key.';
+    else if (grade >= 4) gradientNote = 'Moderate gradient — rhythm and aero still play a role.';
+
+    return {
+        pctFtp,
+        kJ,
+        kJperKm,
+        elevPerKm,
+        wkg,
+        category,
+        gradientNote
+    };
 };

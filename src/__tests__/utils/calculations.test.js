@@ -10,6 +10,7 @@ import {
   calculateFerrariWatts,
   calculateRollingTrend,
   calculateClimbCategory,
+  summarizeClimbPhysics,
 } from '../../utils/calculations';
 
 // ─── POWER ZONES (Coggan Model) ─────────────────────────────────────────────
@@ -289,5 +290,40 @@ describe('calculateClimbCategory', () => {
     expect(calculateClimbCategory(21.5, 7.5).label).toBe('HC');
     // Short Dutch "berg": 1km, 5% → score 5 → Cat 4
     expect(calculateClimbCategory(1, 5).label).toBe('4');
+  });
+});
+
+describe('summarizeClimbPhysics', () => {
+  it('returns intensity and energy density for a typical climb', () => {
+    const s = summarizeClimbPhysics({
+      lengthKm: 10,
+      elevation: 800,
+      avgGrade: 8,
+      ftp: 250,
+      watts: 275,
+      seconds: 3600,
+      riderWeightKg: 70
+    });
+    expect(s.pctFtp).toBeCloseTo(110, 5);
+    expect(s.kJ).toBe(990);
+    expect(s.kJperKm).toBe(99);
+    expect(s.elevPerKm).toBe(80);
+    expect(s.wkg).toBeCloseTo(275 / 70, 5);
+    expect(s.category?.label).toBeTruthy();
+    expect(s.gradientNote).toBeTruthy();
+  });
+
+  it('handles missing FTP gracefully', () => {
+    const s = summarizeClimbPhysics({
+      lengthKm: 5,
+      elevation: 300,
+      avgGrade: 6,
+      ftp: 0,
+      watts: 200,
+      seconds: 1800,
+      riderWeightKg: 0
+    });
+    expect(s.pctFtp).toBe(null);
+    expect(s.wkg).toBe(null);
   });
 });

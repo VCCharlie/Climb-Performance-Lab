@@ -18,7 +18,9 @@ import {
     User,
     MapPin,
     Activity,
+    Route,
 } from 'lucide-react';
+import { fetchAllBikeActivitiesForRecords, matchRecordActivities } from '../../utils/stravaProfileRecords';
 
 const STRAVA_BASE = 'https://www.strava.com/api/v3';
 const LOCALE = 'en-US';
@@ -119,12 +121,26 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
             setFetchProgress('Loading bikes…');
             const bikes = (athlete?.bikes || []).sort((a, b) => (b.distance || 0) - (a.distance || 0));
 
+            setFetchProgress('Linking record rides…');
+            let recordRides = null;
+            try {
+                const { activities: scanned, historyComplete } = await fetchAllBikeActivitiesForRecords(
+                    token,
+                    (msg) => setFetchProgress(msg)
+                );
+                recordRides = matchRecordActivities(scanned, stats, { historyComplete });
+            } catch (recErr) {
+                console.warn('[Strava profile] Record ride linking failed:', recErr);
+                recordRides = null;
+            }
+
             applyData({
                 athlete,
                 stats,
                 koms,
                 starred,
                 bikes,
+                recordRides,
                 fetchedAt: new Date().toISOString()
             });
         } catch (e) {
@@ -143,7 +159,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
         );
     }
 
-    const { athlete, stats, koms, starred, bikes } = data || {};
+    const { athlete, stats, koms, starred, bikes, recordRides } = data || {};
     const komCount = koms ? koms.filter(e => e.is_kom !== false).length : 0;
     const crCount = koms ? koms.filter(e => e.is_kom === false).length : 0;
     const recent = stats?.recent_ride_totals;
@@ -280,11 +296,74 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                         <StatCard icon={Mountain} iconColor="text-green-400" label="Elevation" value={fmt.elev(stats.all_ride_totals?.elevation_gain ?? 0)} sub={`YTD: ${fmt.elev(stats.ytd_ride_totals?.elevation_gain ?? 0)}`} />
                         <StatCard icon={Clock} iconColor="text-purple-400" label="Moving time" value={fmt.time(stats.all_ride_totals?.moving_time ?? 0)} sub={`YTD: ${fmt.time(stats.ytd_ride_totals?.moving_time ?? 0)}`} />
                     </div>
-                    {stats.biggest_climb_elevation_gain > 0 && (
-                        <div className="text-xs text-cdmuted bg-cdbg/40 border border-cdborder rounded-lg p-3">
-                            Biggest climb: <span className="text-cdtext font-bold">{fmt.elev(stats.biggest_climb_elevation_gain)}</span> gain
-                            {stats.biggest_ride_distance > 0 && (
-                                <> · Longest ride: <span className="text-cdtext font-bold">{fmt.dist(stats.biggest_ride_distance)}</span></>
+                    {(stats.biggest_climb_elevation_gain > 0 || stats.biggest_ride_distance > 0) && (
+                        <div className="bg-cdbg/40 border border-cdborder rounded-lg p-3 space-y-3">
+                            <h4 className="text-[10px] font-bold text-cdmuted uppercase tracking-wide flex items-center gap-2">
+                                <Route size={12} className="text-orange-400" /> Personal records (Strava)
+                            </h4>
+                            <div className="grid gap-3 sm:grid-cols-2">
+                                {stats.biggest_ride_distance > 0 && (
+                                    <div className="text-xs text-cdmuted rounded border border-cdborder/60 bg-cdbg/50 p-2.5">
+                                        <div className="text-[10px] uppercase font-bold text-cdmuted mb-1">Longest ride</div>
+                                        <div className="text-cdtext font-bold">{fmt.dist(stats.biggest_ride_distance)}</div>
+                                        {recordRides?.longestRide ? (
+                                            <a
+                                                href={`https://www.strava.com/activities/${recordRides.longestRide.id}`}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="mt-2 inline-flex items-center gap-1 text-orange-400 hover:text-orange-300 font-bold"
+                                            >
+                                                {recordRides.longestRide.name || 'Open activity'}
+                                                <ExternalLink size={11} />
+                                            </a>
+                                        ) : (
+                                            <p className="mt-2 text-[10px] text-cdmuted">
+                                                {recordRides == null
+                                                    ? 'Could not load activity links (API error).'
+                                                    : !recordRides.historyComplete
+                                                        ? 'Link unavailable: history scan capped at 20k activities.'
+                                                        : 'No ride in scanned history matched Strava record numbers.'}
+                                            </p>
+                                        )}
+                                        {recordRides?.longestApprox && (
+                                            <p className="text-[10px] text-yellow-500/90 mt-1">Best match: max distance in scanned rides (± stats).</p>
+                                        )}
+                                    </div>
+                                )}
+                                {stats.biggest_climb_elevation_gain > 0 && (
+                                    <div className="text-xs text-cdmuted rounded border border-cdborder/60 bg-cdbg/50 p-2.5">
+                                        <div className="text-[10px] uppercase font-bold text-cdmuted mb-1">Most elevation (single ride)</div>
+                                        <div className="text-cdtext font-bold">{fmt.elev(stats.biggest_climb_elevation_gain)}</div>
+                                        {recordRides?.mostElevation ? (
+                                            <a
+                                                href={`https://www.strava.com/activities/${recordRides.mostElevation.id}`}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="mt-2 inline-flex items-center gap-1 text-orange-400 hover:text-orange-300 font-bold"
+                                            >
+                                                {recordRides.mostElevation.name || 'Open activity'}
+                                                <ExternalLink size={11} />
+                                            </a>
+                                        ) : (
+                                            <p className="mt-2 text-[10px] text-cdmuted">
+                                                {recordRides == null
+                                                    ? 'Could not load activity links (API error).'
+                                                    : !recordRides.historyComplete
+                                                        ? 'Link unavailable: history scan capped at 20k activities.'
+                                                        : 'No ride in scanned history matched Strava record numbers.'}
+                                            </p>
+                                        )}
+                                        {recordRides?.elevApprox && (
+                                            <p className="text-[10px] text-yellow-500/90 mt-1">Best match: max elevation in scanned rides (± stats).</p>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                            {recordRides?.ridesScanned > 0 && (
+                                <p className="text-[10px] text-cdmuted opacity-70">
+                                    Scanned {recordRides.ridesScanned.toLocaleString(LOCALE)} bike activities for links.
+                                    {!recordRides.historyComplete && ' Older rides may not be included.'}
+                                </p>
                             )}
                         </div>
                     )}
