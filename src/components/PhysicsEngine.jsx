@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { Mountain, Info, Minus, Plus } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Mountain, Info, Minus, Plus, Lightbulb, Gauge, Zap, ArrowUpRight } from 'lucide-react';
 import { COGGAN_ZONES } from '../climbs';
-import { parseDurationToSeconds, calculateFerrariWatts } from '../utils';
+import { parseDurationToSeconds, calculateFerrariWatts, summarizeClimbPhysics } from '../utils';
 import ClimbSelector from './shared/ClimbSelector';
+
+const EMPTY_PHYSICS_CALC = { watts: 0, wkg: 0, time: '', vam: 0, zone: null, ferrariWatts: 0, ferrariWkg: 0 };
 
 const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateClimb }) => {
   const [mode, setMode] = useState('target');
   const [targetTimeStr, setTargetTimeStr] = useState("59:00");
   const [targetWatts, setTargetWatts] = useState(userSettings.ftp);
-  const [calc, setCalc] = useState({ watts: 0, wkg: 0, time: "", vam: 0, zone: null });
 
   // Physics Params State
   const [cda, setCda] = useState(0.32);
@@ -37,8 +38,9 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
     setTargetWatts(prev => Math.max(0, Number(prev) + delta));
   };
 
-  useEffect(() => {
-    if (!selectedClimb) return;
+  const calc = useMemo(() => {
+    if (!selectedClimb) return EMPTY_PHYSICS_CALC;
+
     const totalWeight = userSettings.weight + userSettings.bikeWeight;
     const grade = selectedClimb.avgGrade / 100;
     const distance = selectedClimb.lengthKm * 1000;
@@ -46,7 +48,8 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
     const g = 9.81;
     const rho = 1.225;
 
-    let watts = 0, seconds = 0;
+    let watts = 0;
+    let seconds = 0;
 
     if (mode === 'target') {
       seconds = parseDurationToSeconds(targetTimeStr);
@@ -73,21 +76,34 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
       seconds = v > 0 ? distance / v : 0;
     }
 
-    const wkg = watts / userSettings.weight;
+    const wkg = userSettings.weight > 0 ? watts / userSettings.weight : 0;
     const vam = seconds > 0 ? (elevation / seconds) * 3600 : 0;
     const zone = COGGAN_ZONES.find(z => (watts / userSettings.ftp) >= z.min && (watts / userSettings.ftp) <= z.max) || COGGAN_ZONES[6];
 
-    setCalc({
+    return {
       watts: Math.round(watts),
       wkg: wkg.toFixed(2),
       time: new Date(seconds * 1000).toISOString().substr(11, 8),
       vam: Math.round(vam),
       ferrariWatts: calculateFerrariWatts(vam, grade * 100, totalWeight),
       ferrariWkg: calculateFerrariWatts(vam, grade * 100),
-      zone: zone
-    });
+      zone
+    };
+  }, [mode, targetTimeStr, targetWatts, selectedClimb, userSettings.weight, userSettings.bikeWeight, userSettings.ftp, cda, crr, loss]);
 
-  }, [mode, targetTimeStr, targetWatts, selectedClimb, userSettings, cda, crr, loss]);
+  const climbInsights = useMemo(() => {
+    if (!selectedClimb) return null;
+    const seconds = parseDurationToSeconds(calc.time);
+    return summarizeClimbPhysics({
+      lengthKm: selectedClimb.lengthKm,
+      elevation: selectedClimb.elevation,
+      avgGrade: selectedClimb.avgGrade,
+      ftp: userSettings.ftp,
+      watts: calc.watts,
+      seconds,
+      riderWeightKg: userSettings.weight
+    });
+  }, [selectedClimb, userSettings.weight, userSettings.ftp, calc.watts, calc.time]);
 
   const calculateZoneWidth = (zone) => {
     // Visual max is 150% of FTP (1.5)
@@ -141,6 +157,68 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
           onSelect={onUpdateClimb}
           showCategoryBadge
         />
+
+        {selectedClimb && climbInsights && (
+          <div className="rounded-xl border border-cdborder bg-cdbg/40 p-4 space-y-3">
+            <div className="flex items-center gap-2 text-sm font-bold text-cdtext">
+              <Lightbulb size={16} className="text-yellow-400 shrink-0" />
+              Climb insights
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+              {climbInsights.category && (
+                <div className="bg-cdsurface/80 border border-cdborder rounded-lg p-2.5">
+                  <span className="text-[10px] uppercase text-cdmuted font-bold block mb-0.5">Category</span>
+                  <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-black ${climbInsights.category.className}`}>
+                    {climbInsights.category.label}
+                  </span>
+                  <span className="text-cdmuted block mt-1 text-[10px]">{climbInsights.category.full}</span>
+                </div>
+              )}
+              {climbInsights.pctFtp != null && userSettings.ftp > 0 && (
+                <div className="bg-cdsurface/80 border border-cdborder rounded-lg p-2.5 flex flex-col gap-1">
+                  <span className="text-[10px] uppercase text-cdmuted font-bold flex items-center gap-1"><Gauge size={11} /> vs FTP</span>
+                  <span className="text-lg font-bold text-yellow-400">{Math.round(climbInsights.pctFtp)}%</span>
+                  <span className="text-[10px] text-cdmuted">of {userSettings.ftp} W threshold</span>
+                </div>
+              )}
+              {climbInsights.kJ != null && (
+                <div className="bg-cdsurface/80 border border-cdborder rounded-lg p-2.5 flex flex-col gap-1">
+                  <span className="text-[10px] uppercase text-cdmuted font-bold flex items-center gap-1"><Zap size={11} /> Work</span>
+                  <span className="text-lg font-bold text-cdtext">{climbInsights.kJ} <span className="text-sm text-cdmuted font-normal">kJ</span></span>
+                  {climbInsights.kJperKm != null && (
+                    <span className="text-[10px] text-cdmuted">~{climbInsights.kJperKm} kJ/km on this climb</span>
+                  )}
+                </div>
+              )}
+              {climbInsights.elevPerKm != null && (
+                <div className="bg-cdsurface/80 border border-cdborder rounded-lg p-2.5 flex flex-col gap-1">
+                  <span className="text-[10px] uppercase text-cdmuted font-bold">Profile</span>
+                  <span className="text-cdtext font-bold">{climbInsights.elevPerKm} m/km</span>
+                  <span className="text-[10px] text-cdmuted">avg gradient {selectedClimb.avgGrade}%</span>
+                </div>
+              )}
+            </div>
+            {climbInsights.wkg != null && (
+              <p className="text-xs text-cdmuted">
+                Rider power: <span className="text-cdtext font-mono font-bold">{calc.watts} W</span>
+                {' '}({climbInsights.wkg.toFixed(2)} W/kg) · VAM <span className="text-cdtext font-mono">{calc.vam}</span> m/h
+              </p>
+            )}
+            {climbInsights.gradientNote && (
+              <p className="text-xs text-cdmuted border-l-2 border-yellow-400/50 pl-3 py-0.5">{climbInsights.gradientNote}</p>
+            )}
+            {selectedClimb.url && (
+              <a
+                href={selectedClimb.url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-cdaccent hover:underline font-bold"
+              >
+                External climb info <ArrowUpRight size={12} />
+              </a>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
