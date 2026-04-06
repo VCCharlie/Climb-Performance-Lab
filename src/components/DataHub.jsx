@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Search, Loader2, AlertTriangle, Trash, Split, RefreshCw, ExternalLink, GitBranch, Zap, ChevronDown } from 'lucide-react';
+import { Search, Loader2, AlertTriangle, Trash, Split, RefreshCw, ExternalLink, GitBranch, Zap, ChevronDown, Link2 } from 'lucide-react';
 import { doc, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from '../firebase';
 import { findDuplicatesInList, runInBatches } from '../utils';
@@ -54,8 +54,9 @@ const DataHub = ({
     const [noPowerSelected, setNoPowerSelected] = useState([]);
     const [showUtilMenu, setShowUtilMenu] = useState(false);
     const utilMenuRef = useRef(null);
+    const [showStravaEnrichPanel, setShowStravaEnrichPanel] = useState(false);
 
-    // State for single-day Strava search
+    // State for single-day Strava search (Tools → Strava enrichment panel)
     const [stravaDateOverride, setStravaDateOverride] = useState(null);
     const [enrichmentTarget, setEnrichmentTarget] = useState(null);
 
@@ -65,16 +66,15 @@ const DataHub = ({
         setEnrichmentTarget(activity);
         setStravaDateOverride(activityDate);
         setEditingActivity(null);
-        setInternalTab('strava');
+        setShowStravaEnrichPanel(true);
     };
 
-    // Reset override when leaving tab
     useEffect(() => {
-        if (internalTab !== 'strava' && (stravaDateOverride || enrichmentTarget)) {
+        if (!showStravaEnrichPanel) {
             setStravaDateOverride(null);
             setEnrichmentTarget(null);
         }
-    }, [internalTab, stravaDateOverride, enrichmentTarget]);
+    }, [showStravaEnrichPanel]);
 
     // Vanuit Dashboard: spring naar rit in het log en highlight kort
     useEffect(() => {
@@ -174,7 +174,7 @@ const DataHub = ({
                 if (athleteResp.ok) {
                     const athleteData = await athleteResp.json();
                     (athleteData.bikes || []).forEach(b => {
-                        bikesMap[b.id] = b.name || 'Fiets';
+                        bikesMap[b.id] = b.name || 'Bike';
                     });
                 }
 
@@ -187,7 +187,7 @@ const DataHub = ({
                             });
                             if (r.ok) {
                                 const g = await r.json();
-                                bikesMap[gid] = g.name || [g.brand_name, g.model_name].filter(Boolean).join(' ') || 'Fiets';
+                                bikesMap[gid] = g.name || [g.brand_name, g.model_name].filter(Boolean).join(' ') || 'Bike';
                             }
                         } catch { /* ignore */ }
                     }));
@@ -239,7 +239,7 @@ const DataHub = ({
                 } catch { console.warn("Detail fetch failed for Strava", m.strava.id); }
 
                 const gearId = stravaDetailed.gear_id || null;
-                const gearName = gearId ? (bikesMap[gearId] || 'Strava fiets') : null;
+                const gearName = gearId ? (bikesMap[gearId] || 'Strava bike') : null;
 
                 const stravaTitle = (stravaDetailed.name || '').trim();
                 const updateData = {
@@ -321,7 +321,7 @@ const DataHub = ({
     const handleSync = async () => {
         setShowUtilMenu(false);
         setSyncStatus('started');
-        setSyncErrorDetail('Stap 1/2: Nieuwe ritten ophalen (laatste 14 dagen)...');
+        setSyncErrorDetail('Step 1/2: Fetching new rides (last 14 days)...');
 
         try {
             const sportFilters = SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: true }), {});
@@ -348,12 +348,12 @@ const DataHub = ({
 
             if (totalCheckList.length === 0) {
                 setSyncStatus('done');
-                setSyncErrorDetail('✅ Je bent helemaal bij! Geen activiteiten gevonden in de laatste 14 dagen.');
+                setSyncErrorDetail('✅ You are up to date. No activities in the last 14 days.');
                 setTimeout(() => setSyncStatus(null), 5000);
                 return;
             }
 
-            setSyncErrorDetail(`Stap 2/2: ${newActivities.length} nieuwe ritten gevonden. Bezig met Strava verrijking...`);
+            setSyncErrorDetail(`Step 2/2: ${newActivities.length} new ride(s) found. Enriching with Strava...`);
             setSyncStatus('enriching');
 
             // De performSilentStravaEnrichment functie doet de matching, detail fetches en Firestore writes.
@@ -383,13 +383,13 @@ const DataHub = ({
             }
 
             setSyncStatus('done');
-            setSyncErrorDetail(`✅ Sync voltooid! ${newActivities.length} nieuw, ${enrichedCount} ritten bijgewerkt met Strava data.`);
+            setSyncErrorDetail(`✅ Sync complete. ${newActivities.length} new, ${enrichedCount} ride(s) updated with Strava data.`);
             setTimeout(() => setSyncStatus(null), 8000);
 
         } catch (e) {
             console.error('Sync failed:', e);
             setSyncStatus('error');
-            setSyncErrorDetail(`❌ Fout: ${e.message}`);
+            setSyncErrorDetail(`❌ Error: ${e.message}`);
         }
     };
 
@@ -406,7 +406,7 @@ const DataHub = ({
                     return setDoc(doc(db, 'activities', String(act.id)), payload, { merge: true });
                 }));
             } catch (e) {
-                console.error('Strava import Firestore fout:', e);
+                console.error('Strava import Firestore error:', e);
             }
         }
     };
@@ -418,7 +418,7 @@ const DataHub = ({
             }
             setEditingActivity(null);
         } catch (e) {
-            alert("Fout bij opslaan wijziging: " + e.message);
+            alert("Could not save changes: " + e.message);
         }
     };
 
@@ -427,14 +427,14 @@ const DataHub = ({
             try {
                 await deleteDoc(doc(db, "activities", String(id)));
             } catch {
-                alert("Kon activiteit niet verwijderen uit database.");
+                alert("Could not remove activity from the database.");
             }
         }
     }, []);
 
     const handleClearDatabase = async () => {
-        if (!confirm("WEET JE HET ZEKER?\n\nHiermee verwijder je ALLE activiteiten uit de database.")) return;
-        if (!confirm("ECHT ZEKER? Typ 'JA' in je hoofd en klik OK.")) return;
+        if (!confirm("Are you sure?\n\nThis removes ALL activities from the database.")) return;
+        if (!confirm("Really sure? This cannot be undone.")) return;
         setIsDeleting(true);
         try {
             if (db && activities.length > 0) {
@@ -442,9 +442,9 @@ const DataHub = ({
                 await Promise.all(promises);
             }
             if (onClear) onClear();
-            alert("Database succesvol gewist. Klaar voor een schone start!");
+            alert("Database cleared. Ready for a fresh start.");
         } catch (e) {
-            alert("Fout bij wissen database: " + e.message);
+            alert("Could not clear database: " + e.message);
         } finally {
             setIsDeleting(false);
         }
@@ -457,14 +457,14 @@ const DataHub = ({
             setDuplicates(foundDups);
             setShowDuplicateModal(true);
         } else {
-            alert("Geen duplicaten gevonden! Je database is clean.");
+            alert("No duplicates found. Your activity list is clean.");
         }
     };
 
     const openNoPowerFilter = () => {
         const noPower = (activities || []).filter(a => !(Number(a.avg_power) > 0));
         if (noPower.length === 0) {
-            alert("Alle activiteiten hebben vermogensdata. Niets te filteren.");
+            alert("All activities have power data. Nothing to filter.");
             return;
         }
         setNoPowerSelected(noPower.map(a => a.id));
@@ -482,7 +482,7 @@ const DataHub = ({
             setShowNoPowerModal(false);
             setNoPowerSelected([]);
         } catch (e) {
-            alert("Fout bij verwijderen: " + e.message);
+            alert("Could not delete: " + e.message);
         } finally {
             setIsDeleting(false);
         }
@@ -579,7 +579,7 @@ const DataHub = ({
                 await Promise.all(writePromises);
                 savedCount = toImport.length;
             } catch (e) {
-                alert("Let op: Data lokaal geïmporteerd, maar Cloud backup mislukt: " + e.message);
+                alert("Note: Data imported locally, but cloud backup failed: " + e.message);
             }
         }
 
@@ -664,16 +664,16 @@ const DataHub = ({
                                 <div>
                                     <h3 className="text-cdtext font-bold flex items-center gap-2">
                                         <Zap size={16} className="text-yellow-400" />
-                                        Activiteiten zonder vermogen ({noPowerList.length})
+                                        Activities without power ({noPowerList.length})
                                     </h3>
-                                    <p className="text-xs text-cdmuted mt-0.5">Selecteer welke je wilt verwijderen.</p>
+                                    <p className="text-xs text-cdmuted mt-0.5">Select which ones to remove.</p>
                                 </div>
                                 <button onClick={() => setShowNoPowerModal(false)} className="text-cdmuted hover:text-cdtext text-lg font-bold px-2">✕</button>
                             </div>
                             <div className="flex items-center gap-3 px-4 py-2 border-b border-cdborder bg-cdbg/40">
                                 <input type="checkbox" checked={allSelected} onChange={toggleAll} className="accent-yellow-400 w-4 h-4" />
-                                <span className="text-xs text-cdmuted font-bold uppercase">Alles selecteren</span>
-                                <span className="ml-auto text-xs text-cdmuted">{noPowerSelected.length} geselecteerd</span>
+                                <span className="text-xs text-cdmuted font-bold uppercase">Select all</span>
+                                <span className="ml-auto text-xs text-cdmuted">{noPowerSelected.length} selected</span>
                             </div>
                             <div className="overflow-y-auto flex-1 custom-scrollbar">
                                 {noPowerList.map(a => (
@@ -691,14 +691,14 @@ const DataHub = ({
                                 ))}
                             </div>
                             <div className="flex justify-end gap-3 p-4 border-t border-cdborder">
-                                <button onClick={() => setShowNoPowerModal(false)} className="px-4 py-2 text-cdmuted hover:text-cdtext font-bold text-sm">Sluiten</button>
+                                <button onClick={() => setShowNoPowerModal(false)} className="px-4 py-2 text-cdmuted hover:text-cdtext font-bold text-sm">Close</button>
                                 <button
                                     onClick={deleteNoPowerSelected}
                                     disabled={isDeleting || noPowerSelected.length === 0}
                                     className="px-5 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded text-sm flex items-center gap-2 disabled:opacity-50"
                                 >
                                     {isDeleting ? <Loader2 className="animate-spin" size={14} /> : <Trash size={14} />}
-                                    Verwijder {noPowerSelected.length} activiteiten
+                                    Delete {noPowerSelected.length} activities
                                 </button>
                             </div>
                         </div>
@@ -709,16 +709,12 @@ const DataHub = ({
             {/* TABS */}
             <div className="flex border-b border-cdborder">
                 <button onClick={() => setInternalTab('log')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'log' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Activity Log</button>
-                {stravaGetToken && (<>
-                    <button onClick={() => setInternalTab('strava')} className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-1.5 ${internalTab === 'strava' ? 'bg-cdborder text-orange-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>
-                        <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" /></svg>
-                        Strava Verrijking
-                    </button>
+                {stravaGetToken && (
                     <button onClick={() => setInternalTab('strava-profile')} className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-1.5 ${internalTab === 'strava-profile' ? 'bg-cdborder text-orange-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>
                         <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" /></svg>
-                        Strava Profiel
+                        Strava Profile
                     </button>
-                </>)}
+                )}
                 {showImport && (
                     <button onClick={() => setInternalTab('import')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'import' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Import Data</button>
                 )}
@@ -738,7 +734,7 @@ const DataHub = ({
                                     {(syncStatus === 'started' || syncStatus === 'enriching' || isSyncing) && <Loader2 size={14} className="animate-spin" />}
                                     {syncStatus === 'done' && '✅ '}
                                     {syncStatus === 'error' && '❌ '}
-                                    {isSyncing ? (syncProgress || 'Bezig met synchroniseren...') : syncErrorDetail}
+                                    {isSyncing ? (syncProgress || 'Syncing...') : syncErrorDetail}
                                 </span>
                             </div>
                         )}
@@ -765,7 +761,7 @@ const DataHub = ({
                                         }}
                                         disabled={isManualRefreshing}
                                         className="flex items-center justify-center w-9 h-9 rounded border bg-cdsurface border-cdborder text-cdmuted hover:text-green-400 hover:border-green-500/50 transition-colors group disabled:opacity-50"
-                                        title="Data verversen"
+                                        title="Refresh data"
                                     >
                                         <RefreshCw size={14} className={isManualRefreshing ? 'animate-spin' : 'group-active:animate-spin'} />
                                     </button>
@@ -787,8 +783,17 @@ const DataHub = ({
                                                 className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-blue-400 hover:bg-cdborder disabled:opacity-40 disabled:cursor-not-allowed"
                                             >
                                                 <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
-                                                {isSyncing ? 'Bezig...' : 'Sync Now'}
+                                                {isSyncing ? 'Working...' : 'Sync Now'}
                                             </button>
+                                            {stravaGetToken && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { setShowStravaEnrichPanel(true); setShowUtilMenu(false); }}
+                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-orange-400 hover:bg-cdborder"
+                                                >
+                                                    <Link2 size={14} /> Strava enrichment
+                                                </button>
+                                            )}
                                             <button
                                                 onClick={() => { findDuplicates(); setShowUtilMenu(false); }}
                                                 disabled={!activities || activities.length === 0}
@@ -850,19 +855,6 @@ const DataHub = ({
                     />
                 )}
 
-                {internalTab === 'strava' && (
-                    <StravaEnrichTab
-                        activities={activities}
-                        getStravaToken={stravaGetToken}
-                        onImportNew={handleImportFromStrava}
-                        startDate={stravaSearchDates.startDate}
-                        endDate={stravaSearchDates.endDate}
-                        persistedResults={stravaEnrichResults}
-                        onResultsChange={onStravaEnrichResults}
-                        enrichmentTarget={enrichmentTarget}
-                    />
-                )}
-
                 {internalTab === 'strava-profile' && (
                     <StravaProfileTab
                         getStravaToken={stravaGetToken}
@@ -872,6 +864,48 @@ const DataHub = ({
                     />
                 )}
             </div>
+
+            {showStravaEnrichPanel && stravaGetToken && (
+                <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-cdbg/80 backdrop-blur-sm">
+                    <button
+                        type="button"
+                        aria-label="Close Strava enrichment"
+                        className="absolute inset-0 cursor-default"
+                        onClick={() => setShowStravaEnrichPanel(false)}
+                    />
+                    <div className="relative w-full sm:max-w-3xl max-h-[min(92vh,900px)] sm:rounded-xl border border-cdborder bg-cdsurface shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-200">
+                        <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-cdborder bg-cdbg/80 shrink-0">
+                            <div className="flex items-center gap-2 min-w-0">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" className="text-orange-400 shrink-0"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" /></svg>
+                                <div className="min-w-0">
+                                    <h2 className="text-sm font-bold text-cdtext truncate">Strava enrichment</h2>
+                                    <p className="text-[10px] text-cdmuted truncate">Match Strava rides, link IDs, import missing activities</p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowStravaEnrichPanel(false)}
+                                className="shrink-0 px-3 py-1.5 text-xs font-bold rounded border border-cdborder text-cdmuted hover:text-cdtext hover:border-yellow-400/50 transition-colors"
+                            >
+                                Close
+                            </button>
+                        </div>
+                        <div className="p-4 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+                            <StravaEnrichTab
+                                activities={activities}
+                                getStravaToken={stravaGetToken}
+                                onImportNew={handleImportFromStrava}
+                                startDate={stravaSearchDates.startDate}
+                                endDate={stravaSearchDates.endDate}
+                                persistedResults={stravaEnrichResults}
+                                onResultsChange={onStravaEnrichResults}
+                                enrichmentTarget={enrichmentTarget}
+                                dateRangeHint="Set the date range in the header (dashboard period)."
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

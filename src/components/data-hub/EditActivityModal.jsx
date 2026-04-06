@@ -76,7 +76,7 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
             <div className="bg-cdsurface border border-cdborder rounded-xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
                 <div className="flex justify-between items-center p-4 border-b border-cdborder bg-cdbg rounded-t-xl">
                     <div className="flex items-center gap-2">
-                        <h3 className="text-cdtext font-bold flex items-center gap-2 text-base"><Edit2 size={18} className="text-yellow-400" /> Activiteit Bewerken</h3>
+                        <h3 className="text-cdtext font-bold flex items-center gap-2 text-base"><Edit2 size={18} className="text-yellow-400" /> Edit activity</h3>
                         
                         {/* Externe Links */}
                         <div className="flex items-center gap-2">
@@ -86,7 +86,7 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex items-center gap-1.5 px-2 py-1 rounded text-xs bg-sky-500/10 text-sky-400 hover:bg-sky-500/20 border border-sky-500/30"
-                                    title="Bekijk deze activiteit op Intervals.icu"
+                                    title="Open this activity on Intervals.icu"
                                 >
                                     <ArrowUpRight size={12} />
                                     <span>Intervals</span>
@@ -98,7 +98,7 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex items-center gap-1.5 px-2 py-1 rounded text-xs bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 border border-orange-500/30"
-                                    title="Bekijk deze activiteit op Strava"
+                                    title="Open this activity on Strava"
                                 >
                                     <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" /></svg>
                                     <span>Strava</span>
@@ -109,10 +109,10 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                                     type="button"
                                     onClick={() => onFindOnStrava(activity)}
                                     className="flex items-center gap-1.5 px-2 py-1 rounded text-xs bg-slate-500/10 text-slate-400 hover:bg-slate-500/20 border border-slate-500/30"
-                                    title="Zoek of (her)koppel deze activiteit op Strava"
+                                    title="Find or link this activity on Strava"
                                 >
                                     <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" /></svg>
-                                    <span>Zoek/Koppel</span>
+                                    <span>Find / link</span>
                                 </button>
                             )}
                         </div>
@@ -124,12 +124,12 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* BASIS GEGEVENS */}
                         <div className="col-span-2">
-                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Titel</label>
+                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Title</label>
                             <input name="title" type="text" value={formData.title || ''} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
                         </div>
 
                         <div>
-                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Datum</label>
+                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Date</label>
                             <input name="date" type="date" value={dateValue} onChange={(e) => setFormData(prev => ({ ...prev, date: new Date(e.target.value).toISOString().split('T')[0] }))} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
                         </div>
 
@@ -143,7 +143,7 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                         {/* FIETS */}
                         <div className="col-span-2">
                             <label className="text-xs text-cdmuted uppercase font-bold flex items-center justify-between mb-1">
-                                <span className="flex items-center gap-1.5"><Bike size={12} /> Fiets</span>
+                                <span className="flex items-center gap-1.5"><Bike size={12} /> Bike</span>
                                 {isCustomGear && (
                                     <button
                                         type="button"
@@ -153,7 +153,7 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                                         }}
                                         className="text-[10px] text-yellow-500 hover:text-yellow-400 font-bold"
                                     >
-                                        Terug naar lijst
+                                        Back to list
                                     </button>
                                 )}
                             </label>
@@ -164,7 +164,7 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                                     type="text"
                                     value={formData.gear_name || ''}
                                     onChange={(e) => setFormData(prev => ({ ...prev, gear_id: null, gear_name: e.target.value }))}
-                                    placeholder="Typ de naam van de fiets..."
+                                    placeholder="Bike name…"
                                     className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none"
                                 />
                             ) : (
@@ -201,11 +201,11 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                                     }}
                                     className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none"
                                 >
-                                    <option value="">— geen fiets geselecteerd —</option>
+                                    <option value="">— no bike selected —</option>
                                     {unifiedBikesList.map(({ id, name }) => (
                                         <option key={id} value={id}>{name}</option>
                                     ))}
-                                    <option value="___custom___">+ Ontbrekende fiets toevoegen...</option>
+                                    <option value="___custom___">+ Add a bike not in the list…</option>
                                 </select>
                             )}
                         </div>
@@ -214,15 +214,15 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                         <div className="col-span-2 h-px bg-cdborder my-2"></div>
 
                         <div>
-                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Afstand (km)</label>
+                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Distance (km)</label>
                             <input name="distance" type="number" step="0.1" value={formData.distance || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
                         </div>
                         <div>
-                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Hoogtemeters (m)</label>
+                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Elevation (m)</label>
                             <input name="climbing" type="number" value={formData.climbing || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
                         </div>
                         <div>
-                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Tijd (sec)</label>
+                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Time (sec)</label>
                             <input name="moving_time" type="number" value={formData.moving_time || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
                             <span className="text-xs text-cdmuted text-right block mt-1">{formatTime(formData.moving_time)}</span>
                         </div>
@@ -278,7 +278,7 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                         {/* BEST EFFORTS — gebruikt voor MMP curve */}
                         <div className="col-span-2 h-px bg-cdborder my-2"></div>
                         <div className="col-span-2">
-                            <p className="text-xs text-cdmuted uppercase font-bold mb-2">Best Efforts (W) — gebruikt voor MMP curve</p>
+                            <p className="text-xs text-cdmuted uppercase font-bold mb-2">Best efforts (W) — used for MMP curve</p>
                         </div>
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Best 1 min (W)</label>
@@ -303,9 +303,9 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                     </div>
 
                     <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-cdborder">
-                        <button type="button" onClick={onClose} className="px-4 py-2 text-cdmuted hover:text-cdtext font-bold text-sm">Annuleren</button>
+                        <button type="button" onClick={onClose} className="px-4 py-2 text-cdmuted hover:text-cdtext font-bold text-sm">Cancel</button>
                         <button type="submit" className="px-6 py-2 bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-bold rounded shadow-lg shadow-yellow-500/20 flex items-center gap-2">
-                            <Save size={16} /> Opslaan
+                            <Save size={16} /> Save
                         </button>
                     </div>
                 </form>

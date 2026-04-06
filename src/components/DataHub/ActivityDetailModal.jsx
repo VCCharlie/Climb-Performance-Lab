@@ -11,10 +11,10 @@ const StravaIcon = ({ size = 14 }) => (
     </svg>
 );
 
-const StatBox = ({ label, value, unit, icon: Icon, color = "text-cdmuted" }) => (
+const StatBox = ({ label, value, unit, icon, color = "text-cdmuted" }) => (
     <div className="bg-cdbg/50 p-3 rounded-lg border border-cdborder/50 flex flex-col items-center justify-center relative overflow-hidden group">
         <div className={`absolute top-2 right-2 opacity-10 group-hover:opacity-20 transition-opacity ${color}`}>
-            <Icon size={32} />
+            {React.createElement(icon, { size: 32 })}
         </div>
         <span className="text-[10px] uppercase font-bold text-cdmuted mb-1">{label}</span>
         <div className="flex items-baseline gap-1">
@@ -32,22 +32,32 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken }) => {
     useEffect(() => {
         if (!activity?.strava_id || !getStravaToken) return;
 
-        setStravaLoading(true);
-        setStravaError(null);
-
-        getStravaToken()
-            .then(token =>
-                fetch(`https://www.strava.com/api/v3/activities/${activity.strava_id}?include_all_efforts=true`, {
-                    headers: { Authorization: `Bearer ${token}` }
+        let cancelled = false;
+        queueMicrotask(() => {
+            if (cancelled) return;
+            setStravaLoading(true);
+            setStravaError(null);
+            getStravaToken()
+                .then(token =>
+                    fetch(`https://www.strava.com/api/v3/activities/${activity.strava_id}?include_all_efforts=true`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    })
+                )
+                .then(r => {
+                    if (!r.ok) throw new Error(`Strava API error: ${r.status}`);
+                    return r.json();
                 })
-            )
-            .then(r => {
-                if (!r.ok) throw new Error(`Strava API fout: ${r.status}`);
-                return r.json();
-            })
-            .then(data => setStravaData(data))
-            .catch(e => setStravaError(e.message))
-            .finally(() => setStravaLoading(false));
+                .then(data => {
+                    if (!cancelled) setStravaData(data);
+                })
+                .catch(e => {
+                    if (!cancelled) setStravaError(e.message);
+                })
+                .finally(() => {
+                    if (!cancelled) setStravaLoading(false);
+                });
+        });
+        return () => { cancelled = true; };
     }, [activity?.strava_id, getStravaToken]);
 
     if (!activity) return null;
@@ -106,7 +116,7 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken }) => {
                     {activity.gear_name && (
                         <div className="flex items-center gap-2 text-xs text-cdmuted bg-cdbg/50 border border-cdborder rounded px-3 py-2">
                             <Bike size={13} className="text-orange-400 shrink-0" />
-                            <span>Gereden op: <span className="text-cdtext font-medium">{activity.gear_name}</span></span>
+                            <span>Ridden on: <span className="text-cdtext font-medium">{activity.gear_name}</span></span>
                         </div>
                     )}
 
@@ -172,7 +182,7 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken }) => {
                             {stravaLoading && (
                                 <div className="flex items-center gap-2 text-cdmuted text-xs py-4">
                                     <Loader2 size={16} className="animate-spin text-orange-400" />
-                                    Strava data ophalen...
+                                    Loading Strava data…
                                 </div>
                             )}
 
@@ -197,7 +207,7 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken }) => {
                                     {segments.length > 0 && (
                                         <div>
                                             <div className="text-[10px] text-cdmuted uppercase font-bold mb-2">
-                                                Segmenten ({segments.length})
+                                                Segments ({segments.length})
                                             </div>
                                             <div className="space-y-1 max-h-60 overflow-y-auto custom-scrollbar">
                                                 {segments.map((seg, i) => (
@@ -237,7 +247,7 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken }) => {
                             {/* Geen Strava connectie */}
                             {!stravaLoading && !stravaError && !stravaData && !getStravaToken && (
                                 <div className="text-xs text-cdmuted bg-cdbg/50 rounded-lg p-3 border border-cdborder/30">
-                                    Verbind Strava in Settings om kaart en segmenten te zien.
+                                    Connect Strava in Settings to see the map and segments.
                                 </div>
                             )}
                         </div>

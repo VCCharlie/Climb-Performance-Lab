@@ -25,7 +25,7 @@ const SyncTab = ({ intervalsConfig, existingActivities, onSyncResults, getStrava
     const handleSync = async () => {
         // Validatie: als dates leeg zijn, stop dan
         if (!syncDates.start || !syncDates.end) {
-            alert("Selecteer eerst een geldige start- en einddatum.");
+            alert("Select a valid start and end date.");
             return;
         }
 
@@ -40,7 +40,7 @@ const SyncTab = ({ intervalsConfig, existingActivities, onSyncResults, getStrava
             });
 
             if ((!newActivities || newActivities.length === 0) && existingWithoutStrava.length === 0) {
-                alert("Je bent helemaal bij! Alle gevonden ritten staan al in je dashboard en zijn verrijkt.");
+                alert("You are up to date. All rides in range are already in your log and enriched.");
                 return;
             }
 
@@ -90,7 +90,7 @@ const SyncTab = ({ intervalsConfig, existingActivities, onSyncResults, getStrava
                         }
                     }
                 } catch (err) {
-                    console.warn("Auto-enrichment via Strava mislukt.", err);
+                    console.warn("Auto-enrichment via Strava failed.", err);
                 } finally {
                     setIsEnriching(false);
                 }
@@ -100,13 +100,13 @@ const SyncTab = ({ intervalsConfig, existingActivities, onSyncResults, getStrava
             onSyncResults(enrichedNewActivities);
 
         } catch (e) {
-            alert("Sync Fout: " + e.message);
+            alert("Sync error: " + e.message);
             setIsEnriching(false);
         }
     };
 
     const isLoading = isSyncing || isEnriching;
-    const buttonText = isSyncing ? 'Intervals ophalen...' : (isEnriching ? 'Strava data koppelen...' : 'Sync Now');
+    const buttonText = isSyncing ? 'Fetching Intervals…' : (isEnriching ? 'Linking Strava data…' : 'Sync Now');
 
     return (
         <div className="bg-cdbg/50 border border-cdborder rounded-lg p-6 space-y-6">

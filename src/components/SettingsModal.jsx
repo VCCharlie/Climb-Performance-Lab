@@ -224,15 +224,15 @@ const SettingsModal = ({
                             )}
                         </div>
 
-                        {/* STRAVA KOPPELING */}
+                        {/* STRAVA CONNECTION */}
                         {stravaAuth && (
                             <div className={`border rounded-xl p-6 ${cardClass}`}>
                                 <div className="flex items-center gap-2 pb-2 border-b border-cdborder/50 mb-4">
                                     <span className="text-orange-400"><StravaIcon size={18} /></span>
-                                    <h3 className={`font-bold ${titleClass}`}>Strava Koppeling</h3>
+                                    <h3 className={`font-bold ${titleClass}`}>Strava connection</h3>
                                     {stravaAuth.isConnected && (
                                         <span className="ml-auto text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded font-bold flex items-center gap-1">
-                                            <Link size={10} /> Verbonden
+                                            <Link size={10} /> Connected
                                         </span>
                                     )}
                                 </div>
@@ -257,11 +257,11 @@ const SettingsModal = ({
                                             className={`w-full border rounded p-3 outline-none ${inputClass}`}
                                         />
                                         <p className="text-xs text-cdmuted mt-1">
-                                            Vind je gegevens op{' '}
+                                            Get your credentials at{' '}
                                             <a href="https://www.strava.com/settings/api" target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:underline">
                                                 strava.com/settings/api
                                             </a>
-                                            . Redirect URI invullen:{' '}
+                                            . Set redirect URI to:{' '}
                                             <code className="bg-cdborder px-1 rounded text-[10px]">{window.location.origin + window.location.pathname}</code>
                                         </p>
                                     </div>
@@ -278,7 +278,7 @@ const SettingsModal = ({
                                                     onClick={stravaAuth.disconnectStrava}
                                                     className="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded font-bold text-sm transition-colors"
                                                 >
-                                                    <Unlink size={14} /> Ontkoppelen
+                                                    <Unlink size={14} /> Disconnect
                                                 </button>
                                             </>
                                         ) : (
@@ -286,7 +286,7 @@ const SettingsModal = ({
                                                 onClick={stravaAuth.connectStrava}
                                                 className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded font-bold text-sm transition-colors"
                                             >
-                                                <StravaIcon size={16} /> Verbinden met Strava
+                                                <StravaIcon size={16} /> Connect with Strava
                                             </button>
                                         )}
                                     </div>
