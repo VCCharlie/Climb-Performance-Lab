@@ -1,26 +1,35 @@
 /**
- * src/components/DataHub/StravaProfileTab.jsx
- * Toont Strava-atletenprofiel: statistieken, KOMs/CRs en starred segments.
- * Data wordt opgehaald via de Strava REST API en gepersisteerd in App.jsx.
+ * Strava athlete profile: summary, recent activity, bikes, KOMs/CRs, starred segments.
+ * Data from Strava REST API; persisted via App.jsx.
  */
 import React, { useState, useCallback } from 'react';
-import { Loader2, RefreshCw, Trophy, Star, TrendingUp, Clock, Mountain, Bike, ExternalLink, AlertCircle, Crown } from 'lucide-react';
+import {
+    Loader2,
+    RefreshCw,
+    Trophy,
+    Star,
+    TrendingUp,
+    Clock,
+    Mountain,
+    Bike,
+    ExternalLink,
+    AlertCircle,
+    Crown,
+    User,
+    MapPin,
+    Activity,
+} from 'lucide-react';
 
 const STRAVA_BASE = 'https://www.strava.com/api/v3';
-
-const StravaIcon = () => (
-    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-        <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />
-    </svg>
-);
+const LOCALE = 'en-US';
 
 const fmt = {
-    dist: (m) => `${(m / 1000).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.')} km`,
-    elev: (m) => `${Math.round(m).toLocaleString('nl-NL')} m`,
+    dist: (m) => `${(m / 1000).toFixed(1)} km`,
+    elev: (m) => `${Math.round(m).toLocaleString(LOCALE)} m`,
     time: (s) => {
         const h = Math.floor(s / 3600);
         const m = Math.floor((s % 3600) / 60);
-        return h > 0 ? `${h}u ${m}m` : `${m}m`;
+        return h > 0 ? `${h}h ${m}m` : `${m}m`;
     },
     segTime: (s) => {
         const m = Math.floor(s / 60);
@@ -29,9 +38,9 @@ const fmt = {
     },
 };
 
-const StatCard = ({ icon: Icon, iconColor, label, value, sub }) => (
+const StatCard = ({ icon, iconColor, label, value, sub }) => (
     <div className="bg-cdbg/60 border border-cdborder rounded-lg p-3 flex items-start gap-3">
-        <Icon size={18} className={`${iconColor} shrink-0 mt-0.5`} />
+        {React.createElement(icon, { size: 18, className: `${iconColor} shrink-0 mt-0.5` })}
         <div>
             <p className="text-[10px] text-cdmuted uppercase tracking-wide">{label}</p>
             <p className="text-lg font-bold text-cdtext leading-tight">{value}</p>
@@ -47,22 +56,30 @@ const fetchPaginated = async (url, token) => {
         const resp = await fetch(`${url}${url.includes('?') ? '&' : '?'}per_page=200&page=${page}`, {
             headers: { Authorization: `Bearer ${token}` }
         });
-        if (!resp.ok) throw new Error(`Strava API fout: ${resp.status}`);
-        const data = await resp.json();
-        if (!Array.isArray(data) || data.length === 0) break;
-        all = all.concat(data);
-        if (data.length < 200) break;
+        if (!resp.ok) throw new Error(`Strava API error: ${resp.status}`);
+        const json = await resp.json();
+        if (!Array.isArray(json) || json.length === 0) break;
+        all = all.concat(json);
+        if (json.length < 200) break;
         page++;
     }
     return all;
 };
 
-/**
- * @param {Function} getStravaToken - haalt een geldig access token op
- * @param {string|number} athleteId - Strava athlete ID (uit stravaConfig)
- * @param {object|null} persistedData - eerder opgehaalde data (bewaard in App.jsx)
- * @param {Function} onDataChange - callback om persistedData bij te werken
- */
+const athleteDisplayName = (a) => {
+    if (!a) return '';
+    const first = (a.firstname || '').trim();
+    const last = (a.lastname || '').trim();
+    const full = `${first} ${last}`.trim();
+    return full || a.username || `Athlete ${a.id || ''}`;
+};
+
+const athleteLocation = (a) => {
+    if (!a) return '';
+    const parts = [a.city, a.state, a.country].filter(Boolean);
+    return parts.join(', ');
+};
+
 const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChange }) => {
     const [isFetching, setIsFetching] = useState(false);
     const [fetchProgress, setFetchProgress] = useState('');
@@ -82,24 +99,34 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
         try {
             const token = await getStravaToken();
 
-            setFetchProgress('Statistieken ophalen...');
+            setFetchProgress('Loading profile…');
+            const athleteResp = await fetch(`${STRAVA_BASE}/athlete`, { headers: { Authorization: `Bearer ${token}` } });
+            const athlete = athleteResp.ok ? await athleteResp.json() : null;
+
+            setFetchProgress('Loading ride statistics…');
             const statsResp = await fetch(`${STRAVA_BASE}/athletes/${athleteId}/stats`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            if (!statsResp.ok) throw new Error(`Stats fout: ${statsResp.status}`);
+            if (!statsResp.ok) throw new Error(`Stats error: ${statsResp.status}`);
             const stats = await statsResp.json();
 
-            setFetchProgress('KOMs / CRs ophalen...');
+            setFetchProgress('Loading KOMs / CRs…');
             const koms = await fetchPaginated(`${STRAVA_BASE}/athletes/${athleteId}/koms`, token);
 
-            setFetchProgress('Starred segments ophalen...');
+            setFetchProgress('Loading starred segments…');
             const starred = await fetchPaginated(`${STRAVA_BASE}/segments/starred`, token);
 
-            setFetchProgress('Fietsen ophalen...');
-            const athleteResp = await fetch(`${STRAVA_BASE}/athlete`, { headers: { Authorization: `Bearer ${token}` } });
-            const bikes = athleteResp.ok ? ((await athleteResp.json()).bikes || []).sort((a, b) => (b.distance || 0) - (a.distance || 0)) : [];
+            setFetchProgress('Loading bikes…');
+            const bikes = (athlete?.bikes || []).sort((a, b) => (b.distance || 0) - (a.distance || 0));
 
-            applyData({ stats, koms, starred, bikes, fetchedAt: new Date().toISOString() });
+            applyData({
+                athlete,
+                stats,
+                koms,
+                starred,
+                bikes,
+                fetchedAt: new Date().toISOString()
+            });
         } catch (e) {
             setError(e.message);
         } finally {
@@ -111,45 +138,114 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
     if (!getStravaToken) {
         return (
             <div className="text-xs text-orange-400 bg-orange-500/10 border border-orange-500/20 rounded-lg p-4">
-                Koppel eerst Strava via <strong>Settings → Strava Koppeling</strong>.
+                Connect Strava first under <strong>Settings → Strava connection</strong>.
             </div>
         );
     }
 
-    const { stats, koms, starred, bikes } = data || {};
-    // is_kom: true = KOM/QOM (publiek segment), false = CR (privé/lokaal segment)
-    // segment.private is niet altijd aanwezig in SummarySegment
+    const { athlete, stats, koms, starred, bikes } = data || {};
     const komCount = koms ? koms.filter(e => e.is_kom !== false).length : 0;
     const crCount = koms ? koms.filter(e => e.is_kom === false).length : 0;
+    const recent = stats?.recent_ride_totals;
+    const profileName = athleteDisplayName(athlete);
+    const location = athleteLocation(athlete);
+    const avatarUrl = athlete?.profile_medium || athlete?.profile;
 
     return (
-        <div className="space-y-5">
-            {/* Header + Ophalen */}
-            <div className="flex items-center justify-between gap-3">
-                <div>
-                    <p className="text-xs text-cdmuted">
-                        Statistieken, KOMs en starred segments van jouw Strava-profiel.
-                    </p>
-                    {data?.fetchedAt && !isFetching && (
-                        <p className="text-[10px] text-cdmuted opacity-60 mt-0.5">
-                            Opgehaald: {new Date(data.fetchedAt).toLocaleString('nl-NL')}
-                        </p>
-                    )}
+        <div className="space-y-6">
+            {athlete && (
+                <div className="rounded-xl border border-cdborder bg-gradient-to-br from-cdbg/80 to-cdborder/20 p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+                    <div className="flex items-center gap-4 min-w-0 flex-1">
+                        {avatarUrl ? (
+                            <img
+                                src={avatarUrl}
+                                alt=""
+                                className="w-16 h-16 rounded-full border-2 border-orange-500/40 object-cover shrink-0"
+                            />
+                        ) : (
+                            <div className="w-16 h-16 rounded-full border-2 border-cdborder bg-cdbg flex items-center justify-center shrink-0">
+                                <User size={28} className="text-cdmuted" />
+                            </div>
+                        )}
+                        <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <h2 className="text-lg font-bold text-cdtext truncate">{profileName}</h2>
+                                <a
+                                    href={`https://www.strava.com/athletes/${athleteId}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-orange-400 hover:text-orange-300 shrink-0"
+                                    title="Open on Strava"
+                                >
+                                    <ExternalLink size={16} />
+                                </a>
+                            </div>
+                            {location && (
+                                <p className="text-xs text-cdmuted flex items-center gap-1 mt-0.5">
+                                    <MapPin size={12} className="shrink-0" /> {location}
+                                </p>
+                            )}
+                            <div className="flex flex-wrap gap-3 mt-2 text-[11px] text-cdmuted">
+                                {athlete?.weight > 0 && (
+                                    <span>Weight: <span className="text-cdtext font-medium">{athlete.weight} kg</span></span>
+                                )}
+                                {athlete?.ftp > 0 && (
+                                    <span>FTP (Strava): <span className="text-cdtext font-medium">{athlete.ftp} W</span></span>
+                                )}
+                                {komCount + crCount > 0 && (
+                                    <span className="flex items-center gap-1">
+                                        <Trophy size={11} className="text-yellow-400" /> {komCount} KOM
+                                        {crCount > 0 && <span className="text-purple-400">· {crCount} CR</span>}
+                                    </span>
+                                )}
+                                {starred?.length > 0 && (
+                                    <span className="flex items-center gap-1">
+                                        <Star size={11} className="text-yellow-400 fill-yellow-400" /> {starred.length} starred
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={fetchAll}
+                        disabled={isFetching || !athleteId}
+                        className="flex items-center justify-center gap-2 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-lg text-sm transition-colors shrink-0 w-full sm:w-auto"
+                    >
+                        {isFetching ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                        {isFetching ? fetchProgress || 'Loading…' : (data ? 'Refresh' : 'Load from Strava')}
+                    </button>
                 </div>
-                <button
-                    onClick={fetchAll}
-                    disabled={isFetching || !athleteId}
-                    className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded text-sm transition-colors shrink-0"
-                >
-                    {isFetching ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-                    {isFetching ? fetchProgress || 'Ophalen...' : (data ? 'Vernieuwen' : 'Ophalen van Strava')}
-                </button>
-            </div>
+            )}
+
+            {!athlete && (
+                <div className="flex items-center justify-between gap-3">
+                    <div>
+                        <p className="text-xs text-cdmuted">
+                            All-time ride stats, KOMs / CRs, and starred segments from your Strava account.
+                        </p>
+                        {data?.fetchedAt && !isFetching && (
+                            <p className="text-[10px] text-cdmuted opacity-60 mt-0.5">
+                                Last updated: {new Date(data.fetchedAt).toLocaleString(LOCALE)}
+                            </p>
+                        )}
+                    </div>
+                    <button
+                        type="button"
+                        onClick={fetchAll}
+                        disabled={isFetching || !athleteId}
+                        className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded text-sm transition-colors shrink-0"
+                    >
+                        {isFetching ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                        {isFetching ? fetchProgress || 'Loading…' : (data ? 'Refresh' : 'Load from Strava')}
+                    </button>
+                </div>
+            )}
 
             {!athleteId && (
                 <div className="text-xs text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded p-3 flex gap-2">
                     <AlertCircle size={14} className="shrink-0 mt-0.5" />
-                    Koppel Strava opnieuw via Settings om je athlete ID op te slaan (eenmalig).
+                    Reconnect Strava in Settings once so your athlete ID is saved.
                 </div>
             )}
 
@@ -159,47 +255,60 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                 </div>
             )}
 
-            {/* Statistieken */}
+            {recent && (recent.count > 0 || recent.distance > 0) && (
+                <section className="space-y-2">
+                    <h3 className="text-xs font-bold text-cdtext uppercase tracking-wide flex items-center gap-2">
+                        <Activity size={13} className="text-orange-400" /> Last 4 weeks (rides)
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <StatCard icon={Bike} iconColor="text-orange-400" label="Activities" value={recent.count?.toLocaleString(LOCALE) ?? '–'} />
+                        <StatCard icon={TrendingUp} iconColor="text-blue-400" label="Distance" value={fmt.dist(recent.distance ?? 0)} />
+                        <StatCard icon={Mountain} iconColor="text-green-400" label="Elevation" value={fmt.elev(recent.elevation_gain ?? 0)} />
+                        <StatCard icon={Clock} iconColor="text-purple-400" label="Moving time" value={fmt.time(recent.moving_time ?? 0)} />
+                    </div>
+                </section>
+            )}
+
             {stats && (
                 <section className="space-y-2">
                     <h3 className="text-xs font-bold text-cdtext uppercase tracking-wide flex items-center gap-2">
-                        <TrendingUp size={13} className="text-orange-400" /> All-time statistieken
+                        <TrendingUp size={13} className="text-orange-400" /> All-time ride totals
                     </h3>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        <StatCard icon={Bike} iconColor="text-orange-400" label="Ritten" value={stats.all_ride_totals?.count?.toLocaleString('nl-NL') ?? '–'} sub={`YTD: ${stats.ytd_ride_totals?.count ?? '–'}`} />
-                        <StatCard icon={TrendingUp} iconColor="text-blue-400" label="Afstand" value={fmt.dist(stats.all_ride_totals?.distance ?? 0)} sub={`YTD: ${fmt.dist(stats.ytd_ride_totals?.distance ?? 0)}`} />
-                        <StatCard icon={Mountain} iconColor="text-green-400" label="Hoogte" value={fmt.elev(stats.all_ride_totals?.elevation_gain ?? 0)} sub={`YTD: ${fmt.elev(stats.ytd_ride_totals?.elevation_gain ?? 0)}`} />
-                        <StatCard icon={Clock} iconColor="text-purple-400" label="Tijd" value={fmt.time(stats.all_ride_totals?.moving_time ?? 0)} sub={`YTD: ${fmt.time(stats.ytd_ride_totals?.moving_time ?? 0)}`} />
+                        <StatCard icon={Bike} iconColor="text-orange-400" label="Rides" value={stats.all_ride_totals?.count?.toLocaleString(LOCALE) ?? '–'} sub={`YTD: ${stats.ytd_ride_totals?.count ?? '–'}`} />
+                        <StatCard icon={TrendingUp} iconColor="text-blue-400" label="Distance" value={fmt.dist(stats.all_ride_totals?.distance ?? 0)} sub={`YTD: ${fmt.dist(stats.ytd_ride_totals?.distance ?? 0)}`} />
+                        <StatCard icon={Mountain} iconColor="text-green-400" label="Elevation" value={fmt.elev(stats.all_ride_totals?.elevation_gain ?? 0)} sub={`YTD: ${fmt.elev(stats.ytd_ride_totals?.elevation_gain ?? 0)}`} />
+                        <StatCard icon={Clock} iconColor="text-purple-400" label="Moving time" value={fmt.time(stats.all_ride_totals?.moving_time ?? 0)} sub={`YTD: ${fmt.time(stats.ytd_ride_totals?.moving_time ?? 0)}`} />
                     </div>
                     {stats.biggest_climb_elevation_gain > 0 && (
-                        <div className="text-xs text-cdmuted bg-cdbg/40 border border-cdborder rounded p-2">
-                            🏔 Grootste klim ooit: <span className="text-cdtext font-bold">{fmt.elev(stats.biggest_climb_elevation_gain)}</span> hoogteverschil
-                            {stats.biggest_ride_distance > 0 && <> &nbsp;·&nbsp; Langste rit: <span className="text-cdtext font-bold">{fmt.dist(stats.biggest_ride_distance)}</span></>}
+                        <div className="text-xs text-cdmuted bg-cdbg/40 border border-cdborder rounded-lg p-3">
+                            Biggest climb: <span className="text-cdtext font-bold">{fmt.elev(stats.biggest_climb_elevation_gain)}</span> gain
+                            {stats.biggest_ride_distance > 0 && (
+                                <> · Longest ride: <span className="text-cdtext font-bold">{fmt.dist(stats.biggest_ride_distance)}</span></>
+                            )}
                         </div>
                     )}
                 </section>
             )}
 
-            {/* Fietsen */}
             {bikes && bikes.length > 0 && (
                 <section className="space-y-2">
                     <h3 className="text-xs font-bold text-cdtext uppercase tracking-wide flex items-center gap-2">
-                        <Bike size={13} className="text-orange-400" /> Fietsen ({bikes.length})
+                        <Bike size={13} className="text-orange-400" /> Bikes ({bikes.length})
                     </h3>
                     <div className="space-y-1">
                         {bikes.map(bike => (
                             <div key={bike.id} className={`flex items-center gap-3 bg-cdbg/60 border rounded-lg px-3 py-2 text-xs ${bike.retired ? 'border-cdborder/30 opacity-60' : 'border-cdborder'}`}>
                                 <Bike size={13} className={bike.retired ? 'text-cdmuted shrink-0' : 'text-orange-400 shrink-0'} />
-                                <span className="flex-1 font-medium text-cdtext truncate">{bike.name || <span className="text-cdmuted italic">geen naam</span>}</span>
+                                <span className="flex-1 font-medium text-cdtext truncate">{bike.name || <span className="text-cdmuted italic">Unnamed</span>}</span>
                                 <span className="text-cdmuted shrink-0">{fmt.dist(bike.distance || 0)}</span>
-                                {bike.retired && <span className="text-[10px] text-cdmuted shrink-0">gepensioneerd</span>}
+                                {bike.retired && <span className="text-[10px] text-cdmuted shrink-0">Retired</span>}
                             </div>
                         ))}
                     </div>
                 </section>
             )}
 
-            {/* KOMs / CRs */}
             {koms && (
                 <section className="space-y-2">
                     <h3 className="text-xs font-bold text-cdtext uppercase tracking-wide flex items-center gap-2">
@@ -210,7 +319,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                         </span>
                     </h3>
                     {koms.length === 0 ? (
-                        <p className="text-xs text-cdmuted italic">Geen KOMs gevonden.</p>
+                        <p className="text-xs text-cdmuted italic">No KOMs or CRs in this list.</p>
                     ) : (
                         <div className="max-h-72 overflow-y-auto custom-scrollbar space-y-1 pr-1">
                             {koms.map((effort) => {
@@ -231,7 +340,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                             {effort.name}
                                         </a>
                                         <span className="text-cdmuted shrink-0">{fmt.segTime(effort.elapsed_time)}</span>
-                                        <span className="text-cdmuted shrink-0">{(effort.segment?.distance / 1000).toFixed(1)} km</span>
+                                        <span className="text-cdmuted shrink-0">{effort.segment?.distance != null ? `${(effort.segment.distance / 1000).toFixed(1)} km` : '—'}</span>
                                         <a href={`https://www.strava.com/segments/${effort.segment?.id}`} target="_blank" rel="noreferrer" className="text-cdmuted hover:text-orange-400 shrink-0">
                                             <ExternalLink size={10} />
                                         </a>
@@ -243,14 +352,13 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                 </section>
             )}
 
-            {/* Starred Segments */}
             {starred && (
                 <section className="space-y-2">
                     <h3 className="text-xs font-bold text-cdtext uppercase tracking-wide flex items-center gap-2">
                         <Star size={13} className="text-yellow-400 fill-yellow-400" /> Starred segments ({starred.length})
                     </h3>
                     {starred.length === 0 ? (
-                        <p className="text-xs text-cdmuted italic">Geen starred segments gevonden.</p>
+                        <p className="text-xs text-cdmuted italic">No starred segments.</p>
                     ) : (
                         <div className="max-h-72 overflow-y-auto custom-scrollbar space-y-1 pr-1">
                             {starred.map((seg) => (
@@ -264,7 +372,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                         {seg.name}
                                     </a>
                                     <span className="text-cdmuted shrink-0">{(seg.distance / 1000).toFixed(1)} km</span>
-                                    <span className="text-cdmuted shrink-0">{seg.average_grade?.toFixed(1)}%</span>
+                                    <span className="text-cdmuted shrink-0">{seg.average_grade != null ? `${seg.average_grade.toFixed(1)}%` : '—'}</span>
                                     <span className="text-cdmuted shrink-0">{fmt.elev(seg.total_elevation_gain ?? 0)}</span>
                                     <a href={`https://www.strava.com/segments/${seg.id}`} target="_blank" rel="noreferrer" className="text-cdmuted hover:text-orange-400 shrink-0">
                                         <ExternalLink size={10} />
@@ -276,12 +384,6 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                 </section>
             )}
 
-            {!data && !isFetching && !error && (
-                <div className="flex flex-col items-center justify-center py-12 text-cdmuted gap-3">
-                    <StravaIcon />
-                    <p className="text-sm">Klik "Ophalen van Strava" om je profiel te laden.</p>
-                </div>
-            )}
         </div>
     );
 };

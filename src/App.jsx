@@ -414,7 +414,7 @@ const App = () => {
                         { id: 'gearoptimizer', label: 'Gear', icon: SettingsIcon },
                         { id: 'profiler', label: 'Profiler', icon: TrendingUp },
                         { id: 'bucketlist', label: 'Bucket List', icon: Trophy },
-                        { id: 'climbmap', label: 'Kaart', icon: MapIcon },
+                        { id: 'climbmap', label: 'Map', icon: MapIcon },
                         { id: 'weather', label: 'Weather', icon: Cloud },
                     ];
 

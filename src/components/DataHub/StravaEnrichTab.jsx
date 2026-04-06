@@ -18,7 +18,7 @@ const ConfidenceBadge = ({ confidence }) => {
         medium: 'bg-yellow-500/20 text-yellow-400',
         low: 'bg-orange-500/20 text-orange-400'
     };
-    const labels = { high: 'Hoog', medium: 'Midden', low: 'Laag' };
+    const labels = { high: 'High', medium: 'Medium', low: 'Low' };
     return (
         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${styles[confidence]}`}>
             {labels[confidence]}
@@ -26,13 +26,13 @@ const ConfidenceBadge = ({ confidence }) => {
     );
 };
 
-const SectionHeader = ({ IconComponent, iconColor, title, count, children }) => {
+const SectionHeader = ({ icon, iconColor, title, count, children }) => {
     const [open, setOpen] = useState(true);
     return (
         <div>
             <button onClick={() => setOpen(v => !v)} className="flex items-center gap-2 w-full text-left mb-2 hover:text-cdtext transition-colors">
                 {open ? <ChevronDown size={12} className="text-cdmuted" /> : <ChevronRight size={12} className="text-cdmuted" />}
-                <IconComponent size={12} className={iconColor} />
+                {React.createElement(icon, { size: 12, className: iconColor })}
                 <span className="text-xs uppercase font-bold text-cdmuted">{title}</span>
                 <span className="text-xs text-cdmuted ml-auto">{count}</span>
             </button>
@@ -47,7 +47,17 @@ const SectionHeader = ({ IconComponent, iconColor, title, count, children }) => 
  * Stap 2: fuzzy match op datum + afstand + duur
  * Stap 3: review + bevestig → schrijf strava_id naar Firestore
  */
-const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, endDate, persistedResults, onResultsChange, enrichmentTarget }) => {
+const StravaEnrichTab = ({
+    activities,
+    getStravaToken,
+    onImportNew,
+    startDate,
+    endDate,
+    persistedResults,
+    onResultsChange,
+    enrichmentTarget,
+    dateRangeHint = 'Set the date range in the header (dashboard period).',
+}) => {
     const [isFetching, setIsFetching] = useState(false);
     const [fetchProgress, setFetchProgress] = useState('');
     const [error, setError] = useState(null);
@@ -81,7 +91,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
             const detResp = await fetch(`https://www.strava.com/api/v3/activities/${stravaActivity.id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            if (!detResp.ok) throw new Error("Kon Strava-details niet ophalen");
+            if (!detResp.ok) throw new Error("Could not load Strava activity details");
             const detailedStrava = await detResp.json();
 
             // Fetch gear name if not in cache
@@ -92,13 +102,13 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                 });
                 if (r.ok) {
                     const g = await r.json();
-                    bikesMap[detailedStrava.gear_id] = g.name || [g.brand_name, g.model_name].filter(Boolean).join(' ') || 'Fiets';
+                    bikesMap[detailedStrava.gear_id] = g.name || [g.brand_name, g.model_name].filter(Boolean).join(' ') || 'Bike';
                     localStorage.setItem('stravaBikesMap', JSON.stringify(bikesMap));
                 }
             }
 
             const gearId = detailedStrava.gear_id || null;
-            const gearName = gearId ? (bikesMap[gearId] || 'Strava fiets') : null;
+            const gearName = gearId ? (bikesMap[gearId] || 'Strava bike') : null;
 
             const updateData = {
                 strava_id: String(detailedStrava.id),
@@ -112,7 +122,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
 
             await setDoc(doc(db, 'activities', String(enrichmentTarget.id)), updateData, { merge: true });
 
-            alert(`Activiteit succesvol gekoppeld aan Strava activiteit "${detailedStrava.name}"! Herlaad de pagina om de wijzigingen te zien.`);
+            alert(`Linked to Strava activity "${detailedStrava.name}". Refresh the page to see updates.`);
             // TODO: Navigate away or clear target
         } catch (e) {
             setError(e.message);
@@ -125,7 +135,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
     const handleManualUrlLink = useCallback(async () => {
         const match = manualUrl.match(/strava\.com\/activities\/(\d+)/);
         if (!match || !match[1]) {
-            setError("Ongeldige Strava URL. Moet eruit zien als 'strava.com/activities/12345...'");
+            setError("Invalid Strava URL. Use a link like strava.com/activities/12345…");
             return;
         }
         const stravaId = match[1];
@@ -163,12 +173,12 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
             let page = 1;
             let allActivities = [];
             while (true) {
-                setFetchProgress(`Pagina ${page} ophalen...`);
+                setFetchProgress(`Fetching page ${page}…`);
                 const resp = await fetch(
                     `https://www.strava.com/api/v3/athlete/activities?after=${afterTs}&before=${beforeTs}&per_page=200&page=${page}`,
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
-                if (!resp.ok) throw new Error(`Strava API fout: ${resp.status}`);
+                if (!resp.ok) throw new Error(`Strava API error: ${resp.status}`);
                 const data = await resp.json();
                 if (!Array.isArray(data) || data.length === 0) break;
                 allActivities = allActivities.concat(data);
@@ -181,7 +191,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                 STRAVA_BIKE_TYPES.has(a.sport_type || a.type)
             );
 
-            setFetchProgress(`${bikeActivities.length} fietsactiviteiten gevonden, matching...`);
+            setFetchProgress(`${bikeActivities.length} bike activities found, matching…`);
 
             // Haal default/active bikes op via /athlete (geeft alleen default-gear terug, niet alle fietsen)
             const athleteResp = await fetch('https://www.strava.com/api/v3/athlete', {
@@ -190,7 +200,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
             const athleteData = athleteResp.ok ? await athleteResp.json() : {};
             const bikesMap = {};
             (athleteData.bikes || []).forEach(b => {
-                bikesMap[b.id] = b.name || 'Fiets';
+                bikesMap[b.id] = b.name || 'Bike';
             });
 
             // Haal gear-naam op voor fietsen die niet via /athlete zijn teruggegeven
@@ -199,7 +209,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                 bikeActivities.map(a => a.gear_id).filter(id => id && !bikesMap[id])
             )];
             if (unknownGearIds.length > 0) {
-                setFetchProgress(`Fietsnamen ophalen (${unknownGearIds.length})...`);
+                setFetchProgress(`Loading bike names (${unknownGearIds.length})…`);
                 await Promise.all(unknownGearIds.map(async gearId => {
                     try {
                         const r = await fetch(`https://www.strava.com/api/v3/gear/${gearId}`, {
@@ -207,7 +217,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                         });
                         if (r.ok) {
                             const g = await r.json();
-                            bikesMap[gearId] = g.name || [g.brand_name, g.model_name].filter(Boolean).join(' ') || 'Fiets';
+                            bikesMap[gearId] = g.name || [g.brand_name, g.model_name].filter(Boolean).join(' ') || 'Bike';
                         }
                     } catch { /* stille fout — gear_id blijft onbekend */ }
                 }));
@@ -221,7 +231,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
 
             // CRITIEK: RPE ophalen en gear-check voor al-gekoppelde ritten
             if (result.alreadyLinked.length > 0) {
-                setFetchProgress('Checking details for RPE/Gear...');
+                setFetchProgress('Checking RPE / gear / HR details…');
                 await runInBatches(result.alreadyLinked, 5, async (m) => {
                     try {
                         // Altijd de details ophalen om de meest complete data te hebben
@@ -281,7 +291,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
             try {
                 if (db) {
                     const gearId = strava.gear_id || null;
-                    const gearName = gearId ? (bikesMap[gearId] || 'Strava fiets') : null;
+                    const gearName = gearId ? (bikesMap[gearId] || 'Strava bike') : null;
                     const stravaTitle = (strava.name || '').trim();
                     await setDoc(
                         doc(db, 'activities', String(site.id)),
@@ -309,7 +319,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                 .map(a => {
                     const norm = normalizeStravaActivity(a);
                     const gearId = a.gear_id || null;
-                    const gearName = gearId ? (bikesMap[gearId] || 'Strava fiets') : null;
+                    const gearName = gearId ? (bikesMap[gearId] || 'Strava bike') : null;
                     return { ...norm, ...(gearId && { gear_id: gearId, gear_name: gearName }) };
                 });
             if (onImportNew && newActs.length > 0) onImportNew(newActs);
@@ -324,7 +334,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                 try {
                     if (db) {
                         const gearId = strava.gear_id || null;
-                        const gearName = gearId ? (bikesMap[gearId] || 'Strava fiets') : null;
+                        const gearName = gearId ? (bikesMap[gearId] || 'Strava bike') : null;
                         const stravaTitle = (strava.name || '').trim();
                         const updateData = {
                             ...(gearId && { gear_id: gearId, gear_name: gearName }),
@@ -386,9 +396,9 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
         return (
             <div className="space-y-4 flex-1 overflow-y-auto custom-scrollbar pr-1">
                 <div className="p-3 rounded-lg border-2 border-dashed border-yellow-500/50 bg-yellow-500/5">
-                    <h3 className="font-bold text-yellow-400">Activiteit Koppelen</h3>
+                    <h3 className="font-bold text-yellow-400">Link activity</h3>
                     <p className="text-xs text-cdmuted mt-1">
-                        Je bent bezig <strong className="text-cdtext">{enrichmentTarget.title}</strong> (van {enrichmentTarget.date.split('T')[0]}) te koppelen.
+                        Linking <strong className="text-cdtext">{enrichmentTarget.title}</strong> ({enrichmentTarget.date.split('T')[0]}).
                     </p>
                 </div>
 
@@ -400,26 +410,26 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
 
                 {isFetching && (
                     <div className="flex items-center gap-2 text-sm text-cdmuted">
-                        <Loader2 size={14} className="animate-spin" /> {fetchProgress || 'Strava doorzoeken...'}
+                        <Loader2 size={14} className="animate-spin" /> {fetchProgress || 'Searching Strava…'}
                     </div>
                 )}
 
                 {isLinking && (
                     <div className="flex items-center gap-2 text-sm text-green-400">
-                        <Loader2 size={14} className="animate-spin" /> Bezig met koppelen...
+                        <Loader2 size={14} className="animate-spin" /> Linking…
                     </div>
                 )}
 
                 {results && !isFetching && !isLinking && (
                     <div className="space-y-4 animate-in fade-in">
                         <div>
-                            <h4 className="text-sm font-bold text-cdtext mb-2">Handmatig koppelen via URL</h4>
+                            <h4 className="text-sm font-bold text-cdtext mb-2">Manual link via URL</h4>
                             <div className="flex gap-2">
                                 <input
                                     type="text"
                                     value={manualUrl}
                                     onChange={e => setManualUrl(e.target.value)}
-                                    placeholder="Plak Strava activiteit URL..."
+                                    placeholder="Paste Strava activity URL…"
                                     className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none text-sm"
                                 />
                                 <button
@@ -427,16 +437,16 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                                     disabled={!manualUrl}
                                     className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-bold rounded shadow-lg shadow-yellow-500/20 flex items-center gap-2 text-sm disabled:opacity-50"
                                 >
-                                    Koppel
+                                    Link
                                 </button>
                             </div>
                         </div>
 
                         <div>
-                            <h4 className="text-sm font-bold text-cdtext mb-2">Gevonden op Strava op {startDate}</h4>
+                            <h4 className="text-sm font-bold text-cdtext mb-2">Strava activities on {startDate}</h4>
                             <div className="space-y-1 max-h-96 overflow-y-auto custom-scrollbar">
                                 {results.unmatchedStrava.length === 0 && results.matched.length === 0 ? (
-                                    <p className="text-xs text-cdmuted text-center py-4">Geen Strava-activiteiten gevonden op deze dag.</p>
+                                    <p className="text-xs text-cdmuted text-center py-4">No Strava activities on this day.</p>
                                 ) : (
                                     [...results.unmatchedStrava, ...results.matched.map(m => m.strava)].map(strava => (
                                         <div key={strava.id} className="flex items-center gap-2 rounded px-3 py-2 border text-xs bg-cdbg/50 border-cdborder/30">
@@ -448,7 +458,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                                                 onClick={() => handleDirectLink(strava)}
                                                 className="ml-auto px-3 py-1 bg-green-600 hover:bg-green-500 text-white font-bold rounded text-xs transition-colors shrink-0"
                                             >
-                                                Koppel
+                                                Link
                                             </button>
                                         </div>
                                     ))
@@ -465,16 +475,15 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
     return (
         <div className="space-y-4 flex-1 overflow-y-auto custom-scrollbar pr-1">
 
-            {/* Ophalen-knop – datumrange via tab-lint boven */}
             <div className="flex items-center justify-between gap-3">
                 <div>
                     <p className="text-xs text-cdmuted">
-                        Periode: <span className="text-cdtext font-mono">{startDate}</span> – <span className="text-cdtext font-mono">{endDate}</span>
-                        <span className="ml-1 opacity-70">(aanpasbaar in de tab-balk bovenaan)</span>
+                        Range: <span className="text-cdtext font-mono">{startDate}</span> – <span className="text-cdtext font-mono">{endDate}</span>
+                        <span className="ml-1 opacity-70">({dateRangeHint})</span>
                     </p>
                     {results && !isFetching && (
                         <p className="text-[10px] text-orange-400 mt-0.5">
-                            ↩ Resultaten hersteld na tab-wissel — klik "Opnieuw ophalen" voor actuele data
+                            Results restored from last session — tap &quot;Refresh from Strava&quot; for latest data
                         </p>
                     )}
                 </div>
@@ -484,13 +493,13 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                     className="flex items-center gap-2 px-5 py-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded text-sm transition-colors shrink-0"
                 >
                     {isFetching ? <Loader2 size={14} className="animate-spin" /> : <StravaIcon size={14} />}
-                    {isFetching ? fetchProgress || 'Ophalen...' : (results ? 'Opnieuw ophalen' : 'Ophalen van Strava')}
+                    {isFetching ? fetchProgress || 'Loading…' : (results ? 'Refresh from Strava' : 'Fetch from Strava')}
                 </button>
             </div>
 
             {!getStravaToken && (
                 <div className="text-xs text-orange-400 bg-orange-500/10 border border-orange-500/20 rounded-lg p-3">
-                    Koppel eerst Strava via <strong>Settings → Strava Koppeling</strong>.
+                    Connect Strava first under <strong>Settings → Strava connection</strong>.
                 </div>
             )}
 
@@ -502,7 +511,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
 
             {appliedCount > 0 && !isApplying && (
                 <div className="text-xs text-green-400 bg-green-500/10 border border-green-500/20 rounded-lg p-3 flex items-center gap-2">
-                    <Check size={14} /> <strong>{appliedCount}</strong> activiteiten bijgewerkt — herlaad de pagina om fiets &amp; kaartsymbolen te zien in de activiteitenlijst.
+                    <Check size={14} /> <strong>{appliedCount}</strong> activities updated — refresh the page to see bike and map icons in the log.
                 </div>
             )}
 
@@ -512,27 +521,27 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                     <div className="grid grid-cols-3 gap-3">
                         <div className="bg-cdbg/50 rounded-lg border border-cdborder/50 p-3 text-center">
                             <div className="text-2xl font-bold text-green-400">{results.matched.length}</div>
-                            <div className="text-[10px] text-cdmuted uppercase mt-0.5">Gekoppeld</div>
+                            <div className="text-[10px] text-cdmuted uppercase mt-0.5">Matched</div>
                         </div>
                         <div className="bg-cdbg/50 rounded-lg border border-cdborder/50 p-3 text-center">
                             <div className="text-2xl font-bold text-orange-400">{results.unmatchedStrava.length}</div>
-                            <div className="text-[10px] text-cdmuted uppercase mt-0.5">Alleen Strava</div>
+                            <div className="text-[10px] text-cdmuted uppercase mt-0.5">Strava only</div>
                         </div>
                         <div className="bg-cdbg/50 rounded-lg border border-cdborder/50 p-3 text-center">
                             <div className="text-2xl font-bold text-blue-400">{results.alreadyLinked.length}</div>
-                            <div className="text-[10px] text-cdmuted uppercase mt-0.5">Al Verbonden</div>
+                            <div className="text-[10px] text-cdmuted uppercase mt-0.5">Already linked</div>
                         </div>
                     </div>
 
                     {/* Gekoppelde activiteiten */}
                     {results.matched.length > 0 && (
-                        <SectionHeader IconComponent={Link2} iconColor="text-green-400" title="Voeg Strava ID toe aan bestaande activiteiten" count={`${selectedMatches.size}/${results.matched.length} geselecteerd`}>
+                        <SectionHeader icon={Link2} iconColor="text-green-400" title="Add Strava ID to existing activities" count={`${selectedMatches.size}/${results.matched.length} selected`}>
                             <div className="flex justify-end mb-1.5">
                                 <label className="flex items-center gap-1.5 text-xs text-cdmuted cursor-pointer select-none">
                                     <input type="checkbox" checked={selectedMatches.size === results.matched.length}
                                         onChange={e => setSelectedMatches(e.target.checked ? new Set(results.matched.map(m => String(m.strava.id))) : new Set())}
                                         className="accent-green-500" />
-                                    Alles selecteren
+                                    Select all
                                 </label>
                             </div>
                             <div className="space-y-1 max-h-64 overflow-y-auto custom-scrollbar">
@@ -552,13 +561,13 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
 
                     {/* Alleen op Strava */}
                     {results.unmatchedStrava.length > 0 && (
-                        <SectionHeader IconComponent={Plus} iconColor="text-orange-400" title="Alleen op Strava — optioneel importeren" count={`${selectedNew.size}/${results.unmatchedStrava.length} geselecteerd`}>
+                        <SectionHeader icon={Plus} iconColor="text-orange-400" title="Strava only — optional import" count={`${selectedNew.size}/${results.unmatchedStrava.length} selected`}>
                             <div className="flex justify-end mb-1.5">
                                 <label className="flex items-center gap-1.5 text-xs text-cdmuted cursor-pointer select-none">
                                     <input type="checkbox" checked={selectedNew.size === results.unmatchedStrava.length}
                                         onChange={e => setSelectedNew(e.target.checked ? new Set(results.unmatchedStrava.map(a => String(a.id))) : new Set())}
                                         className="accent-orange-500" />
-                                    Alles selecteren
+                                    Select all
                                 </label>
                             </div>
                             <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
@@ -579,30 +588,30 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                     {(results.alreadyLinked || []).length > 0 && (() => {
                         const needsEnrichItems = results.alreadyLinked.filter(m => m.needsGear || m.needsRpe || m.needsHr);
                         return (
-                            <SectionHeader IconComponent={RefreshCw} iconColor="text-blue-400" title="Al Verbonden — Fiets/RPE Status" count={`${needsEnrichItems.length} te verrijken`}>
+                            <SectionHeader icon={RefreshCw} iconColor="text-blue-400" title="Already linked — bike / RPE / HR" count={`${needsEnrichItems.length} can enrich`}>
                                 {needsEnrichItems.length > 0 && (
                                     <div className="flex justify-end mb-1.5">
                                         <label className="flex items-center gap-1.5 text-xs text-cdmuted cursor-pointer select-none">
                                             <input type="checkbox" checked={selectedGearUpdate.size === needsEnrichItems.length}
                                                 onChange={e => setSelectedGearUpdate(e.target.checked ? new Set(needsEnrichItems.map(m => String(m.strava.id))) : new Set())}
                                                 className="accent-orange-500" />
-                                            Selecteer alle {needsEnrichItems.length} te verrijken items
+                                            Select all {needsEnrichItems.length} items that can be enriched
                                         </label>
                                     </div>
                                 )}
                                 <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
                                     {results.alreadyLinked.map(({ strava, site, needsGear, needsRpe, needsHr }) => {
-                                        const gearName = results.bikesMap?.[strava.gear_id] || 'Strava fiets';
+                                        const gearName = results.bikesMap?.[strava.gear_id] || 'Strava bike';
                                         return (
                                             <label key={strava.id} className={`flex items-center gap-2 rounded px-3 py-2 border text-xs cursor-pointer select-none transition-colors ${selectedGearUpdate.has(String(strava.id)) ? 'bg-orange-500/5 border-orange-500/30' : 'bg-cdbg/50 border-cdborder/30 hover:border-cdborder'}`}>
                                                 <input type="checkbox" checked={selectedGearUpdate.has(String(strava.id))} onChange={() => toggleGearUpdate(strava.id)} className="accent-orange-500 shrink-0" disabled={!needsGear && !needsRpe && !needsHr} />
                                                 <span className="w-20 text-cdmuted shrink-0">{site.date?.split('T')[0]}</span>
                                                 <span className="flex-1 truncate text-cdtext font-medium" title={site.title}>{site.title}</span>
                                                 <div className="flex items-center gap-2 shrink-0">
-                                                    {needsGear && <span className="flex items-center gap-1 text-orange-400 text-[10px] whitespace-nowrap" title={`Strava: ${gearName}`}><Bike size={10} /> Fietsdata</span>}
-                                                    {needsRpe && <span className="bg-cdaccent/20 text-cdaccent text-[9px] font-bold px-1.5 py-0.5 rounded leading-none" title={`Strava RPE: ${strava.perceived_exertion}`}>MIST RPE</span>}
-                                                    {needsHr && <span className="bg-red-500/20 text-red-400 text-[9px] font-bold px-1.5 py-0.5 rounded leading-none" title={`Strava HR: ${strava.average_heartrate}`}>MIST HR</span>}
-                                                    {!needsGear && !needsRpe && !needsHr && <span className="flex items-center gap-1 text-green-400/80 text-[10px]"><Check size={12} /> Synchroon</span>}
+                                                    {needsGear && <span className="flex items-center gap-1 text-orange-400 text-[10px] whitespace-nowrap" title={`Strava: ${gearName}`}><Bike size={10} /> Bike</span>}
+                                                    {needsRpe && <span className="bg-cdaccent/20 text-cdaccent text-[9px] font-bold px-1.5 py-0.5 rounded leading-none" title={`Strava RPE: ${strava.perceived_exertion}`}>MISS RPE</span>}
+                                                    {needsHr && <span className="bg-red-500/20 text-red-400 text-[9px] font-bold px-1.5 py-0.5 rounded leading-none" title={`Strava HR: ${strava.average_heartrate}`}>MISS HR</span>}
+                                                    {!needsGear && !needsRpe && !needsHr && <span className="flex items-center gap-1 text-green-400/80 text-[10px]"><Check size={12} /> In sync</span>}
                                                 </div>
                                             </label>
                                         );
@@ -614,7 +623,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
 
                     {results.matched.length === 0 && results.unmatchedStrava.length === 0 && (results.alreadyLinked || []).length === 0 && (
                         <div className="text-sm text-cdmuted text-center py-6">
-                            Geen nieuwe of te verrijken activiteiten gevonden voor deze periode.
+                            No new or enrichable activities in this range.
                         </div>
                     )}
 
@@ -622,11 +631,11 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                     {(selectedMatches.size > 0 || selectedNew.size > 0 || selectedGearUpdate.size > 0) && (
                         <div className="border-t border-cdborder/50 pt-4 flex items-center justify-between gap-4">
                             <span className="text-xs text-cdmuted flex flex-wrap gap-1">
-                                {selectedMatches.size > 0 && <span className="text-green-400 font-bold">{selectedMatches.size} verrijken</span>}
+                                {selectedMatches.size > 0 && <span className="text-green-400 font-bold">{selectedMatches.size} enrich</span>}
                                 {selectedMatches.size > 0 && (selectedNew.size > 0 || selectedGearUpdate.size > 0) && <span>·</span>}
-                                {selectedNew.size > 0 && <span className="text-orange-400 font-bold">{selectedNew.size} importeren</span>}
+                                {selectedNew.size > 0 && <span className="text-orange-400 font-bold">{selectedNew.size} import</span>}
                                 {selectedNew.size > 0 && selectedGearUpdate.size > 0 && <span>·</span>}
-                                {selectedGearUpdate.size > 0 && <span className="text-orange-400 font-bold">{selectedGearUpdate.size} fiets bijwerken</span>}
+                                {selectedGearUpdate.size > 0 && <span className="text-orange-400 font-bold">{selectedGearUpdate.size} update bike</span>}
                             </span>
                             <button
                                 onClick={applyEnrichment}
@@ -634,7 +643,7 @@ const StravaEnrichTab = ({ activities, getStravaToken, onImportNew, startDate, e
                                 className="flex items-center gap-2 px-5 py-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white font-bold rounded text-sm transition-colors shrink-0"
                             >
                                 {isApplying ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-                                {isApplying ? 'Bezig...' : 'Toepassen'}
+                                {isApplying ? 'Working…' : 'Apply'}
                             </button>
                         </div>
                     )}
