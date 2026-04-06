@@ -12,9 +12,9 @@ const DuplicateResolver = ({ duplicates, onResolve, onClose }) => {
                 <div className="flex-shrink-0 p-4 border-b border-cdborder bg-cdbg">
                     <h3 className="font-bold text-cdtext flex items-center gap-2 text-lg">
                         <CopyPlus size={20} className="text-orange-400" />
-                        {duplicates.length} Conflicten Gevonden
+                        {duplicates.length} conflicts found
                     </h3>
-                    <p className="text-xs text-cdmuted mt-1">Vergelijk en kies welke activiteit je wilt behouden.</p>
+                    <p className="text-xs text-cdmuted mt-1">Compare and choose which activity to keep.</p>
                 </div>
 
                 <div className="overflow-auto flex-1 p-4 space-y-4 bg-cdbg/50">
@@ -27,7 +27,7 @@ const DuplicateResolver = ({ duplicates, onResolve, onClose }) => {
                                 {/* OPTIE A */}
                                 <div className="border border-cdborder rounded p-3 bg-cdborder/30 hover:bg-cdborder/50 transition-colors">
                                     <div className="flex justify-between mb-2">
-                                        <span className="font-bold text-cdtext text-sm">Versie A</span>
+                                        <span className="font-bold text-cdtext text-sm">Version A</span>
                                         <span className="text-xs text-cdmuted">{dup.a.type}</span>
                                     </div>
                                     <div className="space-y-1 text-xs text-cdtext">
@@ -43,7 +43,7 @@ const DuplicateResolver = ({ duplicates, onResolve, onClose }) => {
                                 {/* OPTIE B */}
                                 <div className="border border-cdborder rounded p-3 bg-cdborder/30 hover:bg-cdborder/50 transition-colors">
                                     <div className="flex justify-between mb-2">
-                                        <span className="font-bold text-cdtext text-sm">Versie B</span>
+                                        <span className="font-bold text-cdtext text-sm">Version B</span>
                                         <span className="text-xs text-cdmuted">{dup.b.type}</span>
                                     </div>
                                     <div className="space-y-1 text-xs text-cdtext">
@@ -67,7 +67,7 @@ const DuplicateResolver = ({ duplicates, onResolve, onClose }) => {
                 </div>
 
                 <div className="flex-shrink-0 p-3 border-t border-cdborder bg-cdbg flex justify-end">
-                    <button onClick={onClose} className="px-4 py-2 text-sm text-cdmuted hover:text-cdtext">Sluiten (Later beslissen)</button>
+                    <button onClick={onClose} className="px-4 py-2 text-sm text-cdmuted hover:text-cdtext">Close (decide later)</button>
                 </div>
             </div>
         </div>
