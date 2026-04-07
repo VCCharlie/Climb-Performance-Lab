@@ -89,6 +89,23 @@ const App = () => {
         return null;
     });
 
+    /** Strava profile: update UI + localStorage + Firestore so other devices get cached profile after refresh. */
+    const handleStravaProfileData = useCallback((next) => {
+        setStravaProfileData(next);
+        if (next) {
+            try {
+                localStorage.setItem('stravaProfileData', JSON.stringify(next));
+            } catch { /* quota */ }
+        } else {
+            localStorage.removeItem('stravaProfileData');
+        }
+        if (!db) return;
+        const settingsId = user ? `user_${user.uid}` : 'user_prefs';
+        setDoc(doc(db, 'settings', settingsId), { stravaProfile: next }, { merge: true }).catch((e) => {
+            console.warn('[Strava profile] Could not sync to Firestore:', e);
+        });
+    }, [user]);
+
     // Globale periode-selector: gedeeld tussen Dashboard en andere tabs
     const [timeRange, setTimeRange] = useState(() => localStorage.getItem('dashboard_timeRange') || '1Y');
     const [customStart, setCustomStart] = useState('');
@@ -586,7 +603,7 @@ const App = () => {
                                 onStravaEnrichResults={setStravaEnrichResults}
                                 stravaAthleteId={stravaConfig?.athlete_id}
                                 stravaProfileData={stravaProfileData}
-                                onStravaProfileData={setStravaProfileData}
+                                onStravaProfileData={handleStravaProfileData}
                                 onRefresh={forceRefreshActivities}
                                 focusActivityId={activityFocusId}
                                 onFocusActivityCleared={() => setActivityFocusId(null)}

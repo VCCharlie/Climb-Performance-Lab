@@ -42,6 +42,62 @@ export async function fetchAllBikeActivitiesForRecords(token, onProgress, opts =
     return { activities: all, historyComplete };
 }
 
+const OUTDOOR_TYPES = new Set(['Ride', 'GravelRide', 'MountainBikeRide', 'Cycling']);
+const INDOOR_TYPES = new Set(['VirtualRide']);
+
+/**
+ * Sum stats from scanned Strava activities, split outdoor vs indoor (VirtualRide).
+ * @param {object[]} bikeActivities - already filtered to bike types
+ */
+export function aggregateBikeActivitiesByContext(bikeActivities) {
+    const empty = () => ({
+        count: 0,
+        distance: 0,
+        elevation_gain: 0,
+        moving_time: 0
+    });
+    const combined = empty();
+    const outdoor = empty();
+    const indoor = empty();
+
+    for (const a of bikeActivities || []) {
+        const st = a.sport_type || a.type || '';
+        const d = Number(a.distance) || 0;
+        const e = Number(a.total_elevation_gain) || 0;
+        const t = Number(a.moving_time) || 0;
+
+        combined.count++;
+        combined.distance += d;
+        combined.elevation_gain += e;
+        combined.moving_time += t;
+
+        if (INDOOR_TYPES.has(st)) {
+            indoor.count++;
+            indoor.distance += d;
+            indoor.elevation_gain += e;
+            indoor.moving_time += t;
+        } else if (OUTDOOR_TYPES.has(st)) {
+            outdoor.count++;
+            outdoor.distance += d;
+            outdoor.elevation_gain += e;
+            outdoor.moving_time += t;
+        }
+    }
+
+    const withAvg = (b) => ({
+        ...b,
+        avg_distance: b.count > 0 ? b.distance / b.count : 0,
+        avg_elevation: b.count > 0 ? b.elevation_gain / b.count : 0,
+        avg_moving_time: b.count > 0 ? b.moving_time / b.count : 0
+    });
+
+    return {
+        combined: withAvg(combined),
+        outdoor: withAvg(outdoor),
+        indoor: withAvg(indoor)
+    };
+}
+
 /**
  * Map stats to concrete activities from the athlete activity list.
  * When full history was scanned, the max-distance / max-elevation rides are the API records.
@@ -56,6 +112,8 @@ export function matchRecordActivities(bikeActivities, stats, meta = {}) {
         return {
             longestRide: null,
             mostElevation: null,
+            maxTotalElevationRide: null,
+            maxTotalElevationM: 0,
             longestApprox: false,
             elevApprox: false,
             ridesScanned: 0,
@@ -112,9 +170,15 @@ export function matchRecordActivities(bikeActivities, stats, meta = {}) {
         }
     }
 
+    /** Ride with highest activity total elevation (Strava `total_elevation_gain` per ride), from scanned history. */
+    const maxTotalElevationRide = highestAct && maxElev > 0 ? highestAct : null;
+    const maxTotalElevationM = maxElev > 0 ? maxElev : 0;
+
     return {
         longestRide,
         mostElevation,
+        maxTotalElevationRide,
+        maxTotalElevationM,
         longestApprox,
         elevApprox,
         ridesScanned: bikeActivities.length,

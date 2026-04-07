@@ -20,7 +20,11 @@ import {
     Activity,
     Route,
 } from 'lucide-react';
-import { fetchAllBikeActivitiesForRecords, matchRecordActivities } from '../../utils/stravaProfileRecords';
+import {
+    fetchAllBikeActivitiesForRecords,
+    matchRecordActivities,
+    aggregateBikeActivitiesByContext,
+} from '../../utils/stravaProfileRecords';
 
 const STRAVA_BASE = 'https://www.strava.com/api/v3';
 const LOCALE = 'en-US';
@@ -82,7 +86,147 @@ const athleteLocation = (a) => {
     return parts.join(', ');
 };
 
+const th = 'text-left text-[10px] uppercase font-bold text-cdmuted py-2 px-2 border-b border-cdborder';
+const td = 'py-2 px-2 text-xs text-cdtext border-b border-cdborder/40';
+
+const StravaApiRideTable = ({ stats }) => {
+    const rows = [
+        { label: 'All-time', t: stats?.all_ride_totals },
+        { label: 'Year to date', t: stats?.ytd_ride_totals },
+        { label: 'Last 4 weeks', t: stats?.recent_ride_totals },
+    ];
+    return (
+        <div className="overflow-x-auto rounded-lg border border-cdborder">
+            <table className="w-full min-w-[640px] border-collapse">
+                <thead>
+                    <tr className="bg-cdbg/80">
+                        <th className={th}>Period</th>
+                        <th className={th}>Rides</th>
+                        <th className={th}>Distance</th>
+                        <th className={th}>Elevation</th>
+                        <th className={th}>Moving time</th>
+                        <th className={th}>Avg / ride (dist)</th>
+                        <th className={th}>Avg / ride (elev)</th>
+                        <th className={th}>Avg / ride (time)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {rows.map(({ label, t }) => {
+                        const c = Number(t?.count) || 0;
+                        const d = Number(t?.distance) || 0;
+                        const e = Number(t?.elevation_gain) || 0;
+                        const mv = Number(t?.moving_time) || 0;
+                        const ad = c > 0 ? d / c : 0;
+                        const ae = c > 0 ? e / c : 0;
+                        const at = c > 0 ? mv / c : 0;
+                        return (
+                            <tr key={label} className="hover:bg-cdborder/10">
+                                <td className={`${td} font-bold text-cdtext`}>{label}</td>
+                                <td className={td}>{c > 0 ? c.toLocaleString(LOCALE) : '–'}</td>
+                                <td className={td}>{c > 0 ? fmt.dist(d) : '–'}</td>
+                                <td className={td}>{c > 0 ? fmt.elev(e) : '–'}</td>
+                                <td className={td}>{c > 0 ? fmt.time(mv) : '–'}</td>
+                                <td className={td}>{c > 0 ? fmt.dist(ad) : '–'}</td>
+                                <td className={td}>{c > 0 ? fmt.elev(ae) : '–'}</td>
+                                <td className={td}>{c > 0 ? fmt.time(at) : '–'}</td>
+                            </tr>
+                        );
+                    })}
+                </tbody>
+            </table>
+            <p className="text-[9px] text-cdmuted px-2 py-1.5 bg-cdbg/40">From Strava athlete stats API (rides only; indoor + outdoor combined per Strava).</p>
+        </div>
+    );
+};
+
+const ScanContextBlock = ({ title, agg, footnote }) => {
+    if (!agg) return null;
+    const ctxs = [
+        { key: 'combined', label: 'Combined' },
+        { key: 'outdoor', label: 'Outdoor' },
+        { key: 'indoor', label: 'Indoor (virtual)' },
+    ];
+    return (
+        <div className="rounded-lg border border-cdborder overflow-hidden">
+            <div className="text-[10px] font-bold text-cdtext uppercase tracking-wide px-3 py-2 bg-cdbg/60 border-b border-cdborder">{title}</div>
+            <div className="overflow-x-auto">
+                <table className="w-full min-w-[520px] border-collapse text-xs">
+                    <thead>
+                        <tr className="bg-cdbg/50">
+                            <th className={th} />
+                            {ctxs.map(({ key, label }) => (
+                                <th key={key} className={th} colSpan={2}>{label}</th>
+                            ))}
+                        </tr>
+                        <tr className="bg-cdbg/30">
+                            <th className={th} />
+                            {ctxs.map(({ key }) => (
+                                <React.Fragment key={key}>
+                                    <th className={th}>Total</th>
+                                    <th className={th}>Avg / ride</th>
+                                </React.Fragment>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td className={`${td} font-bold text-cdmuted`}>Rides</td>
+                            {ctxs.map(({ key }) => {
+                                const b = agg[key];
+                                return (
+                                    <React.Fragment key={key}>
+                                        <td className={td}>{b.count.toLocaleString(LOCALE)}</td>
+                                        <td className={td}>—</td>
+                                    </React.Fragment>
+                                );
+                            })}
+                        </tr>
+                        <tr>
+                            <td className={`${td} font-bold text-cdmuted`}>Distance</td>
+                            {ctxs.map(({ key }) => {
+                                const b = agg[key];
+                                return (
+                                    <React.Fragment key={key}>
+                                        <td className={td}>{fmt.dist(b.distance)}</td>
+                                        <td className={td}>{b.count > 0 ? fmt.dist(b.avg_distance) : '–'}</td>
+                                    </React.Fragment>
+                                );
+                            })}
+                        </tr>
+                        <tr>
+                            <td className={`${td} font-bold text-cdmuted`}>Elevation</td>
+                            {ctxs.map(({ key }) => {
+                                const b = agg[key];
+                                return (
+                                    <React.Fragment key={key}>
+                                        <td className={td}>{fmt.elev(b.elevation_gain)}</td>
+                                        <td className={td}>{b.count > 0 ? fmt.elev(b.avg_elevation) : '–'}</td>
+                                    </React.Fragment>
+                                );
+                            })}
+                        </tr>
+                        <tr>
+                            <td className={`${td} font-bold text-cdmuted`}>Moving time</td>
+                            {ctxs.map(({ key }) => {
+                                const b = agg[key];
+                                return (
+                                    <React.Fragment key={key}>
+                                        <td className={td}>{fmt.time(b.moving_time)}</td>
+                                        <td className={td}>{b.count > 0 ? fmt.time(b.avg_moving_time) : '–'}</td>
+                                    </React.Fragment>
+                                );
+                            })}
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            {footnote && <p className="text-[9px] text-cdmuted px-2 py-1.5 bg-cdbg/30">{footnote}</p>}
+        </div>
+    );
+};
+
 const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChange }) => {
+    const [subTab, setSubTab] = useState('overview');
     const [isFetching, setIsFetching] = useState(false);
     const [fetchProgress, setFetchProgress] = useState('');
     const [error, setError] = useState(null);
@@ -123,12 +267,28 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
 
             setFetchProgress('Linking record rides…');
             let recordRides = null;
+            let activityScan = null;
             try {
                 const { activities: scanned, historyComplete } = await fetchAllBikeActivitiesForRecords(
                     token,
                     (msg) => setFetchProgress(msg)
                 );
                 recordRides = matchRecordActivities(scanned, stats, { historyComplete });
+                const now = Date.now();
+                const ms28d = 28 * 24 * 60 * 60 * 1000;
+                const yStart = new Date(new Date().getFullYear(), 0, 1).getTime();
+                const actTime = (a) => new Date(a.start_date_local || a.start_date).getTime();
+                const recentActs = scanned.filter((a) => actTime(a) >= now - ms28d);
+                const ytdActs = scanned.filter((a) => actTime(a) >= yStart);
+                activityScan = {
+                    periods: {
+                        all: aggregateBikeActivitiesByContext(scanned),
+                        ytd: aggregateBikeActivitiesByContext(ytdActs),
+                        last4w: aggregateBikeActivitiesByContext(recentActs),
+                    },
+                    ridesScanned: scanned.length,
+                    historyComplete,
+                };
             } catch (recErr) {
                 console.warn('[Strava profile] Record ride linking failed:', recErr);
                 recordRides = null;
@@ -141,6 +301,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                 starred,
                 bikes,
                 recordRides,
+                activityScan,
                 fetchedAt: new Date().toISOString()
             });
         } catch (e) {
@@ -159,7 +320,23 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
         );
     }
 
-    const { athlete, stats, koms, starred, bikes, recordRides } = data || {};
+    const { athlete, stats, koms, starred, bikes, recordRides, activityScan: rawActivityScan } = data || {};
+    const activityScan = rawActivityScan?.periods
+        ? rawActivityScan
+        : rawActivityScan?.combined != null
+            ? {
+                ...rawActivityScan,
+                periods: {
+                    all: {
+                        combined: rawActivityScan.combined,
+                        outdoor: rawActivityScan.outdoor,
+                        indoor: rawActivityScan.indoor,
+                    },
+                    ytd: null,
+                    last4w: null,
+                },
+            }
+            : rawActivityScan;
     const komCount = koms ? koms.filter(e => e.is_kom !== false).length : 0;
     const crCount = koms ? koms.filter(e => e.is_kom === false).length : 0;
     const recent = stats?.recent_ride_totals;
@@ -265,112 +442,221 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                 </div>
             )}
 
+            {getStravaToken && athleteId && (
+                <p className="text-[10px] text-cdmuted leading-relaxed border border-cdborder/50 rounded-lg px-3 py-2 bg-cdbg/30">
+                    After <strong className="text-cdtext">Load / Refresh</strong>, this profile is saved to your account (Firestore) and this browser — other PCs see the last synced copy until you refresh there too. For live Strava data, tap Refresh while signed in with Strava.
+                </p>
+            )}
+
             {error && (
                 <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded p-3 flex gap-2">
                     <AlertCircle size={14} className="shrink-0 mt-0.5" /> {error}
                 </div>
             )}
 
-            {recent && (recent.count > 0 || recent.distance > 0) && (
-                <section className="space-y-2">
-                    <h3 className="text-xs font-bold text-cdtext uppercase tracking-wide flex items-center gap-2">
-                        <Activity size={13} className="text-orange-400" /> Last 4 weeks (rides)
-                    </h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        <StatCard icon={Bike} iconColor="text-orange-400" label="Activities" value={recent.count?.toLocaleString(LOCALE) ?? '–'} />
-                        <StatCard icon={TrendingUp} iconColor="text-blue-400" label="Distance" value={fmt.dist(recent.distance ?? 0)} />
-                        <StatCard icon={Mountain} iconColor="text-green-400" label="Elevation" value={fmt.elev(recent.elevation_gain ?? 0)} />
-                        <StatCard icon={Clock} iconColor="text-purple-400" label="Moving time" value={fmt.time(recent.moving_time ?? 0)} />
-                    </div>
-                </section>
+            {data && (
+                <div className="flex border-b border-cdborder">
+                    <button
+                        type="button"
+                        onClick={() => setSubTab('overview')}
+                        className={`flex-1 py-2.5 text-xs font-bold ${subTab === 'overview' ? 'text-orange-400 border-b-2 border-orange-400 -mb-px' : 'text-cdmuted hover:text-cdtext'}`}
+                    >
+                        Overview
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setSubTab('ridestats')}
+                        className={`flex-1 py-2.5 text-xs font-bold ${subTab === 'ridestats' ? 'text-orange-400 border-b-2 border-orange-400 -mb-px' : 'text-cdmuted hover:text-cdtext'}`}
+                    >
+                        Ride stats
+                    </button>
+                </div>
             )}
 
-            {stats && (
-                <section className="space-y-2">
-                    <h3 className="text-xs font-bold text-cdtext uppercase tracking-wide flex items-center gap-2">
-                        <TrendingUp size={13} className="text-orange-400" /> All-time ride totals
-                    </h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        <StatCard icon={Bike} iconColor="text-orange-400" label="Rides" value={stats.all_ride_totals?.count?.toLocaleString(LOCALE) ?? '–'} sub={`YTD: ${stats.ytd_ride_totals?.count ?? '–'}`} />
-                        <StatCard icon={TrendingUp} iconColor="text-blue-400" label="Distance" value={fmt.dist(stats.all_ride_totals?.distance ?? 0)} sub={`YTD: ${fmt.dist(stats.ytd_ride_totals?.distance ?? 0)}`} />
-                        <StatCard icon={Mountain} iconColor="text-green-400" label="Elevation" value={fmt.elev(stats.all_ride_totals?.elevation_gain ?? 0)} sub={`YTD: ${fmt.elev(stats.ytd_ride_totals?.elevation_gain ?? 0)}`} />
-                        <StatCard icon={Clock} iconColor="text-purple-400" label="Moving time" value={fmt.time(stats.all_ride_totals?.moving_time ?? 0)} sub={`YTD: ${fmt.time(stats.ytd_ride_totals?.moving_time ?? 0)}`} />
-                    </div>
-                    {(stats.biggest_climb_elevation_gain > 0 || stats.biggest_ride_distance > 0) && (
-                        <div className="bg-cdbg/40 border border-cdborder rounded-lg p-3 space-y-3">
-                            <h4 className="text-[10px] font-bold text-cdmuted uppercase tracking-wide flex items-center gap-2">
-                                <Route size={12} className="text-orange-400" /> Personal records (Strava)
-                            </h4>
-                            <div className="grid gap-3 sm:grid-cols-2">
-                                {stats.biggest_ride_distance > 0 && (
-                                    <div className="text-xs text-cdmuted rounded border border-cdborder/60 bg-cdbg/50 p-2.5">
-                                        <div className="text-[10px] uppercase font-bold text-cdmuted mb-1">Longest ride</div>
-                                        <div className="text-cdtext font-bold">{fmt.dist(stats.biggest_ride_distance)}</div>
-                                        {recordRides?.longestRide ? (
-                                            <a
-                                                href={`https://www.strava.com/activities/${recordRides.longestRide.id}`}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="mt-2 inline-flex items-center gap-1 text-orange-400 hover:text-orange-300 font-bold"
-                                            >
-                                                {recordRides.longestRide.name || 'Open activity'}
-                                                <ExternalLink size={11} />
-                                            </a>
-                                        ) : (
-                                            <p className="mt-2 text-[10px] text-cdmuted">
-                                                {recordRides == null
-                                                    ? 'Could not load activity links (API error).'
-                                                    : !recordRides.historyComplete
-                                                        ? 'Link unavailable: history scan capped at 20k activities.'
-                                                        : 'No ride in scanned history matched Strava record numbers.'}
-                                            </p>
-                                        )}
-                                        {recordRides?.longestApprox && (
-                                            <p className="text-[10px] text-yellow-500/90 mt-1">Best match: max distance in scanned rides (± stats).</p>
-                                        )}
-                                    </div>
-                                )}
-                                {stats.biggest_climb_elevation_gain > 0 && (
-                                    <div className="text-xs text-cdmuted rounded border border-cdborder/60 bg-cdbg/50 p-2.5">
-                                        <div className="text-[10px] uppercase font-bold text-cdmuted mb-1">Most elevation (single ride)</div>
-                                        <div className="text-cdtext font-bold">{fmt.elev(stats.biggest_climb_elevation_gain)}</div>
-                                        {recordRides?.mostElevation ? (
-                                            <a
-                                                href={`https://www.strava.com/activities/${recordRides.mostElevation.id}`}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="mt-2 inline-flex items-center gap-1 text-orange-400 hover:text-orange-300 font-bold"
-                                            >
-                                                {recordRides.mostElevation.name || 'Open activity'}
-                                                <ExternalLink size={11} />
-                                            </a>
-                                        ) : (
-                                            <p className="mt-2 text-[10px] text-cdmuted">
-                                                {recordRides == null
-                                                    ? 'Could not load activity links (API error).'
-                                                    : !recordRides.historyComplete
-                                                        ? 'Link unavailable: history scan capped at 20k activities.'
-                                                        : 'No ride in scanned history matched Strava record numbers.'}
-                                            </p>
-                                        )}
-                                        {recordRides?.elevApprox && (
-                                            <p className="text-[10px] text-yellow-500/90 mt-1">Best match: max elevation in scanned rides (± stats).</p>
-                                        )}
-                                    </div>
-                                )}
+            {subTab === 'overview' && (
+                <>
+                    {recent && (recent.count > 0 || recent.distance > 0) && (
+                        <section className="space-y-2">
+                            <h3 className="text-xs font-bold text-cdtext uppercase tracking-wide flex items-center gap-2">
+                                <Activity size={13} className="text-orange-400" /> Last 4 weeks (rides)
+                            </h3>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                <StatCard icon={Bike} iconColor="text-orange-400" label="Activities" value={recent.count?.toLocaleString(LOCALE) ?? '–'} />
+                                <StatCard icon={TrendingUp} iconColor="text-blue-400" label="Distance" value={fmt.dist(recent.distance ?? 0)} />
+                                <StatCard icon={Mountain} iconColor="text-green-400" label="Elevation" value={fmt.elev(recent.elevation_gain ?? 0)} />
+                                <StatCard icon={Clock} iconColor="text-purple-400" label="Moving time" value={fmt.time(recent.moving_time ?? 0)} />
                             </div>
-                            {recordRides?.ridesScanned > 0 && (
-                                <p className="text-[10px] text-cdmuted opacity-70">
-                                    Scanned {recordRides.ridesScanned.toLocaleString(LOCALE)} bike activities for links.
-                                    {!recordRides.historyComplete && ' Older rides may not be included.'}
+                        </section>
+                    )}
+
+                    {stats && (
+                        <section className="space-y-2">
+                            <h3 className="text-xs font-bold text-cdtext uppercase tracking-wide flex items-center gap-2">
+                                <TrendingUp size={13} className="text-orange-400" /> All-time ride totals
+                            </h3>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                <StatCard icon={Bike} iconColor="text-orange-400" label="Rides" value={stats.all_ride_totals?.count?.toLocaleString(LOCALE) ?? '–'} sub={`YTD: ${stats.ytd_ride_totals?.count ?? '–'}`} />
+                                <StatCard icon={TrendingUp} iconColor="text-blue-400" label="Distance" value={fmt.dist(stats.all_ride_totals?.distance ?? 0)} sub={`YTD: ${fmt.dist(stats.ytd_ride_totals?.distance ?? 0)}`} />
+                                <StatCard icon={Mountain} iconColor="text-green-400" label="Elevation" value={fmt.elev(stats.all_ride_totals?.elevation_gain ?? 0)} sub={`YTD: ${fmt.elev(stats.ytd_ride_totals?.elevation_gain ?? 0)}`} />
+                                <StatCard icon={Clock} iconColor="text-purple-400" label="Moving time" value={fmt.time(stats.all_ride_totals?.moving_time ?? 0)} sub={`YTD: ${fmt.time(stats.ytd_ride_totals?.moving_time ?? 0)}`} />
+                            </div>
+                            {(stats.biggest_climb_elevation_gain > 0 || stats.biggest_ride_distance > 0 || recordRides?.maxTotalElevationRide) && (
+                                <div className="bg-cdbg/40 border border-cdborder rounded-lg p-3 space-y-3">
+                                    <h4 className="text-[10px] font-bold text-cdmuted uppercase tracking-wide flex items-center gap-2">
+                                        <Route size={12} className="text-orange-400" /> Personal records (Strava)
+                                    </h4>
+                                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                                        {stats.biggest_ride_distance > 0 && (
+                                            <div className="text-xs text-cdmuted rounded border border-cdborder/60 bg-cdbg/50 p-2.5">
+                                                <div className="text-[10px] uppercase font-bold text-cdmuted mb-1">Longest ride</div>
+                                                <div className="text-cdtext font-bold">{fmt.dist(stats.biggest_ride_distance)}</div>
+                                                {recordRides?.longestRide ? (
+                                                    <a
+                                                        href={`https://www.strava.com/activities/${recordRides.longestRide.id}`}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="mt-2 inline-flex items-center gap-1 text-orange-400 hover:text-orange-300 font-bold"
+                                                    >
+                                                        {recordRides.longestRide.name || 'Open activity'}
+                                                        <ExternalLink size={11} />
+                                                    </a>
+                                                ) : (
+                                                    <p className="mt-2 text-[10px] text-cdmuted">
+                                                        {recordRides == null
+                                                            ? 'Could not load activity links (API error).'
+                                                            : !recordRides.historyComplete
+                                                                ? 'Link unavailable: history scan capped at 20k activities.'
+                                                                : 'No ride in scanned history matched Strava record numbers.'}
+                                                    </p>
+                                                )}
+                                                {recordRides?.longestApprox && (
+                                                    <p className="text-[10px] text-yellow-500/90 mt-1">Best match: max distance in scanned rides (± stats).</p>
+                                                )}
+                                            </div>
+                                        )}
+                                        {stats.biggest_climb_elevation_gain > 0 && (
+                                            <div className="text-xs text-cdmuted rounded border border-cdborder/60 bg-cdbg/50 p-2.5">
+                                                <div className="text-[10px] uppercase font-bold text-cdmuted mb-1">Biggest climb (Strava stat)</div>
+                                                <div className="text-cdtext font-bold">{fmt.elev(stats.biggest_climb_elevation_gain)}</div>
+                                                <p className="text-[9px] text-cdmuted mt-1 leading-snug">
+                                                    Strava’s athlete stat for the <span className="text-cdtext">largest single detected climb</span> in one ride — not the same as that ride’s total elevation gain.
+                                                </p>
+                                                {recordRides?.mostElevation ? (
+                                                    <a
+                                                        href={`https://www.strava.com/activities/${recordRides.mostElevation.id}`}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="mt-2 inline-flex items-center gap-1 text-orange-400 hover:text-orange-300 font-bold"
+                                                    >
+                                                        {recordRides.mostElevation.name || 'Open activity'}
+                                                        <ExternalLink size={11} />
+                                                    </a>
+                                                ) : (
+                                                    <p className="mt-2 text-[10px] text-cdmuted">
+                                                        {recordRides == null
+                                                            ? 'Could not load activity links (API error).'
+                                                            : !recordRides.historyComplete
+                                                                ? 'Link unavailable: history scan capped at 20k activities.'
+                                                                : 'No ride in scanned history matched Strava record numbers.'}
+                                                    </p>
+                                                )}
+                                                {recordRides?.elevApprox && (
+                                                    <p className="text-[10px] text-yellow-500/90 mt-1">Best match: max elevation in scanned rides (± stats).</p>
+                                                )}
+                                            </div>
+                                        )}
+                                        {recordRides?.maxTotalElevationRide && (
+                                            <div className="text-xs text-cdmuted rounded border border-cdborder/60 bg-cdbg/50 p-2.5">
+                                                <div className="text-[10px] uppercase font-bold text-cdmuted mb-1">Most total elevation in one ride</div>
+                                                <div className="text-cdtext font-bold">{fmt.elev(recordRides.maxTotalElevationM)}</div>
+                                                <p className="text-[9px] text-cdmuted mt-1 leading-snug">
+                                                    Highest <span className="text-cdtext">activity total elevation gain</span> in a single ride from your scanned history (same number Strava shows on that activity).
+                                                </p>
+                                                <a
+                                                    href={`https://www.strava.com/activities/${recordRides.maxTotalElevationRide.id}`}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="mt-2 inline-flex items-center gap-1 text-orange-400 hover:text-orange-300 font-bold"
+                                                >
+                                                    {recordRides.maxTotalElevationRide.name || 'Open activity'}
+                                                    <ExternalLink size={11} />
+                                                </a>
+                                                {!recordRides.historyComplete && (
+                                                    <p className="text-[10px] text-yellow-500/90 mt-1">Older rides beyond the scan cap may have higher totals.</p>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                    {recordRides?.ridesScanned > 0 && (
+                                        <p className="text-[10px] text-cdmuted opacity-70">
+                                            Scanned {recordRides.ridesScanned.toLocaleString(LOCALE)} bike activities for links.
+                                            {!recordRides.historyComplete && ' Older rides may not be included.'}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+                        </section>
+                    )}
+                </>
+            )}
+
+            {subTab === 'ridestats' && stats && (
+                <div className="space-y-6 animate-in fade-in duration-200">
+                    <section className="space-y-2">
+                        <h3 className="text-xs font-bold text-cdtext uppercase tracking-wide flex items-center gap-2">
+                            <TrendingUp size={13} className="text-orange-400" /> Strava API — ride totals & averages
+                        </h3>
+                        <StravaApiRideTable stats={stats} />
+                    </section>
+
+                    {activityScan?.periods && (
+                        <section className="space-y-3">
+                            <h3 className="text-xs font-bold text-cdtext uppercase tracking-wide flex items-center gap-2">
+                                <Bike size={13} className="text-orange-400" /> From activity scan — outdoor / indoor / combined
+                            </h3>
+                            <p className="text-[10px] text-cdmuted">
+                                Totals below are summed from your bike activities during the profile refresh. Outdoor = Ride, Gravel, MTB, etc.; Indoor = VirtualRide. Last 4 weeks = rolling 28 days from activity dates.
+                                {activityScan.ridesScanned > 0 && (
+                                    <> Scanned {activityScan.ridesScanned.toLocaleString(LOCALE)} rides.</>
+                                )}
+                                {!activityScan.historyComplete && ' History may be capped — see Overview for scan note.'}
+                            </p>
+                            <ScanContextBlock
+                                title="All-time (scanned rides)"
+                                agg={activityScan.periods.all}
+                                footnote="Matches Strava all-time only if your full history fits in the scan (same cap as record links)."
+                            />
+                            {activityScan.periods.ytd && (
+                                <ScanContextBlock
+                                    title="Year to date (scanned rides, local calendar)"
+                                    agg={activityScan.periods.ytd}
+                                />
+                            )}
+                            {activityScan.periods.last4w && (
+                                <ScanContextBlock
+                                    title="Last 4 weeks (scanned rides, rolling 28 days)"
+                                    agg={activityScan.periods.last4w}
+                                />
+                            )}
+                            {(!activityScan.periods.ytd || !activityScan.periods.last4w) && (
+                                <p className="text-[10px] text-cdmuted">
+                                    {!activityScan.periods.ytd && !activityScan.periods.last4w
+                                        ? 'Tap Refresh once to load YTD and last-4-weeks splits from your activity history.'
+                                        : 'Partial scan data — tap Refresh to reload all period splits.'}
                                 </p>
                             )}
-                        </div>
+                        </section>
                     )}
-                </section>
+
+                    {!activityScan && data && !isFetching && (
+                        <p className="text-xs text-cdmuted border border-dashed border-cdborder rounded-lg p-4">
+                            No scan data yet. Open <strong className="text-cdtext">Overview</strong> and tap <strong className="text-cdtext">Refresh</strong> to load activity-based splits.
+                        </p>
+                    )}
+                </div>
             )}
 
-            {bikes && bikes.length > 0 && (
+            {subTab === 'overview' && bikes && bikes.length > 0 && (
                 <section className="space-y-2">
                     <h3 className="text-xs font-bold text-cdtext uppercase tracking-wide flex items-center gap-2">
                         <Bike size={13} className="text-orange-400" /> Bikes ({bikes.length})
@@ -388,7 +674,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                 </section>
             )}
 
-            {koms && (
+            {subTab === 'overview' && koms && (
                 <section className="space-y-2">
                     <h3 className="text-xs font-bold text-cdtext uppercase tracking-wide flex items-center gap-2">
                         <Trophy size={13} className="text-yellow-400" /> KOM / CR
@@ -431,7 +717,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                 </section>
             )}
 
-            {starred && (
+            {subTab === 'overview' && starred && (
                 <section className="space-y-2">
                     <h3 className="text-xs font-bold text-cdtext uppercase tracking-wide flex items-center gap-2">
                         <Star size={13} className="text-yellow-400 fill-yellow-400" /> Starred segments ({starred.length})
