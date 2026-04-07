@@ -1,5 +1,6 @@
 /**
  * Heuristic: match an activity title to a climb in CLIMB_DATABASE (for Profiler deep-link).
+ * Uses an inverted index so typical cases avoid O(activities × climbs) work.
  */
 
 const STOP = new Set([
@@ -24,21 +25,64 @@ function normWords(str) {
         .filter((w) => w.length >= 4 && !STOP.has(w));
 }
 
+/** Tokens for index lookup when normWords is empty (e.g. short or stopword-heavy titles). */
+function fallbackTokens(str) {
+    if (!str || typeof str !== 'string') return [];
+    const t = stripDiacritics(str.toLowerCase());
+    const m = t.match(/[a-z0-9]{4,}/g);
+    return m ? [...new Set(m.filter((w) => !STOP.has(w)))] : [];
+}
+
+/**
+ * @param {Array<{ id: string, name: string }>} climbs
+ * @returns {{ climbByWord: Map<string, Set<object>>, climbs: object[] }}
+ */
+export function buildClimbMatchIndex(climbs) {
+    const climbByWord = new Map();
+    const list = climbs || [];
+    for (const c of list) {
+        const name = (c.name || '').trim();
+        if (name.length < 4) continue;
+        const words = new Set([...normWords(name), ...fallbackTokens(name)]);
+        for (const w of words) {
+            if (!climbByWord.has(w)) climbByWord.set(w, new Set());
+            climbByWord.get(w).add(c);
+        }
+    }
+    return { climbByWord, climbs: list };
+}
+
 /**
  * @param {string} activityTitle
- * @param {Array<{ id: string, name: string }>} climbs
- * @returns {object | null} climb object or null
+ * @param {{ climbByWord: Map<string, Set<object>>, climbs: object[] }} index
+ * @returns {object | null}
  */
-export function findBestClimbForActivityTitle(activityTitle, climbs) {
-    if (!activityTitle || !climbs?.length) return null;
+export function findBestClimbUsingIndex(activityTitle, index) {
+    if (!activityTitle || !index?.climbs?.length) return null;
 
     const titleLower = stripDiacritics(activityTitle.toLowerCase());
     const titleWords = normWords(activityTitle);
+    const lookupKeys = titleWords.length > 0 ? titleWords : fallbackTokens(activityTitle);
+
+    const candidates = new Set();
+    for (const w of lookupKeys) {
+        const s = index.climbByWord.get(w);
+        if (s) s.forEach((c) => candidates.add(c));
+    }
+
+    let toCheck;
+    if (lookupKeys.length === 0) {
+        toCheck = index.climbs;
+    } else if (candidates.size === 0) {
+        return null;
+    } else {
+        toCheck = [...candidates];
+    }
 
     let best = null;
     let bestScore = 0;
 
-    for (const c of climbs) {
+    for (const c of toCheck) {
         const name = (c.name || '').trim();
         if (name.length < 4) continue;
 
@@ -49,9 +93,9 @@ export function findBestClimbForActivityTitle(activityTitle, climbs) {
 
         const climbWords = normWords(name);
         let score = 0;
-        for (const w of climbWords) {
-            if (titleWords.includes(w)) score += w.length + 2;
-            else if (titleLower.includes(w)) score += w.length;
+        for (const cw of climbWords) {
+            if (titleWords.includes(cw)) score += cw.length + 2;
+            else if (titleLower.includes(cw)) score += cw.length;
         }
         if (score > bestScore) {
             bestScore = score;
@@ -60,4 +104,13 @@ export function findBestClimbForActivityTitle(activityTitle, climbs) {
     }
 
     return bestScore >= 6 ? best : null;
+}
+
+/**
+ * @param {string} activityTitle
+ * @param {Array<{ id: string, name: string }>} climbs
+ * @returns {object | null} climb object or null
+ */
+export function findBestClimbForActivityTitle(activityTitle, climbs) {
+    return findBestClimbUsingIndex(activityTitle, buildClimbMatchIndex(climbs));
 }

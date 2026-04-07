@@ -245,6 +245,13 @@ const komEffortIsOutdoor = (effort) => {
     return OUTDOOR_SPORT_TYPES.has(st);
 };
 
+const starredSegmentIsOutdoor = (seg) => {
+    const st = seg?.activity_type || seg?.sport_type || '';
+    if (!st) return true;
+    if (st === 'VirtualRide') return false;
+    return OUTDOOR_SPORT_TYPES.has(st);
+};
+
 const YtdYearOverYearBlock = ({ ytdYoy }) => {
     if (!ytdYoy?.thisYtd || !ytdYoy?.prevYtd) return null;
     const { thisYtd, prevYtd } = ytdYoy;
@@ -370,6 +377,8 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
     const [data, setData] = useState(persistedData ?? null);
     const [komFilter, setKomFilter] = useState('all'); // 'all' | 'outdoor'
     const [komSort, setKomSort] = useState('default'); // 'default' | 'length_desc' | 'grade_desc'
+    const [starredFilter, setStarredFilter] = useState('all');
+    const [starredSort, setStarredSort] = useState('default');
 
     const applyData = useCallback((d) => {
         setData(d);
@@ -474,6 +483,22 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
         }
         return list;
     }, [koms, komFilter, komSort]);
+
+    const filteredSortedStarred = useMemo(() => {
+        if (!starred?.length) return [];
+        let list = [...starred];
+        if (starredFilter === 'outdoor') {
+            list = list.filter(starredSegmentIsOutdoor);
+        }
+        if (starredSort === 'length_desc') {
+            list.sort((a, b) => (Number(b.distance) || 0) - (Number(a.distance) || 0));
+        } else if (starredSort === 'grade_desc') {
+            list.sort((a, b) => (Number(b.average_grade) || 0) - (Number(a.average_grade) || 0));
+        } else if (starredSort === 'elev_desc') {
+            list.sort((a, b) => (Number(b.total_elevation_gain) || 0) - (Number(a.total_elevation_gain) || 0));
+        }
+        return list;
+    }, [starred, starredFilter, starredSort]);
 
     if (!getStravaToken) {
         return (
@@ -928,11 +953,37 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                             <h3 className="text-xs font-bold text-cdtext uppercase tracking-wide flex items-center gap-2">
                                 <Star size={13} className="text-yellow-400 fill-yellow-400" /> Starred segments ({fmt.int(starred.length)})
                             </h3>
+                            <div className="flex flex-wrap gap-2 items-center text-[10px]">
+                                <label className="text-cdmuted font-bold uppercase shrink-0">Filter</label>
+                                <select
+                                    value={starredFilter}
+                                    onChange={(e) => setStarredFilter(e.target.value)}
+                                    className="bg-cdbg border border-cdborder rounded px-2 py-1 text-cdtext text-[10px] max-w-[140px]"
+                                >
+                                    <option value="all">All segments</option>
+                                    <option value="outdoor">Outdoor only</option>
+                                </select>
+                                <label className="text-cdmuted font-bold uppercase shrink-0 ml-1">Sort</label>
+                                <select
+                                    value={starredSort}
+                                    onChange={(e) => setStarredSort(e.target.value)}
+                                    className="bg-cdbg border border-cdborder rounded px-2 py-1 text-cdtext text-[10px] max-w-[180px]"
+                                >
+                                    <option value="default">Strava order</option>
+                                    <option value="length_desc">Length (long first)</option>
+                                    <option value="grade_desc">Avg grade (steep first)</option>
+                                    <option value="elev_desc">Elevation gain (high first)</option>
+                                </select>
+                                <span className="text-cdmuted">{filteredSortedStarred.length} shown</span>
+                            </div>
+                            <p className="text-[9px] text-cdmuted">Outdoor filter uses segment activity type when Strava provides it.</p>
                             {starred.length === 0 ? (
                                 <p className="text-xs text-cdmuted italic">No starred segments.</p>
+                            ) : filteredSortedStarred.length === 0 ? (
+                                <p className="text-xs text-cdmuted italic">No segments match this filter.</p>
                             ) : (
                                 <div className="max-h-80 overflow-y-auto custom-scrollbar space-y-1 pr-1">
-                                    {starred.map((seg) => (
+                                    {filteredSortedStarred.map((seg) => (
                                         <div key={seg.id} className="flex flex-wrap sm:flex-nowrap items-center gap-2 bg-cdbg/50 border border-cdborder/40 rounded px-2.5 py-1.5 text-xs hover:border-yellow-400/30 transition-colors">
                                             <Star size={11} className="text-yellow-400 fill-yellow-400 shrink-0" />
                                             <a

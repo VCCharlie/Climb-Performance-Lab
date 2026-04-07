@@ -5,7 +5,7 @@ import {
     Mountain, Edit2, Trash2, ExternalLink, Eye, Route
 } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
-import { ACTIVITY_COLUMNS, MONTH_ORDER } from '../../config';
+import { ACTIVITY_TABLE_COLUMNS, MONTH_ORDER } from '../../config';
 
 const SortIcon = ({ colKey, config }) => {
     if (config.key !== colKey) return <ArrowUpDown size={12} className="opacity-30 inline" />;
@@ -27,7 +27,7 @@ export const TableHeader = ({ config, requestSort, hasActions = true, isPreview 
                 </th>
             )}
             {isPreview && <th className="px-2 py-2 w-8"></th>}
-            {ACTIVITY_COLUMNS.map((col) => (
+            {ACTIVITY_TABLE_COLUMNS.map((col) => (
                 <th key={col.key} className={`px-2 py-2 cursor-pointer hover:bg-cdsurface transition-colors select-none text-${col.align} ${col.width || ''}`} onClick={() => requestSort && requestSort(col.key)}>
                     <span className={`flex items-center gap-1 ${col.align === 'right' ? 'justify-end' : col.align === 'center' ? 'justify-center' : 'justify-start'}`}>
                         {col.align === 'left' && <span>{col.label}</span>}
@@ -132,7 +132,7 @@ export const Row = React.memo(({ act, onDelete, onEdit, onViewDetail, isPreview 
                 </td>
             )}
             {isPreview && <td className="px-2 py-1.5 w-8"><input type="checkbox" checked={isSelected} readOnly className="w-4 h-4 accent-green-500 cursor-pointer" /></td>}
-            {ACTIVITY_COLUMNS.map(col => <td key={col.key} className={`px-2 py-1.5 text-${col.align} text-xs ${col.width || ''}`}>{renderCell(col)}</td>)}
+            {ACTIVITY_TABLE_COLUMNS.map(col => <td key={col.key} className={`px-2 py-1.5 text-${col.align} text-xs ${col.width || ''}`}>{renderCell(col)}</td>)}
             {!isPreview && <td className="px-2 py-1.5 text-right w-28">
                 {isConfirmingDelete ? (
                     <div className="flex gap-2 justify-end">
@@ -216,10 +216,10 @@ const ActivityTable = React.memo(({ activities, sortConfig, onSort, onDelete, on
                     {isGroupedView ? (
                         Object.keys(activities).sort((a, b) => sortConfig.direction === 'asc' ? a - b : b - a).map(year => (
                             <React.Fragment key={year}>
-                                <tr id={`year-${year}`} className="bg-cdborder/50 scroll-mt-10"><td colSpan={ACTIVITY_COLUMNS.length + 1 + (showBulkSelect ? 1 : 0)} className="p-2 font-bold text-cdtext"><button onClick={() => onToggleYear(year)} className="flex items-center gap-2 w-full text-left hover:text-yellow-400">{isYearExpanded(year) ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {year}</button></td></tr>
+                                <tr id={`year-${year}`} className="bg-cdborder/50 scroll-mt-10"><td colSpan={ACTIVITY_TABLE_COLUMNS.length + 1 + (showBulkSelect ? 1 : 0)} className="p-2 font-bold text-cdtext"><button onClick={() => onToggleYear(year)} className="flex items-center gap-2 w-full text-left hover:text-yellow-400">{isYearExpanded(year) ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {year}</button></td></tr>
                                 {isYearExpanded(year) && Object.keys(activities[year]).sort((a, b) => { const diff = MONTH_ORDER.indexOf(b) - MONTH_ORDER.indexOf(a); return sortConfig.direction === 'asc' ? -diff : diff; }).map(month => (
                                     <React.Fragment key={month}>
-                                        <tr id={`month-${year}-${month}`} className="bg-cdborder/20 scroll-mt-12"><td colSpan={ACTIVITY_COLUMNS.length + 1 + (showBulkSelect ? 1 : 0)} className="px-8 py-1 text-[10px] uppercase font-bold text-cdmuted"><button onClick={() => onToggleMonth(year, month)} className="flex items-center gap-1 hover:text-cdtext text-left w-full transition-colors">{isMonthExpanded(year, month) ? <ChevronDown size={12} /> : <ChevronRight size={12} />} {month}</button></td></tr>
+                                        <tr id={`month-${year}-${month}`} className="bg-cdborder/20 scroll-mt-12"><td colSpan={ACTIVITY_TABLE_COLUMNS.length + 1 + (showBulkSelect ? 1 : 0)} className="px-8 py-1 text-[10px] uppercase font-bold text-cdmuted"><button onClick={() => onToggleMonth(year, month)} className="flex items-center gap-1 hover:text-cdtext text-left w-full transition-colors">{isMonthExpanded(year, month) ? <ChevronDown size={12} /> : <ChevronRight size={12} />} {month}</button></td></tr>
                                         {isMonthExpanded(year, month) && activities[year][month].map(act => (
                                             <Row
                                                 key={act.id}

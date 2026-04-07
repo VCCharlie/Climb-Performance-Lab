@@ -10,7 +10,8 @@ export const APP_VERSION = "v0.9.2"; // <--- PAS DIT AAN BIJ ELKE UPDATE
 export const ACTIVITY_COLUMNS = [
     { key: 'date', label: 'Date', align: 'left', width: 'w-20' },
     { key: 'type', label: 'Type', align: 'center', width: 'w-10' },
-    { key: 'data_source', label: 'Source', align: 'center', width: 'w-[4.5rem]' },
+    /** UI only — kept for CSV/schema continuity; hidden in table (see hideInTable). */
+    { key: 'data_source', label: 'Source', align: 'center', width: 'w-[4.5rem]', hideInTable: true },
     { key: 'title', label: 'Title', align: 'left', width: 'min-w-[120px] max-w-[200px] truncate' },
     { key: 'gear_name', label: 'Fiets', align: 'left', width: 'w-28' },
     { key: 'moving_time', label: 'Time', align: 'right', width: 'w-14' },
@@ -31,6 +32,9 @@ export const ACTIVITY_COLUMNS = [
     { key: 'best_20min', label: '20m', align: 'right', width: 'w-10', text: 'slate-400' },
     { key: 'best_60min', label: '60m', align: 'right', width: 'w-10', text: 'slate-400' },
 ];
+
+/** Columns shown in Activity Log / Import preview tables (excludes hideInTable). */
+export const ACTIVITY_TABLE_COLUMNS = ACTIVITY_COLUMNS.filter((c) => !c.hideInTable);
 
 // 2. Sport Filters
 export const SPORT_TYPES = [

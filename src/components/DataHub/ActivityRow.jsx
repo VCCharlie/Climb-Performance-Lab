@@ -1,7 +1,7 @@
 ﻿import React from 'react';
 import { Monitor, Footprints, Mountain, Bike, Trash2, ExternalLink, Eye } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
-import { ACTIVITY_COLUMNS } from '../../config';
+import { ACTIVITY_TABLE_COLUMNS } from '../../config';
 
 const ActivityRow = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview = false, isSelected = false, onToggleSelect, onToggleType, onViewDetail }) => {
     if (!act) return null;
@@ -69,7 +69,7 @@ const ActivityRow = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview
     return (
         <tr className={`group hover:bg-cdborder/50 transition-colors border-b border-cdborder/50 ${isSelected ? 'bg-cdborder/30' : ''}`} onClick={onToggleSelect ? () => onToggleSelect(act.id) : undefined}>
             {isPreview && <td className="p-3 w-10"><input type="checkbox" checked={isSelected} readOnly className="w-4 h-4 accent-green-500 cursor-pointer" /></td>}
-            {ACTIVITY_COLUMNS.map(col => <td key={col.key} className={`p-3 text-${col.align} text-xs`}>{renderCell(col)}</td>)}
+            {ACTIVITY_TABLE_COLUMNS.map(col => <td key={col.key} className={`p-3 text-${col.align} text-xs`}>{renderCell(col)}</td>)}
             {!isPreview && <td className="p-3 text-right">
                 <div className="flex gap-2 justify-end items-center">
                     {onViewDetail && (
