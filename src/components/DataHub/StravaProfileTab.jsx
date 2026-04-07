@@ -302,12 +302,12 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                         <StatCard icon={Mountain} iconColor="text-green-400" label="Elevation" value={fmt.elev(stats.all_ride_totals?.elevation_gain ?? 0)} sub={`YTD: ${fmt.elev(stats.ytd_ride_totals?.elevation_gain ?? 0)}`} />
                         <StatCard icon={Clock} iconColor="text-purple-400" label="Moving time" value={fmt.time(stats.all_ride_totals?.moving_time ?? 0)} sub={`YTD: ${fmt.time(stats.ytd_ride_totals?.moving_time ?? 0)}`} />
                     </div>
-                    {(stats.biggest_climb_elevation_gain > 0 || stats.biggest_ride_distance > 0) && (
+                    {(stats.biggest_climb_elevation_gain > 0 || stats.biggest_ride_distance > 0 || recordRides?.maxTotalElevationRide) && (
                         <div className="bg-cdbg/40 border border-cdborder rounded-lg p-3 space-y-3">
                             <h4 className="text-[10px] font-bold text-cdmuted uppercase tracking-wide flex items-center gap-2">
                                 <Route size={12} className="text-orange-400" /> Personal records (Strava)
                             </h4>
-                            <div className="grid gap-3 sm:grid-cols-2">
+                            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                                 {stats.biggest_ride_distance > 0 && (
                                     <div className="text-xs text-cdmuted rounded border border-cdborder/60 bg-cdbg/50 p-2.5">
                                         <div className="text-[10px] uppercase font-bold text-cdmuted mb-1">Longest ride</div>
@@ -338,30 +338,21 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                 )}
                                 {stats.biggest_climb_elevation_gain > 0 && (
                                     <div className="text-xs text-cdmuted rounded border border-cdborder/60 bg-cdbg/50 p-2.5">
-                                        <div className="text-[10px] uppercase font-bold text-cdmuted mb-1">Most elevation (single ride)</div>
+                                        <div className="text-[10px] uppercase font-bold text-cdmuted mb-1">Biggest climb (Strava stat)</div>
                                         <div className="text-cdtext font-bold">{fmt.elev(stats.biggest_climb_elevation_gain)}</div>
                                         <p className="text-[9px] text-cdmuted mt-1 leading-snug">
-                                            Strava’s “biggest climb” stat is often the <span className="text-cdtext">largest single ascent</span> inside a ride, not the ride’s total elevation — so it can differ from the activity summary.
+                                            Strava’s athlete stat for the <span className="text-cdtext">largest single detected climb</span> in one ride — not the same as that ride’s total elevation gain.
                                         </p>
                                         {recordRides?.mostElevation ? (
-                                            <>
-                                                <div className="mt-2 pt-2 border-t border-cdborder/40 space-y-1">
-                                                    <div className="text-[10px] text-cdmuted uppercase font-bold">Linked activity (list API)</div>
-                                                    <div className="text-cdtext font-mono font-bold">
-                                                        {fmt.elev(recordRides.mostElevation.total_elevation_gain ?? 0)}{' '}
-                                                        <span className="text-[9px] text-cdmuted font-normal font-sans">total on activity</span>
-                                                    </div>
-                                                </div>
-                                                <a
-                                                    href={`https://www.strava.com/activities/${recordRides.mostElevation.id}`}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    className="mt-2 inline-flex items-center gap-1 text-orange-400 hover:text-orange-300 font-bold"
-                                                >
-                                                    {recordRides.mostElevation.name || 'Open activity'}
-                                                    <ExternalLink size={11} />
-                                                </a>
-                                            </>
+                                            <a
+                                                href={`https://www.strava.com/activities/${recordRides.mostElevation.id}`}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="mt-2 inline-flex items-center gap-1 text-orange-400 hover:text-orange-300 font-bold"
+                                            >
+                                                {recordRides.mostElevation.name || 'Open activity'}
+                                                <ExternalLink size={11} />
+                                            </a>
                                         ) : (
                                             <p className="mt-2 text-[10px] text-cdmuted">
                                                 {recordRides == null
@@ -373,6 +364,27 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                         )}
                                         {recordRides?.elevApprox && (
                                             <p className="text-[10px] text-yellow-500/90 mt-1">Best match: max elevation in scanned rides (± stats).</p>
+                                        )}
+                                    </div>
+                                )}
+                                {recordRides?.maxTotalElevationRide && (
+                                    <div className="text-xs text-cdmuted rounded border border-cdborder/60 bg-cdbg/50 p-2.5">
+                                        <div className="text-[10px] uppercase font-bold text-cdmuted mb-1">Highest total elevation (one ride)</div>
+                                        <div className="text-cdtext font-bold">{fmt.elev(recordRides.maxTotalElevationM)}</div>
+                                        <p className="text-[9px] text-cdmuted mt-1 leading-snug">
+                                            Maximum <span className="text-cdtext">activity total elevation</span> (<code className="text-[8px] bg-cdborder/40 px-0.5 rounded">total_elevation_gain</code>) among bike rides in your scanned Strava history.
+                                        </p>
+                                        <a
+                                            href={`https://www.strava.com/activities/${recordRides.maxTotalElevationRide.id}`}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="mt-2 inline-flex items-center gap-1 text-orange-400 hover:text-orange-300 font-bold"
+                                        >
+                                            {recordRides.maxTotalElevationRide.name || 'Open activity'}
+                                            <ExternalLink size={11} />
+                                        </a>
+                                        {!recordRides.historyComplete && (
+                                            <p className="text-[10px] text-yellow-500/90 mt-1">Older rides beyond the scan cap may have higher totals.</p>
                                         )}
                                     </div>
                                 )}

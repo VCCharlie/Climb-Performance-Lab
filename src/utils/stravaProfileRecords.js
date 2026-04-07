@@ -56,6 +56,8 @@ export function matchRecordActivities(bikeActivities, stats, meta = {}) {
         return {
             longestRide: null,
             mostElevation: null,
+            maxTotalElevationRide: null,
+            maxTotalElevationM: 0,
             longestApprox: false,
             elevApprox: false,
             ridesScanned: 0,
@@ -112,9 +114,15 @@ export function matchRecordActivities(bikeActivities, stats, meta = {}) {
         }
     }
 
+    /** Ride with highest activity total elevation (Strava `total_elevation_gain` per ride), from scanned history. */
+    const maxTotalElevationRide = highestAct && maxElev > 0 ? highestAct : null;
+    const maxTotalElevationM = maxElev > 0 ? maxElev : 0;
+
     return {
         longestRide,
         mostElevation,
+        maxTotalElevationRide,
+        maxTotalElevationM,
         longestApprox,
         elevApprox,
         ridesScanned: bikeActivities.length,

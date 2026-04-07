@@ -21,4 +21,14 @@ describe('matchRecordActivities', () => {
     expect(r.longestRide).toBe(null);
     expect(r.mostElevation).toBe(null);
   });
+
+  it('always exposes max total elevation ride from scan when any elevation data exists', () => {
+    const acts = [
+      { id: 1, distance: 20000, total_elevation_gain: 500, name: 'A' },
+      { id: 2, distance: 15000, total_elevation_gain: 1800, name: 'B' }
+    ];
+    const r = matchRecordActivities(acts, stats, { historyComplete: false });
+    expect(r.maxTotalElevationRide?.id).toBe(2);
+    expect(r.maxTotalElevationM).toBe(1800);
+  });
 });
