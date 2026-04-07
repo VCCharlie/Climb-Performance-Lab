@@ -169,12 +169,13 @@ const MilestonesBlock = ({ totals, periodLabel }) => {
     const c = Number(totals.count) || 0;
     const d = Number(totals.distance) || 0;
     const e = Number(totals.elevation_gain) || 0;
-    if (c === 0 && d === 0 && e === 0) return null;
-    const m = computeRideMilestones(c, d, e);
+    const t = Number(totals.moving_time) || 0;
+    if (c === 0 && d === 0 && e === 0 && t === 0) return null;
+    const m = computeRideMilestones(c, d, e, t);
     return (
         <div className="rounded-xl border border-cdborder bg-cdbg/30 p-3 space-y-2">
             <h4 className="text-[10px] font-bold text-cdmuted uppercase tracking-wide">Richting volgende mijlpaal — {periodLabel}</h4>
-            <div className="grid gap-2 sm:grid-cols-3">
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
                 <MilestoneBar
                     title="Ritten"
                     currentLabel={`${fmt.int(m.rides.current)} ritten`}
@@ -195,6 +196,13 @@ const MilestonesBlock = ({ totals, periodLabel }) => {
                     targetLabel={fmt.elev(m.elevation.target)}
                     remainingLabel={`nog ${fmt.int(m.elevation.remaining)} m`}
                     pct={m.elevation.pct}
+                />
+                <MilestoneBar
+                    title="Bewegingstijd (totaal)"
+                    currentLabel={fmt.time(m.movingTime.currentSec)}
+                    targetLabel={fmt.time(m.movingTime.targetSec)}
+                    remainingLabel={`nog ${fmt.time(m.movingTime.remainingSec)}`}
+                    pct={m.movingTime.pct}
                 />
             </div>
         </div>
