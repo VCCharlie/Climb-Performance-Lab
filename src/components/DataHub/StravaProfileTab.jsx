@@ -24,6 +24,7 @@ import {
     fetchAllBikeActivitiesForRecords,
     matchRecordActivities,
     aggregateBikeActivitiesByContext,
+    getStravaRawActivityListFetchCap,
 } from '../../utils/stravaProfileRecords';
 import { computeRideMilestones } from '../../utils/stravaMilestones';
 
@@ -174,38 +175,62 @@ const MilestonesBlock = ({ totals, periodLabel }) => {
     const m = computeRideMilestones(c, d, e, t);
     return (
         <div className="rounded-xl border border-cdborder bg-cdbg/30 p-3 space-y-2">
-            <h4 className="text-[10px] font-bold text-cdmuted uppercase tracking-wide">Richting volgende mijlpaal — {periodLabel}</h4>
+            <h4 className="text-[10px] font-bold text-cdmuted uppercase tracking-wide">Toward next milestone — {periodLabel}</h4>
             <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
                 <MilestoneBar
-                    title="Ritten"
-                    currentLabel={`${fmt.int(m.rides.current)} ritten`}
-                    targetLabel={`${fmt.int(m.rides.target)} ritten`}
-                    remainingLabel={`nog ${fmt.int(m.rides.remaining)}`}
+                    title="Rides"
+                    currentLabel={`${fmt.int(m.rides.current)} rides`}
+                    targetLabel={`${fmt.int(m.rides.target)} rides`}
+                    remainingLabel={`${fmt.int(m.rides.remaining)} to go`}
                     pct={m.rides.pct}
                 />
                 <MilestoneBar
-                    title="Afstand"
+                    title="Distance"
                     currentLabel={`${fmt.num(m.distanceKm.current, 1)} km`}
                     targetLabel={`${fmt.int(m.distanceKm.targetKm)} km`}
-                    remainingLabel={`nog ${fmt.num(m.distanceKm.remainingKm, 1)} km`}
+                    remainingLabel={`${fmt.num(m.distanceKm.remainingKm, 1)} km to go`}
                     pct={m.distanceKm.pct}
                 />
                 <MilestoneBar
-                    title="Hoogtemeters"
+                    title="Elevation"
                     currentLabel={fmt.elev(m.elevation.current)}
                     targetLabel={fmt.elev(m.elevation.target)}
-                    remainingLabel={`nog ${fmt.int(m.elevation.remaining)} m`}
+                    remainingLabel={`${fmt.int(m.elevation.remaining)} m to go`}
                     pct={m.elevation.pct}
                 />
                 <MilestoneBar
-                    title="Bewegingstijd (totaal)"
+                    title="Moving time (total)"
                     currentLabel={fmt.time(m.movingTime.currentSec)}
                     targetLabel={fmt.time(m.movingTime.targetSec)}
-                    remainingLabel={`nog ${fmt.time(m.movingTime.remainingSec)}`}
+                    remainingLabel={`${fmt.time(m.movingTime.remainingSec)} to go`}
                     pct={m.movingTime.pct}
                 />
             </div>
         </div>
+    );
+};
+
+/** One line: when data was fetched + what the next Refresh will re-pull (scan cap context). */
+const ProfileDataFreshnessLine = ({ fetchedAt, scanMeta }) => {
+    if (!fetchedAt) return null;
+    const when = new Date(fetchedAt);
+    if (Number.isNaN(when.getTime())) return null;
+    const dateStr = when.toLocaleString(LOCALE, { dateStyle: 'medium', timeStyle: 'short' });
+    const listCap = getStravaRawActivityListFetchCap();
+    let nextRefresh = '';
+    if (scanMeta && scanMeta.historyComplete === false) {
+        nextRefresh = `Next refresh re-scans up to ${fmt.int(listCap)} activities from Strava; record links and scan-based ride splits may miss older rides.`;
+    } else if (scanMeta && scanMeta.historyComplete === true) {
+        nextRefresh = 'Next refresh re-fetches Strava stats, KOMs, starred segments, and your full scanned ride history (within the same API limits).';
+    } else {
+        nextRefresh = 'Next refresh updates Strava stats and lists; run Refresh after connecting to load the activity scan used for record links and outdoor/indoor splits.';
+    }
+    return (
+        <p className="text-[10px] text-cdmuted leading-relaxed">
+            <span className="text-cdtext font-medium">Profile data from {dateStr}</span>
+            <span className="mx-1.5 text-cdborder">·</span>
+            {nextRefresh}
+        </p>
     );
 };
 
@@ -487,11 +512,6 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                         <p className="text-xs text-cdmuted">
                             All-time ride stats, KOMs / CRs, and starred segments from your Strava account.
                         </p>
-                        {data?.fetchedAt && !isFetching && (
-                            <p className="text-[10px] text-cdmuted opacity-60 mt-0.5">
-                                Last updated: {new Date(data.fetchedAt).toLocaleString(LOCALE)}
-                            </p>
-                        )}
                     </div>
                     <button
                         type="button"
@@ -503,6 +523,19 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                         {isFetching ? fetchProgress || 'Loading…' : (data ? 'Refresh' : 'Load from Strava')}
                     </button>
                 </div>
+            )}
+
+            {data?.fetchedAt && !isFetching && (
+                <ProfileDataFreshnessLine
+                    fetchedAt={data.fetchedAt}
+                    scanMeta={
+                        data.activityScan != null
+                            ? { historyComplete: data.activityScan.historyComplete }
+                            : data.recordRides != null
+                                ? { historyComplete: data.recordRides.historyComplete }
+                                : null
+                    }
+                />
             )}
 
             {!athleteId && (
@@ -571,7 +604,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                 <StatCard icon={Clock} iconColor="text-purple-400" label="Moving time" value={fmt.time(stats.all_ride_totals?.moving_time ?? 0)} sub={`YTD: ${fmt.time(stats.ytd_ride_totals?.moving_time ?? 0)}`} />
                             </div>
                             <MilestonesBlock totals={stats.all_ride_totals} periodLabel="all-time (Strava)" />
-                            <MilestonesBlock totals={stats.ytd_ride_totals} periodLabel="dit jaar (YTD, Strava)" />
+                            <MilestonesBlock totals={stats.ytd_ride_totals} periodLabel="YTD (Strava)" />
                             {(stats.biggest_climb_elevation_gain > 0 || stats.biggest_ride_distance > 0 || recordRides?.maxTotalElevationRide) && (
                                 <div className="bg-cdbg/40 border border-cdborder rounded-lg p-3 space-y-3">
                                     <h4 className="text-[10px] font-bold text-cdmuted uppercase tracking-wide flex items-center gap-2">
@@ -597,7 +630,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                                         {recordRides == null
                                                             ? 'Could not load activity links (API error).'
                                                             : !recordRides.historyComplete
-                                                                ? 'Link unavailable: history scan capped at 20k activities.'
+                                                                ? `Link unavailable: history scan capped at ${fmt.int(getStravaRawActivityListFetchCap())} activities.`
                                                                 : 'No ride in scanned history matched Strava record numbers.'}
                                                     </p>
                                                 )}
@@ -628,7 +661,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                                         {recordRides == null
                                                             ? 'Could not load activity links (API error).'
                                                             : !recordRides.historyComplete
-                                                                ? 'Link unavailable: history scan capped at 20k activities.'
+                                                                ? `Link unavailable: history scan capped at ${fmt.int(getStravaRawActivityListFetchCap())} activities.`
                                                                 : 'No ride in scanned history matched Strava record numbers.'}
                                                     </p>
                                                 )}
@@ -760,7 +793,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                 </span>
                             </h3>
                             {koms.length === 0 ? (
-                                <p className="text-xs text-cdmuted italic">Geen KOMs of CRs in deze lijst.</p>
+                                <p className="text-xs text-cdmuted italic">No KOMs or CRs in this list.</p>
                             ) : (
                                 <div className="max-h-80 overflow-y-auto custom-scrollbar space-y-1 pr-1">
                                     {koms.map((effort) => {
@@ -798,7 +831,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                 <Star size={13} className="text-yellow-400 fill-yellow-400" /> Starred segments ({fmt.int(starred.length)})
                             </h3>
                             {starred.length === 0 ? (
-                                <p className="text-xs text-cdmuted italic">Geen starred segments.</p>
+                                <p className="text-xs text-cdmuted italic">No starred segments.</p>
                             ) : (
                                 <div className="max-h-80 overflow-y-auto custom-scrollbar space-y-1 pr-1">
                                     {starred.map((seg) => (
