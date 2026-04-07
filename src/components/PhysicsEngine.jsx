@@ -10,7 +10,8 @@ import {
   ArrowUpRight,
   GitCompare,
   Timer,
-  Flame
+  Flame,
+  Ruler
 } from 'lucide-react';
 import { COGGAN_ZONES } from '../climbs';
 import { summarizeClimbPhysics } from '../utils';
@@ -21,10 +22,17 @@ import {
   formatSignedInt,
   formatSignedDuration,
   addSecondsToTimeStr,
+  horizontalDistanceDeltaInATimeAtBPace,
+  horizontalDistanceDeltaInBTimeAtAPace,
+  formatSignedHorizontalDelta,
   EMPTY_PHYSICS_CALC
 } from '../utils/physicsEngineCore';
 
 const VISUAL_MAX = 1.6;
+
+/** Small downward triangles for % FTP markers (entire Climbs tab). */
+const IF_MARKER_COMPARE = { tipY: 6, baseY: 11, halfW: 1.25, stroke: 0.12 };
+const IF_MARKER_MAIN = { tipY: 2, baseY: 11, halfW: 1.85, stroke: 0.2 };
 
 const physicsParams = (selectedClimb, userSettings, mode, targetTimeStr, targetWatts, cda, crr, loss) => ({
   selectedClimb,
@@ -136,6 +144,20 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
     [compareCalc.seconds, compareCalc.watts, userSettings.ftp]
   );
 
+  const climbLenM = selectedClimb ? selectedClimb.lengthKm * 1000 : 0;
+
+  const distDeltaInATime = useMemo(
+    () =>
+      horizontalDistanceDeltaInATimeAtBPace(climbLenM, calc.seconds, compareCalc.seconds),
+    [climbLenM, calc.seconds, compareCalc.seconds]
+  );
+
+  const distDeltaInBTime = useMemo(
+    () =>
+      horizontalDistanceDeltaInBTimeAtAPace(climbLenM, calc.seconds, compareCalc.seconds),
+    [climbLenM, calc.seconds, compareCalc.seconds]
+  );
+
   const calculateZoneWidth = (zone) => {
     const min = Math.min(zone.min, VISUAL_MAX);
     const max = Math.min(zone.max, VISUAL_MAX);
@@ -147,6 +169,12 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
     calc.zone && z.min === calc.zone.min && z.max === calc.zone.max;
 
   const kJ = (c) => (c.watts > 0 && c.seconds > 0 ? Math.round((c.watts * c.seconds) / 1000) : 0);
+
+  const compareMarkerX = (ifRatio) =>
+    Math.min(100, Math.max(0, (ifRatio / VISUAL_MAX) * 100));
+
+  const mainMarkerX = (ifRatio) =>
+    Math.min(99.4, Math.max(0.6, (ifRatio / VISUAL_MAX) * 100));
 
   return (
     <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl">
@@ -270,7 +298,7 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                 />
               </div>
             )}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px]">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 text-[11px]">
               <div className="bg-cdsurface/80 border border-cdborder rounded-lg p-2">
                 <span className="text-cdmuted uppercase text-[9px] font-bold">Δ Power</span>
                 <div className="text-cdtext font-mono font-bold">
@@ -285,6 +313,24 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                     : '—'}
                 </div>
                 <span className="text-[9px] text-cdmuted block">+ = B slower (longer)</span>
+              </div>
+              <div className="bg-cdsurface/80 border border-cdborder rounded-lg p-2">
+                <span className="text-cdmuted uppercase text-[9px] font-bold flex items-center gap-1"><Ruler size={10} /> Δ Road (A’s time)</span>
+                <div className="text-cdtext font-mono font-bold leading-tight">
+                  {calc.seconds > 0 && compareCalc.seconds > 0
+                    ? formatSignedHorizontalDelta(distDeltaInATime)
+                    : '—'}
+                </div>
+                <span className="text-[9px] text-cdmuted block">at B’s avg speed vs climb length</span>
+              </div>
+              <div className="bg-cdsurface/80 border border-cdborder rounded-lg p-2">
+                <span className="text-cdmuted uppercase text-[9px] font-bold flex items-center gap-1"><Ruler size={10} /> Δ Road (B’s time)</span>
+                <div className="text-cdtext font-mono font-bold leading-tight">
+                  {calc.seconds > 0 && compareCalc.seconds > 0
+                    ? formatSignedHorizontalDelta(distDeltaInBTime)
+                    : '—'}
+                </div>
+                <span className="text-[9px] text-cdmuted block">at A’s avg speed vs climb length</span>
               </div>
               <div className="bg-cdsurface/80 border border-cdborder rounded-lg p-2">
                 <span className="text-cdmuted uppercase text-[9px] font-bold flex items-center gap-1"><Flame size={10} /> Δ VAM</span>
@@ -326,47 +372,55 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                   viewBox="0 0 100 40"
                   preserveAspectRatio="none"
                 >
-                  <line x1="62.5" y1="4" x2="62.5" y2="36" stroke="currentColor" className="text-cdmuted/40" strokeWidth="0.35" strokeDasharray="1 1" />
-                  {calc.ifRatio > 0 && (
-                    <g>
-                      <polygon
-                        points={`${Math.min(100, (calc.ifRatio / VISUAL_MAX) * 100)},4 ${Math.min(100, (calc.ifRatio / VISUAL_MAX) * 100) - 2.2},14 ${Math.min(100, (calc.ifRatio / VISUAL_MAX) * 100) + 2.2},14`}
-                        fill="#facc15"
-                        stroke="#0f172a"
-                        strokeWidth="0.15"
-                        className="drop-shadow-md"
-                      />
-                      <text
-                        x={Math.min(98, Math.max(4, (calc.ifRatio / VISUAL_MAX) * 100))}
-                        y="32"
-                        textAnchor="middle"
-                        className="fill-yellow-400"
-                        style={{ fontSize: '3.2px', fontWeight: 800 }}
-                      >
-                        A
-                      </text>
-                    </g>
-                  )}
-                  {compareCalc.ifRatio > 0 && (
-                    <g>
-                      <polygon
-                        points={`${Math.min(100, (compareCalc.ifRatio / VISUAL_MAX) * 100)},4 ${Math.min(100, (compareCalc.ifRatio / VISUAL_MAX) * 100) - 2.2},14 ${Math.min(100, (compareCalc.ifRatio / VISUAL_MAX) * 100) + 2.2},14`}
-                        fill="#38bdf8"
-                        stroke="#0f172a"
-                        strokeWidth="0.15"
-                        className="drop-shadow-md"
-                      />
-                      <text
-                        x={Math.min(98, Math.max(4, (compareCalc.ifRatio / VISUAL_MAX) * 100))}
-                        y="38"
-                        textAnchor="middle"
-                        className="fill-sky-400"
-                        style={{ fontSize: '3.2px', fontWeight: 800 }}
-                      >
-                        B
-                      </text>
-                    </g>
-                  )}
+                  <line x1="62.5" y1="4" x2="62.5" y2="36" stroke="currentColor" className="text-cdmuted/35" strokeWidth="0.28" strokeDasharray="1 1" />
+                  {calc.ifRatio > 0 && (() => {
+                    const x = compareMarkerX(calc.ifRatio);
+                    const { tipY, baseY, halfW, stroke } = IF_MARKER_COMPARE;
+                    return (
+                      <g>
+                        <polygon
+                          points={`${x},${tipY} ${x - halfW},${baseY} ${x + halfW},${baseY}`}
+                          fill="#facc15"
+                          stroke="#0f172a"
+                          strokeWidth={stroke}
+                          opacity={0.92}
+                        />
+                        <text
+                          x={Math.min(98, Math.max(3, x))}
+                          y="32"
+                          textAnchor="middle"
+                          className="fill-yellow-400/90"
+                          style={{ fontSize: '2.65px', fontWeight: 700 }}
+                        >
+                          A
+                        </text>
+                      </g>
+                    );
+                  })()}
+                  {compareCalc.ifRatio > 0 && (() => {
+                    const x = compareMarkerX(compareCalc.ifRatio);
+                    const { tipY, baseY, halfW, stroke } = IF_MARKER_COMPARE;
+                    return (
+                      <g>
+                        <polygon
+                          points={`${x},${tipY} ${x - halfW},${baseY} ${x + halfW},${baseY}`}
+                          fill="#38bdf8"
+                          stroke="#0f172a"
+                          strokeWidth={stroke}
+                          opacity={0.92}
+                        />
+                        <text
+                          x={Math.min(98, Math.max(3, x))}
+                          y="38"
+                          textAnchor="middle"
+                          className="fill-sky-400/90"
+                          style={{ fontSize: '2.65px', fontWeight: 700 }}
+                        >
+                          B
+                        </text>
+                      </g>
+                    );
+                  })()}
                 </svg>
               </div>
               <p className="text-[9px] text-cdmuted mt-1">Dashed line ≈ 100% FTP. TSS uses a steady-state NP≈avg approximation.</p>
@@ -619,33 +673,38 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
               })}
             </div>
 
-            <div className="relative w-full mt-1" style={{ height: '22px' }}>
+            <div className="relative w-full mt-0.5" style={{ height: '16px' }}>
               <svg
                 width="100%"
-                height="22"
-                viewBox="0 0 100 22"
+                height="16"
+                viewBox="0 0 100 16"
                 preserveAspectRatio="none"
                 className="overflow-visible block"
                 aria-hidden
               >
                 <defs>
-                  <filter id={markerFilterId} x="-50%" y="-50%" width="200%" height="200%">
-                    <feDropShadow dx="0" dy="0" stdDeviation="0.8" floodColor="#fff" floodOpacity="0.9" />
+                  <filter id={markerFilterId} x="-30%" y="-30%" width="160%" height="160%">
+                    <feDropShadow dx="0" dy="0" stdDeviation="0.35" floodColor="#fff" floodOpacity="0.35" />
                   </filter>
                 </defs>
-                {userSettings.ftp > 0 && calc.ifRatio > 0 && (
-                  <polygon
-                    filter={`url(#${markerFilterId})`}
-                    points={`${Math.min(99.2, Math.max(0.8, (calc.ifRatio / VISUAL_MAX) * 100))},1 ${Math.min(99.2, Math.max(0.8, (calc.ifRatio / VISUAL_MAX) * 100)) - 3.2},18 ${Math.min(99.2, Math.max(0.8, (calc.ifRatio / VISUAL_MAX) * 100)) + 3.2},18`}
-                    fill={calc.zone?.color || '#facc15'}
-                    stroke="#0f172a"
-                    strokeWidth="0.35"
-                  />
-                )}
+                {userSettings.ftp > 0 && calc.ifRatio > 0 && (() => {
+                  const x = mainMarkerX(calc.ifRatio);
+                  const { tipY, baseY, halfW, stroke } = IF_MARKER_MAIN;
+                  return (
+                    <polygon
+                      filter={`url(#${markerFilterId})`}
+                      points={`${x},${tipY} ${x - halfW},${baseY} ${x + halfW},${baseY}`}
+                      fill={calc.zone?.color || '#facc15'}
+                      stroke="#0f172a"
+                      strokeWidth={stroke}
+                      opacity={0.95}
+                    />
+                  );
+                })()}
               </svg>
             </div>
             <p className="text-[10px] text-cdmuted mt-0.5">
-              ▼ Marker = your scenario ({(calc.ifRatio * 100).toFixed(1)}% FTP). Bar segment for your zone is highlighted.
+              Marker = your scenario ({(calc.ifRatio * 100).toFixed(1)}% FTP). Bar segment for your zone is highlighted.
             </p>
           </div>
         </div>
