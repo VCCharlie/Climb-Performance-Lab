@@ -143,7 +143,30 @@ const DataHub = ({
         missingHrOnly, setMissingHrOnly,
         virtualRideChip, setVirtualRideChip,
         minTss, setMinTss,
+        filterDistMin, setFilterDistMin,
+        filterDistMax, setFilterDistMax,
+        filterSpeedMin, setFilterSpeedMin,
+        filterSpeedMax, setFilterSpeedMax,
+        filterPowerMin, setFilterPowerMin,
+        filterPowerMax, setFilterPowerMax,
+        filterDurMinMin, setFilterDurMinMin,
+        filterDurMaxMin, setFilterDurMaxMin,
+        filterElevMin, setFilterElevMin,
+        filterElevMax, setFilterElevMax,
+        filterKjMin, setFilterKjMin,
+        filterKjMax, setFilterKjMax,
+        clearMetricFilters,
     } = useActivityFilter(deferredActivities);
+
+    const metricRangeActive =
+        [filterDistMin, filterDistMax, filterSpeedMin, filterSpeedMax, filterPowerMin, filterPowerMax,
+            filterDurMinMin, filterDurMaxMin, filterElevMin, filterElevMax, filterKjMin, filterKjMax]
+            .some((v) => v !== '' && v != null);
+
+    const applyMetricPreset = (apply) => {
+        clearMetricFilters();
+        apply();
+    };
 
     const climbMatchIndex = useMemo(
         () => buildClimbMatchIndex(climbDatabaseForMatch || []),
@@ -1074,6 +1097,83 @@ const DataHub = ({
                                         className="w-14 bg-cdbg border border-cdborder rounded px-1.5 py-0.5 text-cdtext text-[10px]"
                                     />
                                 </label>
+                            </div>
+                            <div className="flex flex-col gap-2 border border-cdborder/60 rounded-lg p-2 bg-cdbg/20">
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                                    <span className="text-[10px] font-bold text-cdmuted uppercase shrink-0">Ranges</span>
+                                    <span className="text-[9px] text-cdmuted">Dist km · Spd km/h · Pwr W (avg, else NP) · Dur min · Elev m · kJ</span>
+                                    {metricRangeActive && (
+                                        <button
+                                            type="button"
+                                            onClick={clearMetricFilters}
+                                            className="text-[9px] text-orange-400 hover:text-orange-300 underline ml-auto"
+                                        >
+                                            Clear ranges
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="flex flex-wrap items-end gap-x-3 gap-y-2 text-[10px] text-cdmuted">
+                                    <label className="flex flex-col gap-0.5">
+                                        <span className="font-bold uppercase text-[9px]">Dist</span>
+                                        <span className="flex items-center gap-1">
+                                            <input type="number" min={0} step={0.1} placeholder="min" value={filterDistMin} onChange={(e) => setFilterDistMin(e.target.value)} className="w-12 bg-cdbg border border-cdborder rounded px-1 py-0.5 text-cdtext" />
+                                            <span>–</span>
+                                            <input type="number" min={0} step={0.1} placeholder="max" value={filterDistMax} onChange={(e) => setFilterDistMax(e.target.value)} className="w-12 bg-cdbg border border-cdborder rounded px-1 py-0.5 text-cdtext" />
+                                        </span>
+                                    </label>
+                                    <label className="flex flex-col gap-0.5">
+                                        <span className="font-bold uppercase text-[9px]">Speed</span>
+                                        <span className="flex items-center gap-1">
+                                            <input type="number" min={0} step={0.1} placeholder="min" value={filterSpeedMin} onChange={(e) => setFilterSpeedMin(e.target.value)} className="w-12 bg-cdbg border border-cdborder rounded px-1 py-0.5 text-cdtext" />
+                                            <span>–</span>
+                                            <input type="number" min={0} step={0.1} placeholder="max" value={filterSpeedMax} onChange={(e) => setFilterSpeedMax(e.target.value)} className="w-12 bg-cdbg border border-cdborder rounded px-1 py-0.5 text-cdtext" />
+                                        </span>
+                                    </label>
+                                    <label className="flex flex-col gap-0.5">
+                                        <span className="font-bold uppercase text-[9px]">Power</span>
+                                        <span className="flex items-center gap-1">
+                                            <input type="number" min={0} step={1} placeholder="min" value={filterPowerMin} onChange={(e) => setFilterPowerMin(e.target.value)} className="w-12 bg-cdbg border border-cdborder rounded px-1 py-0.5 text-cdtext" />
+                                            <span>–</span>
+                                            <input type="number" min={0} step={1} placeholder="max" value={filterPowerMax} onChange={(e) => setFilterPowerMax(e.target.value)} className="w-12 bg-cdbg border border-cdborder rounded px-1 py-0.5 text-cdtext" />
+                                        </span>
+                                    </label>
+                                    <label className="flex flex-col gap-0.5">
+                                        <span className="font-bold uppercase text-[9px]">Duration</span>
+                                        <span className="flex items-center gap-1">
+                                            <input type="number" min={0} step={1} placeholder="min" value={filterDurMinMin} onChange={(e) => setFilterDurMinMin(e.target.value)} className="w-12 bg-cdbg border border-cdborder rounded px-1 py-0.5 text-cdtext" />
+                                            <span>–</span>
+                                            <input type="number" min={0} step={1} placeholder="max" value={filterDurMaxMin} onChange={(e) => setFilterDurMaxMin(e.target.value)} className="w-12 bg-cdbg border border-cdborder rounded px-1 py-0.5 text-cdtext" />
+                                        </span>
+                                    </label>
+                                    <label className="flex flex-col gap-0.5">
+                                        <span className="font-bold uppercase text-[9px]">Elev</span>
+                                        <span className="flex items-center gap-1">
+                                            <input type="number" min={0} step={1} placeholder="min" value={filterElevMin} onChange={(e) => setFilterElevMin(e.target.value)} className="w-12 bg-cdbg border border-cdborder rounded px-1 py-0.5 text-cdtext" />
+                                            <span>–</span>
+                                            <input type="number" min={0} step={1} placeholder="max" value={filterElevMax} onChange={(e) => setFilterElevMax(e.target.value)} className="w-12 bg-cdbg border border-cdborder rounded px-1 py-0.5 text-cdtext" />
+                                        </span>
+                                    </label>
+                                    <label className="flex flex-col gap-0.5">
+                                        <span className="font-bold uppercase text-[9px]">kJ</span>
+                                        <span className="flex items-center gap-1">
+                                            <input type="number" min={0} step={1} placeholder="min" value={filterKjMin} onChange={(e) => setFilterKjMin(e.target.value)} className="w-12 bg-cdbg border border-cdborder rounded px-1 py-0.5 text-cdtext" />
+                                            <span>–</span>
+                                            <input type="number" min={0} step={1} placeholder="max" value={filterKjMax} onChange={(e) => setFilterKjMax(e.target.value)} className="w-12 bg-cdbg border border-cdborder rounded px-1 py-0.5 text-cdtext" />
+                                        </span>
+                                    </label>
+                                </div>
+                                <div className="flex flex-wrap gap-1.5 items-center">
+                                    <span className="text-[9px] font-bold text-cdmuted uppercase shrink-0 mr-1">Presets</span>
+                                    <button type="button" onClick={() => applyMetricPreset(() => { setFilterDurMaxMin('60'); })} className="px-2 py-0.5 rounded border border-cdborder text-[9px] text-cdmuted hover:text-cdtext">Short &lt;1h</button>
+                                    <button type="button" onClick={() => applyMetricPreset(() => { setFilterDurMinMin('240'); })} className="px-2 py-0.5 rounded border border-cdborder text-[9px] text-cdmuted hover:text-cdtext">Long ≥4h</button>
+                                    <button type="button" onClick={() => applyMetricPreset(() => { setFilterDistMin('50'); })} className="px-2 py-0.5 rounded border border-cdborder text-[9px] text-cdmuted hover:text-cdtext">≥50 km</button>
+                                    <button type="button" onClick={() => applyMetricPreset(() => { setFilterDistMax('30'); })} className="px-2 py-0.5 rounded border border-cdborder text-[9px] text-cdmuted hover:text-cdtext">≤30 km</button>
+                                    <button type="button" onClick={() => applyMetricPreset(() => { setFilterSpeedMin('32'); })} className="px-2 py-0.5 rounded border border-cdborder text-[9px] text-cdmuted hover:text-cdtext">Fast ≥32 km/h</button>
+                                    <button type="button" onClick={() => applyMetricPreset(() => { setFilterSpeedMax('26'); })} className="px-2 py-0.5 rounded border border-cdborder text-[9px] text-cdmuted hover:text-cdtext">Easy ≤26 km/h</button>
+                                    <button type="button" onClick={() => applyMetricPreset(() => { setFilterPowerMin('200'); })} className="px-2 py-0.5 rounded border border-cdborder text-[9px] text-cdmuted hover:text-cdtext">Pwr ≥200 W</button>
+                                    <button type="button" onClick={() => applyMetricPreset(() => { setFilterElevMin('1000'); })} className="px-2 py-0.5 rounded border border-cdborder text-[9px] text-cdmuted hover:text-cdtext">Climb ≥1000 m</button>
+                                    <button type="button" onClick={() => applyMetricPreset(() => { setFilterKjMin('1500'); })} className="px-2 py-0.5 rounded border border-cdborder text-[9px] text-cdmuted hover:text-cdtext">Work ≥1500 kJ</button>
+                                </div>
                             </div>
                             <div className="flex flex-wrap items-center gap-2 text-[10px]">
                                 <span className="text-cdmuted font-bold uppercase shrink-0">Bulk</span>
