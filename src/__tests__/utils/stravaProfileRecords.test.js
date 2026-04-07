@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { matchRecordActivities } from '../../utils/stravaProfileRecords';
+import { matchRecordActivities, aggregateBikeActivitiesByContext } from '../../utils/stravaProfileRecords';
 
 describe('matchRecordActivities', () => {
   const stats = { biggest_ride_distance: 100000, biggest_climb_elevation_gain: 2500 };
@@ -30,5 +30,22 @@ describe('matchRecordActivities', () => {
     const r = matchRecordActivities(acts, stats, { historyComplete: false });
     expect(r.maxTotalElevationRide?.id).toBe(2);
     expect(r.maxTotalElevationM).toBe(1800);
+  });
+});
+
+describe('aggregateBikeActivitiesByContext', () => {
+  it('splits outdoor vs indoor and sums', () => {
+    const acts = [
+      { sport_type: 'Ride', distance: 10000, total_elevation_gain: 500, moving_time: 3600 },
+      { sport_type: 'VirtualRide', distance: 20000, total_elevation_gain: 200, moving_time: 7200 }
+    ];
+    const r = aggregateBikeActivitiesByContext(acts);
+    expect(r.combined.count).toBe(2);
+    expect(r.outdoor.count).toBe(1);
+    expect(r.indoor.count).toBe(1);
+    expect(r.combined.distance).toBe(30000);
+    expect(r.outdoor.distance).toBe(10000);
+    expect(r.indoor.distance).toBe(20000);
+    expect(r.combined.avg_distance).toBe(15000);
   });
 });
