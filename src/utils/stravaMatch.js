@@ -47,6 +47,7 @@ const parseMovingTime = (timeStr) => {
 export const normalizeStravaActivity = (act) => ({
     id: `strava_${act.id}`,
     strava_id: String(act.id),
+    strava_map: act.map?.summary_polyline || null,
     date: act.start_date_local.split('T')[0],
     type: mapType(act.sport_type || act.type),
     title: act.name,

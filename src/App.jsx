@@ -186,16 +186,22 @@ const App = () => {
     /** Strava profile: update UI + localStorage + Firestore (must be after `user` — avoids TDZ if placed above). */
     const handleStravaProfileData = useCallback((next) => {
         setStravaProfileData(next);
-        if (next) {
+        const forPersistence = next
+            ? (() => {
+                const { scannedBikeActivities: _s, ...rest } = next;
+                return rest;
+            })()
+            : null;
+        if (forPersistence) {
             try {
-                localStorage.setItem('stravaProfileData', JSON.stringify(next));
+                localStorage.setItem('stravaProfileData', JSON.stringify(forPersistence));
             } catch { /* quota */ }
         } else {
             localStorage.removeItem('stravaProfileData');
         }
         if (!db) return;
         const settingsId = user ? `user_${user.uid}` : 'user_prefs';
-        setDoc(doc(db, 'settings', settingsId), { stravaProfile: next }, { merge: true }).catch((e) => {
+        setDoc(doc(db, 'settings', settingsId), { stravaProfile: forPersistence }, { merge: true }).catch((e) => {
             console.warn('[Strava profile] Could not sync to Firestore:', e);
         });
     }, [user]);
@@ -219,6 +225,15 @@ const App = () => {
         showPowerZones: true,
         targetIntensity: 0.85
     });
+
+    const handleOpenProfilerFromActivity = useCallback((_activity, climb) => {
+        const target = climb && climb.id ? climb : CLIMB_DATABASE[0];
+        setClimbProfilerState((prev) => ({
+            ...prev,
+            selectedClimb: target,
+        }));
+        setActiveTab('profiler');
+    }, []);
     const [fuelingState, setFuelingState] = useState({
         duration: 180,
         intensity: 0.85
@@ -607,6 +622,8 @@ const App = () => {
                                 onRefresh={forceRefreshActivities}
                                 focusActivityId={activityFocusId}
                                 onFocusActivityCleared={() => setActivityFocusId(null)}
+                                onOpenProfilerFromActivity={handleOpenProfilerFromActivity}
+                                climbDatabaseForMatch={CLIMB_DATABASE}
                             />
                         )}
 

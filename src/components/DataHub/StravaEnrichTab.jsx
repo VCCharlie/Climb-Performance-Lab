@@ -4,6 +4,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { runInBatches } from '../../utils';
 import { matchStravaToSite, normalizeStravaActivity, STRAVA_BIKE_TYPES } from '../../utils/stravaMatch';
+import { stravaHttpErrorMessage } from '../../utils/stravaHttp';
 
 // Strava logo SVG
 const StravaIcon = ({ size = 14 }) => (
@@ -173,15 +174,16 @@ const StravaEnrichTab = ({
             let page = 1;
             let allActivities = [];
             while (true) {
-                setFetchProgress(`Fetching page ${page}…`);
                 const resp = await fetch(
                     `https://www.strava.com/api/v3/athlete/activities?after=${afterTs}&before=${beforeTs}&per_page=200&page=${page}`,
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
-                if (!resp.ok) throw new Error(`Strava API error: ${resp.status}`);
+                if (!resp.ok) throw new Error(stravaHttpErrorMessage(resp, 'Strava API error'));
                 const data = await resp.json();
                 if (!Array.isArray(data) || data.length === 0) break;
                 allActivities = allActivities.concat(data);
+                const bikeSoFar = allActivities.filter((a) => STRAVA_BIKE_TYPES.has(a.sport_type || a.type)).length;
+                setFetchProgress(`Strava list page ${page} · ~${bikeSoFar} bike activities so far…`);
                 if (data.length < 200) break;
                 page++;
             }
@@ -297,6 +299,7 @@ const StravaEnrichTab = ({
                         doc(db, 'activities', String(site.id)),
                         {
                             strava_id: String(strava.id),
+                            strava_map: strava.map?.summary_polyline || null,
                             ...(gearId && { gear_id: gearId, gear_name: gearName }),
                             ...(stravaTitle && { title: stravaTitle }),
                             ...((!site.rpe || site.rpe === 0) && strava.perceived_exertion && { rpe: strava.perceived_exertion }),
