@@ -1,150 +1,99 @@
 # Climb Performance Lab
 
-A React-based web application for cycling performance analysis, focused on climbing metrics and training optimization.
+A React single-page app for cycling performance analysis, focused on climbing metrics, training data, and race planning.
 
 ## Features
 
-- **Physics-Based Calculations**: Climb time/power estimation using Newton-Raphson solver
-- **Training Data Integration**: 
-  - CSV import
-  - Intervals.icu sync
-  - **NEW: Strava integration via MCP** 🎉
-- **Performance Visualization**: Track climbing performance trends
-- **Race Planning**: Nutrition and fueling strategy calculator
-- **Cloud Sync**: Firebase integration for data backup
+- **Physics-based climbing**: Climb time and power estimation (Newton–Raphson solver)
+- **Training data**: CSV import, **Intervals.icu** sync (direct API from the app), optional **Strava** flows where configured
+- **Dashboard**: Performance trends, eFTP-style charts (chart data can use a Google Cloud Function; see below)
+- **Training**: AI coach (SWOT-style) and recovery-oriented views
+- **Race**: Fueling / nutrition and multi-climb pacing
+- **Gear**: Chainring and cassette analysis for target climbs
+- **Profiler**: Segment-level climb profiles with power zones
+- **Bucket list**: Track climbs (done / planned / want), with achievements
+- **Weather**: Weather-adjusted climb expectations
+- **Cloud sync**: Firebase (Firestore + Google sign-in) for settings and activities
+- **MCP**: Model Context Protocol server for AI assistants (e.g. Strava-related tooling); see [MCP-SETUP.md](./MCP-SETUP.md)
 
-## Tech Stack
+## Tech stack
 
-- React 19.2.3 + Vite
-- Firebase/Firestore for cloud storage
-- Tailwind CSS for styling
-- Recharts for data visualization
-- Model Context Protocol (MCP) for AI assistant integration
+| Area | Stack |
+|------|--------|
+| UI | React 19, Vite 7, Tailwind (CDN), Framer Motion, Lucide React |
+| Charts / maps | Recharts, Leaflet |
+| Backend / sync | Firebase 12 (Firestore, Auth, Analytics) |
+| Tests | Vitest 4 |
+| Tooling | ESLint 9 (flat config) |
 
-## Quick Start
-
-### 1. Install Dependencies
+## Quick start
 
 ```bash
 npm install
-```
-
-### 2. Run Development Server
-
-```bash
 npm run dev
 ```
 
-### 3. Build for Production
+Build for production:
 
 ```bash
 npm run build
 ```
 
-## 🆕 Strava Integration with MCP
+The app is configured for GitHub Pages with base path `/Climb-Performance-Lab/` (see `vite.config.js`).
 
-This project now includes an **MCP (Model Context Protocol) server** that allows AI assistants like **Gemini** and **Claude** to access your Strava data securely.
+## Intervals.icu integration
 
-### What is MCP?
+Two related paths exist in the codebase:
 
-MCP is a standardized protocol that enables AI assistants to interact with external data sources and tools. With our Strava MCP server, you can:
+1. **Activity sync (Data Hub)** — The app calls the [Intervals.icu API](https://intervals.icu) **directly from the browser** using your athlete ID and API key from **Settings**. Implementation: `src/hooks/useIntervalsSync.js` (GET with Basic auth, activities normalized in `src/utils/intervals.js`). Credentials stay in the client (localStorage / Firebase user payload when you use cloud backup); they are not sent through a proxy for this flow.
 
-- Ask AI to fetch your Strava activities
-- Analyze training data through conversational AI
-- Import activities directly into Climb Performance Lab
-- Get insights about your cycling performance
+2. **Dashboard chart data** — `src/services/intervalsService.js` can fetch eFTP / fitness-style series via a **Google Cloud Function** (`sync-intervals-v2`), with one-hour LocalStorage caching. Deploy and operate your own function if you use this path; see [cloud-function/README.md](./cloud-function/README.md).
 
-### Setup Strava MCP Server
+`src/config.js` exports `CLOUD_SYNC_URL` for an optional Cloud Run–style endpoint; it is not wired into the main activity sync hook. Update it if you deploy a server-side sync service and connect it from the app.
 
-See detailed instructions in [MCP-SETUP.md](./MCP-SETUP.md) or [mcp-server/README.md](./mcp-server/README.md).
+## Strava and MCP
 
-**Quick setup:**
+The **MCP server** lets supported AI clients call tools (e.g. Strava) using your configuration. Setup: [MCP-SETUP.md](./MCP-SETUP.md) and [mcp-server/README.md](./mcp-server/README.md).
 
-1. Create a Strava API application at https://www.strava.com/settings/api
-2. Configure the MCP server:
-   ```bash
-   cd mcp-server
-   npm install
-   cp .env.example .env
-   # Edit .env with your Strava credentials
-   ```
-3. Add to your AI assistant's MCP configuration (see [MCP-SETUP.md](./MCP-SETUP.md))
-
-### Using with Gemini/Claude
-
-Once configured, you can ask your AI assistant:
-
-```
-"Get my Strava activities from the last 3 months"
-"Show me my best climbing rides this year"
-"Analyze my training load from Strava"
-```
-
-The AI will use the MCP server to fetch your data securely!
-
-## Intervals.icu Integration
-
-The app supports syncing with Intervals.icu via a **Google Cloud Function**. This architecture provides:
-
-- **✅ No CORS issues**: Cloud function handles API communication
-- **✅ Secure credentials**: API keys stored in Google Cloud Secret Manager
-- **✅ Proper data transformation**: Automatically maps all Intervals.icu fields to the app format
-- **✅ Indoor/Virtual ride detection**: Properly handles Zwift, TrainerRoad, etc.
-
-**Architecture:**
-```
-Frontend (React) → Cloud Function (Python) → Intervals.icu API
-```
-
-The cloud function is configured in `src/config.js`:
-```javascript
-export const CLOUD_SYNC_URL = "https://sync-intervals-97555677694.europe-west1.run.app";
-```
-
-For deployment and setup instructions, see [cloud-function/README.md](./cloud-function/README.md).
-
-## Project Structure
+## Project structure (overview)
 
 ```
 ├── src/
-│   ├── components/        # React components
-│   │   ├── DataHub.jsx   # Data import and management
-│   │   ├── PhysicsEngine.jsx  # Climb calculations
-│   │   └── Dashboard.jsx # Performance visualization
-│   ├── hooks/            # Custom React hooks
-│   ├── services/         # API services
-│   └── utils/            # Utility functions
-├── cloud-function/       # Intervals.icu sync (Python)
-└── mcp-server/          # NEW: Strava MCP server (Node.js)
+│   ├── components/     # UI (DataHub, Dashboard, Physics, Race, Training, …)
+│   ├── hooks/          # e.g. useIntervalsSync
+│   ├── services/       # e.g. intervalsService (cloud function client)
+│   ├── utils/          # Parsers, intervals normalizer, analytics, …
+│   └── __tests__/      # Vitest tests (utils, etc.)
+├── cloud-function/     # Python Intervals sync (deployment docs)
+├── mcp-server/         # Node MCP server
+└── scripts/            # Helpers (e.g. Intervals fetch, nightly sync)
 ```
 
 ## Configuration
 
-### Firebase (Optional)
-For cloud sync, create a `src/firebase.js` with your Firebase credentials.
-
-### Strava MCP
-See [MCP-SETUP.md](./MCP-SETUP.md) for Strava integration setup.
-
-### Intervals.icu
-See [cloud-function/README.md](./cloud-function/README.md) for API sync setup.
+- **Firebase**: Project config lives in `src/firebase.js`. Use **Sign in with Google** in the app for cloud sync; replace config only if you use your own Firebase project.
+- **Intervals.icu**: Enter athlete ID and API key in app **Settings** for direct sync.
+- **Strava / MCP**: See [MCP-SETUP.md](./MCP-SETUP.md).
 
 ## Development
 
 ```bash
-npm run dev      # Start dev server
-npm run build    # Build for production
-npm run lint     # Run ESLint
-npm run preview  # Preview production build
+npm run dev          # Dev server (HMR)
+npm run build        # Production build → dist/
+npm run preview      # Preview production build
+npm run lint         # ESLint
+npm run test         # Vitest (watch)
+npm run test:run     # Vitest once (CI)
+npm run test:coverage# Vitest with coverage
 ```
 
 ## Documentation
 
-- [MCP Setup Guide](./MCP-SETUP.md) - Configure Strava MCP for AI assistants
-- [MCP Server README](./mcp-server/README.md) - Detailed MCP server documentation
-- [Cloud Function Guide](./cloud-function/README.md) - Intervals.icu integration
-- [CLAUDE.md](./CLAUDE.md) - AI assistant development guide
-- [AGENTS.md](./AGENTS.md) - Code standards and guidelines
+- [MCP-SETUP.md](./MCP-SETUP.md) — MCP / Strava-oriented setup
+- [mcp-server/README.md](./mcp-server/README.md) — MCP server details
+- [cloud-function/README.md](./cloud-function/README.md) — Python cloud function deployment
+- [CLAUDE.md](./CLAUDE.md) — AI assistant / project map
+- [AGENTS.md](./AGENTS.md) — Code guidelines
 
 ## License
 
@@ -152,11 +101,4 @@ MIT
 
 ## Contributing
 
-Contributions are welcome! Please ensure code follows the guidelines in [AGENTS.md](./AGENTS.md).
-
-## React + Vite Template Info
-
-This project is built on React + Vite template with:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Contributions are welcome. Please follow [AGENTS.md](./AGENTS.md).
