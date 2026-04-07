@@ -2,7 +2,7 @@
 import React from 'react';
 import {
     ArrowUpDown, ChevronUp, ChevronDown, ChevronRight, Monitor, Bike, Footprints,
-    Mountain, Edit2, Trash2, ExternalLink, Eye
+    Mountain, Edit2, Trash2, ExternalLink, Eye, Route
 } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
 import { ACTIVITY_COLUMNS, MONTH_ORDER } from '../../config';
@@ -12,9 +12,20 @@ const SortIcon = ({ colKey, config }) => {
     return config.direction === 'asc' ? <ChevronUp size={12} className="text-yellow-400 inline" /> : <ChevronDown size={12} className="text-yellow-400 inline" />;
 };
 
-export const TableHeader = ({ config, requestSort, hasActions = true, isPreview = false }) => (
+export const TableHeader = ({ config, requestSort, hasActions = true, isPreview = false, showBulkSelect = false, allVisibleSelected = false, onToggleSelectAllVisible }) => (
     <thead className="bg-cdbg text-cdmuted uppercase font-bold sticky top-0 z-10 shadow-md text-[0.7rem] tracking-wider">
         <tr>
+            {showBulkSelect && (
+                <th className="px-1 py-2 w-8 text-center">
+                    <input
+                        type="checkbox"
+                        className="accent-yellow-400 w-3.5 h-3.5"
+                        checked={allVisibleSelected}
+                        onChange={onToggleSelectAllVisible}
+                        title="Select all visible"
+                    />
+                </th>
+            )}
             {isPreview && <th className="px-2 py-2 w-8"></th>}
             {ACTIVITY_COLUMNS.map((col) => (
                 <th key={col.key} className={`px-2 py-2 cursor-pointer hover:bg-cdsurface transition-colors select-none text-${col.align} ${col.width || ''}`} onClick={() => requestSort && requestSort(col.key)}>
@@ -37,7 +48,7 @@ const StravaIcon = () => (
     </svg>
 );
 
-export const Row = React.memo(({ act, onDelete, onEdit, onViewDetail, isPreview = false, isSelected = false, onToggleSelect, onToggleType }) => {
+export const Row = React.memo(({ act, onDelete, onEdit, onViewDetail, isPreview = false, isSelected = false, onToggleSelect, onToggleType, onOpenProfiler, profilerClimbByActivityId, showBulkSelect = false }) => {
     const [isConfirmingDelete, setIsConfirmingDelete] = React.useState(false);
 
     if (!act) return null;
@@ -62,6 +73,22 @@ export const Row = React.memo(({ act, onDelete, onEdit, onViewDetail, isPreview 
                                         <Bike size={16} className="text-green-400" title="Ride" />}
                     </div>
                 );
+                case 'data_source': {
+                    if (isPreview) return <span className="text-cdmuted">—</span>;
+                    const hasStrava = !!act.strava_id;
+                    return (
+                        <span
+                            className="flex justify-center"
+                            title={hasStrava ? 'Intervals + Strava' : 'Intervals only'}
+                        >
+                            {hasStrava ? (
+                                <span className="text-[9px] font-bold text-orange-400 leading-none">I+S</span>
+                            ) : (
+                                <span className="text-[9px] text-cdmuted leading-none">I</span>
+                            )}
+                        </span>
+                    );
+                }
                 case 'title': return (
                     <span className="font-medium text-cdtext block truncate" title={val} style={{ maxWidth: 'none' }}>
                         {val}
@@ -92,9 +119,18 @@ export const Row = React.memo(({ act, onDelete, onEdit, onViewDetail, isPreview 
     return (
         <tr
             id={act.id != null ? `activity-row-${act.id}` : undefined}
-            className={`group hover:bg-cdborder/50 transition-colors border-b border-cdborder/50 ${isSelected ? 'bg-cdborder/30' : ''}`}
-            onClick={onToggleSelect ? () => onToggleSelect(act.id) : undefined}
+            className={`group hover:bg-cdborder/50 transition-colors border-b border-cdborder/50 ${isSelected && showBulkSelect ? 'bg-cdborder/30' : ''}`}
         >
+            {showBulkSelect && (
+                <td className="px-1 py-1.5 w-8 text-center" onClick={(e) => e.stopPropagation()}>
+                    <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => onToggleSelect?.(act.id)}
+                        className="accent-yellow-400 w-3.5 h-3.5 cursor-pointer"
+                    />
+                </td>
+            )}
             {isPreview && <td className="px-2 py-1.5 w-8"><input type="checkbox" checked={isSelected} readOnly className="w-4 h-4 accent-green-500 cursor-pointer" /></td>}
             {ACTIVITY_COLUMNS.map(col => <td key={col.key} className={`px-2 py-1.5 text-${col.align} text-xs ${col.width || ''}`}>{renderCell(col)}</td>)}
             {!isPreview && <td className="px-2 py-1.5 text-right w-28">
@@ -107,8 +143,21 @@ export const Row = React.memo(({ act, onDelete, onEdit, onViewDetail, isPreview 
                     <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
                         {/* DETAIL VIEW */}
                         {onViewDetail && (
-                            <button onClick={(e) => { e.stopPropagation(); onViewDetail(act); }} className="text-slate-600 hover:text-green-400 p-1" title="Bekijk details">
+                            <button onClick={(e) => { e.stopPropagation(); onViewDetail(act); }} className="text-slate-600 hover:text-green-400 p-1" title="View details">
                                 <Eye size={14} />
+                            </button>
+                        )}
+                        {onOpenProfiler && (profilerClimbByActivityId?.get(act.id) || act.strava_map) && (
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onOpenProfiler(act, profilerClimbByActivityId?.get(act.id));
+                                }}
+                                className="text-slate-600 hover:text-emerald-400 p-1"
+                                title={profilerClimbByActivityId?.get(act.id) ? 'Open in Climb Profiler' : 'Open in Climb Profiler (approximate — link from Strava route)'}
+                            >
+                                <Route size={14} />
                             </button>
                         )}
                         {/* INTERVALS.ICU LINK */}
@@ -143,25 +192,47 @@ export const Row = React.memo(({ act, onDelete, onEdit, onViewDetail, isPreview 
     return (
         prevProps.act === nextProps.act &&
         prevProps.isSelected === nextProps.isSelected &&
-        prevProps.isPreview === nextProps.isPreview
+        prevProps.isPreview === nextProps.isPreview &&
+        prevProps.showBulkSelect === nextProps.showBulkSelect &&
+        prevProps.profilerClimbByActivityId === nextProps.profilerClimbByActivityId &&
+        prevProps.onOpenProfiler === nextProps.onOpenProfiler
     );
 });
 
-const ActivityTable = React.memo(({ activities, sortConfig, onSort, onDelete, onEdit, onViewDetail, isGroupedView, isYearExpanded, onToggleYear, isMonthExpanded, onToggleMonth }) => {
+const ActivityTable = React.memo(({ activities, sortConfig, onSort, onDelete, onEdit, onViewDetail, isGroupedView, isYearExpanded, onToggleYear, isMonthExpanded, onToggleMonth, onToggleSelectRow, selectedActivityIds, onOpenProfiler, profilerClimbByActivityId, showBulkSelect = false, allVisibleSelected = false, onToggleSelectAllVisible }) => {
     return (
         <div className="overflow-x-auto overflow-y-auto flex-1 border border-cdborder rounded-lg custom-scrollbar relative max-h-[65vh]">
             <table className="w-full text-left text-xs whitespace-nowrap">
-                <TableHeader config={sortConfig} requestSort={onSort} hasActions={true} isPreview={false} />
+                <TableHeader
+                    config={sortConfig}
+                    requestSort={onSort}
+                    hasActions={true}
+                    isPreview={false}
+                    showBulkSelect={showBulkSelect}
+                    allVisibleSelected={allVisibleSelected}
+                    onToggleSelectAllVisible={onToggleSelectAllVisible}
+                />
                 <tbody className="divide-y divide-cdborder bg-cdsurface">
                     {isGroupedView ? (
                         Object.keys(activities).sort((a, b) => sortConfig.direction === 'asc' ? a - b : b - a).map(year => (
                             <React.Fragment key={year}>
-                                <tr id={`year-${year}`} className="bg-cdborder/50 scroll-mt-10"><td colSpan={ACTIVITY_COLUMNS.length + 1} className="p-2 font-bold text-cdtext"><button onClick={() => onToggleYear(year)} className="flex items-center gap-2 w-full text-left hover:text-yellow-400">{isYearExpanded(year) ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {year}</button></td></tr>
+                                <tr id={`year-${year}`} className="bg-cdborder/50 scroll-mt-10"><td colSpan={ACTIVITY_COLUMNS.length + 1 + (showBulkSelect ? 1 : 0)} className="p-2 font-bold text-cdtext"><button onClick={() => onToggleYear(year)} className="flex items-center gap-2 w-full text-left hover:text-yellow-400">{isYearExpanded(year) ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {year}</button></td></tr>
                                 {isYearExpanded(year) && Object.keys(activities[year]).sort((a, b) => { const diff = MONTH_ORDER.indexOf(b) - MONTH_ORDER.indexOf(a); return sortConfig.direction === 'asc' ? -diff : diff; }).map(month => (
                                     <React.Fragment key={month}>
-                                        <tr id={`month-${year}-${month}`} className="bg-cdborder/20 scroll-mt-12"><td colSpan={ACTIVITY_COLUMNS.length + 1} className="px-8 py-1 text-[10px] uppercase font-bold text-cdmuted"><button onClick={() => onToggleMonth(year, month)} className="flex items-center gap-1 hover:text-cdtext text-left w-full transition-colors">{isMonthExpanded(year, month) ? <ChevronDown size={12} /> : <ChevronRight size={12} />} {month}</button></td></tr>
+                                        <tr id={`month-${year}-${month}`} className="bg-cdborder/20 scroll-mt-12"><td colSpan={ACTIVITY_COLUMNS.length + 1 + (showBulkSelect ? 1 : 0)} className="px-8 py-1 text-[10px] uppercase font-bold text-cdmuted"><button onClick={() => onToggleMonth(year, month)} className="flex items-center gap-1 hover:text-cdtext text-left w-full transition-colors">{isMonthExpanded(year, month) ? <ChevronDown size={12} /> : <ChevronRight size={12} />} {month}</button></td></tr>
                                         {isMonthExpanded(year, month) && activities[year][month].map(act => (
-                                            <Row key={act.id} act={act} onDelete={onDelete} onEdit={onEdit} onViewDetail={onViewDetail} />
+                                            <Row
+                                                key={act.id}
+                                                act={act}
+                                                onDelete={onDelete}
+                                                onEdit={onEdit}
+                                                onViewDetail={onViewDetail}
+                                                onToggleSelect={onToggleSelectRow}
+                                                isSelected={selectedActivityIds?.has(act.id)}
+                                                showBulkSelect={showBulkSelect}
+                                                onOpenProfiler={onOpenProfiler}
+                                                profilerClimbByActivityId={profilerClimbByActivityId}
+                                            />
                                         ))}
                                     </React.Fragment>
                                 ))}
@@ -169,7 +240,18 @@ const ActivityTable = React.memo(({ activities, sortConfig, onSort, onDelete, on
                         ))
                     ) : (
                         activities.map(act => (
-                            <Row key={act.id} act={act} onDelete={onDelete} onEdit={onEdit} onViewDetail={onViewDetail} />
+                            <Row
+                                key={act.id}
+                                act={act}
+                                onDelete={onDelete}
+                                onEdit={onEdit}
+                                onViewDetail={onViewDetail}
+                                onToggleSelect={onToggleSelectRow}
+                                isSelected={selectedActivityIds?.has(act.id)}
+                                showBulkSelect={showBulkSelect}
+                                onOpenProfiler={onOpenProfiler}
+                                profilerClimbByActivityId={profilerClimbByActivityId}
+                            />
                         ))
                     )}
                 </tbody>
