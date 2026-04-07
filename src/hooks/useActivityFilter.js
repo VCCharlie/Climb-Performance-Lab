@@ -19,15 +19,37 @@ function getThisCalendarWeekRange() {
     return { start, end };
 }
 
+function startOfToday() {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+}
+
+function parseActivityDate(a) {
+    if (!a?.date) return null;
+    try {
+        const d = new Date(a.date);
+        return Number.isNaN(d.getTime()) ? null : d;
+    } catch {
+        return null;
+    }
+}
+
 const useActivityFilter = (activities) => {
     const [search, setSearch] = useState("");
     const [indoorFilter, setIndoorFilter] = useState('all'); // 'all', 'indoor', 'outdoor'
     const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
 
-    /** Quick chips: this week, Strava-linked, no power, min TSS */
+    /** Quick chips */
     const [thisWeekOnly, setThisWeekOnly] = useState(false);
+    const [rollingDays, setRollingDays] = useState(null); // null | 7 | 14 | 30
     const [stravaLinkedOnly, setStravaLinkedOnly] = useState(false);
     const [noPowerOnly, setNoPowerOnly] = useState(false);
+    const [withPowerOnly, setWithPowerOnly] = useState(false);
+    const [highLoadOnly, setHighLoadOnly] = useState(false);
+    const [longRideOnly, setLongRideOnly] = useState(false);
+    const [missingHrOnly, setMissingHrOnly] = useState(false);
+    const [virtualRideChip, setVirtualRideChip] = useState(false);
     const [minTss, setMinTss] = useState('');
 
     // We store explicit collapse state.
@@ -67,6 +89,9 @@ const useActivityFilter = (activities) => {
     const processedActivities = useMemo(() => {
         if (!activities) return [];
         const weekRange = thisWeekOnly ? getThisCalendarWeekRange() : null;
+        const rollingStart = rollingDays != null && rollingDays > 0
+            ? (() => { const s = startOfToday(); s.setDate(s.getDate() - rollingDays); return s; })()
+            : null;
         const tssThreshold = minTss === '' || minTss == null ? null : Number(minTss);
         const tssOk = tssThreshold != null && !Number.isNaN(tssThreshold) && tssThreshold > 0;
 
@@ -74,16 +99,18 @@ const useActivityFilter = (activities) => {
             if (!isValid(a)) return false;
 
             // Indoor/Outdoor Filter
-            if (indoorFilter === 'indoor' && !['VirtualRide', 'VirtualRun'].includes(a.type)) return false;
-            if (indoorFilter === 'outdoor' && ['VirtualRide', 'VirtualRun'].includes(a.type)) return false;
+            const effectiveIndoor = virtualRideChip ? 'indoor' : indoorFilter;
+            if (effectiveIndoor === 'indoor' && !['VirtualRide', 'VirtualRun'].includes(a.type)) return false;
+            if (effectiveIndoor === 'outdoor' && ['VirtualRide', 'VirtualRun'].includes(a.type)) return false;
 
             if (thisWeekOnly && weekRange) {
-                try {
-                    const ad = new Date(a.date);
-                    if (Number.isNaN(ad.getTime()) || ad < weekRange.start || ad > weekRange.end) return false;
-                } catch {
-                    return false;
-                }
+                const ad = parseActivityDate(a);
+                if (!ad || ad < weekRange.start || ad > weekRange.end) return false;
+            }
+
+            if (rollingStart) {
+                const ad = parseActivityDate(a);
+                if (!ad || ad < rollingStart) return false;
             }
 
             if (stravaLinkedOnly && !a.strava_id) return false;
@@ -93,6 +120,18 @@ const useActivityFilter = (activities) => {
                 const np = Number(a.norm_power) || 0;
                 if (ap > 0 || np > 0) return false;
             }
+
+            if (withPowerOnly) {
+                const ap = Number(a.avg_power) || 0;
+                const np = Number(a.norm_power) || 0;
+                if (ap <= 0 && np <= 0) return false;
+            }
+
+            if (highLoadOnly && !((Number(a.load) || 0) > 120)) return false;
+
+            if (longRideOnly && !((Number(a.distance) || 0) > 100)) return false;
+
+            if (missingHrOnly && (Number(a.avg_hr) || 0) > 0) return false;
 
             if (tssOk && !((Number(a.load) || 0) > tssThreshold)) return false;
 
@@ -143,7 +182,7 @@ const useActivityFilter = (activities) => {
             });
         }
         return filtered;
-    }, [activities, search, sortConfig, indoorFilter, thisWeekOnly, stravaLinkedOnly, noPowerOnly, minTss]);
+    }, [activities, search, sortConfig, indoorFilter, virtualRideChip, thisWeekOnly, rollingDays, stravaLinkedOnly, noPowerOnly, withPowerOnly, highLoadOnly, longRideOnly, missingHrOnly, minTss]);
 
     const isGroupedView = sortConfig.key === 'date';
 
@@ -216,8 +255,14 @@ const useActivityFilter = (activities) => {
         groupedActivities,
         isGroupedView,
         thisWeekOnly, setThisWeekOnly,
+        rollingDays, setRollingDays,
         stravaLinkedOnly, setStravaLinkedOnly,
         noPowerOnly, setNoPowerOnly,
+        withPowerOnly, setWithPowerOnly,
+        highLoadOnly, setHighLoadOnly,
+        longRideOnly, setLongRideOnly,
+        missingHrOnly, setMissingHrOnly,
+        virtualRideChip, setVirtualRideChip,
         minTss, setMinTss,
     };
 };

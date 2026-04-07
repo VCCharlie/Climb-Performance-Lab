@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { findBestClimbForActivityTitle } from '../../utils/activityClimbMatch';
+import { findBestClimbForActivityTitle, buildClimbMatchIndex, findBestClimbUsingIndex } from '../../utils/activityClimbMatch';
 
 describe('findBestClimbForActivityTitle', () => {
   const climbs = [
@@ -13,5 +13,10 @@ describe('findBestClimbForActivityTitle', () => {
 
   it('returns null for unrelated title', () => {
     expect(findBestClimbForActivityTitle('Easy spin around town', climbs)).toBe(null);
+  });
+
+  it('index path matches single-title helper', () => {
+    const idx = buildClimbMatchIndex(climbs);
+    expect(findBestClimbUsingIndex('Morning Mont Ventoux from Malaucène', idx)?.id).toBe('a');
   });
 });

@@ -7,7 +7,7 @@ import { matchStravaToSite, STRAVA_BIKE_TYPES } from '../utils/stravaMatch';
 import { protectEnrichedFieldsOnMerge } from '../utils/firestoreActivityMerge';
 import { stravaHttpErrorMessage } from '../utils/stravaHttp';
 import { activitiesToCsv } from '../utils/activityCsvExport';
-import { findBestClimbForActivityTitle } from '../utils/activityClimbMatch';
+import { buildClimbMatchIndex, findBestClimbUsingIndex } from '../utils/activityClimbMatch';
 import { formatNlNumber } from '../utils/formatters';
 
 import { SPORT_TYPES, MONTH_ORDER } from '../config';
@@ -134,21 +134,31 @@ const DataHub = ({
         isMonthExpanded, toggleMonth,
         processedActivities, groupedActivities, isGroupedView,
         thisWeekOnly, setThisWeekOnly,
+        rollingDays, setRollingDays,
         stravaLinkedOnly, setStravaLinkedOnly,
         noPowerOnly, setNoPowerOnly,
+        withPowerOnly, setWithPowerOnly,
+        highLoadOnly, setHighLoadOnly,
+        longRideOnly, setLongRideOnly,
+        missingHrOnly, setMissingHrOnly,
+        virtualRideChip, setVirtualRideChip,
         minTss, setMinTss,
     } = useActivityFilter(deferredActivities);
 
+    const climbMatchIndex = useMemo(
+        () => buildClimbMatchIndex(climbDatabaseForMatch || []),
+        [climbDatabaseForMatch]
+    );
+
     const profilerClimbByActivityId = useMemo(() => {
         const map = new Map();
-        const climbs = climbDatabaseForMatch || [];
         for (const a of activities || []) {
             if (!a?.id || !a.title) continue;
-            const c = findBestClimbForActivityTitle(a.title, climbs);
+            const c = findBestClimbUsingIndex(a.title, climbMatchIndex);
             if (c) map.set(a.id, c);
         }
         return map;
-    }, [activities, climbDatabaseForMatch]);
+    }, [activities, climbMatchIndex]);
 
     const visibleActivityIdsFlat = useMemo(() => {
         if (!processedActivities?.length) return [];
@@ -879,9 +889,9 @@ const DataHub = ({
                                         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search (name or 4-2-2024)..." className="w-full bg-cdbg border border-cdborder rounded pl-10 pr-4 py-2 text-sm text-cdtext outline-none focus:border-yellow-400" />
                                     </div>
                                     <div className="flex bg-cdbg rounded border border-cdborder p-1 shrink-0">
-                                        <button onClick={() => setIndoorFilter('all')} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'all' ? 'bg-cdborder text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}>All</button>
-                                        <button onClick={() => setIndoorFilter('outdoor')} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'outdoor' ? 'bg-green-600 text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}>Out</button>
-                                        <button onClick={() => setIndoorFilter('indoor')} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'indoor' ? 'bg-orange-600 text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}>In</button>
+                                        <button onClick={() => { setIndoorFilter('all'); setVirtualRideChip(false); }} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'all' ? 'bg-cdborder text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}>All</button>
+                                        <button onClick={() => { setIndoorFilter('outdoor'); setVirtualRideChip(false); }} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'outdoor' ? 'bg-green-600 text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}>Out</button>
+                                        <button onClick={() => { setIndoorFilter('indoor'); setVirtualRideChip(false); }} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'indoor' ? 'bg-orange-600 text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}>In</button>
                                     </div>
                                 </div>
                                 <div className="flex gap-2 shrink-0">
@@ -958,11 +968,27 @@ const DataHub = ({
                                 <span className="text-[10px] font-bold text-cdmuted uppercase shrink-0">Quick</span>
                                 <button
                                     type="button"
-                                    onClick={() => setThisWeekOnly((v) => !v)}
+                                    onClick={() => {
+                                        setThisWeekOnly((v) => !v);
+                                        setRollingDays(null);
+                                    }}
                                     className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-colors ${thisWeekOnly ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400' : 'border-cdborder text-cdmuted hover:text-cdtext'}`}
                                 >
                                     This week
                                 </button>
+                                {[7, 14, 30].map((d) => (
+                                    <button
+                                        key={d}
+                                        type="button"
+                                        onClick={() => {
+                                            setRollingDays((cur) => (cur === d ? null : d));
+                                            setThisWeekOnly(false);
+                                        }}
+                                        className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-colors ${rollingDays === d ? 'bg-amber-500/20 border-amber-500/50 text-amber-400' : 'border-cdborder text-cdmuted hover:text-cdtext'}`}
+                                    >
+                                        Last {d}d
+                                    </button>
+                                ))}
                                 <button
                                     type="button"
                                     onClick={() => setStravaLinkedOnly((v) => !v)}
@@ -973,10 +999,68 @@ const DataHub = ({
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => setNoPowerOnly((v) => !v)}
+                                    onClick={() => {
+                                        setNoPowerOnly((v) => {
+                                            const next = !v;
+                                            if (next) setWithPowerOnly(false);
+                                            return next;
+                                        });
+                                    }}
                                     className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-colors ${noPowerOnly ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'border-cdborder text-cdmuted hover:text-cdtext'}`}
                                 >
                                     No power
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setWithPowerOnly((v) => {
+                                            const next = !v;
+                                            if (next) setNoPowerOnly(false);
+                                            return next;
+                                        });
+                                    }}
+                                    className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-colors ${withPowerOnly ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' : 'border-cdborder text-cdmuted hover:text-cdtext'}`}
+                                >
+                                    With power
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setHighLoadOnly((v) => !v)}
+                                    title="Load (TSS) &gt; 120"
+                                    className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-colors ${highLoadOnly ? 'bg-purple-500/20 border-purple-500/50 text-purple-400' : 'border-cdborder text-cdmuted hover:text-cdtext'}`}
+                                >
+                                    High load
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setLongRideOnly((v) => !v)}
+                                    title="Distance &gt; 100 km"
+                                    className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-colors ${longRideOnly ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400' : 'border-cdborder text-cdmuted hover:text-cdtext'}`}
+                                >
+                                    Long ride
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setMissingHrOnly((v) => !v)}
+                                    title="Avg HR missing or zero"
+                                    className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-colors ${missingHrOnly ? 'bg-rose-500/20 border-rose-500/50 text-rose-400' : 'border-cdborder text-cdmuted hover:text-cdtext'}`}
+                                >
+                                    No HR
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (virtualRideChip) {
+                                            setVirtualRideChip(false);
+                                            setIndoorFilter('all');
+                                        } else {
+                                            setVirtualRideChip(true);
+                                            setIndoorFilter('indoor');
+                                        }
+                                    }}
+                                    className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-colors ${virtualRideChip ? 'bg-orange-600/25 border-orange-500/50 text-orange-300' : 'border-cdborder text-cdmuted hover:text-cdtext'}`}
+                                >
+                                    Virtual only
                                 </button>
                                 <label className="flex items-center gap-1.5 text-[10px] text-cdmuted">
                                     <span className="font-bold uppercase shrink-0">TSS &gt;</span>

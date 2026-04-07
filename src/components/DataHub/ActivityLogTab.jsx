@@ -3,7 +3,7 @@ import { Search, Trash, Loader2, AlertTriangle, ChevronDown, ChevronRight, Zap }
 import TableHeader from './TableHeader';
 import ActivityRow from './ActivityRow';
 import useSortableData from '../../hooks/useSortableData';
-import { ACTIVITY_COLUMNS, MONTH_ORDER } from '../../config';
+import { ACTIVITY_TABLE_COLUMNS, MONTH_ORDER } from '../../config';
 import { findDuplicates } from '../../utils/duplicateDetection';
 import DuplicateReviewModal from './DuplicateReviewModal';
 import ActivityDetailModal from './ActivityDetailModal';
@@ -85,7 +85,7 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
                 if (!groups[y]) groups[y] = {};
                 if (!groups[y][m]) groups[y][m] = [];
                 groups[y][m].push(act);
-            } catch (e) { console.warn("Skipping activity", act); }
+            } catch { console.warn("Skipping activity", act); }
         });
         return groups;
     }, [processedActivities, isGroupedView]);
@@ -141,7 +141,7 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
                                 {isGroupedView && groupedActivities && Object.keys(groupedActivities).sort((a, b) => sortConfig.direction === 'asc' ? a - b : b - a).map(year => (
                                     <React.Fragment key={`year-group-${year}`}>
                                         <tr className="bg-cdborder/50">
-                                            <td colSpan={ACTIVITY_COLUMNS.length + 1} className="p-2 font-bold text-cdtext">
+                                            <td colSpan={ACTIVITY_TABLE_COLUMNS.length + 1} className="p-2 font-bold text-cdtext">
                                                 <button onClick={() => toggleYear(year)} className="flex items-center gap-2 outline-none">
                                                     {expandedYears[year] ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {year}
                                                 </button>
@@ -154,7 +154,7 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
                                         }).map(month => (
                                             <React.Fragment key={`month-group-${year}-${month}`}>
                                                 <tr className="bg-cdborder/20">
-                                                    <td colSpan={ACTIVITY_COLUMNS.length + 1} className="px-8 py-1 text-[10px] uppercase font-bold text-cdmuted">
+                                                    <td colSpan={ACTIVITY_TABLE_COLUMNS.length + 1} className="px-8 py-1 text-[10px] uppercase font-bold text-cdmuted">
                                                         {month}
                                                     </td>
                                                 </tr>
