@@ -4,6 +4,7 @@ import {
   isLikelyIntervalsActivityId,
   pickMergedTitle,
   mergeActivitiesIntervalsPrimary,
+  stripUndefinedFields,
 } from '../../utils/mergeActivities';
 
 describe('id heuristics', () => {
@@ -25,6 +26,12 @@ describe('pickMergedTitle', () => {
   });
 });
 
+describe('stripUndefinedFields', () => {
+  it('removes undefined keys', () => {
+    expect(stripUndefinedFields({ a: 1, b: undefined })).toEqual({ a: 1 });
+  });
+});
+
 describe('mergeActivitiesIntervalsPrimary', () => {
   it('throws when both have different strava_id', () => {
     expect(() =>
@@ -33,6 +40,15 @@ describe('mergeActivitiesIntervalsPrimary', () => {
         { id: 'strava_2', strava_id: '222', title: 'B' }
       )
     ).toThrow(/already has strava_id/);
+  });
+
+  it('does not set gear_name undefined when gear_id copied without names', () => {
+    const m = mergeActivitiesIntervalsPrimary(
+      { id: '1', title: 'Ride', gear_name: undefined },
+      { id: 'strava_2', strava_id: '9', gear_id: 'g1', gear_name: undefined, title: 'X' }
+    );
+    expect('gear_name' in m).toBe(false);
+    expect(m.gear_id).toBe('g1');
   });
 
   it('keeps power from primary, adds strava from secondary', () => {
