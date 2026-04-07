@@ -95,12 +95,22 @@ export const Row = React.memo(({ act, onDelete, onEdit, onViewDetail, isPreview 
                     </span>
                 );
                 case 'gear_name': {
-                    if (!val || typeof val !== 'string') return <span className="text-cdmuted">-</span>;
-                    return (
-                        <span className="flex items-center gap-1 text-orange-400/80" title={val}>
-                            <span className="truncate max-w-[100px] text-xs">{val}</span>
-                        </span>
-                    );
+                    const gid = act.gear_id != null ? String(act.gear_id) : '';
+                    if (val && typeof val === 'string') {
+                        return (
+                            <span className="flex items-center gap-1 text-orange-400/80" title={gid ? `${val} (${gid})` : val}>
+                                <span className="truncate max-w-[100px] text-xs">{val}</span>
+                            </span>
+                        );
+                    }
+                    if (gid) {
+                        return (
+                            <span className="font-mono text-[10px] text-cdmuted truncate max-w-[100px] block" title={`Strava gear_id: ${gid}`}>
+                                {gid.length > 14 ? `${gid.slice(0, 12)}…` : gid}
+                            </span>
+                        );
+                    }
+                    return <span className="text-cdmuted">-</span>;
                 }
                 case 'moving_time': return <span className="text-cdmuted font-mono">{formatTime(val)}</span>;
                 case 'distance': case 'avg_speed': return <span className="text-cdmuted">{Number(val).toFixed(1)}</span>;
