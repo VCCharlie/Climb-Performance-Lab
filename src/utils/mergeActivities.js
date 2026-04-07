@@ -1,0 +1,118 @@
+/**
+ * Merge two activity records: keep Intervals as the canonical id, enrich with Strava-style fields.
+ */
+
+const GENERIC_TITLE = /^(Morning|Lunch|Afternoon|Evening|Night) Ride$|^Untitled$/i;
+
+const isGenericTitle = (t) => {
+    const s = (t || '').trim();
+    return !s || GENERIC_TITLE.test(s);
+};
+
+/** Strava-import rows use id like strava_123 */
+export function isStravaOnlyActivityId(id) {
+    return id != null && String(id).startsWith('strava_');
+}
+
+/** Intervals.icu ids are numeric strings; CSV imports use csv_ prefix */
+export function isLikelyIntervalsActivityId(id) {
+    const s = String(id ?? '');
+    if (!s || s.startsWith('strava_')) return false;
+    if (s.startsWith('csv_')) return true;
+    return /^\d+$/.test(s);
+}
+
+/**
+ * Pick the richer title (prefer non-generic, then longer).
+ * @param {string} a
+ * @param {string} b
+ */
+export function pickMergedTitle(a, b) {
+    const ta = (a || '').trim();
+    const tb = (b || '').trim();
+    const aSpec = !isGenericTitle(ta);
+    const bSpec = !isGenericTitle(tb);
+    if (aSpec && !bSpec) return ta;
+    if (bSpec && !aSpec) return tb;
+    if (ta.length >= tb.length) return ta || tb;
+    return tb || ta;
+}
+
+const POWER_KEYS = [
+    'norm_power', 'avg_power', 'load', 'work',
+    'best_1min', 'best_5min', 'best_10min', 'best_20min', 'best_60min',
+    'max_power', 'ftp',
+];
+
+const HR_KEYS = ['avg_hr', 'max_hr'];
+
+/**
+ * @param {object} primary - Record to keep (Intervals id)
+ * @param {object} secondary - Other record (often Strava-only import)
+ * @returns {object} Full merged activity (same id as primary)
+ */
+export function mergeActivitiesIntervalsPrimary(primary, secondary) {
+    if (!primary || !secondary) throw new Error('mergeActivitiesIntervalsPrimary: missing activity');
+    const p = { ...primary };
+    const s = secondary;
+
+    const existingSid = p.strava_id ? String(p.strava_id) : '';
+    const incomingSid = s.strava_id ? String(s.strava_id) : '';
+    if (existingSid && incomingSid && existingSid !== incomingSid) {
+        throw new Error(
+            `Intervals activity already has strava_id ${existingSid}; selected duplicate has ${incomingSid}. Unlink one first or pick a different pair.`
+        );
+    }
+    if (s.strava_id) p.strava_id = String(s.strava_id);
+    if (s.strava_map) p.strava_map = s.strava_map;
+    if (s.gear_id) {
+        p.gear_id = s.gear_id;
+        p.gear_name = s.gear_name || p.gear_name;
+    }
+
+    p.title = pickMergedTitle(p.title, s.title);
+
+    const pType = (p.type || '').trim();
+    const sType = (s.type || '').trim();
+    if (sType && (sType === 'VirtualRide' || pType === 'Ride')) {
+        p.type = sType;
+    }
+
+    for (const k of POWER_KEYS) {
+        const pv = Number(p[k]) || 0;
+        const sv = Number(s[k]) || 0;
+        if (pv > 0) continue;
+        if (sv > 0) p[k] = s[k];
+    }
+
+    for (const k of HR_KEYS) {
+        const pv = Number(p[k]) || 0;
+        const sv = Number(s[k]) || 0;
+        if (pv > 0) continue;
+        if (sv > 0) p[k] = s[k];
+    }
+
+    const pr = Number(p.rpe) || 0;
+    const sr = Number(s.rpe) || 0;
+    if (pr <= 0 && sr > 0) p.rpe = s.rpe;
+
+    const pClimb = Number(p.climbing) || 0;
+    const sClimb = Number(s.climbing) || 0;
+    if (pClimb <= 0 && sClimb > 0) p.climbing = s.climbing;
+
+    const pDist = Number(p.distance) || 0;
+    const sDist = Number(s.distance) || 0;
+    if (pDist <= 0 && sDist > 0) p.distance = s.distance;
+
+    const pTime = p.moving_time;
+    const sTime = s.moving_time;
+    const pTimeNum = typeof pTime === 'number' ? pTime : 0;
+    const sTimeNum = typeof sTime === 'number' ? sTime : 0;
+    if ((!pTime || pTimeNum <= 0) && sTime && sTimeNum > 0) p.moving_time = s.moving_time;
+
+    const pSpd = Number(p.avg_speed) || 0;
+    const sSpd = Number(s.avg_speed) || 0;
+    if (pSpd <= 0 && sSpd > 0) p.avg_speed = s.avg_speed;
+
+    return p;
+}

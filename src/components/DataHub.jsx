@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { Search, Loader2, AlertTriangle, Trash, Split, RefreshCw, ExternalLink, GitBranch, Zap, ChevronDown, Link2, Download } from 'lucide-react';
+import { Search, Loader2, AlertTriangle, Trash, Split, RefreshCw, ExternalLink, GitBranch, Zap, ChevronDown, Link2, Download, GitMerge } from 'lucide-react';
 import { doc, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from '../firebase';
 import { findDuplicatesInList, runInBatches } from '../utils';
@@ -7,6 +7,11 @@ import { matchStravaToSite, STRAVA_BIKE_TYPES } from '../utils/stravaMatch';
 import { protectEnrichedFieldsOnMerge } from '../utils/firestoreActivityMerge';
 import { stravaHttpErrorMessage } from '../utils/stravaHttp';
 import { activitiesToCsv } from '../utils/activityCsvExport';
+import {
+    mergeActivitiesIntervalsPrimary,
+    isStravaOnlyActivityId,
+    isLikelyIntervalsActivityId,
+} from '../utils/mergeActivities';
 import { buildClimbMatchIndex, findBestClimbUsingIndex } from '../utils/activityClimbMatch';
 import { formatNlNumber } from '../utils/formatters';
 
@@ -64,6 +69,9 @@ const DataHub = ({
     const [showStravaEnrichPanel, setShowStravaEnrichPanel] = useState(false);
     const [bulkSelectedIds, setBulkSelectedIds] = useState(() => new Set());
     const [stravaListProgress, setStravaListProgress] = useState(null);
+    const [showMergeModal, setShowMergeModal] = useState(false);
+    const [mergeError, setMergeError] = useState(null);
+    const [isMerging, setIsMerging] = useState(false);
 
     // State for single-day Strava search (Tools → Strava enrichment panel)
     const [stravaDateOverride, setStravaDateOverride] = useState(null);
@@ -248,6 +256,58 @@ const DataHub = ({
         a.click();
         URL.revokeObjectURL(url);
     }, [selectedActivitiesForBulk]);
+
+    const mergePairPreview = useMemo(() => {
+        if (selectedActivitiesForBulk.length !== 2) return null;
+        const [x, y] = selectedActivitiesForBulk;
+        let intervals = null;
+        let stravaSide = null;
+        if (isLikelyIntervalsActivityId(x.id) && isStravaOnlyActivityId(y.id)) {
+            intervals = x;
+            stravaSide = y;
+        } else if (isLikelyIntervalsActivityId(y.id) && isStravaOnlyActivityId(x.id)) {
+            intervals = y;
+            stravaSide = x;
+        } else if (!String(x.id).startsWith('strava_') && String(y.id).startsWith('strava_')) {
+            intervals = x;
+            stravaSide = y;
+        } else if (!String(y.id).startsWith('strava_') && String(x.id).startsWith('strava_')) {
+            intervals = y;
+            stravaSide = x;
+        } else {
+            return { error: 'Select one Intervals activity and one Strava-import row (id strava_…), or pick one non-strava_ id and one strava_ id.' };
+        }
+        if (String(intervals.id) === String(stravaSide.id)) {
+            return { error: 'Cannot merge an activity with itself.' };
+        }
+        try {
+            const merged = mergeActivitiesIntervalsPrimary(intervals, stravaSide);
+            return { intervals, stravaSide, merged };
+        } catch (e) {
+            return { error: e.message || 'Merge failed' };
+        }
+    }, [selectedActivitiesForBulk]);
+
+    const confirmMergePair = async () => {
+        if (!mergePairPreview || mergePairPreview.error || !mergePairPreview.merged) return;
+        const { intervals, stravaSide, merged } = mergePairPreview;
+        setIsMerging(true);
+        setMergeError(null);
+        try {
+            if (db) {
+                await setDoc(doc(db, 'activities', String(intervals.id)), merged, { merge: true });
+                await deleteDoc(doc(db, 'activities', String(stravaSide.id)));
+            }
+            onImport([merged]);
+            onDelete(stravaSide.id);
+            setBulkSelectedIds(new Set());
+            setShowMergeModal(false);
+        } catch (e) {
+            setMergeError(e.message || 'Merge failed');
+        } finally {
+            setIsMerging(false);
+        }
+    };
 
     const markBulkRecovery = useCallback(async () => {
         if (selectedActivitiesForBulk.length === 0) return;
@@ -866,6 +926,77 @@ const DataHub = ({
                 );
             })()}
 
+            {showMergeModal && (
+                <div className="fixed inset-0 bg-cdbg/95 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-cdsurface border border-cdborder rounded-xl shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh]">
+                        <div className="flex justify-between items-center p-4 border-b border-cdborder">
+                            <h3 className="text-cdtext font-bold flex items-center gap-2 text-sm">
+                                <GitMerge size={18} className="text-orange-400 shrink-0" />
+                                Merge two activities
+                            </h3>
+                            <button
+                                type="button"
+                                onClick={() => { setShowMergeModal(false); setMergeError(null); }}
+                                className="text-cdmuted hover:text-cdtext text-lg font-bold px-2"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        <div className="p-4 space-y-3 text-xs text-cdmuted overflow-y-auto custom-scrollbar">
+                            <p>
+                                Keeps the <strong className="text-cdtext">Intervals.icu</strong> activity id and power/load metrics.
+                                Pulls in <strong className="text-cdtext">Strava</strong> link, map polyline, gear, and a better title when the Intervals title is generic.
+                                The duplicate Strava-only row is <strong className="text-red-400">deleted</strong> from the database.
+                            </p>
+                            {mergePairPreview?.error && (
+                                <div className="rounded-lg border border-red-500/40 bg-red-500/10 text-red-400 px-3 py-2">{mergePairPreview.error}</div>
+                            )}
+                            {mergePairPreview && !mergePairPreview.error && (
+                                <>
+                                    <div className="rounded-lg border border-cdborder bg-cdbg/40 p-2 space-y-1">
+                                        <div className="text-[10px] font-bold text-cdaccent uppercase">Keep (Intervals)</div>
+                                        <div className="text-cdtext font-mono text-[11px]">id {mergePairPreview.intervals.id}</div>
+                                        <div className="text-cdtext truncate">{mergePairPreview.intervals.title || '—'}</div>
+                                    </div>
+                                    <div className="rounded-lg border border-cdborder bg-cdbg/40 p-2 space-y-1">
+                                        <div className="text-[10px] font-bold text-orange-400 uppercase">Remove after merge (Strava import)</div>
+                                        <div className="text-cdtext font-mono text-[11px]">id {mergePairPreview.stravaSide.id}</div>
+                                        <div className="text-cdtext truncate">{mergePairPreview.stravaSide.title || '—'}</div>
+                                        {mergePairPreview.stravaSide.strava_id && (
+                                            <div className="text-[10px]">strava_id {mergePairPreview.stravaSide.strava_id}</div>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+                            {mergeError && (
+                                <div className="rounded-lg border border-red-500/40 bg-red-500/10 text-red-400 px-3 py-2">{mergeError}</div>
+                            )}
+                        </div>
+                        <div className="flex justify-end gap-2 p-4 border-t border-cdborder">
+                            <button
+                                type="button"
+                                onClick={() => { setShowMergeModal(false); setMergeError(null); }}
+                                className="px-4 py-2 text-cdmuted hover:text-cdtext font-bold text-sm"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                disabled={!mergePairPreview || !!mergePairPreview.error || isMerging || !db}
+                                onClick={confirmMergePair}
+                                className="px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm disabled:opacity-40 flex items-center gap-2"
+                            >
+                                {isMerging ? <Loader2 size={14} className="animate-spin" /> : <GitMerge size={14} />}
+                                Merge &amp; delete duplicate
+                            </button>
+                        </div>
+                        {!db && (
+                            <p className="px-4 pb-3 text-[10px] text-yellow-500">Sign in and sync is required to write merges to the database.</p>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* TABS */}
             <div className="flex border-b border-cdborder">
                 <button onClick={() => setInternalTab('log')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'log' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Activity Log</button>
@@ -1194,6 +1325,15 @@ const DataHub = ({
                                     className="px-2 py-1 rounded border border-cdborder text-cdmuted hover:text-cdaccent hover:border-cdaccent/40 disabled:opacity-40"
                                 >
                                     Mark recovery (TSS 35)
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => { setMergeError(null); setShowMergeModal(true); }}
+                                    disabled={bulkSelectedIds.size !== 2}
+                                    title="Select exactly two rows: Intervals + Strava import (strava_… id)"
+                                    className="inline-flex items-center gap-1 px-2 py-1 rounded border border-orange-500/40 text-orange-400 hover:bg-orange-500/10 disabled:opacity-40"
+                                >
+                                    <GitMerge size={12} /> Merge pair
                                 </button>
                                 <button
                                     type="button"
