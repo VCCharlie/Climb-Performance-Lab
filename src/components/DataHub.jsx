@@ -12,6 +12,7 @@ import {
     isStravaOnlyActivityId,
     isLikelyIntervalsActivityId,
 } from '../utils/mergeActivities';
+import { enrichActivityGearFromStrava } from '../utils/stravaGearEnrich';
 import { buildClimbMatchIndex, findBestClimbUsingIndex } from '../utils/activityClimbMatch';
 import { formatNlNumber } from '../utils/formatters';
 
@@ -294,11 +295,22 @@ const DataHub = ({
         setIsMerging(true);
         setMergeError(null);
         try {
+            let finalMerged = merged;
+            if (stravaGetToken && merged.strava_id) {
+                try {
+                    const token = await stravaGetToken();
+                    if (token) {
+                        finalMerged = await enrichActivityGearFromStrava(merged, stravaSide, token);
+                    }
+                } catch (gearErr) {
+                    console.warn('[Merge] Strava gear / detail enrich failed:', gearErr);
+                }
+            }
             if (db) {
-                await setDoc(doc(db, 'activities', String(intervals.id)), merged, { merge: true });
+                await setDoc(doc(db, 'activities', String(intervals.id)), finalMerged, { merge: true });
                 await deleteDoc(doc(db, 'activities', String(stravaSide.id)));
             }
-            onImport([merged]);
+            onImport([finalMerged]);
             onDelete(stravaSide.id);
             setBulkSelectedIds(new Set());
             setShowMergeModal(false);
@@ -946,6 +958,7 @@ const DataHub = ({
                             <p>
                                 Keeps the <strong className="text-cdtext">Intervals.icu</strong> activity id and power/load metrics.
                                 Pulls in <strong className="text-cdtext">Strava</strong> link, map polyline, gear, and a better title when the Intervals title is generic.
+                                After merge, if you are signed in to Strava, we fetch activity details to fill <strong className="text-cdtext">gear</strong> and route polyline when missing.
                                 The duplicate Strava-only row is <strong className="text-red-400">deleted</strong> from the database.
                             </p>
                             {mergePairPreview?.error && (
