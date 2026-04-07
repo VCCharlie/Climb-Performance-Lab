@@ -47,6 +47,19 @@ const POWER_KEYS = [
 const HR_KEYS = ['avg_hr', 'max_hr'];
 
 /**
+ * Firestore setDoc rejects `undefined` field values — strip them (shallow).
+ * @param {object} obj
+ */
+export function stripUndefinedFields(obj) {
+    if (!obj || typeof obj !== 'object') return obj;
+    const out = { ...obj };
+    for (const k of Object.keys(out)) {
+        if (out[k] === undefined) delete out[k];
+    }
+    return out;
+}
+
+/**
  * @param {object} primary - Record to keep (Intervals id)
  * @param {object} secondary - Other record (often Strava-only import)
  * @returns {object} Full merged activity (same id as primary)
@@ -67,7 +80,16 @@ export function mergeActivitiesIntervalsPrimary(primary, secondary) {
     if (s.strava_map) p.strava_map = s.strava_map;
     if (s.gear_id) {
         p.gear_id = s.gear_id;
-        p.gear_name = s.gear_name || p.gear_name;
+        const gn = (s.gear_name != null && String(s.gear_name).trim() !== '')
+            ? String(s.gear_name).trim()
+            : (p.gear_name != null && String(p.gear_name).trim() !== '')
+                ? String(p.gear_name).trim()
+                : null;
+        if (gn) {
+            p.gear_name = gn;
+        } else {
+            delete p.gear_name;
+        }
     }
 
     p.title = pickMergedTitle(p.title, s.title);
@@ -114,5 +136,5 @@ export function mergeActivitiesIntervalsPrimary(primary, secondary) {
     const sSpd = Number(s.avg_speed) || 0;
     if (pSpd <= 0 && sSpd > 0) p.avg_speed = s.avg_speed;
 
-    return p;
+    return stripUndefinedFields(p);
 }
