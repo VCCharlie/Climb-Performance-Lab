@@ -25,22 +25,27 @@ import {
     matchRecordActivities,
     aggregateBikeActivitiesByContext,
 } from '../../utils/stravaProfileRecords';
+import { computeRideMilestones } from '../../utils/stravaMilestones';
 
 const STRAVA_BASE = 'https://www.strava.com/api/v3';
-const LOCALE = 'en-US';
+const LOCALE = 'nl-NL';
 
 const fmt = {
-    dist: (m) => `${(m / 1000).toFixed(1)} km`,
-    elev: (m) => `${Math.round(m).toLocaleString(LOCALE)} m`,
+    int: (n) => Math.round(Number(n) || 0).toLocaleString(LOCALE),
+    num: (n, maxFrac = 1) => Number(n).toLocaleString(LOCALE, { minimumFractionDigits: 0, maximumFractionDigits: maxFrac }),
+    dist: (m) => `${(Number(m) / 1000).toLocaleString(LOCALE, { minimumFractionDigits: 0, maximumFractionDigits: 1 })} km`,
+    elev: (m) => `${Math.round(Number(m) || 0).toLocaleString(LOCALE)} m`,
     time: (s) => {
-        const h = Math.floor(s / 3600);
-        const m = Math.floor((s % 3600) / 60);
-        return h > 0 ? `${h}h ${m}m` : `${m}m`;
+        const sec = Number(s) || 0;
+        const h = Math.floor(sec / 3600);
+        const mi = Math.floor((sec % 3600) / 60);
+        return h > 0 ? `${h}u ${mi}m` : `${mi}m`;
     },
     segTime: (s) => {
-        const m = Math.floor(s / 60);
-        const sec = s % 60;
-        return `${m}:${String(sec).padStart(2, '0')}`;
+        const sec = Number(s) || 0;
+        const m = Math.floor(sec / 60);
+        const se = sec % 60;
+        return `${m}:${String(se).padStart(2, '0')}`;
     },
 };
 
@@ -122,7 +127,7 @@ const StravaApiRideTable = ({ stats }) => {
                         return (
                             <tr key={label} className="hover:bg-cdborder/10">
                                 <td className={`${td} font-bold text-cdtext`}>{label}</td>
-                                <td className={td}>{c > 0 ? c.toLocaleString(LOCALE) : '–'}</td>
+                                <td className={td}>{c > 0 ? fmt.int(c) : '–'}</td>
                                 <td className={td}>{c > 0 ? fmt.dist(d) : '–'}</td>
                                 <td className={td}>{c > 0 ? fmt.elev(e) : '–'}</td>
                                 <td className={td}>{c > 0 ? fmt.time(mv) : '–'}</td>
@@ -135,6 +140,63 @@ const StravaApiRideTable = ({ stats }) => {
                 </tbody>
             </table>
             <p className="text-[9px] text-cdmuted px-2 py-1.5 bg-cdbg/40">From Strava athlete stats API (rides only; indoor + outdoor combined per Strava).</p>
+        </div>
+    );
+};
+
+const MilestoneBar = ({ title, currentLabel, targetLabel, remainingLabel, pct }) => (
+    <div className="rounded-lg border border-cdborder/60 bg-cdbg/40 p-2.5">
+        <div className="flex justify-between items-baseline gap-2 mb-1">
+            <span className="text-[10px] font-bold text-cdmuted uppercase">{title}</span>
+            <span className="text-[10px] text-cdmuted text-right">{remainingLabel}</span>
+        </div>
+        <div className="text-xs text-cdtext mb-1.5">
+            <span className="font-mono font-bold">{currentLabel}</span>
+            <span className="text-cdmuted"> → </span>
+            <span className="font-mono font-bold text-orange-400">{targetLabel}</span>
+        </div>
+        <div className="h-2 rounded-full bg-cdsurface overflow-hidden border border-cdborder/50">
+            <div
+                className="h-full bg-gradient-to-r from-orange-500 to-yellow-400 transition-all duration-500"
+                style={{ width: `${Math.min(100, Math.max(0, pct))}%` }}
+            />
+        </div>
+    </div>
+);
+
+const MilestonesBlock = ({ totals, periodLabel }) => {
+    if (!totals) return null;
+    const c = Number(totals.count) || 0;
+    const d = Number(totals.distance) || 0;
+    const e = Number(totals.elevation_gain) || 0;
+    if (c === 0 && d === 0 && e === 0) return null;
+    const m = computeRideMilestones(c, d, e);
+    return (
+        <div className="rounded-xl border border-cdborder bg-cdbg/30 p-3 space-y-2">
+            <h4 className="text-[10px] font-bold text-cdmuted uppercase tracking-wide">Richting volgende mijlpaal — {periodLabel}</h4>
+            <div className="grid gap-2 sm:grid-cols-3">
+                <MilestoneBar
+                    title="Ritten"
+                    currentLabel={`${fmt.int(m.rides.current)} ritten`}
+                    targetLabel={`${fmt.int(m.rides.target)} ritten`}
+                    remainingLabel={`nog ${fmt.int(m.rides.remaining)}`}
+                    pct={m.rides.pct}
+                />
+                <MilestoneBar
+                    title="Afstand"
+                    currentLabel={`${fmt.num(m.distanceKm.current, 1)} km`}
+                    targetLabel={`${fmt.int(m.distanceKm.targetKm)} km`}
+                    remainingLabel={`nog ${fmt.num(m.distanceKm.remainingKm, 1)} km`}
+                    pct={m.distanceKm.pct}
+                />
+                <MilestoneBar
+                    title="Hoogtemeters"
+                    currentLabel={fmt.elev(m.elevation.current)}
+                    targetLabel={fmt.elev(m.elevation.target)}
+                    remainingLabel={`nog ${fmt.int(m.elevation.remaining)} m`}
+                    pct={m.elevation.pct}
+                />
+            </div>
         </div>
     );
 };
@@ -175,7 +237,7 @@ const ScanContextBlock = ({ title, agg, footnote }) => {
                                 const b = agg[key];
                                 return (
                                     <React.Fragment key={key}>
-                                        <td className={td}>{b.count.toLocaleString(LOCALE)}</td>
+                                        <td className={td}>{fmt.int(b.count)}</td>
                                         <td className={td}>—</td>
                                     </React.Fragment>
                                 );
@@ -481,7 +543,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                 <Activity size={13} className="text-orange-400" /> Last 4 weeks (rides)
                             </h3>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                <StatCard icon={Bike} iconColor="text-orange-400" label="Activities" value={recent.count?.toLocaleString(LOCALE) ?? '–'} />
+                                <StatCard icon={Bike} iconColor="text-orange-400" label="Activities" value={recent.count != null ? fmt.int(recent.count) : '–'} />
                                 <StatCard icon={TrendingUp} iconColor="text-blue-400" label="Distance" value={fmt.dist(recent.distance ?? 0)} />
                                 <StatCard icon={Mountain} iconColor="text-green-400" label="Elevation" value={fmt.elev(recent.elevation_gain ?? 0)} />
                                 <StatCard icon={Clock} iconColor="text-purple-400" label="Moving time" value={fmt.time(recent.moving_time ?? 0)} />
@@ -495,11 +557,13 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                 <TrendingUp size={13} className="text-orange-400" /> All-time ride totals
                             </h3>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                <StatCard icon={Bike} iconColor="text-orange-400" label="Rides" value={stats.all_ride_totals?.count?.toLocaleString(LOCALE) ?? '–'} sub={`YTD: ${stats.ytd_ride_totals?.count ?? '–'}`} />
+                                <StatCard icon={Bike} iconColor="text-orange-400" label="Rides" value={stats.all_ride_totals?.count != null ? fmt.int(stats.all_ride_totals.count) : '–'} sub={`YTD: ${stats.ytd_ride_totals?.count != null ? fmt.int(stats.ytd_ride_totals.count) : '–'}`} />
                                 <StatCard icon={TrendingUp} iconColor="text-blue-400" label="Distance" value={fmt.dist(stats.all_ride_totals?.distance ?? 0)} sub={`YTD: ${fmt.dist(stats.ytd_ride_totals?.distance ?? 0)}`} />
                                 <StatCard icon={Mountain} iconColor="text-green-400" label="Elevation" value={fmt.elev(stats.all_ride_totals?.elevation_gain ?? 0)} sub={`YTD: ${fmt.elev(stats.ytd_ride_totals?.elevation_gain ?? 0)}`} />
                                 <StatCard icon={Clock} iconColor="text-purple-400" label="Moving time" value={fmt.time(stats.all_ride_totals?.moving_time ?? 0)} sub={`YTD: ${fmt.time(stats.ytd_ride_totals?.moving_time ?? 0)}`} />
                             </div>
+                            <MilestonesBlock totals={stats.all_ride_totals} periodLabel="all-time (Strava)" />
+                            <MilestonesBlock totals={stats.ytd_ride_totals} periodLabel="dit jaar (YTD, Strava)" />
                             {(stats.biggest_climb_elevation_gain > 0 || stats.biggest_ride_distance > 0 || recordRides?.maxTotalElevationRide) && (
                                 <div className="bg-cdbg/40 border border-cdborder rounded-lg p-3 space-y-3">
                                     <h4 className="text-[10px] font-bold text-cdmuted uppercase tracking-wide flex items-center gap-2">
@@ -589,7 +653,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                     </div>
                                     {recordRides?.ridesScanned > 0 && (
                                         <p className="text-[10px] text-cdmuted opacity-70">
-                                            Scanned {recordRides.ridesScanned.toLocaleString(LOCALE)} bike activities for links.
+                                            Scanned {fmt.int(recordRides.ridesScanned)} bike activities for links.
                                             {!recordRides.historyComplete && ' Older rides may not be included.'}
                                         </p>
                                     )}
@@ -617,7 +681,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                             <p className="text-[10px] text-cdmuted">
                                 Totals below are summed from your bike activities during the profile refresh. Outdoor = Ride, Gravel, MTB, etc.; Indoor = VirtualRide. Last 4 weeks = rolling 28 days from activity dates.
                                 {activityScan.ridesScanned > 0 && (
-                                    <> Scanned {activityScan.ridesScanned.toLocaleString(LOCALE)} rides.</>
+                                    <> Scanned {fmt.int(activityScan.ridesScanned)} rides.</>
                                 )}
                                 {!activityScan.historyComplete && ' History may be capped — see Overview for scan note.'}
                             </p>
@@ -674,79 +738,84 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                 </section>
             )}
 
-            {subTab === 'overview' && koms && (
-                <section className="space-y-2">
-                    <h3 className="text-xs font-bold text-cdtext uppercase tracking-wide flex items-center gap-2">
-                        <Trophy size={13} className="text-yellow-400" /> KOM / CR
-                        <span className="ml-auto flex items-center gap-2 font-normal">
-                            {komCount > 0 && <span className="flex items-center gap-1 text-yellow-400"><Trophy size={10} /> {komCount} KOM</span>}
-                            {crCount > 0 && <span className="flex items-center gap-1 text-purple-400"><Crown size={10} /> {crCount} CR</span>}
-                        </span>
-                    </h3>
-                    {koms.length === 0 ? (
-                        <p className="text-xs text-cdmuted italic">No KOMs or CRs in this list.</p>
-                    ) : (
-                        <div className="max-h-72 overflow-y-auto custom-scrollbar space-y-1 pr-1">
-                            {koms.map((effort) => {
-                                const isKOM = effort.is_kom !== false;
-                                return (
-                                    <div key={effort.id} className={`flex items-center gap-3 bg-cdbg/50 border rounded px-3 py-1.5 text-xs transition-colors ${isKOM ? 'border-cdborder/40 hover:border-yellow-400/30' : 'border-cdborder/40 hover:border-purple-400/30'}`}>
-                                        {isKOM
-                                            ? <Trophy size={11} className="text-yellow-400 shrink-0" title="KOM" />
-                                            : <Crown size={11} className="text-purple-400 shrink-0" title="CR" />}
-                                        <span className={`text-[9px] font-bold px-1 py-0.5 rounded shrink-0 ${isKOM ? 'bg-yellow-500/20 text-yellow-400' : 'bg-purple-500/20 text-purple-400'}`}>
-                                            {isKOM ? 'KOM' : 'CR'}
-                                        </span>
-                                        <a
-                                            href={`https://www.strava.com/segments/${effort.segment?.id}`}
-                                            target="_blank" rel="noreferrer"
-                                            className="flex-1 font-medium text-cdtext hover:text-orange-400 truncate transition-colors"
-                                        >
-                                            {effort.name}
-                                        </a>
-                                        <span className="text-cdmuted shrink-0">{fmt.segTime(effort.elapsed_time)}</span>
-                                        <span className="text-cdmuted shrink-0">{effort.segment?.distance != null ? `${(effort.segment.distance / 1000).toFixed(1)} km` : '—'}</span>
-                                        <a href={`https://www.strava.com/segments/${effort.segment?.id}`} target="_blank" rel="noreferrer" className="text-cdmuted hover:text-orange-400 shrink-0">
-                                            <ExternalLink size={10} />
-                                        </a>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </section>
-            )}
-
-            {subTab === 'overview' && starred && (
-                <section className="space-y-2">
-                    <h3 className="text-xs font-bold text-cdtext uppercase tracking-wide flex items-center gap-2">
-                        <Star size={13} className="text-yellow-400 fill-yellow-400" /> Starred segments ({starred.length})
-                    </h3>
-                    {starred.length === 0 ? (
-                        <p className="text-xs text-cdmuted italic">No starred segments.</p>
-                    ) : (
-                        <div className="max-h-72 overflow-y-auto custom-scrollbar space-y-1 pr-1">
-                            {starred.map((seg) => (
-                                <div key={seg.id} className="flex items-center gap-3 bg-cdbg/50 border border-cdborder/40 rounded px-3 py-1.5 text-xs hover:border-yellow-400/30 transition-colors">
-                                    <Star size={11} className="text-yellow-400 fill-yellow-400 shrink-0" />
-                                    <a
-                                        href={`https://www.strava.com/segments/${seg.id}`}
-                                        target="_blank" rel="noreferrer"
-                                        className="flex-1 font-medium text-cdtext hover:text-orange-400 truncate transition-colors"
-                                    >
-                                        {seg.name}
-                                    </a>
-                                    <span className="text-cdmuted shrink-0">{(seg.distance / 1000).toFixed(1)} km</span>
-                                    <span className="text-cdmuted shrink-0">{seg.average_grade != null ? `${seg.average_grade.toFixed(1)}%` : '—'}</span>
-                                    <span className="text-cdmuted shrink-0">{fmt.elev(seg.total_elevation_gain ?? 0)}</span>
-                                    <a href={`https://www.strava.com/segments/${seg.id}`} target="_blank" rel="noreferrer" className="text-cdmuted hover:text-orange-400 shrink-0">
-                                        <ExternalLink size={10} />
-                                    </a>
+            {subTab === 'overview' && (koms || starred) && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+                    {koms && (
+                        <section className="space-y-2 min-w-0 rounded-xl border border-cdborder/60 bg-cdbg/20 p-3">
+                            <h3 className="text-xs font-bold text-cdtext uppercase tracking-wide flex flex-wrap items-center gap-2">
+                                <span className="flex items-center gap-2">
+                                    <Trophy size={13} className="text-yellow-400" /> KOM / CR
+                                </span>
+                                <span className="flex items-center gap-2 font-normal text-[10px] sm:text-xs">
+                                    {komCount > 0 && <span className="flex items-center gap-1 text-yellow-400"><Trophy size={10} /> {komCount} KOM</span>}
+                                    {crCount > 0 && <span className="flex items-center gap-1 text-purple-400"><Crown size={10} /> {crCount} CR</span>}
+                                </span>
+                            </h3>
+                            {koms.length === 0 ? (
+                                <p className="text-xs text-cdmuted italic">Geen KOMs of CRs in deze lijst.</p>
+                            ) : (
+                                <div className="max-h-80 overflow-y-auto custom-scrollbar space-y-1 pr-1">
+                                    {koms.map((effort) => {
+                                        const isKOM = effort.is_kom !== false;
+                                        return (
+                                            <div key={effort.id} className={`flex flex-wrap sm:flex-nowrap items-center gap-2 bg-cdbg/50 border rounded px-2.5 py-1.5 text-xs transition-colors ${isKOM ? 'border-cdborder/40 hover:border-yellow-400/30' : 'border-cdborder/40 hover:border-purple-400/30'}`}>
+                                                {isKOM
+                                                    ? <Trophy size={11} className="text-yellow-400 shrink-0" title="KOM" />
+                                                    : <Crown size={11} className="text-purple-400 shrink-0" title="CR" />}
+                                                <span className={`text-[9px] font-bold px-1 py-0.5 rounded shrink-0 ${isKOM ? 'bg-yellow-500/20 text-yellow-400' : 'bg-purple-500/20 text-purple-400'}`}>
+                                                    {isKOM ? 'KOM' : 'CR'}
+                                                </span>
+                                                <a
+                                                    href={`https://www.strava.com/segments/${effort.segment?.id}`}
+                                                    target="_blank" rel="noreferrer"
+                                                    className="flex-1 min-w-0 font-medium text-cdtext hover:text-orange-400 truncate transition-colors"
+                                                >
+                                                    {effort.name}
+                                                </a>
+                                                <span className="text-cdmuted shrink-0 font-mono text-[10px]">{fmt.segTime(effort.elapsed_time)}</span>
+                                                <span className="text-cdmuted shrink-0 text-[10px]">{effort.segment?.distance != null ? `${fmt.num(effort.segment.distance / 1000, 1)} km` : '—'}</span>
+                                                <a href={`https://www.strava.com/segments/${effort.segment?.id}`} target="_blank" rel="noreferrer" className="text-cdmuted hover:text-orange-400 shrink-0">
+                                                    <ExternalLink size={10} />
+                                                </a>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
-                            ))}
-                        </div>
+                            )}
+                        </section>
                     )}
-                </section>
+                    {starred && (
+                        <section className="space-y-2 min-w-0 rounded-xl border border-cdborder/60 bg-cdbg/20 p-3">
+                            <h3 className="text-xs font-bold text-cdtext uppercase tracking-wide flex items-center gap-2">
+                                <Star size={13} className="text-yellow-400 fill-yellow-400" /> Starred segments ({fmt.int(starred.length)})
+                            </h3>
+                            {starred.length === 0 ? (
+                                <p className="text-xs text-cdmuted italic">Geen starred segments.</p>
+                            ) : (
+                                <div className="max-h-80 overflow-y-auto custom-scrollbar space-y-1 pr-1">
+                                    {starred.map((seg) => (
+                                        <div key={seg.id} className="flex flex-wrap sm:flex-nowrap items-center gap-2 bg-cdbg/50 border border-cdborder/40 rounded px-2.5 py-1.5 text-xs hover:border-yellow-400/30 transition-colors">
+                                            <Star size={11} className="text-yellow-400 fill-yellow-400 shrink-0" />
+                                            <a
+                                                href={`https://www.strava.com/segments/${seg.id}`}
+                                                target="_blank" rel="noreferrer"
+                                                className="flex-1 min-w-0 font-medium text-cdtext hover:text-orange-400 truncate transition-colors"
+                                            >
+                                                {seg.name}
+                                            </a>
+                                            <span className="text-cdmuted shrink-0 text-[10px]">{fmt.num(seg.distance / 1000, 1)} km</span>
+                                            <span className="text-cdmuted shrink-0 text-[10px]">{seg.average_grade != null ? `${fmt.num(seg.average_grade, 1)}%` : '—'}</span>
+                                            <span className="text-cdmuted shrink-0 text-[10px]">{fmt.elev(seg.total_elevation_gain ?? 0)}</span>
+                                            <a href={`https://www.strava.com/segments/${seg.id}`} target="_blank" rel="noreferrer" className="text-cdmuted hover:text-orange-400 shrink-0">
+                                                <ExternalLink size={10} />
+                                            </a>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </section>
+                    )}
+                </div>
             )}
 
         </div>
