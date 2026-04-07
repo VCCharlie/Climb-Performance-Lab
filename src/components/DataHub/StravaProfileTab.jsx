@@ -265,6 +265,12 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                 </div>
             )}
 
+            {getStravaToken && athleteId && (
+                <p className="text-[10px] text-cdmuted leading-relaxed border border-cdborder/50 rounded-lg px-3 py-2 bg-cdbg/30">
+                    After <strong className="text-cdtext">Load / Refresh</strong>, this profile is saved to your account (Firestore) and this browser — other PCs see the last synced copy until you refresh there too. For live Strava data, tap Refresh while signed in with Strava.
+                </p>
+            )}
+
             {error && (
                 <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded p-3 flex gap-2">
                     <AlertCircle size={14} className="shrink-0 mt-0.5" /> {error}
@@ -334,16 +340,28 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                     <div className="text-xs text-cdmuted rounded border border-cdborder/60 bg-cdbg/50 p-2.5">
                                         <div className="text-[10px] uppercase font-bold text-cdmuted mb-1">Most elevation (single ride)</div>
                                         <div className="text-cdtext font-bold">{fmt.elev(stats.biggest_climb_elevation_gain)}</div>
+                                        <p className="text-[9px] text-cdmuted mt-1 leading-snug">
+                                            Strava’s “biggest climb” stat is often the <span className="text-cdtext">largest single ascent</span> inside a ride, not the ride’s total elevation — so it can differ from the activity summary.
+                                        </p>
                                         {recordRides?.mostElevation ? (
-                                            <a
-                                                href={`https://www.strava.com/activities/${recordRides.mostElevation.id}`}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="mt-2 inline-flex items-center gap-1 text-orange-400 hover:text-orange-300 font-bold"
-                                            >
-                                                {recordRides.mostElevation.name || 'Open activity'}
-                                                <ExternalLink size={11} />
-                                            </a>
+                                            <>
+                                                <div className="mt-2 pt-2 border-t border-cdborder/40 space-y-1">
+                                                    <div className="text-[10px] text-cdmuted uppercase font-bold">Linked activity (list API)</div>
+                                                    <div className="text-cdtext font-mono font-bold">
+                                                        {fmt.elev(recordRides.mostElevation.total_elevation_gain ?? 0)}{' '}
+                                                        <span className="text-[9px] text-cdmuted font-normal font-sans">total on activity</span>
+                                                    </div>
+                                                </div>
+                                                <a
+                                                    href={`https://www.strava.com/activities/${recordRides.mostElevation.id}`}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="mt-2 inline-flex items-center gap-1 text-orange-400 hover:text-orange-300 font-bold"
+                                                >
+                                                    {recordRides.mostElevation.name || 'Open activity'}
+                                                    <ExternalLink size={11} />
+                                                </a>
+                                            </>
                                         ) : (
                                             <p className="mt-2 text-[10px] text-cdmuted">
                                                 {recordRides == null
