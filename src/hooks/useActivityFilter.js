@@ -1,6 +1,13 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 
 import { MONTH_ORDER } from '../config';
+import {
+    activityDistanceKm,
+    activityMovingTimeSec,
+    activityAvgSpeedKmh,
+    parseNumericBound,
+    inNumericRange,
+} from '../utils/activityFilterMetrics';
 
 // Helper inside hook or import
 const isValid = (act) => act && act.id && act.date;
@@ -52,6 +59,20 @@ const useActivityFilter = (activities) => {
     const [virtualRideChip, setVirtualRideChip] = useState(false);
     const [minTss, setMinTss] = useState('');
 
+    /** Min/max filters (empty string = no bound). Distance km, speed km/h, power W, duration minutes, elev m, kJ */
+    const [filterDistMin, setFilterDistMin] = useState('');
+    const [filterDistMax, setFilterDistMax] = useState('');
+    const [filterSpeedMin, setFilterSpeedMin] = useState('');
+    const [filterSpeedMax, setFilterSpeedMax] = useState('');
+    const [filterPowerMin, setFilterPowerMin] = useState('');
+    const [filterPowerMax, setFilterPowerMax] = useState('');
+    const [filterDurMinMin, setFilterDurMinMin] = useState('');
+    const [filterDurMaxMin, setFilterDurMaxMin] = useState('');
+    const [filterElevMin, setFilterElevMin] = useState('');
+    const [filterElevMax, setFilterElevMax] = useState('');
+    const [filterKjMin, setFilterKjMin] = useState('');
+    const [filterKjMax, setFilterKjMax] = useState('');
+
     // We store explicit collapse state.
     const [expandedYears, setExpandedYears] = useState(null);
     const [expandedMonths, setExpandedMonths] = useState(null);
@@ -95,6 +116,27 @@ const useActivityFilter = (activities) => {
         const tssThreshold = minTss === '' || minTss == null ? null : Number(minTss);
         const tssOk = tssThreshold != null && !Number.isNaN(tssThreshold) && tssThreshold > 0;
 
+        const dMin = parseNumericBound(filterDistMin);
+        const dMax = parseNumericBound(filterDistMax);
+        const spMin = parseNumericBound(filterSpeedMin);
+        const spMax = parseNumericBound(filterSpeedMax);
+        const pwMin = parseNumericBound(filterPowerMin);
+        const pwMax = parseNumericBound(filterPowerMax);
+        const durMin = parseNumericBound(filterDurMinMin);
+        const durMax = parseNumericBound(filterDurMaxMin);
+        const elMin = parseNumericBound(filterElevMin);
+        const elMax = parseNumericBound(filterElevMax);
+        const kjMin = parseNumericBound(filterKjMin);
+        const kjMax = parseNumericBound(filterKjMax);
+
+        const anyMetric =
+            dMin != null || dMax != null
+            || spMin != null || spMax != null
+            || pwMin != null || pwMax != null
+            || durMin != null || durMax != null
+            || elMin != null || elMax != null
+            || kjMin != null || kjMax != null;
+
         let filtered = activities.filter(a => {
             if (!isValid(a)) return false;
 
@@ -134,6 +176,36 @@ const useActivityFilter = (activities) => {
             if (missingHrOnly && (Number(a.avg_hr) || 0) > 0) return false;
 
             if (tssOk && !((Number(a.load) || 0) > tssThreshold)) return false;
+
+            if (anyMetric) {
+                const distKm = activityDistanceKm(a);
+                const timeSec = activityMovingTimeSec(a);
+                const speedKmh = activityAvgSpeedKmh(a, distKm, timeSec);
+                const durMinVal = timeSec != null ? timeSec / 60 : null;
+                const powerVal = (() => {
+                    const ap = Number(a.avg_power) || 0;
+                    const np = Number(a.norm_power) || 0;
+                    return ap > 0 ? ap : np > 0 ? np : null;
+                })();
+                const elev = Number(a.climbing);
+                const elevVal = !Number.isNaN(elev) && elev > 0 ? elev : null;
+                const kj = Number(a.work);
+                const kjVal = !Number.isNaN(kj) && kj > 0 ? kj : null;
+
+                const needDist = dMin != null || dMax != null;
+                const needSpeed = spMin != null || spMax != null;
+                const needDur = durMin != null || durMax != null;
+                const needPower = pwMin != null || pwMax != null;
+                const needElev = elMin != null || elMax != null;
+                const needKj = kjMin != null || kjMax != null;
+
+                if (needDist && !inNumericRange(distKm, dMin, dMax, { requireValue: true })) return false;
+                if (needSpeed && !inNumericRange(speedKmh, spMin, spMax, { requireValue: true })) return false;
+                if (needDur && !inNumericRange(durMinVal, durMin, durMax, { requireValue: true })) return false;
+                if (needPower && !inNumericRange(powerVal, pwMin, pwMax, { requireValue: true })) return false;
+                if (needElev && !inNumericRange(elevVal, elMin, elMax, { requireValue: true })) return false;
+                if (needKj && !inNumericRange(kjVal, kjMin, kjMax, { requireValue: true })) return false;
+            }
 
             // Search
             const searchLower = search.toLowerCase();
@@ -182,7 +254,7 @@ const useActivityFilter = (activities) => {
             });
         }
         return filtered;
-    }, [activities, search, sortConfig, indoorFilter, virtualRideChip, thisWeekOnly, rollingDays, stravaLinkedOnly, noPowerOnly, withPowerOnly, highLoadOnly, longRideOnly, missingHrOnly, minTss]);
+    }, [activities, search, sortConfig, indoorFilter, virtualRideChip, thisWeekOnly, rollingDays, stravaLinkedOnly, noPowerOnly, withPowerOnly, highLoadOnly, longRideOnly, missingHrOnly, minTss, filterDistMin, filterDistMax, filterSpeedMin, filterSpeedMax, filterPowerMin, filterPowerMax, filterDurMinMin, filterDurMaxMin, filterElevMin, filterElevMax, filterKjMin, filterKjMax]);
 
     const isGroupedView = sortConfig.key === 'date';
 
@@ -245,6 +317,21 @@ const useActivityFilter = (activities) => {
         return () => clearTimeout(timer);
     }, [groupedActivities]);
 
+    const clearMetricFilters = useCallback(() => {
+        setFilterDistMin('');
+        setFilterDistMax('');
+        setFilterSpeedMin('');
+        setFilterSpeedMax('');
+        setFilterPowerMin('');
+        setFilterPowerMax('');
+        setFilterDurMinMin('');
+        setFilterDurMaxMin('');
+        setFilterElevMin('');
+        setFilterElevMax('');
+        setFilterKjMin('');
+        setFilterKjMax('');
+    }, []);
+
     return {
         search, setSearch,
         indoorFilter, setIndoorFilter,
@@ -264,6 +351,19 @@ const useActivityFilter = (activities) => {
         missingHrOnly, setMissingHrOnly,
         virtualRideChip, setVirtualRideChip,
         minTss, setMinTss,
+        filterDistMin, setFilterDistMin,
+        filterDistMax, setFilterDistMax,
+        filterSpeedMin, setFilterSpeedMin,
+        filterSpeedMax, setFilterSpeedMax,
+        filterPowerMin, setFilterPowerMin,
+        filterPowerMax, setFilterPowerMax,
+        filterDurMinMin, setFilterDurMinMin,
+        filterDurMaxMin, setFilterDurMaxMin,
+        filterElevMin, setFilterElevMin,
+        filterElevMax, setFilterElevMax,
+        filterKjMin, setFilterKjMin,
+        filterKjMax, setFilterKjMax,
+        clearMetricFilters,
     };
 };
 
