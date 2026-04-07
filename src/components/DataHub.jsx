@@ -1,12 +1,17 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Search, Loader2, AlertTriangle, Trash, Split, RefreshCw, ExternalLink, GitBranch, Zap, ChevronDown, Link2 } from 'lucide-react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { Search, Loader2, AlertTriangle, Trash, Split, RefreshCw, ExternalLink, GitBranch, Zap, ChevronDown, Link2, Download } from 'lucide-react';
 import { doc, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from '../firebase';
 import { findDuplicatesInList, runInBatches } from '../utils';
 import { matchStravaToSite, STRAVA_BIKE_TYPES } from '../utils/stravaMatch';
 import { protectEnrichedFieldsOnMerge } from '../utils/firestoreActivityMerge';
+import { stravaHttpErrorMessage } from '../utils/stravaHttp';
+import { activitiesToCsv } from '../utils/activityCsvExport';
+import { findBestClimbForActivityTitle } from '../utils/activityClimbMatch';
+import { formatNlNumber } from '../utils/formatters';
 
-import { SPORT_TYPES } from '../config';
+import { SPORT_TYPES, MONTH_ORDER } from '../config';
+import { CLIMB_DATABASE } from '../climbs';
 
 // Sub-components
 import EditActivityModal from './data-hub/EditActivityModal';
@@ -42,6 +47,8 @@ const DataHub = ({
     onStravaProfileData,
     focusActivityId = null,
     onFocusActivityCleared,
+    onOpenProfilerFromActivity,
+    climbDatabaseForMatch = CLIMB_DATABASE,
 }) => {
     // UI State
     const [internalTab, setInternalTab] = useState('log');
@@ -55,6 +62,8 @@ const DataHub = ({
     const [showUtilMenu, setShowUtilMenu] = useState(false);
     const utilMenuRef = useRef(null);
     const [showStravaEnrichPanel, setShowStravaEnrichPanel] = useState(false);
+    const [bulkSelectedIds, setBulkSelectedIds] = useState(() => new Set());
+    const [stravaListProgress, setStravaListProgress] = useState(null);
 
     // State for single-day Strava search (Tools → Strava enrichment panel)
     const [stravaDateOverride, setStravaDateOverride] = useState(null);
@@ -123,8 +132,112 @@ const DataHub = ({
         sortConfig, requestSort,
         isYearExpanded, toggleYear,
         isMonthExpanded, toggleMonth,
-        processedActivities, groupedActivities, isGroupedView
+        processedActivities, groupedActivities, isGroupedView,
+        thisWeekOnly, setThisWeekOnly,
+        stravaLinkedOnly, setStravaLinkedOnly,
+        noPowerOnly, setNoPowerOnly,
+        minTss, setMinTss,
     } = useActivityFilter(deferredActivities);
+
+    const profilerClimbByActivityId = useMemo(() => {
+        const map = new Map();
+        const climbs = climbDatabaseForMatch || [];
+        for (const a of activities || []) {
+            if (!a?.id || !a.title) continue;
+            const c = findBestClimbForActivityTitle(a.title, climbs);
+            if (c) map.set(a.id, c);
+        }
+        return map;
+    }, [activities, climbDatabaseForMatch]);
+
+    const visibleActivityIdsFlat = useMemo(() => {
+        if (!processedActivities?.length) return [];
+        if (isGroupedView && groupedActivities) {
+            const ids = [];
+            const years = Object.keys(groupedActivities).sort((a, b) => sortConfig.direction === 'asc' ? a - b : b - a);
+            for (const y of years) {
+                const months = Object.keys(groupedActivities[y]).sort((a, b) => {
+                    const diff = MONTH_ORDER.indexOf(b) - MONTH_ORDER.indexOf(a);
+                    return sortConfig.direction === 'asc' ? -diff : diff;
+                });
+                for (const m of months) {
+                    if (!isYearExpanded(y) || !isMonthExpanded(y, m)) continue;
+                    for (const act of groupedActivities[y][m] || []) {
+                        if (act?.id != null) ids.push(act.id);
+                    }
+                }
+            }
+            return ids;
+        }
+        return processedActivities.map((a) => a.id).filter((id) => id != null);
+    }, [processedActivities, groupedActivities, isGroupedView, sortConfig.direction, isYearExpanded, isMonthExpanded]);
+
+    const allVisibleSelected = visibleActivityIdsFlat.length > 0
+        && visibleActivityIdsFlat.every((id) => bulkSelectedIds.has(id));
+
+    const toggleBulkSelectOne = useCallback((id) => {
+        setBulkSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    }, []);
+
+    const toggleSelectAllVisible = useCallback(() => {
+        setBulkSelectedIds((prev) => {
+            if (visibleActivityIdsFlat.length === 0) return new Set();
+            const allOn = visibleActivityIdsFlat.every((id) => prev.has(id));
+            if (allOn) {
+                const next = new Set(prev);
+                visibleActivityIdsFlat.forEach((id) => next.delete(id));
+                return next;
+            }
+            const next = new Set(prev);
+            visibleActivityIdsFlat.forEach((id) => next.add(id));
+            return next;
+        });
+    }, [visibleActivityIdsFlat]);
+
+    const selectedActivitiesForBulk = useMemo(
+        () => (activities || []).filter((a) => bulkSelectedIds.has(a.id)),
+        [activities, bulkSelectedIds]
+    );
+
+    const exportBulkCsv = useCallback(() => {
+        if (selectedActivitiesForBulk.length === 0) return;
+        const csv = activitiesToCsv(selectedActivitiesForBulk);
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `activities-export-${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }, [selectedActivitiesForBulk]);
+
+    const markBulkRecovery = useCallback(async () => {
+        if (selectedActivitiesForBulk.length === 0) return;
+        const LOW_TSS = 35;
+        try {
+            if (db) {
+                await Promise.all(
+                    selectedActivitiesForBulk.map((act) =>
+                        setDoc(doc(db, 'activities', String(act.id)), { load: LOW_TSS }, { merge: true })
+                    )
+                );
+            }
+            onImport(
+                selectedActivitiesForBulk.map((a) => ({
+                    ...a,
+                    load: LOW_TSS,
+                }))
+            );
+            setBulkSelectedIds(new Set());
+        } catch (e) {
+            alert('Could not update activities: ' + e.message);
+        }
+    }, [selectedActivitiesForBulk, onImport]);
 
     // --- 1. STANDALONE STRAVA ENRICHMENT FUNCTIE ---
     const performSilentStravaEnrichment = async (actsToEnrich, customStart, customEnd) => {
@@ -142,17 +255,29 @@ const DataHub = ({
             // 1. Haal Strava activiteiten op (List view)
             let page = 1;
             let allActivities = [];
-            while (true) {
-                const resp = await fetch(
-                    `https://www.strava.com/api/v3/athlete/activities?after=${afterTs}&before=${beforeTs}&per_page=200&page=${page}`,
-                    { headers: { Authorization: `Bearer ${token}` } }
-                );
-                if (!resp.ok) break;
-                const data = await resp.json();
-                if (!Array.isArray(data) || data.length === 0) break;
-                allActivities = allActivities.concat(data);
-                if (data.length < 200) break;
-                page++;
+            try {
+                setStravaListProgress({ page: 1, bikeCount: 0 });
+                while (true) {
+                    const resp = await fetch(
+                        `https://www.strava.com/api/v3/athlete/activities?after=${afterTs}&before=${beforeTs}&per_page=200&page=${page}`,
+                        { headers: { Authorization: `Bearer ${token}` } }
+                    );
+                    if (!resp.ok) {
+                        if (resp.status === 429) {
+                            throw new Error(stravaHttpErrorMessage(resp, 'Strava'));
+                        }
+                        break;
+                    }
+                    const data = await resp.json();
+                    if (!Array.isArray(data) || data.length === 0) break;
+                    allActivities = allActivities.concat(data);
+                    const bikeSoFar = allActivities.filter((a) => STRAVA_BIKE_TYPES.has(a.sport_type || a.type)).length;
+                    setStravaListProgress({ page, bikeCount: bikeSoFar });
+                    if (data.length < 200) break;
+                    page++;
+                }
+            } finally {
+                setStravaListProgress(null);
             }
 
             const bikeActivities = allActivities.filter(a => {
@@ -244,6 +369,7 @@ const DataHub = ({
                 const stravaTitle = (stravaDetailed.name || '').trim();
                 const updateData = {
                     strava_id: String(stravaDetailed.id),
+                    strava_map: stravaDetailed.map?.summary_polyline || m.site.strava_map || null,
                     type: stravaDetailed.sport_type || stravaDetailed.type || m.site.type,
                     ...(gearId && { gear_id: gearId, gear_name: gearName }),
                     ...(stravaTitle && { title: stravaTitle }),
@@ -270,6 +396,7 @@ const DataHub = ({
             }
         } catch (err) {
             console.error("[Silent Enrichment] Failed:", err);
+            if (err?.message && /rate limit|429/i.test(err.message)) throw err;
         }
         return 0;
     };
@@ -736,90 +863,163 @@ const DataHub = ({
                                     {syncStatus === 'error' && '❌ '}
                                     {isSyncing ? (syncProgress || 'Syncing...') : syncErrorDetail}
                                 </span>
+                                {stravaListProgress && (
+                                    <span className="text-[10px] font-normal text-cdmuted">
+                                        Strava list: page {stravaListProgress.page} · ~{formatNlNumber(stravaListProgress.bikeCount)} bike activities loaded so far…
+                                    </span>
+                                )}
                             </div>
                         )}
 
-                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
-                            <div className="flex gap-2 w-full md:w-auto flex-1">
-                                <div className="relative flex-1">
-                                    <Search className="absolute left-3 top-2.5 w-4 h-4 text-cdmuted" />
-                                    <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search (name or 4-2-2024)..." className="w-full bg-cdbg border border-cdborder rounded pl-10 pr-4 py-2 text-sm text-cdtext outline-none focus:border-yellow-400" />
+                        <div className="space-y-3 mb-4">
+                            <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
+                                <div className="flex gap-2 w-full md:w-auto flex-1 min-w-0">
+                                    <div className="relative flex-1 min-w-0">
+                                        <Search className="absolute left-3 top-2.5 w-4 h-4 text-cdmuted" />
+                                        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search (name or 4-2-2024)..." className="w-full bg-cdbg border border-cdborder rounded pl-10 pr-4 py-2 text-sm text-cdtext outline-none focus:border-yellow-400" />
+                                    </div>
+                                    <div className="flex bg-cdbg rounded border border-cdborder p-1 shrink-0">
+                                        <button onClick={() => setIndoorFilter('all')} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'all' ? 'bg-cdborder text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}>All</button>
+                                        <button onClick={() => setIndoorFilter('outdoor')} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'outdoor' ? 'bg-green-600 text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}>Out</button>
+                                        <button onClick={() => setIndoorFilter('indoor')} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'indoor' ? 'bg-orange-600 text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}>In</button>
+                                    </div>
                                 </div>
-                                <div className="flex bg-cdbg rounded border border-cdborder p-1">
-                                    <button onClick={() => setIndoorFilter('all')} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'all' ? 'bg-cdborder text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}>All</button>
-                                    <button onClick={() => setIndoorFilter('outdoor')} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'outdoor' ? 'bg-green-600 text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}>Out</button>
-                                    <button onClick={() => setIndoorFilter('indoor')} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'indoor' ? 'bg-orange-600 text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}>In</button>
+                                <div className="flex gap-2 shrink-0">
+                                    {onRefresh && (
+                                        <button
+                                            onClick={async () => {
+                                                setIsManualRefreshing(true);
+                                                try { await onRefresh(); } catch (e) { console.error(e); }
+                                                finally { setIsManualRefreshing(false); }
+                                            }}
+                                            disabled={isManualRefreshing}
+                                            className="flex items-center justify-center w-9 h-9 rounded border bg-cdsurface border-cdborder text-cdmuted hover:text-green-400 hover:border-green-500/50 transition-colors group disabled:opacity-50"
+                                            title="Refresh data"
+                                        >
+                                            <RefreshCw size={14} className={isManualRefreshing ? 'animate-spin' : 'group-active:animate-spin'} />
+                                        </button>
+                                    )}
+                                    <div className="relative" ref={utilMenuRef}>
+                                        <button
+                                            onClick={() => setShowUtilMenu(v => !v)}
+                                            className="flex items-center gap-1.5 px-3 h-9 rounded text-sm font-bold border bg-cdsurface border-cdborder text-cdtext hover:border-yellow-400 transition-all"
+                                        >
+                                            Tools <ChevronDown size={14} className={showUtilMenu ? 'rotate-180 transition-transform' : 'transition-transform'} />
+                                        </button>
+                                        {showUtilMenu && (
+                                            <div className="absolute right-0 top-full mt-1 w-48 bg-cdsurface border border-cdborder rounded-lg shadow-xl z-50 overflow-hidden">
+                                                <button
+                                                    onClick={handleSync}
+                                                    disabled={isSyncing}
+                                                    title={'Sync activities from Intervals.icu'}
+                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-blue-400 hover:bg-cdborder disabled:opacity-40 disabled:cursor-not-allowed"
+                                                >
+                                                    <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
+                                                    {isSyncing ? 'Working...' : 'Sync Now'}
+                                                </button>
+                                                {stravaGetToken && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => { setShowStravaEnrichPanel(true); setShowUtilMenu(false); }}
+                                                        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-orange-400 hover:bg-cdborder"
+                                                    >
+                                                        <Link2 size={14} /> Strava enrichment
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={() => { findDuplicates(); setShowUtilMenu(false); }}
+                                                    disabled={!activities || activities.length === 0}
+                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-orange-400 hover:bg-cdborder disabled:opacity-40"
+                                                >
+                                                    <Split size={14} /> Duplicates
+                                                </button>
+                                                <button
+                                                    onClick={openNoPowerFilter}
+                                                    disabled={!activities || activities.length === 0}
+                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-yellow-400 hover:bg-cdborder disabled:opacity-40"
+                                                >
+                                                    <Zap size={14} /> No Power
+                                                </button>
+                                                <div className="border-t border-cdborder" />
+                                                <button
+                                                    onClick={() => { handleClearDatabase(); setShowUtilMenu(false); }}
+                                                    disabled={isDeleting || !activities || activities.length === 0}
+                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-cdborder disabled:opacity-40"
+                                                >
+                                                    {isDeleting ? <Loader2 className="animate-spin" size={14} /> : <Trash size={14} />}
+                                                    Clear DB
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                            <div className="flex gap-2">
-                                {onRefresh && (
-                                    <button
-                                        onClick={async () => {
-                                            setIsManualRefreshing(true);
-                                            try { await onRefresh(); } catch (e) { console.error(e); }
-                                            finally { setIsManualRefreshing(false); }
-                                        }}
-                                        disabled={isManualRefreshing}
-                                        className="flex items-center justify-center w-9 h-9 rounded border bg-cdsurface border-cdborder text-cdmuted hover:text-green-400 hover:border-green-500/50 transition-colors group disabled:opacity-50"
-                                        title="Refresh data"
-                                    >
-                                        <RefreshCw size={14} className={isManualRefreshing ? 'animate-spin' : 'group-active:animate-spin'} />
-                                    </button>
-                                )}
-
-                                <div className="relative" ref={utilMenuRef}>
-                                    <button
-                                        onClick={() => setShowUtilMenu(v => !v)}
-                                        className="flex items-center gap-1.5 px-3 h-9 rounded text-sm font-bold border bg-cdsurface border-cdborder text-cdtext hover:border-yellow-400 transition-all"
-                                    >
-                                        Tools <ChevronDown size={14} className={showUtilMenu ? 'rotate-180 transition-transform' : 'transition-transform'} />
-                                    </button>
-                                    {showUtilMenu && (
-                                        <div className="absolute right-0 top-full mt-1 w-48 bg-cdsurface border border-cdborder rounded-lg shadow-xl z-50 overflow-hidden">
-                                            <button
-                                                onClick={handleSync}
-                                                disabled={isSyncing}
-                                                title={'Sync activities from Intervals.icu'}
-                                                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-blue-400 hover:bg-cdborder disabled:opacity-40 disabled:cursor-not-allowed"
-                                            >
-                                                <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
-                                                {isSyncing ? 'Working...' : 'Sync Now'}
-                                            </button>
-                                            {stravaGetToken && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => { setShowStravaEnrichPanel(true); setShowUtilMenu(false); }}
-                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-orange-400 hover:bg-cdborder"
-                                                >
-                                                    <Link2 size={14} /> Strava enrichment
-                                                </button>
-                                            )}
-                                            <button
-                                                onClick={() => { findDuplicates(); setShowUtilMenu(false); }}
-                                                disabled={!activities || activities.length === 0}
-                                                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-orange-400 hover:bg-cdborder disabled:opacity-40"
-                                            >
-                                                <Split size={14} /> Duplicates
-                                            </button>
-                                            <button
-                                                onClick={openNoPowerFilter}
-                                                disabled={!activities || activities.length === 0}
-                                                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-yellow-400 hover:bg-cdborder disabled:opacity-40"
-                                            >
-                                                <Zap size={14} /> No Power
-                                            </button>
-                                            <div className="border-t border-cdborder" />
-                                            <button
-                                                onClick={() => { handleClearDatabase(); setShowUtilMenu(false); }}
-                                                disabled={isDeleting || !activities || activities.length === 0}
-                                                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-cdborder disabled:opacity-40"
-                                            >
-                                                {isDeleting ? <Loader2 className="animate-spin" size={14} /> : <Trash size={14} />}
-                                                Clear DB
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-[10px] font-bold text-cdmuted uppercase shrink-0">Quick</span>
+                                <button
+                                    type="button"
+                                    onClick={() => setThisWeekOnly((v) => !v)}
+                                    className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-colors ${thisWeekOnly ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400' : 'border-cdborder text-cdmuted hover:text-cdtext'}`}
+                                >
+                                    This week
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setStravaLinkedOnly((v) => !v)}
+                                    disabled={!stravaGetToken}
+                                    className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-colors ${stravaLinkedOnly ? 'bg-orange-500/20 border-orange-500/50 text-orange-400' : 'border-cdborder text-cdmuted hover:text-cdtext'} disabled:opacity-40`}
+                                >
+                                    Strava link
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setNoPowerOnly((v) => !v)}
+                                    className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-colors ${noPowerOnly ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'border-cdborder text-cdmuted hover:text-cdtext'}`}
+                                >
+                                    No power
+                                </button>
+                                <label className="flex items-center gap-1.5 text-[10px] text-cdmuted">
+                                    <span className="font-bold uppercase shrink-0">TSS &gt;</span>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        step={1}
+                                        placeholder="—"
+                                        value={minTss}
+                                        onChange={(e) => setMinTss(e.target.value)}
+                                        className="w-14 bg-cdbg border border-cdborder rounded px-1.5 py-0.5 text-cdtext text-[10px]"
+                                    />
+                                </label>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 text-[10px]">
+                                <span className="text-cdmuted font-bold uppercase shrink-0">Bulk</span>
+                                <span className="text-cdmuted">{formatNlNumber(bulkSelectedIds.size)} selected</span>
+                                <button
+                                    type="button"
+                                    onClick={exportBulkCsv}
+                                    disabled={bulkSelectedIds.size === 0}
+                                    className="inline-flex items-center gap-1 px-2 py-1 rounded border border-cdborder text-cdtext hover:border-green-500/50 disabled:opacity-40"
+                                >
+                                    <Download size={12} /> Export CSV
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={markBulkRecovery}
+                                    disabled={bulkSelectedIds.size === 0}
+                                    title="Sets load (TSS) to 35 for selected rows"
+                                    className="px-2 py-1 rounded border border-cdborder text-cdmuted hover:text-cdaccent hover:border-cdaccent/40 disabled:opacity-40"
+                                >
+                                    Mark recovery (TSS 35)
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setBulkSelectedIds(new Set())}
+                                    disabled={bulkSelectedIds.size === 0}
+                                    className="text-cdmuted hover:text-cdtext underline disabled:opacity-40"
+                                >
+                                    Clear selection
+                                </button>
+                                <span className="text-cdmuted hidden sm:inline">Row checkboxes · header selects visible</span>
                             </div>
                         </div>
 
@@ -844,6 +1044,13 @@ const DataHub = ({
                                 onToggleYear={toggleYear}
                                 isMonthExpanded={isMonthExpanded}
                                 onToggleMonth={toggleMonth}
+                                showBulkSelect
+                                selectedActivityIds={bulkSelectedIds}
+                                onToggleSelectRow={toggleBulkSelectOne}
+                                allVisibleSelected={allVisibleSelected}
+                                onToggleSelectAllVisible={toggleSelectAllVisible}
+                                onOpenProfiler={onOpenProfilerFromActivity}
+                                profilerClimbByActivityId={profilerClimbByActivityId}
                             />
                         )}
                     </>

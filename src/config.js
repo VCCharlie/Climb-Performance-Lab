@@ -10,6 +10,7 @@ export const APP_VERSION = "v0.9.2"; // <--- PAS DIT AAN BIJ ELKE UPDATE
 export const ACTIVITY_COLUMNS = [
     { key: 'date', label: 'Date', align: 'left', width: 'w-20' },
     { key: 'type', label: 'Type', align: 'center', width: 'w-10' },
+    { key: 'data_source', label: 'Source', align: 'center', width: 'w-[4.5rem]' },
     { key: 'title', label: 'Title', align: 'left', width: 'min-w-[120px] max-w-[200px] truncate' },
     { key: 'gear_name', label: 'Fiets', align: 'left', width: 'w-28' },
     { key: 'moving_time', label: 'Time', align: 'right', width: 'w-14' },

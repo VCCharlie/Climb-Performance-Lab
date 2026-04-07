@@ -6,6 +6,18 @@ import { STRAVA_BIKE_TYPES } from './stravaMatch';
 
 const STRAVA_LIST = 'https://www.strava.com/api/v3/athlete/activities';
 
+/** Strava list endpoint `per_page` max used for profile record scan */
+export const STRAVA_ACTIVITY_LIST_PAGE_SIZE = 200;
+
+/** Default max pages when scanning athlete activities (profile records + Ride stats splits) */
+export const STRAVA_ACTIVITY_SCAN_DEFAULT_MAX_PAGES = 100;
+
+/** Upper bound on raw activities read from the list API in one profile refresh (pages × per_page). */
+export function getStravaRawActivityListFetchCap(opts = {}) {
+    const maxPages = opts.maxPages ?? STRAVA_ACTIVITY_SCAN_DEFAULT_MAX_PAGES;
+    return maxPages * STRAVA_ACTIVITY_LIST_PAGE_SIZE;
+}
+
 const isBikeActivity = (a) => STRAVA_BIKE_TYPES.has(a.sport_type || a.type);
 
 /**
@@ -15,7 +27,7 @@ const isBikeActivity = (a) => STRAVA_BIKE_TYPES.has(a.sport_type || a.type);
  * @returns {Promise<{ activities: object[], historyComplete: boolean }>}
  */
 export async function fetchAllBikeActivitiesForRecords(token, onProgress, opts = {}) {
-    const maxPages = opts.maxPages ?? 100;
+    const maxPages = opts.maxPages ?? STRAVA_ACTIVITY_SCAN_DEFAULT_MAX_PAGES;
     let page = 1;
     const all = [];
     let historyComplete = true;
@@ -26,7 +38,7 @@ export async function fetchAllBikeActivitiesForRecords(token, onProgress, opts =
             break;
         }
         onProgress?.(`Scanning ride history (page ${page})…`);
-        const resp = await fetch(`${STRAVA_LIST}?per_page=200&page=${page}`, {
+        const resp = await fetch(`${STRAVA_LIST}?per_page=${STRAVA_ACTIVITY_LIST_PAGE_SIZE}&page=${page}`, {
             headers: { Authorization: `Bearer ${token}` }
         });
         if (!resp.ok) throw new Error(`Strava activities error: ${resp.status}`);
@@ -35,7 +47,7 @@ export async function fetchAllBikeActivitiesForRecords(token, onProgress, opts =
         for (const a of batch) {
             if (isBikeActivity(a)) all.push(a);
         }
-        if (batch.length < 200) break;
+        if (batch.length < STRAVA_ACTIVITY_LIST_PAGE_SIZE) break;
         page++;
     }
 

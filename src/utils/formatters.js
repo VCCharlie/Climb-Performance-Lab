@@ -3,6 +3,24 @@
  * Date and Time utilities
  */
 
+const NL_LOCALE = 'nl-NL';
+
+/**
+ * Consistent Dutch number formatting (grouping `.`, decimal `,`).
+ * @param {number} value
+ * @param {{ minimumFractionDigits?: number, maximumFractionDigits?: number }} [options]
+ */
+export function formatNlNumber(value, options = {}) {
+    const n = Number(value);
+    if (value === null || value === undefined || Number.isNaN(n)) return '—';
+    const minF = options.minimumFractionDigits ?? 0;
+    const maxF = options.maximumFractionDigits ?? (minF > 0 ? minF : 0);
+    return n.toLocaleString(NL_LOCALE, {
+        minimumFractionDigits: minF,
+        maximumFractionDigits: maxF,
+    });
+}
+
 export const normalizeDate = (dateStr) => {
     if (!dateStr) return new Date().toISOString().split('T')[0];
     if (dateStr.includes('T')) return dateStr.split('T')[0];
@@ -26,12 +44,12 @@ export const formatDateDDMMYYYY = (isoString) => {
     try {
         const d = new Date(isoString);
         // Forceer nl-NL: "09-02-2026"
-        return d.toLocaleDateString('nl-NL', {
+        return d.toLocaleDateString(NL_LOCALE, {
             day: '2-digit',
             month: '2-digit',
             year: 'numeric'
         });
-    } catch (e) {
+    } catch {
         return isoString;
     }
 };

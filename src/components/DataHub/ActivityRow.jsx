@@ -12,6 +12,7 @@ const ActivityRow = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview
             if (val === null || val === undefined) return <span className="text-slate-600">-</span>;
 
             switch (col.key) {
+                case 'data_source': return <span className="text-cdmuted text-center block">—</span>;
                 case 'date': return <span className="text-cdtext whitespace-nowrap">{formatDateDDMMYYYY(val)}</span>;
                 case 'type': return (
                     <div

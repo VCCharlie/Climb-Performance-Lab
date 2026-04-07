@@ -2,7 +2,7 @@
  * Strava athlete profile: summary, recent activity, bikes, KOMs/CRs, starred segments.
  * Data from Strava REST API; persisted via App.jsx.
  */
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
     Loader2,
     RefreshCw,
@@ -24,8 +24,11 @@ import {
     fetchAllBikeActivitiesForRecords,
     matchRecordActivities,
     aggregateBikeActivitiesByContext,
+    getStravaRawActivityListFetchCap,
 } from '../../utils/stravaProfileRecords';
 import { computeRideMilestones } from '../../utils/stravaMilestones';
+import { stravaHttpErrorMessage } from '../../utils/stravaHttp';
+import { computeYtdYearOverYearFromActivities, percentChange } from '../../utils/stravaYtdCompare';
 
 const STRAVA_BASE = 'https://www.strava.com/api/v3';
 const LOCALE = 'nl-NL';
@@ -67,7 +70,7 @@ const fetchPaginated = async (url, token) => {
         const resp = await fetch(`${url}${url.includes('?') ? '&' : '?'}per_page=200&page=${page}`, {
             headers: { Authorization: `Bearer ${token}` }
         });
-        if (!resp.ok) throw new Error(`Strava API error: ${resp.status}`);
+        if (!resp.ok) throw new Error(stravaHttpErrorMessage(resp, 'Strava API error'));
         const json = await resp.json();
         if (!Array.isArray(json) || json.length === 0) break;
         all = all.concat(json);
@@ -174,37 +177,101 @@ const MilestonesBlock = ({ totals, periodLabel }) => {
     const m = computeRideMilestones(c, d, e, t);
     return (
         <div className="rounded-xl border border-cdborder bg-cdbg/30 p-3 space-y-2">
-            <h4 className="text-[10px] font-bold text-cdmuted uppercase tracking-wide">Richting volgende mijlpaal — {periodLabel}</h4>
+            <h4 className="text-[10px] font-bold text-cdmuted uppercase tracking-wide">Toward next milestone — {periodLabel}</h4>
             <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
                 <MilestoneBar
-                    title="Ritten"
-                    currentLabel={`${fmt.int(m.rides.current)} ritten`}
-                    targetLabel={`${fmt.int(m.rides.target)} ritten`}
-                    remainingLabel={`nog ${fmt.int(m.rides.remaining)}`}
+                    title="Rides"
+                    currentLabel={`${fmt.int(m.rides.current)} rides`}
+                    targetLabel={`${fmt.int(m.rides.target)} rides`}
+                    remainingLabel={`${fmt.int(m.rides.remaining)} to go`}
                     pct={m.rides.pct}
                 />
                 <MilestoneBar
-                    title="Afstand"
+                    title="Distance"
                     currentLabel={`${fmt.num(m.distanceKm.current, 1)} km`}
                     targetLabel={`${fmt.int(m.distanceKm.targetKm)} km`}
-                    remainingLabel={`nog ${fmt.num(m.distanceKm.remainingKm, 1)} km`}
+                    remainingLabel={`${fmt.num(m.distanceKm.remainingKm, 1)} km to go`}
                     pct={m.distanceKm.pct}
                 />
                 <MilestoneBar
-                    title="Hoogtemeters"
+                    title="Elevation"
                     currentLabel={fmt.elev(m.elevation.current)}
                     targetLabel={fmt.elev(m.elevation.target)}
-                    remainingLabel={`nog ${fmt.int(m.elevation.remaining)} m`}
+                    remainingLabel={`${fmt.int(m.elevation.remaining)} m to go`}
                     pct={m.elevation.pct}
                 />
                 <MilestoneBar
-                    title="Bewegingstijd (totaal)"
+                    title="Moving time (total)"
                     currentLabel={fmt.time(m.movingTime.currentSec)}
                     targetLabel={fmt.time(m.movingTime.targetSec)}
-                    remainingLabel={`nog ${fmt.time(m.movingTime.remainingSec)}`}
+                    remainingLabel={`${fmt.time(m.movingTime.remainingSec)} to go`}
                     pct={m.movingTime.pct}
                 />
             </div>
+        </div>
+    );
+};
+
+/** One line: when data was fetched + what the next Refresh will re-pull (scan cap context). */
+const ProfileDataFreshnessLine = ({ fetchedAt, scanMeta }) => {
+    if (!fetchedAt) return null;
+    const when = new Date(fetchedAt);
+    if (Number.isNaN(when.getTime())) return null;
+    const dateStr = when.toLocaleString(LOCALE, { dateStyle: 'medium', timeStyle: 'short' });
+    const listCap = getStravaRawActivityListFetchCap();
+    let nextRefresh = '';
+    if (scanMeta && scanMeta.historyComplete === false) {
+        nextRefresh = `Volgende refresh haalt tot ${fmt.int(listCap)} activiteiten op bij Strava; recordlinks en scan-tabellen kunnen oudere ritten missen.`;
+    } else if (scanMeta && scanMeta.historyComplete === true) {
+        nextRefresh = 'Volgende refresh haalt opnieuw Strava-statistieken, KOMs, starred segments en je volledige gescande rithistorie op (binnen dezelfde API-limieten).';
+    } else {
+        nextRefresh = 'Volgende refresh werkt Strava-statistieken en lijsten bij; gebruik Refresh na koppelen om de activiteitenscan te laden (recordlinks / indoor-outdoor).';
+    }
+    return (
+        <p className="text-[10px] text-cdmuted leading-relaxed">
+            <span className="text-cdtext font-medium">Profieldata van {dateStr}</span>
+            <span className="mx-1.5 text-cdborder">·</span>
+            {nextRefresh}
+        </p>
+    );
+};
+
+const OUTDOOR_SPORT_TYPES = new Set(['Ride', 'GravelRide', 'MountainBikeRide', 'Cycling', 'EBikeRide']);
+
+const komEffortIsOutdoor = (effort) => {
+    const st = effort?.segment?.activity_type || effort?.segment?.sport_type || '';
+    if (!st) return true;
+    if (st === 'VirtualRide') return false;
+    return OUTDOOR_SPORT_TYPES.has(st);
+};
+
+const YtdYearOverYearBlock = ({ ytdYoy }) => {
+    if (!ytdYoy?.thisYtd || !ytdYoy?.prevYtd) return null;
+    const { thisYtd, prevYtd } = ytdYoy;
+    const dPct = percentChange(thisYtd.distance, prevYtd.distance);
+    const ePct = percentChange(thisYtd.elevation_gain, prevYtd.elevation_gain);
+    const tPct = percentChange(thisYtd.moving_time, prevYtd.moving_time);
+    const cPct = percentChange(thisYtd.count, prevYtd.count);
+    const line = (label, cur, prev, pct, fmtCur) => {
+        if (prev === 0 && cur === 0) return null;
+        const arrow = pct == null ? '—' : pct > 0 ? `+${fmt.num(Math.abs(pct), 0)}%` : `-${fmt.num(Math.abs(pct), 0)}%`;
+        const cmp = pct == null ? 'geen vergelijking vorig jaar' : `${arrow} t.o.v. dezelfde periode vorig jaar`;
+        return (
+            <p className="text-[11px] text-cdtext">
+                <span className="font-bold text-cdmuted">{label}:</span>{' '}
+                {fmtCur(cur)} <span className="text-cdmuted">(vorig jaar {fmtCur(prev)})</span>
+                <span className="text-orange-400 font-medium"> · {cmp}</span>
+            </p>
+        );
+    };
+    return (
+        <div className="rounded-xl border border-cdborder/70 bg-cdbg/40 p-3 space-y-1">
+            <h4 className="text-[10px] font-bold text-cdmuted uppercase tracking-wide">YTD t.o.v. vorig jaar (zelfde kalenderdatum)</h4>
+            <p className="text-[9px] text-cdmuted mb-2">Berekend uit je gescande Strava-fietsritten bij deze refresh — alleen betrouwbaar als je volledige historie in de scan past.</p>
+            {line('Afstand', thisYtd.distance, prevYtd.distance, dPct, (m) => fmt.dist(m))}
+            {line('Hoogtemeters', thisYtd.elevation_gain, prevYtd.elevation_gain, ePct, (m) => fmt.elev(m))}
+            {line('Bewegingstijd', thisYtd.moving_time, prevYtd.moving_time, tPct, (s) => fmt.time(s))}
+            {line('Ritten', thisYtd.count, prevYtd.count, cPct, (n) => `${fmt.int(n)} ritten`)}
         </div>
     );
 };
@@ -301,6 +368,8 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
     const [fetchProgress, setFetchProgress] = useState('');
     const [error, setError] = useState(null);
     const [data, setData] = useState(persistedData ?? null);
+    const [komFilter, setKomFilter] = useState('all'); // 'all' | 'outdoor'
+    const [komSort, setKomSort] = useState('default'); // 'default' | 'length_desc' | 'grade_desc'
 
     const applyData = useCallback((d) => {
         setData(d);
@@ -323,7 +392,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
             const statsResp = await fetch(`${STRAVA_BASE}/athletes/${athleteId}/stats`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            if (!statsResp.ok) throw new Error(`Stats error: ${statsResp.status}`);
+            if (!statsResp.ok) throw new Error(stravaHttpErrorMessage(statsResp, 'Stats error'));
             const stats = await statsResp.json();
 
             setFetchProgress('Loading KOMs / CRs…');
@@ -338,11 +407,13 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
             setFetchProgress('Linking record rides…');
             let recordRides = null;
             let activityScan = null;
+            let scannedBikeActivities = null;
             try {
                 const { activities: scanned, historyComplete } = await fetchAllBikeActivitiesForRecords(
                     token,
                     (msg) => setFetchProgress(msg)
                 );
+                scannedBikeActivities = scanned;
                 recordRides = matchRecordActivities(scanned, stats, { historyComplete });
                 const now = Date.now();
                 const ms28d = 28 * 24 * 60 * 60 * 1000;
@@ -372,6 +443,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                 bikes,
                 recordRides,
                 activityScan,
+                scannedBikeActivities,
                 fetchedAt: new Date().toISOString()
             });
         } catch (e) {
@@ -382,6 +454,27 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
         }
     }, [getStravaToken, athleteId, applyData]);
 
+    const { koms, scannedBikeActivities } = data || {};
+
+    const ytdYoy = useMemo(() => {
+        if (!scannedBikeActivities?.length || !data?.fetchedAt) return null;
+        return computeYtdYearOverYearFromActivities(scannedBikeActivities, new Date(data.fetchedAt));
+    }, [scannedBikeActivities, data?.fetchedAt]);
+
+    const filteredSortedKoms = useMemo(() => {
+        if (!koms?.length) return [];
+        let list = [...koms];
+        if (komFilter === 'outdoor') {
+            list = list.filter(komEffortIsOutdoor);
+        }
+        if (komSort === 'length_desc') {
+            list.sort((a, b) => (Number(b.segment?.distance) || 0) - (Number(a.segment?.distance) || 0));
+        } else if (komSort === 'grade_desc') {
+            list.sort((a, b) => (Number(b.segment?.average_grade) || 0) - (Number(a.segment?.average_grade) || 0));
+        }
+        return list;
+    }, [koms, komFilter, komSort]);
+
     if (!getStravaToken) {
         return (
             <div className="text-xs text-orange-400 bg-orange-500/10 border border-orange-500/20 rounded-lg p-4">
@@ -390,7 +483,8 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
         );
     }
 
-    const { athlete, stats, koms, starred, bikes, recordRides, activityScan: rawActivityScan } = data || {};
+    const { athlete, stats, starred, bikes, recordRides, activityScan: rawActivityScan } = data || {};
+
     const activityScan = rawActivityScan?.periods
         ? rawActivityScan
         : rawActivityScan?.combined != null
@@ -487,11 +581,6 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                         <p className="text-xs text-cdmuted">
                             All-time ride stats, KOMs / CRs, and starred segments from your Strava account.
                         </p>
-                        {data?.fetchedAt && !isFetching && (
-                            <p className="text-[10px] text-cdmuted opacity-60 mt-0.5">
-                                Last updated: {new Date(data.fetchedAt).toLocaleString(LOCALE)}
-                            </p>
-                        )}
                     </div>
                     <button
                         type="button"
@@ -503,6 +592,19 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                         {isFetching ? fetchProgress || 'Loading…' : (data ? 'Refresh' : 'Load from Strava')}
                     </button>
                 </div>
+            )}
+
+            {data?.fetchedAt && !isFetching && (
+                <ProfileDataFreshnessLine
+                    fetchedAt={data.fetchedAt}
+                    scanMeta={
+                        data.activityScan != null
+                            ? { historyComplete: data.activityScan.historyComplete }
+                            : data.recordRides != null
+                                ? { historyComplete: data.recordRides.historyComplete }
+                                : null
+                    }
+                />
             )}
 
             {!athleteId && (
@@ -559,6 +661,10 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                         </section>
                     )}
 
+                    {ytdYoy && activityScan?.historyComplete && (
+                        <YtdYearOverYearBlock ytdYoy={ytdYoy} />
+                    )}
+
                     {stats && (
                         <section className="space-y-2">
                             <h3 className="text-xs font-bold text-cdtext uppercase tracking-wide flex items-center gap-2">
@@ -571,7 +677,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                 <StatCard icon={Clock} iconColor="text-purple-400" label="Moving time" value={fmt.time(stats.all_ride_totals?.moving_time ?? 0)} sub={`YTD: ${fmt.time(stats.ytd_ride_totals?.moving_time ?? 0)}`} />
                             </div>
                             <MilestonesBlock totals={stats.all_ride_totals} periodLabel="all-time (Strava)" />
-                            <MilestonesBlock totals={stats.ytd_ride_totals} periodLabel="dit jaar (YTD, Strava)" />
+                            <MilestonesBlock totals={stats.ytd_ride_totals} periodLabel="YTD (Strava)" />
                             {(stats.biggest_climb_elevation_gain > 0 || stats.biggest_ride_distance > 0 || recordRides?.maxTotalElevationRide) && (
                                 <div className="bg-cdbg/40 border border-cdborder rounded-lg p-3 space-y-3">
                                     <h4 className="text-[10px] font-bold text-cdmuted uppercase tracking-wide flex items-center gap-2">
@@ -597,7 +703,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                                         {recordRides == null
                                                             ? 'Could not load activity links (API error).'
                                                             : !recordRides.historyComplete
-                                                                ? 'Link unavailable: history scan capped at 20k activities.'
+                                                                ? `Link unavailable: history scan capped at ${fmt.int(getStravaRawActivityListFetchCap())} activities.`
                                                                 : 'No ride in scanned history matched Strava record numbers.'}
                                                     </p>
                                                 )}
@@ -628,7 +734,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                                         {recordRides == null
                                                             ? 'Could not load activity links (API error).'
                                                             : !recordRides.historyComplete
-                                                                ? 'Link unavailable: history scan capped at 20k activities.'
+                                                                ? `Link unavailable: history scan capped at ${fmt.int(getStravaRawActivityListFetchCap())} activities.`
                                                                 : 'No ride in scanned history matched Strava record numbers.'}
                                                     </p>
                                                 )}
@@ -759,11 +865,36 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                     {crCount > 0 && <span className="flex items-center gap-1 text-purple-400"><Crown size={10} /> {crCount} CR</span>}
                                 </span>
                             </h3>
+                            <div className="flex flex-wrap gap-2 items-center text-[10px]">
+                                <label className="text-cdmuted font-bold uppercase shrink-0">Filter</label>
+                                <select
+                                    value={komFilter}
+                                    onChange={(e) => setKomFilter(e.target.value)}
+                                    className="bg-cdbg border border-cdborder rounded px-2 py-1 text-cdtext text-[10px] max-w-[140px]"
+                                >
+                                    <option value="all">All segments</option>
+                                    <option value="outdoor">Outdoor only</option>
+                                </select>
+                                <label className="text-cdmuted font-bold uppercase shrink-0 ml-1">Sort</label>
+                                <select
+                                    value={komSort}
+                                    onChange={(e) => setKomSort(e.target.value)}
+                                    className="bg-cdbg border border-cdborder rounded px-2 py-1 text-cdtext text-[10px] max-w-[160px]"
+                                >
+                                    <option value="default">Strava order</option>
+                                    <option value="length_desc">Length (long first)</option>
+                                    <option value="grade_desc">Avg grade (steep first)</option>
+                                </select>
+                                <span className="text-cdmuted">{filteredSortedKoms.length} shown</span>
+                            </div>
+                            <p className="text-[9px] text-cdmuted">Outdoor filter uses segment activity type when Strava provides it; virtual segments are hidden in &quot;Outdoor only&quot;.</p>
                             {koms.length === 0 ? (
-                                <p className="text-xs text-cdmuted italic">Geen KOMs of CRs in deze lijst.</p>
+                                <p className="text-xs text-cdmuted italic">No KOMs or CRs in this list.</p>
+                            ) : filteredSortedKoms.length === 0 ? (
+                                <p className="text-xs text-cdmuted italic">No segments match this filter.</p>
                             ) : (
                                 <div className="max-h-80 overflow-y-auto custom-scrollbar space-y-1 pr-1">
-                                    {koms.map((effort) => {
+                                    {filteredSortedKoms.map((effort) => {
                                         const isKOM = effort.is_kom !== false;
                                         return (
                                             <div key={effort.id} className={`flex flex-wrap sm:flex-nowrap items-center gap-2 bg-cdbg/50 border rounded px-2.5 py-1.5 text-xs transition-colors ${isKOM ? 'border-cdborder/40 hover:border-yellow-400/30' : 'border-cdborder/40 hover:border-purple-400/30'}`}>
@@ -798,7 +929,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                 <Star size={13} className="text-yellow-400 fill-yellow-400" /> Starred segments ({fmt.int(starred.length)})
                             </h3>
                             {starred.length === 0 ? (
-                                <p className="text-xs text-cdmuted italic">Geen starred segments.</p>
+                                <p className="text-xs text-cdmuted italic">No starred segments.</p>
                             ) : (
                                 <div className="max-h-80 overflow-y-auto custom-scrollbar space-y-1 pr-1">
                                     {starred.map((seg) => (

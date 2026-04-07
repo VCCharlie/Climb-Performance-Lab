@@ -8,6 +8,7 @@ import {
   formatDateDDMMYYYY,
   formatTime,
   parseDurationToSeconds,
+  formatNlNumber,
 } from '../../utils/formatters';
 
 // ─── normalizeDate ──────────────────────────────────────────────────────────
@@ -141,5 +142,21 @@ describe('parseDurationToSeconds', () => {
     expect(parseDurationToSeconds(null)).toBe(0);
     expect(parseDurationToSeconds(undefined)).toBe(0);
     expect(parseDurationToSeconds('')).toBe(0);
+  });
+});
+
+describe('formatNlNumber', () => {
+  it('uses nl-NL grouping for integers', () => {
+    expect(formatNlNumber(1234567)).toMatch(/1/);
+    expect(formatNlNumber(1234567)).toContain('234');
+  });
+
+  it('respects fraction digits', () => {
+    const s = formatNlNumber(3.14159, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    expect(s).toContain(',');
+  });
+
+  it('returns em dash for invalid', () => {
+    expect(formatNlNumber(NaN)).toBe('—');
   });
 });

@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { matchRecordActivities, aggregateBikeActivitiesByContext } from '../../utils/stravaProfileRecords';
+import {
+  matchRecordActivities,
+  aggregateBikeActivitiesByContext,
+  getStravaRawActivityListFetchCap,
+  STRAVA_ACTIVITY_LIST_PAGE_SIZE,
+  STRAVA_ACTIVITY_SCAN_DEFAULT_MAX_PAGES,
+} from '../../utils/stravaProfileRecords';
 
 describe('matchRecordActivities', () => {
   const stats = { biggest_ride_distance: 100000, biggest_climb_elevation_gain: 2500 };
@@ -47,5 +53,17 @@ describe('aggregateBikeActivitiesByContext', () => {
     expect(r.outdoor.distance).toBe(10000);
     expect(r.indoor.distance).toBe(20000);
     expect(r.combined.avg_distance).toBe(15000);
+  });
+});
+
+describe('getStravaRawActivityListFetchCap', () => {
+  it('defaults to maxPages × per_page', () => {
+    expect(STRAVA_ACTIVITY_LIST_PAGE_SIZE).toBe(200);
+    expect(STRAVA_ACTIVITY_SCAN_DEFAULT_MAX_PAGES).toBe(100);
+    expect(getStravaRawActivityListFetchCap()).toBe(20000);
+  });
+
+  it('respects custom maxPages', () => {
+    expect(getStravaRawActivityListFetchCap({ maxPages: 50 })).toBe(10000);
   });
 });

@@ -5,10 +5,30 @@ import { MONTH_ORDER } from '../config';
 // Helper inside hook or import
 const isValid = (act) => act && act.id && act.date;
 
+/** Local Monday 00:00 → Sunday 23:59:59 for "this week" chip */
+function getThisCalendarWeekRange() {
+    const now = new Date();
+    const day = now.getDay();
+    const diffToMonday = (day + 6) % 7;
+    const start = new Date(now);
+    start.setDate(now.getDate() - diffToMonday);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    end.setHours(23, 59, 59, 999);
+    return { start, end };
+}
+
 const useActivityFilter = (activities) => {
     const [search, setSearch] = useState("");
     const [indoorFilter, setIndoorFilter] = useState('all'); // 'all', 'indoor', 'outdoor'
     const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
+
+    /** Quick chips: this week, Strava-linked, no power, min TSS */
+    const [thisWeekOnly, setThisWeekOnly] = useState(false);
+    const [stravaLinkedOnly, setStravaLinkedOnly] = useState(false);
+    const [noPowerOnly, setNoPowerOnly] = useState(false);
+    const [minTss, setMinTss] = useState('');
 
     // We store explicit collapse state.
     const [expandedYears, setExpandedYears] = useState(null);
@@ -36,20 +56,45 @@ const useActivityFilter = (activities) => {
     // This allows the auto-expand effect to run again when new data arrives.
     useEffect(() => {
         if (!activities || activities.length === 0) {
-            setExpandedYears(null);
-            setExpandedMonths(null);
+            queueMicrotask(() => {
+                setExpandedYears(null);
+                setExpandedMonths(null);
+            });
         }
     }, [activities]);
 
     // -- Derived State --
     const processedActivities = useMemo(() => {
         if (!activities) return [];
+        const weekRange = thisWeekOnly ? getThisCalendarWeekRange() : null;
+        const tssThreshold = minTss === '' || minTss == null ? null : Number(minTss);
+        const tssOk = tssThreshold != null && !Number.isNaN(tssThreshold) && tssThreshold > 0;
+
         let filtered = activities.filter(a => {
             if (!isValid(a)) return false;
 
             // Indoor/Outdoor Filter
             if (indoorFilter === 'indoor' && !['VirtualRide', 'VirtualRun'].includes(a.type)) return false;
             if (indoorFilter === 'outdoor' && ['VirtualRide', 'VirtualRun'].includes(a.type)) return false;
+
+            if (thisWeekOnly && weekRange) {
+                try {
+                    const ad = new Date(a.date);
+                    if (Number.isNaN(ad.getTime()) || ad < weekRange.start || ad > weekRange.end) return false;
+                } catch {
+                    return false;
+                }
+            }
+
+            if (stravaLinkedOnly && !a.strava_id) return false;
+
+            if (noPowerOnly) {
+                const ap = Number(a.avg_power) || 0;
+                const np = Number(a.norm_power) || 0;
+                if (ap > 0 || np > 0) return false;
+            }
+
+            if (tssOk && !((Number(a.load) || 0) > tssThreshold)) return false;
 
             // Search
             const searchLower = search.toLowerCase();
@@ -70,7 +115,9 @@ const useActivityFilter = (activities) => {
                     const dmy = `${day}-${month}-${year}`;
                     const ddmm = `${day.toString().padStart(2, '0')}-${month.toString().padStart(2, '0')}-${year}`;
                     if (dmy.includes(searchLower) || ddmm.includes(searchLower)) return true;
-                } catch (e) { }
+                } catch {
+                    /* invalid date */
+                }
             }
             return false;
         });
@@ -96,7 +143,7 @@ const useActivityFilter = (activities) => {
             });
         }
         return filtered;
-    }, [activities, search, sortConfig, indoorFilter]);
+    }, [activities, search, sortConfig, indoorFilter, thisWeekOnly, stravaLinkedOnly, noPowerOnly, minTss]);
 
     const isGroupedView = sortConfig.key === 'date';
 
@@ -112,7 +159,9 @@ const useActivityFilter = (activities) => {
                 if (!groups[y]) groups[y] = {};
                 if (!groups[y][m]) groups[y][m] = [];
                 groups[y][m].push(act);
-            } catch (e) { }
+            } catch {
+                /* skip bad row */
+            }
         });
 
         return groups;
@@ -165,7 +214,11 @@ const useActivityFilter = (activities) => {
         isMonthExpanded, toggleMonth,
         processedActivities,
         groupedActivities,
-        isGroupedView
+        isGroupedView,
+        thisWeekOnly, setThisWeekOnly,
+        stravaLinkedOnly, setStravaLinkedOnly,
+        noPowerOnly, setNoPowerOnly,
+        minTss, setMinTss,
     };
 };
 
