@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { Search, Loader2, AlertTriangle, Trash, Split, RefreshCw, ExternalLink, GitBranch, Zap, ChevronDown, Link2, Download, GitMerge } from 'lucide-react';
+import { Search, Loader2, AlertTriangle, Trash, Split, RefreshCw, ExternalLink, GitBranch, Zap, ChevronDown, Link2, Download, GitMerge, Wrench } from 'lucide-react';
 import { doc, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from '../firebase';
 import { findDuplicatesInList, runInBatches } from '../utils';
@@ -13,6 +13,7 @@ import {
     isLikelyIntervalsActivityId,
 } from '../utils/mergeActivities';
 import { enrichActivityGearFromStrava } from '../utils/stravaGearEnrich';
+import { buildGearBackfillUpdates } from '../utils/stravaGearBackfill';
 import { buildClimbMatchIndex, findBestClimbUsingIndex } from '../utils/activityClimbMatch';
 import { formatNlNumber } from '../utils/formatters';
 
@@ -73,6 +74,8 @@ const DataHub = ({
     const [showMergeModal, setShowMergeModal] = useState(false);
     const [mergeError, setMergeError] = useState(null);
     const [isMerging, setIsMerging] = useState(false);
+    const [isGearBackfilling, setIsGearBackfilling] = useState(false);
+    const [gearBackfillMsg, setGearBackfillMsg] = useState(null);
 
     // State for single-day Strava search (Tools → Strava enrichment panel)
     const [stravaDateOverride, setStravaDateOverride] = useState(null);
@@ -318,6 +321,67 @@ const DataHub = ({
             setMergeError(e.message || 'Merge failed');
         } finally {
             setIsMerging(false);
+        }
+    };
+
+    const runGearBackfillFromStrava = async () => {
+        if (!stravaGetToken || !activities?.length) return;
+        setShowUtilMenu(false);
+        setIsGearBackfilling(true);
+        setGearBackfillMsg('Starting…');
+        try {
+            const token = await stravaGetToken();
+            if (!token) {
+                setGearBackfillMsg('Could not get Strava token.');
+                return;
+            }
+            const {
+                updates,
+                listActivitiesRead,
+                uniqueGearFetched,
+                needCount,
+                unmatchedNeed,
+            } = await buildGearBackfillUpdates(activities, token, {
+                maxListPages: 100,
+                onProgress: (m) => setGearBackfillMsg(m),
+            });
+            if (updates.length === 0) {
+                if (!needCount) {
+                    setGearBackfillMsg('Nothing to do — no linked rides missing gear, or no strava_id on activities.');
+                } else if (listActivitiesRead > 0 && unmatchedNeed > 0) {
+                    setGearBackfillMsg(
+                        `Scanned ${formatNlNumber(listActivitiesRead)} Strava activities; 0 gear matches for ${formatNlNumber(unmatchedNeed)} linked ride(s) missing gear. Try again after linking more strava_ids, or older rides may be outside the ${formatNlNumber(100)}-page scan cap.`
+                    );
+                } else {
+                    setGearBackfillMsg('No updates — Strava list empty or could not load.');
+                }
+                return;
+            }
+            setGearBackfillMsg(`Writing ${updates.length} activities…`);
+            const CHUNK = 25;
+            for (let i = 0; i < updates.length; i += CHUNK) {
+                const slice = updates.slice(i, i + CHUNK);
+                if (db) {
+                    await Promise.all(
+                        slice.map(({ id, data }) =>
+                            setDoc(doc(db, 'activities', String(id)), data, { merge: true })
+                        )
+                    );
+                }
+                const mergedObjs = slice.map(({ id, data }) => {
+                    const prev = activities.find((a) => String(a.id) === String(id));
+                    return { ...(prev || {}), ...data };
+                });
+                onImport(mergedObjs);
+            }
+            setGearBackfillMsg(
+                `Done: updated ${updates.length} ride(s) with gear from ${formatNlNumber(listActivitiesRead)} Strava list rows (${formatNlNumber(uniqueGearFetched)} bike name lookups).`
+            );
+        } catch (e) {
+            console.error('[Gear backfill]', e);
+            setGearBackfillMsg(`Error: ${e.message || e}`);
+        } finally {
+            setIsGearBackfilling(false);
         }
     };
 
@@ -1047,6 +1111,24 @@ const DataHub = ({
                                 )}
                             </div>
                         )}
+                        {(isGearBackfilling || gearBackfillMsg) && (
+                            <div className={`flex flex-col gap-1 text-xs px-3 py-2 rounded-lg mb-3 border ${isGearBackfilling ? 'bg-amber-500/10 border-amber-500/30 text-amber-200' : 'bg-cdbg/80 border-cdborder text-cdmuted'}`}>
+                                <span className="flex items-center gap-2 font-bold text-cdtext">
+                                    {isGearBackfilling && <Loader2 size={14} className="animate-spin text-amber-400" />}
+                                    Strava gear backfill
+                                </span>
+                                <span className="text-[11px] leading-snug">{gearBackfillMsg}</span>
+                                {!isGearBackfilling && gearBackfillMsg && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setGearBackfillMsg(null)}
+                                        className="self-end text-[10px] text-cdmuted hover:text-cdtext underline"
+                                    >
+                                        Dismiss
+                                    </button>
+                                )}
+                            </div>
+                        )}
 
                         <div className="space-y-3 mb-4">
                             <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
@@ -1094,15 +1176,27 @@ const DataHub = ({
                                                     <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
                                                     {isSyncing ? 'Working...' : 'Sync Now'}
                                                 </button>
-                                                {stravaGetToken && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => { setShowStravaEnrichPanel(true); setShowUtilMenu(false); }}
-                                                        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-orange-400 hover:bg-cdborder"
-                                                    >
-                                                        <Link2 size={14} /> Strava enrichment
-                                                    </button>
-                                                )}
+                                            {stravaGetToken && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { setShowStravaEnrichPanel(true); setShowUtilMenu(false); }}
+                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-orange-400 hover:bg-cdborder"
+                                                >
+                                                    <Link2 size={14} /> Strava enrichment
+                                                </button>
+                                            )}
+                                            {stravaGetToken && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { runGearBackfillFromStrava(); }}
+                                                    disabled={isGearBackfilling || !activities?.length}
+                                                    title="Match strava_id to Strava ride list (includes gear_id), then fetch bike names — efficient batch"
+                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-amber-400 hover:bg-cdborder disabled:opacity-40"
+                                                >
+                                                    {isGearBackfilling ? <Loader2 size={14} className="animate-spin" /> : <Wrench size={14} />}
+                                                    Fill gear from Strava
+                                                </button>
+                                            )}
                                                 <button
                                                     onClick={() => { findDuplicates(); setShowUtilMenu(false); }}
                                                     disabled={!activities || activities.length === 0}
