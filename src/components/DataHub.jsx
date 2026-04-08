@@ -136,8 +136,6 @@ const DataHub = ({
     const [syncErrorDetail, setSyncErrorDetail] = useState(null);
     const [isManualRefreshing, setIsManualRefreshing] = useState(false);
 
-    const deferredActivities = React.useDeferredValue(activities);
-
     const {
         search, setSearch,
         indoorFilter, setIndoorFilter,
@@ -168,7 +166,7 @@ const DataHub = ({
         filterKjMin, setFilterKjMin,
         filterKjMax, setFilterKjMax,
         clearMetricFilters,
-    } = useActivityFilter(deferredActivities);
+    } = useActivityFilter(activities);
 
     const metricRangeActive =
         [filterDistMin, filterDistMax, filterSpeedMin, filterSpeedMax, filterPowerMin, filterPowerMax,
@@ -190,7 +188,7 @@ const DataHub = ({
         for (const a of activities || []) {
             if (!a?.id || !a.title) continue;
             const c = findBestClimbUsingIndex(a.title, climbMatchIndex);
-            if (c) map.set(a.id, c);
+            if (c) map.set(String(a.id), c);
         }
         return map;
     }, [activities, climbMatchIndex]);
@@ -208,23 +206,24 @@ const DataHub = ({
                 for (const m of months) {
                     if (!isYearExpanded(y) || !isMonthExpanded(y, m)) continue;
                     for (const act of groupedActivities[y][m] || []) {
-                        if (act?.id != null) ids.push(act.id);
+                        if (act?.id != null) ids.push(String(act.id));
                     }
                 }
             }
             return ids;
         }
-        return processedActivities.map((a) => a.id).filter((id) => id != null);
+        return processedActivities.map((a) => a.id).filter((id) => id != null).map((id) => String(id));
     }, [processedActivities, groupedActivities, isGroupedView, sortConfig.direction, isYearExpanded, isMonthExpanded]);
 
     const allVisibleSelected = visibleActivityIdsFlat.length > 0
         && visibleActivityIdsFlat.every((id) => bulkSelectedIds.has(id));
 
     const toggleBulkSelectOne = useCallback((id) => {
+        const k = String(id);
         setBulkSelectedIds((prev) => {
             const next = new Set(prev);
-            if (next.has(id)) next.delete(id);
-            else next.add(id);
+            if (next.has(k)) next.delete(k);
+            else next.add(k);
             return next;
         });
     }, []);
@@ -245,7 +244,7 @@ const DataHub = ({
     }, [visibleActivityIdsFlat]);
 
     const selectedActivitiesForBulk = useMemo(
-        () => (activities || []).filter((a) => bulkSelectedIds.has(a.id)),
+        () => (activities || []).filter((a) => bulkSelectedIds.has(String(a.id))),
         [activities, bulkSelectedIds]
     );
 
