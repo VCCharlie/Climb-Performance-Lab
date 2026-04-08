@@ -381,7 +381,7 @@ const DataHub = ({
                 onImport(mergedObjs);
             }
             setGearBackfillMsg(
-                `Done: updated ${updates.length} ride(s) with gear from ${formatNlNumber(listActivitiesRead)} Strava list rows (${formatNlNumber(uniqueGearFetched)} bike name lookups).`
+                `Done: updated ${updates.length} ride(s) (${formatNlNumber(listActivitiesRead)} Strava list rows scanned, ${formatNlNumber(uniqueGearFetched)} /gear name lookups). If a ride still shows no bike, Strava may have no gear on that activity.`
             );
         } catch (e) {
             console.error('[Gear backfill]', e);

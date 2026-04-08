@@ -5,7 +5,8 @@
  */
 
 import { runInBatches } from './async';
-import { fetchStravaGearName } from './stravaGearEnrich';
+import { normalizeStravaActivityId } from './strava';
+import { fetchStravaGearName, fetchGearIdFromStravaActivityDetail } from './stravaGearEnrich';
 import { stripUndefinedFields } from './mergeActivities';
 
 const STRAVA_LIST = 'https://www.strava.com/api/v3/athlete/activities';
@@ -109,7 +110,8 @@ export function pickActivitiesNeedingGearPatch(siteActivities, stravaIdToGearId)
     for (const act of siteActivities || []) {
         if (!act?.id || !act.strava_id) continue;
         if (act.gear_id) continue;
-        const sid = String(act.strava_id);
+        const sid = normalizeStravaActivityId(act.strava_id);
+        if (!sid) continue;
         const gid = stravaIdToGearId.get(sid);
         if (gid) out.push({ id: act.id, strava_id: sid, gear_id: gid });
     }
@@ -163,13 +165,15 @@ export async function buildGearBackfillUpdates(siteActivities, token, opts = {})
             uniqueGearFetched: 0,
             needCount: 0,
             unmatchedNeed: 0,
+            detailFetches: 0,
         };
     }
 
     const requiredStravaIds = new Set(
         (siteActivities || [])
             .filter((a) => a?.strava_id && !a.gear_id)
-            .map((a) => String(a.strava_id))
+            .map((a) => normalizeStravaActivityId(a.strava_id))
+            .filter(Boolean)
     );
 
     opts.onProgress?.('Loading Strava ride list for gear…');
@@ -178,7 +182,26 @@ export async function buildGearBackfillUpdates(siteActivities, token, opts = {})
         onProgress: opts.onProgress,
     });
 
-    const rows = pickActivitiesNeedingGearPatch(siteActivities, idToGear);
+    let rows = pickActivitiesNeedingGearPatch(siteActivities, idToGear);
+    const gotActIds = new Set(rows.map((r) => String(r.id)));
+    const stillNeedDetail = (siteActivities || []).filter(
+        (a) => a?.id && a.strava_id && !a.gear_id && !gotActIds.has(String(a.id))
+    );
+
+    if (stillNeedDetail.length > 0) {
+        opts.onProgress?.('Fetching gear from Strava activity details (list had no bike)…');
+        const detailConc = Math.min(3, opts.gearFetchConcurrency ?? 5);
+        await runInBatches(stillNeedDetail, detailConc, async (act) => {
+            const sid = normalizeStravaActivityId(act.strava_id);
+            if (!sid) return;
+            const gid = await fetchGearIdFromStravaActivityDetail(sid, token);
+            if (gid) {
+                rows.push({ id: act.id, strava_id: sid, gear_id: gid });
+                gotActIds.add(String(act.id));
+            }
+        });
+    }
+
     if (rows.length === 0) {
         return {
             updates: [],
@@ -187,6 +210,7 @@ export async function buildGearBackfillUpdates(siteActivities, token, opts = {})
             uniqueGearFetched: 0,
             needCount,
             unmatchedNeed: needCount,
+            detailFetches: stillNeedDetail.length,
         };
     }
 
@@ -209,6 +233,7 @@ export async function buildGearBackfillUpdates(siteActivities, token, opts = {})
     const updates = rows.map((r) => {
         const name = bikesMap[r.gear_id];
         const data = stripUndefinedFields({
+            strava_id: r.strava_id,
             gear_id: r.gear_id,
             ...(name ? { gear_name: name } : {}),
         });
@@ -222,5 +247,6 @@ export async function buildGearBackfillUpdates(siteActivities, token, opts = {})
         uniqueGearFetched: missing.length,
         needCount,
         unmatchedNeed: Math.max(0, needCount - rows.length),
+        detailFetches: stillNeedDetail.length,
     };
 }

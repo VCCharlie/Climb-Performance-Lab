@@ -357,7 +357,10 @@ const App = () => {
 
         // This listener handles both initial load AND real-time updates
         const unsubscribe = onSnapshot(actCol, (snapshot) => {
-            const loadedActs = snapshot.docs.map(d => d.data());
+            const loadedActs = snapshot.docs.map((d) => {
+                const data = d.data();
+                return { ...data, id: data.id ?? d.id };
+            });
 
             if (loadedActs.length > 0) {
                 loadedActs.sort((a, b) => new Date(b.date) - new Date(a.date));

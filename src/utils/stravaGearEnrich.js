@@ -3,6 +3,30 @@
  */
 
 import { stripUndefinedFields } from './mergeActivities';
+import { normalizeStravaActivityId } from './strava';
+
+export { normalizeStravaActivityId } from './strava';
+
+/**
+ * @param {string} stravaActivityId - numeric id
+ * @param {string} token
+ * @returns {Promise<string | null>} gear_id
+ */
+export async function fetchGearIdFromStravaActivityDetail(stravaActivityId, token) {
+    if (!stravaActivityId || !token) return null;
+    try {
+        const resp = await fetch(
+            `https://www.strava.com/api/v3/activities/${encodeURIComponent(stravaActivityId)}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (!resp.ok) return null;
+        const detail = await resp.json();
+        const gid = detail?.gear_id;
+        return gid != null ? String(gid) : null;
+    } catch {
+        return null;
+    }
+}
 
 /**
  * @param {string} gearId
@@ -33,7 +57,8 @@ export async function enrichActivityGearFromStrava(merged, stravaSide, token) {
     if (!merged || !token || !merged.strava_id) return stripUndefinedFields({ ...merged });
 
     let out = { ...merged };
-    const stravaActId = String(merged.strava_id);
+    const stravaActId = normalizeStravaActivityId(merged.strava_id);
+    if (!stravaActId) return stripUndefinedFields({ ...merged });
 
     const needsDetail =
         !out.gear_id
@@ -43,7 +68,7 @@ export async function enrichActivityGearFromStrava(merged, stravaSide, token) {
     let detail = null;
     if (needsDetail) {
         try {
-            const resp = await fetch(`https://www.strava.com/api/v3/activities/${stravaActId}`, {
+            const resp = await fetch(`https://www.strava.com/api/v3/activities/${encodeURIComponent(stravaActId)}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             if (resp.ok) {
@@ -96,6 +121,8 @@ export async function enrichActivityGearFromStrava(merged, stravaSide, token) {
     if (!out.strava_map && detail?.map?.summary_polyline) {
         out.strava_map = detail.map.summary_polyline;
     }
+
+    out.strava_id = stravaActId;
 
     return stripUndefinedFields(out);
 }

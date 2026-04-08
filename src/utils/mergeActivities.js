@@ -2,6 +2,8 @@
  * Merge two activity records: keep Intervals as the canonical id, enrich with Strava-style fields.
  */
 
+import { normalizeStravaActivityId } from './strava';
+
 const GENERIC_TITLE = /^(Morning|Lunch|Afternoon|Evening|Night) Ride$|^Untitled$/i;
 
 const isGenericTitle = (t) => {
@@ -69,14 +71,17 @@ export function mergeActivitiesIntervalsPrimary(primary, secondary) {
     const p = { ...primary };
     const s = secondary;
 
-    const existingSid = p.strava_id ? String(p.strava_id) : '';
-    const incomingSid = s.strava_id ? String(s.strava_id) : '';
+    const existingSid = normalizeStravaActivityId(p.strava_id) || (p.strava_id ? String(p.strava_id).trim() : '');
+    const incomingSid = normalizeStravaActivityId(s.strava_id) || (s.strava_id ? String(s.strava_id).trim() : '');
     if (existingSid && incomingSid && existingSid !== incomingSid) {
         throw new Error(
             `Intervals activity already has strava_id ${existingSid}; selected duplicate has ${incomingSid}. Unlink one first or pick a different pair.`
         );
     }
-    if (s.strava_id) p.strava_id = String(s.strava_id);
+    if (s.strava_id) {
+        const norm = normalizeStravaActivityId(s.strava_id);
+        p.strava_id = norm || String(s.strava_id).trim();
+    }
     if (s.strava_map) p.strava_map = s.strava_map;
     if (s.gear_id) {
         p.gear_id = s.gear_id;
