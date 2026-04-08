@@ -260,6 +260,25 @@ const DataHub = ({
         URL.revokeObjectURL(url);
     }, [selectedActivitiesForBulk]);
 
+    const confirmBulkDeleteSelected = useCallback(async () => {
+        const ids = [...bulkSelectedIds];
+        if (ids.length === 0) return;
+        const n = ids.length;
+        if (!window.confirm(`Delete ${n} activit${n === 1 ? 'y' : 'ies'}? This cannot be undone.`)) return;
+        setIsDeleting(true);
+        try {
+            ids.forEach((id) => onDelete(id));
+            if (db) {
+                await Promise.all(ids.map((id) => deleteDoc(doc(db, 'activities', String(id)))));
+            }
+            setBulkSelectedIds(new Set());
+        } catch (e) {
+            alert(`Could not delete: ${e.message || e}`);
+        } finally {
+            setIsDeleting(false);
+        }
+    }, [bulkSelectedIds, onDelete]);
+
     const mergePairPreview = useMemo(() => {
         if (selectedActivitiesForBulk.length !== 2) return null;
         const [x, y] = selectedActivitiesForBulk;
@@ -1464,6 +1483,16 @@ const DataHub = ({
                                     className="inline-flex items-center gap-1 px-2 py-1 rounded border border-orange-500/40 text-orange-400 hover:bg-orange-500/10 disabled:opacity-40"
                                 >
                                     <GitMerge size={12} /> Merge pair
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={confirmBulkDeleteSelected}
+                                    disabled={bulkSelectedIds.size === 0 || isDeleting}
+                                    title="Remove selected activities from the log and cloud"
+                                    className="inline-flex items-center gap-1 px-2 py-1 rounded border border-red-500/40 text-red-400 hover:bg-red-500/10 disabled:opacity-40"
+                                >
+                                    {isDeleting ? <Loader2 size={12} className="animate-spin" /> : <Trash size={12} />}
+                                    Delete selected
                                 </button>
                                 <button
                                     type="button"
