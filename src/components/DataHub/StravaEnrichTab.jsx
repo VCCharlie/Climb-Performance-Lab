@@ -48,10 +48,12 @@ const SectionHeader = ({ icon, iconColor, title, count, children }) => {
  * Stap 2: fuzzy match op datum + afstand + duur
  * Stap 3: review + bevestig → schrijf strava_id naar Firestore
  */
+/** onAfterStravaLink: optional callback after Find/link so the activity list updates without refresh */
 const StravaEnrichTab = ({
     activities,
     getStravaToken,
     onImportNew,
+    onAfterStravaLink,
     startDate,
     endDate,
     persistedResults,
@@ -123,15 +125,15 @@ const StravaEnrichTab = ({
 
             await setDoc(doc(db, 'activities', String(enrichmentTarget.id)), updateData, { merge: true });
 
-            alert(`Linked to Strava activity "${detailedStrava.name}". Refresh the page to see updates.`);
-            // TODO: Navigate away or clear target
+            const mergedLocal = { ...enrichmentTarget, ...updateData };
+            onAfterStravaLink?.([mergedLocal]);
         } catch (e) {
             setError(e.message);
         } finally {
             setIsLinking(false);
         }
 
-    }, [enrichmentTarget, getStravaToken]);
+    }, [enrichmentTarget, getStravaToken, onAfterStravaLink]);
 
     const handleManualUrlLink = useCallback(async () => {
         const match = manualUrl.match(/strava\.com\/activities\/(\d+)/);

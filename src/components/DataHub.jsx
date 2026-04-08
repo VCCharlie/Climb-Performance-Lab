@@ -11,9 +11,9 @@ import {
     mergeActivitiesIntervalsPrimary,
     isStravaOnlyActivityId,
     isLikelyIntervalsActivityId,
+    stripUndefinedFields,
 } from '../utils/mergeActivities';
-import { enrichActivityGearFromStrava } from '../utils/stravaGearEnrich';
-import { buildGearBackfillUpdates } from '../utils/stravaGearBackfill';
+import { enrichActivityGearFromStrava, buildStravaDetailEnrichmentUpdates } from '../utils/stravaGearEnrich';
 import { buildClimbMatchIndex, findBestClimbUsingIndex } from '../utils/activityClimbMatch';
 import { formatNlNumber } from '../utils/formatters';
 
@@ -327,7 +327,12 @@ const DataHub = ({
         const list = subset && subset.length > 0 ? subset : [];
         if (!stravaGetToken) return;
         if (list.length === 0) {
-            setGearBackfillMsg('Select one or more activities that have a Strava link and need gear.');
+            setGearBackfillMsg('Select one or more activities that have a Strava link.');
+            return;
+        }
+        const withStrava = list.filter((a) => a?.strava_id);
+        if (withStrava.length === 0) {
+            setGearBackfillMsg('Selected rows need a Strava activity id (link the ride first).');
             return;
         }
         setShowUtilMenu(false);
@@ -341,23 +346,22 @@ const DataHub = ({
             }
             const {
                 updates,
-                listActivitiesRead,
-                uniqueGearFetched,
-                needCount,
-                unmatchedNeed,
-            } = await buildGearBackfillUpdates(list, token, {
-                maxListPages: 100,
+                ridesProcessed,
+                unchanged,
+                failed,
+            } = await buildStravaDetailEnrichmentUpdates(withStrava, token, {
+                concurrency: 3,
                 onProgress: (m) => setGearBackfillMsg(m),
             });
             if (updates.length === 0) {
-                if (!needCount) {
-                    setGearBackfillMsg('Selected rows already have gear, or none have a strava_id to match.');
-                } else if (listActivitiesRead > 0 && unmatchedNeed > 0) {
+                if (failed > 0) {
                     setGearBackfillMsg(
-                        `Scanned ${formatNlNumber(listActivitiesRead)} Strava list rows; no gear_id found for ${formatNlNumber(unmatchedNeed)} selected Strava id(s). Ride may be older than the scan, or Strava has no bike on that activity.`
+                        `No fields updated (${formatNlNumber(failed)} detail request(s) failed — check connection or Strava rate limits). ${formatNlNumber(unchanged)} already matched Strava.`
                     );
                 } else {
-                    setGearBackfillMsg('No updates — Strava list empty or could not load.');
+                    setGearBackfillMsg(
+                        `Nothing new from Strava for ${formatNlNumber(unchanged)} selected ride(s) — gear, route, and id already match the API (or Strava returned no bike / map).`
+                    );
                 }
                 return;
             }
@@ -373,14 +377,14 @@ const DataHub = ({
                     );
                 }
                 const mergedObjs = slice.map(({ id, data }) => {
-                    const prev = list.find((a) => String(a.id) === String(id))
+                    const prev = withStrava.find((a) => String(a.id) === String(id))
                         || activities.find((a) => String(a.id) === String(id));
                     return { ...(prev || {}), ...data };
                 });
                 onImport(mergedObjs);
             }
             setGearBackfillMsg(
-                `Done: updated ${updates.length} ride(s) (${formatNlNumber(listActivitiesRead)} Strava list rows scanned, ${formatNlNumber(uniqueGearFetched)} /gear name lookups). If a ride still shows no bike, Strava may have no gear on that activity.`
+                `Done: updated ${formatNlNumber(updates.length)} of ${formatNlNumber(ridesProcessed)} selected ride(s) from Strava (gear, bike name, route for Climb Profiler when the API returns them).`
             );
         } catch (e) {
             console.error('[Gear backfill]', e);
@@ -714,9 +718,22 @@ const DataHub = ({
 
     const handleSaveEdit = async (updatedActivity) => {
         try {
-            if (db) {
-                await setDoc(doc(db, "activities", String(updatedActivity.id)), updatedActivity, { merge: true });
+            const prev = (activities || []).find((a) => String(a.id) === String(updatedActivity.id)) || {};
+            let toSave = stripUndefinedFields({ ...prev, ...updatedActivity });
+            if (stravaGetToken && toSave.strava_id) {
+                try {
+                    const token = await stravaGetToken();
+                    if (token) {
+                        toSave = await enrichActivityGearFromStrava(toSave, null, token);
+                    }
+                } catch (gearErr) {
+                    console.warn('[Edit save] Strava enrich failed:', gearErr);
+                }
             }
+            if (db) {
+                await setDoc(doc(db, 'activities', String(toSave.id)), toSave, { merge: true });
+            }
+            onImport([toSave]);
             setEditingActivity(null);
         } catch (e) {
             alert("Could not save changes: " + e.message);
@@ -1432,7 +1449,7 @@ const DataHub = ({
                                         type="button"
                                         onClick={() => runGearBackfillFromStrava(selectedActivitiesForBulk)}
                                         disabled={isGearBackfilling || bulkSelectedIds.size === 0}
-                                        title="Selected rows only: match strava_id on Strava list for gear_id, then bike name"
+                                        title="Same as merge / Find-link: Strava activity details → gear, bike name, route (Climb Profiler)"
                                         className="inline-flex items-center gap-1 px-2 py-1 rounded border border-amber-500/40 text-amber-400 hover:bg-amber-500/10 disabled:opacity-40"
                                     >
                                         {isGearBackfilling ? <Loader2 size={12} className="animate-spin" /> : <Wrench size={12} />}
@@ -1539,6 +1556,7 @@ const DataHub = ({
                                 activities={activities}
                                 getStravaToken={stravaGetToken}
                                 onImportNew={handleImportFromStrava}
+                                onAfterStravaLink={onImport}
                                 startDate={stravaSearchDates.startDate}
                                 endDate={stravaSearchDates.endDate}
                                 persistedResults={stravaEnrichResults}
