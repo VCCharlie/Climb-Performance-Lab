@@ -38,6 +38,54 @@ export async function fetchStravaActivityListAllPages(token, opts = {}) {
 }
 
 /**
+ * Paginate Strava list until every strava activity id in `requiredIds` has a gear_id mapping,
+ * or list ends / max pages. Efficient when user selected only a few rides.
+ * @param {string} token
+ * @param {Set<string>} requiredIds - Strava activity ids (numeric strings)
+ * @param {{ maxPages?: number, onProgress?: (msg: string) => void }} [opts]
+ * @returns {Promise<{ list: object[], map: Map<string, string> }>}
+ */
+export async function fetchStravaListUntilGearResolved(token, requiredIds, opts = {}) {
+    const maxPages = opts.maxPages ?? 100;
+    const map = new Map();
+    const all = [];
+    const need = new Set(requiredIds);
+    if (need.size === 0) {
+        return { list: [], map };
+    }
+
+    const allResolved = () => {
+        for (const id of need) {
+            if (!map.has(id)) return false;
+        }
+        return true;
+    };
+
+    for (let page = 1; page <= maxPages; page++) {
+        if (allResolved()) break;
+        opts.onProgress?.(`Strava list page ${page}…`);
+        const r = await fetch(`${STRAVA_LIST}?per_page=200&page=${page}`, {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!r.ok) {
+            const err = new Error(`Strava list error: ${r.status}`);
+            err.status = r.status;
+            throw err;
+        }
+        const batch = await r.json();
+        if (!Array.isArray(batch) || batch.length === 0) break;
+        all.push(...batch);
+        for (const a of batch) {
+            const aid = a?.id != null ? String(a.id) : '';
+            const gid = a?.gear_id != null ? String(a.gear_id) : '';
+            if (aid && gid && need.has(aid)) map.set(aid, gid);
+        }
+        if (batch.length < 200) break;
+    }
+    return { list: all, map };
+}
+
+/**
  * @param {object[]} listActivities - Strava list API rows
  * @returns {Map<string, string>} strava activity id -> gear_id
  */
@@ -97,7 +145,7 @@ export async function loadStravaBikesMapMerged(token) {
 }
 
 /**
- * @param {object[]} siteActivities - full list from app
+ * @param {object[]} siteActivities - activities to consider (full list or selected subset)
  * @param {string} token
  * @param {{ maxListPages?: number, onProgress?: (msg: string) => void, gearFetchConcurrency?: number }} [opts]
  * @returns {Promise<{ updates: { id: string | number, data: object }[], listActivitiesRead: number, matched: number, uniqueGearFetched: number }>}
@@ -118,13 +166,18 @@ export async function buildGearBackfillUpdates(siteActivities, token, opts = {})
         };
     }
 
-    opts.onProgress?.('Loading Strava ride history for gear…');
-    const list = await fetchStravaActivityListAllPages(token, {
+    const requiredStravaIds = new Set(
+        (siteActivities || [])
+            .filter((a) => a?.strava_id && !a.gear_id)
+            .map((a) => String(a.strava_id))
+    );
+
+    opts.onProgress?.('Loading Strava ride list for gear…');
+    const { list, map: idToGear } = await fetchStravaListUntilGearResolved(token, requiredStravaIds, {
         maxPages: maxListPages,
         onProgress: opts.onProgress,
     });
 
-    const idToGear = buildStravaActivityIdToGearIdMap(list);
     const rows = pickActivitiesNeedingGearPatch(siteActivities, idToGear);
     if (rows.length === 0) {
         return {

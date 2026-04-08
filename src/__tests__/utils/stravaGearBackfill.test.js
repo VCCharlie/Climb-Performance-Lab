@@ -1,7 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   buildStravaActivityIdToGearIdMap,
   pickActivitiesNeedingGearPatch,
+  fetchStravaListUntilGearResolved,
 } from '../../utils/stravaGearBackfill';
 
 describe('buildStravaActivityIdToGearIdMap', () => {
@@ -12,6 +13,31 @@ describe('buildStravaActivityIdToGearIdMap', () => {
     ]);
     expect(m.get('111')).toBe('b1');
     expect(m.has('222')).toBe(false);
+  });
+});
+
+describe('fetchStravaListUntilGearResolved', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn());
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('stops early when all required ids have gear', async () => {
+    fetch.mockResolvedValue({
+      ok: true,
+      json: async () => [
+        { id: 1, gear_id: 'a' },
+        { id: 99, gear_id: 'b' },
+      ],
+    });
+    const { list, map } = await fetchStravaListUntilGearResolved('tok', new Set(['99']), {
+      maxPages: 10,
+    });
+    expect(map.get('99')).toBe('b');
+    expect(list.length).toBe(2);
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 });
 
