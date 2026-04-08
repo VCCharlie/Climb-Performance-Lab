@@ -138,9 +138,16 @@ const App = () => {
 
     // Stable DataHub Handlers
     const handleImportActivities = useCallback((n) => {
-        setActivities(prev => {
-            const map = new Map(prev.map(a => [a.id, a]));
-            n.forEach(act => map.set(act.id, act));
+        setActivities((prev) => {
+            const map = new Map();
+            const upsert = (act) => {
+                if (!act || act.id == null) return;
+                const k = String(act.id);
+                const cur = map.get(k);
+                map.set(k, cur ? { ...cur, ...act } : act);
+            };
+            (prev || []).forEach(upsert);
+            (n || []).forEach(upsert);
             return Array.from(map.values());
         });
     }, []);
@@ -357,10 +364,16 @@ const App = () => {
 
         // This listener handles both initial load AND real-time updates
         const unsubscribe = onSnapshot(actCol, (snapshot) => {
-            const loadedActs = snapshot.docs.map((d) => {
+            const byNormId = new Map();
+            snapshot.docs.forEach((d) => {
                 const data = d.data();
-                return { ...data, id: data.id ?? d.id };
+                const act = { ...data, id: data.id ?? d.id };
+                if (act.id == null) return;
+                const k = String(act.id);
+                const cur = byNormId.get(k);
+                byNormId.set(k, cur ? { ...cur, ...act } : act);
             });
+            const loadedActs = Array.from(byNormId.values());
 
             if (loadedActs.length > 0) {
                 loadedActs.sort((a, b) => new Date(b.date) - new Date(a.date));

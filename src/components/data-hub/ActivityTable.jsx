@@ -157,15 +157,15 @@ export const Row = React.memo(({ act, onDelete, onEdit, onViewDetail, isPreview 
                                 <Eye size={14} />
                             </button>
                         )}
-                        {onOpenProfiler && (profilerClimbByActivityId?.get(act.id) || act.strava_map) && (
+                        {onOpenProfiler && (profilerClimbByActivityId?.get(String(act.id)) || act.strava_map) && (
                             <button
                                 type="button"
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    onOpenProfiler(act, profilerClimbByActivityId?.get(act.id));
+                                    onOpenProfiler(act, profilerClimbByActivityId?.get(String(act.id)));
                                 }}
                                 className="text-slate-600 hover:text-emerald-400 p-1"
-                                title={profilerClimbByActivityId?.get(act.id) ? 'Open in Climb Profiler' : 'Open in Climb Profiler (approximate — link from Strava route)'}
+                                title={profilerClimbByActivityId?.get(String(act.id)) ? 'Open in Climb Profiler' : 'Open in Climb Profiler (approximate — link from Strava route)'}
                             >
                                 <Route size={14} />
                             </button>
@@ -238,7 +238,7 @@ const ActivityTable = React.memo(({ activities, sortConfig, onSort, onDelete, on
                                                 onEdit={onEdit}
                                                 onViewDetail={onViewDetail}
                                                 onToggleSelect={onToggleSelectRow}
-                                                isSelected={selectedActivityIds?.has(act.id)}
+                                                isSelected={selectedActivityIds?.has(String(act.id))}
                                                 showBulkSelect={showBulkSelect}
                                                 onOpenProfiler={onOpenProfiler}
                                                 profilerClimbByActivityId={profilerClimbByActivityId}
@@ -257,7 +257,7 @@ const ActivityTable = React.memo(({ activities, sortConfig, onSort, onDelete, on
                                 onEdit={onEdit}
                                 onViewDetail={onViewDetail}
                                 onToggleSelect={onToggleSelectRow}
-                                isSelected={selectedActivityIds?.has(act.id)}
+                                isSelected={selectedActivityIds?.has(String(act.id))}
                                 showBulkSelect={showBulkSelect}
                                 onOpenProfiler={onOpenProfiler}
                                 profilerClimbByActivityId={profilerClimbByActivityId}
