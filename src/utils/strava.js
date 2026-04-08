@@ -25,9 +25,23 @@ export const decodePolyline = (encoded) => {
 // Intervals.icu stores it as e.g. "strava-12345678" or "strava:12345678"
 export const extractStravaId = (externalId) => {
     if (!externalId) return null;
-    const match = String(externalId).match(/strava[:\-]?(\d+)/i);
+    const match = String(externalId).match(/strava[:-]?(\d+)/i);
     return match ? match[1] : null;
 };
+
+/**
+ * Numeric Strava activity id for API URLs and matching (handles "123", "strava-123", whitespace).
+ * @param {string | number} stravaId
+ * @returns {string | null}
+ */
+export function normalizeStravaActivityId(stravaId) {
+    if (stravaId == null || stravaId === '') return null;
+    const s = String(stravaId).trim();
+    const digits = s.replace(/\D/g, '');
+    if (digits.length >= 6) return digits;
+    const fromExt = extractStravaId(s);
+    return fromExt || (digits || null);
+}
 
 // Format seconds to M:SS or H:MM:SS
 export const formatSegmentTime = (seconds) => {
