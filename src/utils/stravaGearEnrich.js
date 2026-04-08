@@ -4,6 +4,7 @@
 
 import { stripUndefinedFields } from './mergeActivities';
 import { normalizeStravaActivityId } from './strava';
+import { runInBatches } from './async';
 
 export { normalizeStravaActivityId } from './strava';
 
@@ -125,4 +126,63 @@ export async function enrichActivityGearFromStrava(merged, stravaSide, token) {
     out.strava_id = stravaActId;
 
     return stripUndefinedFields(out);
+}
+
+/**
+ * Same Strava detail fetch as merge pair / Find-link: for each row with strava_id,
+ * GET /activities/:id and return merge patches (gear, strava_map, normalized strava_id).
+ *
+ * @param {object[]} siteActivities
+ * @param {string} token
+ * @param {{ concurrency?: number, onProgress?: (msg: string) => void }} [opts]
+ * @returns {Promise<{ updates: { id: string | number, data: object }[], ridesProcessed: number, unchanged: number, failed: number }>}
+ */
+export async function buildStravaDetailEnrichmentUpdates(siteActivities, token, opts = {}) {
+    const conc = Math.max(1, Math.min(5, opts.concurrency ?? 3));
+    const list = (siteActivities || []).filter((a) => a?.id != null && a?.strava_id);
+    if (!token || list.length === 0) {
+        return { updates: [], ridesProcessed: 0, unchanged: 0, failed: 0 };
+    }
+
+    opts.onProgress?.(`Strava activity details: ${list.length} ride(s)…`);
+
+    const updates = [];
+    let unchanged = 0;
+    let failed = 0;
+
+    await runInBatches(list, conc, async (act) => {
+        try {
+            const enriched = await enrichActivityGearFromStrava(act, null, token);
+            const sid = enriched.strava_id || normalizeStravaActivityId(act.strava_id);
+            const patch = stripUndefinedFields({
+                ...(sid ? { strava_id: sid } : {}),
+                ...(enriched.gear_id != null ? { gear_id: enriched.gear_id } : {}),
+                ...(enriched.gear_name != null && String(enriched.gear_name).trim()
+                    ? { gear_name: enriched.gear_name }
+                    : {}),
+                ...(enriched.strava_map != null && String(enriched.strava_map).trim()
+                    ? { strava_map: enriched.strava_map }
+                    : {}),
+            });
+            const same =
+                String(normalizeStravaActivityId(act.strava_id) || act.strava_id || '') === String(patch.strava_id || '')
+                && String(act.gear_id ?? '') === String(patch.gear_id ?? '')
+                && String(act.gear_name ?? '').trim() === String(patch.gear_name ?? '').trim()
+                && String(act.strava_map ?? '') === String(patch.strava_map ?? '');
+            if (same || Object.keys(patch).length === 0) {
+                unchanged += 1;
+                return;
+            }
+            updates.push({ id: act.id, data: patch });
+        } catch {
+            failed += 1;
+        }
+    });
+
+    return {
+        updates,
+        ridesProcessed: list.length,
+        unchanged,
+        failed,
+    };
 }
