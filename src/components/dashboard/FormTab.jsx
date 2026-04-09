@@ -4,7 +4,6 @@ import {
     Legend, ResponsiveContainer, ReferenceLine
 } from 'recharts';
 import { formatDateDDMMYYYY } from '../../utils';
-import PowerDurationTable from './PowerDurationTable';
 
 /**
  * FormTab: Shows CTL, ATL and TSB ("Vorm") progression over time.
@@ -75,12 +74,6 @@ const StatBadge = ({ label, value, color }) => (
 const FormTab = ({
     data,
     customTicks,
-    chartData = [],
-    manualFtp = 0,
-    weightKg = 0,
-    timeRange = '1Y',
-    referenceEndDate,
-    onOpenActivityInLog,
 }) => {
     const fitnessData = useMemo(() => calculateFitnessMetrics(data), [data]);
 
@@ -151,23 +144,11 @@ const FormTab = ({
                 </>
             ) : (
                 <div className="flex items-center justify-center h-24 text-cdmuted text-sm border border-dashed border-cdborder rounded-xl">
-                    Geen TSS in deze periode voor CTL/ATL/TSB — power-tabel hieronder gebruikt wel je volledige geschiedenis.
+                    Geen TSS in deze periode voor CTL/ATL/TSB.
                 </div>
             )}
 
-            {chartData.length > 0 && (
-                <PowerDurationTable
-                    chartData={chartData}
-                    filteredData={data}
-                    manualFtp={manualFtp}
-                    timeRange={timeRange}
-                    referenceEndDate={referenceEndDate}
-                    weightKg={Number(weightKg) > 0 ? Number(weightKg) : 0}
-                    onOpenActivityInLog={onOpenActivityInLog}
-                />
-            )}
-
-            {!chartData.length && !latest && (
+            {!data?.length && (
                 <div className="flex items-center justify-center h-40 text-cdmuted">
                     Geen activiteiten beschikbaar.
                 </div>

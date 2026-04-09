@@ -136,12 +136,6 @@ const Dashboard = ({
                 <FormTab
                     data={filteredData}
                     customTicks={customTicks}
-                    chartData={chartData}
-                    manualFtp={manualFtp}
-                    weightKg={userWeightKg}
-                    timeRange={timeRange}
-                    referenceEndDate={referenceEndDate}
-                    onOpenActivityInLog={onOpenActivityInLog}
                 />
             )}
 
@@ -149,7 +143,11 @@ const Dashboard = ({
                 <PowerTab
                     data={filteredData}
                     customTicks={customTicks}
+                    chartData={chartData}
                     manualFtp={manualFtp}
+                    timeRange={timeRange}
+                    referenceEndDate={referenceEndDate}
+                    weightKg={userWeightKg}
                     onOpenActivityInLog={onOpenActivityInLog}
                 />
             )}
