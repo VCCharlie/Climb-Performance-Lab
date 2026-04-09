@@ -684,16 +684,16 @@ const DataHub = ({
             // Het update ook de objecten in de array IN-PLACE.
             const enrichedCount = await performSilentStravaEnrichment(totalCheckList, syncStart, syncEnd);
 
-            // 3. De ECHT NIEUWE ritten opslaan in de database
+            // 3. Save new rides: same object references as enrichment mutated (Strava fields), then protect vs any prior row
             if (db && newActivities.length > 0) {
-                await Promise.all(newActivities.map(act => {
-                    const existing = (activities || []).find(a => String(a.id) === String(act.id));
+                await Promise.all(newActivities.map((act) => {
+                    const existing = (activities || []).find((a) => String(a.id) === String(act.id));
                     const payload = protectEnrichedFieldsOnMerge(act, existing);
                     return setDoc(doc(db, 'activities', String(act.id)), payload, { merge: true });
                 }));
             }
 
-            // Update local state met de (nu verrijkte!) ritten. 
+            // Update local state with enriched objects (not a fresh copy from the API)
             const allUpdated = [...newActivities];
             // Voeg bestaande ritten toe die tijdens de silent enrichment zijn aangepast (strava_id nu aanwezig of rpe gewijzigd)
             existingInWindow.forEach(act => {
