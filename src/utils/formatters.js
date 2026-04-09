@@ -54,9 +54,20 @@ export const formatDateDDMMYYYY = (isoString) => {
     }
 };
 
-export const formatTime = (seconds) => {
-    const sNum = Number(seconds);
-    if (!sNum || isNaN(sNum)) return "00:00";
+export const formatTime = (value) => {
+    let sNum = 0;
+    if (typeof value === 'number' && !Number.isNaN(value)) {
+        sNum = Math.floor(value);
+    } else if (value != null && value !== '') {
+        const parsed = parseDurationToSeconds(String(value));
+        if (parsed > 0) {
+            sNum = Math.floor(parsed);
+        } else {
+            const n = Number(value);
+            if (!Number.isNaN(n) && n > 0) sNum = Math.floor(n);
+        }
+    }
+    if (!sNum || sNum <= 0) return '00:00';
     const h = Math.floor(sNum / 3600);
     const m = Math.floor((sNum % 3600) / 60);
     const s = Math.floor(sNum % 60);

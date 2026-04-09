@@ -15,6 +15,16 @@ function storedMovingTimeSec(act) {
     return s > 0 ? s : 0;
 }
 
+/** Strava JSON sometimes returns moving_time as number or numeric string. */
+function stravaDurationSeconds(v) {
+    if (v == null || v === '') return 0;
+    if (typeof v === 'number' && !Number.isNaN(v) && v > 0) return Math.floor(v);
+    const n = Number(String(v).trim());
+    if (!Number.isNaN(n) && n > 0) return Math.floor(n);
+    const p = parseDurationToSeconds(String(v));
+    return p > 0 ? Math.floor(p) : 0;
+}
+
 export { normalizeStravaActivityId } from './strava';
 
 /**
@@ -135,11 +145,9 @@ export async function enrichActivityGearFromStrava(merged, stravaSide, token) {
 
     // Strava API: moving_time / elapsed_time in seconds — fill when site still has 0 / unparsed
     if (detail && storedMovingTimeSec(out) <= 0) {
-        const mv = Number(detail.moving_time);
-        const el = Number(detail.elapsed_time);
-        const sec = (!Number.isNaN(mv) && mv > 0)
-            ? Math.floor(mv)
-            : (!Number.isNaN(el) && el > 0 ? Math.floor(el) : 0);
+        const mv = stravaDurationSeconds(detail.moving_time);
+        const el = stravaDurationSeconds(detail.elapsed_time);
+        const sec = mv > 0 ? mv : el;
         if (sec > 0) out.moving_time = sec;
     }
 
