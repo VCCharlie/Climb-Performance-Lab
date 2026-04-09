@@ -278,6 +278,37 @@ const useActivityFilter = (activities) => {
         return groups;
     }, [processedActivities, isGroupedView]);
 
+    /** Alle zichtbare jaar/maand-groepen open (na quick filters: alleen gefilterde takken). */
+    const expandAllGrouped = useCallback(() => {
+        if (!groupedActivities) return;
+        const initialY = {};
+        const initialM = {};
+        Object.keys(groupedActivities).forEach((year) => {
+            initialY[year] = true;
+            Object.keys(groupedActivities[year] || {}).forEach((month) => {
+                initialM[`${year}-${month}`] = true;
+            });
+        });
+        setExpandedYears(initialY);
+        setExpandedMonths(initialM);
+    }, [groupedActivities]);
+
+    const collapseAllGrouped = useCallback(() => {
+        if (!groupedActivities) {
+            setExpandedYears({});
+            setExpandedMonths({});
+            return;
+        }
+        const initialM = {};
+        Object.keys(groupedActivities).forEach((year) => {
+            Object.keys(groupedActivities[year] || {}).forEach((month) => {
+                initialM[`${year}-${month}`] = false;
+            });
+        });
+        setExpandedYears({});
+        setExpandedMonths(initialM);
+    }, [groupedActivities]);
+
     // Auto-expand last 6 ACTIVE months only ONCE when data first arrives or when grouping changes
     useEffect(() => {
         if (!groupedActivities) return;
@@ -338,6 +369,8 @@ const useActivityFilter = (activities) => {
         sortConfig, requestSort,
         isYearExpanded, toggleYear,
         isMonthExpanded, toggleMonth,
+        expandAllGrouped,
+        collapseAllGrouped,
         processedActivities,
         groupedActivities,
         isGroupedView,

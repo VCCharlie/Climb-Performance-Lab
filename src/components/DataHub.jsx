@@ -142,6 +142,8 @@ const DataHub = ({
         sortConfig, requestSort,
         isYearExpanded, toggleYear,
         isMonthExpanded, toggleMonth,
+        expandAllGrouped,
+        collapseAllGrouped,
         processedActivities, groupedActivities, isGroupedView,
         thisWeekOnly, setThisWeekOnly,
         rollingDays, setRollingDays,
@@ -1507,7 +1509,28 @@ const DataHub = ({
                         </div>
 
                         {isGroupedView && (
-                            <QuickNav groupedActivities={groupedActivities} isYearExpanded={isYearExpanded} onToggleYear={toggleYear} />
+                            <div className="flex flex-col gap-2">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={expandAllGrouped}
+                                        className="text-[10px] font-bold px-2 py-1 rounded border border-cdborder text-cdmuted hover:text-cdaccent hover:border-cdaccent/50"
+                                    >
+                                        Alles uitklappen
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={collapseAllGrouped}
+                                        className="text-[10px] font-bold px-2 py-1 rounded border border-cdborder text-cdmuted hover:text-cdtext"
+                                    >
+                                        Alles inklappen
+                                    </button>
+                                    <span className="text-[9px] text-cdmuted hidden sm:inline">
+                                        Bulk-select gebruikt alleen zichtbare rijen — eerst uitklappen of “Alles uitklappen”.
+                                    </span>
+                                </div>
+                                <QuickNav groupedActivities={groupedActivities} isYearExpanded={isYearExpanded} onToggleYear={toggleYear} />
+                            </div>
                         )}
 
                         {!activities ? (
