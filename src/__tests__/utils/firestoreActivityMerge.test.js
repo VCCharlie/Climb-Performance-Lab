@@ -34,8 +34,28 @@ describe('protectEnrichedFieldsOnMerge', () => {
         expect(out.title).toBe('Zware cols');
     });
 
-    it('zonder bestaand document: geen wijziging', () => {
-        const inc = { id: '1', title: 'Morning Ride', rpe: 0 };
-        expect(protectEnrichedFieldsOnMerge(inc, null)).toEqual(inc);
-    });
+  it('zonder bestaand document: geen wijziging', () => {
+    const inc = { id: '1', title: 'Morning Ride', rpe: 0 };
+    expect(protectEnrichedFieldsOnMerge(inc, null)).toEqual(inc);
+  });
+
+  it('keeps strava_id when Intervals payload has none', () => {
+    const out = protectEnrichedFieldsOnMerge(
+      { id: '1', title: 'Ride', avg_power: 200 },
+      { id: '1', strava_id: '12345678', strava_map: 'abc', gear_id: 'g1', gear_name: 'Bike' }
+    );
+    expect(out.strava_id).toBe('12345678');
+    expect(out.strava_map).toBe('abc');
+    expect(out.gear_id).toBe('g1');
+    expect(out.gear_name).toBe('Bike');
+  });
+
+  it('keeps avg_hr when incoming is zero', () => {
+    const out = protectEnrichedFieldsOnMerge(
+      { id: '1', title: 'Ride', avg_hr: 0 },
+      { id: '1', avg_hr: 142, max_hr: 178 }
+    );
+    expect(out.avg_hr).toBe(142);
+    expect(out.max_hr).toBe(178);
+  });
 });
