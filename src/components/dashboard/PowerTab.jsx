@@ -1,17 +1,12 @@
 import React, { useMemo } from 'react';
-import {
-    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-    Legend, ResponsiveContainer
-} from 'recharts';
-import { ExternalLink } from 'lucide-react';
-import PowerCurveChart from './charts/PowerCurveChart';
-import { formatDateDDMMYYYY } from '../../utils';
-import { findBestPowerActivity, activityExternalLinks, DASHBOARD_FTP_CAPS } from '../../utils/dashboardActivityPeaks';
+import PowerDurationTable from './PowerDurationTable';
+import PowerTopMomentsStrip from './PowerTopMomentsStrip';
+import PowerTabDetails from './PowerTabDetails';
+import { findBestPowerActivity, DASHBOARD_FTP_CAPS } from '../../utils/dashboardActivityPeaks';
+import { dashboardFilterLabel } from '../../utils/powerDurationTable';
 
 /**
- * PowerTab: Shows power-specific metrics:
- *   - Stat cards: 1min, 5min, 20min, 60min best, eFTP, W/kg
- *   - Best efforts per month (5 / 20 / 60 min) chart
+ * PowerTab: power metrics, top interpolated moments, intervals.icu-style matrix, monthly chart, MMP.
  */
 
 const getMonthKey = (dateStr) => dateStr.slice(0, 7);
@@ -41,8 +36,16 @@ const POWER_TABLE_KEYS = [
     { key: 'best_60min', label: '60 min' },
 ];
 
-const PowerTab = ({ data, manualFtp, onOpenActivityInLog }) => {
-    const weightKg = 75; // TODO: derive from userSettings if passed as prop
+const PowerTab = ({
+    data,
+    chartData = [],
+    manualFtp,
+    timeRange = '1Y',
+    referenceEndDate,
+    weightKg = 0,
+    onOpenActivityInLog,
+}) => {
+    const effectiveWeightKg = Number(weightKg) > 0 ? Number(weightKg) : 0;
 
     const stats = useMemo(() => {
         if (!data || data.length === 0) return null;
@@ -53,11 +56,11 @@ const PowerTab = ({ data, manualFtp, onOpenActivityInLog }) => {
         const best60m = cappedMax(data, 'best_60min', manualFtp);
 
         const eFTP = best20m > 0 ? Math.round(best20m * 0.95) : 0;
-        const eFTPkg = eFTP > 0 ? (eFTP / weightKg).toFixed(2) : null;
-        const wkg20m = best20m > 0 ? (best20m / weightKg).toFixed(2) : null;
+        const eFTPkg = eFTP > 0 && effectiveWeightKg > 0 ? (eFTP / effectiveWeightKg).toFixed(2) : null;
+        const wkg20m = best20m > 0 && effectiveWeightKg > 0 ? (best20m / effectiveWeightKg).toFixed(2) : null;
 
         return { best1m, best5m, best20m, best60m, eFTP, eFTPkg, wkg20m };
-    }, [data, manualFtp]);
+    }, [data, manualFtp, effectiveWeightKg]);
 
     const monthlyBests = useMemo(() => {
         if (!data || data.length === 0) return [];
@@ -78,8 +81,6 @@ const PowerTab = ({ data, manualFtp, onOpenActivityInLog }) => {
             if (v60 <= cap60 && v60 > map[mo].b60) map[mo].b60 = v60;
         });
 
-        // Sleutelnamen beginnen met a/b/c zodat Recharts de legenda altijd
-        // in de juiste volgorde toont: 5 - 20 - 60 (alfabetisch a < b < c).
         return Object.keys(map).sort().map(mo => {
             const [y, m] = mo.split('-');
             const label = new Date(y, m - 1).toLocaleString('nl-NL', { month: 'short', year: '2-digit' });
@@ -100,140 +101,83 @@ const PowerTab = ({ data, manualFtp, onOpenActivityInLog }) => {
         });
     }, [data, manualFtp]);
 
-    if (!stats) {
+    const topMomentsStripKey = useMemo(() => {
+        if (!data?.length) return `${timeRange}-empty`;
+        const a0 = data[0];
+        const a1 = data[data.length - 1];
+        return `${timeRange}-${data.length}-${a0?.id ?? ''}-${a0?.date ?? ''}-${a1?.id ?? ''}-${a1?.date ?? ''}`;
+    }, [data, timeRange]);
+
+    const periodLabel = dashboardFilterLabel(timeRange);
+    const hasPeriodData = Boolean(data?.length);
+    const hasHistory = Boolean(chartData?.length);
+
+    if (!hasPeriodData && !hasHistory) {
         return (
             <div className="flex items-center justify-center h-40 text-cdmuted">
-                Geen vermogensdata gevonden voor deze periode.
+                Geen vermogensdata beschikbaar.
             </div>
         );
     }
 
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
-            {/* Stat grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <StatCard label="1 min Best" value={stats.best1m || null} unit="W" />
-                <StatCard label="5 min Best" value={stats.best5m || null} unit="W" color="text-blue-400" />
-                <StatCard label="20 min Best" value={stats.best20m || null} unit="W" />
-                <StatCard label="60 min Best" value={stats.best60m || null} unit="W" color="text-blue-400" />
-                <StatCard label="eFTP" value={stats.eFTP || null} unit="W" color="text-green-400" />
-                <StatCard label="eFTP W/kg" value={stats.eFTPkg || null} unit="w/kg" color="text-green-400" />
-                <StatCard label="20m W/kg" value={stats.wkg20m || null} unit="w/kg" />
-            </div>
-
-            {/* Power peaks table (Intervals.icu-achtig overzicht) */}
-            <div className="bg-cdsurface border border-cdborder rounded-xl p-6 shadow-xl">
-                <h3 className="text-lg font-bold text-cdtext mb-1">Beste vermogens in deze periode</h3>
-                <p className="text-xs text-cdmuted mb-4">
-                    Per duur de sterkste waarde in je gefilterde data (zelfde plafonds als de grafiek). Vergelijkbaar met het power-overzicht op{' '}
-                    <a href="https://intervals.icu/power" target="_blank" rel="noreferrer" className="text-cdaccent hover:underline">
-                        intervals.icu/power
-                    </a>
-                    .
+            {!hasPeriodData && hasHistory && (
+                <p className="text-sm text-cdmuted bg-cdborder/20 border border-cdborder rounded-lg px-4 py-3">
+                    Geen ritten in <span className="text-cdtext font-semibold">{periodLabel}</span> — de power-duration matrix gebruikt
+                    nog wel je volledige geschiedenis; kies een andere periode bovenaan voor de overige power-blokken.
                 </p>
-                <div className="overflow-x-auto rounded-lg border border-cdborder">
-                    <table className="w-full text-sm text-left min-w-[480px]">
-                        <thead>
-                            <tr className="bg-cdborder/40 text-cdmuted text-xs uppercase">
-                                <th className="px-3 py-2 font-semibold">Duur</th>
-                                <th className="px-3 py-2 font-semibold text-right">Watt</th>
-                                <th className="px-3 py-2 font-semibold">Datum</th>
-                                <th className="px-3 py-2 font-semibold">Activiteit</th>
-                                <th className="px-3 py-2 font-semibold text-right">Links</th>
-                            </tr>
-                        </thead>
-                        <tbody className="text-cdtext">
-                            {powerPeakRows.map((row) => {
-                                const links = row.activity ? activityExternalLinks(row.activity) : [];
-                                return (
-                                    <tr key={row.key} className="border-t border-cdborder">
-                                        <td className="px-3 py-2 font-medium whitespace-nowrap">{row.label}</td>
-                                        <td className="px-3 py-2 text-right font-mono font-bold">
-                                            {row.watts > 0 ? row.watts : '—'}
-                                        </td>
-                                        <td className="px-3 py-2 text-cdmuted text-xs whitespace-nowrap">
-                                            {row.activity ? formatDateDDMMYYYY(row.activity.date) : '—'}
-                                        </td>
-                                        <td className="px-3 py-2 text-xs text-cdmuted max-w-[200px] truncate" title={row.activity?.title}>
-                                            {row.activity?.title || '—'}
-                                        </td>
-                                        <td className="px-3 py-2 text-right">
-                                            <div className="flex flex-wrap justify-end gap-1">
-                                                {row.activity && typeof onOpenActivityInLog === 'function' && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => onOpenActivityInLog(row.activity.id)}
-                                                        className="text-xs font-bold text-cdaccent hover:underline inline-flex items-center gap-0.5"
-                                                        title="Ga naar Activiteiten-log"
-                                                    >
-                                                        <ExternalLink size={12} /> Log
-                                                    </button>
-                                                )}
-                                                {links.map((l) => (
-                                                    <a
-                                                        key={l.label}
-                                                        href={l.href}
-                                                        target="_blank"
-                                                        rel="noreferrer"
-                                                        className="text-xs font-bold text-cdmuted hover:text-cdaccent"
-                                                    >
-                                                        {l.label}
-                                                    </a>
-                                                ))}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            )}
 
-            {/* Best efforts per month chart */}
-            <div className="bg-cdsurface border border-cdborder rounded-xl p-6 shadow-xl">
-                <h3 className="text-lg font-bold text-cdtext mb-4">Best efforts per maand (W)</h3>
-                <div className="h-72">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <LineChart
-                            data={monthlyBests}
-                            margin={{ top: 5, right: 20, left: 0, bottom: 0 }}
-                        >
-                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" vertical={false} />
-                            <XAxis
-                                dataKey="label"
-                                stroke="#64748b"
-                                tick={{ fontSize: 11 }}
-                                interval={0}
-                                minTickGap={30}
-                            />
-                            <YAxis stroke="#64748b" />
-                            <Tooltip
-                                contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f1f5f9' }}
-                                itemStyle={{ color: '#94a3b8' }}
-                                formatter={(value, name) => {
-                                    const labels = { 'a_5min': '5 min', 'b_20min': '20 min', 'c_60min': '60 min' };
-                                    return [value ? `${value} W` : '-', labels[name] ?? name];
-                                }}
-                            />
-                            <Legend
-                                iconType="circle"
-                                wrapperStyle={{ paddingTop: '16px' }}
-                                formatter={(value) => {
-                                    const labels = { 'a_5min': '5 min', 'b_20min': '20 min', 'c_60min': '60 min' };
-                                    return labels[value] ?? value;
-                                }}
-                            />
-                            <Line type="monotone" dataKey="a_5min"  stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} connectNulls />
-                            <Line type="monotone" dataKey="b_20min" stroke="#f97316" strokeWidth={2} dot={{ r: 3 }} connectNulls />
-                            <Line type="monotone" dataKey="c_60min" stroke="#22c55e" strokeWidth={2} dot={{ r: 3 }} connectNulls />
-                        </LineChart>
-                    </ResponsiveContainer>
+            {stats && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <StatCard label="1 min Best" value={stats.best1m || null} unit="W" />
+                    <StatCard label="5 min Best" value={stats.best5m || null} unit="W" color="text-blue-400" />
+                    <StatCard label="20 min Best" value={stats.best20m || null} unit="W" />
+                    <StatCard label="60 min Best" value={stats.best60m || null} unit="W" color="text-blue-400" />
+                    <StatCard label="eFTP" value={stats.eFTP || null} unit="W" color="text-green-400" />
+                    <StatCard label="eFTP W/kg" value={stats.eFTPkg || null} unit="w/kg" color="text-green-400" />
+                    <StatCard label="20m W/kg" value={stats.wkg20m || null} unit="w/kg" />
                 </div>
-            </div>
+            )}
 
-            {/* Power Curve (MMP) */}
-            <PowerCurveChart data={data} manualFtp={manualFtp} />
+            {hasPeriodData && (
+                <PowerTopMomentsStrip
+                    key={topMomentsStripKey}
+                    data={data}
+                    manualFtp={manualFtp}
+                    timeRange={timeRange}
+                    onOpenActivityInLog={onOpenActivityInLog}
+                />
+            )}
+
+            {chartData.length > 0 && (
+                <PowerDurationTable
+                    chartData={chartData}
+                    filteredData={data}
+                    manualFtp={manualFtp}
+                    timeRange={timeRange}
+                    referenceEndDate={referenceEndDate}
+                    weightKg={effectiveWeightKg}
+                    onOpenActivityInLog={onOpenActivityInLog}
+                />
+            )}
+
+            {stats && (
+                <PowerTabDetails
+                    powerPeakRows={powerPeakRows}
+                    monthlyBests={monthlyBests}
+                    data={data}
+                    manualFtp={manualFtp}
+                    onOpenActivityInLog={onOpenActivityInLog}
+                />
+            )}
+
+            {!stats && hasHistory && (
+                <p className="text-xs text-cdmuted">
+                    Tip: kies een periode met ritten om eFTP, maandgrafiek en MMP-curve te zien.
+                </p>
+            )}
         </div>
     );
 };

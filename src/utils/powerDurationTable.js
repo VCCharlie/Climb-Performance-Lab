@@ -158,3 +158,43 @@ export function dashboardFilterLabel(timeRange) {
     };
     return map[timeRange] || timeRange || 'Filter';
 }
+
+/**
+ * Top-N sterkste geïnterpoleerde power-momenten (zelfde ankers als power-duration matrix).
+ */
+export function computeTopPowerMoments(activities, manualFtp, limit = 10) {
+    if (!activities?.length || limit <= 0) return [];
+
+    const candidates = [];
+    for (const a of activities) {
+        const anchors = buildAnchorsForActivity(a, manualFtp);
+        if (anchors.length === 0) continue;
+        for (const row of POWER_DURATION_ROWS) {
+            const w = interpolatePowerAt(anchors, row.sec);
+            if (w == null || w <= 0) continue;
+            candidates.push({
+                activity: a,
+                watts: w,
+                durationLabel: row.label,
+                sec: row.sec,
+            });
+        }
+    }
+
+    candidates.sort((x, y) => {
+        if (y.watts !== x.watts) return y.watts - x.watts;
+        return new Date(y.activity.date) - new Date(x.activity.date);
+    });
+
+    const out = [];
+    const seen = new Set();
+    for (const c of candidates) {
+        const id = c.activity?.id != null ? String(c.activity.id) : JSON.stringify(c.activity?.date);
+        const key = `${id}::${c.durationLabel}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(c);
+        if (out.length >= limit) break;
+    }
+    return out;
+}
