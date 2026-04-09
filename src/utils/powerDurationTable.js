@@ -198,3 +198,23 @@ export function computeTopPowerMoments(activities, manualFtp, limit = 10) {
     }
     return out;
 }
+
+/**
+ * Top-N ritten op één vaste duur (sec), op basis van geïnterpoleerd vermogen.
+ * @returns {Array<{ activity: object, watts: number }>}
+ */
+export function topNInterpolatedAtSec(activities, manualFtp, sec, limit = 10) {
+    if (!activities?.length || limit <= 0 || sec <= 0) return [];
+    const list = [];
+    for (const a of activities) {
+        const anchors = buildAnchorsForActivity(a, manualFtp);
+        const w = interpolatePowerAt(anchors, sec);
+        if (w == null || w <= 0) continue;
+        list.push({ activity: a, watts: w });
+    }
+    list.sort((x, y) => {
+        if (y.watts !== x.watts) return y.watts - x.watts;
+        return new Date(y.activity.date) - new Date(x.activity.date);
+    });
+    return list.slice(0, limit);
+}

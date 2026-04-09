@@ -13,10 +13,14 @@ const isValidActivity = (act) => {
     return act && act.id && act.date;
 };
 
+const monthKey = (year, month) => `${year}::${month}`;
+
 const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
     const [search, setSearch] = useState("");
     const [deleteConfirm, setDeleteConfirm] = useState(null);
     const [expandedYears, setExpandedYears] = useState({});
+    /** Maand: undefined = open (default); false = dicht; true = open */
+    const [expandedMonths, setExpandedMonths] = useState({});
 
     // Detail View
     const [selectedDetailActivity, setSelectedDetailActivity] = useState(null);
@@ -72,23 +76,58 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
 
     // Grouping Logic
     const toggleYear = (year) => setExpandedYears(p => ({ ...p, [year]: !p[year] }));
+
+    const isMonthOpen = (year, month) => expandedMonths[monthKey(year, month)] !== false;
+
+    const toggleMonth = (year, month) => {
+        const k = monthKey(year, month);
+        setExpandedMonths((p) => {
+            const cur = p[k] !== false;
+            return { ...p, [k]: !cur };
+        });
+    };
+
+    const expandAllGrouped = () => {
+        if (!groupedActivities) return;
+        const nextY = {};
+        const nextM = {};
+        Object.keys(groupedActivities).forEach((y) => {
+            nextY[y] = true;
+            Object.keys(groupedActivities[y] || {}).forEach((m) => {
+                nextM[monthKey(y, m)] = true;
+            });
+        });
+        setExpandedYears(nextY);
+        setExpandedMonths(nextM);
+    };
+
+    const collapseAllGrouped = () => {
+        if (!groupedActivities) return;
+        const nextM = {};
+        Object.keys(groupedActivities).forEach((y) => {
+            Object.keys(groupedActivities[y] || {}).forEach((m) => {
+                nextM[monthKey(y, m)] = false;
+            });
+        });
+        setExpandedYears({});
+        setExpandedMonths(nextM);
+    };
     const isGroupedView = sortConfig?.key === 'date';
 
-    const groupedActivities = useMemo(() => {
-        if (!isGroupedView) return null;
-        const groups = {};
+    let groupedActivities = null;
+    if (isGroupedView) {
+        groupedActivities = {};
         processedActivities.forEach(act => {
             try {
                 const d = new Date(act.date);
                 const y = d.getFullYear();
                 const m = d.toLocaleString('en-US', { month: 'long' });
-                if (!groups[y]) groups[y] = {};
-                if (!groups[y][m]) groups[y][m] = [];
-                groups[y][m].push(act);
+                if (!groupedActivities[y]) groupedActivities[y] = {};
+                if (!groupedActivities[y][m]) groupedActivities[y][m] = [];
+                groupedActivities[y][m].push(act);
             } catch { console.warn("Skipping activity", act); }
         });
-        return groups;
-    }, [processedActivities, isGroupedView]);
+    }
 
     return (
         <>
@@ -105,11 +144,29 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
                     onClose={() => setShowDupModal(false)}
                 />
             )}
-            <div className="flex justify-between items-center mb-4 gap-4">
-                <div className="relative flex-1">
+            <div className="flex justify-between items-center mb-4 gap-4 flex-wrap">
+                <div className="relative flex-1 min-w-[200px]">
                     <Search className="absolute left-3 top-2.5 w-4 h-4 text-cdmuted" />
                     <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." className="w-full bg-cdbg border border-cdborder rounded pl-10 pr-4 py-2 text-sm text-cdtext outline-none" />
                 </div>
+                {isGroupedView && groupedActivities && (
+                    <div className="flex flex-wrap gap-2 shrink-0">
+                        <button
+                            type="button"
+                            onClick={expandAllGrouped}
+                            className="text-[10px] font-bold px-2 py-2 rounded border border-cdborder text-cdmuted hover:text-cdaccent"
+                        >
+                            Alles open
+                        </button>
+                        <button
+                            type="button"
+                            onClick={collapseAllGrouped}
+                            className="text-[10px] font-bold px-2 py-2 rounded border border-cdborder text-cdmuted hover:text-cdtext"
+                        >
+                            Alles dicht
+                        </button>
+                    </div>
+                )}
                 <button
                     onClick={handleScanDuplicates}
                     disabled={isScanning || !activities || activities.length < 2}
@@ -155,11 +212,18 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
                                             <React.Fragment key={`month-group-${year}-${month}`}>
                                                 <tr className="bg-cdborder/20">
                                                     <td colSpan={ACTIVITY_TABLE_COLUMNS.length + 1} className="px-8 py-1 text-[10px] uppercase font-bold text-cdmuted">
-                                                        {month}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => toggleMonth(year, month)}
+                                                            className="flex items-center gap-1 hover:text-cdtext text-left w-full transition-colors outline-none"
+                                                        >
+                                                            {isMonthOpen(year, month) ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                                                            {month}
+                                                        </button>
                                                     </td>
                                                 </tr>
                                                 {/* CRUCIAAL: Gebruik altijd act.id als key, nooit de datum of maand, om sync-crashes te voorkomen */}
-                                                {groupedActivities[year][month].map(act => (
+                                                {isMonthOpen(year, month) && groupedActivities[year][month].map(act => (
                                                     <ActivityRow 
                                                         key={`act-${act.id}`} 
                                                         act={act} 

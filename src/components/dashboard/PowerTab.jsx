@@ -1,12 +1,12 @@
 import React, { useMemo } from 'react';
 import PowerDurationTable from './PowerDurationTable';
-import PowerTopMomentsStrip from './PowerTopMomentsStrip';
+import PowerTopTenByDurationPanel from './PowerTopTenByDurationPanel';
 import PowerTabDetails from './PowerTabDetails';
 import { findBestPowerActivity, DASHBOARD_FTP_CAPS } from '../../utils/dashboardActivityPeaks';
 import { dashboardFilterLabel } from '../../utils/powerDurationTable';
 
 /**
- * PowerTab: power metrics, top interpolated moments, intervals.icu-style matrix, monthly chart, MMP.
+ * PowerTab: power metrics, top-10 tables per duration, intervals.icu-style matrix, monthly chart, MMP.
  */
 
 const getMonthKey = (dateStr) => dateStr.slice(0, 7);
@@ -41,6 +41,8 @@ const PowerTab = ({
     chartData = [],
     manualFtp,
     timeRange = '1Y',
+    customStart = '',
+    customEnd = '',
     referenceEndDate,
     weightKg = 0,
     onOpenActivityInLog,
@@ -101,13 +103,6 @@ const PowerTab = ({
         });
     }, [data, manualFtp]);
 
-    const topMomentsStripKey = useMemo(() => {
-        if (!data?.length) return `${timeRange}-empty`;
-        const a0 = data[0];
-        const a1 = data[data.length - 1];
-        return `${timeRange}-${data.length}-${a0?.id ?? ''}-${a0?.date ?? ''}-${a1?.id ?? ''}-${a1?.date ?? ''}`;
-    }, [data, timeRange]);
-
     const periodLabel = dashboardFilterLabel(timeRange);
     const hasPeriodData = Boolean(data?.length);
     const hasHistory = Boolean(chartData?.length);
@@ -141,12 +136,14 @@ const PowerTab = ({
                 </div>
             )}
 
-            {hasPeriodData && (
-                <PowerTopMomentsStrip
-                    key={topMomentsStripKey}
-                    data={data}
+            {chartData.length > 0 && (
+                <PowerTopTenByDurationPanel
+                    chartData={chartData}
                     manualFtp={manualFtp}
                     timeRange={timeRange}
+                    customStart={customStart}
+                    customEnd={customEnd}
+                    referenceEndDate={referenceEndDate}
                     onOpenActivityInLog={onOpenActivityInLog}
                 />
             )}
