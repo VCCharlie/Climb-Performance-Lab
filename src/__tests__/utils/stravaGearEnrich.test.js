@@ -41,7 +41,7 @@ describe('enrichActivityGearFromStrava', () => {
       json: async () => ({
         gear_id: 'bike99',
         map: { summary_polyline: 'abc' },
-        moving_time: 5400,
+        moving_time: '5400',
       }),
     });
     fetch.mockResolvedValueOnce({

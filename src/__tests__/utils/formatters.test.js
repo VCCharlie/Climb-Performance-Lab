@@ -98,6 +98,11 @@ describe('formatTime', () => {
     expect(formatTime('not a number')).toBe('00:00');
   });
 
+  it('parses H:MM:SS string (Strava-style stored duration)', () => {
+    expect(formatTime('1:30:00')).toBe('1:30:00');
+    expect(formatTime('0:45:30')).toBe('45:30');
+  });
+
   it('handles string number input', () => {
     expect(formatTime('3600')).toBe('1:00:00');
   });
