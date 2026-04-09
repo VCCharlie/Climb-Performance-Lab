@@ -41,6 +41,7 @@ describe('enrichActivityGearFromStrava', () => {
       json: async () => ({
         gear_id: 'bike99',
         map: { summary_polyline: 'abc' },
+        moving_time: 5400,
       }),
     });
     fetch.mockResolvedValueOnce({
@@ -57,6 +58,7 @@ describe('enrichActivityGearFromStrava', () => {
     expect(out.gear_id).toBe('bike99');
     expect(out.gear_name).toBe('Tarmac');
     expect(out.strava_map).toBe('abc');
+    expect(out.moving_time).toBe(5400);
   });
 });
 
@@ -72,7 +74,11 @@ describe('buildStravaDetailEnrichmentUpdates', () => {
     fetch
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ gear_id: 'g1', map: { summary_polyline: 'poly1' } }),
+        json: async () => ({
+          gear_id: 'g1',
+          map: { summary_polyline: 'poly1' },
+          moving_time: 3600,
+        }),
       })
       .mockResolvedValueOnce({
         ok: true,
@@ -90,7 +96,32 @@ describe('buildStravaDetailEnrichmentUpdates', () => {
     expect(r.updates[0].data.gear_id).toBe('g1');
     expect(r.updates[0].data.gear_name).toBe('Bike A');
     expect(r.updates[0].data.strava_map).toBe('poly1');
+    expect(r.updates[0].data.moving_time).toBe(3600);
     expect(r.ridesProcessed).toBe(1);
+  });
+
+  it('patches moving_time from Strava when gear/map already set but duration was 0', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        gear_id: 'g1',
+        gear_name: 'Bike A',
+        map: { summary_polyline: 'same' },
+        moving_time: 7200,
+      }),
+    });
+
+    const act = {
+      id: '10',
+      strava_id: '999',
+      gear_id: 'g1',
+      gear_name: 'Bike A',
+      strava_map: 'same',
+      moving_time: 0,
+    };
+    const r = await buildStravaDetailEnrichmentUpdates([act], 'tok');
+    expect(r.updates).toHaveLength(1);
+    expect(r.updates[0].data.moving_time).toBe(7200);
   });
 
   it('counts unchanged when local row already has gear, name, and map (no detail fetch)', async () => {
@@ -100,6 +131,7 @@ describe('buildStravaDetailEnrichmentUpdates', () => {
       gear_id: 'g1',
       gear_name: 'Bike A',
       strava_map: 'same',
+      moving_time: 3600,
     };
     const r = await buildStravaDetailEnrichmentUpdates([act], 'tok');
     expect(r.updates).toHaveLength(0);
