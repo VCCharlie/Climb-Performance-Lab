@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { Search, Loader2, AlertTriangle, Trash, Split, RefreshCw, ExternalLink, GitBranch, Zap, ChevronDown, Link2, Download, GitMerge, Wrench } from 'lucide-react';
+import { Search, Loader2, AlertTriangle, Trash, Split, RefreshCw, ExternalLink, GitBranch, Zap, ChevronDown, ChevronRight, Link2, Download, GitMerge, Wrench } from 'lucide-react';
 import { doc, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from '../firebase';
 import { findDuplicatesInList, runInBatches } from '../utils';
@@ -71,6 +71,7 @@ const DataHub = ({
     const [showStravaEnrichPanel, setShowStravaEnrichPanel] = useState(false);
     const [bulkSelectedIds, setBulkSelectedIds] = useState(() => new Set());
     const [stravaListProgress, setStravaListProgress] = useState(null);
+    const [rangesSectionExpanded, setRangesSectionExpanded] = useState(true);
     const [showMergeModal, setShowMergeModal] = useState(false);
     const [mergeError, setMergeError] = useState(null);
     const [isMerging, setIsMerging] = useState(false);
@@ -167,8 +168,24 @@ const DataHub = ({
         filterElevMax, setFilterElevMax,
         filterKjMin, setFilterKjMin,
         filterKjMax, setFilterKjMax,
+        filterGearId, setFilterGearId,
         clearMetricFilters,
     } = useActivityFilter(activities);
+
+    const gearFilterOptions = useMemo(() => {
+        const map = new Map();
+        for (const a of activities || []) {
+            const gid = a?.gear_id != null ? String(a.gear_id).trim() : '';
+            if (!gid) continue;
+            if (!map.has(gid)) {
+                const name = (a.gear_name != null && String(a.gear_name).trim()) ? String(a.gear_name).trim() : '';
+                map.set(gid, name || gid);
+            }
+        }
+        return Array.from(map.entries())
+            .map(([id, label]) => ({ id, label }))
+            .sort((x, y) => x.label.localeCompare(y.label, undefined, { sensitivity: 'base' }));
+    }, [activities]);
 
     const metricRangeActive =
         [filterDistMin, filterDistMax, filterSpeedMin, filterSpeedMax, filterPowerMin, filterPowerMax,
@@ -1368,20 +1385,72 @@ const DataHub = ({
                                     />
                                 </label>
                             </div>
+                            <div className="flex flex-wrap items-center gap-2 text-[10px]">
+                                <label className="flex items-center gap-2 text-cdmuted min-w-0 flex-1 sm:flex-none sm:max-w-md">
+                                    <span className="font-bold uppercase text-[9px] shrink-0">Gear</span>
+                                    <select
+                                        value={filterGearId}
+                                        onChange={(e) => setFilterGearId(e.target.value)}
+                                        className="min-w-0 flex-1 bg-cdbg border border-cdborder rounded px-2 py-1 text-cdtext text-[10px]"
+                                        title="Filter by Strava bike (gear_id)"
+                                    >
+                                        <option value="">All bikes</option>
+                                        {gearFilterOptions.map(({ id, label }) => (
+                                            <option key={id} value={id}>{label}</option>
+                                        ))}
+                                    </select>
+                                </label>
+                                {filterGearId && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setFilterGearId('')}
+                                        className="text-[9px] text-orange-400 hover:text-orange-300 underline shrink-0"
+                                    >
+                                        Clear gear
+                                    </button>
+                                )}
+                            </div>
                             <div className="flex flex-col gap-2 border border-cdborder/60 rounded-lg p-2 bg-cdbg/20">
-                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                                    <span className="text-[10px] font-bold text-cdmuted uppercase shrink-0">Ranges</span>
-                                    <span className="text-[9px] text-cdmuted">Dist km · Spd km/h · Pwr W (avg, else NP) · Dur min · Elev m · kJ</span>
-                                    {metricRangeActive && (
+                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => setRangesSectionExpanded((v) => !v)}
+                                        className="flex items-center gap-1.5 text-left shrink-0 text-[10px] font-bold text-cdtext uppercase hover:text-cdaccent"
+                                        aria-expanded={rangesSectionExpanded}
+                                    >
+                                        {rangesSectionExpanded ? <ChevronDown size={14} className="text-cdmuted" /> : <ChevronRight size={14} className="text-cdmuted" />}
+                                        Ranges
+                                    </button>
+                                    <span className="text-[9px] text-cdmuted hidden sm:inline">Dist · Spd · Pwr · Dur · Elev · kJ</span>
+                                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 ml-auto">
                                         <button
                                             type="button"
-                                            onClick={clearMetricFilters}
-                                            className="text-[9px] text-orange-400 hover:text-orange-300 underline ml-auto"
+                                            onClick={() => setRangesSectionExpanded(true)}
+                                            className="text-[9px] font-bold text-cdmuted hover:text-cdtext underline"
                                         >
-                                            Clear ranges
+                                            Expand
                                         </button>
-                                    )}
+                                        <span className="text-cdborder">|</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setRangesSectionExpanded(false)}
+                                            className="text-[9px] font-bold text-cdmuted hover:text-cdtext underline"
+                                        >
+                                            Collapse
+                                        </button>
+                                        {metricRangeActive && (
+                                            <button
+                                                type="button"
+                                                onClick={clearMetricFilters}
+                                                className="text-[9px] text-orange-400 hover:text-orange-300 underline"
+                                            >
+                                                Clear ranges
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
+                                {rangesSectionExpanded && (
+                                <>
                                 <div className="flex flex-wrap items-end gap-x-3 gap-y-2 text-[10px] text-cdmuted">
                                     <label className="flex flex-col gap-0.5">
                                         <span className="font-bold uppercase text-[9px]">Dist</span>
@@ -1444,6 +1513,8 @@ const DataHub = ({
                                     <button type="button" onClick={() => applyMetricPreset(() => { setFilterElevMin('1000'); })} className="px-2 py-0.5 rounded border border-cdborder text-[9px] text-cdmuted hover:text-cdtext">Climb ≥1000 m</button>
                                     <button type="button" onClick={() => applyMetricPreset(() => { setFilterKjMin('1500'); })} className="px-2 py-0.5 rounded border border-cdborder text-[9px] text-cdmuted hover:text-cdtext">Work ≥1500 kJ</button>
                                 </div>
+                                </>
+                                )}
                             </div>
                             <div className="flex flex-wrap items-center gap-2 text-[10px]">
                                 <span className="text-cdmuted font-bold uppercase shrink-0">Bulk</span>

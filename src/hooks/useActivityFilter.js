@@ -72,6 +72,8 @@ const useActivityFilter = (activities) => {
     const [filterElevMax, setFilterElevMax] = useState('');
     const [filterKjMin, setFilterKjMin] = useState('');
     const [filterKjMax, setFilterKjMax] = useState('');
+    /** Strava gear_id (string); empty = no filter */
+    const [filterGearId, setFilterGearId] = useState('');
 
     // We store explicit collapse state.
     const [expandedYears, setExpandedYears] = useState(null);
@@ -177,6 +179,11 @@ const useActivityFilter = (activities) => {
 
             if (tssOk && !((Number(a.load) || 0) > tssThreshold)) return false;
 
+            if (filterGearId) {
+                const ag = a.gear_id != null ? String(a.gear_id).trim() : '';
+                if (ag !== filterGearId) return false;
+            }
+
             if (anyMetric) {
                 const distKm = activityDistanceKm(a);
                 const timeSec = activityMovingTimeSec(a);
@@ -254,7 +261,7 @@ const useActivityFilter = (activities) => {
             });
         }
         return filtered;
-    }, [activities, search, sortConfig, indoorFilter, virtualRideChip, thisWeekOnly, rollingDays, stravaLinkedOnly, noPowerOnly, withPowerOnly, highLoadOnly, longRideOnly, missingHrOnly, minTss, filterDistMin, filterDistMax, filterSpeedMin, filterSpeedMax, filterPowerMin, filterPowerMax, filterDurMinMin, filterDurMaxMin, filterElevMin, filterElevMax, filterKjMin, filterKjMax]);
+    }, [activities, search, sortConfig, indoorFilter, virtualRideChip, thisWeekOnly, rollingDays, stravaLinkedOnly, noPowerOnly, withPowerOnly, highLoadOnly, longRideOnly, missingHrOnly, minTss, filterGearId, filterDistMin, filterDistMax, filterSpeedMin, filterSpeedMax, filterPowerMin, filterPowerMax, filterDurMinMin, filterDurMaxMin, filterElevMin, filterElevMax, filterKjMin, filterKjMax]);
 
     const isGroupedView = sortConfig.key === 'date';
 
@@ -396,6 +403,7 @@ const useActivityFilter = (activities) => {
         filterElevMax, setFilterElevMax,
         filterKjMin, setFilterKjMin,
         filterKjMax, setFilterKjMax,
+        filterGearId, setFilterGearId,
         clearMetricFilters,
     };
 };
