@@ -463,7 +463,16 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
         }
     }, [getStravaToken, athleteId, applyData]);
 
-    const { koms, scannedBikeActivities } = data || {};
+    const {
+        athlete,
+        stats,
+        koms,
+        starred,
+        bikes,
+        recordRides,
+        activityScan: rawActivityScan,
+        scannedBikeActivities,
+    } = data || {};
 
     const ytdYoy = useMemo(() => {
         if (!scannedBikeActivities?.length || !data?.fetchedAt) return null;
@@ -507,8 +516,6 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
             </div>
         );
     }
-
-    const { athlete, stats, starred, bikes, recordRides, activityScan: rawActivityScan } = data || {};
 
     const activityScan = rawActivityScan?.periods
         ? rawActivityScan
