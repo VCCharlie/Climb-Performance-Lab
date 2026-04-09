@@ -51,6 +51,22 @@ describe('mergeActivitiesIntervalsPrimary', () => {
     expect(m.gear_id).toBe('g1');
   });
 
+  it('copies moving_time from Strava when primary has 0 (string H:MM:SS from Strava import)', () => {
+    const primary = {
+      id: '100',
+      title: 'Ride',
+      moving_time: 0,
+      strava_id: null,
+    };
+    const secondary = {
+      id: 'strava_9',
+      strava_id: '999',
+      moving_time: '1:30:00',
+    };
+    const m = mergeActivitiesIntervalsPrimary(primary, secondary);
+    expect(m.moving_time).toBe(5400);
+  });
+
   it('keeps power from primary, adds strava from secondary', () => {
     const primary = {
       id: '100',

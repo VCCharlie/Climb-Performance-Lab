@@ -3,6 +3,14 @@
  */
 
 import { normalizeStravaActivityId } from './strava';
+import { parseDurationToSeconds } from './formatters';
+
+/** Intervals sync uses seconds (number); Strava normalize uses "H:MM:SS" string — compare in seconds. */
+function movingTimeToSeconds(val) {
+    if (val == null || val === '') return 0;
+    if (typeof val === 'number' && !Number.isNaN(val)) return Math.max(0, Math.floor(val));
+    return parseDurationToSeconds(String(val));
+}
 
 const GENERIC_TITLE = /^(Morning|Lunch|Afternoon|Evening|Night) Ride$|^Untitled$/i;
 
@@ -131,11 +139,12 @@ export function mergeActivitiesIntervalsPrimary(primary, secondary) {
     const sDist = Number(s.distance) || 0;
     if (pDist <= 0 && sDist > 0) p.distance = s.distance;
 
-    const pTime = p.moving_time;
-    const sTime = s.moving_time;
-    const pTimeNum = typeof pTime === 'number' ? pTime : 0;
-    const sTimeNum = typeof sTime === 'number' ? sTime : 0;
-    if ((!pTime || pTimeNum <= 0) && sTime && sTimeNum > 0) p.moving_time = s.moving_time;
+    const pSec = movingTimeToSeconds(p.moving_time);
+    const sSec = movingTimeToSeconds(s.moving_time);
+    // Strava side is always a time string from normalizeStravaActivity — must parse, not Number().
+    if (pSec <= 0 && sSec > 0) {
+        p.moving_time = sSec;
+    }
 
     const pSpd = Number(p.avg_speed) || 0;
     const sSpd = Number(s.avg_speed) || 0;

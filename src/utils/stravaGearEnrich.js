@@ -5,6 +5,15 @@
 import { stripUndefinedFields } from './mergeActivities';
 import { normalizeStravaActivityId } from './strava';
 import { runInBatches } from './async';
+import { parseDurationToSeconds } from './formatters';
+
+function storedMovingTimeSec(act) {
+    const t = act?.moving_time;
+    if (t == null || t === '') return 0;
+    if (typeof t === 'number' && !Number.isNaN(t) && t > 0) return Math.floor(t);
+    const s = parseDurationToSeconds(String(t));
+    return s > 0 ? s : 0;
+}
 
 export { normalizeStravaActivityId } from './strava';
 
@@ -64,7 +73,8 @@ export async function enrichActivityGearFromStrava(merged, stravaSide, token) {
     const needsDetail =
         !out.gear_id
         || !out.strava_map
-        || (!(out.gear_name != null && String(out.gear_name).trim()));
+        || (!(out.gear_name != null && String(out.gear_name).trim()))
+        || storedMovingTimeSec(out) <= 0;
 
     let detail = null;
     if (needsDetail) {
@@ -123,6 +133,16 @@ export async function enrichActivityGearFromStrava(merged, stravaSide, token) {
         out.strava_map = detail.map.summary_polyline;
     }
 
+    // Strava API: moving_time / elapsed_time in seconds — fill when site still has 0 / unparsed
+    if (detail && storedMovingTimeSec(out) <= 0) {
+        const mv = Number(detail.moving_time);
+        const el = Number(detail.elapsed_time);
+        const sec = (!Number.isNaN(mv) && mv > 0)
+            ? Math.floor(mv)
+            : (!Number.isNaN(el) && el > 0 ? Math.floor(el) : 0);
+        if (sec > 0) out.moving_time = sec;
+    }
+
     out.strava_id = stravaActId;
 
     return stripUndefinedFields(out);
@@ -154,6 +174,9 @@ export async function buildStravaDetailEnrichmentUpdates(siteActivities, token, 
         try {
             const enriched = await enrichActivityGearFromStrava(act, null, token);
             const sid = enriched.strava_id || normalizeStravaActivityId(act.strava_id);
+            const timeChanged =
+                storedMovingTimeSec(act) !== storedMovingTimeSec(enriched)
+                && storedMovingTimeSec(enriched) > 0;
             const patch = stripUndefinedFields({
                 ...(sid ? { strava_id: sid } : {}),
                 ...(enriched.gear_id != null ? { gear_id: enriched.gear_id } : {}),
@@ -163,12 +186,14 @@ export async function buildStravaDetailEnrichmentUpdates(siteActivities, token, 
                 ...(enriched.strava_map != null && String(enriched.strava_map).trim()
                     ? { strava_map: enriched.strava_map }
                     : {}),
+                ...(timeChanged ? { moving_time: enriched.moving_time } : {}),
             });
             const same =
                 String(normalizeStravaActivityId(act.strava_id) || act.strava_id || '') === String(patch.strava_id || '')
                 && String(act.gear_id ?? '') === String(patch.gear_id ?? '')
                 && String(act.gear_name ?? '').trim() === String(patch.gear_name ?? '').trim()
-                && String(act.strava_map ?? '') === String(patch.strava_map ?? '');
+                && String(act.strava_map ?? '') === String(patch.strava_map ?? '')
+                && !timeChanged;
             if (same || Object.keys(patch).length === 0) {
                 unchanged += 1;
                 return;
