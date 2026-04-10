@@ -245,6 +245,7 @@ describe('normalizeIntervalsActivity - edge cases', () => {
       'moving_time', 'climbing', 'norm_power', 'avg_power',
       'avg_hr', 'load', 'work', 'ftp', 'max_power', 'max_hr',
       'best_1min', 'best_5min', 'best_10min', 'best_20min', 'best_60min',
+      'best_90min', 'best_120min',
       'avg_altitude', 'max_altitude'
     ];
     for (const field of numericFields) {

@@ -1,6 +1,7 @@
 /**
  * Power-duration curve per activiteitenset (intervals.icu/power-achtig).
- * We hebben per rit: max_power, best_1/5/10/20/60 min — tussenliggende seconden log-interpoleren.
+ * Per rit: max_power, best_1/5/10/20/60 (en optioneel 90/120) min, plus een anker op moving_time
+ * met conservatief gemiddeld vermogen — tussenliggende seconden log-interpoleren.
  */
 
 import { DASHBOARD_FTP_CAPS } from './dashboardActivityPeaks';
@@ -48,8 +49,23 @@ function capBestField(w, key, manualFtp) {
     return Math.min(n, cap);
 }
 
+/** Lang gemiddeld vermogen (ritduur-anker): plafond ~FTP voor lange duur. */
+function capSteadyAverageWatts(w, manualFtp) {
+    const n = Number(w) || 0;
+    if (n <= 0) return 0;
+    const cap = manualFtp > 0 ? manualFtp * 1.12 : 550;
+    return Math.min(n, cap);
+}
+
+function maxAnchorSec(anchors) {
+    if (!anchors?.length) return 0;
+    return Math.max(...anchors.map((a) => a.sec));
+}
+
 /**
  * Ankers (sec, watt) voor één activiteit — basis voor interpolatie per rit.
+ * Inclusief optionele best_90min / best_120min uit API en een anker op echte moving_time
+ * (avg/np) zodat de curve voorbij 60 min kan dalen zonder plat te blijven.
  */
 export function buildAnchorsForActivity(activity, manualFtp) {
     if (!activity) return [];
@@ -59,6 +75,8 @@ export function buildAnchorsForActivity(activity, manualFtp) {
     const b10 = capBestField(activity.best_10min, 'best_10min', manualFtp);
     const b20 = capBestField(activity.best_20min, 'best_20min', manualFtp);
     const b60 = capBestField(activity.best_60min, 'best_60min', manualFtp);
+    const b90 = capBestField(activity.best_90min, 'best_90min', manualFtp);
+    const b120 = capBestField(activity.best_120min, 'best_120min', manualFtp);
 
     const anchors = [];
     if (maxP > 0) anchors.push({ sec: 1, w: maxP });
@@ -67,8 +85,27 @@ export function buildAnchorsForActivity(activity, manualFtp) {
     if (b10 > 0) anchors.push({ sec: 600, w: b10 });
     if (b20 > 0) anchors.push({ sec: 1200, w: b20 });
     if (b60 > 0) anchors.push({ sec: 3600, w: b60 });
+    if (b90 > 0) anchors.push({ sec: 5400, w: b90 });
+    if (b120 > 0) anchors.push({ sec: 7200, w: b120 });
 
-    return anchors.sort((a, b) => a.sec - b.sec);
+    anchors.sort((a, b) => a.sec - b.sec);
+
+    const mv = activityMovingTimeSec(activity);
+    if (mv != null && mv > 3660) {
+        const ap = capSteadyAverageWatts(activity.avg_power, manualFtp);
+        const np = capSteadyAverageWatts(activity.norm_power, manualFtp);
+        const steady = np > 0 && ap > 0 ? Math.min(ap, np) : (np > 0 ? np : ap);
+        if (steady > 0) {
+            const t = Math.min(Math.floor(mv), 6 * 3600);
+            const lastSec = maxAnchorSec(anchors);
+            if (t > lastSec + 60) {
+                anchors.push({ sec: t, w: steady });
+                anchors.sort((x, y) => x.sec - y.sec);
+            }
+        }
+    }
+
+    return anchors;
 }
 
 /**
@@ -83,6 +120,7 @@ export function powerCurveWithSources(activities, manualFtp) {
         let bestAct = null;
         for (const a of list) {
             const anchors = buildAnchorsForActivity(a, manualFtp);
+            if (row.sec > maxAnchorSec(anchors)) continue;
             const w = interpolatePowerAt(anchors, row.sec);
             if (w == null) continue;
             const newer =
@@ -171,6 +209,7 @@ export function computeTopPowerMoments(activities, manualFtp, limit = 10) {
         const anchors = buildAnchorsForActivity(a, manualFtp);
         if (anchors.length === 0) continue;
         for (const row of POWER_DURATION_ROWS) {
+            if (row.sec > maxAnchorSec(anchors)) continue;
             const w = interpolatePowerAt(anchors, row.sec);
             if (w == null || w <= 0) continue;
             candidates.push({
@@ -202,19 +241,18 @@ export function computeTopPowerMoments(activities, manualFtp, limit = 10) {
 
 /**
  * Top-N ritten op één vaste duur (sec), op basis van geïnterpoleerd vermogen.
- * @param {{ minMovingTimeSec?: number }} [opts] — bijv. 7200 voor 120 min: alleen ritten ≥ die duur (echte ritlengte).
+ * @param {{ requireAnchorBeyondSec?: number }} [opts] — alleen ritten waarvan de langste anker ≥ deze sec (bijv. 7200 voor 120 min).
  * @returns {Array<{ activity: object, watts: number }>}
  */
 export function topNInterpolatedAtSec(activities, manualFtp, sec, limit = 10, opts = {}) {
     if (!activities?.length || limit <= 0 || sec <= 0) return [];
-    const minMv = opts.minMovingTimeSec != null && opts.minMovingTimeSec > 0 ? opts.minMovingTimeSec : null;
+    const needAnchor = opts.requireAnchorBeyondSec != null && opts.requireAnchorBeyondSec > 0
+        ? opts.requireAnchorBeyondSec
+        : null;
     const list = [];
     for (const a of activities) {
-        if (minMv != null) {
-            const mv = activityMovingTimeSec(a);
-            if (mv == null || mv < minMv) continue;
-        }
         const anchors = buildAnchorsForActivity(a, manualFtp);
+        if (needAnchor != null && maxAnchorSec(anchors) < needAnchor) continue;
         const w = interpolatePowerAt(anchors, sec);
         if (w == null || w <= 0) continue;
         list.push({ activity: a, watts: w });

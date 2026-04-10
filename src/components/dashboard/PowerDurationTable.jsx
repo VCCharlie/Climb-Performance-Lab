@@ -154,7 +154,8 @@ const PowerDurationTable = ({
                 <a href="https://intervals.icu/power" target="_blank" rel="noreferrer" className="text-cdaccent hover:underline">
                     intervals.icu/power
                 </a>
-                : meerdere tijdvensters naast elkaar. We hebben per rit alleen max power en beste 1/5/10/20/60 min — tussenliggende
+                : meerdere tijdvensters naast elkaar. Per rit: max power, beste 1/5/10/20/60 min (en 90/120 als de API ze levert),
+                plus voor lange ritten een anker op ritduur met gemiddeld/NP — tussenliggende
                 duur wordt <strong className="text-cdtext">geschat</strong> (log-interpolatie). Blauw = beste waarde in de tabel voor die
                 duur. Zonder lichaamsgewicht in Instellingen tonen we geen W/kg. <strong className="text-cdtext">Klik</strong> op een cel voor
                 de bronrit; in het venster kun je scrollen naar de links. Sluit met een klik erbuiten of <kbd className="px-1 rounded bg-cdborder text-[10px]">Esc</kbd>.

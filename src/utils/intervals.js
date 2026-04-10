@@ -74,6 +74,8 @@ export const normalizeIntervalsActivity = (item) => {
     const best10min = getNum(getVal('best_10min', 'Best10minpower', 'best_10min_power', 'w10min'));
     const best20min = getNum(getVal('best_20min', 'Best20minpower', 'best_20min_power', 'w20min'));
     const best60min = getNum(getVal('best_60min', 'Best60minpower', 'best_60min_power', 'w60min'));
+    const best90min = getNum(getVal('best_90min', 'Best90minpower', 'best_90min_power', 'w90min'));
+    const best120min = getNum(getVal('best_120min', 'Best120minpower', 'best_120min_power', 'w120min'));
 
     const avgAltitude = getNum(getVal('avgAltitude', 'average_altitude', 'avg_altitude'));
     const maxAltitude = getNum(getVal('maxAltitude', 'maximum_altitude', 'max_altitude'));
@@ -109,6 +111,8 @@ export const normalizeIntervalsActivity = (item) => {
         best_10min: Math.round(best10min),
         best_20min: Math.round(best20min),
         best_60min: Math.round(best60min),
+        best_90min: Math.round(best90min),
+        best_120min: Math.round(best120min),
         avg_altitude: Math.round(avgAltitude),
         max_altitude: Math.round(maxAltitude)
     };
