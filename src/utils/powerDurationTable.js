@@ -4,6 +4,7 @@
  */
 
 import { DASHBOARD_FTP_CAPS } from './dashboardActivityPeaks';
+import { activityMovingTimeSec } from './activityFilterMetrics';
 
 const MS_DAY = 86400000;
 
@@ -201,12 +202,18 @@ export function computeTopPowerMoments(activities, manualFtp, limit = 10) {
 
 /**
  * Top-N ritten op één vaste duur (sec), op basis van geïnterpoleerd vermogen.
+ * @param {{ minMovingTimeSec?: number }} [opts] — bijv. 7200 voor 120 min: alleen ritten ≥ die duur (echte ritlengte).
  * @returns {Array<{ activity: object, watts: number }>}
  */
-export function topNInterpolatedAtSec(activities, manualFtp, sec, limit = 10) {
+export function topNInterpolatedAtSec(activities, manualFtp, sec, limit = 10, opts = {}) {
     if (!activities?.length || limit <= 0 || sec <= 0) return [];
+    const minMv = opts.minMovingTimeSec != null && opts.minMovingTimeSec > 0 ? opts.minMovingTimeSec : null;
     const list = [];
     for (const a of activities) {
+        if (minMv != null) {
+            const mv = activityMovingTimeSec(a);
+            if (mv == null || mv < minMv) continue;
+        }
         const anchors = buildAnchorsForActivity(a, manualFtp);
         const w = interpolatePowerAt(anchors, sec);
         if (w == null || w <= 0) continue;

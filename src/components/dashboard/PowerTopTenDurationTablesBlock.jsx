@@ -3,9 +3,12 @@ import { TopTable } from './powerTopTenByDurationUi';
 
 const PowerTopTenDurationTablesBlock = ({ tablesByDuration, compareBounds, onOpenActivityInLog }) => (
     <div className="space-y-6">
-        {tablesByDuration.map(({ label, primary, secondary }) => (
+        {tablesByDuration.map(({ label, primary, secondary, footnote }) => (
             <div key={label}>
                 <h4 className="text-sm font-bold text-cdaccent mb-2">{label}</h4>
+                {footnote && (
+                    <p className="text-[10px] text-cdmuted mb-2 leading-snug max-w-3xl">{footnote}</p>
+                )}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <div>
                         <p className="text-[10px] uppercase text-cdmuted font-bold tracking-wide mb-1.5">
