@@ -3,6 +3,8 @@
  * Eindigt op referenceEndDate (EOD); start = zelfde rolling/cutoff als site-preset.
  */
 
+import { activityDistanceKm } from './activityFilterMetrics';
+
 /**
  * @returns {{ start: Date, end: Date } | null}
  */
@@ -70,4 +72,64 @@ export function compareDaysBeforeWindow(bounds, days) {
     prevStart.setDate(prevStart.getDate() - (days - 1));
     prevStart.setHours(0, 0, 0, 0);
     return { start: prevStart, end: prevEnd };
+}
+
+/**
+ * @param {string} startYmd - YYYY-MM-DD
+ * @param {string} endYmd - YYYY-MM-DD
+ * @returns {{ start: Date, end: Date } | null}
+ */
+export function boundsFromYmdRange(startYmd, endYmd) {
+    if (!startYmd || !endYmd) return null;
+    const start = new Date(`${startYmd}T00:00:00`);
+    const end = new Date(`${endYmd}T23:59:59.999`);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) return null;
+    return { start, end };
+}
+
+/**
+ * Volledig kalenderjaar (lokaal).
+ */
+export function calendarYearBounds(year) {
+    const y = Number(year);
+    if (!Number.isFinite(y) || y < 1970 || y > 2100) return null;
+    const start = new Date(y, 0, 1, 0, 0, 0, 0);
+    const end = new Date(y, 11, 31, 23, 59, 59, 999);
+    return { start, end };
+}
+
+function toYmd(d) {
+    const x = new Date(d);
+    if (Number.isNaN(x.getTime())) return '';
+    const m = `${x.getMonth() + 1}`.padStart(2, '0');
+    const day = `${x.getDate()}`.padStart(2, '0');
+    return `${x.getFullYear()}-${m}-${day}`;
+}
+
+/**
+ * Voor date input defaults.
+ */
+export function boundsToYmdPair(bounds) {
+    if (!bounds) return { startYmd: '', endYmd: '' };
+    return { startYmd: toYmd(bounds.start), endYmd: toYmd(bounds.end) };
+}
+
+/**
+ * Totaal ritten, km en hoogtemeters in een gefilterde activiteitenlijst.
+ */
+export function aggregatePeriodStats(activities) {
+    const list = activities || [];
+    let distanceKm = 0;
+    let elevationM = 0;
+    for (const a of list) {
+        const dk = activityDistanceKm(a);
+        if (dk != null && !Number.isNaN(dk)) distanceKm += dk;
+        const el = Number(a?.climbing);
+        if (!Number.isNaN(el) && el > 0) elevationM += el;
+    }
+    return {
+        rideCount: list.length,
+        distanceKm,
+        elevationM: Math.round(elevationM),
+    };
 }

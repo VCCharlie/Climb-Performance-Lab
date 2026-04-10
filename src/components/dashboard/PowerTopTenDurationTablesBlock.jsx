@@ -1,0 +1,44 @@
+import React from 'react';
+import { TopTable } from './powerTopTenByDurationUi';
+
+const PowerTopTenDurationTablesBlock = ({ tablesByDuration, compareBounds, onOpenActivityInLog }) => (
+    <div className="space-y-6">
+        {tablesByDuration.map(({ label, primary, secondary }) => (
+            <div key={label}>
+                <h4 className="text-sm font-bold text-cdaccent mb-2">{label}</h4>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div>
+                        <p className="text-[10px] uppercase text-cdmuted font-bold tracking-wide mb-1.5">
+                            Kolom 1
+                        </p>
+                        <TopTable
+                            rows={primary}
+                            peerRows={secondary}
+                            onOpenActivityInLog={onOpenActivityInLog}
+                            emptyHint="Geen ritten met power in dit venster."
+                        />
+                    </div>
+                    {compareBounds ? (
+                        <div>
+                            <p className="text-[10px] uppercase text-cdmuted font-bold tracking-wide mb-1.5">
+                                Kolom 2
+                            </p>
+                            <TopTable
+                                rows={secondary}
+                                peerRows={primary}
+                                onOpenActivityInLog={onOpenActivityInLog}
+                                emptyHint="Geen ritten in vergelijkingsvenster."
+                            />
+                        </div>
+                    ) : (
+                        <div className="hidden lg:block rounded-lg border border-dashed border-cdborder/60 p-4 text-xs text-cdmuted">
+                            Kies een vergelijking om hier een tweede kolom te zien.
+                        </div>
+                    )}
+                </div>
+            </div>
+        ))}
+    </div>
+);
+
+export default PowerTopTenDurationTablesBlock;
