@@ -212,7 +212,7 @@ const PowerTopTenByDurationPanel = ({
                         {compareBounds && (
                             <p className="text-[11px] text-cdmuted sm:flex-1 sm:min-w-[200px] leading-snug">
                                 Vergelijkingsvenster: <span className="text-cdtext">{compareRangeLabel}</span>
-                                {' '}({compareActs.length} rit{compareActs.length !== 1 ? 'en' : ''})
+                                {' '}({compareActs.length} rit{compareActs.length !== 1 ? 'ten' : ''})
                             </p>
                         )}
                     </div>
