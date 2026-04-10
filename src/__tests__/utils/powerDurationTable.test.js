@@ -113,6 +113,23 @@ describe('topNInterpolatedAtSec', () => {
         expect(top[0].activity.id).toBe('b');
         expect(top[0].watts).toBeGreaterThan(top[1].watts);
     });
+
+    it('minMovingTimeSec excludes short rides at long target duration', () => {
+        const short = {
+            id: 'short',
+            date: '2026-01-01',
+            moving_time: 3600,
+            max_power: 500,
+            best_1min: 300,
+            best_5min: 280,
+            best_10min: 270,
+            best_20min: 260,
+            best_60min: 250,
+        };
+        const long = { ...short, id: 'long', moving_time: 8000 };
+        const top = topNInterpolatedAtSec([short, long], 250, 7200, 10, { minMovingTimeSec: 7200 });
+        expect(top.every((r) => r.activity.id === 'long')).toBe(true);
+    });
 });
 
 describe('computeTopPowerMoments', () => {

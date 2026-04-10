@@ -99,9 +99,18 @@ const PowerTopTenByDurationPanel = ({
 
     const tablesByDuration = useMemo(() => {
         return DURATION_TARGETS.map(({ sec, label }) => {
-            const primary = topNInterpolatedAtSec(currentActs, manualFtp, sec, 10);
-            const secondary = compareBounds ? topNInterpolatedAtSec(compareActs, manualFtp, sec, 10) : null;
-            return { sec, label, primary, secondary };
+            const opts = sec === 7200 ? { minMovingTimeSec: 7200 } : {};
+            const primary = topNInterpolatedAtSec(currentActs, manualFtp, sec, 10, opts);
+            const secondary = compareBounds ? topNInterpolatedAtSec(compareActs, manualFtp, sec, 10, opts) : null;
+            return {
+                sec,
+                label,
+                primary,
+                secondary,
+                footnote: sec === 7200
+                    ? 'Alleen ritten met bewegingsduur ≥ 2 u (moving_time); anders is 120 min geschat uit kortere ankers en klopt de bronrit niet.'
+                    : null,
+            };
         });
     }, [currentActs, compareActs, compareBounds, manualFtp]);
 
