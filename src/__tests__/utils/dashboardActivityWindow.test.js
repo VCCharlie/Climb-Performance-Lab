@@ -4,6 +4,10 @@ import {
     filterActivitiesInBounds,
     previousWindowBounds,
     compareDaysBeforeWindow,
+    boundsFromYmdRange,
+    calendarYearBounds,
+    boundsToYmdPair,
+    aggregatePeriodStats,
 } from '../../utils/dashboardActivityWindow';
 
 describe('getDashboardWindowBounds', () => {
@@ -47,6 +51,51 @@ describe('previousWindowBounds', () => {
         const len = bounds.end.getTime() - bounds.start.getTime();
         expect(prev.end.getTime() - prev.start.getTime()).toBe(len);
         expect(prev.end.getTime()).toBeLessThan(bounds.start.getTime());
+    });
+});
+
+describe('boundsFromYmdRange', () => {
+    it('returns null for invalid range', () => {
+        expect(boundsFromYmdRange('', '2026-01-01')).toBeNull();
+        expect(boundsFromYmdRange('2026-01-10', '2026-01-01')).toBeNull();
+    });
+
+    it('returns start/end of day', () => {
+        const b = boundsFromYmdRange('2026-03-01', '2026-03-02');
+        expect(b.start.getHours()).toBe(0);
+        expect(b.end.getHours()).toBe(23);
+    });
+});
+
+describe('calendarYearBounds', () => {
+    it('covers full year', () => {
+        const b = calendarYearBounds(2025);
+        expect(b.start.getMonth()).toBe(0);
+        expect(b.start.getDate()).toBe(1);
+        expect(b.end.getMonth()).toBe(11);
+        expect(b.end.getDate()).toBe(31);
+    });
+});
+
+describe('boundsToYmdPair', () => {
+    it('formats YYYY-MM-DD', () => {
+        const b = boundsFromYmdRange('2026-06-01', '2026-06-15');
+        const p = boundsToYmdPair(b);
+        expect(p.startYmd).toBe('2026-06-01');
+        expect(p.endYmd).toBe('2026-06-15');
+    });
+});
+
+describe('aggregatePeriodStats', () => {
+    it('sums distance and climbing', () => {
+        const acts = [
+            { distance: 50, climbing: 500 },
+            { distance: 30, climbing: 300 },
+        ];
+        const s = aggregatePeriodStats(acts);
+        expect(s.rideCount).toBe(2);
+        expect(s.distanceKm).toBe(80);
+        expect(s.elevationM).toBe(800);
     });
 });
 

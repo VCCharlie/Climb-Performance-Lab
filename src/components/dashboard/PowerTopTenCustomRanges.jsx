@@ -1,0 +1,111 @@
+import React from 'react';
+
+/**
+ * Date inputs + year quick-fill for both columns in custom compare mode.
+ */
+const PowerTopTenCustomRanges = ({
+    yearPresets,
+    customPrimaryStart,
+    setCustomPrimaryStart,
+    customPrimaryEnd,
+    setCustomPrimaryEnd,
+    customCompareStart,
+    setCustomCompareStart,
+    customCompareEnd,
+    setCustomCompareEnd,
+    boundsPrimary,
+    compareBounds,
+}) => (
+    <div className="rounded-lg border border-cdborder bg-cdbg/25 p-3 space-y-3">
+        <p className="text-[10px] text-cdmuted leading-relaxed">
+            Stel beide datumbereiken in. Jaar-knoppen: volledig kalenderjaar (1 jan — 31 dec). Bij eerste keuze
+            &ldquo;Aangepaste periodes&rdquo; worden startwaarden afgeleid van je site-preset en de vorige even lange periode.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+                <div className="text-[10px] font-bold text-cdaccent uppercase">Kolom 1</div>
+                <div className="flex flex-wrap gap-2">
+                    <label className="flex flex-col gap-0.5 text-[10px] text-cdmuted">
+                        Van
+                        <input
+                            type="date"
+                            value={customPrimaryStart}
+                            onChange={(e) => setCustomPrimaryStart(e.target.value)}
+                            className="bg-cdborder/30 border border-cdborder rounded px-2 py-1.5 text-cdtext text-xs"
+                        />
+                    </label>
+                    <label className="flex flex-col gap-0.5 text-[10px] text-cdmuted">
+                        Tot
+                        <input
+                            type="date"
+                            value={customPrimaryEnd}
+                            onChange={(e) => setCustomPrimaryEnd(e.target.value)}
+                            className="bg-cdborder/30 border border-cdborder rounded px-2 py-1.5 text-cdtext text-xs"
+                        />
+                    </label>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                    {yearPresets.map((y) => (
+                        <button
+                            key={`py-${y}`}
+                            type="button"
+                            onClick={() => {
+                                setCustomPrimaryStart(`${y}-01-01`);
+                                setCustomPrimaryEnd(`${y}-12-31`);
+                            }}
+                            className="px-2 py-0.5 rounded border border-cdborder text-[10px] font-bold text-cdmuted hover:text-cdaccent hover:border-cdaccent/50"
+                        >
+                            {y}
+                        </button>
+                    ))}
+                </div>
+            </div>
+            <div className="space-y-2">
+                <div className="text-[10px] font-bold text-blue-400 uppercase">Kolom 2</div>
+                <div className="flex flex-wrap gap-2">
+                    <label className="flex flex-col gap-0.5 text-[10px] text-cdmuted">
+                        Van
+                        <input
+                            type="date"
+                            value={customCompareStart}
+                            onChange={(e) => setCustomCompareStart(e.target.value)}
+                            className="bg-cdborder/30 border border-cdborder rounded px-2 py-1.5 text-cdtext text-xs"
+                        />
+                    </label>
+                    <label className="flex flex-col gap-0.5 text-[10px] text-cdmuted">
+                        Tot
+                        <input
+                            type="date"
+                            value={customCompareEnd}
+                            onChange={(e) => setCustomCompareEnd(e.target.value)}
+                            className="bg-cdborder/30 border border-cdborder rounded px-2 py-1.5 text-cdtext text-xs"
+                        />
+                    </label>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                    {yearPresets.map((y) => (
+                        <button
+                            key={`cy-${y}`}
+                            type="button"
+                            onClick={() => {
+                                setCustomCompareStart(`${y}-01-01`);
+                                setCustomCompareEnd(`${y}-12-31`);
+                            }}
+                            className="px-2 py-0.5 rounded border border-cdborder text-[10px] font-bold text-cdmuted hover:text-blue-400 hover:border-blue-400/50"
+                        >
+                            {y}
+                        </button>
+                    ))}
+                </div>
+            </div>
+        </div>
+        {(!boundsPrimary || !compareBounds) && (
+            <p className="text-xs text-orange-400/90">
+                {!boundsPrimary && 'Vul geldige datums in voor kolom 1 (start ≤ einde).'}
+                {boundsPrimary && !compareBounds && ' Vul geldige datums in voor kolom 2.'}
+            </p>
+        )}
+    </div>
+);
+
+export default PowerTopTenCustomRanges;
