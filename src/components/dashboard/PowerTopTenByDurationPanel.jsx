@@ -36,7 +36,26 @@ function formatShortRange(bounds) {
     return `${a} – ${b}`;
 }
 
-const TopTable = ({ rows, onOpenActivityInLog, emptyHint }) => {
+/** Per rang (#1 t/m #10): subtiel markeer welke kolom meer watt heeft. */
+const wattCompareClass = (watts, peerWatts) => {
+    const w = Number(watts) || 0;
+    const p = peerWatts != null ? Number(peerWatts) : NaN;
+    if (!w || Number.isNaN(p) || p <= 0) return 'text-cdtext';
+    if (w > p) return 'text-emerald-400/95 bg-emerald-500/[0.08] rounded px-1.5 -mx-0.5';
+    if (w < p) return 'text-cdmuted/80';
+    return 'text-cdtext';
+};
+
+const wattCompareTitle = (watts, peerWatts) => {
+    const w = Number(watts) || 0;
+    const p = peerWatts != null ? Number(peerWatts) : NaN;
+    if (!w || Number.isNaN(p) || p <= 0) return undefined;
+    if (w > p) return `Hoger dan de andere periode op deze rang (${p} W)`;
+    if (w < p) return `Lager dan de andere periode op deze rang (${p} W)`;
+    return 'Gelijk op deze rang';
+};
+
+const TopTable = ({ rows, peerRows, onOpenActivityInLog, emptyHint }) => {
     if (!rows?.length) {
         return (
             <p className="text-xs text-cdmuted py-3 px-2">{emptyHint || 'Geen data.'}</p>
@@ -57,10 +76,18 @@ const TopTable = ({ rows, onOpenActivityInLog, emptyHint }) => {
                 <tbody className="text-cdtext divide-y divide-cdborder/50">
                     {rows.map((row, i) => {
                         const links = row.activity ? activityExternalLinks(row.activity) : [];
+                        const peerW = peerRows?.[i]?.watts;
+                        const wCls = peerRows ? wattCompareClass(row.watts, peerW) : 'text-cdtext';
+                        const wTitle = peerRows ? wattCompareTitle(row.watts, peerW) : undefined;
                         return (
                             <tr key={`${row.activity?.id ?? i}-${row.watts}`} className="hover:bg-cdborder/15">
                                 <td className="px-2 py-1.5 text-cdmuted font-mono">{i + 1}</td>
-                                <td className="px-2 py-1.5 text-right font-mono font-bold tabular-nums">{row.watts}</td>
+                                <td
+                                    className={`px-2 py-1.5 text-right font-mono font-bold tabular-nums ${wCls}`}
+                                    title={wTitle}
+                                >
+                                    {row.watts}
+                                </td>
                                 <td className="px-2 py-1.5 text-cdmuted whitespace-nowrap">
                                     {row.activity ? formatDateDDMMYYYY(row.activity.date) : '—'}
                                 </td>
@@ -216,6 +243,12 @@ const PowerTopTenByDurationPanel = ({
                             </p>
                         )}
                     </div>
+                    {compareBounds && (
+                        <p className="text-[10px] text-cdmuted leading-snug">
+                            <span className="inline-block w-2 h-2 rounded-sm bg-emerald-500/50 align-middle mr-1.5" aria-hidden />
+                            Meer watt op dezelfde rang (#1 vs #1, …) dan de andere kolom — hover op de watt-kolom voor details.
+                        </p>
+                    )}
 
                     <div className="space-y-6">
                         {tablesByDuration.map(({ label, primary, secondary }) => (
@@ -228,6 +261,7 @@ const PowerTopTenByDurationPanel = ({
                                         </p>
                                         <TopTable
                                             rows={primary}
+                                            peerRows={secondary}
                                             onOpenActivityInLog={onOpenActivityInLog}
                                             emptyHint="Geen ritten met power in dit venster."
                                         />
@@ -239,6 +273,7 @@ const PowerTopTenByDurationPanel = ({
                                             </p>
                                             <TopTable
                                                 rows={secondary}
+                                                peerRows={primary}
                                                 onOpenActivityInLog={onOpenActivityInLog}
                                                 emptyHint="Geen ritten in vergelijkingsvenster."
                                             />
