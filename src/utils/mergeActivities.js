@@ -51,6 +51,7 @@ export function pickMergedTitle(a, b) {
 const POWER_KEYS = [
     'norm_power', 'avg_power', 'load', 'work',
     'best_1min', 'best_5min', 'best_10min', 'best_20min', 'best_60min',
+    'best_90min', 'best_120min',
     'max_power', 'ftp',
 ];
 

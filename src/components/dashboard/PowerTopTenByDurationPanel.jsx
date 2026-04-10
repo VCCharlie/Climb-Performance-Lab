@@ -99,7 +99,7 @@ const PowerTopTenByDurationPanel = ({
 
     const tablesByDuration = useMemo(() => {
         return DURATION_TARGETS.map(({ sec, label }) => {
-            const opts = sec === 7200 ? { minMovingTimeSec: 7200 } : {};
+            const opts = sec === 7200 ? { requireAnchorBeyondSec: 7200 } : {};
             const primary = topNInterpolatedAtSec(currentActs, manualFtp, sec, 10, opts);
             const secondary = compareBounds ? topNInterpolatedAtSec(compareActs, manualFtp, sec, 10, opts) : null;
             return {
@@ -108,7 +108,7 @@ const PowerTopTenByDurationPanel = ({
                 primary,
                 secondary,
                 footnote: sec === 7200
-                    ? 'Alleen ritten met bewegingsduur ≥ 2 u (moving_time); anders is 120 min geschat uit kortere ankers en klopt de bronrit niet.'
+                    ? 'Alleen ritten met power-data tot minstens 2 u (langste anker: 90/120 min van API, of ritduur met gem. vermogen). Korte ritten zonder lange meting vallen weg.'
                     : null,
             };
         });

@@ -6,6 +6,7 @@ import {
     filterActivitiesByDaysBeforeEnd,
     computeTopPowerMoments,
     topNInterpolatedAtSec,
+    buildAnchorsForActivity,
 } from '../../utils/powerDurationTable';
 
 describe('interpolatePowerAt', () => {
@@ -114,7 +115,7 @@ describe('topNInterpolatedAtSec', () => {
         expect(top[0].watts).toBeGreaterThan(top[1].watts);
     });
 
-    it('minMovingTimeSec excludes short rides at long target duration', () => {
+    it('requireAnchorBeyondSec excludes rides without data past that duration', () => {
         const short = {
             id: 'short',
             date: '2026-01-01',
@@ -126,9 +127,47 @@ describe('topNInterpolatedAtSec', () => {
             best_20min: 260,
             best_60min: 250,
         };
-        const long = { ...short, id: 'long', moving_time: 8000 };
-        const top = topNInterpolatedAtSec([short, long], 250, 7200, 10, { minMovingTimeSec: 7200 });
+        const long = { ...short, id: 'long', moving_time: 8000, avg_power: 200, norm_power: 210 };
+        const top = topNInterpolatedAtSec([short, long], 250, 7200, 10, { requireAnchorBeyondSec: 7200 });
         expect(top.every((r) => r.activity.id === 'long')).toBe(true);
+    });
+});
+
+describe('buildAnchorsForActivity', () => {
+    it('adds ride-duration anchor beyond 60 min for long activities', () => {
+        const a = {
+            moving_time: 7200,
+            avg_power: 200,
+            norm_power: 220,
+            max_power: 600,
+            best_1min: 400,
+            best_5min: 320,
+            best_10min: 300,
+            best_20min: 280,
+            best_60min: 240,
+        };
+        const anchors = buildAnchorsForActivity(a, 250);
+        const last = anchors[anchors.length - 1];
+        expect(last.sec).toBe(7200);
+        expect(last.w).toBe(200);
+    });
+
+    it('includes best_90min and best_120min when present', () => {
+        const a = {
+            moving_time: 4000,
+            max_power: 500,
+            best_1min: 350,
+            best_5min: 300,
+            best_10min: 280,
+            best_20min: 260,
+            best_60min: 230,
+            best_90min: 220,
+            best_120min: 210,
+        };
+        const anchors = buildAnchorsForActivity(a, 250);
+        const secs = anchors.map((x) => x.sec);
+        expect(secs).toContain(5400);
+        expect(secs).toContain(7200);
     });
 });
 
