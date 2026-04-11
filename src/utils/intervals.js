@@ -16,6 +16,7 @@ export const normalizeIntervalsActivity = (item) => {
     const title = getVal('name', 'title') || "Untitled";
 
     const movingTime = getNum(getVal('movingTime', 'moving_time', 'icu_recording_time', 'elapsedTime', 'elapsed_time', 'time'));
+    // Intervals.icu / API: distance is always meters (short rides included). Never treat <1000 m as km.
     const distanceMeters = getNum(getVal('distance', 'icu_distance', 'total_distance'));
     const climbing = getNum(getVal('elevationGain', 'total_elevation_gain', 'total_elevation_loss', 'climbing'));
     const avgSpeedMs = getNum(getVal('avg_speed', 'avgSpeed', 'average_speed', 'velocity_smooth'));
@@ -93,7 +94,7 @@ export const normalizeIntervalsActivity = (item) => {
         title: title,
         type: finalType,
         moving_time: movingTime,
-        distance: distanceMeters > 1000 ? (distanceMeters / 1000).toFixed(2) : distanceMeters,
+        distance: distanceMeters > 0 ? Math.round((distanceMeters / 1000) * 100) / 100 : 0,
         climbing: Math.round(climbing),
         avg_speed: (avgSpeedMs > 0 && avgSpeedMs < 15) ? (avgSpeedMs * 3.6).toFixed(1) : avgSpeedMs,
         norm_power: Math.round(normPower),

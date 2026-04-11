@@ -3,6 +3,7 @@ import { Mountain, CalendarDays, ChevronRight, Heart } from 'lucide-react';
 import { CLIMB_DATABASE } from '../climbs';
 import { computeTrainingGoalPlan } from '../utils/trainingGoalPlan';
 import { calculatePowerZones } from '../utils/calculations';
+import NlDateInput from './NlDateInput';
 
 const defaultGoalDate = () => {
     const d = new Date();
@@ -83,11 +84,11 @@ const TrainingGoalPlanner = ({ activities, userSettings, startDate, endDate, onO
                     </h3>
 
                     <label className="block text-xs text-cdmuted font-semibold">Doeldatum</label>
-                    <input
-                        type="date"
+                    <NlDateInput
                         value={goalDate}
-                        onChange={(e) => setGoalDate(e.target.value)}
+                        onChange={(v) => v && setGoalDate(v)}
                         className="w-full bg-cdborder border border-cdborder rounded-lg px-3 py-2 text-cdtext"
+                        aria-label="Doeldatum (dd/mm/jjjj)"
                     />
 
                     <div className="flex gap-2">

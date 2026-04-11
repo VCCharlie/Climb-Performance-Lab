@@ -67,6 +67,24 @@ describe('mergeActivitiesIntervalsPrimary', () => {
     expect(m.moving_time).toBe(5400);
   });
 
+  it('replaces implausible primary distance with Strava km when Strava is short ride', () => {
+    const primary = {
+      id: '100',
+      title: 'Ride',
+      distance: 772.5,
+      moving_time: 3600,
+      strava_id: null,
+    };
+    const secondary = {
+      id: 'strava_9',
+      strava_id: '999',
+      distance: 0.8,
+      moving_time: '1:00:00',
+    };
+    const m = mergeActivitiesIntervalsPrimary(primary, secondary);
+    expect(m.distance).toBe(0.8);
+  });
+
   it('keeps power from primary, adds strava from secondary', () => {
     const primary = {
       id: '100',

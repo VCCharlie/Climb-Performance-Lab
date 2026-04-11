@@ -9,6 +9,8 @@ import {
   formatTime,
   parseDurationToSeconds,
   formatNlNumber,
+  formatIsoToNlDmy,
+  parseNlDmyToIso,
 } from '../../utils/formatters';
 
 // ─── normalizeDate ──────────────────────────────────────────────────────────
@@ -74,6 +76,23 @@ describe('formatDateDDMMYYYY', () => {
   it('handles ISO datetime string', () => {
     const result = formatDateDDMMYYYY('2025-12-25T10:00:00Z');
     expect(result).toMatch(/25.12.2025/);
+  });
+});
+
+describe('formatIsoToNlDmy / parseNlDmyToIso', () => {
+  it('round-trips ISO to Dutch display and back', () => {
+    expect(formatIsoToNlDmy('2026-04-09')).toBe('09/04/2026');
+    expect(parseNlDmyToIso('09/04/2026')).toBe('2026-04-09');
+    expect(parseNlDmyToIso('9-4-2026')).toBe('2026-04-09');
+  });
+
+  it('passes through ISO in parseNlDmyToIso', () => {
+    expect(parseNlDmyToIso('2026-01-15')).toBe('2026-01-15');
+  });
+
+  it('rejects invalid calendar dates', () => {
+    expect(parseNlDmyToIso('32/01/2026')).toBeNull();
+    expect(parseNlDmyToIso('not a date')).toBeNull();
   });
 });
 

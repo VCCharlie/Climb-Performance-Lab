@@ -1,4 +1,5 @@
 import React from 'react';
+import NlDateInput from '../NlDateInput';
 
 /** Highlight jaar-knop alleen als Van/Tot exact heel kalenderjaar is. */
 function selectedFullYear(startYmd, endYmd) {
@@ -40,20 +41,20 @@ const PowerTopTenCustomRanges = ({
                 <div className="flex flex-wrap gap-2">
                     <label className="flex flex-col gap-0.5 text-[10px] text-cdmuted">
                         Van
-                        <input
-                            type="date"
+                        <NlDateInput
                             value={customPrimaryStart}
-                            onChange={(e) => setCustomPrimaryStart(e.target.value)}
+                            onChange={setCustomPrimaryStart}
                             className="bg-cdborder/30 border border-cdborder rounded px-2 py-1.5 text-cdtext text-xs"
+                            aria-label="Kolom 1 van (dd/mm/jjjj)"
                         />
                     </label>
                     <label className="flex flex-col gap-0.5 text-[10px] text-cdmuted">
                         Tot
-                        <input
-                            type="date"
+                        <NlDateInput
                             value={customPrimaryEnd}
-                            onChange={(e) => setCustomPrimaryEnd(e.target.value)}
+                            onChange={setCustomPrimaryEnd}
                             className="bg-cdborder/30 border border-cdborder rounded px-2 py-1.5 text-cdtext text-xs"
+                            aria-label="Kolom 1 tot (dd/mm/jjjj)"
                         />
                     </label>
                 </div>
@@ -85,20 +86,20 @@ const PowerTopTenCustomRanges = ({
                 <div className="flex flex-wrap gap-2">
                     <label className="flex flex-col gap-0.5 text-[10px] text-cdmuted">
                         Van
-                        <input
-                            type="date"
+                        <NlDateInput
                             value={customCompareStart}
-                            onChange={(e) => setCustomCompareStart(e.target.value)}
+                            onChange={setCustomCompareStart}
                             className="bg-cdborder/30 border border-cdborder rounded px-2 py-1.5 text-cdtext text-xs"
+                            aria-label="Kolom 2 van (dd/mm/jjjj)"
                         />
                     </label>
                     <label className="flex flex-col gap-0.5 text-[10px] text-cdmuted">
                         Tot
-                        <input
-                            type="date"
+                        <NlDateInput
                             value={customCompareEnd}
-                            onChange={(e) => setCustomCompareEnd(e.target.value)}
+                            onChange={setCustomCompareEnd}
                             className="bg-cdborder/30 border border-cdborder rounded px-2 py-1.5 text-cdtext text-xs"
+                            aria-label="Kolom 2 tot (dd/mm/jjjj)"
                         />
                     </label>
                 </div>

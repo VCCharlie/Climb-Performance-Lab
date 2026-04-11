@@ -23,6 +23,7 @@ import RecoveryAdvisor from './components/RecoveryAdvisor';
 import BucketList from './components/BucketList';
 import WeatherClimb from './components/WeatherClimb';
 import ClimbMap from './components/ClimbMap';
+import NlDateInput from './components/NlDateInput';
 
 import useIntervalsSync from './hooks/useIntervalsSync';
 import useStravaAuth from './hooks/useStravaAuth';
@@ -513,11 +514,13 @@ const App = () => {
                             {/* Mobile Custom Date Inputs */}
                             {timeRange === 'Custom' && (
                                 <div className="md:hidden flex items-center gap-2 bg-cdbg/50 p-2 rounded-lg border border-cdborder mb-4 animate-in fade-in slide-in-from-top-2">
-                                    <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)}
-                                        className="bg-cdsurface text-cdtext text-[10px] rounded px-2 py-1.5 outline-none border border-cdborder flex-1" />
+                                    <NlDateInput value={customStart} onChange={setCustomStart}
+                                        className="bg-cdsurface text-cdtext text-[10px] rounded px-2 py-1.5 outline-none border border-cdborder flex-1"
+                                        aria-label="Startdatum (dd/mm/jjjj)" />
                                     <span className="text-cdmuted text-[10px]">–</span>
-                                    <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)}
-                                        className="bg-cdsurface text-cdtext text-[10px] rounded px-2 py-1.5 outline-none border border-cdborder flex-1" />
+                                    <NlDateInput value={customEnd} onChange={setCustomEnd}
+                                        className="bg-cdsurface text-cdtext text-[10px] rounded px-2 py-1.5 outline-none border border-cdborder flex-1"
+                                        aria-label="Einddatum (dd/mm/jjjj)" />
                                 </div>
                             )}
 
@@ -580,11 +583,13 @@ const App = () => {
                                 {timeRange === 'Custom' && (
                                     <div className="flex justify-end pb-1.5 -mt-1 animate-in fade-in slide-in-from-right-2">
                                         <div className="flex items-center gap-2 bg-cdbg/50 p-1.5 rounded-lg border border-cdborder">
-                                            <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)}
-                                                className="bg-cdsurface text-cdtext text-[10px] rounded px-2 py-1 outline-none border border-cdborder" />
+                                            <NlDateInput value={customStart} onChange={setCustomStart}
+                                                className="bg-cdsurface text-cdtext text-[10px] rounded px-2 py-1 outline-none border border-cdborder"
+                                                aria-label="Startdatum (dd/mm/jjjj)" />
                                             <span className="text-cdmuted text-[10px]">–</span>
-                                            <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)}
-                                                className="bg-cdsurface text-cdtext text-[10px] rounded px-2 py-1 outline-none border border-cdborder" />
+                                            <NlDateInput value={customEnd} onChange={setCustomEnd}
+                                                className="bg-cdsurface text-cdtext text-[10px] rounded px-2 py-1 outline-none border border-cdborder"
+                                                aria-label="Einddatum (dd/mm/jjjj)" />
                                         </div>
                                     </div>
                                 )}

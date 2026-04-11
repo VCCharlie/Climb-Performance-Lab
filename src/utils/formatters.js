@@ -54,6 +54,41 @@ export const formatDateDDMMYYYY = (isoString) => {
     }
 };
 
+/**
+ * ISO date (YYYY-MM-DD) → display for text inputs: dd/mm/jjjj
+ * @param {string | null | undefined} isoYmd
+ * @returns {string}
+ */
+export function formatIsoToNlDmy(isoYmd) {
+    if (!isoYmd || typeof isoYmd !== 'string' || isoYmd.length < 10) return '';
+    const y = isoYmd.slice(0, 4);
+    const m = isoYmd.slice(5, 7);
+    const d = isoYmd.slice(8, 10);
+    if (!/^\d{4}$/.test(y) || !/^\d{2}$/.test(m) || !/^\d{2}$/.test(d)) return '';
+    return `${d}/${m}/${y}`;
+}
+
+/**
+ * Parse Dutch day-first dates into ISO YYYY-MM-DD (for storage / filters).
+ * Accepts dd/mm/jjjj, dd-mm-jjjj, dd.mm.jjjj; already-ISO values pass through.
+ * @param {string} value
+ * @returns {string | null} ISO date or null if empty/invalid
+ */
+export function parseNlDmyToIso(value) {
+    const s = String(value ?? '').trim();
+    if (!s) return null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    const m = s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
+    if (!m) return null;
+    const day = parseInt(m[1], 10);
+    const month = parseInt(m[2], 10);
+    const year = parseInt(m[3], 10);
+    if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+    const dt = new Date(year, month - 1, day);
+    if (dt.getFullYear() !== year || dt.getMonth() !== month - 1 || dt.getDate() !== day) return null;
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
 export const formatTime = (value) => {
     let sNum = 0;
     if (typeof value === 'number' && !Number.isNaN(value)) {
