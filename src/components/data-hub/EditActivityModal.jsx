@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { X, Edit2, Save, Bike, ArrowUpRight } from 'lucide-react';
 import { formatTime } from '../../utils';
+import NlDateInput from '../NlDateInput';
 import { SPORT_TYPES } from '../../config';
 
 const getStoredBikes = () => {
@@ -39,9 +40,6 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
         e.preventDefault();
         onSave(formData);
     };
-
-    // Datum helper voor input type="date" (vereist YYYY-MM-DD)
-    const dateValue = formData.date ? new Date(formData.date).toISOString().split('T')[0] : '';
 
     // Bereken unieke fietsnamen uit eerdere activiteiten als fallback
     const uniqueBikesFallback = useMemo(() => {
@@ -130,7 +128,13 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
 
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Date</label>
-                            <input name="date" type="date" value={dateValue} onChange={(e) => setFormData(prev => ({ ...prev, date: new Date(e.target.value).toISOString().split('T')[0] }))} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                            <NlDateInput
+                                name="date"
+                                value={formData.date ? new Date(formData.date).toISOString().split('T')[0] : ''}
+                                onChange={(v) => v && setFormData((prev) => ({ ...prev, date: v }))}
+                                className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none"
+                                aria-label="Activiteitsdatum (dd/mm/jjjj)"
+                            />
                         </div>
 
                         <div>

@@ -4,6 +4,7 @@
 
 import { normalizeStravaActivityId } from './strava';
 import { parseDurationToSeconds } from './formatters';
+import { activityDistanceKm } from './activityFilterMetrics';
 
 /** Intervals sync uses seconds (number); Strava normalize uses "H:MM:SS" string — compare in seconds. */
 function movingTimeToSeconds(val) {
@@ -136,9 +137,18 @@ export function mergeActivitiesIntervalsPrimary(primary, secondary) {
     const sClimb = Number(s.climbing) || 0;
     if (pClimb <= 0 && sClimb > 0) p.climbing = s.climbing;
 
-    const pDist = Number(p.distance) || 0;
-    const sDist = Number(s.distance) || 0;
-    if (pDist <= 0 && sDist > 0) p.distance = s.distance;
+    const pDistKm = activityDistanceKm(p) ?? 0;
+    const sDistKm = activityDistanceKm(s) ?? 0;
+    if (sDistKm > 0) {
+        const primarySuspicious =
+            pDistKm > 50
+            && sDistKm > 0
+            && sDistKm < 5
+            && pDistKm >= sDistKm * 80;
+        if (pDistKm <= 0 || primarySuspicious) {
+            p.distance = s.distance;
+        }
+    }
 
     const pSec = movingTimeToSeconds(p.moving_time);
     const sSec = movingTimeToSeconds(s.moving_time);

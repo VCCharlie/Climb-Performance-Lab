@@ -192,13 +192,13 @@ describe('normalizeIntervalsActivity - distance', () => {
     expect(parseFloat(norm.distance)).toBeCloseTo(85.0, 0);
   });
 
-  it('leaves small distances as-is', () => {
+  it('converts sub-km distances from meters to km', () => {
     const activity = {
       id: 'short', startDate: '2025-06-01', name: 'Short', type: 'Ride',
       movingTime: 600, distance: 500,
     };
     const norm = normalizeIntervalsActivity(activity);
-    expect(norm.distance).toBe(500);
+    expect(norm.distance).toBe(0.5);
   });
 });
 

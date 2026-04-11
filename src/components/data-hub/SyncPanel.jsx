@@ -1,5 +1,5 @@
-﻿
-import React from 'react';
+﻿import React from 'react';
+import NlDateInput from '../NlDateInput';
 import {
     RefreshCw, CheckCircle
 } from 'lucide-react';
@@ -22,8 +22,8 @@ const SyncPanel = ({
                 <strong>Tip:</strong> Sync in blokken van max 2-3 jaar om time-outs te voorkomen (bijv. 2014-2016, dan 2017-2019).
             </div>
             <div className="grid grid-cols-2 gap-4">
-                <div><span className="text-xs text-cdmuted block mb-1">From</span><input type="date" value={syncDates.start} onChange={e => setSyncDates(s => ({ ...s, start: e.target.value }))} className="w-full bg-cdsurface border border-cdborder rounded p-2 text-cdtext text-sm" /></div>
-                <div><span className="text-xs text-cdmuted block mb-1">To</span><input type="date" value={syncDates.end} onChange={e => setSyncDates(s => ({ ...s, end: e.target.value }))} className="w-full bg-cdsurface border border-cdborder rounded p-2 text-cdtext text-sm" /></div>
+                <div><span className="text-xs text-cdmuted block mb-1">From</span><NlDateInput value={syncDates.start} onChange={(v) => setSyncDates((s) => ({ ...s, start: v }))} className="w-full bg-cdsurface border border-cdborder rounded p-2 text-cdtext text-sm" aria-label="Sync van (dd/mm/jjjj)" /></div>
+                <div><span className="text-xs text-cdmuted block mb-1">To</span><NlDateInput value={syncDates.end} onChange={(v) => setSyncDates((s) => ({ ...s, end: v }))} className="w-full bg-cdsurface border border-cdborder rounded p-2 text-cdtext text-sm" aria-label="Sync tot (dd/mm/jjjj)" /></div>
             </div>
             <div>
                 <div className="flex justify-between mb-2"><label className="text-xs uppercase font-bold text-cdmuted">Types</label><div className="space-x-2"><button onClick={() => setAllSportFilters(true)} className="text-[10px] text-blue-400">All</button><button onClick={() => setAllSportFilters(false)} className="text-[10px] text-blue-400">None</button></div></div>

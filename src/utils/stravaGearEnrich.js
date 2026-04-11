@@ -6,6 +6,7 @@ import { stripUndefinedFields } from './mergeActivities';
 import { normalizeStravaActivityId } from './strava';
 import { runInBatches } from './async';
 import { parseDurationToSeconds } from './formatters';
+import { activityDistanceKm } from './activityFilterMetrics';
 
 function storedMovingTimeSec(act) {
     const t = act?.moving_time;
@@ -23,6 +24,22 @@ function stravaDurationSeconds(v) {
     if (!Number.isNaN(n) && n > 0) return Math.floor(n);
     const p = parseDurationToSeconds(String(v));
     return p > 0 ? Math.floor(p) : 0;
+}
+
+/** Strava activity detail: distance in meters → km rounded to 2 decimals */
+function kmFromStravaDistanceMeters(m) {
+    const n = Number(m);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    return Math.round((n / 1000) * 100) / 100;
+}
+
+/** Stored distance vs duration implies impossible average (e.g. meters saved as km). */
+function storedDistanceImplausible(act) {
+    const km = activityDistanceKm(act);
+    const sec = storedMovingTimeSec(act);
+    if (km == null || km <= 0 || sec <= 60) return false;
+    const kph = (km / sec) * 3600;
+    return kph > 85;
 }
 
 export { normalizeStravaActivityId } from './strava';
@@ -84,7 +101,8 @@ export async function enrichActivityGearFromStrava(merged, stravaSide, token) {
         !out.gear_id
         || !out.strava_map
         || (!(out.gear_name != null && String(out.gear_name).trim()))
-        || storedMovingTimeSec(out) <= 0;
+        || storedMovingTimeSec(out) <= 0
+        || storedDistanceImplausible(out);
 
     let detail = null;
     if (needsDetail) {
@@ -151,6 +169,21 @@ export async function enrichActivityGearFromStrava(merged, stravaSide, token) {
         if (sec > 0) out.moving_time = sec;
     }
 
+    // Fix legacy bug: Intervals stored meters as "km" for rides <1 km (e.g. 772 m → 772 "km")
+    if (detail) {
+        const stravaKm = kmFromStravaDistanceMeters(detail.distance);
+        const storeKm = activityDistanceKm(out);
+        const suspicious =
+            storeKm != null
+            && stravaKm != null
+            && stravaKm < 5
+            && storeKm > 50
+            && storeKm >= stravaKm * 80;
+        if (stravaKm != null && (storeKm == null || storeKm <= 0 || suspicious)) {
+            out.distance = stravaKm;
+        }
+    }
+
     out.strava_id = stravaActId;
 
     return stripUndefinedFields(out);
@@ -185,6 +218,11 @@ export async function buildStravaDetailEnrichmentUpdates(siteActivities, token, 
             const timeChanged =
                 storedMovingTimeSec(act) !== storedMovingTimeSec(enriched)
                 && storedMovingTimeSec(enriched) > 0;
+            const kmBefore = activityDistanceKm(act);
+            const kmAfter = activityDistanceKm(enriched);
+            const distChanged =
+                kmAfter != null
+                && (kmBefore == null || Math.abs(kmBefore - kmAfter) > 0.005);
             const patch = stripUndefinedFields({
                 ...(sid ? { strava_id: sid } : {}),
                 ...(enriched.gear_id != null ? { gear_id: enriched.gear_id } : {}),
@@ -195,13 +233,15 @@ export async function buildStravaDetailEnrichmentUpdates(siteActivities, token, 
                     ? { strava_map: enriched.strava_map }
                     : {}),
                 ...(timeChanged ? { moving_time: enriched.moving_time } : {}),
+                ...(distChanged ? { distance: enriched.distance } : {}),
             });
             const same =
                 String(normalizeStravaActivityId(act.strava_id) || act.strava_id || '') === String(patch.strava_id || '')
                 && String(act.gear_id ?? '') === String(patch.gear_id ?? '')
                 && String(act.gear_name ?? '').trim() === String(patch.gear_name ?? '').trim()
                 && String(act.strava_map ?? '') === String(patch.strava_map ?? '')
-                && !timeChanged;
+                && !timeChanged
+                && !distChanged;
             if (same || Object.keys(patch).length === 0) {
                 unchanged += 1;
                 return;

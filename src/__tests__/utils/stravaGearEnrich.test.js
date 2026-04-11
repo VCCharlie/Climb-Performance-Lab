@@ -139,4 +139,29 @@ describe('buildStravaDetailEnrichmentUpdates', () => {
     expect(r.ridesProcessed).toBe(1);
     expect(fetch).not.toHaveBeenCalled();
   });
+
+  it('fetches detail and patches distance when stored km is implausible vs duration', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        gear_id: 'g1',
+        map: { summary_polyline: 'same' },
+        moving_time: 3600,
+        distance: 760,
+      }),
+    });
+
+    const act = {
+      id: '10',
+      strava_id: '999',
+      gear_id: 'g1',
+      gear_name: 'Bike A',
+      strava_map: 'same',
+      moving_time: 3600,
+      distance: 772.5,
+    };
+    const r = await buildStravaDetailEnrichmentUpdates([act], 'tok');
+    expect(r.updates).toHaveLength(1);
+    expect(r.updates[0].data.distance).toBe(0.76);
+  });
 });
