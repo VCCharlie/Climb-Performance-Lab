@@ -320,6 +320,60 @@ async function fetchStravaDetail(token, activityId) {
     return resp.json();
 }
 
+/** Athlete bikes from Strava → gear_id → display name (emoji names included). */
+async function fetchStravaAthleteBikesMap(token) {
+    try {
+        const resp = await fetch(`${STRAVA_API_BASE}/athlete`, {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!resp.ok) return {};
+        const athlete = await resp.json();
+        const map = {};
+        for (const b of athlete.bikes || []) {
+            if (!b?.id) continue;
+            const label = b.name || [b.brand_name, b.model_name].filter(Boolean).join(' ') || 'Bike';
+            map[String(b.id)] = label;
+        }
+        return map;
+    } catch {
+        return {};
+    }
+}
+
+async function fetchStravaGearName(token, gearId) {
+    if (!gearId) return null;
+    try {
+        const resp = await fetch(`${STRAVA_API_BASE}/gear/${encodeURIComponent(gearId)}`, {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!resp.ok) return null;
+        const g = await resp.json();
+        return g.name || [g.brand_name, g.model_name].filter(Boolean).join(' ') || null;
+    } catch {
+        return null;
+    }
+}
+
+function stravaWorkKilojoules(detail) {
+    if (!detail) return 0;
+    const kj = Number(detail.kilojoules);
+    if (Number.isFinite(kj) && kj > 0) return Math.round(kj);
+    const w = Number(detail.average_watts);
+    const sec = Number(detail.moving_time);
+    if (Number.isFinite(w) && w > 0 && Number.isFinite(sec) && sec > 0) {
+        return Math.round((w * sec) / 1000);
+    }
+    return 0;
+}
+
+function gearNameIsPlaceholder(gearId, gearName) {
+    const gid = gearId != null ? String(gearId).trim() : '';
+    const gn = gearName != null ? String(gearName).trim() : '';
+    if (!gid) return false;
+    if (!gn || gn === gid) return true;
+    return /^b\d+$/i.test(gn);
+}
+
 function matchStravaToFirestore(stravaActivities, firestoreActivities) {
     const results = [];
     const usedFirestoreIds = new Set();
@@ -401,20 +455,34 @@ async function enrichWithStrava(db, firestoreActivities, startDate, endDate, isD
 
     if (matches.length === 0) return 0;
 
+    const bikesMap = await fetchStravaAthleteBikesMap(token);
     let enrichedCount = 0;
 
     for (const { strava, site, type } of matches) {
         const needsTitle = !site.title || site.title === 'Untitled' || isGenericTitle(site.title);
         const needsHr = !site.avg_hr || site.avg_hr === 0;
         const needsRpe = !site.rpe || site.rpe === 0;
-        const needsGear = !site.gear_id && !!strava.gear_id;
+        const needsGearId = !site.gear_id && !!strava.gear_id;
+        const needsGearNameFix = gearNameIsPlaceholder(site.gear_id, site.gear_name);
         const needsStravaId = !site.strava_id;
+        const needsMap = !site.strava_map || String(site.strava_map).trim() === '';
+        const needsWork = !site.work || Number(site.work) === 0;
 
-        if (!needsTitle && !needsHr && !needsRpe && !needsGear && !needsStravaId) continue;
+        if (
+            !needsTitle
+            && !needsHr
+            && !needsRpe
+            && !needsGearId
+            && !needsGearNameFix
+            && !needsStravaId
+            && !needsMap
+            && !needsWork
+        ) {
+            continue;
+        }
 
-        // Haal details op voor RPE (zit niet in lijst-API)
         let detailed = strava;
-        if (needsRpe || needsHr) {
+        if (needsRpe || needsHr || needsMap || needsWork || needsGearNameFix || needsGearId) {
             try {
                 const det = await fetchStravaDetail(token, strava.id);
                 if (det) detailed = det;
@@ -424,14 +492,31 @@ async function enrichWithStrava(db, firestoreActivities, startDate, endDate, isD
         const updateData = {};
 
         if (needsStravaId) updateData.strava_id = String(strava.id);
-        // Strava-titel is altijd leidend
-        if (strava.name) updateData.title = strava.name;
+        if (needsTitle && strava.name) updateData.title = strava.name;
         if (needsRpe && detailed.perceived_exertion) updateData.rpe = detailed.perceived_exertion;
         if (needsHr && detailed.average_heartrate) updateData.avg_hr = Math.round(detailed.average_heartrate);
         if (needsHr && detailed.max_heartrate) updateData.max_hr = Math.round(detailed.max_heartrate);
-        if (needsGear) {
-            updateData.gear_id = strava.gear_id;
-            updateData.gear_name = strava.gear_id; // placeholder, updated below if possible
+
+        const gid = strava.gear_id || detailed.gear_id || site.gear_id || null;
+        if (needsGearId && gid) {
+            updateData.gear_id = String(gid);
+        }
+        const effectiveGid = updateData.gear_id || (site.gear_id != null ? String(site.gear_id) : '');
+        if (effectiveGid && (needsGearId || needsGearNameFix)) {
+            let gname = bikesMap[effectiveGid];
+            if (!gname) {
+                gname = await fetchStravaGearName(token, effectiveGid);
+            }
+            if (gname) updateData.gear_name = gname;
+        }
+
+        if (needsMap && detailed.map?.summary_polyline) {
+            updateData.strava_map = detailed.map.summary_polyline;
+        }
+
+        if (needsWork) {
+            const wkj = stravaWorkKilojoules(detailed);
+            if (wkj > 0) updateData.work = wkj;
         }
 
         if (Object.keys(updateData).length === 0) continue;

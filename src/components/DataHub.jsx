@@ -14,6 +14,7 @@ import {
     stripUndefinedFields,
 } from '../utils/mergeActivities';
 import { enrichActivityGearFromStrava, buildStravaDetailEnrichmentUpdates } from '../utils/stravaGearEnrich';
+import { resolveStravaGearDisplay } from '../utils/stravaBikesLocalMap';
 import { buildClimbMatchIndex, findBestClimbUsingIndex } from '../utils/activityClimbMatch';
 import { formatNlNumber } from '../utils/formatters';
 
@@ -178,8 +179,9 @@ const DataHub = ({
             const gid = a?.gear_id != null ? String(a.gear_id).trim() : '';
             if (!gid) continue;
             if (!map.has(gid)) {
-                const name = (a.gear_name != null && String(a.gear_name).trim()) ? String(a.gear_name).trim() : '';
-                map.set(gid, name || gid);
+                const rawName = (a.gear_name != null && String(a.gear_name).trim()) ? String(a.gear_name).trim() : '';
+                const { display } = resolveStravaGearDisplay(gid, rawName);
+                map.set(gid, display !== '-' ? display : gid);
             }
         }
         return Array.from(map.entries())

@@ -5,6 +5,7 @@ import {
     Mountain, Edit2, Trash2, ExternalLink, Eye, Route
 } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
+import { resolveStravaGearDisplay } from '../../utils/stravaBikesLocalMap';
 import { ACTIVITY_TABLE_COLUMNS, MONTH_ORDER } from '../../config';
 
 const SortIcon = ({ colKey, config }) => {
@@ -96,24 +97,21 @@ export const Row = React.memo(({ act, onDelete, onEdit, onViewDetail, isPreview 
                 );
                 case 'gear_name': {
                     const gid = act.gear_id != null ? String(act.gear_id) : '';
-                    if (val && typeof val === 'string') {
-                        return (
-                            <span className="flex items-center gap-1 text-orange-400/80" title={gid ? `${val} (${gid})` : val}>
-                                <span className="truncate max-w-[100px] text-xs">{val}</span>
-                            </span>
-                        );
-                    }
-                    if (gid) {
-                        return (
-                            <span className="font-mono text-[10px] text-cdmuted truncate max-w-[100px] block" title={`Strava gear_id: ${gid}`}>
-                                {gid.length > 14 ? `${gid.slice(0, 12)}…` : gid}
-                            </span>
-                        );
-                    }
-                    return <span className="text-cdmuted">-</span>;
+                    const { display, title } = resolveStravaGearDisplay(gid || null, typeof val === 'string' ? val : '');
+                    if (display === '-') return <span className="text-cdmuted">-</span>;
+                    return (
+                        <span className="flex items-center gap-1 text-orange-400/80" title={title}>
+                            <span className="truncate max-w-[100px] text-xs">{display}</span>
+                        </span>
+                    );
                 }
                 case 'moving_time': return <span className="text-cdmuted font-mono">{formatTime(val)}</span>;
                 case 'distance': case 'avg_speed': return <span className="text-cdmuted">{Number(val).toFixed(1)}</span>;
+                case 'work': {
+                    const w = Number(val);
+                    if (!w || Number.isNaN(w)) return <span className="text-cdmuted">-</span>;
+                    return <span className="text-cdmuted">{Math.round(w)}</span>;
+                }
                 case 'climbing': case 'avg_power': return <span className="text-cdmuted">{Math.round(val || 0)}</span>;
                 case 'norm_power': return <span className="font-bold text-yellow-400">{Math.round(val || 0)}</span>;
                 case 'load': return <span className="font-bold text-blue-400">{Math.round(val || 0)}</span>;
@@ -157,7 +155,7 @@ export const Row = React.memo(({ act, onDelete, onEdit, onViewDetail, isPreview 
                                 <Eye size={14} />
                             </button>
                         )}
-                        {onOpenProfiler && (profilerClimbByActivityId?.get(String(act.id)) || act.strava_map) && (
+                        {onOpenProfiler && (
                             <button
                                 type="button"
                                 onClick={(e) => {
@@ -165,7 +163,13 @@ export const Row = React.memo(({ act, onDelete, onEdit, onViewDetail, isPreview 
                                     onOpenProfiler(act, profilerClimbByActivityId?.get(String(act.id)));
                                 }}
                                 className="text-slate-600 hover:text-emerald-400 p-1"
-                                title={profilerClimbByActivityId?.get(String(act.id)) ? 'Open in Climb Profiler' : 'Open in Climb Profiler (approximate — link from Strava route)'}
+                                title={
+                                    profilerClimbByActivityId?.get(String(act.id))
+                                        ? 'Open in Climb Profiler'
+                                        : act.strava_map
+                                            ? 'Open in Climb Profiler (benadering — route uit Strava)'
+                                            : 'Open in Climb Profiler (standaard klim — geen route in data; kies klim in tab)'
+                                }
                             >
                                 <Route size={14} />
                             </button>
