@@ -224,21 +224,28 @@ def transform_activity(activity: dict) -> dict:
         default=0
     ))
 
-    # === WORK (kJ) ===
-    # Intervals.icu returns joules, we need kilojoules
-    work_joules = safe_float(get_first_valid(
-        activity.get("icu_joules"),
-        activity.get("joules"),
-        default=0
-    ))
-    if work_joules > 0:
-        work_kj = int(work_joules / 1000)
-    elif avg_power > 0 and time_seconds > 0:
-        # Fallback: Calculate from avg power and time
-        # Note: This is an approximation assuming constant power output
+    # === WORK (kJ) — align with src/utils/intervals.js normalizeIntervalsActivity ===
+    # Many list payloads expose kJ as work / kilojoules / total_work / energy (already kJ).
+    # icu_joules / joules are in Joules.
+    work_kj = 0
+    for key in ("work", "total_work", "kilojoules", "energy"):
+        raw = activity.get(key)
+        if raw is None or raw == "":
+            continue
+        n = safe_float(raw, 0)
+        if n > 0:
+            work_kj = int(round(n))
+            break
+    if work_kj == 0:
+        work_joules = safe_float(get_first_valid(
+            activity.get("icu_joules"),
+            activity.get("joules"),
+            default=0
+        ))
+        if work_joules > 0:
+            work_kj = int(work_joules / 1000)
+    if work_kj == 0 and avg_power > 0 and time_seconds > 0:
         work_kj = int((avg_power * time_seconds) / 1000)
-    else:
-        work_kj = 0
 
     # === POWER CURVE BESTS (PascalCase field names from API!) ===
     # Intervals.icu uses: Best1minpower, Best5minpower, Best10minpower, Best20minpower, Best60minpower
@@ -275,6 +282,18 @@ def transform_activity(activity: dict) -> dict:
         activity.get("w60min"),
         default=0
     ))
+    best_90min = safe_int(get_first_valid(
+        activity.get("Best90minpower"),
+        activity.get("best_90min_power"),
+        activity.get("w90min"),
+        default=0
+    ))
+    best_120min = safe_int(get_first_valid(
+        activity.get("Best120minpower"),
+        activity.get("best_120min_power"),
+        activity.get("w120min"),
+        default=0
+    ))
 
     # === ACTIVITY TYPE DETECTION ===
     # Check trainer flag and title keywords for virtual detection
@@ -301,6 +320,8 @@ def transform_activity(activity: dict) -> dict:
         "best_10min": best_10min,
         "best_20min": best_20min,
         "best_60min": best_60min,
+        "best_90min": best_90min,
+        "best_120min": best_120min,
         "eFTP": safe_int(activity.get("icu_eftp"), 0) # Add eFTP
     }
 
