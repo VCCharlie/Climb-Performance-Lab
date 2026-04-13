@@ -133,3 +133,21 @@ export function aggregatePeriodStats(activities) {
         elevationM: Math.round(elevationM),
     };
 }
+
+/**
+ * Top N rides by stored distance (km), for dashboard "longest rides" tables.
+ * @param {object[]} activities
+ * @param {number} n
+ * @returns {{ activity: object, km: number }[]}
+ */
+export function topNLongestRidesByDistanceKm(activities, n = 10) {
+    const cap = Math.max(1, Math.min(50, Number(n) || 10));
+    const rows = [];
+    for (const a of activities || []) {
+        const km = activityDistanceKm(a);
+        if (km == null || Number.isNaN(km) || km <= 0) continue;
+        rows.push({ activity: a, km });
+    }
+    rows.sort((x, y) => y.km - x.km);
+    return rows.slice(0, cap);
+}
