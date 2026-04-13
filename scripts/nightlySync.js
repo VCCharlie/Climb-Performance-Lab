@@ -173,6 +173,15 @@ async function upsertToFirestore(db, newActivities, isDryRun) {
             // Bewaar Strava-verrijkte HR als Intervals geen HR heeft
             if (exactMatch.avg_hr && exactMatch.avg_hr > 0 && (!actToSave.avg_hr || actToSave.avg_hr === 0)) actToSave.avg_hr = exactMatch.avg_hr;
             if (exactMatch.max_hr && exactMatch.max_hr > 0 && (!actToSave.max_hr || actToSave.max_hr === 0)) actToSave.max_hr = exactMatch.max_hr;
+            // kJ / power-curve: keep Firestore value if cloud transform missed Intervals fields
+            if (exactMatch.work && Number(exactMatch.work) > 0 && (!actToSave.work || Number(actToSave.work) === 0)) {
+                actToSave.work = exactMatch.work;
+            }
+            for (const k of ['best_1min', 'best_5min', 'best_10min', 'best_20min', 'best_60min', 'best_90min', 'best_120min']) {
+                const ex = Number(exactMatch[k]);
+                const nw = Number(actToSave[k]);
+                if (ex > 0 && (!nw || nw === 0)) actToSave[k] = exactMatch[k];
+            }
 
             toProcess.push(actToSave);
             updatedCount++;
@@ -192,6 +201,14 @@ async function upsertToFirestore(db, newActivities, isDryRun) {
             if (duplicateMatch.gear_name) actToSave.gear_name = duplicateMatch.gear_name;
             if (duplicateMatch.avg_hr && duplicateMatch.avg_hr > 0 && (!actToSave.avg_hr || actToSave.avg_hr === 0)) actToSave.avg_hr = duplicateMatch.avg_hr;
             if (duplicateMatch.max_hr && duplicateMatch.max_hr > 0 && (!actToSave.max_hr || actToSave.max_hr === 0)) actToSave.max_hr = duplicateMatch.max_hr;
+            if (duplicateMatch.work && Number(duplicateMatch.work) > 0 && (!actToSave.work || Number(actToSave.work) === 0)) {
+                actToSave.work = duplicateMatch.work;
+            }
+            for (const k of ['best_1min', 'best_5min', 'best_10min', 'best_20min', 'best_60min', 'best_90min', 'best_120min']) {
+                const ex = Number(duplicateMatch[k]);
+                const nw = Number(actToSave[k]);
+                if (ex > 0 && (!nw || nw === 0)) actToSave[k] = duplicateMatch[k];
+            }
 
             toProcess.push(actToSave);
             mergedCount++;
