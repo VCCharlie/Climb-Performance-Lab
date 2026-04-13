@@ -4,6 +4,7 @@ import { X, Edit2, Save, Bike, ArrowUpRight } from 'lucide-react';
 import { formatTime } from '../../utils';
 import NlDateInput from '../NlDateInput';
 import { SPORT_TYPES } from '../../config';
+import { resolveStravaGearDisplay } from '../../utils/stravaBikesLocalMap';
 
 const getStoredBikes = () => {
     try {
@@ -41,33 +42,54 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
         onSave(formData);
     };
 
-    // Bereken unieke fietsnamen uit eerdere activiteiten als fallback
+    // Unieke fietsnamen uit historie (geen ruwe Strava gear_id als "naam")
     const uniqueBikesFallback = useMemo(() => {
         if (!allActivities || allActivities.length === 0) return [];
-        const names = [...new Set(allActivities.map(a => a.gear_name).filter(Boolean))];
+        const rawId = (s) => /^b\d+$/i.test(String(s).trim());
+        const names = [...new Set(allActivities.map((a) => a.gear_name).filter(Boolean))]
+            .map((s) => String(s).trim())
+            .filter((s) => s && !rawId(s));
         return names.sort((a, b) => a.localeCompare(b));
     }, [allActivities]);
 
-    // Gecombineerde lijst van fietsen (Strava cache + Historische unieke namen)
+    const bikesFromActivities = useMemo(() => {
+        const byId = new Map();
+        for (const a of allActivities || []) {
+            const gid = a?.gear_id != null ? String(a.gear_id).trim() : '';
+            if (!gid || byId.has(gid)) continue;
+            const { display } = resolveStravaGearDisplay(gid, a.gear_name);
+            if (display !== '-' && display !== gid) {
+                byId.set(gid, { id: gid, name: display });
+            }
+        }
+        return [...byId.values()];
+    }, [allActivities]);
+
+    // Gecombineerde lijst van fietsen (Strava cache + uit activiteiten + historische namen)
     const unifiedBikesList = useMemo(() => {
-        const list = [...availableBikes];
-        uniqueBikesFallback.forEach(name => {
-            if (!list.some(b => b.name === name)) {
-                // Gebruik de naam als ID omdat Strava ID onbekend is
+        const byId = new Map();
+        [...availableBikes, ...bikesFromActivities].forEach((b) => {
+            if (b?.id && !byId.has(b.id)) byId.set(b.id, b);
+        });
+        const list = [...byId.values()];
+        uniqueBikesFallback.forEach((name) => {
+            if (!list.some((b) => b.name === name)) {
                 list.push({ id: `hist_${name}`, name });
             }
         });
         return list.sort((a, b) => a.name.localeCompare(b.name));
-    }, [availableBikes, uniqueBikesFallback]);
+    }, [availableBikes, bikesFromActivities, uniqueBikesFallback]);
 
-    // Activeer custom mode als de huidige fiets niet in de lijst staat
+    // Custom alleen als gear echt niet in de lijst valt (id noch naam)
     React.useEffect(() => {
-        if (formData.gear_name && unifiedBikesList.length > 0) {
-            if (!unifiedBikesList.some(b => b.name === formData.gear_name)) {
-                setIsCustomGear(true);
-            }
-        }
-    }, [formData.gear_name, unifiedBikesList]);
+        const gid = formData.gear_id != null ? String(formData.gear_id).trim() : '';
+        const gn = formData.gear_name != null ? String(formData.gear_name).trim() : '';
+        if (!gid && !gn) return;
+        const inList = unifiedBikesList.some(
+            (b) => (gid && b.id === gid) || (gn && b.name === gn)
+        );
+        if (!inList && gn) setIsCustomGear(true);
+    }, [formData.gear_id, formData.gear_name, unifiedBikesList]);
 
     return (
         <div className="fixed inset-0 bg-cdbg/95 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
@@ -303,6 +325,14 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Best 60 min (W)</label>
                             <input name="best_60min" type="number" value={formData.best_60min || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Best 90 min (W)</label>
+                            <input name="best_90min" type="number" value={formData.best_90min || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Best 120 min (W)</label>
+                            <input name="best_120min" type="number" value={formData.best_120min || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
                         </div>
                     </div>
 
