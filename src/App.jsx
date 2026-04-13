@@ -288,6 +288,8 @@ const App = () => {
 
     /** Vanuit Dashboard: focus één activiteit in DataHub log */
     const [activityFocusId, setActivityFocusId] = useState(null);
+    /** Activity Log → Ranges panel: dicht na refresh; blijft open/dicht bij tab-wissel */
+    const [activityLogRangesExpanded, setActivityLogRangesExpanded] = useState(false);
     const [raceSubTab, setRaceSubTab] = useState('fueling');       // 'fueling' | 'racepacing'
 
     // Auth Listener
@@ -645,6 +647,8 @@ const App = () => {
                                 onFocusActivityCleared={() => setActivityFocusId(null)}
                                 onOpenProfilerFromActivity={handleOpenProfilerFromActivity}
                                 climbDatabaseForMatch={CLIMB_DATABASE}
+                                activityLogRangesExpanded={activityLogRangesExpanded}
+                                onActivityLogRangesExpandedChange={setActivityLogRangesExpanded}
                             />
                         )}
 

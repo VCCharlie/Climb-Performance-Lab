@@ -57,6 +57,8 @@ const DataHub = ({
     onFocusActivityCleared,
     onOpenProfilerFromActivity,
     climbDatabaseForMatch = CLIMB_DATABASE,
+    activityLogRangesExpanded = false,
+    onActivityLogRangesExpandedChange,
 }) => {
     // UI State
     const [internalTab, setInternalTab] = useState('log');
@@ -72,7 +74,6 @@ const DataHub = ({
     const [showStravaEnrichPanel, setShowStravaEnrichPanel] = useState(false);
     const [bulkSelectedIds, setBulkSelectedIds] = useState(() => new Set());
     const [stravaListProgress, setStravaListProgress] = useState(null);
-    const [rangesSectionExpanded, setRangesSectionExpanded] = useState(true);
     const [showMergeModal, setShowMergeModal] = useState(false);
     const [mergeError, setMergeError] = useState(null);
     const [isMerging, setIsMerging] = useState(false);
@@ -1416,18 +1417,18 @@ const DataHub = ({
                                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                                     <button
                                         type="button"
-                                        onClick={() => setRangesSectionExpanded((v) => !v)}
+                                        onClick={() => onActivityLogRangesExpandedChange?.(!activityLogRangesExpanded)}
                                         className="flex items-center gap-1.5 text-left shrink-0 text-[10px] font-bold text-cdtext uppercase hover:text-cdaccent"
-                                        aria-expanded={rangesSectionExpanded}
+                                        aria-expanded={activityLogRangesExpanded}
                                     >
-                                        {rangesSectionExpanded ? <ChevronDown size={14} className="text-cdmuted" /> : <ChevronRight size={14} className="text-cdmuted" />}
+                                        {activityLogRangesExpanded ? <ChevronDown size={14} className="text-cdmuted" /> : <ChevronRight size={14} className="text-cdmuted" />}
                                         Ranges
                                     </button>
                                     <span className="text-[9px] text-cdmuted hidden sm:inline">Dist · Spd · Pwr · Dur · Elev · kJ</span>
                                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 ml-auto">
                                         <button
                                             type="button"
-                                            onClick={() => setRangesSectionExpanded(true)}
+                                            onClick={() => onActivityLogRangesExpandedChange?.(true)}
                                             className="text-[9px] font-bold text-cdmuted hover:text-cdtext underline"
                                         >
                                             Expand
@@ -1435,7 +1436,7 @@ const DataHub = ({
                                         <span className="text-cdborder">|</span>
                                         <button
                                             type="button"
-                                            onClick={() => setRangesSectionExpanded(false)}
+                                            onClick={() => onActivityLogRangesExpandedChange?.(false)}
                                             className="text-[9px] font-bold text-cdmuted hover:text-cdtext underline"
                                         >
                                             Collapse
@@ -1451,7 +1452,7 @@ const DataHub = ({
                                         )}
                                     </div>
                                 </div>
-                                {rangesSectionExpanded && (
+                                {activityLogRangesExpanded && (
                                 <>
                                 <div className="flex flex-wrap items-end gap-x-3 gap-y-2 text-[10px] text-cdmuted">
                                     <label className="flex flex-col gap-0.5">

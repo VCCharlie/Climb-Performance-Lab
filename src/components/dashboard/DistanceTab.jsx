@@ -1,0 +1,31 @@
+import React from 'react';
+import LongestRidesPanel from './LongestRidesPanel';
+
+/**
+ * Dashboard sub-tab: longest rides (distance) — separate from Power tab.
+ */
+const DistanceTab = ({
+    chartData,
+    timeRange,
+    customStart,
+    customEnd,
+    referenceEndDate,
+    onOpenActivityInLog,
+}) => (
+    <div className="space-y-6 animate-in fade-in duration-300">
+        <div className="rounded-lg border border-cdborder bg-cdbg/30 p-3 text-xs text-cdmuted leading-relaxed">
+            Langste ritten op basis van <strong className="text-cdtext">opgeslagen afstand (km)</strong> in dezelfde periode
+            als de globale site-preset (1M, 1Y, Custom, …). Vergelijking werkt zoals bij Power → Top 10 per duur.
+        </div>
+        <LongestRidesPanel
+            chartData={chartData}
+            timeRange={timeRange}
+            customStart={customStart}
+            customEnd={customEnd}
+            referenceEndDate={referenceEndDate}
+            onOpenActivityInLog={onOpenActivityInLog}
+        />
+    </div>
+);
+
+export default DistanceTab;

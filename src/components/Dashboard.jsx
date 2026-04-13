@@ -3,6 +3,7 @@ import { calculateBassettCorrection } from '../utils';
 import OverviewTab from './dashboard/OverviewTab';
 import FormTab from './dashboard/FormTab';
 import PowerTab from './dashboard/PowerTab';
+import DistanceTab from './dashboard/DistanceTab';
 
 /**
  * Enriches a single activity record with dashboard-specific derived fields:
@@ -107,19 +108,27 @@ const Dashboard = ({
             </div>
 
             {/* SUB-TABS NAVIGATION */}
-            <div className="flex border-b border-cdborder mb-4">
+            <div className="flex flex-wrap border-b border-cdborder mb-4">
                 <button
+                    type="button"
                     onClick={() => setDashboardTab('overview')}
-                    className={`flex-1 py-3 text-sm font-bold ${dashboardTab === 'overview' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
+                    className={`flex-1 min-w-[5.5rem] py-3 text-sm font-bold ${dashboardTab === 'overview' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
                 >Overview</button>
                 <button
+                    type="button"
                     onClick={() => setDashboardTab('form')}
-                    className={`flex-1 py-3 text-sm font-bold ${dashboardTab === 'form' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
+                    className={`flex-1 min-w-[5.5rem] py-3 text-sm font-bold ${dashboardTab === 'form' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
                 >Form</button>
                 <button
+                    type="button"
                     onClick={() => setDashboardTab('power')}
-                    className={`flex-1 py-3 text-sm font-bold ${dashboardTab === 'power' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
+                    className={`flex-1 min-w-[5.5rem] py-3 text-sm font-bold ${dashboardTab === 'power' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
                 >Power</button>
+                <button
+                    type="button"
+                    onClick={() => setDashboardTab('distance')}
+                    className={`flex-1 min-w-[5.5rem] py-3 text-sm font-bold ${dashboardTab === 'distance' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
+                >Afstand</button>
             </div>
 
             {/* TAB CONTENT */}
@@ -150,6 +159,17 @@ const Dashboard = ({
                     customEnd={customEnd}
                     referenceEndDate={referenceEndDate}
                     weightKg={userWeightKg}
+                    onOpenActivityInLog={onOpenActivityInLog}
+                />
+            )}
+
+            {dashboardTab === 'distance' && (
+                <DistanceTab
+                    chartData={chartData}
+                    timeRange={timeRange}
+                    customStart={customStart}
+                    customEnd={customEnd}
+                    referenceEndDate={referenceEndDate}
                     onOpenActivityInLog={onOpenActivityInLog}
                 />
             )}

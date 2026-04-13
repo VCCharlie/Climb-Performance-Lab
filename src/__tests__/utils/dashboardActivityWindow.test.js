@@ -8,6 +8,7 @@ import {
     calendarYearBounds,
     boundsToYmdPair,
     aggregatePeriodStats,
+    topNLongestRidesByDistanceKm,
 } from '../../utils/dashboardActivityWindow';
 
 describe('getDashboardWindowBounds', () => {
@@ -96,6 +97,19 @@ describe('aggregatePeriodStats', () => {
         expect(s.rideCount).toBe(2);
         expect(s.distanceKm).toBe(80);
         expect(s.elevationM).toBe(800);
+    });
+});
+
+describe('topNLongestRidesByDistanceKm', () => {
+    it('orders by km descending and caps at n', () => {
+        const acts = [
+            { id: 1, distance: 50 },
+            { id: 2, distance: 120 },
+            { id: 3, distance: 80 },
+        ];
+        const r = topNLongestRidesByDistanceKm(acts, 2);
+        expect(r.map((x) => x.activity.id)).toEqual([2, 3]);
+        expect(r[0].km).toBe(120);
     });
 });
 
