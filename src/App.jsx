@@ -177,7 +177,8 @@ const App = () => {
             const loadedActs = snapshot.docs.map(d => d.data());
 
             if (loadedActs.length > 0) {
-                loadedActs.sort((a, b) => new Date(b.date) - new Date(a.date));
+                // Optimization: use string comparison for ISO dates to speed up sort
+                loadedActs.sort((a, b) => a.date < b.date ? 1 : (a.date > b.date ? -1 : 0));
                 setActivities(loadedActs);
                 console.log(`[Refresh] Server-fetch van ${loadedActs.length} activiteiten.`);
             } else {
@@ -379,7 +380,8 @@ const App = () => {
             const loadedActs = Array.from(byNormId.values());
 
             if (loadedActs.length > 0) {
-                loadedActs.sort((a, b) => new Date(b.date) - new Date(a.date));
+                // Optimization: use string comparison for ISO dates to speed up sort
+                loadedActs.sort((a, b) => a.date < b.date ? 1 : (a.date > b.date ? -1 : 0));
                 React.startTransition(() => {
                     setActivities(loadedActs);
                 });

@@ -47,7 +47,8 @@ const Dashboard = ({
     const chartData = useMemo(() => {
         return firestoreActivities
             .map(a => enhanceActivity(a, manualFtp))
-            .sort((a, b) => new Date(a.date) - new Date(b.date));
+            // Optimization: use string comparison for ISO dates to speed up sort
+            .sort((a, b) => a.date < b.date ? -1 : (a.date > b.date ? 1 : 0));
     }, [firestoreActivities, manualFtp]);
 
     // --- Filter Logic ---
