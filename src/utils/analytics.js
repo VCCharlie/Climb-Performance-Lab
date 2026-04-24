@@ -9,7 +9,8 @@ export const calculateRollingAverage = (data, key, windowSize = 30) => {
     if (!data || data.length === 0) return [];
 
     // Sort by date just in case
-    const sorted = [...data].sort((a, b) => new Date(a.date) - new Date(b.date));
+    // Optimization: use string comparison for ISO dates to speed up sort
+    const sorted = [...data].sort((a, b) => a.date < b.date ? -1 : (a.date > b.date ? 1 : 0));
 
     return sorted.map((item, index) => {
         // Get window of items ending at current index

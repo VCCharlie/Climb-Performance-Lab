@@ -12,7 +12,8 @@ export const findDuplicates = (activities) => {
     if (!activities || activities.length < 2) return [];
 
     // 1. Sort by Date/Time (Ascending)
-    const sorted = [...activities].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    // Optimization: use string comparison for ISO dates to speed up sort
+    const sorted = [...activities].sort((a, b) => a.date < b.date ? -1 : (a.date > b.date ? 1 : 0));
 
     const conflicts = [];
     const processedIds = new Set();
