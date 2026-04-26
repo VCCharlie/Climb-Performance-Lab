@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Gamepad2 } from 'lucide-react';
 
 const FlagIcon = ({ country, size = 'sm', className = '' }) => {
+    const [hasError, setHasError] = useState(false);
+
     if (!country) return null;
 
     if (country.toUpperCase() === 'ZWIFT') {
@@ -19,17 +21,20 @@ const FlagIcon = ({ country, size = 'sm', className = '' }) => {
 
     return (
         <div className={`inline-flex items-center justify-center ${dimensions} overflow-hidden rounded-sm shadow-sm bg-cdborder/30 ${className}`}>
-            <img
-                src={`https://flagcdn.com/w${imgWidth}/${code}.png`}
-                srcSet={`https://flagcdn.com/w${imgWidth * 2}/${code}.png 2x`}
-                alt={`${country} flag`}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                    // Fallback to a placeholder if image fails
-                    e.target.style.display = 'none';
-                    e.target.parentElement.innerHTML = `<span class="text-[8px] font-bold text-cdmuted">${country}</span>`;
-                }}
-            />
+            {hasError ? (
+                <span className="text-[8px] font-bold text-cdmuted">{country}</span>
+            ) : (
+                <img
+                    src={`https://flagcdn.com/w${imgWidth}/${code}.png`}
+                    srcSet={`https://flagcdn.com/w${imgWidth * 2}/${code}.png 2x`}
+                    alt={`${country} flag`}
+                    className="w-full h-full object-cover"
+                    onError={() => {
+                        // Fallback to a placeholder if image fails
+                        setHasError(true);
+                    }}
+                />
+            )}
         </div>
     );
 };

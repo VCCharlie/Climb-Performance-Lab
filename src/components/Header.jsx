@@ -118,8 +118,9 @@ const Header = ({ userSettings, onOpenSettings, user, syncStatus, lastActivityDa
 
           <button
             onClick={onOpenSettings}
-            className="bg-cdsurface hover:bg-cdborder p-2 rounded-full text-cdtext transition-all shadow-lg border border-cdborder focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
             aria-label="Settings and Configuration"
+            title="Settings"
+            className="bg-cdsurface hover:bg-cdborder p-2 rounded-full text-cdtext transition-all shadow-lg border border-cdborder focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
           >
             <Settings size={20} aria-hidden="true" />
           </button>

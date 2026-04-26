@@ -177,7 +177,7 @@ export async function enrichActivityGearFromStrava(merged, stravaSide, token) {
             storeKm != null
             && stravaKm != null
             && stravaKm < 5
-            && storeKm > 50
+            && storeKm > 2
             && storeKm >= stravaKm * 80;
         if (stravaKm != null && (storeKm == null || storeKm <= 0 || suspicious)) {
             out.distance = stravaKm;
