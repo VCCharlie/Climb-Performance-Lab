@@ -7,7 +7,7 @@ import { getAnalytics } from "firebase/analytics";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBNWzcEXhzra-iCkHiZj_FdYUf0NcKvHAk",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: "climb-performance-lab.firebaseapp.com",
   projectId: "climb-performance-lab",
   storageBucket: "climb-performance-lab.firebasestorage.app",

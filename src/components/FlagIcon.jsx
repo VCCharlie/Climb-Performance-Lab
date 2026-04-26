@@ -1,12 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Gamepad2 } from 'lucide-react';
 
-const FlagIcon = ({ country, size = 'sm', className = '' }) => {
+/** Renders flagcdn image with text fallback; remounted when `country` changes so error state resets without effects. */
+function FlagCdnImage({ country, code, imgWidth }) {
     const [imageError, setImageError] = useState(false);
-    useEffect(() => {
-        setImageError(false);
-    }, [country]);
 
+    if (imageError) {
+        return <span className="text-[8px] font-bold text-cdmuted">{country}</span>;
+    }
+
+    return (
+        <img
+            src={`https://flagcdn.com/w${imgWidth}/${code}.png`}
+            srcSet={`https://flagcdn.com/w${imgWidth * 2}/${code}.png 2x`}
+            alt={`${country} flag`}
+            className="w-full h-full object-cover"
+            onError={() => {
+                setImageError(true);
+            }}
+        />
+    );
+}
+
+const FlagIcon = ({ country, size = 'sm', className = '' }) => {
     if (!country) return null;
 
     if (country.toUpperCase() === 'ZWIFT') {
@@ -24,19 +40,7 @@ const FlagIcon = ({ country, size = 'sm', className = '' }) => {
 
     return (
         <div className={`inline-flex items-center justify-center ${dimensions} overflow-hidden rounded-sm shadow-sm bg-cdborder/30 ${className}`}>
-            {imageError ? (
-                <span className="text-[8px] font-bold text-cdmuted">{country}</span>
-            ) : (
-                <img
-                    src={`https://flagcdn.com/w${imgWidth}/${code}.png`}
-                    srcSet={`https://flagcdn.com/w${imgWidth * 2}/${code}.png 2x`}
-                    alt={`${country} flag`}
-                    className="w-full h-full object-cover"
-                    onError={() => {
-                        setImageError(true);
-                    }}
-                />
-            )}
+            <FlagCdnImage key={country} country={country} code={code} imgWidth={imgWidth} />
         </div>
     );
 };

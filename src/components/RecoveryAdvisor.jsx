@@ -27,7 +27,8 @@ const RecoveryAdvisor = ({ activities, startDate, endDate }) => {
         }
 
         // Sort activities by date
-        const sortedActivities = [...activities].sort((a, b) => new Date(a.date) - new Date(b.date));
+        // Optimization: use string comparison for ISO dates to speed up sort
+        const sortedActivities = [...activities].sort((a, b) => a.date < b.date ? -1 : (a.date > b.date ? 1 : 0));
 
         // Calculate rolling metrics
         const CTL_DAYS = 42; // Chronic Training Load (fitness) - 42 day exponential average

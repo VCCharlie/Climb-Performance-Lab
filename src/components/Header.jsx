@@ -99,8 +99,9 @@ const Header = ({ userSettings, onOpenSettings, user, syncStatus, lastActivityDa
 
           <button
             onClick={handleAuth}
-            className="flex items-center gap-2 text-xs font-bold text-cdmuted hover:text-cdtext transition-colors"
+            className="flex items-center gap-2 text-xs font-bold text-cdmuted hover:text-cdtext transition-colors focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-full p-1"
             title={user ? `Logged in as ${user.displayName}` : "Login with Google"}
+            aria-label={user ? `Logout ${user.displayName}` : "Login with Google"}
           >
             {user ? (
               <>
@@ -117,9 +118,11 @@ const Header = ({ userSettings, onOpenSettings, user, syncStatus, lastActivityDa
 
           <button
             onClick={onOpenSettings}
-            className="bg-cdsurface hover:bg-cdborder p-2 rounded-full text-cdtext transition-all shadow-lg border border-cdborder"
+            aria-label="Settings and Configuration"
+            title="Settings"
+            className="bg-cdsurface hover:bg-cdborder p-2 rounded-full text-cdtext transition-all shadow-lg border border-cdborder focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
           >
-            <Settings size={20} />
+            <Settings size={20} aria-hidden="true" />
           </button>
         </div>
       </div>
