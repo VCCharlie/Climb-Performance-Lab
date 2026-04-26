@@ -12,20 +12,26 @@ export const calculateRollingAverage = (data, key, windowSize = 30) => {
     // Optimization: use string comparison for ISO dates to speed up sort
     const sorted = [...data].sort((a, b) => a.date < b.date ? -1 : (a.date > b.date ? 1 : 0));
 
-    return sorted.map((item, index) => {
-        // Get window of items ending at current index
-        // Limit start to avoid negative index
-        const start = Math.max(0, index - windowSize + 1);
-        const subset = sorted.slice(start, index + 1);
+    let currentSum = 0;
+    const result = new Array(sorted.length);
 
-        const sum = subset.reduce((acc, curr) => acc + (Number(curr[key]) || 0), 0);
-        const avg = sum / subset.length;
+    for (let i = 0; i < sorted.length; i++) {
+        const val = Number(sorted[i][key]) || 0;
+        currentSum += val;
 
-        return {
-            ...item,
-            [`${key}_avg`]: Math.round(avg)
+        const startIdx = i - windowSize + 1;
+        if (startIdx > 0) {
+            currentSum -= Number(sorted[startIdx - 1][key]) || 0;
+        }
+
+        const count = Math.min(i + 1, windowSize);
+        result[i] = {
+            ...sorted[i],
+            [`${key}_avg`]: Math.round(currentSum / count)
         };
-    });
+    }
+
+    return result;
 };
 
 /**
