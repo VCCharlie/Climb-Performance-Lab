@@ -416,7 +416,14 @@ const App = () => {
         if (!db) return;
         try {
             const settingsId = user ? `user_${user.uid}` : "user_prefs";
-            console.log("Saving Settings to Cloud:", { intervals: intervalsConfig, body: userSettings, theme, bucketList: bucketListState, strava: stravaConfig, stravaProfile: stravaProfileData });
+            console.log("Saving Settings to Cloud:", {
+                intervals: { ...intervalsConfig, apiKey: intervalsConfig.apiKey ? '***REDACTED***' : '' },
+                body: userSettings,
+                theme,
+                bucketList: bucketListState,
+                strava: { ...stravaConfig, client_secret: stravaConfig.client_secret ? '***REDACTED***' : '' },
+                stravaProfile: stravaProfileData
+            });
             await setDoc(doc(db, "settings", settingsId), {
                 intervals: intervalsConfig,
                 body: userSettings,
