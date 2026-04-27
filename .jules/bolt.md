@@ -4,3 +4,6 @@
 ## 2024-05-28 - O(N) Rolling Average
 **Learning:** Found a performance bottleneck in `src/utils/analytics.js` where the rolling average computation had an O(N * W) time complexity due to nested iterations (`map` over array, and `slice().reduce()` inside).
 **Action:** Replaced the nested loops with a single-pass O(N) sliding window that maintains a `currentSum`, substantially improving performance, especially on larger data sets.
+## 2025-04-27 - Date.toLocaleString array looping
+**Learning:** Calling `Date.toLocaleString()` inside a loop over an array of items is notoriously slow in JavaScript because it repeatedly instantiates the `Intl.DateTimeFormat` API under the hood.
+**Action:** Replace this with a simple array index lookup (e.g. `MONTH_ORDER[d.getMonth()]`). It is a classic, highly effective performance optimization.
