@@ -121,7 +121,8 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
             try {
                 const d = new Date(act.date);
                 const y = d.getFullYear();
-                const m = d.toLocaleString('en-US', { month: 'long' });
+                // Optimization: Use array index lookup instead of slow toLocaleString in a loop
+                const m = MONTH_ORDER[d.getMonth()];
                 if (!groupedActivities[y]) groupedActivities[y] = {};
                 if (!groupedActivities[y][m]) groupedActivities[y][m] = [];
                 groupedActivities[y][m].push(act);
