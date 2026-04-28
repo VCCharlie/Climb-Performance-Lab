@@ -12,3 +12,8 @@
 **Vulnerability:** The application was logging the full configuration objects (`intervalsConfig` and `stravaConfig`) to the browser console when saving settings to the cloud (`src/App.jsx`). This included sensitive information such as the `apiKey` and `client_secret`.
 **Learning:** Console logs are accessible to any script running on the page, including third-party scripts. Logging sensitive information, even temporarily for debugging purposes, exposes credentials and can lead to unauthorized access or data breaches.
 **Prevention:** Always sanitize objects before logging them to the console. Explicitly redact or exclude sensitive fields (like passwords, API keys, and secrets) from the data being logged.
+
+## 2024-11-20 - [Sensitive Data Exposure in Console Logs - User Settings]
+**Vulnerability:** Similar to previous config leaks, the application was logging the full `userSettings` object to the browser console when saving settings to the cloud (`src/App.jsx`). This included sensitive information such as the `githubPat` and `openweatherApiKey`.
+**Learning:** When adding new sensitive configurations to an existing settings object, it's easy to forget to update the corresponding console log sanitization steps, especially if they are logged in bulk (e.g. `body: userSettings`).
+**Prevention:** Apply strict property picking for logs instead of logging the full object, or explicitly redact newly added secrets within the logging payload.

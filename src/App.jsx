@@ -418,7 +418,11 @@ const App = () => {
             const settingsId = user ? `user_${user.uid}` : "user_prefs";
             console.log("Saving Settings to Cloud:", {
                 intervals: { ...intervalsConfig, apiKey: intervalsConfig.apiKey ? '***REDACTED***' : '' },
-                body: userSettings,
+                body: {
+                    ...userSettings,
+                    githubPat: userSettings.githubPat ? '***REDACTED***' : '',
+                    openweatherApiKey: userSettings.openweatherApiKey ? '***REDACTED***' : ''
+                },
                 theme,
                 bucketList: bucketListState,
                 strava: { ...stravaConfig, client_secret: stravaConfig.client_secret ? '***REDACTED***' : '' },
