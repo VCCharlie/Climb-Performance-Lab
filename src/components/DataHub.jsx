@@ -1027,7 +1027,7 @@ const DataHub = ({
                                     </h3>
                                     <p className="text-xs text-cdmuted mt-0.5">Select which ones to remove.</p>
                                 </div>
-                                <button onClick={() => setShowNoPowerModal(false)} className="text-cdmuted hover:text-cdtext text-lg font-bold px-2">✕</button>
+                                <button aria-label="Close modal" onClick={() => setShowNoPowerModal(false)} className="text-cdmuted hover:text-cdtext text-lg font-bold px-2 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded">✕</button>
                             </div>
                             <div className="flex items-center gap-3 px-4 py-2 border-b border-cdborder bg-cdbg/40">
                                 <input type="checkbox" checked={allSelected} onChange={toggleAll} className="accent-yellow-400 w-4 h-4" />
@@ -1075,8 +1075,9 @@ const DataHub = ({
                             </h3>
                             <button
                                 type="button"
+                                aria-label="Close modal"
                                 onClick={() => { setShowMergeModal(false); setMergeError(null); }}
-                                className="text-cdmuted hover:text-cdtext text-lg font-bold px-2"
+                                className="text-cdmuted hover:text-cdtext text-lg font-bold px-2 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded"
                             >
                                 ✕
                             </button>
