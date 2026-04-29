@@ -7,3 +7,6 @@
 ## 2025-04-27 - Date.toLocaleString array looping
 **Learning:** Calling `Date.toLocaleString()` inside a loop over an array of items is notoriously slow in JavaScript because it repeatedly instantiates the `Intl.DateTimeFormat` API under the hood.
 **Action:** Replace this with a simple array index lookup (e.g. `MONTH_ORDER[d.getMonth()]`). It is a classic, highly effective performance optimization.
+## 2024-05-29 - Avoid Date.toLocaleString in loops
+**Learning:** Calling `Date.toLocaleString()` inside loops or array maps (like chart data generation) creates huge performance bottlenecks because it repeatedly instantiates the `Intl.DateTimeFormat` API. This is especially true for dashboards rendering hundreds of data points.
+**Action:** When creating text labels for months/dates inside loops, use array lookups with predefined text strings (e.g., `const NL_MONTHS = ['jan', 'feb', ...]`) and simple string manipulation instead.
