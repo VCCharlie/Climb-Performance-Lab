@@ -26,14 +26,18 @@ const getWeekKey = (dateStr) => {
 const getMonthKey = (dateStr) => dateStr.slice(0, 7); // "YYYY-MM"
 const getYearKey = (dateStr) => dateStr.slice(0, 4); // "YYYY"
 
+const NL_MONTHS_SHORT = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+
 const formatMonthLabel = (key) => {
     const [y, m] = key.split('-');
-    return new Date(y, m - 1).toLocaleString('nl-NL', { month: 'short', year: '2-digit' });
+    // Optimization: avoid slow toLocaleString
+    return `${NL_MONTHS_SHORT[parseInt(m, 10) - 1]} ${y.slice(-2)}`;
 };
 
 const formatWeekLabel = (key) => {
     const d = new Date(key);
-    return `${d.getDate()} ${d.toLocaleString('nl-NL', { month: 'short' })}`;
+    // Optimization: avoid slow toLocaleString
+    return `${d.getDate()} ${NL_MONTHS_SHORT[d.getMonth()]}`;
 };
 
 const METRIC_FIELD = {

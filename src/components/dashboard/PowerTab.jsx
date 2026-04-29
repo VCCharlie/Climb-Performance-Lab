@@ -83,9 +83,12 @@ const PowerTab = ({
             if (v60 <= cap60 && v60 > map[mo].b60) map[mo].b60 = v60;
         });
 
+        const NL_MONTHS_SHORT = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+
         return Object.keys(map).sort().map(mo => {
             const [y, m] = mo.split('-');
-            const label = new Date(y, m - 1).toLocaleString('nl-NL', { month: 'short', year: '2-digit' });
+            // Optimization: avoid slow toLocaleString
+            const label = `${NL_MONTHS_SHORT[parseInt(m, 10) - 1]} ${y.slice(-2)}`;
             return {
                 label,
                 'a_5min':  map[mo].b5  || null,
