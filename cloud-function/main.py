@@ -401,21 +401,37 @@ def sync_intervals(request):
 
     Returns: JSON array of transformed activities
     """
+    # Determine allowed CORS origin
+    origin = request.headers.get("Origin")
+    allowed_origins_env = os.environ.get("ALLOWED_CORS_ORIGINS", "http://localhost:5173")
+    allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
+
+    if "*" in allowed_origins:
+        cors_origin = "*"
+    elif origin in allowed_origins:
+        cors_origin = origin
+    else:
+        cors_origin = allowed_origins[0] if allowed_origins else "http://localhost:5173"
+
     # Handle CORS preflight
     if request.method == "OPTIONS":
         headers = {
-            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Origin": cors_origin,
             "Access-Control-Allow-Methods": "POST, OPTIONS",
             "Access-Control-Allow-Headers": "Content-Type",
             "Access-Control-Max-Age": "3600",
         }
+        if cors_origin != "*":
+            headers["Vary"] = "Origin"
         return ("", 204, headers)
 
     # CORS headers for actual request
     cors_headers = {
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": cors_origin,
         "Content-Type": "application/json"
     }
+    if cors_origin != "*":
+        cors_headers["Vary"] = "Origin"
 
     try:
         # Parse request
