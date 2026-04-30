@@ -13,7 +13,7 @@ const OverviewTab = ({ data, manualFtp, customTicks, onOpenActivityInLog }) => {
     if (!data || data.length === 0) {
         return (
             <div className="flex items-center justify-center h-40 text-cdmuted">
-                Geen data beschikbaar voor deze periode.
+                No data available for this period.
             </div>
         );
     }
@@ -33,15 +33,15 @@ const OverviewTab = ({ data, manualFtp, customTicks, onOpenActivityInLog }) => {
                 <BarChartCard
                     data={data}
                     metric="distance"
-                    title="Afstand"
+                    title="Distance"
                     unit="km"
                     color="rgba(59,130,246,0.75)"
                 />
                 <BarChartCard
                     data={data}
                     metric="moving_time"
-                    title="Tijd"
-                    unit="uur"
+                    title="Time"
+                    unit="hour"
                     color="rgba(168,85,247,0.75)"
                 />
                 <BarChartCard
@@ -54,7 +54,7 @@ const OverviewTab = ({ data, manualFtp, customTicks, onOpenActivityInLog }) => {
                 <BarChartCard
                     data={data}
                     metric="elevation"
-                    title="Hoogtemeters"
+                    title="Elevation"
                     unit="m"
                     color="rgba(34,197,94,0.75)"
                 />
