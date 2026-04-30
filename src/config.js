@@ -13,7 +13,9 @@ export const ACTIVITY_COLUMNS = [
     /** UI only — kept for CSV/schema continuity; hidden in table (see hideInTable). */
     { key: 'data_source', label: 'Source', align: 'center', width: 'w-[4.5rem]', hideInTable: true },
     { key: 'title', label: 'Title', align: 'left', width: 'min-w-[120px] max-w-[200px] truncate' },
-    { key: 'gear_name', label: 'Fiets', align: 'left', width: 'w-28' },
+    /** Derived in UI from title vs climb database — not stored on activity documents. */
+    { key: 'matched_climb', label: 'Climb', align: 'left', width: 'w-24 max-w-[140px]', omitFromExport: true },
+    { key: 'gear_name', label: 'Bike', align: 'left', width: 'w-28' },
     { key: 'moving_time', label: 'Time', align: 'right', width: 'w-14' },
     { key: 'distance', label: 'Dist', align: 'right', width: 'w-12' },
     { key: 'climbing', label: 'Elev', align: 'right', width: 'w-12' },
