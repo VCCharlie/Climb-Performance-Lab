@@ -38,7 +38,7 @@ describe('powerCurveForWindow', () => {
         ];
         const curve = powerCurveForWindow(acts, 250);
         expect(curve['5m']).toBeGreaterThan(0);
-        expect(curve['1u']).toBeGreaterThan(0);
+        expect(curve['1h']).toBeGreaterThan(0);
     });
 });
 

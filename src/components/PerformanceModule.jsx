@@ -461,11 +461,11 @@ const PerformanceModule = ({
                                     tickFormatter={(timestamp) => {
                                         const d = new Date(timestamp);
                                         if (showYearOnAxis) {
-                                            const month = d.toLocaleDateString('nl-NL', { month: 'short' });
+                                            const month = d.toLocaleDateString('en-GB', { month: 'short' });
                                             const yearShort = d.getFullYear().toString().slice(-2);
                                             return `${d.getDate()} ${month} '${yearShort}`;
                                         }
-                                        return `${d.getDate()} ${d.toLocaleDateString('nl-NL', { month: 'short' })}`;
+                                        return `${d.getDate()} ${d.toLocaleDateString('en-GB', { month: 'short' })}`;
                                     }}
                                 />
 
