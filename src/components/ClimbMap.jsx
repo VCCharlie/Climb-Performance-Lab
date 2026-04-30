@@ -342,7 +342,7 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
                                         <option key={r} value={r}>{r} km</option>
                                     ))}
                                 </select>
-                                <button onClick={clearNearby} className="ml-1 text-blue-400 hover:text-blue-200">
+                                <button onClick={clearNearby} aria-label="Clear nearby filter" className="ml-1 text-blue-400 hover:text-blue-200 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded">
                                     <X size={12} />
                                 </button>
                             </div>

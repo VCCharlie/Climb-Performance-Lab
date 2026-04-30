@@ -28,7 +28,7 @@ const ImportModal = ({
                 <div className="flex-shrink-0 p-3 border-b border-cdborder flex justify-between items-center bg-cdbg">
                     <h3 className="font-bold text-cdtext flex items-center gap-2 text-sm"><Download size={16} className="text-green-400" /> {fetchedActivities.length} Activities Found</h3>
                     <span className="text-xs text-cdmuted ml-auto mr-4">Select to Import or Update</span>
-                    <button onClick={onClose} className="p-1 hover:bg-cdborder rounded"><X size={18} className="text-cdmuted hover:text-cdtext" /></button>
+                    <button onClick={onClose} aria-label="Close modal" className="p-1 hover:bg-cdborder rounded focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"><X size={18} className="text-cdmuted hover:text-cdtext" /></button>
                 </div>
                 <div className="flex-shrink-0 px-3 py-2 bg-cdsurface border-b border-cdborder flex flex-wrap gap-2 items-center">
                     <button onClick={() => setSelectedActivities(fetchedActivities.map(r => r.id))} className="text-xs bg-cdborder px-3 py-1.5 rounded text-cdtext hover:bg-slate-600">Select All</button>
