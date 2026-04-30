@@ -341,7 +341,7 @@ const PerformanceModule = ({
                                             onClick={() => onOpenActivityInLog(peak20Source.activity.id)}
                                             className="inline-flex items-center gap-1 px-2 py-1 rounded border border-cdborder bg-cdborder/30 hover:bg-cdborder text-cdtext font-bold"
                                         >
-                                            <ExternalLink size={12} /> Open in Activiteiten
+                                            <ExternalLink size={12} /> Open in Activities
                                         </button>
                                     )}
                                     {activityExternalLinks(peak20Source.activity).map((l) => (
@@ -373,7 +373,7 @@ const PerformanceModule = ({
                                             onClick={() => onOpenActivityInLog(peak60Source.activity.id)}
                                             className="inline-flex items-center gap-1 px-2 py-1 rounded border border-cdborder bg-cdborder/30 hover:bg-cdborder text-cdtext font-bold"
                                         >
-                                            <ExternalLink size={12} /> Open in Activiteiten
+                                            <ExternalLink size={12} /> Open in Activities
                                         </button>
                                     )}
                                     {peak60Source.activity.id !== peak20Source.activity?.id &&
