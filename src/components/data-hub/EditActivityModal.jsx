@@ -137,7 +137,7 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                             )}
                         </div>
                     </div>
-                    <button onClick={onClose} className="text-cdmuted hover:text-cdtext"><X size={20} /></button>
+                    <button onClick={onClose} aria-label="Close modal" className="text-cdmuted hover:text-cdtext focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"><X size={20} /></button>
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 overflow-y-auto custom-scrollbar space-y-4">

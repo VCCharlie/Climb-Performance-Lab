@@ -325,7 +325,7 @@ const ClimbSelector = ({
               >
                 {RADIUS_OPTIONS.map(r => <option key={r} value={r}>{r} km</option>)}
               </select>
-              <button onClick={clearNearby} className="text-blue-400 hover:text-blue-200 ml-0.5">
+              <button onClick={clearNearby} aria-label="Clear nearby filter" className="text-blue-400 hover:text-blue-200 ml-0.5 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded">
                 <X size={11} />
               </button>
             </div>
