@@ -14,7 +14,7 @@
 
 ## UI & theming
 - Use theme tokens/classes based on `cd*` CSS variables (e.g. `bg-cdsurface`, `text-cdtext`, `border-cdborder`, `text-cdaccent`, `text-cdmuted`). Avoid hardcoded slate/gray palettes for themed surfaces unless matching an existing unthemed island intentionally.
-- Preserve Dutch UI copy and intentional Dutch comments where they already exist; new user-facing Dutch is fine if consistent with surrounding copy.
+- **User-facing language:** All UI copy, labels, tooltips, empty states, and user-visible error messages must be **English**. Do not add new Dutch (or other non-English) strings in code. When editing legacy Dutch UI, translate to English in the same change if practical. Code comments may stay mixed unless a file is being fully localized.
 
 ## Integrations & data
 - Intervals.icu / activity import: respect normalizers in `src/utils/intervals.js` and sync hooks/services; do not invent field names—align with `src/config.js` activity columns and existing activity object shape in `CLAUDE.md`.
