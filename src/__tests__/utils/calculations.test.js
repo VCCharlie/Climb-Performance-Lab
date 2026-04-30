@@ -11,6 +11,7 @@ import {
   calculateRollingTrend,
   calculateClimbCategory,
   summarizeClimbPhysics,
+  haversineDistance,
 } from '../../utils/calculations';
 
 // ─── POWER ZONES (Coggan Model) ─────────────────────────────────────────────
@@ -325,5 +326,46 @@ describe('summarizeClimbPhysics', () => {
     });
     expect(s.pctFtp).toBe(null);
     expect(s.wkg).toBe(null);
+  });
+});
+
+// ─── GEO UTILITIES ───────────────────────────────────────────────────────────
+
+describe('haversineDistance', () => {
+  it('returns 0 for the same point', () => {
+    const dist = haversineDistance(51.5074, -0.1278, 51.5074, -0.1278);
+    expect(dist).toBe(0);
+  });
+
+  it('calculates distance between London and Paris (~344km)', () => {
+    // London: 51.5074, -0.1278
+    // Paris: 48.8566, 2.3522
+    const dist = haversineDistance(51.5074, -0.1278, 48.8566, 2.3522);
+    expect(dist).toBeCloseTo(343.5, 0);
+  });
+
+  it('calculates distance between New York and Los Angeles (~3936km)', () => {
+    const dist = haversineDistance(40.7128, -74.0060, 34.0522, -118.2437);
+    expect(dist).toBeCloseTo(3935.7, 0);
+  });
+
+  it('calculates distance between North and South Pole (~20004km)', () => {
+    const dist = haversineDistance(90, 0, -90, 0);
+    expect(dist).toBeCloseTo(20015, -1); // Earth isn't a perfect sphere, but Haversine assumes it is.
+    // 6371 * PI = 20015.04
+    expect(dist).toBeCloseTo(Math.PI * 6371, 1);
+  });
+
+  it('handles crossing the International Date Line', () => {
+    // Fiji: -17.7765, 177.4150
+    // Tonga: -21.1394, -175.2049
+    const dist = haversineDistance(-17.7765, 177.4150, -21.1394, -175.2049);
+    expect(dist).toBeCloseTo(759, 0);
+  });
+
+  it('is symmetric', () => {
+    const d1 = haversineDistance(51.5074, -0.1278, 48.8566, 2.3522);
+    const d2 = haversineDistance(48.8566, 2.3522, 51.5074, -0.1278);
+    expect(d1).toBe(d2);
   });
 });
