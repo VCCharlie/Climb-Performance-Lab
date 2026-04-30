@@ -58,4 +58,13 @@ describe('protectEnrichedFieldsOnMerge', () => {
     expect(out.avg_hr).toBe(142);
     expect(out.max_hr).toBe(178);
   });
+
+  it('keeps strava_kom_summary when incoming omits it', () => {
+    const kom = { label: 'PR · KOM#2', tooltip: 'Seg (PR, KOM#2)' };
+    const out = protectEnrichedFieldsOnMerge(
+      { id: '1', title: 'Ride', load: 100 },
+      { id: '1', strava_kom_summary: kom }
+    );
+    expect(out.strava_kom_summary).toEqual(kom);
+  });
 });

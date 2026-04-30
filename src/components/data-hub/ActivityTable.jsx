@@ -2,7 +2,7 @@
 import React from 'react';
 import {
     ArrowUpDown, ChevronUp, ChevronDown, ChevronRight, Monitor, Bike, Footprints,
-    Mountain, Edit2, Trash2, ExternalLink, Eye, Route
+    Mountain, Edit2, Trash2, ExternalLink, Eye, Route, Trophy,
 } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
 import { resolveStravaGearDisplay } from '../../utils/stravaBikesLocalMap';
@@ -60,7 +60,6 @@ export const Row = React.memo(({
     onToggleType,
     onOpenProfiler,
     profilerClimbByActivityId,
-    climbMatchByActivityId,
     showBulkSelect = false,
 }) => {
     const [isConfirmingDelete, setIsConfirmingDelete] = React.useState(false);
@@ -126,20 +125,21 @@ export const Row = React.memo(({
                         </span>
                     );
                 }
-                case 'matched_climb': {
-                    const climb = climbMatchByActivityId?.get(String(act.id));
-                    if (!climb?.name) {
-                        return <span className="text-cdmuted">—</span>;
+                case 'strava_kom_summary': {
+                    const s = act.strava_kom_summary;
+                    const label = s && typeof s === 'object' ? String(s.label || '').trim() : '';
+                    if (!label) {
+                        return <span className="text-cdmuted" title={act.strava_id ? 'Run Strava gear backfill or open details after linking Strava' : 'Link Strava to fetch segment efforts'}>—</span>;
                     }
-                    const flag = climb.flag || '';
+                    const tooltip = typeof s.tooltip === 'string' && s.tooltip.trim() ? s.tooltip : label;
+                    const showTrophy = label.includes('KOM');
                     return (
                         <span
-                            className="flex items-center gap-1 text-emerald-400/90 truncate max-w-[140px]"
-                            title={`Title match: ${climb.name}${climb.country ? ` (${climb.country})` : ''}`}
+                            className="flex items-center gap-1 text-amber-400/95 truncate max-w-[160px]"
+                            title={tooltip}
                         >
-                            {flag ? <span className="shrink-0 text-[10px]" aria-hidden>{flag}</span> : null}
-                            <Mountain size={12} className="shrink-0 opacity-80" aria-hidden />
-                            <span className="truncate text-[11px] font-semibold">{climb.name}</span>
+                            {showTrophy ? <Trophy size={12} className="shrink-0 opacity-90" aria-hidden /> : null}
+                            <span className="truncate text-[11px] font-semibold">{label}</span>
                         </span>
                     );
                 }
@@ -257,7 +257,6 @@ export const Row = React.memo(({
         prevProps.isPreview === nextProps.isPreview &&
         prevProps.showBulkSelect === nextProps.showBulkSelect &&
         prevProps.profilerClimbByActivityId === nextProps.profilerClimbByActivityId &&
-        prevProps.climbMatchByActivityId === nextProps.climbMatchByActivityId &&
         prevProps.onOpenProfiler === nextProps.onOpenProfiler
     );
 });
@@ -278,7 +277,6 @@ const ActivityTable = React.memo(({
     selectedActivityIds,
     onOpenProfiler,
     profilerClimbByActivityId,
-    climbMatchByActivityId,
     showBulkSelect = false,
     allVisibleSelected = false,
     onToggleSelectAllVisible,
@@ -315,7 +313,6 @@ const ActivityTable = React.memo(({
                                                 showBulkSelect={showBulkSelect}
                                                 onOpenProfiler={onOpenProfiler}
                                                 profilerClimbByActivityId={profilerClimbByActivityId}
-                                                climbMatchByActivityId={climbMatchByActivityId}
                                             />
                                         ))}
                                     </React.Fragment>
@@ -335,7 +332,6 @@ const ActivityTable = React.memo(({
                                 showBulkSelect={showBulkSelect}
                                 onOpenProfiler={onOpenProfiler}
                                 profilerClimbByActivityId={profilerClimbByActivityId}
-                                climbMatchByActivityId={climbMatchByActivityId}
                             />
                         ))
                     )}

@@ -1698,7 +1698,6 @@ const DataHub = ({
                                 onToggleSelectAllVisible={toggleSelectAllVisible}
                                 onOpenProfiler={onOpenProfilerFromActivity}
                                 profilerClimbByActivityId={profilerClimbByActivityId}
-                                climbMatchByActivityId={profilerClimbByActivityId}
                             />
                         )}
                     </>
