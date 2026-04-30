@@ -1,0 +1,33 @@
+# Climb Performance Lab — Cursor rules
+
+## Read first
+- Follow `AGENTS.md` and `CLAUDE.md` in the repo root. If anything conflicts, prefer those files and propose aligning `.cursorrules` in the same PR.
+
+## Stack & scope
+- React (functional components, hooks), Vite, plain JavaScript + JSX — no TypeScript unless the project migrates.
+- ESLint flat config (`eslint.config.js`). Vitest tests live under `src/__tests__/` and target utilities; do not assume jsdom/component tests exist.
+
+## Architecture
+- Separate business logic from UI: prefer `src/utils/`, `src/hooks/`, `src/services/` over bloating `src/components/`.
+- If a touched file is large (~200+ lines), extract helpers rather than growing it further.
+- Do not introduce “god” components or duplicate logic; reuse and extend existing utilities.
+
+## UI & theming
+- Use theme tokens/classes based on `cd*` CSS variables (e.g. `bg-cdsurface`, `text-cdtext`, `border-cdborder`, `text-cdaccent`, `text-cdmuted`). Avoid hardcoded slate/gray palettes for themed surfaces unless matching an existing unthemed island intentionally.
+- Preserve Dutch UI copy and intentional Dutch comments where they already exist; new user-facing Dutch is fine if consistent with surrounding copy.
+
+## Integrations & data
+- Intervals.icu / activity import: respect normalizers in `src/utils/intervals.js` and sync hooks/services; do not invent field names—align with `src/config.js` activity columns and existing activity object shape in `CLAUDE.md`.
+- Do not widen auth beyond existing Google Sign-In; do not commit secrets or real API keys.
+
+## Deployment awareness
+- `vite.config.js` sets base path for GitHub Pages (`/Climb-Performance-Lab/`). Do not change base or public asset assumptions without an explicit deployment requirement.
+
+## Quality bar
+- After substantive edits: run `npm run lint` and `npm run test:run`; fix new failures you introduce.
+- For external I/O and fragile parsing: use appropriate error handling; avoid silent swallowing of user-visible failures.
+
+## Output expectations (agents)
+- No truncated code or “rest omitted” placeholders in edits—full, readable diffs.
+- Keep changes scoped to the task; avoid drive-by refactors in unrelated files.
+- Do not remove the Tailwind CDN from `index.html` unless the project explicitly moves to a bundled Tailwind setup.
