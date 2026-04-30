@@ -17,7 +17,9 @@ function csvEscape(val) {
  */
 export function activitiesToCsv(activities) {
     if (!activities?.length) return '';
-    const keys = ACTIVITY_COLUMNS.filter((c) => !c.hideInTable).map((c) => c.key);
+    const keys = ACTIVITY_COLUMNS
+        .filter((c) => !c.hideInTable && !c.omitFromExport)
+        .map((c) => c.key);
     const header = keys.join(',');
     const rows = activities.map((a) =>
         keys.map((k) => csvEscape(a[k])).join(',')
