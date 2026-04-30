@@ -569,7 +569,8 @@ const DataHub = ({
 
                 const uniqueGearIds = [...new Set(bikeActivities.map(a => a.gear_id).filter(id => id && !bikesMap[id]))];
                 if (uniqueGearIds.length > 0) {
-                    await Promise.all(uniqueGearIds.map(async gid => {
+                    // Bolt: Batch API calls to Strava to prevent rate limits and connection exhaustion
+                    await runInBatches(uniqueGearIds, 5, async gid => {
                         try {
                             const r = await fetch(`https://www.strava.com/api/v3/gear/${gid}`, {
                                 headers: { Authorization: `Bearer ${token}` }
@@ -579,7 +580,7 @@ const DataHub = ({
                                 bikesMap[gid] = g.name || [g.brand_name, g.model_name].filter(Boolean).join(' ') || 'Bike';
                             }
                         } catch { /* ignore */ }
-                    }));
+                    });
                 }
                 if (Object.keys(bikesMap).length > 0) {
                     localStorage.setItem('stravaBikesMap', JSON.stringify(bikesMap));
