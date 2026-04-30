@@ -1,15 +1,19 @@
 ﻿import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, ComposedChart } from 'recharts';
 import { Activity, TrendingUp, Zap, Calendar, ArrowUp, ArrowDown, ExternalLink, ListTree } from 'lucide-react';
-import { formatDateDDMMYYYY } from '../utils'; // <--- ZORG DAT DEZE GEÃMPORTEERD IS
-import { findBestPowerActivity, activityExternalLinks } from '../utils/dashboardActivityPeaks';
+import { formatDateDDMMYYYY } from '../utils';
+import {
+    findPeakEftp20Activity,
+    findPeakEftp60Activity,
+    activityExternalLinks,
+} from '../utils/dashboardActivityPeaks';
 
 const formatNumber = (num) => {
     if (num === null || num === undefined) return '-';
     return num.toLocaleString('de-DE'); // 1.000 format
 };
 
-const StatCard = ({ title, value, unit, subtitle, icon, trend, colorClass, split }) => {
+const StatCard = ({ title, value, unit, subtitle, icon, trend, colorClass, split, quickLink }) => {
     const Icon = icon;
     return (
     <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-lg relative overflow-hidden group hover:border-cdborder transition-all">
@@ -36,6 +40,17 @@ const StatCard = ({ title, value, unit, subtitle, icon, trend, colorClass, split
                     {trend === 'down' && <ArrowDown size={12} className="text-red-400" />}
                     <span className="text-cdmuted">{subtitle}</span>
                 </div>
+            )}
+
+            {quickLink?.onClick && (
+                <button
+                    type="button"
+                    onClick={quickLink.onClick}
+                    className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-cdaccent hover:underline"
+                >
+                    <ExternalLink size={12} className="shrink-0" />
+                    {quickLink.label || 'Open source activity'}
+                </button>
             )}
 
             {/* SPLIT DATA (Indoor / Outdoor) */}
@@ -219,12 +234,11 @@ const PerformanceModule = ({
     const latest = filteredData.length > 0 ? filteredData[filteredData.length - 1] : null;
     const displayFtp = manualFtp || latest?.ftp || 0;
 
-    // eFTP: Show MAX of the period, not just "Latest". User wants to see the best "Est. FTP" in that timeframe.
-    const maxEftp = filteredData.reduce((max, d) => Math.max(max, d.eFTP || 0), 0);
-    // eFTP60: Max 60-min best power in the period (directly comparable to threshold power)
-    const maxEftp60 = filteredData.reduce((max, d) => Math.max(max, d.eFTP60 || 0), 0);
-    // Use Max for display to be dynamic
-    const displayEftp = maxEftp;
+    // Peak eFTP (20m/60m): same rule as enhanceActivity (max derived value; >600 W discarded)
+    const peak20Peak = findPeakEftp20Activity(filteredData);
+    const peak60Peak = findPeakEftp60Activity(filteredData);
+    const displayEftp = peak20Peak.derivedWatts || 0;
+    const maxEftp60 = peak60Peak.derivedWatts || 0;
 
     const hasSeaLevelPower = filteredData.some(d => d.seaLevelPower);
 
@@ -257,11 +271,11 @@ const PerformanceModule = ({
     const countIndoor = indoorRides.length;
     const countOutdoor = outdoorRides.length;
 
-    const peak20Source = findBestPowerActivity(filteredData, 'best_20min', manualFtp);
-    const peak60Source = findBestPowerActivity(filteredData, 'best_60min', manualFtp);
+    const peak20Source = peak20Peak;
+    const peak60Source = peak60Peak;
+    const eftpFromPeak20 = peak20Source.derivedWatts || 0;
 
-    const eftpFromPeak20 =
-        peak20Source.watts > 0 ? Math.round(peak20Source.watts * 0.95) : 0;
+    const canOpenActivity = typeof onOpenActivityInLog === 'function';
 
     return (
         <>
@@ -283,6 +297,14 @@ const PerformanceModule = ({
                     trend={displayEftp >= displayFtp ? 'up' : 'down'}
                     colorClass="text-green-500"
                     split={{ indoor: maxEftpIndoor, outdoor: maxEftpOutdoor }}
+                    quickLink={
+                        peak20Peak.activity && canOpenActivity
+                            ? {
+                                label: 'Open source activity',
+                                onClick: () => onOpenActivityInLog(peak20Peak.activity.id),
+                            }
+                            : undefined
+                    }
                 />
                 <StatCard
                     title="Peak eFTP (60m)"
@@ -294,6 +316,14 @@ const PerformanceModule = ({
                     split={maxEftp60Indoor > 0 || maxEftp60Outdoor > 0
                         ? { indoor: maxEftp60Indoor, outdoor: maxEftp60Outdoor }
                         : undefined
+                    }
+                    quickLink={
+                        peak60Peak.activity && canOpenActivity
+                            ? {
+                                label: 'Open source activity',
+                                onClick: () => onOpenActivityInLog(peak60Peak.activity.id),
+                            }
+                            : undefined
                     }
                 />
                 <StatCard
@@ -320,22 +350,22 @@ const PerformanceModule = ({
                 <div className="mb-6 p-4 rounded-xl border border-cdborder bg-cdsurface/80 text-sm">
                     <div className="flex items-center gap-2 text-cdtext font-bold mb-2">
                         <ListTree size={16} className="text-cdaccent shrink-0" />
-                        Bronrit(en) piek-eFTP in deze periode
+                        Source rides for peak eFTP (this period)
                     </div>
                     <p className="text-xs text-cdmuted mb-3">
-                        De kaarten hierboven tonen de hoogste <strong className="text-cdtext">eFTP (20m)</strong> en <strong className="text-cdtext">eFTP (60m)</strong> over alle ritten in je filter. Hieronder staat <strong className="text-cdtext">welke rit</strong> de beste 20m- respectievelijk 60m-power had (na plausibiliteitsfilter t.o.v. je ingestelde FTP).
+                        The stat cards above show the highest <strong className="text-cdtext">eFTP (20m)</strong> and <strong className="text-cdtext">eFTP (60m)</strong> across all rides in your filter. Below: the ride with the best 20-minute and 60-minute power (values over 600&nbsp;W are excluded as implausible).
                     </p>
                     <ul className="space-y-3 text-xs text-cdtext">
                         {peak20Source.activity && (
                             <li className="border-l-2 border-green-500 pl-3">
                                 <div className="font-semibold text-cdtext">
-                                    eFTP (20m): {peak20Source.watts} W best → {eftpFromPeak20} W (×0.95)
+                                    eFTP (20m): {peak20Source.best20Raw} W best → {eftpFromPeak20} W (×0.95)
                                 </div>
                                 <div className="text-cdmuted mt-0.5">
-                                    {formatDateDDMMYYYY(peak20Source.activity.date)} — {peak20Source.activity.title || 'Zonder titel'}
+                                    {formatDateDDMMYYYY(peak20Source.activity.date)} — {peak20Source.activity.title || 'Untitled'}
                                 </div>
                                 <div className="flex flex-wrap gap-2 mt-2">
-                                    {typeof onOpenActivityInLog === 'function' && (
+                                    {canOpenActivity && (
                                         <button
                                             type="button"
                                             onClick={() => onOpenActivityInLog(peak20Source.activity.id)}
@@ -361,13 +391,13 @@ const PerformanceModule = ({
                         {peak60Source.activity && (
                             <li className="border-l-2 border-emerald-500 pl-3">
                                 <div className="font-semibold text-cdtext">
-                                    Beste 60m-power: {peak60Source.watts} W
+                                    Best 60m power: {peak60Source.best60Raw} W
                                 </div>
                                 <div className="text-cdmuted mt-0.5">
-                                    {formatDateDDMMYYYY(peak60Source.activity.date)} — {peak60Source.activity.title || 'Zonder titel'}
+                                    {formatDateDDMMYYYY(peak60Source.activity.date)} — {peak60Source.activity.title || 'Untitled'}
                                 </div>
                                 <div className="flex flex-wrap gap-2 mt-2">
-                                    {typeof onOpenActivityInLog === 'function' && peak60Source.activity.id !== peak20Source.activity?.id && (
+                                    {canOpenActivity && peak60Source.activity.id !== peak20Source.activity?.id && (
                                         <button
                                             type="button"
                                             onClick={() => onOpenActivityInLog(peak60Source.activity.id)}
