@@ -25,6 +25,22 @@ import base64
 import os
 
 
+DEFAULT_ALLOWED_CORS_ORIGINS = "http://localhost:5173,https://vccharlie.github.io"
+DEFAULT_CORS_FALLBACK_ORIGIN = "http://localhost:5173"
+
+
+def resolve_cors_origin(origin):
+    """Return the CORS origin to emit for this request."""
+    allowed_origins_env = os.environ.get("ALLOWED_CORS_ORIGINS", DEFAULT_ALLOWED_CORS_ORIGINS)
+    allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
+
+    if "*" in allowed_origins:
+        return "*"
+    if origin in allowed_origins:
+        return origin
+    return allowed_origins[0] if allowed_origins else DEFAULT_CORS_FALLBACK_ORIGIN
+
+
 def get_credentials_from_secrets():
     """
     Retrieve credentials from Google Cloud Secret Manager via environment variables.
@@ -403,15 +419,7 @@ def sync_intervals(request):
     """
     # Determine allowed CORS origin
     origin = request.headers.get("Origin")
-    allowed_origins_env = os.environ.get("ALLOWED_CORS_ORIGINS", "http://localhost:5173")
-    allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
-
-    if "*" in allowed_origins:
-        cors_origin = "*"
-    elif origin in allowed_origins:
-        cors_origin = origin
-    else:
-        cors_origin = allowed_origins[0] if allowed_origins else "http://localhost:5173"
+    cors_origin = resolve_cors_origin(origin)
 
     # Handle CORS preflight
     if request.method == "OPTIONS":
