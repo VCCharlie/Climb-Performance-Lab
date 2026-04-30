@@ -4,17 +4,7 @@ import { X, Edit2, Save, Bike, ArrowUpRight } from 'lucide-react';
 import { formatTime } from '../../utils';
 import NlDateInput from '../NlDateInput';
 import { SPORT_TYPES } from '../../config';
-import { resolveStravaGearDisplay } from '../../utils/stravaBikesLocalMap';
-
-const getStoredBikes = () => {
-    try {
-        const saved = localStorage.getItem('stravaBikesMap');
-        if (!saved) return [];
-        return Object.entries(JSON.parse(saved))
-            .map(([id, name]) => ({ id, name }))
-            .sort((a, b) => a.name.localeCompare(b.name));
-    } catch { return []; }
-};
+import { buildUnifiedBikesList } from '../../utils/unifiedBikesList';
 
 const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFindOnStrava }) => {
     // Lokale state voor het formulier
@@ -22,8 +12,7 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
     const [isCustomGear, setIsCustomGear] = useState(false);
 
 
-    // Beschikbare fietsen uit de gecachte bikesMap (gebouwd bij Strava-verrijking)
-    const availableBikes = useMemo(() => getStoredBikes(), []);
+    const unifiedBikesList = useMemo(() => buildUnifiedBikesList(allActivities), [allActivities]);
 
     const handleChange = (e) => {
         const { name, value, type } = e.target;
@@ -41,44 +30,6 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
         e.preventDefault();
         onSave(formData);
     };
-
-    // Unieke fietsnamen uit historie (geen ruwe Strava gear_id als "naam")
-    const uniqueBikesFallback = useMemo(() => {
-        if (!allActivities || allActivities.length === 0) return [];
-        const rawId = (s) => /^b\d+$/i.test(String(s).trim());
-        const names = [...new Set(allActivities.map((a) => a.gear_name).filter(Boolean))]
-            .map((s) => String(s).trim())
-            .filter((s) => s && !rawId(s));
-        return names.sort((a, b) => a.localeCompare(b));
-    }, [allActivities]);
-
-    const bikesFromActivities = useMemo(() => {
-        const byId = new Map();
-        for (const a of allActivities || []) {
-            const gid = a?.gear_id != null ? String(a.gear_id).trim() : '';
-            if (!gid || byId.has(gid)) continue;
-            const { display } = resolveStravaGearDisplay(gid, a.gear_name);
-            if (display !== '-' && display !== gid) {
-                byId.set(gid, { id: gid, name: display });
-            }
-        }
-        return [...byId.values()];
-    }, [allActivities]);
-
-    // Gecombineerde lijst van fietsen (Strava cache + uit activiteiten + historische namen)
-    const unifiedBikesList = useMemo(() => {
-        const byId = new Map();
-        [...availableBikes, ...bikesFromActivities].forEach((b) => {
-            if (b?.id && !byId.has(b.id)) byId.set(b.id, b);
-        });
-        const list = [...byId.values()];
-        uniqueBikesFallback.forEach((name) => {
-            if (!list.some((b) => b.name === name)) {
-                list.push({ id: `hist_${name}`, name });
-            }
-        });
-        return list.sort((a, b) => a.name.localeCompare(b.name));
-    }, [availableBikes, bikesFromActivities, uniqueBikesFallback]);
 
     // Custom alleen als gear echt niet in de lijst valt (id noch naam)
     React.useEffect(() => {

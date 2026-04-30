@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { Search, Loader2, AlertTriangle, Trash, Split, RefreshCw, ExternalLink, GitBranch, Zap, ChevronDown, ChevronRight, Link2, Download, GitMerge, Wrench } from 'lucide-react';
+import { Search, Loader2, AlertTriangle, Trash, Split, RefreshCw, ExternalLink, GitBranch, Zap, ChevronDown, ChevronRight, Link2, Download, GitMerge, Wrench, Edit2 } from 'lucide-react';
 import { doc, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from '../firebase';
 import { findDuplicatesInList, runInBatches } from '../utils';
@@ -23,6 +23,7 @@ import { CLIMB_DATABASE } from '../climbs';
 
 // Sub-components
 import EditActivityModal from './data-hub/EditActivityModal';
+import BulkEditActivitiesModal from './data-hub/BulkEditActivitiesModal';
 import ActivityTable from './data-hub/ActivityTable';
 import ImportModal from './data-hub/ImportModal';
 import DuplicateResolver from './data-hub/DuplicateResolver';
@@ -79,6 +80,8 @@ const DataHub = ({
     const [isMerging, setIsMerging] = useState(false);
     const [isGearBackfilling, setIsGearBackfilling] = useState(false);
     const [gearBackfillMsg, setGearBackfillMsg] = useState(null);
+    const [showBulkEditModal, setShowBulkEditModal] = useState(false);
+    const [isBulkSaving, setIsBulkSaving] = useState(false);
 
     // State for single-day Strava search (Tools → Strava enrichment panel)
     const [stravaDateOverride, setStravaDateOverride] = useState(null);
@@ -457,6 +460,48 @@ const DataHub = ({
             alert('Could not update activities: ' + e.message);
         }
     }, [selectedActivitiesForBulk, onImport]);
+
+    const handleBulkApplyPatch = useCallback(async (patch) => {
+        const list = selectedActivitiesForBulk;
+        if (!list.length || !patch || typeof patch !== 'object') return;
+
+        setIsBulkSaving(true);
+        try {
+            let token = null;
+            const mayEnrichGear = 'gear_id' in patch || 'gear_name' in patch;
+            if (stravaGetToken && mayEnrichGear && list.some((a) => a?.strava_id)) {
+                try {
+                    token = await stravaGetToken();
+                } catch {
+                    token = null;
+                }
+            }
+
+            const results = await runInBatches(list, 15, async (act) => {
+                const prev = (activities || []).find((a) => String(a.id) === String(act.id)) || act;
+                let toSave = stripUndefinedFields({ ...prev, ...patch });
+                if (token && toSave.strava_id) {
+                    try {
+                        toSave = await enrichActivityGearFromStrava(toSave, null, token);
+                    } catch (gearErr) {
+                        console.warn('[Bulk edit] Strava enrich failed:', gearErr);
+                    }
+                }
+                if (db) {
+                    await setDoc(doc(db, 'activities', String(toSave.id)), toSave, { merge: true });
+                }
+                return toSave;
+            });
+
+            onImport(results);
+            setBulkSelectedIds(new Set());
+            setShowBulkEditModal(false);
+        } catch (e) {
+            alert(`Could not apply bulk edit: ${e.message || e}`);
+        } finally {
+            setIsBulkSaving(false);
+        }
+    }, [selectedActivitiesForBulk, activities, onImport, stravaGetToken]);
 
     // --- 1. STANDALONE STRAVA ENRICHMENT FUNCTIE ---
     const performSilentStravaEnrichment = async (actsToEnrich, customStart, customEnd) => {
@@ -985,6 +1030,14 @@ const DataHub = ({
                     onClose={() => setEditingActivity(null)}
                     onSave={handleSaveEdit}
                     onFindOnStrava={handleFindOnStrava}
+                />
+            )}
+            {showBulkEditModal && (
+                <BulkEditActivitiesModal
+                    count={bulkSelectedIds.size}
+                    allActivities={activities}
+                    onClose={() => setShowBulkEditModal(false)}
+                    onApply={handleBulkApplyPatch}
                 />
             )}
             <ImportModal
@@ -1523,6 +1576,19 @@ const DataHub = ({
                             <div className="flex flex-wrap items-center gap-2 text-[10px]">
                                 <span className="text-cdmuted font-bold uppercase shrink-0">Bulk</span>
                                 <span className="text-cdmuted">{formatNlNumber(bulkSelectedIds.size)} selected</span>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setEditingActivity(null);
+                                        setShowBulkEditModal(true);
+                                    }}
+                                    disabled={bulkSelectedIds.size === 0 || isBulkSaving}
+                                    title="Apply type, gear, load, RPE, or FTP to all selected rows"
+                                    className="inline-flex items-center gap-1 px-2 py-1 rounded border border-cdaccent/50 text-cdaccent hover:bg-cdaccent/10 disabled:opacity-40"
+                                >
+                                    {isBulkSaving ? <Loader2 size={12} className="animate-spin" /> : <Edit2 size={12} />}
+                                    Bulk edit
+                                </button>
                                 <button
                                     type="button"
                                     onClick={exportBulkCsv}
