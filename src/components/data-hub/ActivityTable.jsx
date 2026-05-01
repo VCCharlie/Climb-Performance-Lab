@@ -2,10 +2,11 @@
 import React from 'react';
 import {
     ArrowUpDown, ChevronUp, ChevronDown, ChevronRight, Monitor, Bike, Footprints,
-    Mountain, Edit2, Trash2, ExternalLink, Eye, Route, Trophy,
+    Mountain, Edit2, Trash2, ExternalLink, Eye, Route, Trophy, Crown,
 } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
 import { resolveStravaGearDisplay } from '../../utils/stravaBikesLocalMap';
+import { getKomBadgeCountsFromSummary } from '../../utils/stravaSegmentKomSummary';
 import { ACTIVITY_TABLE_COLUMNS, MONTH_ORDER } from '../../config';
 
 const SortIcon = ({ colKey, config }) => {
@@ -48,6 +49,56 @@ const StravaIcon = () => (
         <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />
     </svg>
 );
+
+/** Strava-style: solid crown for overall #1 (KOM), trophy + rank for 2nd–10th */
+const StravaKomSummaryBadges = ({ summary }) => {
+    const { king, ranks } = getKomBadgeCountsFromSummary(summary);
+    const pr = Number(summary?.prCount) || 0;
+    const label = String(summary?.label || '').trim();
+    const hasPrText = pr > 0 || /^PR/i.test(label);
+
+    if (king === 0 && ranks.length === 0 && !hasPrText) return null;
+
+    return (
+        <span className="inline-flex flex-wrap items-center gap-0.5 shrink-0">
+            {king > 0
+                ? Array.from({ length: Math.min(king, 6) }, (_, i) => (
+                    <Crown
+                        key={`kom1-${i}`}
+                        size={13}
+                        className="text-amber-400 shrink-0"
+                        fill="currentColor"
+                        strokeWidth={1.25}
+                        aria-hidden
+                        title="Overall #1 on segment"
+                    />
+                ))
+                : null}
+            {ranks.map(({ rank, count }) => (
+                <span
+                    key={rank}
+                    className="relative inline-flex h-[14px] w-[14px] shrink-0 items-center justify-center"
+                    title={`#${rank} on segment leaderboard${count > 1 ? ` ×${count}` : ''}`}
+                >
+                    <Trophy size={14} className="text-amber-400/95 shrink-0" strokeWidth={2} aria-hidden />
+                    <span className="absolute inset-0 flex items-center justify-center pt-[1px] text-[8px] font-extrabold leading-none text-cdtext drop-shadow-[0_0_1px_rgba(0,0,0,0.85)]">
+                        {rank}
+                    </span>
+                    {count > 1 ? (
+                        <span className="absolute -right-1 -bottom-0.5 min-w-[10px] rounded bg-cdsurface/90 px-[1px] text-[7px] font-bold leading-none text-amber-300 border border-cdborder/40">
+                            ×{count}
+                        </span>
+                    ) : null}
+                </span>
+            ))}
+            {hasPrText ? (
+                <span className="text-[11px] font-semibold text-orange-400/95 pl-0.5">
+                    {pr > 1 ? `${pr}× PR` : 'PR'}
+                </span>
+            ) : null}
+        </span>
+    );
+};
 
 export const Row = React.memo(({
     act,
@@ -127,19 +178,24 @@ export const Row = React.memo(({
                 }
                 case 'strava_kom_summary': {
                     const s = act.strava_kom_summary;
-                    const label = s && typeof s === 'object' ? String(s.label || '').trim() : '';
-                    if (!label) {
+                    if (!s || typeof s !== 'object') {
                         return <span className="text-cdmuted" title={act.strava_id ? 'Run Strava gear backfill or open details after linking Strava' : 'Link Strava to fetch segment efforts'}>—</span>;
                     }
-                    const tooltip = typeof s.tooltip === 'string' && s.tooltip.trim() ? s.tooltip : label;
-                    const showTrophy = label.includes('KOM');
+                    const pr = Number(s.prCount) || 0;
+                    const labelTrim = String(s.label || '').trim();
+                    const { king, ranks } = getKomBadgeCountsFromSummary(s);
+                    const hasKomUi = king > 0 || ranks.length > 0;
+                    const hasPr = pr > 0 || /^PR/i.test(labelTrim);
+                    if (!hasKomUi && !hasPr) {
+                        return <span className="text-cdmuted" title={act.strava_id ? 'Run Strava gear backfill or open details after linking Strava' : 'Link Strava to fetch segment efforts'}>—</span>;
+                    }
+                    const tooltip = typeof s.tooltip === 'string' && s.tooltip.trim() ? s.tooltip : labelTrim;
                     return (
                         <span
-                            className="flex items-center gap-1 text-amber-400/95 truncate max-w-[160px]"
+                            className="flex items-center gap-1 text-amber-400/95 min-w-0 max-w-[200px]"
                             title={tooltip}
                         >
-                            {showTrophy ? <Trophy size={12} className="shrink-0 opacity-90" aria-hidden /> : null}
-                            <span className="truncate text-[11px] font-semibold">{label}</span>
+                            <StravaKomSummaryBadges summary={s} />
                         </span>
                     );
                 }
