@@ -45,7 +45,6 @@ const DataHub = ({
     onRefresh,
     // githubPat,
     intervalsConfig, // New Prop
-    showImport = false,
     stravaGetToken,
     startDate,
     endDate,
@@ -1209,9 +1208,7 @@ const DataHub = ({
                         Strava Profile
                     </button>
                 )}
-                {showImport && (
-                    <button onClick={() => setInternalTab('import')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'import' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Import Data</button>
-                )}
+                <button onClick={() => setInternalTab('import')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'import' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Import Data</button>
             </div>
 
             <div className="p-4 flex-1 overflow-hidden flex flex-col">

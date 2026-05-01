@@ -3,8 +3,6 @@
  * Strava API utility functions
  */
 
-import { stashNavRestoreBeforeExternalNav } from './sessionNavRestore';
-
 // Decode Google's Encoded Polyline Algorithm Format
 // Used by Strava's map.summary_polyline field
 export const decodePolyline = (encoded) => {
@@ -46,18 +44,19 @@ export function normalizeStravaActivityId(stravaId) {
 }
 
 /**
- * Open a Strava segment in the same tab to avoid anti-bot / rate-limit issues
- * that some browsers report when opening many segment URLs in new tabs.
+ * Open Strava segment in a new tab so the app stays loaded (no full reload after
+ * a refresh/sync burst — avoids immediate 429 on Strava web when same-tab navigation
+ * followed a heavy API session).
  * @param {string|number} segmentId
  */
 export function navigateToStravaSegment(segmentId) {
     const id = segmentId != null ? String(segmentId).replace(/\D/g, '') : '';
     if (!id) return;
-    stashNavRestoreBeforeExternalNav({
-        activeTab: 'activities',
-        dataHubInternalTab: 'strava-profile',
-    });
-    window.location.assign(`https://www.strava.com/segments/${id}`);
+    const url = `https://www.strava.com/segments/${id}`;
+    const w = window.open(url, '_blank', 'noopener,noreferrer');
+    if (!w || w.closed) {
+        window.alert('Could not open a new tab (popup blocked?). Allow popups for this site, or open the segment manually:\n' + url);
+    }
 }
 
 // Format seconds to M:SS or H:MM:SS
