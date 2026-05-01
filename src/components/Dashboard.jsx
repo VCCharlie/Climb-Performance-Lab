@@ -41,6 +41,8 @@ const Dashboard = ({
     onOpenActivityInLog,
     userWeightKg = 0,
     referenceEndDate,
+    userSettings,
+    updateUserSettings,
 }) => {
     const [dashboardTab, setDashboardTab] = useState('overview');
 
@@ -167,9 +169,12 @@ const Dashboard = ({
             {dashboardTab === 'overview' && (
                 <OverviewTab
                     data={filteredData}
+                    chartData={chartData}
                     manualFtp={manualFtp}
                     customTicks={customTicks}
                     onOpenActivityInLog={onOpenActivityInLog}
+                    userSettings={userSettings}
+                    updateUserSettings={updateUserSettings}
                 />
             )}
 
