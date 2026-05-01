@@ -416,24 +416,30 @@ const App = () => {
         if (!db) return;
         try {
             const settingsId = user ? `user_${user.uid}` : "user_prefs";
+
+            // SECURITY: Never save raw API keys or secrets to the cloud database
+            const safeIntervals = { ...intervalsConfig, apiKey: intervalsConfig.apiKey ? '' : '' };
+            const safeBody = {
+                ...userSettings,
+                githubPat: userSettings.githubPat ? '' : '',
+                openweatherApiKey: userSettings.openweatherApiKey ? '' : ''
+            };
+            const safeStrava = { ...stravaConfig, client_secret: stravaConfig.client_secret ? '' : '' };
+
             console.log("Saving Settings to Cloud:", {
-                intervals: { ...intervalsConfig, apiKey: intervalsConfig.apiKey ? '***REDACTED***' : '' },
-                body: {
-                    ...userSettings,
-                    githubPat: userSettings.githubPat ? '***REDACTED***' : '',
-                    openweatherApiKey: userSettings.openweatherApiKey ? '***REDACTED***' : ''
-                },
+                intervals: safeIntervals,
+                body: safeBody,
                 theme,
                 bucketList: bucketListState,
-                strava: { ...stravaConfig, client_secret: stravaConfig.client_secret ? '***REDACTED***' : '' },
+                strava: safeStrava,
                 stravaProfile: stravaProfileData
             });
             await setDoc(doc(db, "settings", settingsId), {
-                intervals: intervalsConfig,
-                body: userSettings,
+                intervals: safeIntervals,
+                body: safeBody,
                 theme: theme,
                 bucketList: bucketListState,
-                strava: stravaConfig,
+                strava: safeStrava,
                 stravaProfile: stravaProfileData
             }, { merge: true });
             alert("Settings saved! Bike Weight: " + (userSettings.bikeWeight || 'N/A'));

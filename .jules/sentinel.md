@@ -17,3 +17,8 @@
 **Vulnerability:** Similar to previous config leaks, the application was logging the full `userSettings` object to the browser console when saving settings to the cloud (`src/App.jsx`). This included sensitive information such as the `githubPat` and `openweatherApiKey`.
 **Learning:** When adding new sensitive configurations to an existing settings object, it's easy to forget to update the corresponding console log sanitization steps, especially if they are logged in bulk (e.g. `body: userSettings`).
 **Prevention:** Apply strict property picking for logs instead of logging the full object, or explicitly redact newly added secrets within the logging payload.
+
+## 2024-05-18 - Prevent Reverse Tabnabbing Vulnerabilities
+**Vulnerability:** External links created with `target="_blank"` did not include the `rel="noopener noreferrer"` attribute across the application.
+**Learning:** This exposes the application to reverse tabnabbing, a security risk where the newly opened tab can potentially manipulate the original page (e.g. via `window.opener.location`), leading to phishing or redirection attacks.
+**Prevention:** Ensure that every anchor tag utilizing `target="_blank"` natively includes `rel="noopener noreferrer"`.
