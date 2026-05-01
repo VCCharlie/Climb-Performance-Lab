@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
     buildStravaKomSummaryFromSegmentEfforts,
     getKomBadgeCountsFromSummary,
+    buildKomBadgeSlotList,
+    getKomBadgeDisplaySlots,
 } from '../../utils/stravaSegmentKomSummary';
 
 describe('buildStravaKomSummaryFromSegmentEfforts', () => {
@@ -66,5 +68,28 @@ describe('getKomBadgeCountsFromSummary', () => {
         });
         expect(king).toBe(1);
         expect(ranks).toEqual([]);
+    });
+});
+
+describe('getKomBadgeDisplaySlots', () => {
+    it('shows at most 3 segment icons and reports overflow', () => {
+        const kom_counts = Array(11).fill(0);
+        kom_counts[1] = 2;
+        kom_counts[2] = 2;
+        const { shown, hiddenCount, totalKom } = getKomBadgeDisplaySlots({ kom_counts }, 3);
+        expect(totalKom).toBe(4);
+        expect(shown).toHaveLength(3);
+        expect(shown.filter((s) => s.kind === 'crown')).toHaveLength(2);
+        expect(shown.filter((s) => s.kind === 'trophy')).toHaveLength(1);
+        expect(hiddenCount).toBe(1);
+    });
+
+    it('buildKomBadgeSlotList interleaves crowns then trophies by rank', () => {
+        const slots = buildKomBadgeSlotList(1, [{ rank: 3, count: 2 }]);
+        expect(slots).toEqual([
+            { kind: 'crown' },
+            { kind: 'trophy', rank: 3 },
+            { kind: 'trophy', rank: 3 },
+        ]);
     });
 });

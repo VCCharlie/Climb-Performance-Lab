@@ -116,6 +116,40 @@ export function getKomBadgeCountsFromSummary(s) {
 }
 
 /**
+ * Flat list of segment leaderboard badges (each crown = one #1 segment; each trophy = one place 2–10).
+ * @param {number} king
+ * @param {{ rank: number, count: number }[]} ranks
+ * @returns {({ kind: 'crown' } | { kind: 'trophy', rank: number })[]}
+ */
+export function buildKomBadgeSlotList(king, ranks) {
+    const slots = [];
+    const k = Math.max(0, Math.floor(Number(king)) || 0);
+    for (let i = 0; i < k; i += 1) slots.push({ kind: 'crown' });
+    const sorted = [...(ranks || [])].sort((a, b) => a.rank - b.rank);
+    for (const row of sorted) {
+        const rank = Number(row.rank);
+        const count = Math.max(0, Math.floor(Number(row.count)) || 0);
+        if (!Number.isFinite(rank) || rank < 2 || rank > 10) continue;
+        for (let i = 0; i < count; i += 1) slots.push({ kind: 'trophy', rank });
+    }
+    return slots;
+}
+
+/**
+ * Which segment badges to show in a compact row (default max 3 icons, rest as +N).
+ * @param {object|null|undefined} summary - strava_kom_summary
+ * @param {number} [maxShown]
+ */
+export function getKomBadgeDisplaySlots(summary, maxShown = 3) {
+    const { king, ranks } = getKomBadgeCountsFromSummary(summary);
+    const slots = buildKomBadgeSlotList(king, ranks);
+    const cap = Math.max(1, Math.floor(maxShown) || 3);
+    const shown = slots.slice(0, cap);
+    const hiddenCount = Math.max(0, slots.length - shown.length);
+    return { slots, shown, hiddenCount, totalKom: slots.length };
+}
+
+/**
  * @param {object} stravaDetail - JSON from GET /activities/:id
  */
 export function buildStravaKomSummaryFromActivityDetail(stravaDetail) {
