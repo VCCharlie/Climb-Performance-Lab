@@ -2,7 +2,7 @@
 import React from 'react';
 import {
     ArrowUpDown, ChevronUp, ChevronDown, ChevronRight, Monitor, Bike, Footprints,
-    Mountain, Edit2, Trash2, ExternalLink, Route, Trophy, Crown,
+    Mountain, Edit2, Trash2, ExternalLink, Eye, Route, Trophy, Crown,
 } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
 import { resolveStravaGearDisplay } from '../../utils/stravaBikesLocalMap';
@@ -272,7 +272,18 @@ export const Row = React.memo(({
                         <button onClick={(e) => { e.stopPropagation(); setIsConfirmingDelete(false); }} className="text-cdmuted text-xs px-2 py-1">Cancel</button>
                     </div>
                 ) : (
-                    <div className="flex gap-0.5 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-0.5 justify-end opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                        {onViewDetail && (
+                            <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); onViewDetail(act); }}
+                                className="text-cdmuted hover:text-green-400 p-0.5 rounded hover:bg-cdborder/40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                                title="View details"
+                                aria-label="View details"
+                            >
+                                <Eye size={13} />
+                            </button>
+                        )}
                         {onOpenProfiler && (
                             <button
                                 type="button"
@@ -280,7 +291,7 @@ export const Row = React.memo(({
                                     e.stopPropagation();
                                     onOpenProfiler(act, profilerClimbByActivityId?.get(String(act.id)));
                                 }}
-                                className="text-cdmuted hover:text-emerald-400 p-0.5 rounded hover:bg-cdborder/40"
+                                className="text-cdmuted hover:text-emerald-400 p-0.5 rounded hover:bg-cdborder/40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
                                 title={
                                     profilerClimbByActivityId?.get(String(act.id))
                                         ? 'Open in Climb Profiler'
@@ -288,24 +299,53 @@ export const Row = React.memo(({
                                             ? 'Open in Climb Profiler (benadering — route uit Strava)'
                                             : 'Open in Climb Profiler (standaard klim — geen route in data; kies klim in tab)'
                                 }
+                                aria-label="Open in Climb Profiler"
                             >
                                 <Route size={13} />
                             </button>
                         )}
                         {!String(act.id).startsWith('csv_') && (
-                            <a href={`https://intervals.icu/activities/${act.id}`} target="_blank" rel="noopener noreferrer" className="text-cdmuted hover:text-blue-400 p-0.5 flex items-center rounded hover:bg-cdborder/40" onClick={(e) => e.stopPropagation()} title="Open in Intervals.icu">
+                            <a
+                                href={`https://intervals.icu/activities/${act.id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-cdmuted hover:text-blue-400 p-0.5 flex items-center rounded hover:bg-cdborder/40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                                onClick={(e) => e.stopPropagation()}
+                                title="Open in Intervals.icu"
+                                aria-label="Open in Intervals.icu"
+                            >
                                 <ExternalLink size={13} />
                             </a>
                         )}
                         {act.strava_id && (
-                            <a href={`https://www.strava.com/activities/${act.strava_id}`} target="_blank" rel="noopener noreferrer" className="text-cdmuted hover:text-orange-400 p-0.5 flex items-center rounded hover:bg-cdborder/40" onClick={(e) => e.stopPropagation()} title="Open in Strava">
+                            <a
+                                href={`https://www.strava.com/activities/${act.strava_id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-cdmuted hover:text-orange-400 p-0.5 flex items-center rounded hover:bg-cdborder/40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                                onClick={(e) => e.stopPropagation()}
+                                title="Open in Strava"
+                                aria-label="Open in Strava"
+                            >
                                 <StravaIcon />
                             </a>
                         )}
-                        <button onClick={(e) => { e.stopPropagation(); onEdit(act) }} className="text-cdmuted hover:text-yellow-400 p-0.5 rounded hover:bg-cdborder/40" type="button" title="Edit">
+                        <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); onEdit(act); }}
+                            className="text-cdmuted hover:text-yellow-400 p-0.5 rounded hover:bg-cdborder/40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                            title="Edit"
+                            aria-label="Edit activity"
+                        >
                             <Edit2 size={13} />
                         </button>
-                        <button onClick={(e) => { e.stopPropagation(); setIsConfirmingDelete(true); }} className="text-cdmuted hover:text-red-400 p-0.5 rounded hover:bg-cdborder/40" type="button" title="Delete">
+                        <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setIsConfirmingDelete(true); }}
+                            className="text-cdmuted hover:text-red-400 p-0.5 rounded hover:bg-cdborder/40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                            title="Delete"
+                            aria-label="Delete activity"
+                        >
                             <Trash2 size={13} />
                         </button>
                     </div>
@@ -323,7 +363,8 @@ export const Row = React.memo(({
         prevProps.isPreview === nextProps.isPreview &&
         prevProps.showBulkSelect === nextProps.showBulkSelect &&
         prevProps.profilerClimbByActivityId === nextProps.profilerClimbByActivityId &&
-        prevProps.onOpenProfiler === nextProps.onOpenProfiler
+        prevProps.onOpenProfiler === nextProps.onOpenProfiler &&
+        prevProps.onViewDetail === nextProps.onViewDetail
     );
 });
 
