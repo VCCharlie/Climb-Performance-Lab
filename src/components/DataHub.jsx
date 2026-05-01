@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { Search, Loader2, AlertTriangle, Trash, Split, RefreshCw, ExternalLink, GitBranch, Zap, ChevronDown, ChevronRight, Link2, Download, GitMerge, Wrench } from 'lucide-react';
+import { Search, Loader2, AlertTriangle, Trash, Split, RefreshCw, ExternalLink, GitBranch, Zap, ChevronDown, ChevronRight, Link2, Download, GitMerge, Wrench, Edit2 } from 'lucide-react';
 import { doc, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from '../firebase';
 import { findDuplicatesInList, runInBatches } from '../utils';
@@ -13,6 +13,7 @@ import {
     isLikelyIntervalsActivityId,
     stripUndefinedFields,
 } from '../utils/mergeActivities';
+import { findSafeImportReplacementDuplicate } from '../utils/importDuplicateMatch';
 import { enrichActivityGearFromStrava, buildStravaDetailEnrichmentUpdates } from '../utils/stravaGearEnrich';
 import { resolveStravaGearDisplay } from '../utils/stravaBikesLocalMap';
 import { buildClimbMatchIndex, findBestClimbUsingIndex } from '../utils/activityClimbMatch';
@@ -23,6 +24,7 @@ import { CLIMB_DATABASE } from '../climbs';
 
 // Sub-components
 import EditActivityModal from './data-hub/EditActivityModal';
+import BulkEditActivitiesModal from './data-hub/BulkEditActivitiesModal';
 import ActivityTable from './data-hub/ActivityTable';
 import ImportModal from './data-hub/ImportModal';
 import DuplicateResolver from './data-hub/DuplicateResolver';
@@ -44,7 +46,6 @@ const DataHub = ({
     onRefresh,
     // githubPat,
     intervalsConfig, // New Prop
-    showImport = false,
     stravaGetToken,
     startDate,
     endDate,
@@ -59,9 +60,12 @@ const DataHub = ({
     climbDatabaseForMatch = CLIMB_DATABASE,
     activityLogRangesExpanded = false,
     onActivityLogRangesExpandedChange,
+    initialInternalTab = 'log',
 }) => {
     // UI State
-    const [internalTab, setInternalTab] = useState('log');
+    const [internalTab, setInternalTab] = useState(() => (
+        ['log', 'strava-profile', 'import'].includes(initialInternalTab) ? initialInternalTab : 'log'
+    ));
     const [detailActivity, setDetailActivity] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [showDuplicateModal, setShowDuplicateModal] = useState(false);
@@ -79,6 +83,8 @@ const DataHub = ({
     const [isMerging, setIsMerging] = useState(false);
     const [isGearBackfilling, setIsGearBackfilling] = useState(false);
     const [gearBackfillMsg, setGearBackfillMsg] = useState(null);
+    const [showBulkEditModal, setShowBulkEditModal] = useState(false);
+    const [isBulkSaving, setIsBulkSaving] = useState(false);
 
     // State for single-day Strava search (Tools → Strava enrichment panel)
     const [stravaDateOverride, setStravaDateOverride] = useState(null);
@@ -458,6 +464,48 @@ const DataHub = ({
         }
     }, [selectedActivitiesForBulk, onImport]);
 
+    const handleBulkApplyPatch = useCallback(async (patch) => {
+        const list = selectedActivitiesForBulk;
+        if (!list.length || !patch || typeof patch !== 'object') return;
+
+        setIsBulkSaving(true);
+        try {
+            let token = null;
+            const mayEnrichGear = 'gear_id' in patch || 'gear_name' in patch;
+            if (stravaGetToken && mayEnrichGear && list.some((a) => a?.strava_id)) {
+                try {
+                    token = await stravaGetToken();
+                } catch {
+                    token = null;
+                }
+            }
+
+            const results = await runInBatches(list, 15, async (act) => {
+                const prev = (activities || []).find((a) => String(a.id) === String(act.id)) || act;
+                let toSave = stripUndefinedFields({ ...prev, ...patch });
+                if (token && toSave.strava_id) {
+                    try {
+                        toSave = await enrichActivityGearFromStrava(toSave, null, token);
+                    } catch (gearErr) {
+                        console.warn('[Bulk edit] Strava enrich failed:', gearErr);
+                    }
+                }
+                if (db) {
+                    await setDoc(doc(db, 'activities', String(toSave.id)), toSave, { merge: true });
+                }
+                return toSave;
+            });
+
+            onImport(results);
+            setBulkSelectedIds(new Set());
+            setShowBulkEditModal(false);
+        } catch (e) {
+            alert(`Could not apply bulk edit: ${e.message || e}`);
+        } finally {
+            setIsBulkSaving(false);
+        }
+    }, [selectedActivitiesForBulk, activities, onImport, stravaGetToken]);
+
     // --- 1. STANDALONE STRAVA ENRICHMENT FUNCTIE ---
     const performSilentStravaEnrichment = async (actsToEnrich, customStart, customEnd) => {
         if (!stravaGetToken) return 0;
@@ -524,7 +572,8 @@ const DataHub = ({
 
                 const uniqueGearIds = [...new Set(bikeActivities.map(a => a.gear_id).filter(id => id && !bikesMap[id]))];
                 if (uniqueGearIds.length > 0) {
-                    await Promise.all(uniqueGearIds.map(async gid => {
+                    // Bolt: Batch API calls to Strava to prevent rate limits and connection exhaustion
+                    await runInBatches(uniqueGearIds, 5, async gid => {
                         try {
                             const r = await fetch(`https://www.strava.com/api/v3/gear/${gid}`, {
                                 headers: { Authorization: `Bearer ${token}` }
@@ -534,7 +583,7 @@ const DataHub = ({
                                 bikesMap[gid] = g.name || [g.brand_name, g.model_name].filter(Boolean).join(' ') || 'Bike';
                             }
                         } catch { /* ignore */ }
-                    }));
+                    });
                 }
                 if (Object.keys(bikesMap).length > 0) {
                     localStorage.setItem('stravaBikesMap', JSON.stringify(bikesMap));
@@ -886,6 +935,11 @@ const DataHub = ({
         setShowModal(true);
     };
 
+    const handleManualFetchedActivity = (act) => {
+        if (!act || act.id == null) return;
+        handleDataDetected([act]);
+    };
+
     const toggleActivityTypeInPreview = (id) => {
         setFetchedActivities(prev => prev.map(act => act.id === id ? { ...act, type: act.type === 'VirtualRide' ? 'Ride' : 'VirtualRide' } : act));
     };
@@ -898,16 +952,7 @@ const DataHub = ({
 
         if (activities && activities.length > 0) {
             toImport.forEach(newAct => {
-                const newDate = newAct.date.split('T')[0];
-                const duplicate = activities.find(existing => {
-                    if (existing.id === newAct.id) return false;
-                    const exDate = existing.date.split('T')[0];
-                    if (exDate !== newDate) return false;
-                    if (existing.type !== newAct.type && existing.type !== 'Ride' && newAct.type !== 'Ride') return false;
-                    const timeDiff = Math.abs((existing.moving_time || 0) - (newAct.moving_time || 0));
-                    const distDiff = Math.abs((existing.distance || 0) - (newAct.distance || 0));
-                    return timeDiff < 300 && distDiff < 0.5;
-                });
+                const duplicate = findSafeImportReplacementDuplicate(activities, newAct);
 
                 if (duplicate) {
                     idsToDelete.push(duplicate.id);
@@ -987,6 +1032,14 @@ const DataHub = ({
                     onFindOnStrava={handleFindOnStrava}
                 />
             )}
+            {showBulkEditModal && (
+                <BulkEditActivitiesModal
+                    count={bulkSelectedIds.size}
+                    allActivities={activities}
+                    onClose={() => setShowBulkEditModal(false)}
+                    onApply={handleBulkApplyPatch}
+                />
+            )}
             <ImportModal
                 showModal={showModal}
                 onClose={() => setShowModal(false)}
@@ -1027,7 +1080,7 @@ const DataHub = ({
                                     </h3>
                                     <p className="text-xs text-cdmuted mt-0.5">Select which ones to remove.</p>
                                 </div>
-                                <button onClick={() => setShowNoPowerModal(false)} className="text-cdmuted hover:text-cdtext text-lg font-bold px-2">✕</button>
+                                <button aria-label="Close modal" onClick={() => setShowNoPowerModal(false)} className="text-cdmuted hover:text-cdtext text-lg font-bold px-2 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded">✕</button>
                             </div>
                             <div className="flex items-center gap-3 px-4 py-2 border-b border-cdborder bg-cdbg/40">
                                 <input type="checkbox" checked={allSelected} onChange={toggleAll} className="accent-yellow-400 w-4 h-4" />
@@ -1075,8 +1128,9 @@ const DataHub = ({
                             </h3>
                             <button
                                 type="button"
+                                aria-label="Close modal"
                                 onClick={() => { setShowMergeModal(false); setMergeError(null); }}
-                                className="text-cdmuted hover:text-cdtext text-lg font-bold px-2"
+                                className="text-cdmuted hover:text-cdtext text-lg font-bold px-2 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded"
                             >
                                 ✕
                             </button>
@@ -1146,9 +1200,7 @@ const DataHub = ({
                         Strava Profile
                     </button>
                 )}
-                {showImport && (
-                    <button onClick={() => setInternalTab('import')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'import' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Import Data</button>
-                )}
+                <button onClick={() => setInternalTab('import')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'import' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Import Data</button>
             </div>
 
             <div className="p-4 flex-1 overflow-hidden flex flex-col">
@@ -1524,6 +1576,19 @@ const DataHub = ({
                                 <span className="text-cdmuted">{formatNlNumber(bulkSelectedIds.size)} selected</span>
                                 <button
                                     type="button"
+                                    onClick={() => {
+                                        setEditingActivity(null);
+                                        setShowBulkEditModal(true);
+                                    }}
+                                    disabled={bulkSelectedIds.size === 0 || isBulkSaving}
+                                    title="Apply type, gear, load, RPE, or FTP to all selected rows"
+                                    className="inline-flex items-center gap-1 px-2 py-1 rounded border border-cdaccent/50 text-cdaccent hover:bg-cdaccent/10 disabled:opacity-40"
+                                >
+                                    {isBulkSaving ? <Loader2 size={12} className="animate-spin" /> : <Edit2 size={12} />}
+                                    Bulk edit
+                                </button>
+                                <button
+                                    type="button"
                                     onClick={exportBulkCsv}
                                     disabled={bulkSelectedIds.size === 0}
                                     className="inline-flex items-center gap-1 px-2 py-1 rounded border border-cdborder text-cdtext hover:border-green-500/50 disabled:opacity-40"
@@ -1637,9 +1702,14 @@ const DataHub = ({
                 )}
 
                 {internalTab === 'import' && (
-                    <ImportSection
-                        onDataDetected={handleDataDetected}
-                    />
+                    <div className="p-4">
+                        <ImportSection
+                            intervalsConfig={intervalsConfig}
+                            stravaGetToken={stravaGetToken}
+                            onDataDetected={handleDataDetected}
+                            onFetchedActivityFromUrl={handleManualFetchedActivity}
+                        />
+                    </div>
                 )}
 
                 {internalTab === 'strava-profile' && (

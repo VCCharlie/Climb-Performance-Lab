@@ -6,7 +6,7 @@ import {
 import { formatDateDDMMYYYY } from '../../utils';
 
 /**
- * FormTab: Shows CTL, ATL and TSB ("Vorm") progression over time.
+ * FormTab: Shows CTL, ATL and TSB (fitness / fatigue / form) progression over time.
  * Calculates rolling CTL/ATL/TSB from activities using simplified fitness model.
  *  - CTL (Fitness): 42-day exponential weighted average of daily TSS
  *  - ATL (Fatigue): 7-day exponential weighted average of daily TSS
@@ -96,8 +96,8 @@ const FormTab = ({
                 <>
                     <div className="grid grid-cols-3 gap-4">
                         <StatBadge label="CTL (Fitness)" value={latest.ctl} color="text-blue-400" />
-                        <StatBadge label="ATL (Vermoeidheid)" value={latest.atl} color="text-orange-400" />
-                        <StatBadge label="TSB (Vorm)" value={latest.tsb} color={tsbColor} />
+                        <StatBadge label="ATL (Fatigue)" value={latest.atl} color="text-orange-400" />
+                        <StatBadge label="TSB (Form)" value={latest.tsb} color={tsbColor} />
                     </div>
 
                     <div className="bg-cdsurface border border-cdborder rounded-xl p-6 shadow-xl">
@@ -120,7 +120,7 @@ const FormTab = ({
                                         stroke="#64748b"
                                         tickFormatter={(ts) => {
                                             const d = new Date(ts);
-                                            return `${d.getDate()} ${d.toLocaleDateString('nl-NL', { month: 'short' })}`;
+                                            return `${d.getDate()} ${d.toLocaleDateString('en-GB', { month: 'short' })}`;
                                         }}
                                     />
                                     <YAxis stroke="#64748b" />
@@ -138,19 +138,19 @@ const FormTab = ({
                             </ResponsiveContainer>
                         </div>
                         <p className="text-xs text-cdmuted mt-3">
-                            CTL (42-dag) = Fitness · ATL (7-dag) = Vermoeidheid · TSB = CTL − ATL (Vorm)
+                            CTL (42-day) = fitness · ATL (7-day) = fatigue · TSB = CTL − ATL (form)
                         </p>
                     </div>
                 </>
             ) : (
                 <div className="flex items-center justify-center h-24 text-cdmuted text-sm border border-dashed border-cdborder rounded-xl">
-                    Geen TSS in deze periode voor CTL/ATL/TSB.
+                    No TSS in this period — CTL / ATL / TSB cannot be computed.
                 </div>
             )}
 
             {!data?.length && (
                 <div className="flex items-center justify-center h-40 text-cdmuted">
-                    Geen activiteiten beschikbaar.
+                    No activities available.
                 </div>
             )}
         </div>

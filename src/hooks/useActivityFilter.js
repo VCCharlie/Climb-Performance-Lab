@@ -273,7 +273,7 @@ const useActivityFilter = (activities) => {
             try {
                 const d = new Date(act.date);
                 const y = d.getFullYear();
-                const m = d.toLocaleString('en-US', { month: 'long' });
+                const m = MONTH_ORDER[d.getMonth()];
                 if (!groups[y]) groups[y] = {};
                 if (!groups[y][m]) groups[y][m] = [];
                 groups[y][m].push(act);

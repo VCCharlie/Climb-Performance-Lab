@@ -28,9 +28,34 @@ import NlDateInput from './components/NlDateInput';
 import useIntervalsSync from './hooks/useIntervalsSync';
 import useStravaAuth from './hooks/useStravaAuth';
 import { SPORT_TYPES } from './config';
+import { consumeNavRestore } from './utils/sessionNavRestore';
+
+const MAIN_TAB_IDS = new Set([
+    'dashboard', 'physics', 'activities', 'training', 'race', 'gearoptimizer',
+    'profiler', 'bucketlist', 'climbmap', 'weather',
+]);
+const DATAHUB_INTERNAL_TABS = new Set(['log', 'strava-profile', 'import']);
+
+let cachedNavRestore = null;
+function peekNavRestoreOnce() {
+    if (cachedNavRestore === null) {
+        cachedNavRestore = consumeNavRestore();
+    }
+    return cachedNavRestore;
+}
+
+function dataHubInternalTabFromRestore() {
+    const r = peekNavRestoreOnce();
+    const t = r?.dataHubInternalTab;
+    return t && DATAHUB_INTERNAL_TABS.has(t) ? t : 'log';
+}
 
 const App = () => {
-    const [activeTab, setActiveTab] = useState('dashboard');
+    const [activeTab, setActiveTab] = useState(() => {
+        const r = peekNavRestoreOnce();
+        const t = r?.activeTab;
+        return t && MAIN_TAB_IDS.has(t) ? t : 'dashboard';
+    });
     const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [syncStatus, setSyncStatus] = useState('idle'); // 'idle', 'syncing', 'synced', 'error'
@@ -416,7 +441,18 @@ const App = () => {
         if (!db) return;
         try {
             const settingsId = user ? `user_${user.uid}` : "user_prefs";
-            console.log("Saving Settings to Cloud:", { intervals: intervalsConfig, body: userSettings, theme, bucketList: bucketListState, strava: stravaConfig, stravaProfile: stravaProfileData });
+            console.log("Saving Settings to Cloud:", {
+                intervals: { ...intervalsConfig, apiKey: intervalsConfig.apiKey ? '***REDACTED***' : '' },
+                body: {
+                    ...userSettings,
+                    githubPat: userSettings.githubPat ? '***REDACTED***' : '',
+                    openweatherApiKey: userSettings.openweatherApiKey ? '***REDACTED***' : ''
+                },
+                theme,
+                bucketList: bucketListState,
+                strava: { ...stravaConfig, client_secret: stravaConfig.client_secret ? '***REDACTED***' : '' },
+                stravaProfile: stravaProfileData
+            });
             await setDoc(doc(db, "settings", settingsId), {
                 intervals: intervalsConfig,
                 body: userSettings,
@@ -651,6 +687,7 @@ const App = () => {
                                 climbDatabaseForMatch={CLIMB_DATABASE}
                                 activityLogRangesExpanded={activityLogRangesExpanded}
                                 onActivityLogRangesExpandedChange={setActivityLogRangesExpanded}
+                                initialInternalTab={dataHubInternalTabFromRestore()}
                             />
                         )}
 

@@ -6,8 +6,13 @@ import { getFirestore } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 
+// Firebase Web API keys are public project identifiers. Keep the env override for
+// deployments that inject it, but retain the known public key so static builds
+// (GitHub Pages) do not ship with an undefined apiKey.
+const firebaseApiKey = import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyBNWzcEXhzra-iCkHiZj_FdYUf0NcKvHAk";
+
 const firebaseConfig = {
-  apiKey: "AIzaSyBNWzcEXhzra-iCkHiZj_FdYUf0NcKvHAk",
+  apiKey: firebaseApiKey,
   authDomain: "climb-performance-lab.firebaseapp.com",
   projectId: "climb-performance-lab",
   storageBucket: "climb-performance-lab.firebasestorage.app",

@@ -160,7 +160,7 @@ const Dashboard = ({
                     type="button"
                     onClick={() => setDashboardTab('distance')}
                     className={`flex-1 min-w-[5.5rem] py-3 text-sm font-bold ${dashboardTab === 'distance' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
-                >Afstand</button>
+                >Distance</button>
             </div>
 
             {/* TAB CONTENT */}

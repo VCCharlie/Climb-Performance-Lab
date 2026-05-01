@@ -2,7 +2,7 @@
 import React from 'react';
 import {
     ArrowUpDown, ChevronUp, ChevronDown, ChevronRight, Monitor, Bike, Footprints,
-    Mountain, Edit2, Trash2, ExternalLink, Eye, Route
+    Mountain, Edit2, Trash2, ExternalLink, Eye, Route, Trophy,
 } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
 import { resolveStravaGearDisplay } from '../../utils/stravaBikesLocalMap';
@@ -49,7 +49,19 @@ const StravaIcon = () => (
     </svg>
 );
 
-export const Row = React.memo(({ act, onDelete, onEdit, onViewDetail, isPreview = false, isSelected = false, onToggleSelect, onToggleType, onOpenProfiler, profilerClimbByActivityId, showBulkSelect = false }) => {
+export const Row = React.memo(({
+    act,
+    onDelete,
+    onEdit,
+    onViewDetail,
+    isPreview = false,
+    isSelected = false,
+    onToggleSelect,
+    onToggleType,
+    onOpenProfiler,
+    profilerClimbByActivityId,
+    showBulkSelect = false,
+}) => {
     const [isConfirmingDelete, setIsConfirmingDelete] = React.useState(false);
 
     if (!act) return null;
@@ -90,11 +102,47 @@ export const Row = React.memo(({ act, onDelete, onEdit, onViewDetail, isPreview 
                         </span>
                     );
                 }
-                case 'title': return (
-                    <span className="font-medium text-cdtext block truncate" title={val} style={{ maxWidth: 'none' }}>
-                        {val}
-                    </span>
-                );
+                case 'title': {
+                    if (!isPreview && onViewDetail && val) {
+                        return (
+                            <button
+                                type="button"
+                                className="font-medium text-cdtext block truncate text-left w-full hover:text-cdaccent hover:underline"
+                                title={val}
+                                style={{ maxWidth: 'none' }}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onViewDetail(act);
+                                }}
+                            >
+                                {val}
+                            </button>
+                        );
+                    }
+                    return (
+                        <span className="font-medium text-cdtext block truncate" title={val} style={{ maxWidth: 'none' }}>
+                            {val}
+                        </span>
+                    );
+                }
+                case 'strava_kom_summary': {
+                    const s = act.strava_kom_summary;
+                    const label = s && typeof s === 'object' ? String(s.label || '').trim() : '';
+                    if (!label) {
+                        return <span className="text-cdmuted" title={act.strava_id ? 'Run Strava gear backfill or open details after linking Strava' : 'Link Strava to fetch segment efforts'}>—</span>;
+                    }
+                    const tooltip = typeof s.tooltip === 'string' && s.tooltip.trim() ? s.tooltip : label;
+                    const showTrophy = label.includes('KOM');
+                    return (
+                        <span
+                            className="flex items-center gap-1 text-amber-400/95 truncate max-w-[160px]"
+                            title={tooltip}
+                        >
+                            {showTrophy ? <Trophy size={12} className="shrink-0 opacity-90" aria-hidden /> : null}
+                            <span className="truncate text-[11px] font-semibold">{label}</span>
+                        </span>
+                    );
+                }
                 case 'gear_name': {
                     const gid = act.gear_id != null ? String(act.gear_id) : '';
                     const { display, title } = resolveStravaGearDisplay(gid || null, typeof val === 'string' ? val : '');
@@ -213,7 +261,26 @@ export const Row = React.memo(({ act, onDelete, onEdit, onViewDetail, isPreview 
     );
 });
 
-const ActivityTable = React.memo(({ activities, sortConfig, onSort, onDelete, onEdit, onViewDetail, isGroupedView, isYearExpanded, onToggleYear, isMonthExpanded, onToggleMonth, onToggleSelectRow, selectedActivityIds, onOpenProfiler, profilerClimbByActivityId, showBulkSelect = false, allVisibleSelected = false, onToggleSelectAllVisible }) => {
+const ActivityTable = React.memo(({
+    activities,
+    sortConfig,
+    onSort,
+    onDelete,
+    onEdit,
+    onViewDetail,
+    isGroupedView,
+    isYearExpanded,
+    onToggleYear,
+    isMonthExpanded,
+    onToggleMonth,
+    onToggleSelectRow,
+    selectedActivityIds,
+    onOpenProfiler,
+    profilerClimbByActivityId,
+    showBulkSelect = false,
+    allVisibleSelected = false,
+    onToggleSelectAllVisible,
+}) => {
     return (
         <div className="overflow-x-auto overflow-y-auto flex-1 border border-cdborder rounded-lg custom-scrollbar relative max-h-[65vh]">
             <table className="w-full text-left text-xs whitespace-nowrap">
@@ -230,10 +297,10 @@ const ActivityTable = React.memo(({ activities, sortConfig, onSort, onDelete, on
                     {isGroupedView ? (
                         Object.keys(activities).sort((a, b) => sortConfig.direction === 'asc' ? a - b : b - a).map(year => (
                             <React.Fragment key={year}>
-                                <tr id={`year-${year}`} className="bg-cdborder/50 scroll-mt-10"><td colSpan={ACTIVITY_TABLE_COLUMNS.length + 1 + (showBulkSelect ? 1 : 0)} className="p-2 font-bold text-cdtext"><button onClick={() => onToggleYear(year)} className="flex items-center gap-2 w-full text-left hover:text-yellow-400">{isYearExpanded(year) ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {year}</button></td></tr>
+                                <tr id={`year-${year}`} className="bg-cdborder/50 scroll-mt-10"><td colSpan={ACTIVITY_TABLE_COLUMNS.length + 1 + (showBulkSelect ? 1 : 0)} className="p-2 font-bold text-cdtext"><button type="button" onClick={() => onToggleYear(year)} className="flex items-center gap-2 w-full text-left hover:text-yellow-400">{isYearExpanded(year) ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {year}</button></td></tr>
                                 {isYearExpanded(year) && Object.keys(activities[year]).sort((a, b) => { const diff = MONTH_ORDER.indexOf(b) - MONTH_ORDER.indexOf(a); return sortConfig.direction === 'asc' ? -diff : diff; }).map(month => (
                                     <React.Fragment key={month}>
-                                        <tr id={`month-${year}-${month}`} className="bg-cdborder/20 scroll-mt-12"><td colSpan={ACTIVITY_TABLE_COLUMNS.length + 1 + (showBulkSelect ? 1 : 0)} className="px-8 py-1 text-[10px] uppercase font-bold text-cdmuted"><button onClick={() => onToggleMonth(year, month)} className="flex items-center gap-1 hover:text-cdtext text-left w-full transition-colors">{isMonthExpanded(year, month) ? <ChevronDown size={12} /> : <ChevronRight size={12} />} {month}</button></td></tr>
+                                        <tr id={`month-${year}-${month}`} className="bg-cdborder/20 scroll-mt-12"><td colSpan={ACTIVITY_TABLE_COLUMNS.length + 1 + (showBulkSelect ? 1 : 0)} className="px-8 py-1 text-[10px] uppercase font-bold text-cdmuted"><button type="button" onClick={() => onToggleMonth(year, month)} className="flex items-center gap-1 hover:text-cdtext text-left w-full transition-colors">{isMonthExpanded(year, month) ? <ChevronDown size={12} /> : <ChevronRight size={12} />} {month}</button></td></tr>
                                         {isMonthExpanded(year, month) && activities[year][month].map(act => (
                                             <Row
                                                 key={act.id}

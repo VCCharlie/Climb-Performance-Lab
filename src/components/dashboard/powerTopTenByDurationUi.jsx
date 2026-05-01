@@ -10,17 +10,17 @@ export const PeriodSummaryCard = ({ title, accentClass, bounds, stats }) => (
         <p className="text-xs text-cdtext font-medium leading-snug mb-3">{bounds ? formatLongRange(bounds) : '—'}</p>
         <div className="grid grid-cols-3 gap-2 text-center sm:text-left">
             <div>
-                <div className="text-[9px] uppercase tracking-wide text-cdmuted font-bold">Ritten</div>
+                <div className="text-[9px] uppercase tracking-wide text-cdmuted font-bold">Rides</div>
                 <div className="text-sm font-mono font-bold text-cdtext tabular-nums">{formatNlNumber(stats.rideCount)}</div>
             </div>
             <div>
-                <div className="text-[9px] uppercase tracking-wide text-cdmuted font-bold">Afstand</div>
+                <div className="text-[9px] uppercase tracking-wide text-cdmuted font-bold">Distance</div>
                 <div className="text-sm font-mono font-bold text-cdtext tabular-nums">
                     {formatNlNumber(Math.round(stats.distanceKm * 10) / 10)} km
                 </div>
             </div>
             <div>
-                <div className="text-[9px] uppercase tracking-wide text-cdmuted font-bold">Hoogte</div>
+                <div className="text-[9px] uppercase tracking-wide text-cdmuted font-bold">Elevation</div>
                 <div className="text-sm font-mono font-bold text-cdtext tabular-nums">{formatNlNumber(stats.elevationM)} m</div>
             </div>
         </div>
@@ -40,15 +40,15 @@ const wattCompareTitle = (watts, peerWatts) => {
     const w = Number(watts) || 0;
     const p = peerWatts != null ? Number(peerWatts) : NaN;
     if (!w || Number.isNaN(p) || p <= 0) return undefined;
-    if (w > p) return `Hoger dan de andere periode op deze rang (${p} W)`;
-    if (w < p) return `Lager dan de andere periode op deze rang (${p} W)`;
-    return 'Gelijk op deze rang';
+    if (w > p) return `Higher than the other period at this rank (${p} W)`;
+    if (w < p) return `Lower than the other period at this rank (${p} W)`;
+    return 'Tied at this rank';
 };
 
 export const TopTable = ({ rows, peerRows, onOpenActivityInLog, emptyHint }) => {
     if (!rows?.length) {
         return (
-            <p className="text-xs text-cdmuted py-3 px-2">{emptyHint || 'Geen data.'}</p>
+            <p className="text-xs text-cdmuted py-3 px-2">{emptyHint || 'No data.'}</p>
         );
     }
     return (
@@ -58,8 +58,8 @@ export const TopTable = ({ rows, peerRows, onOpenActivityInLog, emptyHint }) => 
                     <tr className="bg-cdborder/40 text-cdmuted uppercase tracking-wide">
                         <th className="px-2 py-2 font-semibold w-8">#</th>
                         <th className="px-2 py-2 font-semibold text-right">W</th>
-                        <th className="px-2 py-2 font-semibold whitespace-nowrap">Datum</th>
-                        <th className="px-2 py-2 font-semibold min-w-[100px]">Rit</th>
+                        <th className="px-2 py-2 font-semibold whitespace-nowrap">Date</th>
+                        <th className="px-2 py-2 font-semibold min-w-[100px]">Ride</th>
                         <th className="px-2 py-2 font-semibold text-right w-24">Links</th>
                     </tr>
                 </thead>

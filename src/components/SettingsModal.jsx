@@ -101,7 +101,7 @@ const SettingsModal = ({
                     <h2 className={`text-xl font-bold ${titleClass} flex items-center gap-2`}>
                         <Settings className="text-cdmuted" /> Settings & Configuration
                     </h2>
-                    <button onClick={onClose} className="p-1 hover:bg-cdborder/50 rounded transition-colors">
+                    <button onClick={onClose} aria-label="Close modal" className="p-1 hover:bg-cdborder/50 rounded transition-colors focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none">
                         <X size={24} className={isDark ? 'text-cdmuted' : 'text-slate-600'} />
                     </button>
                 </div>

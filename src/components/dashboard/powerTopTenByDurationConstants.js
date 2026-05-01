@@ -8,16 +8,16 @@ export const DURATION_TARGETS = [
 ];
 
 export const COMPARE_OPTIONS = [
-    { value: 'none', label: 'Geen vergelijking' },
-    { value: 'previous', label: 'Vorige even lange periode' },
-    { value: 'days', label: 'Voorgaande N dagen' },
-    { value: 'custom', label: 'Aangepaste periodes (data)' },
+    { value: 'none', label: 'No comparison' },
+    { value: 'previous', label: 'Previous period (same length)' },
+    { value: 'days', label: 'N days before' },
+    { value: 'custom', label: 'Custom date ranges' },
 ];
 
 export function formatLongRange(bounds) {
     if (!bounds) return '';
     const opts = { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' };
-    const a = bounds.start.toLocaleDateString('nl-NL', opts);
-    const b = bounds.end.toLocaleDateString('nl-NL', opts);
+    const a = bounds.start.toLocaleDateString('en-GB', opts);
+    const b = bounds.end.toLocaleDateString('en-GB', opts);
     return `${a} — ${b}`;
 }

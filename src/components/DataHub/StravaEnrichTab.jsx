@@ -214,7 +214,8 @@ const StravaEnrichTab = ({
             )];
             if (unknownGearIds.length > 0) {
                 setFetchProgress(`Loading bike names (${unknownGearIds.length})…`);
-                await Promise.all(unknownGearIds.map(async gearId => {
+                // Batch to prevent hitting browser connection limits or Strava API rate limits
+                await runInBatches(unknownGearIds, 5, async gearId => {
                     try {
                         const r = await fetch(`https://www.strava.com/api/v3/gear/${gearId}`, {
                             headers: { Authorization: `Bearer ${token}` }
@@ -224,7 +225,7 @@ const StravaEnrichTab = ({
                             bikesMap[gearId] = g.name || [g.brand_name, g.model_name].filter(Boolean).join(' ') || 'Bike';
                         }
                     } catch { /* stille fout — gear_id blijft onbekend */ }
-                }));
+                });
             }
 
             // Cache bikesMap in localStorage voor gebruik in EditActivityModal

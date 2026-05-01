@@ -7,6 +7,7 @@ import { normalizeStravaActivityId } from './strava';
 import { runInBatches } from './async';
 import { parseDurationToSeconds } from './formatters';
 import { activityDistanceKm } from './activityFilterMetrics';
+import { buildStravaKomSummaryFromActivityDetail } from './stravaSegmentKomSummary';
 
 function storedMovingTimeSec(act) {
     const t = act?.moving_time;
@@ -104,12 +105,20 @@ export async function enrichActivityGearFromStrava(merged, stravaSide, token) {
         || storedMovingTimeSec(out) <= 0
         || storedDistanceImplausible(out);
 
+    const existingKom = out.strava_kom_summary;
+    const needsKomSummary = !(
+        existingKom
+        && typeof existingKom === 'object'
+        && String(existingKom.label || '').trim() !== ''
+    );
+
     let detail = null;
-    if (needsDetail) {
+    if (needsDetail || needsKomSummary) {
         try {
-            const resp = await fetch(`https://www.strava.com/api/v3/activities/${encodeURIComponent(stravaActId)}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            const resp = await fetch(
+                `https://www.strava.com/api/v3/activities/${encodeURIComponent(stravaActId)}?include_all_efforts=true`,
+                { headers: { Authorization: `Bearer ${token}` } },
+            );
             if (resp.ok) {
                 detail = await resp.json();
             }
@@ -177,11 +186,14 @@ export async function enrichActivityGearFromStrava(merged, stravaSide, token) {
             storeKm != null
             && stravaKm != null
             && stravaKm < 5
-            && storeKm > 50
+            && storeKm > 2
             && storeKm >= stravaKm * 80;
         if (stravaKm != null && (storeKm == null || storeKm <= 0 || suspicious)) {
             out.distance = stravaKm;
         }
+
+        const komSummary = buildStravaKomSummaryFromActivityDetail(detail);
+        out.strava_kom_summary = komSummary || null;
     }
 
     out.strava_id = stravaActId;
@@ -234,14 +246,20 @@ export async function buildStravaDetailEnrichmentUpdates(siteActivities, token, 
                     : {}),
                 ...(timeChanged ? { moving_time: enriched.moving_time } : {}),
                 ...(distChanged ? { distance: enriched.distance } : {}),
+                ...(Object.prototype.hasOwnProperty.call(enriched, 'strava_kom_summary')
+                    ? { strava_kom_summary: enriched.strava_kom_summary }
+                    : {}),
             });
+            const komSame = JSON.stringify(act.strava_kom_summary ?? null)
+                === JSON.stringify(enriched.strava_kom_summary ?? null);
             const same =
                 String(normalizeStravaActivityId(act.strava_id) || act.strava_id || '') === String(patch.strava_id || '')
                 && String(act.gear_id ?? '') === String(patch.gear_id ?? '')
                 && String(act.gear_name ?? '').trim() === String(patch.gear_name ?? '').trim()
                 && String(act.strava_map ?? '') === String(patch.strava_map ?? '')
                 && !timeChanged
-                && !distChanged;
+                && !distChanged
+                && komSame;
             if (same || Object.keys(patch).length === 0) {
                 unchanged += 1;
                 return;

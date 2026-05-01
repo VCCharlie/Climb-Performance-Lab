@@ -39,6 +39,8 @@ echo -n "new-value" | gcloud secrets versions add intervals-athlete-id --data-fi
 
 ### Step 2: Deploy the Function
 
+You should also configure `ALLOWED_CORS_ORIGINS` to restrict which domains can access your function. This should be a comma-separated list of origins (e.g., `http://localhost:5173,https://your-domain.github.io`).
+
 ```bash
 # Deploy with secrets attached
 gcloud functions deploy sync-intervals \
@@ -49,6 +51,7 @@ gcloud functions deploy sync-intervals \
     --region europe-west1 \
     --entry-point sync_intervals \
     --set-secrets 'INTERVALS_ATHLETE_ID=intervals-athlete-id:latest,INTERVALS_API_KEY=intervals-api-key:latest' \
+    --set-env-vars ALLOWED_CORS_ORIGINS='http://localhost:5173,https://your-domain.github.io' \
     --source .
 ```
 
