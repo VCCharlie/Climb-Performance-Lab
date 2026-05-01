@@ -29,6 +29,7 @@ import useIntervalsSync from './hooks/useIntervalsSync';
 import useStravaAuth from './hooks/useStravaAuth';
 import { SPORT_TYPES } from './config';
 import { consumeNavRestore } from './utils/sessionNavRestore';
+import { mergeVolumeGoals } from './utils/volumeGoals';
 
 const MAIN_TAB_IDS = new Set([
     'dashboard', 'physics', 'activities', 'training', 'race', 'gearoptimizer',
@@ -65,19 +66,26 @@ const App = () => {
 
     const [userSettings, setUserSettings] = useState(() => {
         const saved = localStorage.getItem('userSettings');
-        if (saved) { try { return JSON.parse(saved); } catch { /* */ } }
-        return {
+        const defaults = {
             weight: 70.0,
             bikeWeight: 7.5,
             ftp: 280,
             maxHr: 190,
             privacyMode: false,
             goals: { yearlyKm: 10000, targetFtp: 300, targetWeight: 68 },
+            volumeGoals: mergeVolumeGoals(null),
             notifications: { highLoad: 150, lowPower: 150, minWeight: 67, restDay: 3 },
             powerZones: [],
             githubPat: '', // GitHub PAT for manual nightly-sync trigger
             openweatherApiKey: '' // OpenWeather API Key
         };
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                return { ...defaults, ...parsed, volumeGoals: mergeVolumeGoals(parsed.volumeGoals) };
+            } catch { /* */ }
+        }
+        return defaults;
     });
 
     const [selectedClimb, setSelectedClimb] = useState(CLIMB_DATABASE?.[0] || { id: 'dummy', name: 'Loading', lengthKm: 0, elevation: 0, avgGrade: 0 });
@@ -356,7 +364,13 @@ const App = () => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     if (data.intervals) setIntervalsConfig(data.intervals);
-                    if (data.body) setUserSettings(prev => ({ ...prev, ...data.body }));
+                    if (data.body) {
+                        setUserSettings((prev) => {
+                            const merged = { ...prev, ...data.body };
+                            merged.volumeGoals = mergeVolumeGoals(merged.volumeGoals);
+                            return merged;
+                        });
+                    }
                     if (data.theme) {
                         setTheme(data.theme);
                         localStorage.setItem('theme', data.theme);
@@ -665,6 +679,8 @@ const App = () => {
                                 customEnd={customEnd}
                                 userWeightKg={userSettings.weight}
                                 referenceEndDate={globalEndDate}
+                                userSettings={userSettings}
+                                updateUserSettings={(k, v) => setUserSettings((p) => ({ ...p, [k]: v }))}
                                 onOpenActivityInLog={(id) => {
                                     if (id == null) return;
                                     setActivityFocusId(String(id));
