@@ -3,6 +3,8 @@
  * Strava API utility functions
  */
 
+import { stashNavRestoreBeforeExternalNav } from './sessionNavRestore';
+
 // Decode Google's Encoded Polyline Algorithm Format
 // Used by Strava's map.summary_polyline field
 export const decodePolyline = (encoded) => {
@@ -51,6 +53,10 @@ export function normalizeStravaActivityId(stravaId) {
 export function navigateToStravaSegment(segmentId) {
     const id = segmentId != null ? String(segmentId).replace(/\D/g, '') : '';
     if (!id) return;
+    stashNavRestoreBeforeExternalNav({
+        activeTab: 'activities',
+        dataHubInternalTab: 'strava-profile',
+    });
     window.location.assign(`https://www.strava.com/segments/${id}`);
 }
 
