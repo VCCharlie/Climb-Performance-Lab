@@ -14,7 +14,7 @@ export const ACTIVITY_COLUMNS = [
     { key: 'data_source', label: 'Source', align: 'center', width: 'w-[4.5rem]', hideInTable: true },
     { key: 'title', label: 'Title', align: 'left', width: 'min-w-[120px] max-w-[200px] truncate' },
     /** Populated from Strava activity detail (segment_efforts) after gear/map enrich — see strava_kom_summary. */
-    { key: 'strava_kom_summary', label: 'Strava KOM/PR', align: 'left', width: 'w-28 max-w-[160px]', omitFromExport: true },
+    { key: 'strava_kom_summary', label: 'Strava segments', align: 'left', width: 'w-36 max-w-[220px]', omitFromExport: true },
     { key: 'gear_name', label: 'Bike', align: 'left', width: 'w-28' },
     { key: 'moving_time', label: 'Time', align: 'right', width: 'w-14' },
     { key: 'distance', label: 'Dist', align: 'right', width: 'w-12' },
