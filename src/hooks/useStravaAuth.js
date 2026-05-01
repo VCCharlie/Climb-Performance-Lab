@@ -56,13 +56,27 @@ const useStravaAuth = (stravaConfig, setStravaConfig) => {
         }
         // Gebruik de huidige pagina-URL als redirect URI
         const redirectUri = window.location.origin + window.location.pathname;
-        const url = `${STRAVA_AUTH_BASE}?client_id=${stravaConfig.client_id}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=activity:read_all&approval_prompt=auto`;
+
+        // Generate a cryptographically secure random state for CSRF protection
+        const array = new Uint32Array(4);
+        window.crypto.getRandomValues(array);
+        const state = Array.from(array, dec => ('0' + dec.toString(16)).substr(-8)).join('');
+        sessionStorage.setItem('strava_oauth_state', state);
+
+        const url = `${STRAVA_AUTH_BASE}?client_id=${stravaConfig.client_id}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=activity:read_all&approval_prompt=auto&state=${encodeURIComponent(state)}`;
         window.location.href = url;
     }, [stravaConfig]);
 
     // Stap 2: Wissel OAuth code voor tokens (wordt aangeroepen bij terugkeer van Strava)
-    const handleOAuthCallback = useCallback(async (code) => {
+    const handleOAuthCallback = useCallback(async (code, state) => {
         if (!stravaConfig?.client_id || !stravaConfig?.client_secret) return;
+
+        // Verify state to prevent CSRF
+        const savedState = sessionStorage.getItem('strava_oauth_state');
+        sessionStorage.removeItem('strava_oauth_state');
+        if (!state || state !== savedState) {
+            throw new Error('Ongeldige state parameter. Mogelijke CSRF aanval.');
+        }
 
         const resp = await fetch(STRAVA_TOKEN_URL, {
             method: 'POST',
