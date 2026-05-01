@@ -176,13 +176,13 @@ export const Row = React.memo(({ act, onDelete, onEdit, onViewDetail, isPreview 
                         )}
                         {/* INTERVALS.ICU LINK */}
                         {!String(act.id).startsWith('csv_') && (
-                            <a href={`https://intervals.icu/activities/${act.id}`} target="_blank" rel="noreferrer" className="text-slate-600 hover:text-blue-400 p-1 flex items-center" onClick={(e) => e.stopPropagation()} title="Open in Intervals.icu">
+                            <a href={`https://intervals.icu/activities/${act.id}`} target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-blue-400 p-1 flex items-center" onClick={(e) => e.stopPropagation()} title="Open in Intervals.icu">
                                 <ExternalLink size={14} />
                             </a>
                         )}
                         {/* STRAVA LINK */}
                         {act.strava_id && (
-                            <a href={`https://www.strava.com/activities/${act.strava_id}`} target="_blank" rel="noreferrer" className="text-slate-600 hover:text-orange-400 p-1 flex items-center" onClick={(e) => e.stopPropagation()} title="Open in Strava">
+                            <a href={`https://www.strava.com/activities/${act.strava_id}`} target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-orange-400 p-1 flex items-center" onClick={(e) => e.stopPropagation()} title="Open in Strava">
                                 <StravaIcon />
                             </a>
                         )}

@@ -33,8 +33,7 @@ const ActivityRow = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview
                         {act.id && !String(act.id).startsWith('csv_') && (
                             <a
                                 href={`https://intervals.icu/activities/${act.id}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                                target="_blank" rel="noopener noreferrer"
                                 className="text-cdmuted hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"
                                 onClick={e => e.stopPropagation()}
                                 title="Open in Intervals.icu"

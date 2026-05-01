@@ -7,3 +7,8 @@
 **Vulnerability:** The Firebase configuration in `src/firebase.js` contained a hardcoded API key (`AIzaSyBNWzcEXhzra-iCkHiZj_FdYUf0NcKvHAk`).
 **Learning:** Hardcoding credentials, even if client-side API keys are sometimes considered less sensitive depending on the service's configuration, is a poor security practice. It exposes credentials in source control and makes rotation difficult.
 **Prevention:** Always extract API keys and secrets into environment variables. In Vite-based applications, use `import.meta.env` to inject configuration values securely during the build process, and ensure `.env` files are added to `.gitignore`.
+
+## 2025-04-26 - Add Explicit Noopener Noreferrer to External Links
+**Vulnerability:** External links opening in a new tab (`target="_blank"`) without explicit `rel="noopener noreferrer"` attributes.
+**Learning:** While modern browsers often implicitly apply `noopener` to `target="_blank"` links, older browsers do not, and explicit declaration remains a security best practice to prevent Reverse Tabnabbing. React/JSX linters will flag this if explicitly omitted or incorrectly formatted. A common mistake during regex updates is creating duplicate `rel` attributes if a file had `rel="noopener"` on a separate line below `target="_blank"`.
+**Prevention:** Use strict AST parsing or careful multi-line regex when globally replacing link attributes in JSX to prevent duplicate attribute syntax errors. Always verify builds with `npm run build` or linters to catch JSX syntax errors immediately.

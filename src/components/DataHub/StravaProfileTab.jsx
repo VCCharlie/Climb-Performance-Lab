@@ -561,8 +561,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                 <h2 className="text-lg font-bold text-cdtext truncate">{profileName}</h2>
                                 <a
                                     href={`https://www.strava.com/athletes/${athleteId}`}
-                                    target="_blank"
-                                    rel="noreferrer"
+                                    target="_blank" rel="noopener noreferrer"
                                     className="text-orange-400 hover:text-orange-300 shrink-0"
                                     title="Open on Strava"
                                 >
@@ -723,8 +722,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                                 {recordRides?.longestRide ? (
                                                     <a
                                                         href={`https://www.strava.com/activities/${recordRides.longestRide.id}`}
-                                                        target="_blank"
-                                                        rel="noreferrer"
+                                                        target="_blank" rel="noopener noreferrer"
                                                         className="mt-2 inline-flex items-center gap-1 text-orange-400 hover:text-orange-300 font-bold"
                                                     >
                                                         {recordRides.longestRide.name || 'Open activity'}
@@ -754,8 +752,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                                 {recordRides?.mostElevation ? (
                                                     <a
                                                         href={`https://www.strava.com/activities/${recordRides.mostElevation.id}`}
-                                                        target="_blank"
-                                                        rel="noreferrer"
+                                                        target="_blank" rel="noopener noreferrer"
                                                         className="mt-2 inline-flex items-center gap-1 text-orange-400 hover:text-orange-300 font-bold"
                                                     >
                                                         {recordRides.mostElevation.name || 'Open activity'}
@@ -784,8 +781,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                                 </p>
                                                 <a
                                                     href={`https://www.strava.com/activities/${recordRides.maxTotalElevationRide.id}`}
-                                                    target="_blank"
-                                                    rel="noreferrer"
+                                                    target="_blank" rel="noopener noreferrer"
                                                     className="mt-2 inline-flex items-center gap-1 text-orange-400 hover:text-orange-300 font-bold"
                                                 >
                                                     {recordRides.maxTotalElevationRide.name || 'Open activity'}
@@ -938,14 +934,14 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                                 </span>
                                                 <a
                                                     href={`https://www.strava.com/segments/${effort.segment?.id}`}
-                                                    target="_blank" rel="noreferrer"
+                                                    target="_blank" rel="noopener noreferrer"
                                                     className="flex-1 min-w-0 font-medium text-cdtext hover:text-orange-400 truncate transition-colors"
                                                 >
                                                     {effort.name}
                                                 </a>
                                                 <span className="text-cdmuted shrink-0 font-mono text-[10px]">{fmt.segTime(effort.elapsed_time)}</span>
                                                 <span className="text-cdmuted shrink-0 text-[10px]">{effort.segment?.distance != null ? `${fmt.num(effort.segment.distance / 1000, 1)} km` : '—'}</span>
-                                                <a href={`https://www.strava.com/segments/${effort.segment?.id}`} target="_blank" rel="noreferrer" className="text-cdmuted hover:text-orange-400 shrink-0">
+                                                <a href={`https://www.strava.com/segments/${effort.segment?.id}`} target="_blank" rel="noopener noreferrer" className="text-cdmuted hover:text-orange-400 shrink-0">
                                                     <ExternalLink size={10} />
                                                 </a>
                                             </div>
@@ -995,7 +991,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                             <Star size={11} className="text-yellow-400 fill-yellow-400 shrink-0" />
                                             <a
                                                 href={`https://www.strava.com/segments/${seg.id}`}
-                                                target="_blank" rel="noreferrer"
+                                                target="_blank" rel="noopener noreferrer"
                                                 className="flex-1 min-w-0 font-medium text-cdtext hover:text-orange-400 truncate transition-colors"
                                             >
                                                 {seg.name}
@@ -1003,7 +999,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                             <span className="text-cdmuted shrink-0 text-[10px]">{fmt.num(seg.distance / 1000, 1)} km</span>
                                             <span className="text-cdmuted shrink-0 text-[10px]">{seg.average_grade != null ? `${fmt.num(seg.average_grade, 1)}%` : '—'}</span>
                                             <span className="text-cdmuted shrink-0 text-[10px]">{fmt.elev(seg.total_elevation_gain ?? 0)}</span>
-                                            <a href={`https://www.strava.com/segments/${seg.id}`} target="_blank" rel="noreferrer" className="text-cdmuted hover:text-orange-400 shrink-0">
+                                            <a href={`https://www.strava.com/segments/${seg.id}`} target="_blank" rel="noopener noreferrer" className="text-cdmuted hover:text-orange-400 shrink-0">
                                                 <ExternalLink size={10} />
                                             </a>
                                         </div>

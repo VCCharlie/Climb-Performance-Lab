@@ -103,8 +103,7 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                             {activity.id && (
                                 <a
                                     href={`https://intervals.icu/activities/${activity.id}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                    target="_blank" rel="noopener noreferrer"
                                     className="flex items-center gap-1.5 px-2 py-1 rounded text-xs bg-sky-500/10 text-sky-400 hover:bg-sky-500/20 border border-sky-500/30"
                                     title="Open this activity on Intervals.icu"
                                 >
@@ -115,8 +114,7 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                             {activity.strava_id && (
                                 <a
                                     href={`https://www.strava.com/activities/${activity.strava_id}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                    target="_blank" rel="noopener noreferrer"
                                     className="flex items-center gap-1.5 px-2 py-1 rounded text-xs bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 border border-orange-500/30"
                                     title="Open this activity on Strava"
                                 >
