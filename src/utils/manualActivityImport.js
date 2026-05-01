@@ -9,8 +9,8 @@ import { enrichActivityGearFromStrava } from './stravaGearEnrich';
 import { mergeActivitiesIntervalsPrimary } from './mergeActivities';
 
 const STRAVA_ACTIVITY_RE = /strava\.com\/(?:activities|activity)\/(\d+)/i;
-/** Intervals: /activities/123, /activities/i123, or /i…/activities/… (share links). */
-const INTERVALS_ACTIVITY_RE = /intervals\.icu\/(?:i\d+\/)?activities\/(?:i)?(\d+)/i;
+/** Intervals: /activities/123, /activities/i123… (API id is often `i` + digits — do not strip the `i`). */
+const INTERVALS_ACTIVITY_RE = /intervals\.icu\/(?:i\d+\/)?activities\/(i\d+|\d+)/i;
 
 /**
  * @param {string} raw
@@ -54,12 +54,26 @@ export async function fetchStravaActivityDetailAsSiteActivity(stravaActivityId, 
 }
 
 /**
+ * Intervals.icu activity ids in URLs are either numeric or `i` + digits (same id the REST API expects).
+ * @param {string} raw
+ * @returns {string}
+ */
+export function normalizeIntervalsUrlActivityIdForApi(raw) {
+    const s = String(raw || '').trim();
+    if (/^i\d+$/i.test(s)) {
+        return `i${s.slice(1).replace(/\D/g, '')}`;
+    }
+    const digits = s.replace(/\D/g, '');
+    return /^\d+$/.test(digits) ? digits : '';
+}
+
+/**
  * @param {string} intervalsActivityId
  * @param {{ athleteId: string, apiKey: string }} intervalsConfig
  * @returns {Promise<object>}
  */
 export async function fetchIntervalsActivityAsSiteActivity(intervalsActivityId, intervalsConfig) {
-    const id = String(intervalsActivityId || '').replace(/\D/g, '');
+    const id = normalizeIntervalsUrlActivityIdForApi(intervalsActivityId);
     if (!id) throw new Error('Invalid Intervals.icu activity id.');
     if (!intervalsConfig?.apiKey) {
         throw new Error('Intervals.icu API key missing — add it in Settings.');
