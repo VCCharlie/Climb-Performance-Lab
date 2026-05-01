@@ -7,6 +7,9 @@ import {
     currentYearRange,
     sumVolumeForRange,
     progressPercent,
+    calendarElapsedRatio,
+    calendarProgressLabel,
+    getVolumeScheduleStatus,
 } from '../../utils/volumeGoals.js';
 
 describe('volumeGoals', () => {
@@ -69,5 +72,32 @@ describe('volumeGoals', () => {
         expect(progressPercent(50, 100)).toBe(50);
         expect(progressPercent(150, 100)).toBe(100);
         expect(progressPercent(10, 0)).toBe(0);
+    });
+
+    it('calendarElapsedRatio is 0 at period start and ~1 at end', () => {
+        const range = { startYmd: '2026-05-01', endYmd: '2026-05-07' };
+        const start = new Date(2026, 4, 1, 8, 0, 0, 0);
+        expect(calendarElapsedRatio(range, start)).toBe(0);
+        const mid = new Date(2026, 4, 4, 12, 0, 0, 0);
+        const r = calendarElapsedRatio(range, mid);
+        expect(r).toBeGreaterThan(0.4);
+        expect(r).toBeLessThan(0.6);
+    });
+
+    it('calendarProgressLabel returns day of period', () => {
+        const range = { startYmd: '2026-05-01', endYmd: '2026-05-07' };
+        const ref = new Date(2026, 4, 3);
+        const lbl = calendarProgressLabel(range, ref);
+        expect(lbl.spanDays).toBe(7);
+        expect(lbl.dayOfPeriod).toBe(3);
+    });
+
+    it('getVolumeScheduleStatus compares current to linear expectation', () => {
+        const range = { startYmd: '2026-01-01', endYmd: '2026-12-31' };
+        const midYear = new Date(2026, 6, 1);
+        const st = getVolumeScheduleStatus(600, 1200, range, midYear);
+        expect(st.status).not.toBe('no_target');
+        expect(st.expectedCurrent).toBeGreaterThan(500);
+        expect(st.expectedCurrent).toBeLessThan(700);
     });
 });
