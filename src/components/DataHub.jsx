@@ -29,7 +29,6 @@ import ImportModal from './data-hub/ImportModal';
 import DuplicateResolver from './data-hub/DuplicateResolver';
 import QuickNav from './data-hub/QuickNav';
 import ImportSection from './data-hub/ImportSection';
-import ManualActivityImportBlock from './data-hub/ManualActivityImportBlock';
 import ActivityDetailModal from './DataHub/ActivityDetailModal';
 import StravaEnrichTab from './DataHub/StravaEnrichTab';
 import StravaProfileTab from './DataHub/StravaProfileTab';
@@ -1714,15 +1713,12 @@ const DataHub = ({
                 )}
 
                 {internalTab === 'import' && (
-                    <div className="p-4 space-y-6">
-                        <ManualActivityImportBlock
-                            intervalsConfig={intervalsConfig}
-                            stravaGetToken={stravaGetToken}
-                            onFetchedActivity={handleManualFetchedActivity}
-                        />
+                    <div className="p-4">
                         <ImportSection
                             intervalsConfig={intervalsConfig}
+                            stravaGetToken={stravaGetToken}
                             onDataDetected={handleDataDetected}
+                            onFetchedActivityFromUrl={handleManualFetchedActivity}
                         />
                     </div>
                 )}
