@@ -60,6 +60,41 @@ describe('enrichActivityGearFromStrava', () => {
     expect(out.strava_map).toBe('abc');
     expect(out.moving_time).toBe(5400);
   });
+
+  it('forceStravaDetail still fetches detail when gear and kom summary already exist', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        id: 555,
+        gear_id: 'bike99',
+        map: { summary_polyline: 'xyz' },
+        moving_time: 3600,
+        segment_efforts: [{ name: 'Seg A', pr_rank: 1, kom_rank: 2 }],
+      }),
+    });
+
+    const out = await enrichActivityGearFromStrava(
+      {
+        id: '1',
+        strava_id: '555',
+        title: 'Ride',
+        gear_id: 'bike99',
+        gear_name: 'Tarmac',
+        strava_map: 'old',
+        strava_kom_summary: { label: 'PR', tooltip: 'x' },
+      },
+      null,
+      'tok',
+      { forceStravaDetail: true },
+    );
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/activities/555?include_all_efforts=true'),
+      expect.any(Object),
+    );
+    expect(out.strava_kom_summary).not.toBeNull();
+    expect(String(out.strava_kom_summary?.tooltip || '')).toContain('Seg A');
+  });
 });
 
 describe('buildStravaDetailEnrichmentUpdates', () => {
