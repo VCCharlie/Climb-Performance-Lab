@@ -9,7 +9,8 @@ import { enrichActivityGearFromStrava } from './stravaGearEnrich';
 import { mergeActivitiesIntervalsPrimary } from './mergeActivities';
 
 const STRAVA_ACTIVITY_RE = /strava\.com\/(?:activities|activity)\/(\d+)/i;
-const INTERVALS_ACTIVITY_RE = /intervals\.icu\/(?:i\d+\/)?activities\/(\d+)/i;
+/** Intervals: /activities/123, /activities/i123, or /i…/activities/… (share links). */
+const INTERVALS_ACTIVITY_RE = /intervals\.icu\/(?:i\d+\/)?activities\/(?:i)?(\d+)/i;
 
 /**
  * @param {string} raw
@@ -97,7 +98,7 @@ export async function fetchSingleActivityFromUrl(urlOrText, opts = {}) {
         throw new Error(
             'Unrecognized link. Paste a URL like:\n'
             + '• https://www.strava.com/activities/12345678\n'
-            + '• https://intervals.icu/activities/87654321',
+            + '• https://intervals.icu/activities/87654321 or …/activities/i53534754',
         );
     }
 

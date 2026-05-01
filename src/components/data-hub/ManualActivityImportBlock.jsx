@@ -46,10 +46,10 @@ const ManualActivityImportBlock = ({
                 Add activity by URL
             </h4>
             <p className="text-xs text-cdmuted leading-relaxed">
-                Primary: a <strong className="text-cdtext">Strava</strong> or <strong className="text-cdtext">Intervals.icu</strong> activity link.
-                Optional second field: paste the <strong className="text-cdtext">other</strong> service so the import uses your{' '}
-                <strong className="text-cdtext">Intervals activity id</strong> with Strava route/gear and merged metrics (same rules as merge pair).
-                Strava + Intervals API key in Settings required when both sides are used.
+                <strong className="text-cdtext">Primary URL:</strong> Strava or Intervals.icu activity link.
+                <strong className="text-cdtext"> Optional second URL:</strong> the <strong className="text-cdtext">other</strong> service — no CSV or JSON required here (file import is separate below).
+                The merged row keeps your <strong className="text-cdtext">Intervals activity id</strong> and adds Strava route/gear and fills gaps (same rules as merge pair).
+                Strava connection + Intervals API key in Settings when both sides are used.
             </p>
             <div className="space-y-2">
                 <label className="block text-[10px] font-bold text-cdmuted uppercase">Primary URL</label>

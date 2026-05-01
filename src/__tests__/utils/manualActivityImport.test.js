@@ -10,6 +10,7 @@ describe('parseActivityUrl', () => {
     it('parses Intervals activity URLs', () => {
         expect(parseActivityUrl('https://intervals.icu/activities/87654321')).toEqual({ kind: 'intervals', id: '87654321' });
         expect(parseActivityUrl('https://intervals.icu/i12345/activities/111')).toEqual({ kind: 'intervals', id: '111' });
+        expect(parseActivityUrl('https://intervals.icu/activities/i53534754')).toEqual({ kind: 'intervals', id: '53534754' });
     });
 
     it('returns null for unrelated URLs', () => {
