@@ -29,6 +29,7 @@ import {
 import { computeRideMilestones } from '../../utils/stravaMilestones';
 import { stravaHttpErrorMessage } from '../../utils/stravaHttp';
 import { computeYtdYearOverYearFromActivities, percentChange } from '../../utils/stravaYtdCompare';
+import { navigateToStravaSegment } from '../../utils/strava';
 
 const STRAVA_BASE = 'https://www.strava.com/api/v3';
 const LOCALE = 'nl-NL';
@@ -920,6 +921,9 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                 <span className="text-cdmuted">{filteredSortedKoms.length} shown</span>
                             </div>
                             <p className="text-[9px] text-cdmuted">Outdoor filter uses segment activity type when Strava provides it; virtual segments are hidden in &quot;Outdoor only&quot;.</p>
+                            <p className="text-[9px] text-cdmuted border border-cdborder/40 rounded px-2 py-1 bg-cdbg/40">
+                                Segment names open Strava in <strong className="text-cdtext">this tab</strong> to avoid rate limits (429) from opening many segment pages in new tabs. Use your browser back button to return.
+                            </p>
                             {koms.length === 0 ? (
                                 <p className="text-xs text-cdmuted italic">No KOMs or CRs in this list.</p>
                             ) : filteredSortedKoms.length === 0 ? (
@@ -928,6 +932,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                 <div className="max-h-80 overflow-y-auto custom-scrollbar space-y-1 pr-1">
                                     {filteredSortedKoms.map((effort) => {
                                         const isKOM = effort.is_kom !== false;
+                                        const segId = effort.segment?.id ?? effort.segment_id;
                                         return (
                                             <div key={effort.id} className={`flex flex-wrap sm:flex-nowrap items-center gap-2 bg-cdbg/50 border rounded px-2.5 py-1.5 text-xs transition-colors ${isKOM ? 'border-cdborder/40 hover:border-yellow-400/30' : 'border-cdborder/40 hover:border-purple-400/30'}`}>
                                                 {isKOM
@@ -936,18 +941,25 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                                 <span className={`text-[9px] font-bold px-1 py-0.5 rounded shrink-0 ${isKOM ? 'bg-yellow-500/20 text-yellow-400' : 'bg-purple-500/20 text-purple-400'}`}>
                                                     {isKOM ? 'KOM' : 'CR'}
                                                 </span>
-                                                <a
-                                                    href={`https://www.strava.com/segments/${effort.segment?.id}`}
-                                                    target="_blank" rel="noreferrer"
-                                                    className="flex-1 min-w-0 font-medium text-cdtext hover:text-orange-400 truncate transition-colors"
+                                                <button
+                                                    type="button"
+                                                    onClick={() => navigateToStravaSegment(segId)}
+                                                    className="flex-1 min-w-0 font-medium text-cdtext hover:text-orange-400 truncate transition-colors text-left"
+                                                    title="Open segment on Strava (this tab)"
                                                 >
                                                     {effort.name}
-                                                </a>
+                                                </button>
                                                 <span className="text-cdmuted shrink-0 font-mono text-[10px]">{fmt.segTime(effort.elapsed_time)}</span>
                                                 <span className="text-cdmuted shrink-0 text-[10px]">{effort.segment?.distance != null ? `${fmt.num(effort.segment.distance / 1000, 1)} km` : '—'}</span>
-                                                <a href={`https://www.strava.com/segments/${effort.segment?.id}`} target="_blank" rel="noreferrer" className="text-cdmuted hover:text-orange-400 shrink-0">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => navigateToStravaSegment(segId)}
+                                                    className="text-cdmuted hover:text-orange-400 shrink-0 p-0.5 rounded"
+                                                    title="Open segment on Strava (this tab)"
+                                                    aria-label="Open segment on Strava"
+                                                >
                                                     <ExternalLink size={10} />
-                                                </a>
+                                                </button>
                                             </div>
                                         );
                                     })}
@@ -984,6 +996,9 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                 <span className="text-cdmuted">{filteredSortedStarred.length} shown</span>
                             </div>
                             <p className="text-[9px] text-cdmuted">Outdoor filter uses segment activity type when Strava provides it.</p>
+                            <p className="text-[9px] text-cdmuted border border-cdborder/40 rounded px-2 py-1 bg-cdbg/40">
+                                Opens in <strong className="text-cdtext">this tab</strong> (avoids Strava 429 when opening many segments). Use back to return.
+                            </p>
                             {starred.length === 0 ? (
                                 <p className="text-xs text-cdmuted italic">No starred segments.</p>
                             ) : filteredSortedStarred.length === 0 ? (
@@ -993,19 +1008,26 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                     {filteredSortedStarred.map((seg) => (
                                         <div key={seg.id} className="flex flex-wrap sm:flex-nowrap items-center gap-2 bg-cdbg/50 border border-cdborder/40 rounded px-2.5 py-1.5 text-xs hover:border-yellow-400/30 transition-colors">
                                             <Star size={11} className="text-yellow-400 fill-yellow-400 shrink-0" />
-                                            <a
-                                                href={`https://www.strava.com/segments/${seg.id}`}
-                                                target="_blank" rel="noreferrer"
-                                                className="flex-1 min-w-0 font-medium text-cdtext hover:text-orange-400 truncate transition-colors"
+                                            <button
+                                                type="button"
+                                                onClick={() => navigateToStravaSegment(seg.id)}
+                                                className="flex-1 min-w-0 font-medium text-cdtext hover:text-orange-400 truncate transition-colors text-left"
+                                                title="Open segment on Strava (this tab)"
                                             >
                                                 {seg.name}
-                                            </a>
+                                            </button>
                                             <span className="text-cdmuted shrink-0 text-[10px]">{fmt.num(seg.distance / 1000, 1)} km</span>
                                             <span className="text-cdmuted shrink-0 text-[10px]">{seg.average_grade != null ? `${fmt.num(seg.average_grade, 1)}%` : '—'}</span>
                                             <span className="text-cdmuted shrink-0 text-[10px]">{fmt.elev(seg.total_elevation_gain ?? 0)}</span>
-                                            <a href={`https://www.strava.com/segments/${seg.id}`} target="_blank" rel="noreferrer" className="text-cdmuted hover:text-orange-400 shrink-0">
+                                            <button
+                                                type="button"
+                                                onClick={() => navigateToStravaSegment(seg.id)}
+                                                className="text-cdmuted hover:text-orange-400 shrink-0 p-0.5 rounded"
+                                                title="Open segment on Strava (this tab)"
+                                                aria-label="Open segment on Strava"
+                                            >
                                                 <ExternalLink size={10} />
-                                            </a>
+                                            </button>
                                         </div>
                                     ))}
                                 </div>
