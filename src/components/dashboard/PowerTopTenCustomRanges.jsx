@@ -1,7 +1,7 @@
 import React from 'react';
 import NlDateInput from '../NlDateInput';
 
-/** Highlight jaar-knop alleen als Van/Tot exact heel kalenderjaar is. */
+/** Highlight year button only when From/To is exactly a full calendar year. */
 function selectedFullYear(startYmd, endYmd) {
     if (!startYmd || !endYmd || startYmd.length < 10 || endYmd.length < 10) return null;
     const y = startYmd.slice(0, 4);
@@ -32,29 +32,29 @@ const PowerTopTenCustomRanges = ({
     return (
     <div className="rounded-lg border border-cdborder bg-cdbg/25 p-3 space-y-3">
         <p className="text-[10px] text-cdmuted leading-relaxed">
-            Stel beide datumbereiken in. Jaar-knoppen: volledig kalenderjaar (1 jan — 31 dec). Bij eerste keuze
-            &ldquo;Aangepaste periodes&rdquo; worden startwaarden afgeleid van je site-preset en de vorige even lange periode.
+            Set both date ranges. Year buttons: full calendar year (1 Jan — 31 Dec). The first time you pick
+            &ldquo;Custom date ranges&rdquo;, defaults are derived from your site preset and the previous period of the same length.
         </p>
         <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-                <div className="text-[10px] font-bold text-cdaccent uppercase">Kolom 1</div>
+                <div className="text-[10px] font-bold text-cdaccent uppercase">Column 1</div>
                 <div className="flex flex-wrap gap-2">
                     <label className="flex flex-col gap-0.5 text-[10px] text-cdmuted">
-                        Van
+                        From
                         <NlDateInput
                             value={customPrimaryStart}
                             onChange={setCustomPrimaryStart}
                             className="bg-cdborder/30 border border-cdborder rounded px-2 py-1.5 text-cdtext text-xs"
-                            aria-label="Kolom 1 van (dd/mm/jjjj)"
+                            aria-label="Column 1 from (dd/mm/yyyy)"
                         />
                     </label>
                     <label className="flex flex-col gap-0.5 text-[10px] text-cdmuted">
-                        Tot
+                        To
                         <NlDateInput
                             value={customPrimaryEnd}
                             onChange={setCustomPrimaryEnd}
                             className="bg-cdborder/30 border border-cdborder rounded px-2 py-1.5 text-cdtext text-xs"
-                            aria-label="Kolom 1 tot (dd/mm/jjjj)"
+                            aria-label="Column 1 to (dd/mm/yyyy)"
                         />
                     </label>
                 </div>
@@ -82,24 +82,24 @@ const PowerTopTenCustomRanges = ({
                 </div>
             </div>
             <div className="space-y-2">
-                <div className="text-[10px] font-bold text-blue-400 uppercase">Kolom 2</div>
+                <div className="text-[10px] font-bold text-blue-400 uppercase">Column 2</div>
                 <div className="flex flex-wrap gap-2">
                     <label className="flex flex-col gap-0.5 text-[10px] text-cdmuted">
-                        Van
+                        From
                         <NlDateInput
                             value={customCompareStart}
                             onChange={setCustomCompareStart}
                             className="bg-cdborder/30 border border-cdborder rounded px-2 py-1.5 text-cdtext text-xs"
-                            aria-label="Kolom 2 van (dd/mm/jjjj)"
+                            aria-label="Column 2 from (dd/mm/yyyy)"
                         />
                     </label>
                     <label className="flex flex-col gap-0.5 text-[10px] text-cdmuted">
-                        Tot
+                        To
                         <NlDateInput
                             value={customCompareEnd}
                             onChange={setCustomCompareEnd}
                             className="bg-cdborder/30 border border-cdborder rounded px-2 py-1.5 text-cdtext text-xs"
-                            aria-label="Kolom 2 tot (dd/mm/jjjj)"
+                            aria-label="Column 2 to (dd/mm/yyyy)"
                         />
                     </label>
                 </div>
@@ -129,8 +129,8 @@ const PowerTopTenCustomRanges = ({
         </div>
         {(!boundsPrimary || !compareBounds) && (
             <p className="text-xs text-orange-400/90">
-                {!boundsPrimary && 'Vul geldige datums in voor kolom 1 (start ≤ einde).'}
-                {boundsPrimary && !compareBounds && ' Vul geldige datums in voor kolom 2.'}
+                {!boundsPrimary && 'Enter valid dates for column 1 (start ≤ end).'}
+                {boundsPrimary && !compareBounds && ' Enter valid dates for column 2.'}
             </p>
         )}
     </div>

@@ -14,7 +14,7 @@ import React, { useMemo } from 'react';
  * @param {object[]} data - Normalized activity array
  */
 
-const DAY_LABELS = ['Ma', '', 'Wo', '', 'Vr', '', 'Zo'];
+const DAY_LABELS = ['Mon', '', 'Wed', '', 'Fri', '', 'Sun'];
 
 const LEVEL_CLASSES = [
     'bg-cdborder/40',          // 0 = empty
@@ -75,8 +75,8 @@ const ActivityHeatmap = ({ data }) => {
     if (cells.length === 0) {
         return (
             <div className="bg-cdsurface border border-cdborder rounded-xl p-5 shadow-xl">
-                <h3 className="text-sm font-bold text-cdtext uppercase tracking-wider mb-4">Activiteiten Heatmap</h3>
-                <div className="h-24 flex items-center justify-center text-cdmuted text-sm">Geen heatmap data</div>
+                <h3 className="text-sm font-bold text-cdtext uppercase tracking-wider mb-4">Activity heatmap</h3>
+                <div className="h-24 flex items-center justify-center text-cdmuted text-sm">No heatmap data</div>
             </div>
         );
     }
@@ -90,7 +90,7 @@ const ActivityHeatmap = ({ data }) => {
     return (
         <div className="bg-cdsurface border border-cdborder rounded-xl p-5 shadow-xl">
             <h3 className="text-sm font-bold text-cdtext uppercase tracking-wider mb-4">
-                Activiteiten Heatmap — laatste 52 weken
+                Activity heatmap — last 52 weeks
             </h3>
             <div className="overflow-x-auto pb-2">
                 <div className="flex gap-1 min-w-max">
@@ -128,11 +128,11 @@ const ActivityHeatmap = ({ data }) => {
 
             {/* Legend */}
             <div className="flex items-center gap-1.5 mt-3">
-                <span className="text-[10px] text-cdmuted">Minder</span>
+                <span className="text-[10px] text-cdmuted">Less</span>
                 {LEVEL_CLASSES.map((cls, i) => (
                     <div key={i} className={`rounded-sm ${cls}`} style={{ width: 13, height: 13 }} />
                 ))}
-                <span className="text-[10px] text-cdmuted">Meer</span>
+                <span className="text-[10px] text-cdmuted">More</span>
             </div>
         </div>
     );

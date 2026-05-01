@@ -18,7 +18,7 @@ import { PeriodSummaryCard } from './powerTopTenByDurationUi';
 import LongestRidesTable from './LongestRidesTable';
 
 /**
- * Top 10 langste ritten (afstand km) in dashboard-venster, optioneel vergeleken met tweede periode.
+ * Top 10 longest rides (distance km) in the dashboard window, optionally compared to a second period.
  */
 const LongestRidesPanel = ({
     chartData,
@@ -89,7 +89,7 @@ const LongestRidesPanel = ({
             const sign = n > 0 ? '+' : '';
             return `${sign}${formatNlNumber(Math.round(n * 10) / 10)}${suffix}`;
         };
-        return `Verschil (kolom 1 − kolom 2): ritten ${fmt(dr)} · km ${fmt(dk)} · hoogte ${fmt(de, ' m')}`;
+        return `Difference (column 1 − column 2): rides ${fmt(dr)} · km ${fmt(dk)} · elevation ${fmt(de, ' m')}`;
     }, [compareBounds, boundsPrimary, statsPrimary, statsCompare]);
 
     const periodLabel = dashboardFilterLabel(timeRange);
@@ -119,22 +119,22 @@ const LongestRidesPanel = ({
                 </div>
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-lg font-bold text-cdtext">Top 10 langste ritten</span>
+                        <span className="text-lg font-bold text-cdtext">Top 10 longest rides</span>
                         {expanded ? <ChevronDown size={18} className="text-cdmuted shrink-0" /> : <ChevronRight size={18} className="text-cdmuted shrink-0" />}
                     </div>
                     <p className="text-xs text-cdmuted mt-1 leading-relaxed">
-                        Gesorteerd op opgeslagen afstand (km). Zelfde site-preset als boven; optioneel tweede periode naast kolom 1.
+                        Sorted by stored distance (km). Same site preset as above; optional second period next to column 1.
                         {' '}
                         {compareMode === 'custom' ? (
                             <>
-                                <span className="text-cdtext font-medium">Aangepaste datums</span>
+                                <span className="text-cdtext font-medium">Custom dates</span>
                                 {headerRangeHint && (
                                     <span className="block mt-0.5 text-[11px] text-cdmuted">{headerRangeHint}</span>
                                 )}
                             </>
                         ) : (
                             <>
-                                Site-preset: <span className="text-cdtext font-medium">{periodLabel}</span>
+                                Site preset: <span className="text-cdtext font-medium">{periodLabel}</span>
                                 {headerRangeHint && (
                                     <span className="block mt-0.5 text-[11px] text-cdmuted">{headerRangeHint}</span>
                                 )}
@@ -148,7 +148,7 @@ const LongestRidesPanel = ({
                 <div className="px-4 pb-4 pt-0 space-y-4 border-t border-cdborder/60">
                     <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3 pt-3">
                         <label className="flex flex-col gap-1 text-xs text-cdmuted min-w-[220px]">
-                            <span className="font-semibold text-cdtext">Vergelijking</span>
+                            <span className="font-semibold text-cdtext">Comparison</span>
                             <select
                                 value={compareMode}
                                 onChange={(e) => {
@@ -173,7 +173,7 @@ const LongestRidesPanel = ({
                         </label>
                         {compareMode === 'days' && (
                             <label className="flex flex-col gap-1 text-xs text-cdmuted w-full sm:w-32">
-                                <span className="font-semibold text-cdtext">Dagen vóór start</span>
+                                <span className="font-semibold text-cdtext">Days before start</span>
                                 <input
                                     type="number"
                                     min={1}
@@ -189,14 +189,14 @@ const LongestRidesPanel = ({
                     {boundsPrimary && (
                         <div className={`grid gap-3 ${compareBounds ? 'lg:grid-cols-2' : ''}`}>
                             <PeriodSummaryCard
-                                title="Kolom 1 — primaire periode"
+                                title="Column 1 — primary period"
                                 accentClass="border-emerald-500/35 bg-emerald-500/[0.07]"
                                 bounds={boundsPrimary}
                                 stats={statsPrimary}
                             />
                             {compareBounds && (
                                 <PeriodSummaryCard
-                                    title="Kolom 2 — vergelijking"
+                                    title="Column 2 — comparison"
                                     accentClass="border-blue-500/35 bg-blue-500/[0.07]"
                                     bounds={compareBounds}
                                     stats={statsCompare}
@@ -227,12 +227,12 @@ const LongestRidesPanel = ({
 
                     <div className={`grid gap-4 ${compareBounds ? 'lg:grid-cols-2' : ''}`}>
                         <div>
-                            <h4 className="text-[10px] font-bold uppercase text-cdaccent mb-2">Kolom 1</h4>
+                            <h4 className="text-[10px] font-bold uppercase text-cdaccent mb-2">Column 1</h4>
                             <LongestRidesTable rows={primaryRows} peerRows={compareRows} onOpenActivityInLog={onOpenActivityInLog} />
                         </div>
                         {compareBounds && (
                             <div>
-                                <h4 className="text-[10px] font-bold uppercase text-blue-400 mb-2">Kolom 2</h4>
+                                <h4 className="text-[10px] font-bold uppercase text-blue-400 mb-2">Column 2</h4>
                                 <LongestRidesTable rows={compareRows} peerRows={primaryRows} onOpenActivityInLog={onOpenActivityInLog} />
                             </div>
                         )}

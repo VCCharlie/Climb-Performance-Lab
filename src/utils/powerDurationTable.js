@@ -1,7 +1,7 @@
 /**
- * Power-duration curve per activiteitenset (intervals.icu/power-achtig).
- * Per rit: max_power, best_1/5/10/20/60 (en optioneel 90/120) min, plus een anker op moving_time
- * met conservatief gemiddeld vermogen — tussenliggende seconden log-interpoleren.
+ * Power-duration curve for a set of activities (intervals.icu-style).
+ * Per ride: max_power, best 1/5/10/20/60 (and optional 90/120) min, plus a moving_time anchor
+ * with conservative average power — intermediate seconds via log interpolation.
  */
 
 import { DASHBOARD_FTP_CAPS } from './dashboardActivityPeaks';
@@ -9,7 +9,7 @@ import { activityMovingTimeSec } from './activityFilterMetrics';
 
 const MS_DAY = 86400000;
 
-/** Rij-label (weergave) → duur in seconden */
+/** Row label (display) → duration in seconds */
 export const POWER_DURATION_ROWS = [
     { label: '5s', sec: 5 },
     { label: '15s', sec: 15 },
@@ -28,10 +28,10 @@ export const POWER_DURATION_ROWS = [
     { label: '25m', sec: 1500 },
     { label: '30m', sec: 1800 },
     { label: '45m', sec: 2700 },
-    { label: '1u', sec: 3600 },
-    { label: '1u30', sec: 5400 },
-    { label: '2u', sec: 7200 },
-    { label: '3u', sec: 10800 },
+    { label: '1h', sec: 3600 },
+    { label: '1h30', sec: 5400 },
+    { label: '2h', sec: 7200 },
+    { label: '3h', sec: 10800 },
 ];
 
 function capMaxPowerW(w, manualFtp) {
@@ -186,20 +186,20 @@ export function powerCurveForWindow(activities, manualFtp) {
 
 export function dashboardFilterLabel(timeRange) {
     const map = {
-        '1M': '1 maand',
-        '3M': '3 maanden',
-        '6M': '6 maanden',
-        '1Y': '1 jaar',
-        '3Y': '3 jaar',
-        '6Y': '6 jaar',
-        ALL: 'Alles (filter)',
-        Custom: 'Aangepast',
+        '1M': '1 month',
+        '3M': '3 months',
+        '6M': '6 months',
+        '1Y': '1 year',
+        '3Y': '3 years',
+        '6Y': '6 years',
+        ALL: 'All (filter)',
+        Custom: 'Custom',
     };
     return map[timeRange] || timeRange || 'Filter';
 }
 
 /**
- * Top-N sterkste geïnterpoleerde power-momenten (zelfde ankers als power-duration matrix).
+ * Top-N strongest interpolated power moments (same anchors as power-duration matrix).
  */
 export function computeTopPowerMoments(activities, manualFtp, limit = 10) {
     if (!activities?.length || limit <= 0) return [];

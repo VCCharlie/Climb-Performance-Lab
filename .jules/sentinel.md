@@ -22,3 +22,7 @@
 **Vulnerability:** External links created with `target="_blank"` did not include the `rel="noopener noreferrer"` attribute across the application.
 **Learning:** This exposes the application to reverse tabnabbing, a security risk where the newly opened tab can potentially manipulate the original page (e.g. via `window.opener.location`), leading to phishing or redirection attacks.
 **Prevention:** Ensure that every anchor tag utilizing `target="_blank"` natively includes `rel="noopener noreferrer"`.
+## 2026-04-29 - Overly Permissive CORS Policy Fixed
+**Vulnerability:** The Python cloud function (`sync-intervals`) had an overly permissive CORS policy set with `Access-Control-Allow-Origin: *`, allowing potential unauthorized cross-origin requests.
+**Learning:** Hardcoding wildcard CORS domains can expose server resources to unwanted domains. Allowing it dynamically via whitelists read from environment variables ensures security and portability across environments. Additionally, returning `Vary: Origin` prevents caching systems from returning cached wildcard/wrong origin responses.
+**Prevention:** Implement checks on the `Origin` header from incoming requests. Reflect the `Origin` header dynamically back into `Access-Control-Allow-Origin` if it's explicitly matched within an `ALLOWED_CORS_ORIGINS` environment variable whitelist. If it doesn't match, gracefully fall back to the first allowed origin or drop the header. Add `Vary: Origin` for correctly handled responses.

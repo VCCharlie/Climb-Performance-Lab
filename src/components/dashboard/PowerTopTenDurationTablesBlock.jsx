@@ -12,30 +12,30 @@ const PowerTopTenDurationTablesBlock = ({ tablesByDuration, compareBounds, onOpe
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <div>
                         <p className="text-[10px] uppercase text-cdmuted font-bold tracking-wide mb-1.5">
-                            Kolom 1
+                            Column 1
                         </p>
                         <TopTable
                             rows={primary}
                             peerRows={secondary}
                             onOpenActivityInLog={onOpenActivityInLog}
-                            emptyHint="Geen ritten met power in dit venster."
+                            emptyHint="No rides with power in this window."
                         />
                     </div>
                     {compareBounds ? (
                         <div>
                             <p className="text-[10px] uppercase text-cdmuted font-bold tracking-wide mb-1.5">
-                                Kolom 2
+                                Column 2
                             </p>
                             <TopTable
                                 rows={secondary}
                                 peerRows={primary}
                                 onOpenActivityInLog={onOpenActivityInLog}
-                                emptyHint="Geen ritten in vergelijkingsvenster."
+                                emptyHint="No rides in the comparison window."
                             />
                         </div>
                     ) : (
                         <div className="hidden lg:block rounded-lg border border-dashed border-cdborder/60 p-4 text-xs text-cdmuted">
-                            Kies een vergelijking om hier een tweede kolom te zien.
+                            Choose a comparison mode to show a second column here.
                         </div>
                     )}
                 </div>

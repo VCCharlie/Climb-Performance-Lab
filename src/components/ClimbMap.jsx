@@ -6,19 +6,10 @@
 
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
 import { MapPin, LocateFixed, Filter, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { CLIMB_DATABASE } from '../climbs';
 import { haversineDistance, calculateClimbCategory } from '../utils/calculations';
 import FlagIcon from './FlagIcon';
-
-// Fix Leaflet default marker icon (Vite asset handling)
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
 
 // Klimmen met GPS (echte klimmen, geen Zwift)
 const REAL_CLIMBS = CLIMB_DATABASE.filter(c => c.lat != null && c.lon != null);
@@ -342,7 +333,7 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
                                         <option key={r} value={r}>{r} km</option>
                                     ))}
                                 </select>
-                                <button onClick={clearNearby} className="ml-1 text-blue-400 hover:text-blue-200">
+                                <button onClick={clearNearby} aria-label="Clear nearby filter" className="ml-1 text-blue-400 hover:text-blue-200 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded">
                                     <X size={12} />
                                 </button>
                             </div>

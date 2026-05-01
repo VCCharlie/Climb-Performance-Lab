@@ -94,7 +94,7 @@ const DuplicateReviewModal = ({ conflicts, onResolve, onClose }) => {
                             <p className="text-xs text-cdmuted">Conflict {currentIndex + 1} of {conflicts.length}</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-cdsurface rounded-full text-cdmuted hover:text-cdtext"><X size={20} /></button>
+                    <button onClick={onClose} aria-label="Close modal" className="p-2 hover:bg-cdsurface rounded-full text-cdmuted hover:text-cdtext focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"><X size={20} /></button>
                 </div>
 
                 {/* Body */}

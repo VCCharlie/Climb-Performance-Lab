@@ -25,6 +25,22 @@ import base64
 import os
 
 
+DEFAULT_ALLOWED_CORS_ORIGINS = "http://localhost:5173,https://vccharlie.github.io"
+DEFAULT_CORS_FALLBACK_ORIGIN = "http://localhost:5173"
+
+
+def resolve_cors_origin(origin):
+    """Return the CORS origin to emit for this request."""
+    allowed_origins_env = os.environ.get("ALLOWED_CORS_ORIGINS", DEFAULT_ALLOWED_CORS_ORIGINS)
+    allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
+
+    if "*" in allowed_origins:
+        return "*"
+    if origin in allowed_origins:
+        return origin
+    return allowed_origins[0] if allowed_origins else DEFAULT_CORS_FALLBACK_ORIGIN
+
+
 def get_credentials_from_secrets():
     """
     Retrieve credentials from Google Cloud Secret Manager via environment variables.
@@ -401,21 +417,29 @@ def sync_intervals(request):
 
     Returns: JSON array of transformed activities
     """
+    # Determine allowed CORS origin
+    origin = request.headers.get("Origin")
+    cors_origin = resolve_cors_origin(origin)
+
     # Handle CORS preflight
     if request.method == "OPTIONS":
         headers = {
-            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Origin": cors_origin,
             "Access-Control-Allow-Methods": "POST, OPTIONS",
             "Access-Control-Allow-Headers": "Content-Type",
             "Access-Control-Max-Age": "3600",
         }
+        if cors_origin != "*":
+            headers["Vary"] = "Origin"
         return ("", 204, headers)
 
     # CORS headers for actual request
     cors_headers = {
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": cors_origin,
         "Content-Type": "application/json"
     }
+    if cors_origin != "*":
+        cors_headers["Vary"] = "Origin"
 
     try:
         # Parse request
