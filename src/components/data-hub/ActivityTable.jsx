@@ -196,10 +196,10 @@ export const Row = React.memo(({
                         <button onClick={(e) => { e.stopPropagation(); setIsConfirmingDelete(false); }} className="text-cdmuted text-xs px-2 py-1">Cancel</button>
                     </div>
                 ) : (
-                    <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                         {/* DETAIL VIEW */}
                         {onViewDetail && (
-                            <button onClick={(e) => { e.stopPropagation(); onViewDetail(act); }} className="text-slate-600 hover:text-green-400 p-1" title="View details">
+                            <button onClick={(e) => { e.stopPropagation(); onViewDetail(act); }} className="text-slate-600 hover:text-green-400 p-1 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm" title="View details" aria-label="View details">
                                 <Eye size={14} />
                             </button>
                         )}
@@ -210,7 +210,7 @@ export const Row = React.memo(({
                                     e.stopPropagation();
                                     onOpenProfiler(act, profilerClimbByActivityId?.get(String(act.id)));
                                 }}
-                                className="text-slate-600 hover:text-emerald-400 p-1"
+                                className="text-slate-600 hover:text-emerald-400 p-1 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm"
                                 title={
                                     profilerClimbByActivityId?.get(String(act.id))
                                         ? 'Open in Climb Profiler'
@@ -218,28 +218,29 @@ export const Row = React.memo(({
                                             ? 'Open in Climb Profiler (benadering — route uit Strava)'
                                             : 'Open in Climb Profiler (standaard klim — geen route in data; kies klim in tab)'
                                 }
+                                aria-label="Open in Climb Profiler"
                             >
                                 <Route size={14} />
                             </button>
                         )}
                         {/* INTERVALS.ICU LINK */}
                         {!String(act.id).startsWith('csv_') && (
-                            <a href={`https://intervals.icu/activities/${act.id}`} target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-blue-400 p-1 flex items-center" onClick={(e) => e.stopPropagation()} title="Open in Intervals.icu">
+                            <a href={`https://intervals.icu/activities/${act.id}`} target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-blue-400 p-1 flex items-center focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm" onClick={(e) => e.stopPropagation()} title="Open in Intervals.icu" aria-label="Open in Intervals.icu">
                                 <ExternalLink size={14} />
                             </a>
                         )}
                         {/* STRAVA LINK */}
                         {act.strava_id && (
-                            <a href={`https://www.strava.com/activities/${act.strava_id}`} target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-orange-400 p-1 flex items-center" onClick={(e) => e.stopPropagation()} title="Open in Strava">
+                            <a href={`https://www.strava.com/activities/${act.strava_id}`} target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-orange-400 p-1 flex items-center focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm" onClick={(e) => e.stopPropagation()} title="Open in Strava" aria-label="Open in Strava">
                                 <StravaIcon />
                             </a>
                         )}
                         {/* EDIT */}
-                        <button onClick={(e) => { e.stopPropagation(); onEdit(act) }} className="text-slate-600 hover:text-yellow-400 p-1">
+                        <button onClick={(e) => { e.stopPropagation(); onEdit(act) }} className="text-slate-600 hover:text-yellow-400 p-1 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm" aria-label="Edit activity">
                             <Edit2 size={14} />
                         </button>
                         {/* DELETE */}
-                        <button onClick={(e) => { e.stopPropagation(); setIsConfirmingDelete(true); }} className="text-slate-600 hover:text-red-400 p-1">
+                        <button onClick={(e) => { e.stopPropagation(); setIsConfirmingDelete(true); }} className="text-slate-600 hover:text-red-400 p-1 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm" aria-label="Delete activity">
                             <Trash2 size={14} />
                         </button>
                     </div>
