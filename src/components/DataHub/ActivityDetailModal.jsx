@@ -4,8 +4,6 @@ import { formatDateDDMMYYYY, formatTime } from '../../utils';
 import StravaMap from './StravaMap';
 import { formatSegmentTime } from '../../utils/strava';
 
-const STRAVA_SEGMENT_TROPHY_ORANGE = '#fc4c02';
-
 // Strava logo SVG
 const StravaIcon = ({ size = 14 }) => (
     <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor">
@@ -248,26 +246,18 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken }) => {
                                                         )}
                                                         {seg.kom_rank && seg.kom_rank >= 2 && seg.kom_rank <= 10 && (
                                                             <span
-                                                                className="relative inline-flex h-[24px] w-[22px] shrink-0 items-center justify-center"
+                                                                className="inline-flex items-center gap-1 shrink-0"
                                                                 title={`#${seg.kom_rank} on segment leaderboard`}
                                                             >
                                                                 <Trophy
-                                                                    size={20}
-                                                                    className="shrink-0 drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)]"
-                                                                    fill={STRAVA_SEGMENT_TROPHY_ORANGE}
-                                                                    color={STRAVA_SEGMENT_TROPHY_ORANGE}
-                                                                    stroke={STRAVA_SEGMENT_TROPHY_ORANGE}
-                                                                    strokeWidth={1.5}
+                                                                    size={16}
+                                                                    className="shrink-0 text-amber-500/90 dark:text-amber-400/90"
+                                                                    fill="none"
+                                                                    stroke="currentColor"
+                                                                    strokeWidth={2}
                                                                     aria-hidden
                                                                 />
-                                                                <span
-                                                                    className={[
-                                                                        'pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2',
-                                                                        'font-black tabular-nums leading-none text-white',
-                                                                        '[text-shadow:0_0_2px_rgba(0,0,0,0.5),0_1px_0_rgba(0,0,0,0.25)]',
-                                                                        seg.kom_rank >= 10 ? 'text-[8px] tracking-tighter' : 'text-[10px]',
-                                                                    ].join(' ')}
-                                                                >
+                                                                <span className="text-xs font-semibold tabular-nums text-cdtext">
                                                                     {seg.kom_rank}
                                                                 </span>
                                                             </span>
