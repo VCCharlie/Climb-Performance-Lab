@@ -89,28 +89,33 @@ export async function fetchStravaGearName(gearId, token) {
  * @param {object} merged - Activity after merge (must have strava_id)
  * @param {object | null} stravaSide - Duplicate row (may have gear_id from list API)
  * @param {string} token
+ * @param {{ forceStravaDetail?: boolean }} [opts]
  * @returns {Promise<object>}
  */
-export async function enrichActivityGearFromStrava(merged, stravaSide, token) {
+export async function enrichActivityGearFromStrava(merged, stravaSide, token, opts = {}) {
     if (!merged || !token || !merged.strava_id) return stripUndefinedFields({ ...merged });
 
     let out = { ...merged };
     const stravaActId = normalizeStravaActivityId(merged.strava_id);
     if (!stravaActId) return stripUndefinedFields({ ...merged });
 
+    const forceDetail = opts.forceStravaDetail === true;
+
     const needsDetail =
-        !out.gear_id
+        forceDetail
+        || !out.gear_id
         || !out.strava_map
         || (!(out.gear_name != null && String(out.gear_name).trim()))
         || storedMovingTimeSec(out) <= 0
         || storedDistanceImplausible(out);
 
     const existingKom = out.strava_kom_summary;
-    const needsKomSummary = !(
-        existingKom
-        && typeof existingKom === 'object'
-        && String(existingKom.label || '').trim() !== ''
-    );
+    const needsKomSummary = forceDetail
+        || !(
+            existingKom
+            && typeof existingKom === 'object'
+            && String(existingKom.label || '').trim() !== ''
+        );
 
     let detail = null;
     if (needsDetail || needsKomSummary) {
@@ -219,13 +224,15 @@ export async function buildStravaDetailEnrichmentUpdates(siteActivities, token, 
 
     opts.onProgress?.(`Strava activity details: ${list.length} ride(s)…`);
 
+    const enrichOpts = { forceStravaDetail: opts.forceStravaDetail === true };
+
     const updates = [];
     let unchanged = 0;
     let failed = 0;
 
     await runInBatches(list, conc, async (act) => {
         try {
-            const enriched = await enrichActivityGearFromStrava(act, null, token);
+            const enriched = await enrichActivityGearFromStrava(act, null, token, enrichOpts);
             const sid = enriched.strava_id || normalizeStravaActivityId(act.strava_id);
             const timeChanged =
                 storedMovingTimeSec(act) !== storedMovingTimeSec(enriched)

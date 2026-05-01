@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Clock, MapPin, Zap, ExternalLink, Mountain, TrendingUp, Loader2, AlertCircle, Star, Bike } from 'lucide-react';
+import { X, Calendar, Clock, MapPin, Zap, ExternalLink, Mountain, TrendingUp, Loader2, AlertCircle, Star, Bike, Trophy, Crown } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
 import StravaMap from './StravaMap';
 import { formatSegmentTime } from '../../utils/strava';
@@ -239,8 +239,26 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken }) => {
                                                         {seg.pr_rank === 1 && (
                                                             <span className="text-xs bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded font-bold shrink-0">PR</span>
                                                         )}
-                                                        {seg.kom_rank && seg.kom_rank <= 10 && (
-                                                            <span className="text-xs bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded font-bold shrink-0">KOM#{seg.kom_rank}</span>
+                                                        {seg.kom_rank === 1 && (
+                                                            <span className="inline-flex shrink-0" title="Overall #1 on segment">
+                                                                <Crown size={14} className="text-amber-400" fill="currentColor" strokeWidth={1.25} aria-hidden />
+                                                            </span>
+                                                        )}
+                                                        {seg.kom_rank && seg.kom_rank >= 2 && seg.kom_rank <= 10 && (
+                                                            <span
+                                                                className="relative inline-flex h-[22px] w-[20px] shrink-0 items-end justify-center pb-0.5"
+                                                                title={`#${seg.kom_rank} on segment leaderboard`}
+                                                            >
+                                                                <Trophy
+                                                                    size={18}
+                                                                    className="absolute bottom-0 left-1/2 -translate-x-1/2 text-amber-400/90 pointer-events-none"
+                                                                    strokeWidth={2}
+                                                                    aria-hidden
+                                                                />
+                                                                <span className="relative z-[1] min-w-[15px] translate-y-px rounded px-[2px] py-[1px] text-center text-[8px] font-black tabular-nums leading-none text-cdtext bg-cdsurface/95 border border-cdborder/60 shadow-[0_1px_2px_rgba(0,0,0,0.35)]">
+                                                                    {seg.kom_rank}
+                                                                </span>
+                                                            </span>
                                                         )}
                                                     </div>
                                                 ))}

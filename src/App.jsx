@@ -331,8 +331,9 @@ const App = () => {
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const code = params.get('code');
+        const state = params.get('state');
         if (code && stravaConfig?.client_id && stravaConfig?.client_secret) {
-            stravaAuth.handleOAuthCallback(code).catch(e => {
+            stravaAuth.handleOAuthCallback(code, state).catch(e => {
                 console.error('Strava OAuth fout:', e);
                 alert('Strava koppeling mislukt: ' + e.message);
             });
@@ -450,13 +451,19 @@ const App = () => {
                 openweatherApiKey: userSettings.openweatherApiKey ? '' : ''
             };
             const safeStrava = { ...stravaConfig, client_secret: stravaConfig.client_secret ? '' : '' };
+            const stravaForLog = {
+                ...stravaConfig,
+                client_secret: stravaConfig.client_secret ? '***REDACTED***' : '',
+                access_token: stravaConfig.access_token ? '***REDACTED***' : '',
+                refresh_token: stravaConfig.refresh_token ? '***REDACTED***' : ''
+            };
 
             console.log("Saving Settings to Cloud:", {
                 intervals: safeIntervals,
                 body: safeBody,
                 theme,
                 bucketList: bucketListState,
-                strava: safeStrava,
+                strava: stravaForLog,
                 stravaProfile: stravaProfileData
             });
             await setDoc(doc(db, "settings", settingsId), {

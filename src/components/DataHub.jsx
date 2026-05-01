@@ -15,6 +15,7 @@ import {
 } from '../utils/mergeActivities';
 import { findSafeImportReplacementDuplicate } from '../utils/importDuplicateMatch';
 import { enrichActivityGearFromStrava, buildStravaDetailEnrichmentUpdates } from '../utils/stravaGearEnrich';
+import { buildStravaKomSummaryFromActivityDetail } from '../utils/stravaSegmentKomSummary';
 import { resolveStravaGearDisplay } from '../utils/stravaBikesLocalMap';
 import { buildClimbMatchIndex, findBestClimbUsingIndex } from '../utils/activityClimbMatch';
 import { formatNlNumber } from '../utils/formatters';
@@ -623,9 +624,10 @@ const DataHub = ({
                 // Haal details op van Strava (voor RPE + volledige HR)
                 let stravaDetailed = m.strava;
                 try {
-                    const detResp = await fetch(`https://www.strava.com/api/v3/activities/${m.strava.id}`, {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
+                    const detResp = await fetch(
+                        `https://www.strava.com/api/v3/activities/${m.strava.id}?include_all_efforts=true`,
+                        { headers: { Authorization: `Bearer ${token}` } },
+                    );
                     if (detResp.ok) {
                         stravaDetailed = await detResp.json();
                     }
@@ -635,6 +637,7 @@ const DataHub = ({
                 const gearName = gearId ? (bikesMap[gearId] || 'Strava bike') : null;
 
                 const stravaTitle = (stravaDetailed.name || '').trim();
+                const komSummary = buildStravaKomSummaryFromActivityDetail(stravaDetailed);
                 const updateData = {
                     strava_id: String(stravaDetailed.id),
                     strava_map: stravaDetailed.map?.summary_polyline || m.site.strava_map || null,
@@ -645,7 +648,10 @@ const DataHub = ({
                     ...(siteNeedsRpe && stravaDetailed.perceived_exertion && { rpe: stravaDetailed.perceived_exertion }),
                     // HR alleen invullen als site deze nog niet heeft én Strava heeft 'm wél
                     ...(siteNeedsHr && stravaDetailed.average_heartrate && { avg_hr: Math.round(stravaDetailed.average_heartrate) }),
-                    ...((!m.site.max_hr || m.site.max_hr === 0) && stravaDetailed.max_heartrate && { max_hr: Math.round(stravaDetailed.max_heartrate) })
+                    ...((!m.site.max_hr || m.site.max_hr === 0) && stravaDetailed.max_heartrate && { max_hr: Math.round(stravaDetailed.max_heartrate) }),
+                    ...(Object.prototype.hasOwnProperty.call(stravaDetailed, 'segment_efforts')
+                        ? { strava_kom_summary: komSummary || null }
+                        : {}),
                 };
 
                 // Filter out if no actual changes
@@ -712,75 +718,146 @@ const DataHub = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [stravaGetToken, activities]);
 
-    // --- 2. REFACTORED DIRECT SYNC TRIGGER ---
+    // --- Sync Now: Intervals for date span of *selected* rows; Strava link + forced detail (segments/KOM) ---
     const handleSync = async () => {
         setShowUtilMenu(false);
+
+        if (bulkSelectedIds.size === 0) {
+            setSyncStatus('error');
+            setSyncErrorDetail('Select one or more activities (checkboxes in the Activity Log), then Sync Now.');
+            setTimeout(() => setSyncStatus(null), 7000);
+            return;
+        }
+
+        const selectedActs = selectedActivitiesForBulk;
+        const dateParts = selectedActs
+            .map((a) => (a?.date && String(a.date).split('T')[0]) || '')
+            .filter(Boolean)
+            .sort();
+        if (dateParts.length === 0) {
+            setSyncStatus('error');
+            setSyncErrorDetail('Selected activities have no valid date; cannot determine Intervals.icu range.');
+            setTimeout(() => setSyncStatus(null), 7000);
+            return;
+        }
+
+        const syncStart = dateParts[0];
+        const syncEnd = dateParts[dateParts.length - 1];
+        const selectedIdSet = new Set([...bulkSelectedIds].map(String));
+
+        /** Mutable copies so enrichment does not mutate stale `activities` refs */
+        let working = selectedActs.map((a) => ({ ...a }));
+
         setSyncStatus('started');
-        setSyncErrorDetail('Step 1/2: Fetching new rides (last 14 days)...');
+        setSyncErrorDetail(`Step 1/2: Intervals.icu ${syncStart} → ${syncEnd} (${bulkSelectedIds.size} selected)…`);
 
         try {
             const sportFilters = SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: true }), {});
-            const selectedTypes = Object.keys(sportFilters).filter(k => sportFilters[k]);
+            const selectedTypes = Object.keys(sportFilters).filter((k) => sportFilters[k]);
 
-            // NIEUW: Altijd de laatste 14 dagen voor Sync Now (ongeacht dashboard periode)
-            const today = new Date();
-            const syncEnd = today.toISOString().split('T')[0];
-            const fourteenDaysAgo = new Date();
-            fourteenDaysAgo.setDate(today.getDate() - 14);
-            const syncStart = fourteenDaysAgo.toISOString().split('T')[0];
+            const newActivitiesRaw = await syncIntervals(syncStart, syncEnd, selectedTypes);
+            const newActivities = newActivitiesRaw.filter((a) => selectedIdSet.has(String(a.id)));
 
-            // 1. Haal nieuwe ritten op van Intervals
-            const newActivities = await syncIntervals(syncStart, syncEnd, selectedTypes);
+            const mergeNewInto = (act) => {
+                const existing = (activities || []).find((x) => String(x.id) === String(act.id));
+                return existing ? protectEnrichedFieldsOnMerge(act, existing) : act;
+            };
+            const mergedNews = newActivities.map(mergeNewInto);
 
-            // 2. Bepaal welke bestaande ritten (in dashboard) we mee willen sturen naar Strava check
-            // We sturen ALLE ritten in het venster mee, de verrijking filtert zelf of er wat moet gebeuren.
-            const existingInWindow = (activities || []).filter(act => {
-                const actDate = act.date?.split('T')[0];
-                return actDate >= syncStart && actDate <= syncEnd;
-            });
-
-            const totalCheckList = [...newActivities, ...existingInWindow];
-
-            if (totalCheckList.length === 0) {
-                setSyncStatus('done');
-                setSyncErrorDetail('✅ You are up to date. No activities in the last 14 days.');
-                setTimeout(() => setSyncStatus(null), 5000);
-                return;
+            for (const n of mergedNews) {
+                const i = working.findIndex((x) => String(x.id) === String(n.id));
+                if (i >= 0) {
+                    working[i] = protectEnrichedFieldsOnMerge({ ...working[i], ...n }, working[i]);
+                }
             }
 
-            setSyncErrorDetail(`Step 2/2: ${newActivities.length} new ride(s) found. Enriching with Strava...`);
+            setSyncErrorDetail(
+                mergedNews.length < newActivitiesRaw.length
+                    ? `Step 2/2: ${mergedNews.length} of ${newActivitiesRaw.length} fetched id(s) match selection. Strava…`
+                    : `Step 2/2: Strava link + segment refresh for ${bulkSelectedIds.size} selected ride(s)…`,
+            );
             setSyncStatus('enriching');
 
-            // De performSilentStravaEnrichment functie doet de matching, detail fetches en Firestore writes.
-            // Het update ook de objecten in de array IN-PLACE.
-            const enrichedCount = await performSilentStravaEnrichment(totalCheckList, syncStart, syncEnd);
-
-            // 3. Save new rides: same object references as enrichment mutated (Strava fields), then protect vs any prior row
-            if (db && newActivities.length > 0) {
-                await Promise.all(newActivities.map((act) => {
-                    const existing = (activities || []).find((a) => String(a.id) === String(act.id));
-                    const payload = protectEnrichedFieldsOnMerge(act, existing);
-                    return setDoc(doc(db, 'activities', String(act.id)), payload, { merge: true });
-                }));
+            if (db && mergedNews.length > 0) {
+                await Promise.all(
+                    mergedNews.map((act) => {
+                        const existing = (activities || []).find((a) => String(a.id) === String(act.id));
+                        const payload = protectEnrichedFieldsOnMerge(act, existing);
+                        return setDoc(doc(db, 'activities', String(act.id)), payload, { merge: true });
+                    }),
+                );
+            }
+            if (mergedNews.length > 0) {
+                onImport(mergedNews);
             }
 
-            // Update local state with enriched objects (not a fresh copy from the API)
-            const allUpdated = [...newActivities];
-            // Voeg bestaande ritten toe die tijdens de silent enrichment zijn aangepast (strava_id nu aanwezig of rpe gewijzigd)
-            existingInWindow.forEach(act => {
-                // We kunnen checken of act gemuteerd is. Een simpele manier is kijken of er iets is toegevoegd.
-                // In performSilentStravaEnrichment doen we Object.assign(m.site, updateData).
-                allUpdated.push(act);
-            });
+            const enrichedLinkCount = await performSilentStravaEnrichment(working, syncStart, syncEnd);
 
-            if (allUpdated.length > 0) {
-                onImport(allUpdated);
+            let segmentRefreshCount = 0;
+            let detailFailed = 0;
+            if (stravaGetToken) {
+                try {
+                    const token = await stravaGetToken();
+                    if (token) {
+                        const withStrava = working.filter((a) => a?.strava_id);
+                        const { updates, failed } = await buildStravaDetailEnrichmentUpdates(
+                            withStrava,
+                            token,
+                            {
+                                forceStravaDetail: true,
+                                concurrency: 3,
+                                onProgress: (m) => setSyncErrorDetail(String(m)),
+                            },
+                        );
+                        detailFailed = failed;
+                        if (updates.length > 0 && db) {
+                            await Promise.all(
+                                updates.map(({ id, data }) => {
+                                    const existingRow = working.find((x) => String(x.id) === String(id))
+                                        || (activities || []).find((x) => String(x.id) === String(id))
+                                        || {};
+                                    return setDoc(
+                                        doc(db, 'activities', String(id)),
+                                        protectEnrichedFieldsOnMerge(data, existingRow),
+                                        { merge: true },
+                                    );
+                                }),
+                            );
+                            for (const { id, data } of updates) {
+                                const wi = working.findIndex((x) => String(x.id) === String(id));
+                                if (wi >= 0) {
+                                    working[wi] = stripUndefinedFields({ ...working[wi], ...data });
+                                }
+                            }
+                            onImport(updates.map(({ id, data }) => {
+                                const prev = working.find((x) => String(x.id) === String(id)) || {};
+                                return protectEnrichedFieldsOnMerge({ ...prev, ...data }, prev);
+                            }));
+                        }
+                        segmentRefreshCount = updates.length;
+                    }
+                } catch (e) {
+                    console.warn('[Sync] Strava detail / segment refresh failed:', e);
+                }
             }
+
+            onImport(working);
 
             setSyncStatus('done');
-            setSyncErrorDetail(`✅ Sync complete. ${newActivities.length} new, ${enrichedCount} ride(s) updated with Strava data.`);
-            setTimeout(() => setSyncStatus(null), 8000);
-
+            const parts = [];
+            if (mergedNews.length > 0) parts.push(`${mergedNews.length} Intervals row(s) saved`);
+            if (newActivitiesRaw.length > mergedNews.length) {
+                parts.push(`${newActivitiesRaw.length - mergedNews.length} fetched id(s) not in selection`);
+            }
+            if (enrichedLinkCount > 0) parts.push(`${enrichedLinkCount} Strava link update(s)`);
+            if (segmentRefreshCount > 0) parts.push(`${segmentRefreshCount} Strava detail + segment refresh`);
+            if (detailFailed > 0) parts.push(`${detailFailed} detail error(s)`);
+            setSyncErrorDetail(
+                parts.length > 0
+                    ? `✅ Sync complete. ${parts.join(' · ')}.`
+                    : '✅ Sync complete. No Intervals changes for selected ids; Strava refresh attempted.',
+            );
+            setTimeout(() => setSyncStatus(null), 9000);
         } catch (e) {
             console.error('Sync failed:', e);
             setSyncStatus('error');
@@ -1285,8 +1362,12 @@ const DataHub = ({
                                             <div className="absolute left-0 right-0 md:left-auto md:right-0 top-full mt-1 w-full min-w-[min(100%,16rem)] md:w-56 max-w-[calc(100vw-2rem)] md:max-w-none bg-cdsurface border border-cdborder rounded-lg shadow-xl z-[70] overflow-hidden">
                                                 <button
                                                     onClick={handleSync}
-                                                    disabled={isSyncing}
-                                                    title={'Sync activities from Intervals.icu'}
+                                                    disabled={isSyncing || bulkSelectedIds.size === 0}
+                                                    title={
+                                                        bulkSelectedIds.size === 0
+                                                            ? 'Select activities in the log (checkboxes). Sync uses the date range from those rows for Intervals.icu, then refreshes Strava link, gear, and segment / KOM badges for the same selection.'
+                                                            : 'Re-fetch Intervals.icu for the date span of selected rows, match Strava in that window, then force-refresh Strava activity details (segments / KOM) for every selected ride that has strava_id.'
+                                                    }
                                                     className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-blue-400 hover:bg-cdborder disabled:opacity-40 disabled:cursor-not-allowed"
                                                 >
                                                     <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
