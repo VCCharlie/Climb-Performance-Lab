@@ -50,6 +50,9 @@ const StravaIcon = () => (
     </svg>
 );
 
+/** Strava-like orange for segment podium trophy (not official asset; brand hue). */
+const SEGMENT_TROPHY_ORANGE = '#fc4c02';
+
 /** Activity log: up to 3 crown/trophy icons, then +N if more segment places; PR text after. */
 const StravaKomSummaryBadges = ({ summary }) => {
     const { shown, hiddenCount, totalKom } = getKomBadgeDisplaySlots(summary, 3);
@@ -74,16 +77,26 @@ const StravaKomSummaryBadges = ({ summary }) => {
             ) : (
                 <span
                     key={`slot-${i}-t-${slot.rank}`}
-                    className="relative inline-flex h-[20px] w-[18px] shrink-0 items-end justify-center pb-0.5"
+                    className="relative inline-flex h-[22px] w-[20px] shrink-0 items-center justify-center"
                     title={`#${slot.rank} on segment leaderboard`}
                 >
                     <Trophy
-                        size={17}
-                        className="absolute bottom-0 left-1/2 -translate-x-1/2 text-amber-400/90 pointer-events-none"
-                        strokeWidth={2}
+                        size={19}
+                        className="shrink-0 drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)]"
+                        fill={SEGMENT_TROPHY_ORANGE}
+                        color={SEGMENT_TROPHY_ORANGE}
+                        stroke={SEGMENT_TROPHY_ORANGE}
+                        strokeWidth={1.5}
                         aria-hidden
                     />
-                    <span className="relative z-[1] min-w-[14px] translate-y-px rounded px-[2px] py-[1px] text-center text-[8px] font-black tabular-nums leading-none text-cdtext bg-cdsurface/95 border border-cdborder/60 shadow-[0_1px_2px_rgba(0,0,0,0.35)]">
+                    <span
+                        className={[
+                            'pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2',
+                            'font-black tabular-nums leading-none text-white',
+                            '[text-shadow:0_0_2px_rgba(0,0,0,0.5),0_1px_0_rgba(0,0,0,0.25)]',
+                            slot.rank >= 10 ? 'text-[7px] tracking-tighter' : 'text-[9px]',
+                        ].join(' ')}
+                    >
                         {slot.rank}
                     </span>
                 </span>
