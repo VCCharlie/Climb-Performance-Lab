@@ -29,6 +29,7 @@ import ImportModal from './data-hub/ImportModal';
 import DuplicateResolver from './data-hub/DuplicateResolver';
 import QuickNav from './data-hub/QuickNav';
 import ImportSection from './data-hub/ImportSection';
+import ManualActivityImportBlock from './data-hub/ManualActivityImportBlock';
 import ActivityDetailModal from './DataHub/ActivityDetailModal';
 import StravaEnrichTab from './DataHub/StravaEnrichTab';
 import StravaProfileTab from './DataHub/StravaProfileTab';
@@ -932,6 +933,11 @@ const DataHub = ({
         setShowModal(true);
     };
 
+    const handleManualFetchedActivity = (act) => {
+        if (!act || act.id == null) return;
+        handleDataDetected([act]);
+    };
+
     const toggleActivityTypeInPreview = (id) => {
         setFetchedActivities(prev => prev.map(act => act.id === id ? { ...act, type: act.type === 'VirtualRide' ? 'Ride' : 'VirtualRide' } : act));
     };
@@ -1705,9 +1711,17 @@ const DataHub = ({
                 )}
 
                 {internalTab === 'import' && (
-                    <ImportSection
-                        onDataDetected={handleDataDetected}
-                    />
+                    <div className="p-4 space-y-6">
+                        <ManualActivityImportBlock
+                            intervalsConfig={intervalsConfig}
+                            stravaGetToken={stravaGetToken}
+                            onFetchedActivity={handleManualFetchedActivity}
+                        />
+                        <ImportSection
+                            intervalsConfig={intervalsConfig}
+                            onDataDetected={handleDataDetected}
+                        />
+                    </div>
                 )}
 
                 {internalTab === 'strava-profile' && (
