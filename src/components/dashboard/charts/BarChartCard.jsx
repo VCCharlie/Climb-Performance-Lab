@@ -26,18 +26,18 @@ const getWeekKey = (dateStr) => {
 const getMonthKey = (dateStr) => dateStr.slice(0, 7); // "YYYY-MM"
 const getYearKey = (dateStr) => dateStr.slice(0, 4); // "YYYY"
 
-const NL_MONTHS_SHORT = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+const EN_MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const formatMonthLabel = (key) => {
     const [y, m] = key.split('-');
     // Optimization: avoid slow toLocaleString
-    return `${NL_MONTHS_SHORT[parseInt(m, 10) - 1]} ${y.slice(-2)}`;
+    return `${EN_MONTHS_SHORT[parseInt(m, 10) - 1]} ${y.slice(-2)}`;
 };
 
 const formatWeekLabel = (key) => {
     const d = new Date(key);
     // Optimization: avoid slow toLocaleString
-    return `${d.getDate()} ${NL_MONTHS_SHORT[d.getMonth()]}`;
+    return `${d.getDate()} ${EN_MONTHS_SHORT[d.getMonth()]}`;
 };
 
 const METRIC_FIELD = {
@@ -84,7 +84,7 @@ const BarChartCard = ({ data, metric, title, unit, color }) => {
 
                 let value = map[key];
                 if (isTime) {
-                    value = Math.round((value / 3600) * 10) / 10; // in uren, 1 decimaal
+                    value = Math.round((value / 3600) * 10) / 10; // hours, 1 decimal
                 } else {
                     value = Math.round(value);
                 }
@@ -108,17 +108,17 @@ const BarChartCard = ({ data, metric, title, unit, color }) => {
                         <button
                             onClick={() => setGroupBy('month')}
                             className={`px-3 py-1 transition-colors ${groupBy === 'month' ? 'bg-cdaccent text-white' : 'text-cdmuted hover:text-cdtext'}`}
-                        >Maand</button>
+                        >Month</button>
                          <button
                             onClick={() => setGroupBy('year')}
                             className={`px-3 py-1 transition-colors ${groupBy === 'year' ? 'bg-cdaccent text-white' : 'text-cdmuted hover:text-cdtext'}`}
-                        >Jaar</button>
+                        >Year</button>
                     </div>
                      <div className="flex bg-cdbg/60 border border-cdborder rounded overflow-hidden text-[11px] font-bold">
                         <button
                             onClick={() => setRideType('all')}
                             className={`px-3 py-1 transition-colors ${rideType === 'all' ? 'bg-cdborder text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}
-                        >Alles</button>
+                        >All</button>
                         <button
                             onClick={() => setRideType('outdoor')}
                             className={`px-3 py-1 transition-colors ${rideType === 'outdoor' ? 'bg-cdborder text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}
@@ -133,7 +133,7 @@ const BarChartCard = ({ data, metric, title, unit, color }) => {
 
             {chartData.length === 0 ? (
                 <div className="h-40 flex items-center justify-center text-cdmuted text-sm">
-                    Geen data in deze periode
+                    No data in this period
                 </div>
             ) : (
                 <div className="h-44">
@@ -150,7 +150,7 @@ const BarChartCard = ({ data, metric, title, unit, color }) => {
                             <YAxis stroke="#64748b" tick={{ fontSize: 10 }} width={36} />
                             <Tooltip
                                 contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f1f5f9', fontSize: 12 }}
-                                formatter={(val) => [`${val.toLocaleString('nl-NL')} ${isTime ? 'uur' : unit}`, title]}
+                                formatter={(val) => [`${val.toLocaleString('en-GB')} ${isTime ? 'h' : unit}`, title]}
                                 cursor={{ fill: 'rgba(255,255,255,0.04)' }}
                             />
                             <Bar dataKey="value" name={title} fill={color} radius={[3, 3, 0, 0]} />

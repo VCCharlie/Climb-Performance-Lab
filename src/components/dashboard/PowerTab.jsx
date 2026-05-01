@@ -83,12 +83,12 @@ const PowerTab = ({
             if (v60 <= cap60 && v60 > map[mo].b60) map[mo].b60 = v60;
         });
 
-        const NL_MONTHS_SHORT = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+        const EN_MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
         return Object.keys(map).sort().map(mo => {
             const [y, m] = mo.split('-');
             // Optimization: avoid slow toLocaleString
-            const label = `${NL_MONTHS_SHORT[parseInt(m, 10) - 1]} ${y.slice(-2)}`;
+            const label = `${EN_MONTHS_SHORT[parseInt(m, 10) - 1]} ${y.slice(-2)}`;
             return {
                 label,
                 'a_5min':  map[mo].b5  || null,
@@ -113,7 +113,7 @@ const PowerTab = ({
     if (!hasPeriodData && !hasHistory) {
         return (
             <div className="flex items-center justify-center h-40 text-cdmuted">
-                Geen vermogensdata beschikbaar.
+                No power data available.
             </div>
         );
     }
@@ -122,8 +122,8 @@ const PowerTab = ({
         <div className="space-y-6 animate-in fade-in duration-300">
             {!hasPeriodData && hasHistory && (
                 <p className="text-sm text-cdmuted bg-cdborder/20 border border-cdborder rounded-lg px-4 py-3">
-                    Geen ritten in <span className="text-cdtext font-semibold">{periodLabel}</span> — de power-duration matrix gebruikt
-                    nog wel je volledige geschiedenis; kies een andere periode bovenaan voor de overige power-blokken.
+                    No rides in <span className="text-cdtext font-semibold">{periodLabel}</span> — the power-duration matrix still uses
+                    your full history; pick another period at the top for the other power sections.
                 </p>
             )}
 
@@ -175,7 +175,7 @@ const PowerTab = ({
 
             {!stats && hasHistory && (
                 <p className="text-xs text-cdmuted">
-                    Tip: kies een periode met ritten om eFTP, maandgrafiek en MMP-curve te zien.
+                    Note: choose a period with rides to see eFTP, the monthly chart, and the MMP curve.
                 </p>
             )}
         </div>
