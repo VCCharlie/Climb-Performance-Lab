@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { ChevronDown, ChevronUp, Target } from 'lucide-react';
 import {
     mergeVolumeGoals,
@@ -6,62 +6,31 @@ import {
     currentMonthRange,
     currentYearRange,
     sumVolumeForRange,
-    progressPercent,
 } from '../../utils/volumeGoals';
+import { VolumeGoalPeriodCard } from './VolumeGoalPeriodCard';
 
-const inputCls =
-    'w-full min-w-0 border border-cdborder rounded px-2 py-1.5 text-sm font-mono bg-cdsurface text-cdtext outline-none focus:ring-2 focus:ring-cdaccent/40';
-
-/**
- * @param {number} h decimal hours
- */
-function formatHoursShort(h) {
-    const n = Number(h);
-    if (!n || Number.isNaN(n)) return '0';
-    if (n >= 10) return n.toFixed(1);
-    return n.toFixed(2).replace(/\.?0+$/, '') || '0';
-}
-
-function GoalRow({ label, current, target, unit, formatCurrent, formatTarget }) {
-    const pct = progressPercent(current, target);
-    const done = target > 0 && current >= target;
-    return (
-        <div className="space-y-1.5">
-            <div className="flex justify-between items-baseline gap-2 text-xs">
-                <span className="text-cdmuted font-medium">{label}</span>
-                <span className="text-cdtext font-mono tabular-nums shrink-0">
-                    {formatCurrent(current)}
-                    <span className="text-cdmuted"> / </span>
-                    {target > 0 ? formatTarget(target) : '—'}
-                    {unit ? <span className="text-cdmuted ml-0.5">{unit}</span> : null}
-                </span>
-            </div>
-            <div className="h-2 rounded-full bg-cdborder/60 overflow-hidden">
-                <div
-                    className={`h-full rounded-full transition-all duration-300 ${done ? 'bg-emerald-500' : 'bg-cdaccent'}`}
-                    style={{ width: `${Math.min(100, pct)}%` }}
-                />
-            </div>
-            {target > 0 && (
-                <div className="text-[10px] text-cdmuted text-right">{pct >= 100 ? 'Goal reached' : `${pct}% of goal`}</div>
-            )}
-        </div>
-    );
-}
+/** @typedef {'weekly'|'monthly'|'yearly'} PeriodId */
 
 /**
  * @param {object} props
- * @param {object[]} props.chartData - Full activity list (same source as Dashboard charts)
+ * @param {object[]} props.chartData
  * @param {object} props.userSettings
  * @param {(key: string, value: unknown) => void} props.updateUserSettings
  */
 const VolumeGoalsPanel = ({ chartData = [], userSettings, updateUserSettings }) => {
     const [collapsed, setCollapsed] = useState(false);
+    /** @type {Record<PeriodId, boolean>} */
+    const [editing, setEditing] = useState({ weekly: false, monthly: false, yearly: false });
+    /** @type {Record<PeriodId, { distanceKm: string, movingTimeHours: string, elevationM: string } | null>} */
+    const [drafts, setDrafts] = useState({ weekly: null, monthly: null, yearly: null });
+
     const goals = useMemo(() => mergeVolumeGoals(userSettings?.volumeGoals), [userSettings?.volumeGoals]);
 
-    const week = useMemo(() => currentWeekRange(), []);
-    const month = useMemo(() => currentMonthRange(), []);
-    const year = useMemo(() => currentYearRange(), []);
+    const nowRef = useMemo(() => new Date(), []);
+
+    const week = useMemo(() => currentWeekRange(nowRef), [nowRef]);
+    const month = useMemo(() => currentMonthRange(nowRef), [nowRef]);
+    const year = useMemo(() => currentYearRange(nowRef), [nowRef]);
 
     const sums = useMemo(() => {
         const w = sumVolumeForRange(chartData, week.startYmd, week.endYmd);
@@ -74,35 +43,61 @@ const VolumeGoalsPanel = ({ chartData = [], userSettings, updateUserSettings }) 
         };
     }, [chartData, week.startYmd, week.endYmd, month.startYmd, month.endYmd, year.startYmd, year.endYmd]);
 
-    const patchGoal = (period, field, raw) => {
-        const num = Math.max(0, Number(raw) || 0);
+    const commitGoals = useCallback(
+        (nextMerged) => {
+            updateUserSettings('volumeGoals', nextMerged);
+        },
+        [updateUserSettings],
+    );
+
+    const startEdit = (id) => {
+        const g = goals[id];
+        setDrafts((d) => ({
+            ...d,
+            [id]: {
+                distanceKm: g.distanceKm ? String(g.distanceKm) : '',
+                movingTimeHours: g.movingTimeHours ? String(g.movingTimeHours) : '',
+                elevationM: g.elevationM ? String(g.elevationM) : '',
+            },
+        }));
+        setEditing((e) => ({ ...e, [id]: true }));
+    };
+
+    const cancelEdit = (id) => {
+        setDrafts((d) => ({ ...d, [id]: null }));
+        setEditing((e) => ({ ...e, [id]: false }));
+    };
+
+    const applyEdit = (id) => {
+        const dr = drafts[id];
+        if (!dr) return;
         const next = mergeVolumeGoals(goals);
-        next[period] = { ...next[period], [field]: num };
-        updateUserSettings('volumeGoals', next);
+        next[id] = {
+            distanceKm: Math.max(0, Number(dr.distanceKm) || 0),
+            movingTimeHours: Math.max(0, Number(dr.movingTimeHours) || 0),
+            elevationM: Math.max(0, Number(dr.elevationM) || 0),
+        };
+        commitGoals(next);
+        setDrafts((d) => ({ ...d, [id]: null }));
+        setEditing((e) => ({ ...e, [id]: false }));
+    };
+
+    const bumpDraft = (id, field, delta) => {
+        setDrafts((d) => {
+            const cur = d[id];
+            if (!cur) return d;
+            const prev = Number(cur[field]) || 0;
+            const nextVal = Math.max(0, prev + delta);
+            const decimals = field === 'movingTimeHours' ? 1 : 0;
+            const str = decimals ? String(Math.round(nextVal * 10) / 10) : String(Math.round(nextVal));
+            return { ...d, [id]: { ...cur, [field]: str } };
+        });
     };
 
     const sections = [
-        {
-            id: 'weekly',
-            title: 'This week',
-            subtitle: week.label,
-            g: goals.weekly,
-            s: sums.week,
-        },
-        {
-            id: 'monthly',
-            title: 'This month',
-            subtitle: month.label,
-            g: goals.monthly,
-            s: sums.month,
-        },
-        {
-            id: 'yearly',
-            title: 'This year',
-            subtitle: year.label,
-            g: goals.yearly,
-            s: sums.year,
-        },
+        { id: 'weekly', title: 'This week', subtitle: week.label, range: week, g: goals.weekly, s: sums.week },
+        { id: 'monthly', title: 'This month', subtitle: month.label, range: month, g: goals.monthly, s: sums.month },
+        { id: 'yearly', title: 'This year', subtitle: year.label, range: year, g: goals.yearly, s: sums.year },
     ];
 
     return (
@@ -117,7 +112,7 @@ const VolumeGoalsPanel = ({ chartData = [], userSettings, updateUserSettings }) 
                     <div className="min-w-0">
                         <h3 className="text-sm font-bold text-cdtext uppercase tracking-wider">Training goals</h3>
                         <p className="text-[11px] text-cdmuted truncate">
-                            Weekly, monthly, and yearly volume (like Strava) — distance, moving time, elevation
+                            Weekly, monthly, and yearly volume — distance, moving time, elevation. Pace vs calendar time.
                         </p>
                     </div>
                 </div>
@@ -126,85 +121,29 @@ const VolumeGoalsPanel = ({ chartData = [], userSettings, updateUserSettings }) 
 
             {!collapsed && (
                 <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    {sections.map(({ id, title, subtitle, g, s }) => (
-                        <div
+                    {sections.map(({ id, title, subtitle, range, g, s }) => (
+                        <VolumeGoalPeriodCard
                             key={id}
-                            className="rounded-lg border border-cdborder/80 bg-cdbg/30 p-3 space-y-3"
-                        >
-                            <div>
-                                <div className="text-xs font-bold text-cdtext">{title}</div>
-                                <div className="text-[10px] text-cdmuted">{subtitle}</div>
-                            </div>
-
-                            <div className="space-y-3">
-                                <GoalRow
-                                    label="Distance"
-                                    current={s.distanceKm}
-                                    target={g.distanceKm}
-                                    unit="km"
-                                    formatCurrent={(v) => (Math.round(v * 10) / 10).toFixed(1)}
-                                    formatTarget={(v) => String(Math.round(v * 10) / 10)}
-                                />
-                                <GoalRow
-                                    label="Moving time"
-                                    current={s.movingTimeH}
-                                    target={g.movingTimeHours}
-                                    unit="h"
-                                    formatCurrent={formatHoursShort}
-                                    formatTarget={(v) => formatHoursShort(v)}
-                                />
-                                <GoalRow
-                                    label="Elevation"
-                                    current={s.elevationM}
-                                    target={g.elevationM}
-                                    unit="m"
-                                    formatCurrent={(v) => String(Math.round(v))}
-                                    formatTarget={(v) => String(Math.round(v))}
-                                />
-                            </div>
-
-                            <div className="pt-2 border-t border-cdborder/50 space-y-2">
-                                <div className="text-[10px] font-bold text-cdmuted uppercase tracking-wide">Targets</div>
-                                <div className="grid grid-cols-3 gap-2 text-[10px]">
-                                    <label className="space-y-0.5">
-                                        <span className="text-cdmuted block">km</span>
-                                        <input
-                                            type="number"
-                                            min={0}
-                                            step={1}
-                                            value={g.distanceKm || ''}
-                                            onChange={(e) => patchGoal(id, 'distanceKm', e.target.value)}
-                                            className={inputCls}
-                                            aria-label={`${title} distance goal km`}
-                                        />
-                                    </label>
-                                    <label className="space-y-0.5">
-                                        <span className="text-cdmuted block">hours</span>
-                                        <input
-                                            type="number"
-                                            min={0}
-                                            step={0.5}
-                                            value={g.movingTimeHours || ''}
-                                            onChange={(e) => patchGoal(id, 'movingTimeHours', e.target.value)}
-                                            className={inputCls}
-                                            aria-label={`${title} moving time goal hours`}
-                                        />
-                                    </label>
-                                    <label className="space-y-0.5">
-                                        <span className="text-cdmuted block">m</span>
-                                        <input
-                                            type="number"
-                                            min={0}
-                                            step={100}
-                                            value={g.elevationM || ''}
-                                            onChange={(e) => patchGoal(id, 'elevationM', e.target.value)}
-                                            className={inputCls}
-                                            aria-label={`${title} elevation goal meters`}
-                                        />
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
+                            title={title}
+                            subtitle={subtitle}
+                            range={range}
+                            g={g}
+                            s={s}
+                            nowRef={nowRef}
+                            isEd={editing[id]}
+                            dr={drafts[id]}
+                            onStartEdit={() => startEdit(id)}
+                            onCancelEdit={() => cancelEdit(id)}
+                            onApplyEdit={() => applyEdit(id)}
+                            onBumpDraft={(field, delta) => bumpDraft(id, field, delta)}
+                            onDraftChange={(field, value) => {
+                                setDrafts((d) => {
+                                    const cur = d[id];
+                                    if (!cur) return d;
+                                    return { ...d, [id]: { ...cur, [field]: value } };
+                                });
+                            }}
+                        />
                     ))}
                 </div>
             )}
