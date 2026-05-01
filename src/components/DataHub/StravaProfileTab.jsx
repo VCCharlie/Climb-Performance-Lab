@@ -922,7 +922,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                             </div>
                             <p className="text-[9px] text-cdmuted">Outdoor filter uses segment activity type when Strava provides it; virtual segments are hidden in &quot;Outdoor only&quot;.</p>
                             <p className="text-[9px] text-cdmuted border border-cdborder/40 rounded px-2 py-1 bg-cdbg/40">
-                                Segment names open Strava in <strong className="text-cdtext">this tab</strong> to avoid rate limits (429) from opening many segment pages in new tabs. Use your browser back button to return.
+                                Segment links open Strava in a <strong className="text-cdtext">new tab</strong> so this app keeps running (avoids 429 right after a heavy sync/refresh). If nothing opens, allow popups for this site.
                             </p>
                             {koms.length === 0 ? (
                                 <p className="text-xs text-cdmuted italic">No KOMs or CRs in this list.</p>
@@ -997,7 +997,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                             </div>
                             <p className="text-[9px] text-cdmuted">Outdoor filter uses segment activity type when Strava provides it.</p>
                             <p className="text-[9px] text-cdmuted border border-cdborder/40 rounded px-2 py-1 bg-cdbg/40">
-                                Opens in <strong className="text-cdtext">this tab</strong> (avoids Strava 429 when opening many segments). Use back to return.
+                                Opens in a <strong className="text-cdtext">new tab</strong>. Allow popups if the browser blocks them.
                             </p>
                             {starred.length === 0 ? (
                                 <p className="text-xs text-cdmuted italic">No starred segments.</p>
