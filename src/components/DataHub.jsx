@@ -61,9 +61,12 @@ const DataHub = ({
     climbDatabaseForMatch = CLIMB_DATABASE,
     activityLogRangesExpanded = false,
     onActivityLogRangesExpandedChange,
+    initialInternalTab = 'log',
 }) => {
     // UI State
-    const [internalTab, setInternalTab] = useState('log');
+    const [internalTab, setInternalTab] = useState(() => (
+        ['log', 'strava-profile', 'import'].includes(initialInternalTab) ? initialInternalTab : 'log'
+    ));
     const [detailActivity, setDetailActivity] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [showDuplicateModal, setShowDuplicateModal] = useState(false);
