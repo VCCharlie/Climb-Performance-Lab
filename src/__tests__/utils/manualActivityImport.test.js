@@ -16,3 +16,16 @@ describe('parseActivityUrl', () => {
         expect(parseActivityUrl('https://example.com/foo')).toBeNull();
     });
 });
+
+describe('fetchMergedActivityFromPrimaryAndOptionalUrl', () => {
+    it('rejects two Strava URLs', async () => {
+        const { fetchMergedActivityFromPrimaryAndOptionalUrl } = await import('../../utils/manualActivityImport');
+        await expect(
+            fetchMergedActivityFromPrimaryAndOptionalUrl(
+                'https://www.strava.com/activities/1',
+                'https://www.strava.com/activities/2',
+                {},
+            ),
+        ).rejects.toThrow(/different services/i);
+    });
+});

@@ -6,6 +6,7 @@ import { normalizeIntervalsActivity } from './intervals';
 import { normalizeStravaActivity } from './stravaMatch';
 import { normalizeStravaActivityId } from './strava';
 import { enrichActivityGearFromStrava } from './stravaGearEnrich';
+import { mergeActivitiesIntervalsPrimary } from './mergeActivities';
 
 const STRAVA_ACTIVITY_RE = /strava\.com\/(?:activities|activity)\/(\d+)/i;
 const INTERVALS_ACTIVITY_RE = /intervals\.icu\/(?:i\d+\/)?activities\/(\d+)/i;
@@ -125,4 +126,64 @@ export async function fetchAndEnrichSingleActivityFromUrl(urlOrText, opts = {}) 
         }
     }
     return act;
+}
+
+/**
+ * Fetch primary + optional second URL and merge (Intervals id wins).
+ * Primary and secondary must be different services (Strava + Intervals).
+ *
+ * @param {string} primaryUrl
+ * @param {string} [secondaryUrl] - trimmed; empty = single-URL behaviour
+ * @param {{ intervalsConfig?: object, stravaToken?: string | null }} opts
+ */
+export async function fetchMergedActivityFromPrimaryAndOptionalUrl(primaryUrl, secondaryUrl, opts = {}) {
+    const primary = (primaryUrl || '').trim();
+    if (!primary) {
+        throw new Error('Paste a primary activity URL first.');
+    }
+
+    const sec = (secondaryUrl || '').trim();
+    if (!sec) {
+        return fetchAndEnrichSingleActivityFromUrl(primary, opts);
+    }
+
+    const a = parseActivityUrl(primary);
+    const b = parseActivityUrl(sec);
+    if (!a) throw new Error('Primary URL is not a valid Strava or Intervals.icu activity link.');
+    if (!b) throw new Error('Optional second URL is not a valid Strava or Intervals.icu activity link.');
+    if (a.kind === b.kind) {
+        throw new Error('Primary and optional URL must be from different services (one Strava, one Intervals.icu).');
+    }
+
+    let stravaToken = opts.stravaToken ?? null;
+    if ((a.kind === 'strava' || b.kind === 'strava') && opts.stravaGetToken) {
+        try {
+            stravaToken = await opts.stravaGetToken();
+        } catch {
+            stravaToken = null;
+        }
+    }
+    if (!stravaToken && (a.kind === 'strava' || b.kind === 'strava')) {
+        throw new Error('Connect Strava (Settings) to fetch the Strava side of a merged import.');
+    }
+
+    let intervalsAct;
+    let stravaAct;
+    if (a.kind === 'intervals') {
+        intervalsAct = await fetchIntervalsActivityAsSiteActivity(a.id, opts.intervalsConfig || {});
+        stravaAct = await fetchStravaActivityDetailAsSiteActivity(b.id, stravaToken);
+    } else {
+        stravaAct = await fetchStravaActivityDetailAsSiteActivity(a.id, stravaToken);
+        intervalsAct = await fetchIntervalsActivityAsSiteActivity(b.id, opts.intervalsConfig || {});
+    }
+
+    const merged = mergeActivitiesIntervalsPrimary(intervalsAct, stravaAct);
+    if (stravaToken && merged.strava_id) {
+        try {
+            return await enrichActivityGearFromStrava(merged, null, stravaToken);
+        } catch {
+            return merged;
+        }
+    }
+    return merged;
 }
