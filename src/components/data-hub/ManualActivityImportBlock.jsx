@@ -1,42 +1,37 @@
 import React, { useState } from 'react';
 import { Link2, Loader2 } from 'lucide-react';
-import { fetchAndEnrichSingleActivityFromUrl } from '../../utils/manualActivityImport';
+import { fetchMergedActivityFromPrimaryAndOptionalUrl } from '../../utils/manualActivityImport';
 
 /**
- * Paste a Strava or Intervals.icu activity URL → fetch → open import preview (same as CSV flow).
+ * Paste Strava and/or Intervals.icu activity URLs → fetch → open import preview (same as CSV flow).
+ * Optional second URL: must be the other service; result uses Intervals id + merged Strava fields.
  */
 const ManualActivityImportBlock = ({
     intervalsConfig,
     stravaGetToken,
     onFetchedActivity,
 }) => {
-    const [url, setUrl] = useState('');
+    const [primaryUrl, setPrimaryUrl] = useState('');
+    const [secondUrl, setSecondUrl] = useState('');
     const [busy, setBusy] = useState(false);
     const [err, setErr] = useState(null);
 
     const handleFetch = async () => {
         setErr(null);
-        const trimmed = url.trim();
-        if (!trimmed) {
-            setErr('Paste an activity URL first.');
+        const p = primaryUrl.trim();
+        if (!p) {
+            setErr('Paste a primary activity URL first.');
             return;
         }
         setBusy(true);
         try {
-            let stravaToken = null;
-            if (stravaGetToken) {
-                try {
-                    stravaToken = await stravaGetToken();
-                } catch {
-                    stravaToken = null;
-                }
-            }
-            const act = await fetchAndEnrichSingleActivityFromUrl(trimmed, {
+            const act = await fetchMergedActivityFromPrimaryAndOptionalUrl(p, secondUrl, {
                 intervalsConfig,
-                stravaToken,
+                stravaGetToken,
             });
             onFetchedActivity(act);
-            setUrl('');
+            setPrimaryUrl('');
+            setSecondUrl('');
         } catch (e) {
             setErr(e.message || String(e));
         } finally {
@@ -51,29 +46,42 @@ const ManualActivityImportBlock = ({
                 Add activity by URL
             </h4>
             <p className="text-xs text-cdmuted leading-relaxed">
-                Paste a single ride link to fetch it and open the import preview (replace a bad merge). Works with{' '}
-                <strong className="text-cdtext">Strava</strong> (needs Strava connected) or{' '}
-                <strong className="text-cdtext">Intervals.icu</strong> (needs API key in Settings).
+                <strong className="text-cdtext">Primary URL:</strong> Strava or Intervals.icu activity link.
+                <strong className="text-cdtext"> Optional second URL:</strong> the <strong className="text-cdtext">other</strong> service — no CSV or JSON required here (file import is separate below).
+                The merged row keeps your <strong className="text-cdtext">Intervals activity id</strong> and adds Strava route/gear and fills gaps (same rules as merge pair).
+                Strava connection + Intervals API key in Settings when both sides are used.
             </p>
-            <div className="flex flex-col sm:flex-row gap-2">
+            <div className="space-y-2">
+                <label className="block text-[10px] font-bold text-cdmuted uppercase">Primary URL</label>
                 <input
                     type="url"
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    placeholder="https://www.strava.com/activities/… or https://intervals.icu/activities/…"
-                    className="flex-1 bg-cdsurface border border-cdborder rounded px-3 py-2 text-xs text-cdtext placeholder:text-cdmuted/70"
+                    value={primaryUrl}
+                    onChange={(e) => setPrimaryUrl(e.target.value)}
+                    placeholder="Strava or Intervals activity URL…"
+                    className="w-full bg-cdsurface border border-cdborder rounded px-3 py-2 text-xs text-cdtext placeholder:text-cdmuted/70"
                     disabled={busy}
                 />
-                <button
-                    type="button"
-                    onClick={handleFetch}
-                    disabled={busy}
-                    className="shrink-0 inline-flex items-center justify-center gap-2 px-4 py-2 rounded bg-cdaccent/20 border border-cdaccent/50 text-cdaccent font-bold text-sm hover:bg-cdaccent/30 disabled:opacity-50"
-                >
-                    {busy ? <Loader2 size={16} className="animate-spin" /> : <Link2 size={16} />}
-                    Fetch &amp; preview
-                </button>
             </div>
+            <div className="space-y-2">
+                <label className="block text-[10px] font-bold text-cdmuted uppercase">Optional — other service URL</label>
+                <input
+                    type="url"
+                    value={secondUrl}
+                    onChange={(e) => setSecondUrl(e.target.value)}
+                    placeholder="If primary is Strava, paste Intervals URL here (or the reverse)"
+                    className="w-full bg-cdsurface border border-cdborder rounded px-3 py-2 text-xs text-cdtext placeholder:text-cdmuted/70"
+                    disabled={busy}
+                />
+            </div>
+            <button
+                type="button"
+                onClick={handleFetch}
+                disabled={busy}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded bg-cdaccent/20 border border-cdaccent/50 text-cdaccent font-bold text-sm hover:bg-cdaccent/30 disabled:opacity-50"
+            >
+                {busy ? <Loader2 size={16} className="animate-spin" /> : <Link2 size={16} />}
+                Fetch &amp; preview
+            </button>
             {err && (
                 <p className="text-xs text-red-400 whitespace-pre-wrap">{err}</p>
             )}
