@@ -21,3 +21,8 @@
 **Vulnerability:** The Python cloud function (`sync-intervals`) had an overly permissive CORS policy set with `Access-Control-Allow-Origin: *`, allowing potential unauthorized cross-origin requests.
 **Learning:** Hardcoding wildcard CORS domains can expose server resources to unwanted domains. Allowing it dynamically via whitelists read from environment variables ensures security and portability across environments. Additionally, returning `Vary: Origin` prevents caching systems from returning cached wildcard/wrong origin responses.
 **Prevention:** Implement checks on the `Origin` header from incoming requests. Reflect the `Origin` header dynamically back into `Access-Control-Allow-Origin` if it's explicitly matched within an `ALLOWED_CORS_ORIGINS` environment variable whitelist. If it doesn't match, gracefully fall back to the first allowed origin or drop the header. Add `Vary: Origin` for correctly handled responses.
+
+## 2025-02-27 - [Sensitive Data Exposure in Console Logs - OAuth Tokens]
+**Vulnerability:** The application was logging `stravaConfig` to the browser console when saving settings to the cloud (`src/App.jsx`). While `client_secret` was redacted, the `access_token` and `refresh_token` were not.
+**Learning:** When redacting sensitive configuration objects for logging, it's easy to overlook fields that are populated later or dynamically (like OAuth tokens obtained after the initial setup), focusing only on the manually entered secrets (like client secrets).
+**Prevention:** Thoroughly review all fields within an object being logged, considering its state across the entire application lifecycle, not just its initial shape. Redact all forms of credentials, including short-lived and long-lived tokens.

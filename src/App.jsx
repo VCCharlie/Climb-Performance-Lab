@@ -425,7 +425,12 @@ const App = () => {
                 },
                 theme,
                 bucketList: bucketListState,
-                strava: { ...stravaConfig, client_secret: stravaConfig.client_secret ? '***REDACTED***' : '' },
+                strava: {
+                    ...stravaConfig,
+                    client_secret: stravaConfig.client_secret ? '***REDACTED***' : '',
+                    access_token: stravaConfig.access_token ? '***REDACTED***' : '',
+                    refresh_token: stravaConfig.refresh_token ? '***REDACTED***' : ''
+                },
                 stravaProfile: stravaProfileData
             });
             await setDoc(doc(db, "settings", settingsId), {
