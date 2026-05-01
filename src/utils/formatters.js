@@ -23,20 +23,33 @@ export function formatNlNumber(value, options = {}) {
 
 export const normalizeDate = (dateStr) => {
     if (!dateStr) return new Date().toISOString().split('T')[0];
-    if (dateStr.includes('T')) return dateStr.split('T')[0];
-    if (dateStr.includes('/') || dateStr.includes('-')) {
-        const sep = dateStr.includes('/') ? '/' : '-';
-        const parts = dateStr.split(sep);
+
+    // Safely handle if it's already a Date object or numeric timestamp
+    if (dateStr instanceof Date) {
+        if (!isNaN(dateStr.getTime())) return dateStr.toISOString().split('T')[0];
+        return String(dateStr);
+    }
+    if (typeof dateStr === 'number') {
+        const d = new Date(dateStr);
+        if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+        return String(dateStr);
+    }
+
+    const str = String(dateStr);
+    if (str.includes('T')) return str.split('T')[0];
+    if (str.includes('/') || str.includes('-')) {
+        const sep = str.includes('/') ? '/' : '-';
+        const parts = str.split(sep);
         if (parts.length === 3) {
             if (parts[0].length <= 2 && parts[2].length === 4) {
                 return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
             }
-            return dateStr;
+            return str;
         }
     }
-    const d = new Date(dateStr);
+    const d = new Date(str);
     if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
-    return dateStr;
+    return str;
 };
 
 export const formatDateDDMMYYYY = (isoString) => {

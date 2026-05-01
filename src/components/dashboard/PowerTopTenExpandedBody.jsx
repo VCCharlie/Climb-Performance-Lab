@@ -34,7 +34,7 @@ const PowerTopTenExpandedBody = ({
     <div className="px-4 pb-4 pt-0 space-y-4 border-t border-cdborder/60">
         <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3 pt-3">
             <label className="flex flex-col gap-1 text-xs text-cdmuted min-w-[220px]">
-                <span className="font-semibold text-cdtext">Vergelijking</span>
+                <span className="font-semibold text-cdtext">Comparison</span>
                 <select
                     value={compareMode}
                     onChange={(e) => {
@@ -59,7 +59,7 @@ const PowerTopTenExpandedBody = ({
             </label>
             {compareMode === 'days' && (
                 <label className="flex flex-col gap-1 text-xs text-cdmuted w-full sm:w-32">
-                    <span className="font-semibold text-cdtext">Dagen vóór start</span>
+                    <span className="font-semibold text-cdtext">Days before start</span>
                     <input
                         type="number"
                         min={1}
@@ -75,14 +75,14 @@ const PowerTopTenExpandedBody = ({
         {boundsPrimary && (
             <div className={`grid gap-3 ${compareBounds ? 'lg:grid-cols-2' : ''}`}>
                 <PeriodSummaryCard
-                    title="Kolom 1 — primaire periode"
+                    title="Column 1 — primary period"
                     accentClass="border-cdaccent/40 bg-cdaccent/[0.07]"
                     bounds={boundsPrimary}
                     stats={statsPrimary}
                 />
                 {compareBounds && (
                     <PeriodSummaryCard
-                        title="Kolom 2 — vergelijking"
+                        title="Column 2 — comparison"
                         accentClass="border-blue-500/35 bg-blue-500/[0.07]"
                         bounds={compareBounds}
                         stats={statsCompare}
@@ -114,7 +114,7 @@ const PowerTopTenExpandedBody = ({
         {compareBounds && (
             <p className="text-[10px] text-cdmuted leading-snug">
                 <span className="inline-block w-2 h-2 rounded-sm bg-emerald-500/50 align-middle mr-1.5" aria-hidden />
-                Meer watt op dezelfde rang (#1 vs #1, …) dan de andere kolom — hover op de watt-kolom voor details.
+                More watts at the same rank (#1 vs #1, …) than the other column — hover the watts column for details.
             </p>
         )}
 

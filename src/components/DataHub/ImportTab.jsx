@@ -68,7 +68,7 @@ const ImportTab = ({ intervalsConfig, onImportResults }) => {
             <div className="bg-cdbg/50 p-4 rounded border border-cdborder">
                 <h4 className="text-cdtext font-bold text-sm mb-2 flex items-center gap-2"><Download size={16} className="text-blue-400" /> Stap 1: Download Data</h4>
                 <p className="text-xs text-cdmuted mb-3">Ga naar de Intervals Activities pagina, klik op "List View", selecteer je ritten en kies <strong>Edit &gt; Export CSV</strong>.</p>
-                <a href={`https://intervals.icu/athlete/${intervalsConfig.athleteId}/activities`} target="_blank" rel="noreferrer" className="text-xs bg-cdborder hover:bg-slate-600 text-cdtext px-3 py-2 rounded inline-flex items-center gap-2 transition-colors">Open Intervals.icu Activities <ArrowUpRight size={12} /></a>
+                <a href={`https://intervals.icu/athlete/${intervalsConfig.athleteId}/activities`} target="_blank" rel="noopener noreferrer" className="text-xs bg-cdborder hover:bg-slate-600 text-cdtext px-3 py-2 rounded inline-flex items-center gap-2 transition-colors">Open Intervals.icu Activities <ArrowUpRight size={12} /></a>
             </div>
 
             <div>

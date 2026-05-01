@@ -2,10 +2,11 @@
 import React from 'react';
 import {
     ArrowUpDown, ChevronUp, ChevronDown, ChevronRight, Monitor, Bike, Footprints,
-    Mountain, Edit2, Trash2, ExternalLink, Eye, Route
+    Mountain, Edit2, Trash2, ExternalLink, Eye, Route, Trophy, Crown,
 } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
 import { resolveStravaGearDisplay } from '../../utils/stravaBikesLocalMap';
+import { getKomBadgeCountsFromSummary } from '../../utils/stravaSegmentKomSummary';
 import { ACTIVITY_TABLE_COLUMNS, MONTH_ORDER } from '../../config';
 
 const SortIcon = ({ colKey, config }) => {
@@ -49,7 +50,69 @@ const StravaIcon = () => (
     </svg>
 );
 
-export const Row = React.memo(({ act, onDelete, onEdit, onViewDetail, isPreview = false, isSelected = false, onToggleSelect, onToggleType, onOpenProfiler, profilerClimbByActivityId, showBulkSelect = false }) => {
+/** Strava-style: solid crown for overall #1 (KOM), trophy + rank for 2nd–10th */
+const StravaKomSummaryBadges = ({ summary }) => {
+    const { king, ranks } = getKomBadgeCountsFromSummary(summary);
+    const pr = Number(summary?.prCount) || 0;
+    const label = String(summary?.label || '').trim();
+    const hasPrText = pr > 0 || /^PR/i.test(label);
+
+    if (king === 0 && ranks.length === 0 && !hasPrText) return null;
+
+    return (
+        <span className="inline-flex flex-wrap items-center gap-0.5 shrink-0">
+            {king > 0
+                ? Array.from({ length: Math.min(king, 6) }, (_, i) => (
+                    <Crown
+                        key={`kom1-${i}`}
+                        size={13}
+                        className="text-amber-400 shrink-0"
+                        fill="currentColor"
+                        strokeWidth={1.25}
+                        aria-hidden
+                        title="Overall #1 on segment"
+                    />
+                ))
+                : null}
+            {ranks.map(({ rank, count }) => (
+                <span
+                    key={rank}
+                    className="relative inline-flex h-[14px] w-[14px] shrink-0 items-center justify-center"
+                    title={`#${rank} on segment leaderboard${count > 1 ? ` ×${count}` : ''}`}
+                >
+                    <Trophy size={14} className="text-amber-400/95 shrink-0" strokeWidth={2} aria-hidden />
+                    <span className="absolute inset-0 flex items-center justify-center pt-[1px] text-[8px] font-extrabold leading-none text-cdtext drop-shadow-[0_0_1px_rgba(0,0,0,0.85)]">
+                        {rank}
+                    </span>
+                    {count > 1 ? (
+                        <span className="absolute -right-1 -bottom-0.5 min-w-[10px] rounded bg-cdsurface/90 px-[1px] text-[7px] font-bold leading-none text-amber-300 border border-cdborder/40">
+                            ×{count}
+                        </span>
+                    ) : null}
+                </span>
+            ))}
+            {hasPrText ? (
+                <span className="text-[11px] font-semibold text-orange-400/95 pl-0.5">
+                    {pr > 1 ? `${pr}× PR` : 'PR'}
+                </span>
+            ) : null}
+        </span>
+    );
+};
+
+export const Row = React.memo(({
+    act,
+    onDelete,
+    onEdit,
+    onViewDetail,
+    isPreview = false,
+    isSelected = false,
+    onToggleSelect,
+    onToggleType,
+    onOpenProfiler,
+    profilerClimbByActivityId,
+    showBulkSelect = false,
+}) => {
     const [isConfirmingDelete, setIsConfirmingDelete] = React.useState(false);
 
     if (!act) return null;
@@ -90,11 +153,52 @@ export const Row = React.memo(({ act, onDelete, onEdit, onViewDetail, isPreview 
                         </span>
                     );
                 }
-                case 'title': return (
-                    <span className="font-medium text-cdtext block truncate" title={val} style={{ maxWidth: 'none' }}>
-                        {val}
-                    </span>
-                );
+                case 'title': {
+                    if (!isPreview && onViewDetail && val) {
+                        return (
+                            <button
+                                type="button"
+                                className="font-medium text-cdtext block truncate text-left w-full hover:text-cdaccent hover:underline"
+                                title={val}
+                                style={{ maxWidth: 'none' }}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onViewDetail(act);
+                                }}
+                            >
+                                {val}
+                            </button>
+                        );
+                    }
+                    return (
+                        <span className="font-medium text-cdtext block truncate" title={val} style={{ maxWidth: 'none' }}>
+                            {val}
+                        </span>
+                    );
+                }
+                case 'strava_kom_summary': {
+                    const s = act.strava_kom_summary;
+                    if (!s || typeof s !== 'object') {
+                        return <span className="text-cdmuted" title={act.strava_id ? 'Run Strava gear backfill or open details after linking Strava' : 'Link Strava to fetch segment efforts'}>—</span>;
+                    }
+                    const pr = Number(s.prCount) || 0;
+                    const labelTrim = String(s.label || '').trim();
+                    const { king, ranks } = getKomBadgeCountsFromSummary(s);
+                    const hasKomUi = king > 0 || ranks.length > 0;
+                    const hasPr = pr > 0 || /^PR/i.test(labelTrim);
+                    if (!hasKomUi && !hasPr) {
+                        return <span className="text-cdmuted" title={act.strava_id ? 'Run Strava gear backfill or open details after linking Strava' : 'Link Strava to fetch segment efforts'}>—</span>;
+                    }
+                    const tooltip = typeof s.tooltip === 'string' && s.tooltip.trim() ? s.tooltip : labelTrim;
+                    return (
+                        <span
+                            className="flex items-center gap-1 text-amber-400/95 min-w-0 max-w-[200px]"
+                            title={tooltip}
+                        >
+                            <StravaKomSummaryBadges summary={s} />
+                        </span>
+                    );
+                }
                 case 'gear_name': {
                     const gid = act.gear_id != null ? String(act.gear_id) : '';
                     const { display, title } = resolveStravaGearDisplay(gid || null, typeof val === 'string' ? val : '');
@@ -176,13 +280,13 @@ export const Row = React.memo(({ act, onDelete, onEdit, onViewDetail, isPreview 
                         )}
                         {/* INTERVALS.ICU LINK */}
                         {!String(act.id).startsWith('csv_') && (
-                            <a href={`https://intervals.icu/activities/${act.id}`} target="_blank" rel="noreferrer" className="text-slate-600 hover:text-blue-400 p-1 flex items-center" onClick={(e) => e.stopPropagation()} title="Open in Intervals.icu">
+                            <a href={`https://intervals.icu/activities/${act.id}`} target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-blue-400 p-1 flex items-center" onClick={(e) => e.stopPropagation()} title="Open in Intervals.icu">
                                 <ExternalLink size={14} />
                             </a>
                         )}
                         {/* STRAVA LINK */}
                         {act.strava_id && (
-                            <a href={`https://www.strava.com/activities/${act.strava_id}`} target="_blank" rel="noreferrer" className="text-slate-600 hover:text-orange-400 p-1 flex items-center" onClick={(e) => e.stopPropagation()} title="Open in Strava">
+                            <a href={`https://www.strava.com/activities/${act.strava_id}`} target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-orange-400 p-1 flex items-center" onClick={(e) => e.stopPropagation()} title="Open in Strava">
                                 <StravaIcon />
                             </a>
                         )}
@@ -213,7 +317,26 @@ export const Row = React.memo(({ act, onDelete, onEdit, onViewDetail, isPreview 
     );
 });
 
-const ActivityTable = React.memo(({ activities, sortConfig, onSort, onDelete, onEdit, onViewDetail, isGroupedView, isYearExpanded, onToggleYear, isMonthExpanded, onToggleMonth, onToggleSelectRow, selectedActivityIds, onOpenProfiler, profilerClimbByActivityId, showBulkSelect = false, allVisibleSelected = false, onToggleSelectAllVisible }) => {
+const ActivityTable = React.memo(({
+    activities,
+    sortConfig,
+    onSort,
+    onDelete,
+    onEdit,
+    onViewDetail,
+    isGroupedView,
+    isYearExpanded,
+    onToggleYear,
+    isMonthExpanded,
+    onToggleMonth,
+    onToggleSelectRow,
+    selectedActivityIds,
+    onOpenProfiler,
+    profilerClimbByActivityId,
+    showBulkSelect = false,
+    allVisibleSelected = false,
+    onToggleSelectAllVisible,
+}) => {
     return (
         <div className="overflow-x-auto overflow-y-auto flex-1 border border-cdborder rounded-lg custom-scrollbar relative max-h-[65vh]">
             <table className="w-full text-left text-xs whitespace-nowrap">
@@ -230,10 +353,10 @@ const ActivityTable = React.memo(({ activities, sortConfig, onSort, onDelete, on
                     {isGroupedView ? (
                         Object.keys(activities).sort((a, b) => sortConfig.direction === 'asc' ? a - b : b - a).map(year => (
                             <React.Fragment key={year}>
-                                <tr id={`year-${year}`} className="bg-cdborder/50 scroll-mt-10"><td colSpan={ACTIVITY_TABLE_COLUMNS.length + 1 + (showBulkSelect ? 1 : 0)} className="p-2 font-bold text-cdtext"><button onClick={() => onToggleYear(year)} className="flex items-center gap-2 w-full text-left hover:text-yellow-400">{isYearExpanded(year) ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {year}</button></td></tr>
+                                <tr id={`year-${year}`} className="bg-cdborder/50 scroll-mt-10"><td colSpan={ACTIVITY_TABLE_COLUMNS.length + 1 + (showBulkSelect ? 1 : 0)} className="p-2 font-bold text-cdtext"><button type="button" onClick={() => onToggleYear(year)} className="flex items-center gap-2 w-full text-left hover:text-yellow-400">{isYearExpanded(year) ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {year}</button></td></tr>
                                 {isYearExpanded(year) && Object.keys(activities[year]).sort((a, b) => { const diff = MONTH_ORDER.indexOf(b) - MONTH_ORDER.indexOf(a); return sortConfig.direction === 'asc' ? -diff : diff; }).map(month => (
                                     <React.Fragment key={month}>
-                                        <tr id={`month-${year}-${month}`} className="bg-cdborder/20 scroll-mt-12"><td colSpan={ACTIVITY_TABLE_COLUMNS.length + 1 + (showBulkSelect ? 1 : 0)} className="px-8 py-1 text-[10px] uppercase font-bold text-cdmuted"><button onClick={() => onToggleMonth(year, month)} className="flex items-center gap-1 hover:text-cdtext text-left w-full transition-colors">{isMonthExpanded(year, month) ? <ChevronDown size={12} /> : <ChevronRight size={12} />} {month}</button></td></tr>
+                                        <tr id={`month-${year}-${month}`} className="bg-cdborder/20 scroll-mt-12"><td colSpan={ACTIVITY_TABLE_COLUMNS.length + 1 + (showBulkSelect ? 1 : 0)} className="px-8 py-1 text-[10px] uppercase font-bold text-cdmuted"><button type="button" onClick={() => onToggleMonth(year, month)} className="flex items-center gap-1 hover:text-cdtext text-left w-full transition-colors">{isMonthExpanded(year, month) ? <ChevronDown size={12} /> : <ChevronRight size={12} />} {month}</button></td></tr>
                                         {isMonthExpanded(year, month) && activities[year][month].map(act => (
                                             <Row
                                                 key={act.id}

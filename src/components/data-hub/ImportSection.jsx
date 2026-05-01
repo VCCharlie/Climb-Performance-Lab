@@ -1,8 +1,14 @@
 ﻿import React, { useState } from 'react';
 import { Download, Upload, ArrowUpRight } from 'lucide-react';
 import { smartParseCSV, smartParseJSON } from '../../utils';
+import ManualActivityImportBlock from './ManualActivityImportBlock';
 
-const ImportSection = ({ intervalsConfig = { athleteId: '' }, onDataDetected }) => {
+const ImportSection = ({
+    intervalsConfig = { athleteId: '' },
+    onDataDetected,
+    stravaGetToken,
+    onFetchedActivityFromUrl,
+}) => {
     const [importText, setImportText] = useState("");
     const [isDragging, setIsDragging] = useState(false);
 
@@ -32,10 +38,20 @@ const ImportSection = ({ intervalsConfig = { athleteId: '' }, onDataDetected }) 
 
     return (
         <div className="space-y-6">
+            {typeof onFetchedActivityFromUrl === 'function' && (
+                <div className="rounded-xl border-2 border-yellow-500/50 bg-yellow-500/5 p-1 shadow-lg shadow-yellow-500/10">
+                    <ManualActivityImportBlock
+                        intervalsConfig={intervalsConfig}
+                        stravaGetToken={stravaGetToken}
+                        onFetchedActivity={onFetchedActivityFromUrl}
+                    />
+                </div>
+            )}
+
             <div className="bg-cdbg/50 p-4 rounded border border-cdborder">
                 <h4 className="text-cdtext font-bold text-sm mb-2 flex items-center gap-2"><Download size={16} className="text-blue-400" /> Step 1: Download data</h4>
                 <p className="text-xs text-cdmuted mb-3">Open Intervals Activities, switch to list view, select rides, then <strong>Edit &gt; Export CSV</strong>.</p>
-                <a href={`https://intervals.icu/athlete/${intervalsConfig.athleteId}/activities`} target="_blank" rel="noreferrer" className="text-xs bg-cdborder hover:bg-slate-600 text-cdtext px-3 py-2 rounded inline-flex items-center gap-2 transition-colors">Open Intervals.icu Activities <ArrowUpRight size={12} /></a>
+                <a href={`https://intervals.icu/athlete/${intervalsConfig.athleteId}/activities`} target="_blank" rel="noopener noreferrer" className="text-xs bg-cdborder hover:bg-slate-600 text-cdtext px-3 py-2 rounded inline-flex items-center gap-2 transition-colors">Open Intervals.icu Activities <ArrowUpRight size={12} /></a>
             </div>
 
             <div>
