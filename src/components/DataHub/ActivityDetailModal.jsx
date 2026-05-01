@@ -4,6 +4,8 @@ import { formatDateDDMMYYYY, formatTime } from '../../utils';
 import StravaMap from './StravaMap';
 import { formatSegmentTime } from '../../utils/strava';
 
+const STRAVA_SEGMENT_TROPHY_ORANGE = '#fc4c02';
+
 // Strava logo SVG
 const StravaIcon = ({ size = 14 }) => (
     <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor">
@@ -246,16 +248,26 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken }) => {
                                                         )}
                                                         {seg.kom_rank && seg.kom_rank >= 2 && seg.kom_rank <= 10 && (
                                                             <span
-                                                                className="relative inline-flex h-[22px] w-[20px] shrink-0 items-end justify-center pb-0.5"
+                                                                className="relative inline-flex h-[24px] w-[22px] shrink-0 items-center justify-center"
                                                                 title={`#${seg.kom_rank} on segment leaderboard`}
                                                             >
                                                                 <Trophy
-                                                                    size={18}
-                                                                    className="absolute bottom-0 left-1/2 -translate-x-1/2 text-amber-400/90 pointer-events-none"
-                                                                    strokeWidth={2}
+                                                                    size={20}
+                                                                    className="shrink-0 drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)]"
+                                                                    fill={STRAVA_SEGMENT_TROPHY_ORANGE}
+                                                                    color={STRAVA_SEGMENT_TROPHY_ORANGE}
+                                                                    stroke={STRAVA_SEGMENT_TROPHY_ORANGE}
+                                                                    strokeWidth={1.5}
                                                                     aria-hidden
                                                                 />
-                                                                <span className="relative z-[1] min-w-[15px] translate-y-px rounded px-[2px] py-[1px] text-center text-[8px] font-black tabular-nums leading-none text-cdtext bg-cdsurface/95 border border-cdborder/60 shadow-[0_1px_2px_rgba(0,0,0,0.35)]">
+                                                                <span
+                                                                    className={[
+                                                                        'pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2',
+                                                                        'font-black tabular-nums leading-none text-white',
+                                                                        '[text-shadow:0_0_2px_rgba(0,0,0,0.5),0_1px_0_rgba(0,0,0,0.25)]',
+                                                                        seg.kom_rank >= 10 ? 'text-[8px] tracking-tighter' : 'text-[10px]',
+                                                                    ].join(' ')}
+                                                                >
                                                                     {seg.kom_rank}
                                                                 </span>
                                                             </span>
