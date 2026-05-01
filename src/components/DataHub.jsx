@@ -13,6 +13,7 @@ import {
     isLikelyIntervalsActivityId,
     stripUndefinedFields,
 } from '../utils/mergeActivities';
+import { findSafeImportReplacementDuplicate } from '../utils/importDuplicateMatch';
 import { enrichActivityGearFromStrava, buildStravaDetailEnrichmentUpdates } from '../utils/stravaGearEnrich';
 import { resolveStravaGearDisplay } from '../utils/stravaBikesLocalMap';
 import { buildClimbMatchIndex, findBestClimbUsingIndex } from '../utils/activityClimbMatch';
@@ -951,16 +952,7 @@ const DataHub = ({
 
         if (activities && activities.length > 0) {
             toImport.forEach(newAct => {
-                const newDate = newAct.date.split('T')[0];
-                const duplicate = activities.find(existing => {
-                    if (existing.id === newAct.id) return false;
-                    const exDate = existing.date.split('T')[0];
-                    if (exDate !== newDate) return false;
-                    if (existing.type !== newAct.type && existing.type !== 'Ride' && newAct.type !== 'Ride') return false;
-                    const timeDiff = Math.abs((existing.moving_time || 0) - (newAct.moving_time || 0));
-                    const distDiff = Math.abs((existing.distance || 0) - (newAct.distance || 0));
-                    return timeDiff < 300 && distDiff < 0.5;
-                });
+                const duplicate = findSafeImportReplacementDuplicate(activities, newAct);
 
                 if (duplicate) {
                     idsToDelete.push(duplicate.id);
