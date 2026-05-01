@@ -246,11 +246,16 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken }) => {
                                                         )}
                                                         {seg.kom_rank && seg.kom_rank >= 2 && seg.kom_rank <= 10 && (
                                                             <span
-                                                                className="relative inline-flex h-[15px] w-[15px] shrink-0 items-center justify-center"
+                                                                className="relative inline-flex h-[22px] w-[20px] shrink-0 items-end justify-center pb-0.5"
                                                                 title={`#${seg.kom_rank} on segment leaderboard`}
                                                             >
-                                                                <Trophy size={15} className="text-amber-400/95" strokeWidth={2} aria-hidden />
-                                                                <span className="absolute inset-0 flex items-center justify-center pt-[1px] text-[8px] font-extrabold leading-none text-cdtext drop-shadow-[0_0_1px_rgba(0,0,0,0.85)]">
+                                                                <Trophy
+                                                                    size={18}
+                                                                    className="absolute bottom-0 left-1/2 -translate-x-1/2 text-amber-400/90 pointer-events-none"
+                                                                    strokeWidth={2}
+                                                                    aria-hidden
+                                                                />
+                                                                <span className="relative z-[1] min-w-[15px] translate-y-px rounded px-[2px] py-[1px] text-center text-[8px] font-black tabular-nums leading-none text-cdtext bg-cdsurface/95 border border-cdborder/60 shadow-[0_1px_2px_rgba(0,0,0,0.35)]">
                                                                     {seg.kom_rank}
                                                                 </span>
                                                             </span>
