@@ -331,8 +331,9 @@ const App = () => {
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const code = params.get('code');
+        const state = params.get('state');
         if (code && stravaConfig?.client_id && stravaConfig?.client_secret) {
-            stravaAuth.handleOAuthCallback(code).catch(e => {
+            stravaAuth.handleOAuthCallback(code, state).catch(e => {
                 console.error('Strava OAuth fout:', e);
                 alert('Strava koppeling mislukt: ' + e.message);
             });
