@@ -28,16 +28,17 @@ const ActivityRow = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview
                     </div>
                 );
                 case 'title': return (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 group/title focus-within:opacity-100">
                         <span className="font-medium text-cdtext block max-w-[200px] truncate" title={val}>{val}</span>
                         {act.id && !String(act.id).startsWith('csv_') && (
                             <a
                                 href={`https://intervals.icu/activities/${act.id}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-cdmuted hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="text-cdmuted hover:text-blue-400 opacity-0 group-hover:opacity-100 group-focus-within/title:opacity-100 focus-visible:opacity-100 transition-opacity focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm p-0.5"
                                 onClick={e => e.stopPropagation()}
                                 title="Open in Intervals.icu"
+                                aria-label="Open in Intervals.icu"
                             >
                                 <ExternalLink size={12} />
                             </a>
