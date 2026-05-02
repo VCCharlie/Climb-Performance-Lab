@@ -102,7 +102,7 @@ export const TopTable = ({ rows, peerRows, onOpenActivityInLog, emptyHint }) => 
                                                 key={l.label}
                                                 href={l.href}
                                                 target="_blank"
-                                                rel="noreferrer"
+                                                rel="noopener noreferrer"
                                                 className="text-[10px] font-bold text-cdmuted hover:text-cdaccent"
                                             >
                                                 {l.label}

@@ -17,7 +17,7 @@ const PowerTabDetails = ({ powerPeakRows, monthlyBests, data, manualFtp, onOpenA
             <h3 className="text-lg font-bold text-cdtext mb-1">Best powers in this period</h3>
             <p className="text-xs text-cdmuted mb-4">
                 Strongest value per duration in your filtered data (same caps as the chart). Similar to the power view on{' '}
-                <a href="https://intervals.icu/power" target="_blank" rel="noreferrer" className="text-cdaccent hover:underline">
+                <a href="https://intervals.icu/power" target="_blank" rel="noopener noreferrer" className="text-cdaccent hover:underline">
                     intervals.icu/power
                 </a>
                 .
@@ -65,7 +65,7 @@ const PowerTabDetails = ({ powerPeakRows, monthlyBests, data, manualFtp, onOpenA
                                                     key={l.label}
                                                     href={l.href}
                                                     target="_blank"
-                                                    rel="noreferrer"
+                                                    rel="noopener noreferrer"
                                                     className="text-xs font-bold text-cdmuted hover:text-cdaccent"
                                                 >
                                                     {l.label}

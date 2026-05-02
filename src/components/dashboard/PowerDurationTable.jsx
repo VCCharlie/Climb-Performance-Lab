@@ -151,7 +151,7 @@ const PowerDurationTable = ({
             <h3 className="text-lg font-bold text-cdtext mb-1">Power-duration (intervals.icu-style)</h3>
             <p className="text-xs text-cdmuted mb-4 max-w-3xl leading-relaxed">
                 Layout similar to{' '}
-                <a href="https://intervals.icu/power" target="_blank" rel="noreferrer" className="text-cdaccent hover:underline">
+                <a href="https://intervals.icu/power" target="_blank" rel="noopener noreferrer" className="text-cdaccent hover:underline">
                     intervals.icu/power
                 </a>
                 : several time windows side by side. Per ride: max power, best 1/5/10/20/60 min (and 90/120 when the API provides them),
@@ -201,7 +201,7 @@ const PowerDurationTable = ({
                                     <a
                                         href={l.href}
                                         target="_blank"
-                                        rel="noreferrer"
+                                        rel="noopener noreferrer"
                                         className="block px-2 py-2 rounded-md bg-cdborder/20 hover:bg-cdborder/50 text-blue-400 font-bold text-xs"
                                     >
                                         {l.label} →
