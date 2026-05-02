@@ -563,7 +563,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                 <a
                                     href={`https://www.strava.com/athletes/${athleteId}`}
                                     target="_blank"
-                                    rel="noreferrer"
+                                    rel="noopener noreferrer"
                                     className="text-orange-400 hover:text-orange-300 shrink-0"
                                     title="Open on Strava"
                                 >
@@ -725,7 +725,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                                     <a
                                                         href={`https://www.strava.com/activities/${recordRides.longestRide.id}`}
                                                         target="_blank"
-                                                        rel="noreferrer"
+                                                        rel="noopener noreferrer"
                                                         className="mt-2 inline-flex items-center gap-1 text-orange-400 hover:text-orange-300 font-bold"
                                                     >
                                                         {recordRides.longestRide.name || 'Open activity'}
@@ -756,7 +756,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                                     <a
                                                         href={`https://www.strava.com/activities/${recordRides.mostElevation.id}`}
                                                         target="_blank"
-                                                        rel="noreferrer"
+                                                        rel="noopener noreferrer"
                                                         className="mt-2 inline-flex items-center gap-1 text-orange-400 hover:text-orange-300 font-bold"
                                                     >
                                                         {recordRides.mostElevation.name || 'Open activity'}
@@ -786,7 +786,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                                 <a
                                                     href={`https://www.strava.com/activities/${recordRides.maxTotalElevationRide.id}`}
                                                     target="_blank"
-                                                    rel="noreferrer"
+                                                    rel="noopener noreferrer"
                                                     className="mt-2 inline-flex items-center gap-1 text-orange-400 hover:text-orange-300 font-bold"
                                                 >
                                                     {recordRides.maxTotalElevationRide.name || 'Open activity'}

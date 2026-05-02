@@ -84,7 +84,7 @@ export default function LongestRidesTable({ rows, peerRows, onOpenActivityInLog,
                                                 key={l.label}
                                                 href={l.href}
                                                 target="_blank"
-                                                rel="noreferrer"
+                                                rel="noopener noreferrer"
                                                 className="text-[10px] font-bold text-cdmuted hover:text-cdaccent"
                                             >
                                                 {l.label}
