@@ -18,7 +18,7 @@ const ActivityRow = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview
                     <div
                         className={`flex justify-center items-center h-full ${isPreview ? 'cursor-pointer hover:text-yellow-400' : ''}`}
                         onClick={(e) => { if (isPreview && onToggleType) { e.stopPropagation(); onToggleType(act.id); } }}
-                        title={isPreview ? `Huidig: ${val}. Klik om te wijzigen.` : val}
+                        title={isPreview ? `Current: ${val}. Click to change.` : val}
                     >
                         {val === 'VirtualRide' ? <Monitor size={16} className="text-orange-400" title="Virtual Ride" /> :
                             val === 'Run' ? <Footprints size={16} className="text-blue-400" title="Run" /> :
@@ -28,11 +28,11 @@ const ActivityRow = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview
                     </div>
                 );
                 case 'title': return (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 group/title focus-within:opacity-100">
                         {!isPreview && onViewDetail && val ? (
                             <button
                                 type="button"
-                                className="font-medium text-cdtext block max-w-[200px] truncate text-left hover:text-cdaccent hover:underline"
+                                className="font-medium text-cdtext block max-w-[200px] truncate text-left hover:text-cdaccent hover:underline focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm"
                                 title={`${val} — click for details`}
                                 onClick={(e) => { e.stopPropagation(); onViewDetail(act); }}
                             >
@@ -46,9 +46,10 @@ const ActivityRow = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview
                                 href={`https://intervals.icu/activities/${act.id}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-cdmuted hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="text-cdmuted hover:text-blue-400 opacity-0 group-hover:opacity-100 group-focus-within/title:opacity-100 focus-visible:opacity-100 transition-opacity focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm p-0.5"
                                 onClick={e => e.stopPropagation()}
                                 title="Open in Intervals.icu"
+                                aria-label="Open in Intervals.icu"
                             >
                                 <ExternalLink size={12} />
                             </a>

@@ -87,12 +87,12 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken }) => {
                         <h2 className="text-xl font-bold text-cdtext">{activity.title}</h2>
                         <div className="flex items-center gap-4 mt-2 flex-wrap">
                             {activity.id && !String(activity.id).startsWith('csv_') && (
-                                <a href={`https://intervals.icu/activities/${activity.id}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                                <a href={`https://intervals.icu/activities/${activity.id}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm px-1 py-0.5 -ml-1">
                                     Intervals.icu <ExternalLink size={10} />
                                 </a>
                             )}
                             {activity.strava_id && (
-                                <a href={`https://www.strava.com/activities/${activity.strava_id}`} target="_blank" rel="noopener noreferrer" className="text-xs text-orange-400 hover:text-orange-300 flex items-center gap-1">
+                                <a href={`https://www.strava.com/activities/${activity.strava_id}`} target="_blank" rel="noopener noreferrer" className="text-xs text-orange-400 hover:text-orange-300 flex items-center gap-1 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm px-1 py-0.5 -ml-1">
                                     <StravaIcon size={12} /> Strava <ExternalLink size={10} />
                                 </a>
                             )}
@@ -226,7 +226,7 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken }) => {
                                                                 href={`https://www.strava.com/segments/${seg.segment?.id}`}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
-                                                                className="text-cdtext hover:text-orange-400 font-medium transition-colors truncate"
+                                                                className="text-cdtext hover:text-orange-400 font-medium transition-colors truncate focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm px-1 -ml-1"
                                                                 onClick={e => e.stopPropagation()}
                                                             >
                                                                 {seg.name}
