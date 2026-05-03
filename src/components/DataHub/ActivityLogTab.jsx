@@ -231,7 +231,7 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
                                                         onDelete={onDelete} 
                                                         deleteConfirm={deleteConfirm} 
                                                         setDeleteConfirm={setDeleteConfirm} 
-                                                        onViewDetail={setSelectedDetailActivity} 
+                                                        onViewDetail={setSelectedDetailActivity}
                                                     />
                                                 ))}
                                             </React.Fragment>
@@ -246,7 +246,7 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
                                         onDelete={onDelete} 
                                         deleteConfirm={deleteConfirm} 
                                         setDeleteConfirm={setDeleteConfirm} 
-                                        onViewDetail={setSelectedDetailActivity} 
+                                        onViewDetail={setSelectedDetailActivity}
                                     />
                                 ))}
                             </tbody>

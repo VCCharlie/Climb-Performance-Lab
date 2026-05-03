@@ -1,4 +1,5 @@
 import { stravaHttpErrorMessage } from './stravaHttp.js';
+import { isIncludedStravaType, matchStravaToSite } from './stravaMatch.js';
 
 const DEFAULT_MATCH_MS = 900000; // 15 minutes — same as SyncTab
 
@@ -59,4 +60,32 @@ export function linkIntervalsActivitiesToStravaList(intervalsActivities, stravaA
             ...(stravaTitle && { title: stravaTitle }),
         };
     });
+}
+
+/**
+ * Same-day distance/duration fuzzy match (Strava list vs Intervals rows), for rides still missing strava_id.
+ * Skips `low` confidence pairs (aligned with performSilentStravaEnrichment).
+ * @param {object[]} intervalsActivities
+ * @param {object[]} stravaActivities — raw Strava API list items
+ */
+export function applyStravaFuzzyMatchesToIntervals(intervalsActivities, stravaActivities) {
+    const merged = intervalsActivities || [];
+    const bikeStrava = (stravaActivities || []).filter((s) => isIncludedStravaType(s.sport_type || s.type));
+    if (bikeStrava.length === 0 || merged.length === 0) return;
+
+    const result = matchStravaToSite(bikeStrava, merged);
+    for (const m of result.matched || []) {
+        if (m.confidence === 'low') continue;
+        const i = merged.findIndex((x) => String(x.id) === String(m.site.id));
+        if (i < 0) continue;
+        const row = merged[i];
+        if (row.strava_id) continue;
+        const stravaTitle = (m.strava.name || '').trim();
+        merged[i] = {
+            ...row,
+            strava_id: String(m.strava.id),
+            gear_id: m.strava.gear_id || row.gear_id || null,
+            ...(stravaTitle && { title: stravaTitle }),
+        };
+    }
 }

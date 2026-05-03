@@ -19,7 +19,11 @@ import { buildStravaKomSummaryFromActivityDetail } from '../utils/stravaSegmentK
 import { resolveStravaGearDisplay } from '../utils/stravaBikesLocalMap';
 import { buildClimbMatchIndex, findBestClimbUsingIndex } from '../utils/activityClimbMatch';
 import { formatNlNumber } from '../utils/formatters';
-import { fetchStravaActivitiesInRange, linkIntervalsActivitiesToStravaList } from '../utils/stravaLinkIntervalsFetch';
+import {
+    fetchStravaActivitiesInRange,
+    linkIntervalsActivitiesToStravaList,
+    applyStravaFuzzyMatchesToIntervals,
+} from '../utils/stravaLinkIntervalsFetch';
 
 import { SPORT_TYPES, MONTH_ORDER } from '../config';
 import { CLIMB_DATABASE } from '../climbs';
@@ -911,6 +915,7 @@ const DataHub = ({
                     if (token) {
                         const stravaList = await fetchStravaActivitiesInRange(token, syncStart, syncEnd);
                         merged = linkIntervalsActivitiesToStravaList(merged, stravaList);
+                        applyStravaFuzzyMatchesToIntervals(merged, stravaList);
                     }
                 } catch (err) {
                     console.warn('[Fetch new] Strava list / link failed:', err);
@@ -930,12 +935,78 @@ const DataHub = ({
                 onImport(merged);
             }
 
+            let enrichCount = 0;
+            let segmentRefreshCount = 0;
+            let detailFailed = 0;
+            if (stravaGetToken && merged.length > 0) {
+                setSyncStatus('enriching');
+                setSyncErrorDetail('Strava: matching HR/gear/KOM (same as Sync Now)…');
+                try {
+                    enrichCount = await performSilentStravaEnrichment(merged, syncStart, syncEnd);
+                } catch (e) {
+                    console.warn('[Fetch new] Silent Strava enrichment failed:', e);
+                }
+                try {
+                    const token = await stravaGetToken();
+                    if (token) {
+                        const withStrava = merged.filter((a) => a?.strava_id);
+                        const { updates, failed } = await buildStravaDetailEnrichmentUpdates(
+                            withStrava,
+                            token,
+                            {
+                                forceStravaDetail: true,
+                                concurrency: 3,
+                                onProgress: (m) => setSyncErrorDetail(String(m)),
+                            },
+                        );
+                        detailFailed = failed;
+                        if (updates.length > 0 && db) {
+                            await Promise.all(
+                                updates.map(({ id, data }) => {
+                                    const existingRow = merged.find((x) => String(x.id) === String(id))
+                                        || (activities || []).find((x) => String(x.id) === String(id))
+                                        || {};
+                                    return setDoc(
+                                        doc(db, 'activities', String(id)),
+                                        protectEnrichedFieldsOnMerge(data, existingRow),
+                                        { merge: true },
+                                    );
+                                }),
+                            );
+                            for (const { id, data } of updates) {
+                                const wi = merged.findIndex((x) => String(x.id) === String(id));
+                                if (wi >= 0) {
+                                    merged[wi] = stripUndefinedFields({ ...merged[wi], ...data });
+                                }
+                            }
+                            onImport(updates.map(({ id, data }) => {
+                                const prev = merged.find((x) => String(x.id) === String(id)) || {};
+                                return protectEnrichedFieldsOnMerge({ ...prev, ...data }, prev);
+                            }));
+                        }
+                        segmentRefreshCount = updates.length;
+                    }
+                } catch (e) {
+                    console.warn('[Fetch new] Strava detail refresh failed:', e);
+                }
+                onImport(merged);
+            }
+
             setSyncStatus('done');
-            const stravaPart = stravaGetToken ? ' Strava match attempted where token is available.' : '';
+            const parts = [];
+            if (merged.length > 0) parts.push(`${merged.length} from Intervals.icu`);
+            if (stravaGetToken && merged.length > 0) {
+                parts.push('Strava link + enrich');
+                if (enrichCount > 0) parts.push(`${enrichCount} field update(s) from Strava`);
+                if (segmentRefreshCount > 0) parts.push(`${segmentRefreshCount} detail/KOM refresh`);
+                if (detailFailed > 0) parts.push(`${detailFailed} detail error(s)`);
+            } else if (merged.length > 0) {
+                parts.push('connect Strava in Settings for auto-link + details');
+            }
             setSyncErrorDetail(
                 merged.length > 0
-                    ? `✅ Imported or updated ${merged.length} activity record(s) from Intervals.icu.${stravaPart}`
-                    : `No new activities returned from Intervals.icu for this range (or all filtered out).${stravaPart}`,
+                    ? `✅ ${parts.join(' · ')}.`
+                    : 'No new activities returned from Intervals.icu for this range (or all filtered out).',
             );
             setTimeout(() => setSyncStatus(null), 9000);
         } catch (e) {
@@ -1412,8 +1483,8 @@ const DataHub = ({
                                     <p className="text-[10px] text-cdmuted leading-snug mt-0.5">
                                         Pull activities for the date range below and add or update them in your log.
                                         {stravaGetToken
-                                            ? ' If Strava is connected, new rides are matched by start time in the same window (strava_id + title).'
-                                            : ' Connect Strava in Settings to auto-link strava_id for new rides.'}
+                                            ? ' With Strava connected: time-window link, same-day fuzzy match (distance/duration), then HR/gear/KOM enrichment and Strava detail refresh — same pipeline as Sync Now for selected rows.'
+                                            : ' Connect Strava in Settings to auto-link and enrich new rides.'}
                                     </p>
                                     <p className="text-[10px] text-cdmuted mt-1">
                                         <span className="text-cdaccent font-bold">Tools → Sync Now</span> is different: it only updates{' '}

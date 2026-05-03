@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { linkIntervalsActivitiesToStravaList } from '../../utils/stravaLinkIntervalsFetch.js';
+import { linkIntervalsActivitiesToStravaList, applyStravaFuzzyMatchesToIntervals } from '../../utils/stravaLinkIntervalsFetch.js';
 
 describe('stravaLinkIntervalsFetch', () => {
     it('linkIntervalsActivitiesToStravaList adds strava_id when start times align', () => {
@@ -16,6 +16,26 @@ describe('stravaLinkIntervalsFetch', () => {
         expect(out[0].gear_id).toBe('b1');
         expect(out[0].title).toBe('Strava A');
         expect(out[1].strava_id).toBe('999');
+    });
+
+    it('applyStravaFuzzyMatchesToIntervals links same-day ride by distance/duration', () => {
+        const intervals = [
+            { id: 'i1', date: '2026-05-01T10:00:00', distance: 50.1, moving_time: 7200, type: 'Ride' },
+        ];
+        const strava = [
+            {
+                id: 999,
+                start_date_local: '2026-05-01T10:25:00',
+                distance: 50100,
+                moving_time: 7210,
+                sport_type: 'Ride',
+                name: 'Outdoor',
+                gear_id: 'g1',
+            },
+        ];
+        applyStravaFuzzyMatchesToIntervals(intervals, strava);
+        expect(intervals[0].strava_id).toBe('999');
+        expect(intervals[0].gear_id).toBe('g1');
     });
 
     it('does not overwrite existing strava_id', () => {
