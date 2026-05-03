@@ -2,7 +2,7 @@
 import React from 'react';
 import {
     ArrowUpDown, ChevronUp, ChevronDown, ChevronRight, Monitor, Bike, Footprints,
-    Mountain, Edit2, Trash2, ExternalLink, Eye, Route, Trophy, Crown,
+    Mountain, Edit2, Trash2, ExternalLink, Route, Trophy, Crown,
 } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
 import { resolveStravaGearDisplay } from '../../utils/stravaBikesLocalMap';
@@ -262,17 +262,6 @@ export const Row = React.memo(({
                     </div>
                 ) : (
                     <div className="flex gap-0.5 justify-end opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                        {onViewDetail && (
-                            <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); onViewDetail(act); }}
-                                className="text-cdmuted hover:text-green-400 p-0.5 rounded hover:bg-cdborder/40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
-                                title="View details"
-                                aria-label="View details"
-                            >
-                                <Eye size={13} />
-                            </button>
-                        )}
                         {onOpenProfiler && (
                             <button
                                 type="button"

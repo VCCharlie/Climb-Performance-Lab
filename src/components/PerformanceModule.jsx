@@ -379,7 +379,7 @@ const PerformanceModule = ({
                                             key={l.label}
                                             href={l.href}
                                             target="_blank"
-                                            rel="noreferrer"
+                                            rel="noopener noreferrer"
                                             className="inline-flex items-center gap-1 px-2 py-1 rounded border border-cdborder text-cdaccent hover:underline font-bold"
                                         >
                                             {l.label}
@@ -412,7 +412,7 @@ const PerformanceModule = ({
                                                 key={l.label}
                                                 href={l.href}
                                                 target="_blank"
-                                                rel="noreferrer"
+                                                rel="noopener noreferrer"
                                                 className="inline-flex items-center gap-1 px-2 py-1 rounded border border-cdborder text-cdaccent hover:underline font-bold"
                                             >
                                                 {l.label}

@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { Monitor, Footprints, Mountain, Bike, Trash2, ExternalLink, Eye } from 'lucide-react';
+import { Monitor, Footprints, Mountain, Bike, Trash2, ExternalLink } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
 import { ACTIVITY_TABLE_COLUMNS } from '../../config';
 
@@ -18,7 +18,7 @@ const ActivityRow = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview
                     <div
                         className={`flex justify-center items-center h-full ${isPreview ? 'cursor-pointer hover:text-yellow-400' : ''}`}
                         onClick={(e) => { if (isPreview && onToggleType) { e.stopPropagation(); onToggleType(act.id); } }}
-                        title={isPreview ? `Huidig: ${val}. Klik om te wijzigen.` : val}
+                        title={isPreview ? `Current: ${val}. Click to change.` : val}
                     >
                         {val === 'VirtualRide' ? <Monitor size={16} className="text-orange-400" title="Virtual Ride" /> :
                             val === 'Run' ? <Footprints size={16} className="text-blue-400" title="Run" /> :
@@ -29,7 +29,18 @@ const ActivityRow = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview
                 );
                 case 'title': return (
                     <div className="flex items-center gap-2 group/title focus-within:opacity-100">
-                        <span className="font-medium text-cdtext block max-w-[200px] truncate" title={val}>{val}</span>
+                        {!isPreview && onViewDetail && val ? (
+                            <button
+                                type="button"
+                                className="font-medium text-cdtext block max-w-[200px] truncate text-left hover:text-cdaccent hover:underline focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm"
+                                title={`${val} — click for details`}
+                                onClick={(e) => { e.stopPropagation(); onViewDetail(act); }}
+                            >
+                                {val}
+                            </button>
+                        ) : (
+                            <span className="font-medium text-cdtext block max-w-[200px] truncate" title={val}>{val}</span>
+                        )}
                         {act.id && !String(act.id).startsWith('csv_') && (
                             <a
                                 href={`https://intervals.icu/activities/${act.id}`}
@@ -83,11 +94,6 @@ const ActivityRow = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview
             {ACTIVITY_TABLE_COLUMNS.map(col => <td key={col.key} className={`p-3 text-${col.align} text-xs`}>{renderCell(col)}</td>)}
             {!isPreview && <td className="p-3 text-right">
                 <div className="flex gap-2 justify-end items-center">
-                    {onViewDetail && (
-                        <button onClick={(e) => { e.stopPropagation(); onViewDetail(act); }} className="text-slate-600 hover:text-blue-400 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm" title="View Details" aria-label={`View details for ${act.title || 'activity'}`}>
-                            <Eye size={14} />
-                        </button>
-                    )}
                     {deleteConfirm === act.id ? <div className="flex gap-2 justify-end"><button onClick={(e) => { e.stopPropagation(); onDelete(act.id) }} className="text-red-500 font-bold text-xs bg-red-500/10 px-2 py-1 rounded focus-visible:ring-2 focus-visible:ring-red-400 focus:outline-none" aria-label={`Confirm delete activity ${act.title || ''}`}>SURE?</button><button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(null) }} className="text-cdmuted text-xs px-2 py-1 rounded focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none" aria-label="Cancel delete">Cancel</button></div> : <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(act.id) }} className="text-slate-600 hover:text-red-400 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm" title="Delete Activity" aria-label={`Delete activity ${act.title || ''}`}>
                         <Trash2 size={14} />
                     </button>}
