@@ -25,7 +25,15 @@ const FTP_CAPS = DASHBOARD_FTP_CAPS;
 
 const cappedMax = (activities, key, manualFtp) => {
     const cap = manualFtp > 0 ? manualFtp * FTP_CAPS[key] : 1500;
-    return Math.max(0, ...activities.map(a => Number(a[key]) || 0).filter(v => v <= cap));
+    // Optimization: Single pass loop prevents array allocations and avoids call stack size exceeded on large arrays
+    let max = 0;
+    for (const a of activities) {
+        const val = Number(a[key]) || 0;
+        if (val <= cap && val > max) {
+            max = val;
+        }
+    }
+    return max;
 };
 
 const POWER_TABLE_KEYS = [
