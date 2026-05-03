@@ -36,3 +36,8 @@
 **Vulnerability:** The application was logging `stravaConfig` to the browser console when saving settings to the cloud (`src/App.jsx`). While `client_secret` was redacted, the `access_token` and `refresh_token` were not.
 **Learning:** When redacting sensitive configuration objects for logging, it's easy to overlook fields that are populated later or dynamically (like OAuth tokens obtained after the initial setup), focusing only on the manually entered secrets (like client secrets).
 **Prevention:** Thoroughly review all fields within an object being logged, considering its state across the entire application lifecycle, not just its initial shape. Redact all forms of credentials, including short-lived and long-lived tokens.
+
+## 2024-05-24 - [Replace Insecure Math.random for ID Generation]
+**Vulnerability:** The application was using `Math.random().toString(36)` to generate pseudo-random IDs for activities in `src/utils/intervals.js` and `src/utils/parsers.js`.
+**Learning:** `Math.random()` is not cryptographically secure, and the IDs it generates are predictable and more prone to collisions than true UUIDs. When creating unique identifiers, especially for objects that may be stored or synchronized, it's safer and more robust to use standardized UUIDs.
+**Prevention:** Use `crypto.randomUUID()` when generating unique identifiers in modern browser environments or Node.js. It generates a cryptographically secure UUIDv4 string directly.
