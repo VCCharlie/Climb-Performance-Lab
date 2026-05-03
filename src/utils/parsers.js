@@ -207,7 +207,7 @@ export const smartParseCSV = (text) => {
 
 
         if (!entry.title) entry.title = "Untitled";
-        if (!entry.id) entry.id = 'csv_' + Math.random().toString(36).substr(2, 9);
+        if (!entry.id) entry.id = 'csv_' + crypto.randomUUID();
         if (!entry.date || entry.date === 'Invalid Date') entry.date = new Date().toISOString().split('T')[0];
         entry.type = determineActivityType(entry.type, entry.title);
         if (entry.distance > 2000) entry.distance = (entry.distance / 1000).toFixed(2);
