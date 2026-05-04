@@ -10,6 +10,7 @@ import {
 } from '../../utils/stravaVsLogGap';
 import { defaultStravaVsLogUi, mergeStravaVsLogUi } from '../../utils/stravaVsLogUi';
 import { fetchAllBikeActivitiesForRecords, getStravaRawActivityListFetchCap } from '../../utils/stravaProfileRecords';
+import { readStravaVsLogScanCache, writeStravaVsLogScanCache, clearStravaVsLogScanCache } from '../../utils/stravaVsLogScanCache';
 
 const LOCALE = 'en-US';
 
@@ -41,6 +42,7 @@ const StravaVsLogGapPanel = ({
     getStravaToken,
     persistedUi,
     onPersistUi,
+    stravaAthleteId,
 }) => {
     const defaults = useMemo(() => defaultStravaVsLogUi(), []);
     const [startYmd, setStartYmd] = useState(defaults.startYmd);
@@ -52,6 +54,10 @@ const StravaVsLogGapPanel = ({
     const [scanBusy, setScanBusy] = useState(false);
     const [scanProgress, setScanProgress] = useState('');
     const [scanError, setScanError] = useState(null);
+    const [cacheNotice, setCacheNotice] = useState(null);
+    const [cachedScanMeta, setCachedScanMeta] = useState(null);
+    /** 'disk' = restored from localStorage this session; 'live' = last full scan was from Strava API */
+    const [fullScanSource, setFullScanSource] = useState(null);
 
     const persistTimerRef = useRef(null);
     const schedulePersistUi = useCallback(
@@ -82,6 +88,25 @@ const StravaVsLogGapPanel = ({
         persistedUi?.includeEbikeRide,
         persistedUi?.useFuzzyMatch,
     ]);
+
+    useEffect(() => {
+        setCacheNotice(null);
+        setFullScanActs(null);
+        setFullScanComplete(true);
+        setCachedScanMeta(null);
+        setFullScanSource(null);
+        if (stravaAthleteId == null || stravaAthleteId === '') return;
+        const cached = readStravaVsLogScanCache(stravaAthleteId);
+        if (cached?.activities?.length) {
+            setFullScanActs(cached.activities);
+            setFullScanComplete(!!cached.historyComplete);
+            setCachedScanMeta({
+                fetchedAt: cached.fetchedAt,
+                count: cached.activities.length,
+            });
+            setFullScanSource('disk');
+        }
+    }, [stravaAthleteId]);
 
     /** null = use profile scan; array = result of explicit Refresh Strava ride list */
     const actsForGap = fullScanActs !== null ? fullScanActs : scannedBikeActivities;
@@ -118,6 +143,7 @@ const StravaVsLogGapPanel = ({
     const runFullStravaScan = useCallback(async () => {
         if (!getStravaToken) return;
         setScanError(null);
+        setCacheNotice(null);
         setScanBusy(true);
         try {
             const token = await getStravaToken();
@@ -128,13 +154,30 @@ const StravaVsLogGapPanel = ({
             );
             setFullScanActs(acts);
             setFullScanComplete(historyComplete);
+            if (stravaAthleteId != null && stravaAthleteId !== '') {
+                const w = writeStravaVsLogScanCache(stravaAthleteId, acts, historyComplete);
+                if (w.ok) {
+                    setCachedScanMeta({
+                        fetchedAt: w.fetchedAt || new Date().toISOString(),
+                        count: acts.length,
+                    });
+                    setFullScanSource('live');
+                    setCacheNotice(null);
+                } else {
+                    setCacheNotice(
+                        w.reason === 'quota'
+                            ? 'This browser could not store the full ride list (storage quota). Results stay until you close the tab — tap Refresh again after a reload.'
+                            : 'Could not store the ride list in this browser cache.'
+                    );
+                }
+            }
         } catch (e) {
             setScanError(e?.message || 'Strava scan failed');
         } finally {
             setScanBusy(false);
             setScanProgress('');
         }
-    }, [getStravaToken]);
+    }, [getStravaToken, stravaAthleteId]);
 
     const missingRows = gap ? (useFuzzyMatch ? gap.fuzzyMissing : gap.strictMissing) : [];
     const missingSorted = useMemo(() => {
@@ -145,6 +188,22 @@ const StravaVsLogGapPanel = ({
 
     const effectiveHistoryComplete = fullScanActs !== null ? fullScanComplete : !!scanHistoryComplete;
     const fetchCap = getStravaRawActivityListFetchCap();
+
+    const clearCachedRideList = useCallback(() => {
+        if (stravaAthleteId != null && stravaAthleteId !== '') clearStravaVsLogScanCache(stravaAthleteId);
+        setFullScanActs(null);
+        setFullScanComplete(true);
+        setCachedScanMeta(null);
+        setFullScanSource(null);
+        setCacheNotice(null);
+    }, [stravaAthleteId]);
+
+    const cachedFetchedLabel = useMemo(() => {
+        if (!cachedScanMeta?.fetchedAt) return null;
+        const t = Date.parse(cachedScanMeta.fetchedAt);
+        if (Number.isNaN(t)) return null;
+        return new Date(t).toLocaleString(LOCALE, { dateStyle: 'medium', timeStyle: 'short' });
+    }, [cachedScanMeta?.fetchedAt]);
 
     return (
         <div className="space-y-4 animate-in fade-in duration-200">
@@ -249,9 +308,31 @@ const StravaVsLogGapPanel = ({
                         Strava list capped at ~{fmtInt(fetchCap)} activities — older rides may be missing.
                     </span>
                 )}
+                {fullScanActs !== null && stravaAthleteId != null && stravaAthleteId !== '' && (
+                    <button
+                        type="button"
+                        onClick={clearCachedRideList}
+                        disabled={scanBusy}
+                        className="text-[10px] font-bold text-cdmuted hover:text-cdtext underline disabled:opacity-50"
+                    >
+                        Clear cached ride list
+                    </button>
+                )}
             </div>
 
-            {scanError && (
+            {cachedFetchedLabel && fullScanSource === 'disk' && fullScanActs !== null && (
+                <p className="text-[10px] text-cdmuted">
+                    Using <strong className="text-cdtext">browser-cached</strong> full Strava ride list from{' '}
+                    <span className="text-cdtext font-mono">{cachedFetchedLabel}</span> ({fmtInt(cachedScanMeta?.count || 0)} rides).
+                    Tap <strong className="text-cdtext">Refresh Strava ride list</strong> to update from Strava.
+                </p>
+            )}
+
+            {cacheNotice && (
+                <div className="text-[10px] text-yellow-500/90 bg-yellow-500/10 border border-yellow-500/25 rounded p-2">
+                    {cacheNotice}
+                </div>
+            )}
                 <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded p-2 flex gap-2">
                     <AlertCircle size={14} className="shrink-0 mt-0.5" /> {scanError}
                 </div>
