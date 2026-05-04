@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback, useMemo } from 'react';
+﻿import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Gauge, Mountain, Activity, Utensils, Brain, Route, Settings as SettingsIcon, TrendingUp, Menu, X, Heart, Trophy, Cloud, ChevronRight, Map as MapIcon, Flag } from 'lucide-react';
 import { doc, setDoc, getDoc, collection, onSnapshot, getDocsFromServer, waitForPendingWrites } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
@@ -302,6 +302,31 @@ const App = () => {
     useEffect(() => {
         localStorage.setItem('userSettings', JSON.stringify(userSettings));
     }, [userSettings]);
+
+    /** Debounced Firestore sync for dashboard training volume goals (avoids wiping other `body` fields). */
+    const volumeGoalsCloudTimerRef = useRef(null);
+    const lastVolumeGoalsSyncedJsonRef = useRef('');
+    useEffect(() => {
+        if (!db || !user) return;
+        const merged = mergeVolumeGoals(userSettings.volumeGoals);
+        const serialized = JSON.stringify(merged);
+        if (serialized === lastVolumeGoalsSyncedJsonRef.current) return;
+        if (volumeGoalsCloudTimerRef.current) clearTimeout(volumeGoalsCloudTimerRef.current);
+        volumeGoalsCloudTimerRef.current = setTimeout(() => {
+            volumeGoalsCloudTimerRef.current = null;
+            const settingsId = `user_${user.uid}`;
+            setDoc(doc(db, 'settings', settingsId), { body: { volumeGoals: merged } }, { merge: true })
+                .then(() => {
+                    lastVolumeGoalsSyncedJsonRef.current = serialized;
+                })
+                .catch((e) => {
+                    console.warn('[volumeGoals] Firestore sync failed:', e);
+                });
+        }, 800);
+        return () => {
+            if (volumeGoalsCloudTimerRef.current) clearTimeout(volumeGoalsCloudTimerRef.current);
+        };
+    }, [user, userSettings.volumeGoals]);
 
     // Auto-save intervalsConfig naar localStorage
     useEffect(() => {

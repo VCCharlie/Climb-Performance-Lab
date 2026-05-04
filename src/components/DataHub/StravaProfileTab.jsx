@@ -30,6 +30,7 @@ import { computeRideMilestones } from '../../utils/stravaMilestones';
 import { stravaHttpErrorMessage } from '../../utils/stravaHttp';
 import { computeYtdYearOverYearFromActivities, percentChange } from '../../utils/stravaYtdCompare';
 import { navigateToStravaSegment } from '../../utils/strava';
+import { mergeStravaVsLogUi } from '../../utils/stravaVsLogUi';
 import StravaVsLogGapPanel from './StravaVsLogGapPanel';
 
 const STRAVA_BASE = 'https://www.strava.com/api/v3';
@@ -382,9 +383,36 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
     const [starredFilter, setStarredFilter] = useState('all');
     const [starredSort, setStarredSort] = useState('default');
 
-    const applyData = useCallback((d) => {
-        setData(d);
-        onDataChange?.(d);
+    React.useEffect(() => {
+        if (persistedData == null) return;
+        setData((prev) => {
+            if (!prev) return persistedData;
+            if (prev.fetchedAt && persistedData.fetchedAt && prev.fetchedAt === persistedData.fetchedAt) return prev;
+            const merged = { ...persistedData };
+            if (prev.vsLogUi) merged.vsLogUi = mergeStravaVsLogUi(prev.vsLogUi);
+            return merged;
+        });
+    }, [persistedData]);
+
+    const dataRef = React.useRef(data);
+    dataRef.current = data;
+
+    const applyData = useCallback((incoming) => {
+        const prev = dataRef.current;
+        const merged = { ...incoming };
+        if (prev?.vsLogUi) merged.vsLogUi = mergeStravaVsLogUi(prev.vsLogUi);
+        dataRef.current = merged;
+        setData(merged);
+        onDataChange?.(merged);
+    }, [onDataChange]);
+
+    const persistVsLogUi = useCallback((nextUi) => {
+        const mergedUi = mergeStravaVsLogUi(nextUi);
+        const prev = dataRef.current;
+        const next = prev ? { ...prev, vsLogUi: mergedUi } : { vsLogUi: mergedUi };
+        dataRef.current = next;
+        setData(next);
+        onDataChange?.(next);
     }, [onDataChange]);
 
     const fetchAll = useCallback(async () => {
@@ -881,6 +909,8 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                     scannedBikeActivities={scannedBikeActivities}
                     historyComplete={rawActivityScan?.historyComplete}
                     getStravaToken={getStravaToken}
+                    persistedUi={data?.vsLogUi}
+                    onPersistUi={persistVsLogUi}
                 />
             )}
 
