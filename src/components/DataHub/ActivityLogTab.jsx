@@ -156,6 +156,7 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
                             type="button"
                             onClick={expandAllGrouped}
                             className="text-[10px] font-bold px-2 py-2 rounded border border-cdborder text-cdmuted hover:text-cdaccent"
+                            aria-label="Expand all groups"
                         >
                             Alles open
                         </button>
@@ -163,6 +164,7 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
                             type="button"
                             onClick={collapseAllGrouped}
                             className="text-[10px] font-bold px-2 py-2 rounded border border-cdborder text-cdmuted hover:text-cdtext"
+                            aria-label="Collapse all groups"
                         >
                             Alles dicht
                         </button>
@@ -173,6 +175,7 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
                     disabled={isScanning || !activities || activities.length < 2}
                     className="bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 border border-yellow-500/50 px-4 py-2 rounded flex items-center gap-2 text-sm font-bold transition-all disabled:opacity-50"
                     title="Scan for duplicates (Time/Distance/Duration)"
+                    aria-label="Scan for duplicate activities"
                 >
                     {isScanning ? <Loader2 className="animate-spin" size={16} /> : <Zap size={16} />}
                     {isScanning ? 'Scan...' : 'Fix Duplicates'}
@@ -181,6 +184,7 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
                     onClick={onClear}
                     disabled={isDeleting || !activities || activities.length === 0}
                     className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/50 px-4 py-2 rounded flex items-center gap-2 text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    aria-label="Clear all activities from database"
                 >
                     {isDeleting ? <Loader2 className="animate-spin" size={16} /> : <Trash size={16} />}
                     {isDeleting ? 'Wissen...' : 'Clear Database'}
@@ -200,7 +204,7 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
                                     <React.Fragment key={`year-group-${year}`}>
                                         <tr className="bg-cdborder/50">
                                             <td colSpan={ACTIVITY_TABLE_COLUMNS.length + 1} className="p-2 font-bold text-cdtext">
-                                                <button onClick={() => toggleYear(year)} className="flex items-center gap-2 outline-none">
+                                                <button onClick={() => toggleYear(year)} className="flex items-center gap-2 outline-none" aria-label={`Toggle year ${year}`}>
                                                     {expandedYears[year] ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {year}
                                                 </button>
                                             </td>
@@ -217,6 +221,7 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
                                                             type="button"
                                                             onClick={() => toggleMonth(year, month)}
                                                             className="flex items-center gap-1 hover:text-cdtext text-left w-full transition-colors outline-none"
+                                                            aria-label={`Toggle month ${month} ${year}`}
                                                         >
                                                             {isMonthOpen(year, month) ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                                                             {month}
