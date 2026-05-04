@@ -30,6 +30,7 @@ import { computeRideMilestones } from '../../utils/stravaMilestones';
 import { stravaHttpErrorMessage } from '../../utils/stravaHttp';
 import { computeYtdYearOverYearFromActivities, percentChange } from '../../utils/stravaYtdCompare';
 import { navigateToStravaSegment } from '../../utils/strava';
+import StravaVsLogGapPanel from './StravaVsLogGapPanel';
 
 const STRAVA_BASE = 'https://www.strava.com/api/v3';
 const LOCALE = 'nl-NL';
@@ -370,7 +371,7 @@ const ScanContextBlock = ({ title, agg, footnote }) => {
     );
 };
 
-const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChange }) => {
+const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChange, activities = [] }) => {
     const [subTab, setSubTab] = useState('overview');
     const [isFetching, setIsFetching] = useState(false);
     const [fetchProgress, setFetchProgress] = useState('');
@@ -659,7 +660,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                 </div>
             )}
 
-            {data && (
+            {getStravaToken && (
                 <div className="flex border-b border-cdborder">
                     <button
                         type="button"
@@ -674,6 +675,13 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                         className={`flex-1 py-2.5 text-xs font-bold ${subTab === 'ridestats' ? 'text-orange-400 border-b-2 border-orange-400 -mb-px' : 'text-cdmuted hover:text-cdtext'}`}
                     >
                         Ride stats
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setSubTab('vslog')}
+                        className={`flex-1 py-2.5 text-xs font-bold ${subTab === 'vslog' ? 'text-orange-400 border-b-2 border-orange-400 -mb-px' : 'text-cdmuted hover:text-cdtext'}`}
+                    >
+                        Vs log
                     </button>
                 </div>
             )}
@@ -865,6 +873,15 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                         </p>
                     )}
                 </div>
+            )}
+
+            {subTab === 'vslog' && (
+                <StravaVsLogGapPanel
+                    activities={activities}
+                    scannedBikeActivities={scannedBikeActivities}
+                    historyComplete={rawActivityScan?.historyComplete}
+                    getStravaToken={getStravaToken}
+                />
             )}
 
             {subTab === 'overview' && bikes && bikes.length > 0 && (

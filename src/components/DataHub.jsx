@@ -2013,6 +2013,7 @@ const DataHub = ({
                         athleteId={stravaAthleteId}
                         persistedData={stravaProfileData}
                         onDataChange={onStravaProfileData}
+                        activities={activities}
                     />
                 )}
             </div>

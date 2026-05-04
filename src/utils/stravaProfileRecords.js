@@ -18,16 +18,23 @@ export function getStravaRawActivityListFetchCap(opts = {}) {
     return maxPages * STRAVA_ACTIVITY_LIST_PAGE_SIZE;
 }
 
-const isBikeActivity = (a) => STRAVA_BIKE_TYPES.has(a.sport_type || a.type);
+/** Strava list activities: core bike types plus optional e-bike (for gap vs log). */
+const isBikeActivity = (a, includeEbikeRide = true) => {
+    const t = a.sport_type || a.type;
+    if (STRAVA_BIKE_TYPES.has(t)) return true;
+    if (includeEbikeRide && t === 'EBikeRide') return true;
+    return false;
+};
 
 /**
  * @param {string} token
  * @param {(msg: string) => void} [onProgress]
- * @param {{ maxPages?: number }} [opts]
+ * @param {{ maxPages?: number, includeEbikeRide?: boolean }} [opts]
  * @returns {Promise<{ activities: object[], historyComplete: boolean }>}
  */
 export async function fetchAllBikeActivitiesForRecords(token, onProgress, opts = {}) {
     const maxPages = opts.maxPages ?? STRAVA_ACTIVITY_SCAN_DEFAULT_MAX_PAGES;
+    const includeEbikeRide = opts.includeEbikeRide !== false;
     let page = 1;
     const all = [];
     let historyComplete = true;
@@ -45,7 +52,7 @@ export async function fetchAllBikeActivitiesForRecords(token, onProgress, opts =
         const batch = await resp.json();
         if (!Array.isArray(batch) || batch.length === 0) break;
         for (const a of batch) {
-            if (isBikeActivity(a)) all.push(a);
+            if (isBikeActivity(a, includeEbikeRide)) all.push(a);
         }
         if (batch.length < STRAVA_ACTIVITY_LIST_PAGE_SIZE) break;
         page++;
