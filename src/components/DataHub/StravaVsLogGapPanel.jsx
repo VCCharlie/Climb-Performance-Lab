@@ -1,13 +1,14 @@
 /**
  * Strava vs local activity log: distance comparison and rides on Strava missing from the log.
  */
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Loader2, RefreshCw, ExternalLink, AlertCircle, GitCompareArrows } from 'lucide-react';
 import {
     computeStravaVsLogGap,
     defaultGapRangeYtd,
     stravaLocalDateYmd,
 } from '../../utils/stravaVsLogGap';
+import { defaultStravaVsLogUi, mergeStravaVsLogUi } from '../../utils/stravaVsLogUi';
 import { fetchAllBikeActivitiesForRecords, getStravaRawActivityListFetchCap } from '../../utils/stravaProfileRecords';
 
 const LOCALE = 'en-US';
@@ -38,17 +39,49 @@ const StravaVsLogGapPanel = ({
     scannedBikeActivities,
     historyComplete: scanHistoryComplete,
     getStravaToken,
+    persistedUi,
+    onPersistUi,
 }) => {
-    const defaults = useMemo(() => defaultGapRangeYtd(), []);
+    const defaults = useMemo(() => defaultStravaVsLogUi(), []);
     const [startYmd, setStartYmd] = useState(defaults.startYmd);
     const [endYmd, setEndYmd] = useState(defaults.endYmd);
-    const [includeEbikeRide, setIncludeEbikeRide] = useState(true);
-    const [useFuzzyMatch, setUseFuzzyMatch] = useState(false);
+    const [includeEbikeRide, setIncludeEbikeRide] = useState(defaults.includeEbikeRide);
+    const [useFuzzyMatch, setUseFuzzyMatch] = useState(defaults.useFuzzyMatch);
     const [fullScanActs, setFullScanActs] = useState(null);
     const [fullScanComplete, setFullScanComplete] = useState(true);
     const [scanBusy, setScanBusy] = useState(false);
     const [scanProgress, setScanProgress] = useState('');
     const [scanError, setScanError] = useState(null);
+
+    const persistTimerRef = useRef(null);
+    const schedulePersistUi = useCallback(
+        (patch) => {
+            if (typeof onPersistUi !== 'function') return;
+            if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+            persistTimerRef.current = setTimeout(() => {
+                persistTimerRef.current = null;
+                onPersistUi(patch);
+            }, 750);
+        },
+        [onPersistUi]
+    );
+
+    useEffect(() => () => {
+        if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+    }, []);
+
+    useEffect(() => {
+        const m = mergeStravaVsLogUi(persistedUi);
+        setStartYmd(m.startYmd);
+        setEndYmd(m.endYmd);
+        setIncludeEbikeRide(m.includeEbikeRide);
+        setUseFuzzyMatch(m.useFuzzyMatch);
+    }, [
+        persistedUi?.startYmd,
+        persistedUi?.endYmd,
+        persistedUi?.includeEbikeRide,
+        persistedUi?.useFuzzyMatch,
+    ]);
 
     /** null = use profile scan; array = result of explicit Refresh Strava ride list */
     const actsForGap = fullScanActs !== null ? fullScanActs : scannedBikeActivities;
@@ -66,7 +99,8 @@ const StravaVsLogGapPanel = ({
         const d = defaultGapRangeYtd();
         setStartYmd(d.startYmd);
         setEndYmd(d.endYmd);
-    }, []);
+        schedulePersistUi({ startYmd: d.startYmd, endYmd: d.endYmd, includeEbikeRide, useFuzzyMatch });
+    }, [includeEbikeRide, schedulePersistUi, useFuzzyMatch]);
 
     const applyLast365 = useCallback(() => {
         const end = new Date();
@@ -74,9 +108,12 @@ const StravaVsLogGapPanel = ({
         start.setDate(start.getDate() - 364);
         const ymd = (x) =>
             `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
-        setStartYmd(ymd(start));
-        setEndYmd(ymd(end));
-    }, []);
+        const sy = ymd(start);
+        const ey = ymd(end);
+        setStartYmd(sy);
+        setEndYmd(ey);
+        schedulePersistUi({ startYmd: sy, endYmd: ey, includeEbikeRide, useFuzzyMatch });
+    }, [includeEbikeRide, schedulePersistUi, useFuzzyMatch]);
 
     const runFullStravaScan = useCallback(async () => {
         if (!getStravaToken) return;
@@ -129,7 +166,11 @@ const StravaVsLogGapPanel = ({
                     <input
                         type="date"
                         value={startYmd}
-                        onChange={(e) => setStartYmd(e.target.value)}
+                        onChange={(e) => {
+                            const v = e.target.value;
+                            setStartYmd(v);
+                            schedulePersistUi({ startYmd: v, endYmd, includeEbikeRide, useFuzzyMatch });
+                        }}
                         className="bg-cdbg border border-cdborder rounded px-2 py-1.5 text-xs text-cdtext font-mono"
                     />
                 </label>
@@ -138,7 +179,11 @@ const StravaVsLogGapPanel = ({
                     <input
                         type="date"
                         value={endYmd}
-                        onChange={(e) => setEndYmd(e.target.value)}
+                        onChange={(e) => {
+                            const v = e.target.value;
+                            setEndYmd(v);
+                            schedulePersistUi({ startYmd, endYmd: v, includeEbikeRide, useFuzzyMatch });
+                        }}
                         className="bg-cdbg border border-cdborder rounded px-2 py-1.5 text-xs text-cdtext font-mono"
                     />
                 </label>
@@ -163,7 +208,11 @@ const StravaVsLogGapPanel = ({
                     <input
                         type="checkbox"
                         checked={includeEbikeRide}
-                        onChange={(e) => setIncludeEbikeRide(e.target.checked)}
+                        onChange={(e) => {
+                            const v = e.target.checked;
+                            setIncludeEbikeRide(v);
+                            schedulePersistUi({ startYmd, endYmd, includeEbikeRide: v, useFuzzyMatch });
+                        }}
                         className="rounded border-cdborder"
                     />
                     <span>Include e-bike rides</span>
@@ -172,7 +221,11 @@ const StravaVsLogGapPanel = ({
                     <input
                         type="checkbox"
                         checked={useFuzzyMatch}
-                        onChange={(e) => setUseFuzzyMatch(e.target.checked)}
+                        onChange={(e) => {
+                            const v = e.target.checked;
+                            setUseFuzzyMatch(v);
+                            schedulePersistUi({ startYmd, endYmd, includeEbikeRide, useFuzzyMatch: v });
+                        }}
                         className="rounded border-cdborder"
                     />
                     <span title="Treat log rows without strava_id as possible matches (same day, similar distance)">
