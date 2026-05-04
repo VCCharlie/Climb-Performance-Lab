@@ -23,3 +23,7 @@
 ## 2026-05-29 - Batched API Calls for Gear Fetching\n**Learning:** In DataHub.jsx, fetching gear details from Strava concurrently using Promise.all can cause rate limits and exhaust browser connections if the user has many bikes or gears.\n**Action:** Replaced Promise.all with the local runInBatches utility to chunk external API requests and prevent throttling issues.## 2024-05-24 - [Avoid Spread Operator with Large Arrays in Math.max/min]
 **Learning:** Using the spread operator (`...`) with `Math.max()` or `Math.min()` on potentially large arrays can cause a `RangeError: Maximum call stack size exceeded` because JavaScript engines limit the number of arguments a function can accept. Chaining `.map()` and `.filter()` before spreading also creates unnecessary intermediate arrays, increasing memory usage and garbage collection overhead.
 **Action:** Replace `Math.max(0, ...array.map().filter())` with a single-pass `for...of` loop to track the maximum value. This prevents call stack errors, eliminates intermediate array allocations, and is significantly faster for large datasets.
+
+## $(date +%Y-%m-%d) - Optimize Math.max spread usage
+**Learning:** Using `Math.max(...array.map(...))` on potentially large arrays can result in 'RangeError: Maximum call stack size exceeded' and causes unnecessary memory allocations due to intermediate array creation.
+**Action:** Replace `Math.max(...array.map(...))` with a single-pass `reduce` call (e.g. `array.reduce((max, item) => Math.max(max, item.value), 0)`).
