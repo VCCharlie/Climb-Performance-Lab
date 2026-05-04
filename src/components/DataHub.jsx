@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { Search, Loader2, AlertTriangle, Trash, Split, RefreshCw, ExternalLink, GitBranch, Zap, ChevronDown, ChevronRight, Link2, Download, GitMerge, Wrench } from 'lucide-react';
+import { Search, Loader2, AlertTriangle, Trash, Split, RefreshCw, ExternalLink, GitBranch, Zap, ChevronDown, ChevronRight, Link2, Download, GitMerge, Wrench, Edit2 } from 'lucide-react';
 import { doc, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from '../firebase';
 import { findDuplicatesInList, runInBatches } from '../utils';
@@ -13,16 +13,24 @@ import {
     isLikelyIntervalsActivityId,
     stripUndefinedFields,
 } from '../utils/mergeActivities';
+import { findSafeImportReplacementDuplicate } from '../utils/importDuplicateMatch';
 import { enrichActivityGearFromStrava, buildStravaDetailEnrichmentUpdates } from '../utils/stravaGearEnrich';
+import { buildStravaKomSummaryFromActivityDetail } from '../utils/stravaSegmentKomSummary';
 import { resolveStravaGearDisplay } from '../utils/stravaBikesLocalMap';
 import { buildClimbMatchIndex, findBestClimbUsingIndex } from '../utils/activityClimbMatch';
 import { formatNlNumber } from '../utils/formatters';
+import {
+    fetchStravaActivitiesInRange,
+    linkIntervalsActivitiesToStravaList,
+    applyStravaFuzzyMatchesToIntervals,
+} from '../utils/stravaLinkIntervalsFetch';
 
 import { SPORT_TYPES, MONTH_ORDER } from '../config';
 import { CLIMB_DATABASE } from '../climbs';
 
 // Sub-components
 import EditActivityModal from './data-hub/EditActivityModal';
+import BulkEditActivitiesModal from './data-hub/BulkEditActivitiesModal';
 import ActivityTable from './data-hub/ActivityTable';
 import ImportModal from './data-hub/ImportModal';
 import DuplicateResolver from './data-hub/DuplicateResolver';
@@ -31,6 +39,7 @@ import ImportSection from './data-hub/ImportSection';
 import ActivityDetailModal from './DataHub/ActivityDetailModal';
 import StravaEnrichTab from './DataHub/StravaEnrichTab';
 import StravaProfileTab from './DataHub/StravaProfileTab';
+import NlDateInput from './NlDateInput';
 
 // Hooks
 import useActivityFilter from '../hooks/useActivityFilter';
@@ -44,7 +53,6 @@ const DataHub = ({
     onRefresh,
     // githubPat,
     intervalsConfig, // New Prop
-    showImport = false,
     stravaGetToken,
     startDate,
     endDate,
@@ -59,9 +67,12 @@ const DataHub = ({
     climbDatabaseForMatch = CLIMB_DATABASE,
     activityLogRangesExpanded = false,
     onActivityLogRangesExpandedChange,
+    initialInternalTab = 'log',
 }) => {
     // UI State
-    const [internalTab, setInternalTab] = useState('log');
+    const [internalTab, setInternalTab] = useState(() => (
+        ['log', 'strava-profile', 'import'].includes(initialInternalTab) ? initialInternalTab : 'log'
+    ));
     const [detailActivity, setDetailActivity] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [showDuplicateModal, setShowDuplicateModal] = useState(false);
@@ -72,6 +83,11 @@ const DataHub = ({
     const [showUtilMenu, setShowUtilMenu] = useState(false);
     const utilMenuRef = useRef(null);
     const [showStravaEnrichPanel, setShowStravaEnrichPanel] = useState(false);
+    const [fetchIntervalsDates, setFetchIntervalsDates] = useState(() => ({
+        start: new Date(new Date().setDate(new Date().getDate() - 14)).toISOString().split('T')[0],
+        end: new Date().toISOString().split('T')[0],
+    }));
+    const [isFetchingNewIntervals, setIsFetchingNewIntervals] = useState(false);
     const [bulkSelectedIds, setBulkSelectedIds] = useState(() => new Set());
     const [stravaListProgress, setStravaListProgress] = useState(null);
     const [showMergeModal, setShowMergeModal] = useState(false);
@@ -79,6 +95,8 @@ const DataHub = ({
     const [isMerging, setIsMerging] = useState(false);
     const [isGearBackfilling, setIsGearBackfilling] = useState(false);
     const [gearBackfillMsg, setGearBackfillMsg] = useState(null);
+    const [showBulkEditModal, setShowBulkEditModal] = useState(false);
+    const [isBulkSaving, setIsBulkSaving] = useState(false);
 
     // State for single-day Strava search (Tools → Strava enrichment panel)
     const [stravaDateOverride, setStravaDateOverride] = useState(null);
@@ -458,6 +476,48 @@ const DataHub = ({
         }
     }, [selectedActivitiesForBulk, onImport]);
 
+    const handleBulkApplyPatch = useCallback(async (patch) => {
+        const list = selectedActivitiesForBulk;
+        if (!list.length || !patch || typeof patch !== 'object') return;
+
+        setIsBulkSaving(true);
+        try {
+            let token = null;
+            const mayEnrichGear = 'gear_id' in patch || 'gear_name' in patch;
+            if (stravaGetToken && mayEnrichGear && list.some((a) => a?.strava_id)) {
+                try {
+                    token = await stravaGetToken();
+                } catch {
+                    token = null;
+                }
+            }
+
+            const results = await runInBatches(list, 15, async (act) => {
+                const prev = (activities || []).find((a) => String(a.id) === String(act.id)) || act;
+                let toSave = stripUndefinedFields({ ...prev, ...patch });
+                if (token && toSave.strava_id) {
+                    try {
+                        toSave = await enrichActivityGearFromStrava(toSave, null, token);
+                    } catch (gearErr) {
+                        console.warn('[Bulk edit] Strava enrich failed:', gearErr);
+                    }
+                }
+                if (db) {
+                    await setDoc(doc(db, 'activities', String(toSave.id)), toSave, { merge: true });
+                }
+                return toSave;
+            });
+
+            onImport(results);
+            setBulkSelectedIds(new Set());
+            setShowBulkEditModal(false);
+        } catch (e) {
+            alert(`Could not apply bulk edit: ${e.message || e}`);
+        } finally {
+            setIsBulkSaving(false);
+        }
+    }, [selectedActivitiesForBulk, activities, onImport, stravaGetToken]);
+
     // --- 1. STANDALONE STRAVA ENRICHMENT FUNCTIE ---
     const performSilentStravaEnrichment = async (actsToEnrich, customStart, customEnd) => {
         if (!stravaGetToken) return 0;
@@ -524,7 +584,8 @@ const DataHub = ({
 
                 const uniqueGearIds = [...new Set(bikeActivities.map(a => a.gear_id).filter(id => id && !bikesMap[id]))];
                 if (uniqueGearIds.length > 0) {
-                    await Promise.all(uniqueGearIds.map(async gid => {
+                    // Bolt: Batch API calls to Strava to prevent rate limits and connection exhaustion
+                    await runInBatches(uniqueGearIds, 5, async gid => {
                         try {
                             const r = await fetch(`https://www.strava.com/api/v3/gear/${gid}`, {
                                 headers: { Authorization: `Bearer ${token}` }
@@ -534,7 +595,7 @@ const DataHub = ({
                                 bikesMap[gid] = g.name || [g.brand_name, g.model_name].filter(Boolean).join(' ') || 'Bike';
                             }
                         } catch { /* ignore */ }
-                    }));
+                    });
                 }
                 if (Object.keys(bikesMap).length > 0) {
                     localStorage.setItem('stravaBikesMap', JSON.stringify(bikesMap));
@@ -574,9 +635,10 @@ const DataHub = ({
                 // Haal details op van Strava (voor RPE + volledige HR)
                 let stravaDetailed = m.strava;
                 try {
-                    const detResp = await fetch(`https://www.strava.com/api/v3/activities/${m.strava.id}`, {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
+                    const detResp = await fetch(
+                        `https://www.strava.com/api/v3/activities/${m.strava.id}?include_all_efforts=true`,
+                        { headers: { Authorization: `Bearer ${token}` } },
+                    );
                     if (detResp.ok) {
                         stravaDetailed = await detResp.json();
                     }
@@ -586,6 +648,7 @@ const DataHub = ({
                 const gearName = gearId ? (bikesMap[gearId] || 'Strava bike') : null;
 
                 const stravaTitle = (stravaDetailed.name || '').trim();
+                const komSummary = buildStravaKomSummaryFromActivityDetail(stravaDetailed);
                 const updateData = {
                     strava_id: String(stravaDetailed.id),
                     strava_map: stravaDetailed.map?.summary_polyline || m.site.strava_map || null,
@@ -596,7 +659,10 @@ const DataHub = ({
                     ...(siteNeedsRpe && stravaDetailed.perceived_exertion && { rpe: stravaDetailed.perceived_exertion }),
                     // HR alleen invullen als site deze nog niet heeft én Strava heeft 'm wél
                     ...(siteNeedsHr && stravaDetailed.average_heartrate && { avg_hr: Math.round(stravaDetailed.average_heartrate) }),
-                    ...((!m.site.max_hr || m.site.max_hr === 0) && stravaDetailed.max_heartrate && { max_hr: Math.round(stravaDetailed.max_heartrate) })
+                    ...((!m.site.max_hr || m.site.max_hr === 0) && stravaDetailed.max_heartrate && { max_hr: Math.round(stravaDetailed.max_heartrate) }),
+                    ...(Object.prototype.hasOwnProperty.call(stravaDetailed, 'segment_efforts')
+                        ? { strava_kom_summary: komSummary || null }
+                        : {}),
                 };
 
                 // Filter out if no actual changes
@@ -663,79 +729,293 @@ const DataHub = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [stravaGetToken, activities]);
 
-    // --- 2. REFACTORED DIRECT SYNC TRIGGER ---
+    // --- Sync Now: Intervals for date span of *selected* rows; Strava link + forced detail (segments/KOM) ---
     const handleSync = async () => {
         setShowUtilMenu(false);
+
+        if (bulkSelectedIds.size === 0) {
+            setSyncStatus('error');
+            setSyncErrorDetail('Select one or more activities (checkboxes in the Activity Log), then Sync Now.');
+            setTimeout(() => setSyncStatus(null), 7000);
+            return;
+        }
+
+        const selectedActs = selectedActivitiesForBulk;
+        const dateParts = selectedActs
+            .map((a) => (a?.date && String(a.date).split('T')[0]) || '')
+            .filter(Boolean)
+            .sort();
+        if (dateParts.length === 0) {
+            setSyncStatus('error');
+            setSyncErrorDetail('Selected activities have no valid date; cannot determine Intervals.icu range.');
+            setTimeout(() => setSyncStatus(null), 7000);
+            return;
+        }
+
+        const syncStart = dateParts[0];
+        const syncEnd = dateParts[dateParts.length - 1];
+        const selectedIdSet = new Set([...bulkSelectedIds].map(String));
+
+        /** Mutable copies so enrichment does not mutate stale `activities` refs */
+        let working = selectedActs.map((a) => ({ ...a }));
+
         setSyncStatus('started');
-        setSyncErrorDetail('Step 1/2: Fetching new rides (last 14 days)...');
+        setSyncErrorDetail(`Step 1/2: Intervals.icu ${syncStart} → ${syncEnd} (${bulkSelectedIds.size} selected)…`);
 
         try {
             const sportFilters = SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: true }), {});
-            const selectedTypes = Object.keys(sportFilters).filter(k => sportFilters[k]);
+            const selectedTypes = Object.keys(sportFilters).filter((k) => sportFilters[k]);
 
-            // NIEUW: Altijd de laatste 14 dagen voor Sync Now (ongeacht dashboard periode)
-            const today = new Date();
-            const syncEnd = today.toISOString().split('T')[0];
-            const fourteenDaysAgo = new Date();
-            fourteenDaysAgo.setDate(today.getDate() - 14);
-            const syncStart = fourteenDaysAgo.toISOString().split('T')[0];
+            const newActivitiesRaw = await syncIntervals(syncStart, syncEnd, selectedTypes);
+            const newActivities = newActivitiesRaw.filter((a) => selectedIdSet.has(String(a.id)));
 
-            // 1. Haal nieuwe ritten op van Intervals
-            const newActivities = await syncIntervals(syncStart, syncEnd, selectedTypes);
+            const mergeNewInto = (act) => {
+                const existing = (activities || []).find((x) => String(x.id) === String(act.id));
+                return existing ? protectEnrichedFieldsOnMerge(act, existing) : act;
+            };
+            const mergedNews = newActivities.map(mergeNewInto);
 
-            // 2. Bepaal welke bestaande ritten (in dashboard) we mee willen sturen naar Strava check
-            // We sturen ALLE ritten in het venster mee, de verrijking filtert zelf of er wat moet gebeuren.
-            const existingInWindow = (activities || []).filter(act => {
-                const actDate = act.date?.split('T')[0];
-                return actDate >= syncStart && actDate <= syncEnd;
-            });
-
-            const totalCheckList = [...newActivities, ...existingInWindow];
-
-            if (totalCheckList.length === 0) {
-                setSyncStatus('done');
-                setSyncErrorDetail('✅ You are up to date. No activities in the last 14 days.');
-                setTimeout(() => setSyncStatus(null), 5000);
-                return;
+            for (const n of mergedNews) {
+                const i = working.findIndex((x) => String(x.id) === String(n.id));
+                if (i >= 0) {
+                    working[i] = protectEnrichedFieldsOnMerge({ ...working[i], ...n }, working[i]);
+                }
             }
 
-            setSyncErrorDetail(`Step 2/2: ${newActivities.length} new ride(s) found. Enriching with Strava...`);
+            setSyncErrorDetail(
+                mergedNews.length < newActivitiesRaw.length
+                    ? `Step 2/2: ${mergedNews.length} of ${newActivitiesRaw.length} fetched id(s) match selection. Strava…`
+                    : `Step 2/2: Strava link + segment refresh for ${bulkSelectedIds.size} selected ride(s)…`,
+            );
             setSyncStatus('enriching');
 
-            // De performSilentStravaEnrichment functie doet de matching, detail fetches en Firestore writes.
-            // Het update ook de objecten in de array IN-PLACE.
-            const enrichedCount = await performSilentStravaEnrichment(totalCheckList, syncStart, syncEnd);
-
-            // 3. Save new rides: same object references as enrichment mutated (Strava fields), then protect vs any prior row
-            if (db && newActivities.length > 0) {
-                await Promise.all(newActivities.map((act) => {
-                    const existing = (activities || []).find((a) => String(a.id) === String(act.id));
-                    const payload = protectEnrichedFieldsOnMerge(act, existing);
-                    return setDoc(doc(db, 'activities', String(act.id)), payload, { merge: true });
-                }));
+            if (db && mergedNews.length > 0) {
+                await Promise.all(
+                    mergedNews.map((act) => {
+                        const existing = (activities || []).find((a) => String(a.id) === String(act.id));
+                        const payload = protectEnrichedFieldsOnMerge(act, existing);
+                        return setDoc(doc(db, 'activities', String(act.id)), payload, { merge: true });
+                    }),
+                );
+            }
+            if (mergedNews.length > 0) {
+                onImport(mergedNews);
             }
 
-            // Update local state with enriched objects (not a fresh copy from the API)
-            const allUpdated = [...newActivities];
-            // Voeg bestaande ritten toe die tijdens de silent enrichment zijn aangepast (strava_id nu aanwezig of rpe gewijzigd)
-            existingInWindow.forEach(act => {
-                // We kunnen checken of act gemuteerd is. Een simpele manier is kijken of er iets is toegevoegd.
-                // In performSilentStravaEnrichment doen we Object.assign(m.site, updateData).
-                allUpdated.push(act);
-            });
+            const enrichedLinkCount = await performSilentStravaEnrichment(working, syncStart, syncEnd);
 
-            if (allUpdated.length > 0) {
-                onImport(allUpdated);
+            let segmentRefreshCount = 0;
+            let detailFailed = 0;
+            if (stravaGetToken) {
+                try {
+                    const token = await stravaGetToken();
+                    if (token) {
+                        const withStrava = working.filter((a) => a?.strava_id);
+                        const { updates, failed } = await buildStravaDetailEnrichmentUpdates(
+                            withStrava,
+                            token,
+                            {
+                                forceStravaDetail: true,
+                                concurrency: 3,
+                                onProgress: (m) => setSyncErrorDetail(String(m)),
+                            },
+                        );
+                        detailFailed = failed;
+                        if (updates.length > 0 && db) {
+                            await Promise.all(
+                                updates.map(({ id, data }) => {
+                                    const existingRow = working.find((x) => String(x.id) === String(id))
+                                        || (activities || []).find((x) => String(x.id) === String(id))
+                                        || {};
+                                    return setDoc(
+                                        doc(db, 'activities', String(id)),
+                                        protectEnrichedFieldsOnMerge(data, existingRow),
+                                        { merge: true },
+                                    );
+                                }),
+                            );
+                            for (const { id, data } of updates) {
+                                const wi = working.findIndex((x) => String(x.id) === String(id));
+                                if (wi >= 0) {
+                                    working[wi] = stripUndefinedFields({ ...working[wi], ...data });
+                                }
+                            }
+                            onImport(updates.map(({ id, data }) => {
+                                const prev = working.find((x) => String(x.id) === String(id)) || {};
+                                return protectEnrichedFieldsOnMerge({ ...prev, ...data }, prev);
+                            }));
+                        }
+                        segmentRefreshCount = updates.length;
+                    }
+                } catch (e) {
+                    console.warn('[Sync] Strava detail / segment refresh failed:', e);
+                }
             }
+
+            onImport(working);
 
             setSyncStatus('done');
-            setSyncErrorDetail(`✅ Sync complete. ${newActivities.length} new, ${enrichedCount} ride(s) updated with Strava data.`);
-            setTimeout(() => setSyncStatus(null), 8000);
-
+            const parts = [];
+            if (mergedNews.length > 0) parts.push(`${mergedNews.length} Intervals row(s) saved`);
+            if (newActivitiesRaw.length > mergedNews.length) {
+                parts.push(`${newActivitiesRaw.length - mergedNews.length} fetched id(s) not in selection`);
+            }
+            if (enrichedLinkCount > 0) parts.push(`${enrichedLinkCount} Strava link update(s)`);
+            if (segmentRefreshCount > 0) parts.push(`${segmentRefreshCount} Strava detail + segment refresh`);
+            if (detailFailed > 0) parts.push(`${detailFailed} detail error(s)`);
+            setSyncErrorDetail(
+                parts.length > 0
+                    ? `✅ Sync complete. ${parts.join(' · ')}.`
+                    : '✅ Sync complete. No Intervals changes for selected ids; Strava refresh attempted.',
+            );
+            setTimeout(() => setSyncStatus(null), 9000);
         } catch (e) {
             console.error('Sync failed:', e);
             setSyncStatus('error');
             setSyncErrorDetail(`❌ Error: ${e.message}`);
+        }
+    };
+
+    /** Fetch Intervals.icu for a date range, merge into the log, optionally auto-link Strava (same window). */
+    const handleFetchNewFromIntervals = async () => {
+        const syncStart = fetchIntervalsDates.start;
+        const syncEnd = fetchIntervalsDates.end;
+        if (!syncStart || !syncEnd) {
+            setSyncStatus('error');
+            setSyncErrorDetail('Choose a valid From and To date for fetching new activities.');
+            setTimeout(() => setSyncStatus(null), 7000);
+            return;
+        }
+        if (syncStart > syncEnd) {
+            setSyncStatus('error');
+            setSyncErrorDetail('From date must be on or before To date.');
+            setTimeout(() => setSyncStatus(null), 7000);
+            return;
+        }
+
+        setIsFetchingNewIntervals(true);
+        setSyncStatus('started');
+        setSyncErrorDetail(`Fetching Intervals.icu ${syncStart} → ${syncEnd}…`);
+
+        try {
+            const sportFiltersAll = SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: true }), {});
+            const selectedTypes = Object.keys(sportFiltersAll).filter((k) => sportFiltersAll[k]);
+            const newActivitiesRaw = await syncIntervals(syncStart, syncEnd, selectedTypes);
+
+            const mergeNewInto = (act) => {
+                const existing = (activities || []).find((x) => String(x.id) === String(act.id));
+                return existing ? protectEnrichedFieldsOnMerge(act, existing) : act;
+            };
+            let merged = (newActivitiesRaw || []).map(mergeNewInto);
+
+            if (stravaGetToken && merged.length > 0) {
+                setSyncErrorDetail(`Linking Strava for ${syncStart} → ${syncEnd}…`);
+                try {
+                    const token = await stravaGetToken();
+                    if (token) {
+                        const stravaList = await fetchStravaActivitiesInRange(token, syncStart, syncEnd);
+                        merged = linkIntervalsActivitiesToStravaList(merged, stravaList);
+                        applyStravaFuzzyMatchesToIntervals(merged, stravaList);
+                    }
+                } catch (err) {
+                    console.warn('[Fetch new] Strava list / link failed:', err);
+                }
+            }
+
+            if (merged.length > 0 && db) {
+                await Promise.all(
+                    merged.map((act) => {
+                        const existing = (activities || []).find((a) => String(a.id) === String(act.id));
+                        const payload = protectEnrichedFieldsOnMerge(act, existing);
+                        return setDoc(doc(db, 'activities', String(act.id)), payload, { merge: true });
+                    }),
+                );
+            }
+            if (merged.length > 0) {
+                onImport(merged);
+            }
+
+            let enrichCount = 0;
+            let segmentRefreshCount = 0;
+            let detailFailed = 0;
+            if (stravaGetToken && merged.length > 0) {
+                setSyncStatus('enriching');
+                setSyncErrorDetail('Strava: matching HR/gear/KOM (same as Sync Now)…');
+                try {
+                    enrichCount = await performSilentStravaEnrichment(merged, syncStart, syncEnd);
+                } catch (e) {
+                    console.warn('[Fetch new] Silent Strava enrichment failed:', e);
+                }
+                try {
+                    const token = await stravaGetToken();
+                    if (token) {
+                        const withStrava = merged.filter((a) => a?.strava_id);
+                        const { updates, failed } = await buildStravaDetailEnrichmentUpdates(
+                            withStrava,
+                            token,
+                            {
+                                forceStravaDetail: true,
+                                concurrency: 3,
+                                onProgress: (m) => setSyncErrorDetail(String(m)),
+                            },
+                        );
+                        detailFailed = failed;
+                        if (updates.length > 0 && db) {
+                            await Promise.all(
+                                updates.map(({ id, data }) => {
+                                    const existingRow = merged.find((x) => String(x.id) === String(id))
+                                        || (activities || []).find((x) => String(x.id) === String(id))
+                                        || {};
+                                    return setDoc(
+                                        doc(db, 'activities', String(id)),
+                                        protectEnrichedFieldsOnMerge(data, existingRow),
+                                        { merge: true },
+                                    );
+                                }),
+                            );
+                            for (const { id, data } of updates) {
+                                const wi = merged.findIndex((x) => String(x.id) === String(id));
+                                if (wi >= 0) {
+                                    merged[wi] = stripUndefinedFields({ ...merged[wi], ...data });
+                                }
+                            }
+                            onImport(updates.map(({ id, data }) => {
+                                const prev = merged.find((x) => String(x.id) === String(id)) || {};
+                                return protectEnrichedFieldsOnMerge({ ...prev, ...data }, prev);
+                            }));
+                        }
+                        segmentRefreshCount = updates.length;
+                    }
+                } catch (e) {
+                    console.warn('[Fetch new] Strava detail refresh failed:', e);
+                }
+                onImport(merged);
+            }
+
+            setSyncStatus('done');
+            const parts = [];
+            if (merged.length > 0) parts.push(`${merged.length} from Intervals.icu`);
+            if (stravaGetToken && merged.length > 0) {
+                parts.push('Strava link + enrich');
+                if (enrichCount > 0) parts.push(`${enrichCount} field update(s) from Strava`);
+                if (segmentRefreshCount > 0) parts.push(`${segmentRefreshCount} detail/KOM refresh`);
+                if (detailFailed > 0) parts.push(`${detailFailed} detail error(s)`);
+            } else if (merged.length > 0) {
+                parts.push('connect Strava in Settings for auto-link + details');
+            }
+            setSyncErrorDetail(
+                merged.length > 0
+                    ? `✅ ${parts.join(' · ')}.`
+                    : 'No new activities returned from Intervals.icu for this range (or all filtered out).',
+            );
+            setTimeout(() => setSyncStatus(null), 9000);
+        } catch (e) {
+            console.error('Fetch new from Intervals failed:', e);
+            setSyncStatus('error');
+            setSyncErrorDetail(`❌ ${e.message || e}`);
+            setTimeout(() => setSyncStatus(null), 10000);
+        } finally {
+            setIsFetchingNewIntervals(false);
         }
     };
 
@@ -886,6 +1166,11 @@ const DataHub = ({
         setShowModal(true);
     };
 
+    const handleManualFetchedActivity = (act) => {
+        if (!act || act.id == null) return;
+        handleDataDetected([act]);
+    };
+
     const toggleActivityTypeInPreview = (id) => {
         setFetchedActivities(prev => prev.map(act => act.id === id ? { ...act, type: act.type === 'VirtualRide' ? 'Ride' : 'VirtualRide' } : act));
     };
@@ -898,16 +1183,7 @@ const DataHub = ({
 
         if (activities && activities.length > 0) {
             toImport.forEach(newAct => {
-                const newDate = newAct.date.split('T')[0];
-                const duplicate = activities.find(existing => {
-                    if (existing.id === newAct.id) return false;
-                    const exDate = existing.date.split('T')[0];
-                    if (exDate !== newDate) return false;
-                    if (existing.type !== newAct.type && existing.type !== 'Ride' && newAct.type !== 'Ride') return false;
-                    const timeDiff = Math.abs((existing.moving_time || 0) - (newAct.moving_time || 0));
-                    const distDiff = Math.abs((existing.distance || 0) - (newAct.distance || 0));
-                    return timeDiff < 300 && distDiff < 0.5;
-                });
+                const duplicate = findSafeImportReplacementDuplicate(activities, newAct);
 
                 if (duplicate) {
                     idsToDelete.push(duplicate.id);
@@ -987,6 +1263,14 @@ const DataHub = ({
                     onFindOnStrava={handleFindOnStrava}
                 />
             )}
+            {showBulkEditModal && (
+                <BulkEditActivitiesModal
+                    count={bulkSelectedIds.size}
+                    allActivities={activities}
+                    onClose={() => setShowBulkEditModal(false)}
+                    onApply={handleBulkApplyPatch}
+                />
+            )}
             <ImportModal
                 showModal={showModal}
                 onClose={() => setShowModal(false)}
@@ -1027,7 +1311,7 @@ const DataHub = ({
                                     </h3>
                                     <p className="text-xs text-cdmuted mt-0.5">Select which ones to remove.</p>
                                 </div>
-                                <button onClick={() => setShowNoPowerModal(false)} className="text-cdmuted hover:text-cdtext text-lg font-bold px-2">✕</button>
+                                <button aria-label="Close modal" onClick={() => setShowNoPowerModal(false)} className="text-cdmuted hover:text-cdtext text-lg font-bold px-2 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded">✕</button>
                             </div>
                             <div className="flex items-center gap-3 px-4 py-2 border-b border-cdborder bg-cdbg/40">
                                 <input type="checkbox" checked={allSelected} onChange={toggleAll} className="accent-yellow-400 w-4 h-4" />
@@ -1075,8 +1359,9 @@ const DataHub = ({
                             </h3>
                             <button
                                 type="button"
+                                aria-label="Close modal"
                                 onClick={() => { setShowMergeModal(false); setMergeError(null); }}
-                                className="text-cdmuted hover:text-cdtext text-lg font-bold px-2"
+                                className="text-cdmuted hover:text-cdtext text-lg font-bold px-2 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded"
                             >
                                 ✕
                             </button>
@@ -1146,9 +1431,7 @@ const DataHub = ({
                         Strava Profile
                     </button>
                 )}
-                {showImport && (
-                    <button onClick={() => setInternalTab('import')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'import' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Import Data</button>
-                )}
+                <button onClick={() => setInternalTab('import')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'import' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Import Data</button>
             </div>
 
             <div className="p-4 flex-1 overflow-hidden flex flex-col">
@@ -1193,6 +1476,66 @@ const DataHub = ({
                             </div>
                         )}
 
+                        <div className="rounded-lg border border-cdborder bg-cdsurface/80 p-3 space-y-2 mb-3">
+                            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                                <div className="min-w-0">
+                                    <h4 className="text-xs font-bold text-cdtext uppercase tracking-wide">Fetch new from Intervals.icu</h4>
+                                    <p className="text-[10px] text-cdmuted leading-snug mt-0.5">
+                                        Pull activities for the date range below and add or update them in your log.
+                                        {stravaGetToken
+                                            ? ' With Strava connected: time-window link, same-day fuzzy match (distance/duration), then HR/gear/KOM enrichment and Strava detail refresh — same pipeline as Sync Now for selected rows.'
+                                            : ' Connect Strava in Settings to auto-link and enrich new rides.'}
+                                    </p>
+                                    <p className="text-[10px] text-cdmuted mt-1">
+                                        <span className="text-cdaccent font-bold">Tools → Sync Now</span> is different: it only updates{' '}
+                                        <span className="font-semibold text-cdtext">selected</span> rows (checkboxes) and refreshes Strava details for that selection.
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setInternalTab('import')}
+                                    className="shrink-0 text-[10px] font-bold px-2 py-1 rounded border border-cdborder text-cdaccent hover:bg-cdborder/40 self-start sm:self-auto"
+                                >
+                                    Import tab (CSV / URL)
+                                </button>
+                            </div>
+                            <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
+                                <div className="grid grid-cols-2 gap-2 flex-1 min-w-0">
+                                    <div>
+                                        <span className="text-[10px] text-cdmuted block mb-0.5">From</span>
+                                        <NlDateInput
+                                            value={fetchIntervalsDates.start}
+                                            onChange={(v) => setFetchIntervalsDates((s) => ({ ...s, start: v }))}
+                                            className="w-full bg-cdbg border border-cdborder rounded px-2 py-1.5 text-cdtext text-xs"
+                                            aria-label="Fetch new activities from (dd/mm/yyyy)"
+                                        />
+                                    </div>
+                                    <div>
+                                        <span className="text-[10px] text-cdmuted block mb-0.5">To</span>
+                                        <NlDateInput
+                                            value={fetchIntervalsDates.end}
+                                            onChange={(v) => setFetchIntervalsDates((s) => ({ ...s, end: v }))}
+                                            className="w-full bg-cdbg border border-cdborder rounded px-2 py-1.5 text-cdtext text-xs"
+                                            aria-label="Fetch new activities to (dd/mm/yyyy)"
+                                        />
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={handleFetchNewFromIntervals}
+                                    disabled={isFetchingNewIntervals || isSyncing}
+                                    className="w-full sm:w-auto shrink-0 px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20"
+                                >
+                                    {isFetchingNewIntervals || isSyncing ? (
+                                        <Loader2 size={14} className="animate-spin" />
+                                    ) : (
+                                        <Download size={14} />
+                                    )}
+                                    {isFetchingNewIntervals ? 'Fetching…' : 'Fetch & merge'}
+                                </button>
+                            </div>
+                        </div>
+
                         <div className="space-y-3 mb-4">
                             <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
                                 <div className="flex gap-2 w-full md:w-auto flex-1 min-w-0">
@@ -1233,8 +1576,12 @@ const DataHub = ({
                                             <div className="absolute left-0 right-0 md:left-auto md:right-0 top-full mt-1 w-full min-w-[min(100%,16rem)] md:w-56 max-w-[calc(100vw-2rem)] md:max-w-none bg-cdsurface border border-cdborder rounded-lg shadow-xl z-[70] overflow-hidden">
                                                 <button
                                                     onClick={handleSync}
-                                                    disabled={isSyncing}
-                                                    title={'Sync activities from Intervals.icu'}
+                                                    disabled={isSyncing || bulkSelectedIds.size === 0}
+                                                    title={
+                                                        bulkSelectedIds.size === 0
+                                                            ? 'Select activities in the log (checkboxes). Sync uses the date range from those rows for Intervals.icu, then refreshes Strava link, gear, and segment / KOM badges for the same selection.'
+                                                            : 'Re-fetch Intervals.icu for the date span of selected rows, match Strava in that window, then force-refresh Strava activity details (segments / KOM) for every selected ride that has strava_id.'
+                                                    }
                                                     className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-blue-400 hover:bg-cdborder disabled:opacity-40 disabled:cursor-not-allowed"
                                                 >
                                                     <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
@@ -1524,6 +1871,19 @@ const DataHub = ({
                                 <span className="text-cdmuted">{formatNlNumber(bulkSelectedIds.size)} selected</span>
                                 <button
                                     type="button"
+                                    onClick={() => {
+                                        setEditingActivity(null);
+                                        setShowBulkEditModal(true);
+                                    }}
+                                    disabled={bulkSelectedIds.size === 0 || isBulkSaving}
+                                    title="Apply type, gear, load, RPE, or FTP to all selected rows"
+                                    className="inline-flex items-center gap-1 px-2 py-1 rounded border border-cdaccent/50 text-cdaccent hover:bg-cdaccent/10 disabled:opacity-40"
+                                >
+                                    {isBulkSaving ? <Loader2 size={12} className="animate-spin" /> : <Edit2 size={12} />}
+                                    Bulk edit
+                                </button>
+                                <button
+                                    type="button"
                                     onClick={exportBulkCsv}
                                     disabled={bulkSelectedIds.size === 0}
                                     className="inline-flex items-center gap-1 px-2 py-1 rounded border border-cdborder text-cdtext hover:border-green-500/50 disabled:opacity-40"
@@ -1637,9 +1997,14 @@ const DataHub = ({
                 )}
 
                 {internalTab === 'import' && (
-                    <ImportSection
-                        onDataDetected={handleDataDetected}
-                    />
+                    <div className="p-4">
+                        <ImportSection
+                            intervalsConfig={intervalsConfig}
+                            stravaGetToken={stravaGetToken}
+                            onDataDetected={handleDataDetected}
+                            onFetchedActivityFromUrl={handleManualFetchedActivity}
+                        />
+                    </div>
                 )}
 
                 {internalTab === 'strava-profile' && (
@@ -1648,6 +2013,7 @@ const DataHub = ({
                         athleteId={stravaAthleteId}
                         persistedData={stravaProfileData}
                         onDataChange={onStravaProfileData}
+                        activities={activities}
                     />
                 )}
             </div>

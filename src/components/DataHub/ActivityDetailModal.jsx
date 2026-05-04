@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Clock, MapPin, Zap, ExternalLink, Mountain, TrendingUp, Loader2, AlertCircle, Star, Bike } from 'lucide-react';
+import { X, Calendar, Clock, MapPin, Zap, ExternalLink, Mountain, TrendingUp, Loader2, AlertCircle, Star, Bike, Trophy, Crown } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
 import StravaMap from './StravaMap';
 import { formatSegmentTime } from '../../utils/strava';
@@ -87,18 +87,24 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken }) => {
                         <h2 className="text-xl font-bold text-cdtext">{activity.title}</h2>
                         <div className="flex items-center gap-4 mt-2 flex-wrap">
                             {activity.id && !String(activity.id).startsWith('csv_') && (
-                                <a href={`https://intervals.icu/activities/${activity.id}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                                <a href={`https://intervals.icu/activities/${activity.id}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm px-1 py-0.5 -ml-1">
                                     Intervals.icu <ExternalLink size={10} />
                                 </a>
                             )}
                             {activity.strava_id && (
-                                <a href={`https://www.strava.com/activities/${activity.strava_id}`} target="_blank" rel="noopener noreferrer" className="text-xs text-orange-400 hover:text-orange-300 flex items-center gap-1">
+                                <a href={`https://www.strava.com/activities/${activity.strava_id}`} target="_blank" rel="noopener noreferrer" className="text-xs text-orange-400 hover:text-orange-300 flex items-center gap-1 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm px-1 py-0.5 -ml-1">
                                     <StravaIcon size={12} /> Strava <ExternalLink size={10} />
                                 </a>
                             )}
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-cdsurface rounded-full text-cdmuted hover:text-cdtext"><X size={20} /></button>
+                    <button
+                        onClick={onClose}
+                        className="p-2 hover:bg-cdsurface rounded-full text-cdmuted hover:text-cdtext focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                        aria-label="Close modal"
+                    >
+                        <X size={20} />
+                    </button>
                 </div>
 
                 {/* Body */}
@@ -218,8 +224,9 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken }) => {
                                                             )}
                                                             <a
                                                                 href={`https://www.strava.com/segments/${seg.segment?.id}`}
-                                                                target="_blank" rel="noopener noreferrer"
-                                                                className="text-cdtext hover:text-orange-400 font-medium transition-colors truncate"
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-cdtext hover:text-orange-400 font-medium transition-colors truncate focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm px-1 -ml-1"
                                                                 onClick={e => e.stopPropagation()}
                                                             >
                                                                 {seg.name}
@@ -232,8 +239,28 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken }) => {
                                                         {seg.pr_rank === 1 && (
                                                             <span className="text-xs bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded font-bold shrink-0">PR</span>
                                                         )}
-                                                        {seg.kom_rank && seg.kom_rank <= 10 && (
-                                                            <span className="text-xs bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded font-bold shrink-0">KOM#{seg.kom_rank}</span>
+                                                        {seg.kom_rank === 1 && (
+                                                            <span className="inline-flex shrink-0" title="Overall #1 on segment">
+                                                                <Crown size={14} className="text-amber-400" fill="currentColor" strokeWidth={1.25} aria-hidden />
+                                                            </span>
+                                                        )}
+                                                        {seg.kom_rank && seg.kom_rank >= 2 && seg.kom_rank <= 10 && (
+                                                            <span
+                                                                className="inline-flex items-center gap-1 shrink-0"
+                                                                title={`#${seg.kom_rank} on segment leaderboard`}
+                                                            >
+                                                                <Trophy
+                                                                    size={16}
+                                                                    className="shrink-0 text-amber-500/90 dark:text-amber-400/90"
+                                                                    fill="none"
+                                                                    stroke="currentColor"
+                                                                    strokeWidth={2}
+                                                                    aria-hidden
+                                                                />
+                                                                <span className="text-xs font-semibold tabular-nums text-cdtext">
+                                                                    {seg.kom_rank}
+                                                                </span>
+                                                            </span>
                                                         )}
                                                     </div>
                                                 ))}

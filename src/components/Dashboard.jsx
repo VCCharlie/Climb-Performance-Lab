@@ -1,5 +1,6 @@
 ﻿import React, { useState, useMemo } from 'react';
 import { calculateBassettCorrection } from '../utils';
+import { normalizeDate } from '../utils/formatters';
 import OverviewTab from './dashboard/OverviewTab';
 import FormTab from './dashboard/FormTab';
 import PowerTab from './dashboard/PowerTab';
@@ -40,6 +41,8 @@ const Dashboard = ({
     onOpenActivityInLog,
     userWeightKg = 0,
     referenceEndDate,
+    userSettings,
+    updateUserSettings,
 }) => {
     const [dashboardTab, setDashboardTab] = useState('overview');
 
@@ -61,11 +64,28 @@ const Dashboard = ({
 
         if (timeRange === 'Custom') {
             if (!customStart) return chartData;
-            const start = new Date(customStart);
-            const end = customEnd ? new Date(customEnd) : new Date();
+
+            // Format start date safely
+            const startStr = normalizeDate(customStart);
+
+            // Format end date to today if not provided, safely extracting YYYY-MM-DD
+            let endStr;
+            if (customEnd) {
+                endStr = normalizeDate(customEnd);
+            } else {
+                const today = new Date();
+                const yy = today.getFullYear();
+                const mm = String(today.getMonth() + 1).padStart(2, '0');
+                const dd = String(today.getDate()).padStart(2, '0');
+                endStr = `${yy}-${mm}-${dd}`;
+            }
+
             return chartData.filter(d => {
-                const date = new Date(d.date);
-                return date >= start && date <= end;
+                if (!d.date) return false;
+                // Optimization: string comparison is significantly faster than new Date()
+                // Safely convert to string using normalizeDate to handle timestamps/objects properly
+                const dStr = normalizeDate(d.date);
+                return dStr >= startStr && dStr <= endStr;
             });
         }
 
@@ -77,7 +97,20 @@ const Dashboard = ({
         else if (timeRange === '6Y') cutoffDate.setFullYear(cutoffDate.getFullYear() - 6);
         else if (timeRange === 'ALL') cutoffDate = new Date('2000-01-01');
 
-        return chartData.filter(d => new Date(d.date) >= cutoffDate);
+        // Note: ISO string formatting automatically handles local timezone shift to UTC properly if we just want YYYY-MM-DD
+        // However, to perfectly mirror the previous behavior which relied on local date boundaries (`new Date().setHours(0,0,0,0)`),
+        // we manually construct local 'YYYY-MM-DD'
+        const yy = cutoffDate.getFullYear();
+        const mm = String(cutoffDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(cutoffDate.getDate()).padStart(2, '0');
+        const cutoffStr = `${yy}-${mm}-${dd}`;
+
+        return chartData.filter(d => {
+            if (!d.date) return false;
+            // Safely convert to string using normalizeDate
+            const dStr = normalizeDate(d.date);
+            return dStr >= cutoffStr;
+        });
     }, [chartData, timeRange, customStart, customEnd]);
 
     // --- SMART TICKS CALCULATOR ---
@@ -129,16 +162,19 @@ const Dashboard = ({
                     type="button"
                     onClick={() => setDashboardTab('distance')}
                     className={`flex-1 min-w-[5.5rem] py-3 text-sm font-bold ${dashboardTab === 'distance' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
-                >Afstand</button>
+                >Distance</button>
             </div>
 
             {/* TAB CONTENT */}
             {dashboardTab === 'overview' && (
                 <OverviewTab
                     data={filteredData}
+                    chartData={chartData}
                     manualFtp={manualFtp}
                     customTicks={customTicks}
                     onOpenActivityInLog={onOpenActivityInLog}
+                    userSettings={userSettings}
+                    updateUserSettings={updateUserSettings}
                 />
             )}
 

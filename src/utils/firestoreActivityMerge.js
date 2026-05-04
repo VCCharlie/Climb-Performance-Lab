@@ -75,5 +75,13 @@ export function protectEnrichedFieldsOnMerge(incoming, existing) {
         out.max_hr = existing.max_hr;
     }
 
+    const exKom = existing.strava_kom_summary;
+    const inKom = incoming.strava_kom_summary;
+    const exKomLabel = exKom && typeof exKom === 'object' && String(exKom.label || '').trim();
+    const inKomLabel = inKom && typeof inKom === 'object' && String(inKom.label || '').trim();
+    if (exKomLabel && !inKomLabel) {
+        out.strava_kom_summary = existing.strava_kom_summary;
+    }
+
     return out;
 }

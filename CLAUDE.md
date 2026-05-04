@@ -192,7 +192,7 @@ The app has **9 main tabs**, some with sub-tabs:
 - SWOT analysis engine for training feedback
 - Analyzes last 30 days of activities
 - Output includes Strengths, Weaknesses, Opportunities, Threats
-- Content is in Dutch (intentional)
+- **UI language:** All user-visible copy should be **English** (see `.cursorrules`). Legacy Dutch strings may remain until migrated in a dedicated pass.
 
 ### RecoveryAdvisor.jsx
 - Analyzes training load and recovery status
@@ -271,9 +271,9 @@ The app has **9 main tabs**, some with sub-tabs:
 - Card styling: `bg-cdsurface border border-cdborder rounded-xl`
 - Input styling: `bg-slate-700 border-slate-600 text-white` (dark) or equivalent light
 
-### Comments
-- Some comments are in Dutch (nl) - this is intentional
-- Code logic comments in English where present
+### Language (UI vs comments)
+- **User-facing strings** (labels, empty states, errors, coach copy): **English only** for new and changed code (see `.cursorrules`).
+- **Code comments**: Prefer English; older files may still contain Dutch notes.
 
 ### File Size Guideline (from AGENTS.md)
 - Files exceeding 200 lines should be evaluated for extraction into helper modules
@@ -416,7 +416,7 @@ src/__tests__/
 ### When Making Changes
 
 1. **Read before editing**: Always read files before modifying them
-2. **Preserve Dutch comments**: Some comments are intentionally in Dutch
+2. **English UI**: Do not add new user-facing Dutch or other non-English strings; translate legacy Dutch when you touch that UI.
 3. **Maintain theming**: Use `cd*` CSS variables (cdtext, cdsurface, etc.) for new UI — not hardcoded slate colors
 4. **Respect modular structure**: Add logic to `src/utils/`, `src/hooks/`, or `src/services/` as appropriate — not directly in components
 5. **No TypeScript**: Project uses plain JavaScript with JSX

@@ -5,7 +5,6 @@
 
 import React, { useEffect, useRef, useCallback } from 'react';
 import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
 
 // OSRM public cycling endpoint (geen API key nodig)
 const OSRM_BASE = 'https://router.project-osrm.org/route/v1/cycling';

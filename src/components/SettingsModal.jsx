@@ -101,7 +101,7 @@ const SettingsModal = ({
                     <h2 className={`text-xl font-bold ${titleClass} flex items-center gap-2`}>
                         <Settings className="text-cdmuted" /> Settings & Configuration
                     </h2>
-                    <button onClick={onClose} className="p-1 hover:bg-cdborder/50 rounded transition-colors">
+                    <button onClick={onClose} aria-label="Close modal" className="p-1 hover:bg-cdborder/50 rounded transition-colors focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none">
                         <X size={24} className={isDark ? 'text-cdmuted' : 'text-slate-600'} />
                     </button>
                 </div>
@@ -124,7 +124,13 @@ const SettingsModal = ({
                                         <p className={`text-sm font-bold ${subTitleClass}`}>Black/White Mode</p>
                                         <p className="text-xs text-cdmuted">Schakel tussen thema's.</p>
                                     </div>
-                                    <button onClick={() => setTheme(isDark ? 'light' : 'dark')} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isDark ? 'bg-slate-600' : 'bg-yellow-400'}`}>
+                                    <button
+                                        role="switch"
+                                        aria-checked={isDark}
+                                        aria-label="Toggle Black/White Mode"
+                                        onClick={() => setTheme(isDark ? 'light' : 'dark')}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none ${isDark ? 'bg-slate-600' : 'bg-yellow-400'}`}
+                                    >
                                         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isDark ? 'translate-x-1' : 'translate-x-6'}`} />
                                     </button>
                                 </div>
@@ -134,7 +140,13 @@ const SettingsModal = ({
                                         <p className={`text-sm font-bold ${subTitleClass} flex items-center gap-2`}><Shield size={14} /> Privacy Mode</p>
                                         <p className="text-xs text-cdmuted">Verberg gewicht & FTP.</p>
                                     </div>
-                                    <button onClick={() => updateUserSettings('privacyMode', !userSettings.privacyMode)} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${!userSettings.privacyMode ? 'bg-slate-600' : 'bg-green-500'}`}>
+                                    <button
+                                        role="switch"
+                                        aria-checked={userSettings.privacyMode}
+                                        aria-label="Toggle Privacy Mode"
+                                        onClick={() => updateUserSettings('privacyMode', !userSettings.privacyMode)}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none ${!userSettings.privacyMode ? 'bg-slate-600' : 'bg-green-500'}`}
+                                    >
                                         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${!userSettings.privacyMode ? 'translate-x-1' : 'translate-x-6'}`} />
                                     </button>
                                 </div>

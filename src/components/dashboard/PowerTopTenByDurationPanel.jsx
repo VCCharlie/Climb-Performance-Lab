@@ -20,7 +20,7 @@ import {
 import PowerTopTenExpandedBody from './PowerTopTenExpandedBody';
 
 /**
- * Top 10 per vaste duur (geïnterpoleerd), optioneel naast vorige periode of N dagen ervoor.
+ * Top 10 per fixed duration (interpolated), optionally vs previous period or N days before.
  */
 const PowerTopTenByDurationPanel = ({
     chartData,
@@ -92,7 +92,7 @@ const PowerTopTenByDurationPanel = ({
             const sign = n > 0 ? '+' : '';
             return `${sign}${formatNlNumber(Math.round(n * 10) / 10)}${suffix}`;
         };
-        return `Verschil (kolom 1 − kolom 2): ritten ${fmt(dr)} · km ${fmt(dk)} · hoogte ${fmt(de, ' m')}`;
+        return `Difference (column 1 − column 2): rides ${fmt(dr)} · km ${fmt(dk)} · elevation ${fmt(de, ' m')}`;
     }, [compareBounds, boundsPrimary, statsPrimary, statsCompare]);
 
     const periodLabel = dashboardFilterLabel(timeRange);
@@ -108,7 +108,7 @@ const PowerTopTenByDurationPanel = ({
                 primary,
                 secondary,
                 footnote: sec === 7200
-                    ? 'Alleen ritten met power-data tot minstens 2 u (langste anker: 90/120 min van API, of ritduur met gem. vermogen). Korte ritten zonder lange meting vallen weg.'
+                    ? 'Only rides with power data extending to at least 2 h (longest anchor: 90/120 min from the API, or ride duration with average power). Short rides without a long-duration reading are excluded.'
                     : null,
             };
         });
@@ -133,27 +133,27 @@ const PowerTopTenByDurationPanel = ({
                 </div>
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-lg font-bold text-cdtext">Top 10 per duur</span>
+                        <span className="text-lg font-bold text-cdtext">Top 10 by duration</span>
                         {expanded ? <ChevronDown size={18} className="text-cdmuted shrink-0" /> : <ChevronRight size={18} className="text-cdmuted shrink-0" />}
                     </div>
                     <p className="text-xs text-cdmuted mt-1 leading-relaxed">
-                        Geïnterpoleerd vermogen (zelfde methode als de power-duration matrix).{' '}
+                        Interpolated power (same method as the power-duration matrix).{' '}
                         {compareMode === 'custom' ? (
                             <>
-                                <span className="text-cdtext font-medium">Aangepaste datums</span>
+                                <span className="text-cdtext font-medium">Custom dates</span>
                                 {headerRangeHint && (
                                     <span className="block mt-0.5 text-[11px] text-cdmuted">{headerRangeHint}</span>
                                 )}
                             </>
                         ) : (
                             <>
-                                Site-preset: <span className="text-cdtext font-medium">{periodLabel}</span>
+                                Site preset: <span className="text-cdtext font-medium">{periodLabel}</span>
                                 {headerRangeHint && (
                                     <span className="block mt-0.5 text-[11px] text-cdmuted">{headerRangeHint}</span>
                                 )}
                             </>
                         )}
-                        {' '}Per duur: top 10 in het gekozen venster (kolom 1); optioneel naast kolom 2.
+                        {' '}Per duration: top 10 in the selected window (column 1); optionally side by side with column 2.
                     </p>
                 </div>
             </button>

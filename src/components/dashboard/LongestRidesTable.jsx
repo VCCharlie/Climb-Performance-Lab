@@ -16,9 +16,9 @@ const kmCompareTitle = (km, peerKm) => {
     const k = Number(km) || 0;
     const p = peerKm != null ? Number(peerKm) : NaN;
     if (!k || Number.isNaN(p) || p <= 0) return undefined;
-    if (k > p) return `Langere rit op deze rang (${formatNlNumber(p, { maximumFractionDigits: 1 })} km)`;
-    if (k < p) return `Kortere rit op deze rang (${formatNlNumber(p, { maximumFractionDigits: 1 })} km)`;
-    return 'Zelfde afstand op deze rang';
+    if (k > p) return `Longer ride at this rank (${formatNlNumber(p, { maximumFractionDigits: 1 })} km)`;
+    if (k < p) return `Shorter ride at this rank (${formatNlNumber(p, { maximumFractionDigits: 1 })} km)`;
+    return 'Same distance at this rank';
 };
 
 /**
@@ -27,7 +27,7 @@ const kmCompareTitle = (km, peerKm) => {
  */
 export default function LongestRidesTable({ rows, peerRows, onOpenActivityInLog, emptyHint }) {
     if (!rows?.length) {
-        return <p className="text-xs text-cdmuted py-3 px-2">{emptyHint || 'Geen ritten met afstand in deze periode.'}</p>;
+        return <p className="text-xs text-cdmuted py-3 px-2">{emptyHint || 'No rides with distance in this period.'}</p>;
     }
     return (
         <div className="overflow-x-auto rounded-lg border border-cdborder">
@@ -36,9 +36,9 @@ export default function LongestRidesTable({ rows, peerRows, onOpenActivityInLog,
                     <tr className="bg-cdborder/40 text-cdmuted uppercase tracking-wide">
                         <th className="px-2 py-2 font-semibold w-8">#</th>
                         <th className="px-2 py-2 font-semibold text-right">km</th>
-                        <th className="px-2 py-2 font-semibold whitespace-nowrap">Tijd</th>
-                        <th className="px-2 py-2 font-semibold whitespace-nowrap">Datum</th>
-                        <th className="px-2 py-2 font-semibold min-w-[100px]">Rit</th>
+                        <th className="px-2 py-2 font-semibold whitespace-nowrap">Time</th>
+                        <th className="px-2 py-2 font-semibold whitespace-nowrap">Date</th>
+                        <th className="px-2 py-2 font-semibold min-w-[100px]">Ride</th>
                         <th className="px-2 py-2 font-semibold text-right w-24">Links</th>
                     </tr>
                 </thead>
@@ -83,7 +83,8 @@ export default function LongestRidesTable({ rows, peerRows, onOpenActivityInLog,
                                             <a
                                                 key={l.label}
                                                 href={l.href}
-                                                target="_blank" rel="noopener noreferrer"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
                                                 className="text-[10px] font-bold text-cdmuted hover:text-cdaccent"
                                             >
                                                 {l.label}

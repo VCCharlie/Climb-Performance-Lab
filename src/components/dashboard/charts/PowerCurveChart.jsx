@@ -21,14 +21,14 @@ const DURATIONS = [
     { key: 'best_60min', label: '60m', secs: 3600 },
 ];
 
-// Fysiologisch plausibele maximale verhouding t.o.v. FTP per inspanningsduur.
-// Waarden boven dit plafond worden als data-artefact beschouwd en genegeerd.
+// Physiologically plausible max ratio vs FTP per effort duration.
+// Values above this ceiling are treated as data artefacts and ignored.
 const FTP_CAPS = {
     best_1min:  4.0,  // Sprint: max 4× FTP
     best_5min:  2.2,  // VO2max: max 2.2× FTP
-    best_10min: 1.6,  // Aanzienlijk boven threshold
-    best_20min: 1.3,  // Net boven FTP
-    best_60min: 1.1,  // Gelijk aan of net onder FTP
+    best_10min: 1.6,  // Well above threshold
+    best_20min: 1.3,  // Just above FTP
+    best_60min: 1.1,  // At or slightly below FTP
 };
 
 const PowerCurveChart = ({ data, manualFtp }) => {
@@ -36,7 +36,7 @@ const PowerCurveChart = ({ data, manualFtp }) => {
         if (!data || data.length === 0) return [];
 
         return DURATIONS.map(({ key, label }) => {
-            // Pas sanity-cap toe als FTP bekend is; gebruik anders absoluut plafond van 1500W
+            // Apply sanity cap when FTP is known; otherwise use absolute ceiling of 1500 W
             const cap = manualFtp > 0 ? manualFtp * FTP_CAPS[key] : 1500;
             const peak = Math.max(0, ...data
                 .map(a => Number(a[key]) || 0)
@@ -51,7 +51,7 @@ const PowerCurveChart = ({ data, manualFtp }) => {
             <div className="bg-cdsurface border border-cdborder rounded-xl p-6 shadow-xl">
                 <h3 className="text-lg font-bold text-cdtext mb-2">Power Curve (MMP)</h3>
                 <div className="h-48 flex items-center justify-center text-cdmuted text-sm">
-                    Geen best-effort data beschikbaar in deze periode.
+                    No best-effort data available in this period.
                 </div>
             </div>
         );
@@ -67,7 +67,7 @@ const PowerCurveChart = ({ data, manualFtp }) => {
                 <h3 className="text-lg font-bold text-cdtext">Power Curve (MMP)</h3>
                 {eFTP && (
                     <span className="text-xs text-cdmuted bg-cdborder/50 px-2 py-1 rounded">
-                        eFTP referentie: <strong className="text-green-400">{eFTP} W</strong>
+                        eFTP reference: <strong className="text-green-400">{eFTP} W</strong>
                     </span>
                 )}
             </div>
@@ -119,7 +119,7 @@ const PowerCurveChart = ({ data, manualFtp }) => {
                 </ResponsiveContainer>
             </div>
             <p className="text-xs text-cdmuted mt-2">
-                Gebaseerd op beste effort per activiteit in de geselecteerde periode.
+                Based on best effort per activity in the selected period.
             </p>
         </div>
     );

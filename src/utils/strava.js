@@ -43,6 +43,22 @@ export function normalizeStravaActivityId(stravaId) {
     return fromExt || (digits || null);
 }
 
+/**
+ * Open Strava segment in a new tab so the app stays loaded (no full reload after
+ * a refresh/sync burst — avoids immediate 429 on Strava web when same-tab navigation
+ * followed a heavy API session).
+ * @param {string|number} segmentId
+ */
+export function navigateToStravaSegment(segmentId) {
+    const id = segmentId != null ? String(segmentId).replace(/\D/g, '') : '';
+    if (!id) return;
+    const url = `https://www.strava.com/segments/${id}`;
+    const w = window.open(url, '_blank', 'noopener,noreferrer');
+    if (!w || w.closed) {
+        window.alert('Could not open a new tab (popup blocked?). Allow popups for this site, or open the segment manually:\n' + url);
+    }
+}
+
 // Format seconds to M:SS or H:MM:SS
 export const formatSegmentTime = (seconds) => {
     if (!seconds || seconds <= 0) return '-';

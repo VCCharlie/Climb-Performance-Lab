@@ -200,7 +200,8 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
             </button>
             <a
               href={selectedClimb?.url || '#'}
-              target="_blank" rel="noopener noreferrer"
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-cdmuted hover:text-cdtext flex items-center gap-1 text-xs"
               title="View Info"
             >
@@ -494,7 +495,8 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
             {selectedClimb.url && (
               <a
                 href={selectedClimb.url}
-                target="_blank" rel="noopener noreferrer"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-xs text-cdaccent hover:underline font-bold"
               >
                 External climb info <ArrowUpRight size={12} />

@@ -11,7 +11,7 @@ export const normalizeIntervalsActivity = (item) => {
     const getNum = (val) => { const n = Number(val); return isNaN(n) ? 0 : n; };
     const getVal = (...keys) => { for (const k of keys) { if (item[k] !== undefined && item[k] !== null && item[k] !== "") return item[k]; } return null; };
 
-    const id = String(getVal('id', 'activity_id') || Math.random().toString(36).substr(2, 9));
+    const id = String(getVal('id', 'activity_id') || crypto.randomUUID());
     const dateStr = getVal('startDate', 'start_date_local', 'start_date', 'date');
     const title = getVal('name', 'title') || "Untitled";
 

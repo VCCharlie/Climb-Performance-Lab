@@ -2,6 +2,7 @@ import React from 'react';
 import PerformanceModule from '../PerformanceModule';
 import BarChartCard from './charts/BarChartCard';
 import ActivityHeatmap from './charts/ActivityHeatmap';
+import VolumeGoalsPanel from './VolumeGoalsPanel';
 
 /**
  * OverviewTab: Main Dashboard overview.
@@ -9,17 +10,33 @@ import ActivityHeatmap from './charts/ActivityHeatmap';
  *  - Bar charts: Distance / TSS / Elevation (each with Week/Month toggle)
  *  - 52-week Activity Heatmap
  */
-const OverviewTab = ({ data, manualFtp, customTicks, onOpenActivityInLog }) => {
+const OverviewTab = ({
+    data,
+    chartData,
+    manualFtp,
+    customTicks,
+    onOpenActivityInLog,
+    userSettings,
+    updateUserSettings,
+}) => {
     if (!data || data.length === 0) {
         return (
             <div className="flex items-center justify-center h-40 text-cdmuted">
-                Geen data beschikbaar voor deze periode.
+                No data available for this period.
             </div>
         );
     }
 
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
+            {userSettings && updateUserSettings && (
+                <VolumeGoalsPanel
+                    chartData={chartData || data}
+                    userSettings={userSettings}
+                    updateUserSettings={updateUserSettings}
+                />
+            )}
+
             {/* Stat cards + FTP progression chart */}
             <PerformanceModule
                 data={data}
@@ -33,15 +50,15 @@ const OverviewTab = ({ data, manualFtp, customTicks, onOpenActivityInLog }) => {
                 <BarChartCard
                     data={data}
                     metric="distance"
-                    title="Afstand"
+                    title="Distance"
                     unit="km"
                     color="rgba(59,130,246,0.75)"
                 />
                 <BarChartCard
                     data={data}
                     metric="moving_time"
-                    title="Tijd"
-                    unit="uur"
+                    title="Time"
+                    unit="hour"
                     color="rgba(168,85,247,0.75)"
                 />
                 <BarChartCard
@@ -54,7 +71,7 @@ const OverviewTab = ({ data, manualFtp, customTicks, onOpenActivityInLog }) => {
                 <BarChartCard
                     data={data}
                     metric="elevation"
-                    title="Hoogtemeters"
+                    title="Elevation"
                     unit="m"
                     color="rgba(34,197,94,0.75)"
                 />

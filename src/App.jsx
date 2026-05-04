@@ -28,9 +28,35 @@ import NlDateInput from './components/NlDateInput';
 import useIntervalsSync from './hooks/useIntervalsSync';
 import useStravaAuth from './hooks/useStravaAuth';
 import { SPORT_TYPES } from './config';
+import { consumeNavRestore } from './utils/sessionNavRestore';
+import { mergeVolumeGoals } from './utils/volumeGoals';
+
+const MAIN_TAB_IDS = new Set([
+    'dashboard', 'physics', 'activities', 'training', 'race', 'gearoptimizer',
+    'profiler', 'bucketlist', 'climbmap', 'weather',
+]);
+const DATAHUB_INTERNAL_TABS = new Set(['log', 'strava-profile', 'import']);
+
+let cachedNavRestore = null;
+function peekNavRestoreOnce() {
+    if (cachedNavRestore === null) {
+        cachedNavRestore = consumeNavRestore();
+    }
+    return cachedNavRestore;
+}
+
+function dataHubInternalTabFromRestore() {
+    const r = peekNavRestoreOnce();
+    const t = r?.dataHubInternalTab;
+    return t && DATAHUB_INTERNAL_TABS.has(t) ? t : 'log';
+}
 
 const App = () => {
-    const [activeTab, setActiveTab] = useState('dashboard');
+    const [activeTab, setActiveTab] = useState(() => {
+        const r = peekNavRestoreOnce();
+        const t = r?.activeTab;
+        return t && MAIN_TAB_IDS.has(t) ? t : 'dashboard';
+    });
     const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [syncStatus, setSyncStatus] = useState('idle'); // 'idle', 'syncing', 'synced', 'error'
@@ -40,19 +66,26 @@ const App = () => {
 
     const [userSettings, setUserSettings] = useState(() => {
         const saved = localStorage.getItem('userSettings');
-        if (saved) { try { return JSON.parse(saved); } catch { /* */ } }
-        return {
+        const defaults = {
             weight: 70.0,
             bikeWeight: 7.5,
             ftp: 280,
             maxHr: 190,
             privacyMode: false,
             goals: { yearlyKm: 10000, targetFtp: 300, targetWeight: 68 },
+            volumeGoals: mergeVolumeGoals(null),
             notifications: { highLoad: 150, lowPower: 150, minWeight: 67, restDay: 3 },
             powerZones: [],
             githubPat: '', // GitHub PAT for manual nightly-sync trigger
             openweatherApiKey: '' // OpenWeather API Key
         };
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                return { ...defaults, ...parsed, volumeGoals: mergeVolumeGoals(parsed.volumeGoals) };
+            } catch { /* */ }
+        }
+        return defaults;
     });
 
     const [selectedClimb, setSelectedClimb] = useState(CLIMB_DATABASE?.[0] || { id: 'dummy', name: 'Loading', lengthKm: 0, elevation: 0, avgGrade: 0 });
@@ -306,8 +339,9 @@ const App = () => {
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const code = params.get('code');
+        const state = params.get('state');
         if (code && stravaConfig?.client_id && stravaConfig?.client_secret) {
-            stravaAuth.handleOAuthCallback(code).catch(e => {
+            stravaAuth.handleOAuthCallback(code, state).catch(e => {
                 console.error('Strava OAuth fout:', e);
                 alert('Strava koppeling mislukt: ' + e.message);
             });
@@ -330,7 +364,13 @@ const App = () => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     if (data.intervals) setIntervalsConfig(data.intervals);
-                    if (data.body) setUserSettings(prev => ({ ...prev, ...data.body }));
+                    if (data.body) {
+                        setUserSettings((prev) => {
+                            const merged = { ...prev, ...data.body };
+                            merged.volumeGoals = mergeVolumeGoals(merged.volumeGoals);
+                            return merged;
+                        });
+                    }
                     if (data.theme) {
                         setTheme(data.theme);
                         localStorage.setItem('theme', data.theme);
@@ -416,13 +456,36 @@ const App = () => {
         if (!db) return;
         try {
             const settingsId = user ? `user_${user.uid}` : "user_prefs";
-            console.log("Saving Settings to Cloud:", { intervals: intervalsConfig, body: userSettings, theme, bucketList: bucketListState, strava: stravaConfig, stravaProfile: stravaProfileData });
+
+            // SECURITY: Never save raw API keys or secrets to the cloud database
+            const safeIntervals = { ...intervalsConfig, apiKey: intervalsConfig.apiKey ? '' : '' };
+            const safeBody = {
+                ...userSettings,
+                githubPat: userSettings.githubPat ? '' : '',
+                openweatherApiKey: userSettings.openweatherApiKey ? '' : ''
+            };
+            const safeStrava = { ...stravaConfig, client_secret: stravaConfig.client_secret ? '' : '' };
+            const stravaForLog = {
+                ...stravaConfig,
+                client_secret: stravaConfig.client_secret ? '***REDACTED***' : '',
+                access_token: stravaConfig.access_token ? '***REDACTED***' : '',
+                refresh_token: stravaConfig.refresh_token ? '***REDACTED***' : ''
+            };
+
+            console.log("Saving Settings to Cloud:", {
+                intervals: safeIntervals,
+                body: safeBody,
+                theme,
+                bucketList: bucketListState,
+                strava: stravaForLog,
+                stravaProfile: stravaProfileData
+            });
             await setDoc(doc(db, "settings", settingsId), {
-                intervals: intervalsConfig,
-                body: userSettings,
+                intervals: safeIntervals,
+                body: safeBody,
                 theme: theme,
                 bucketList: bucketListState,
-                strava: stravaConfig,
+                strava: safeStrava,
                 stravaProfile: stravaProfileData
             }, { merge: true });
             alert("Settings saved! Bike Weight: " + (userSettings.bikeWeight || 'N/A'));
@@ -616,6 +679,8 @@ const App = () => {
                                 customEnd={customEnd}
                                 userWeightKg={userSettings.weight}
                                 referenceEndDate={globalEndDate}
+                                userSettings={userSettings}
+                                updateUserSettings={(k, v) => setUserSettings((p) => ({ ...p, [k]: v }))}
                                 onOpenActivityInLog={(id) => {
                                     if (id == null) return;
                                     setActivityFocusId(String(id));
@@ -651,6 +716,7 @@ const App = () => {
                                 climbDatabaseForMatch={CLIMB_DATABASE}
                                 activityLogRangesExpanded={activityLogRangesExpanded}
                                 onActivityLogRangesExpandedChange={setActivityLogRangesExpanded}
+                                initialInternalTab={dataHubInternalTabFromRestore()}
                             />
                         )}
 

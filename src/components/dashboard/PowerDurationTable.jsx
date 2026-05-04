@@ -16,11 +16,11 @@ const COL_STYLES = [
     { key: 'filter', label: null, headerClass: 'bg-emerald-600/90 text-white' },
     { key: 'season', label: null, headerClass: 'bg-lime-600/90 text-white' },
     { key: 'lastSeason', label: null, headerClass: 'bg-amber-500/90 text-slate-900' },
-    { key: 'all', label: 'Alles', headerClass: 'bg-pink-600/90 text-white' },
+    { key: 'all', label: 'All', headerClass: 'bg-pink-600/90 text-white' },
 ];
 
 /**
- * intervals.icu/power-achtige matrix: meerdere tijdvensters × duur × W en W/kg.
+ * intervals.icu-style matrix: multiple time windows × duration × W and W/kg.
  */
 const PowerDurationTable = ({
     chartData,
@@ -31,7 +31,7 @@ const PowerDurationTable = ({
     weightKg = 0,
     onOpenActivityInLog,
 }) => {
-    /** Klik-popover: blijft open tot buitenklik of Escape */
+    /** Click popover: stays open until outside click or Escape */
     const [popover, setPopover] = useState(null);
     const popoverRef = useRef(null);
 
@@ -85,10 +85,10 @@ const PowerDurationTable = ({
                 label = filterLabel;
             } else if (c.key === 'season') {
                 acts = seasonActs;
-                label = `Seizoen ${y}`;
+                label = `Season ${y}`;
             } else if (c.key === 'lastSeason') {
                 acts = lastSeasonActs;
-                label = `Seizoen ${prevY}`;
+                label = `Season ${prevY}`;
             } else acts = allActs;
 
             const curveWithSrc = powerCurveWithSources(acts, manualFtp);
@@ -148,17 +148,17 @@ const PowerDurationTable = ({
 
     return (
         <div className="bg-cdsurface border border-cdborder rounded-xl p-6 shadow-xl overflow-visible relative">
-            <h3 className="text-lg font-bold text-cdtext mb-1">Power-duration (intervals.icu-stijl)</h3>
+            <h3 className="text-lg font-bold text-cdtext mb-1">Power-duration (intervals.icu-style)</h3>
             <p className="text-xs text-cdmuted mb-4 max-w-3xl leading-relaxed">
-                Vergelijkbare opzet als{' '}
+                Layout similar to{' '}
                 <a href="https://intervals.icu/power" target="_blank" rel="noopener noreferrer" className="text-cdaccent hover:underline">
                     intervals.icu/power
                 </a>
-                : meerdere tijdvensters naast elkaar. Per rit: max power, beste 1/5/10/20/60 min (en 90/120 als de API ze levert),
-                plus voor lange ritten een anker op ritduur met gemiddeld/NP — tussenliggende
-                duur wordt <strong className="text-cdtext">geschat</strong> (log-interpolatie). Blauw = beste waarde in de tabel voor die
-                duur. Zonder lichaamsgewicht in Instellingen tonen we geen W/kg. <strong className="text-cdtext">Klik</strong> op een cel voor
-                de bronrit; in het venster kun je scrollen naar de links. Sluit met een klik erbuiten of <kbd className="px-1 rounded bg-cdborder text-[10px]">Esc</kbd>.
+                : several time windows side by side. Per ride: max power, best 1/5/10/20/60 min (and 90/120 when the API provides them),
+                plus for long rides an anchor at ride duration with average/NP — intermediate
+                durations are <strong className="text-cdtext">estimated</strong> (log interpolation). Blue = best value in the table for that
+                duration. Without body weight in Settings we do not show W/kg. <strong className="text-cdtext">Click</strong> a cell for the
+                source ride; scroll in the popover for links. Close with a click outside or <kbd className="px-1 rounded bg-cdborder text-[10px]">Esc</kbd>.
             </p>
 
             {popover?.activity && (
@@ -166,17 +166,17 @@ const PowerDurationTable = ({
                     ref={popoverRef}
                     data-power-duration-popover=""
                     role="dialog"
-                    aria-label="Bronrit"
+                    aria-label="Source ride"
                     className="fixed z-[200] w-72 max-h-[min(320px,70vh)] flex flex-col rounded-lg border border-cdborder bg-cdsurface shadow-2xl text-left text-xs"
                     style={{ left: popover.left, top: popover.top }}
                 >
                     <div className="p-3 border-b border-cdborder shrink-0">
                         <div className="font-bold text-cdtext text-sm mb-1 line-clamp-2" title={popover.activity.title}>
-                            {popover.activity.title || 'Zonder titel'}
+                            {popover.activity.title || 'Untitled'}
                         </div>
                         <div className="text-cdmuted mb-1">{formatDateDDMMYYYY(popover.activity.date)}</div>
                         <div className="text-cdaccent font-mono">
-                            ~{popover.watts} W @ {popover.durationLabel} (geschat)
+                            ~{popover.watts} W @ {popover.durationLabel} (estimated)
                         </div>
                     </div>
                     <div className="p-2 overflow-y-auto custom-scrollbar flex-1 min-h-0">
@@ -192,7 +192,7 @@ const PowerDurationTable = ({
                                         }}
                                         className="w-full text-left px-2 py-2 rounded-md bg-cdborder/40 hover:bg-cdborder text-cdtext font-bold text-xs"
                                     >
-                                        Open in Activiteiten-log
+                                        Open in Activities log
                                     </button>
                                 </li>
                             )}
@@ -200,7 +200,8 @@ const PowerDurationTable = ({
                                 <li key={l.label}>
                                     <a
                                         href={l.href}
-                                        target="_blank" rel="noopener noreferrer"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
                                         className="block px-2 py-2 rounded-md bg-cdborder/20 hover:bg-cdborder/50 text-blue-400 font-bold text-xs"
                                     >
                                         {l.label} →
@@ -209,7 +210,7 @@ const PowerDurationTable = ({
                             ))}
                             {popover.links.length === 0 &&
                                 !(typeof onOpenActivityInLog === 'function' && popover.activity.id != null) && (
-                                    <li className="text-cdmuted px-2 py-2">Geen externe links (o.a. CSV-import).</li>
+                                    <li className="text-cdmuted px-2 py-2">No external links (e.g. CSV import).</li>
                                 )}
                         </ul>
                     </div>
@@ -224,7 +225,7 @@ const PowerDurationTable = ({
                                 rowSpan={2}
                                 className="sticky left-0 z-20 bg-cdborder/80 text-cdtext font-bold px-2 py-2 text-left border-b border-r border-cdborder"
                             >
-                                Tijd
+                                Duration
                             </th>
                             {columns.map((col) => (
                                 <th
@@ -234,7 +235,7 @@ const PowerDurationTable = ({
                                 >
                                     {col.displayLabel}
                                     <span className="block font-normal text-[10px] opacity-90 mt-0.5">
-                                        {col.actCount} rit{col.actCount !== 1 ? 'en' : ''}
+                                        {col.actCount} ride{col.actCount !== 1 ? 's' : ''}
                                     </span>
                                 </th>
                             ))}
