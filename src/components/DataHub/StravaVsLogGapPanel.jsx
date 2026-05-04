@@ -333,6 +333,8 @@ const StravaVsLogGapPanel = ({
                     {cacheNotice}
                 </div>
             )}
+
+            {scanError && (
                 <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded p-2 flex gap-2">
                     <AlertCircle size={14} className="shrink-0 mt-0.5" /> {scanError}
                 </div>
