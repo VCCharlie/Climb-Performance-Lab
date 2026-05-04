@@ -95,8 +95,10 @@ const PeriodStatistics = ({ data }) => {
         : 0;
 
     // Maxima
-    const maxPower = Math.max(0, ...data.map(d => safeNum(d.max_power)));
-    const maxHr    = Math.max(0, ...data.map(d => safeNum(d.max_hr)));
+    // ⚡ Bolt Optimization: Use single-pass reduce instead of Math.max(...array.map())
+    // Prevents "RangeError: Maximum call stack size exceeded" on large data arrays and reduces memory allocations
+    const maxPower = data.reduce((max, d) => Math.max(max, safeNum(d.max_power)), 0);
+    const maxHr    = data.reduce((max, d) => Math.max(max, safeNum(d.max_hr)), 0);
 
     const maxPowerItem  = data.find(d => safeNum(d.max_power) === maxPower);
     const maxPowerLabel = maxPowerItem ? `(${maxPowerItem.max_power_source || 'Instant'})` : '';
@@ -258,10 +260,12 @@ const PerformanceModule = ({
     const outdoorRides = filteredData.filter(d => d.type !== 'VirtualRide');
 
     // 1. Est FTP Split (Max eFTP per environment)
-    const maxEftpIndoor = Math.max(0, ...indoorRides.map(d => d.eFTP || 0));
-    const maxEftpOutdoor = Math.max(0, ...outdoorRides.map(d => d.eFTP || 0));
-    const maxEftp60Indoor = Math.max(0, ...indoorRides.map(d => d.eFTP60 || 0));
-    const maxEftp60Outdoor = Math.max(0, ...outdoorRides.map(d => d.eFTP60 || 0));
+    // ⚡ Bolt Optimization: Use single-pass reduce instead of Math.max(...array.map())
+    // Prevents "RangeError: Maximum call stack size exceeded" on large data arrays and reduces memory allocations
+    const maxEftpIndoor = indoorRides.reduce((max, d) => Math.max(max, d.eFTP || 0), 0);
+    const maxEftpOutdoor = outdoorRides.reduce((max, d) => Math.max(max, d.eFTP || 0), 0);
+    const maxEftp60Indoor = indoorRides.reduce((max, d) => Math.max(max, d.eFTP60 || 0), 0);
+    const maxEftp60Outdoor = outdoorRides.reduce((max, d) => Math.max(max, d.eFTP60 || 0), 0);
 
     // 2. Load Split (Avg Load per Ride)
     const avgLoadIndoor = indoorRides.length > 0 ? Math.round(indoorRides.reduce((acc, d) => acc + (d.load || 0), 0) / indoorRides.length) : 0;
