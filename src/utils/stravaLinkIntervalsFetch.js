@@ -2,6 +2,40 @@ import { stravaHttpErrorMessage } from './stravaHttp.js';
 import { isIncludedStravaType, matchStravaToSite } from './stravaMatch.js';
 
 const DEFAULT_MATCH_MS = 900000; // 15 minutes — same as SyncTab
+const MAX_DISTANCE_DIFF_RATIO = 0.25;
+
+function startTimeMs(activity) {
+    const time = new Date(activity?.start_date_local || activity?.start_date || activity?.date).getTime();
+    return Number.isNaN(time) ? null : time;
+}
+
+function distanceKmFromIntervals(activity) {
+    const km = Number(activity?.distance);
+    return Number.isFinite(km) && km > 0 ? km : null;
+}
+
+function distanceKmFromStrava(activity) {
+    const meters = Number(activity?.distance);
+    return Number.isFinite(meters) && meters > 0 ? meters / 1000 : null;
+}
+
+function distanceDiffRatio(intervalsActivity, stravaActivity) {
+    const intervalKm = distanceKmFromIntervals(intervalsActivity);
+    const stravaKm = distanceKmFromStrava(stravaActivity);
+    if (intervalKm == null || stravaKm == null) return null;
+    return Math.abs(intervalKm - stravaKm) / Math.max(intervalKm, stravaKm);
+}
+
+function compatibleSportType(intervalsActivity, stravaActivity) {
+    const intervalsType = String(intervalsActivity?.type || '').trim();
+    const stravaType = String(stravaActivity?.sport_type || stravaActivity?.type || '').trim();
+    const intervalsIsBike = isIncludedStravaType(intervalsType);
+    const stravaIsBike = isIncludedStravaType(stravaType);
+
+    if (intervalsIsBike) return stravaIsBike;
+    if (!intervalsType || !stravaType) return true;
+    return intervalsType === stravaType;
+}
 
 /**
  * Fetch Strava athlete activities in [startYmd, endYmd] (local calendar days, inclusive of end day).
@@ -46,11 +80,21 @@ export function linkIntervalsActivitiesToStravaList(intervalsActivities, stravaA
         if (!act || act.strava_id) return act;
         const actTime = new Date(act.date).getTime();
         if (Number.isNaN(actTime)) return act;
-        const matchedStrava = list.find((s) => {
-            const sTime = new Date(s.start_date_local || s.start_date).getTime();
-            if (Number.isNaN(sTime)) return false;
-            return Math.abs(actTime - sTime) < win;
-        });
+        const matchedStrava = list
+            .map((s) => {
+                const sTime = startTimeMs(s);
+                if (sTime == null) return null;
+                const timeDiff = Math.abs(actTime - sTime);
+                if (timeDiff >= win || !compatibleSportType(act, s)) return null;
+                const distDiff = distanceDiffRatio(act, s);
+                if (distDiff != null && distDiff > MAX_DISTANCE_DIFF_RATIO) return null;
+                return {
+                    activity: s,
+                    score: (timeDiff / win) + (distDiff == null ? 0 : distDiff * 0.75),
+                };
+            })
+            .filter(Boolean)
+            .sort((a, b) => a.score - b.score)[0]?.activity;
         if (!matchedStrava) return act;
         const stravaTitle = (matchedStrava.name || '').trim();
         return {
