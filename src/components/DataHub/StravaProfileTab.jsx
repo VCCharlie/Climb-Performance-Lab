@@ -911,6 +911,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                     getStravaToken={getStravaToken}
                     persistedUi={data?.vsLogUi}
                     onPersistUi={persistVsLogUi}
+                    stravaAthleteId={athleteId}
                 />
             )}
 
