@@ -328,6 +328,33 @@ const App = () => {
         };
     }, [user, userSettings.volumeGoals]);
 
+    /** Real-time merge of training volume goals from Firestore (other devices / tabs). */
+    useEffect(() => {
+        if (!db || !user) return;
+        const settingsId = `user_${user.uid}`;
+        const docRef = doc(db, 'settings', settingsId);
+        const unsub = onSnapshot(
+            docRef,
+            (snap) => {
+                if (!snap.exists()) return;
+                if (snap.metadata.hasPendingWrites) return;
+                const data = snap.data();
+                const vg = data.body?.volumeGoals;
+                if (vg == null) return;
+                const merged = mergeVolumeGoals(vg);
+                const serialized = JSON.stringify(merged);
+                lastVolumeGoalsSyncedJsonRef.current = serialized;
+                setUserSettings((prev) => {
+                    const prevSerialized = JSON.stringify(mergeVolumeGoals(prev.volumeGoals));
+                    if (prevSerialized === serialized) return prev;
+                    return { ...prev, volumeGoals: merged };
+                });
+            },
+            (e) => console.warn('[volumeGoals] Firestore listener error:', e)
+        );
+        return () => unsub();
+    }, [user]);
+
     // Auto-save intervalsConfig naar localStorage
     useEffect(() => {
         localStorage.setItem('intervalsConfig', JSON.stringify(intervalsConfig));
@@ -706,6 +733,7 @@ const App = () => {
                                 referenceEndDate={globalEndDate}
                                 userSettings={userSettings}
                                 updateUserSettings={(k, v) => setUserSettings((p) => ({ ...p, [k]: v }))}
+                                cloudVolumeGoalsSynced={!!user}
                                 onOpenActivityInLog={(id) => {
                                     if (id == null) return;
                                     setActivityFocusId(String(id));
