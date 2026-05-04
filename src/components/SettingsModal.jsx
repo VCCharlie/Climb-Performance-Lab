@@ -185,8 +185,7 @@ const SettingsModal = ({
                                         Maak een PAT aan op{' '}
                                         <a
                                             href="https://github.com/settings/tokens/new?scopes=workflow"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
+                                            target="_blank" rel="noopener noreferrer"
                                             className="text-blue-400 hover:underline"
                                         >
                                             github.com/settings/tokens
@@ -210,8 +209,7 @@ const SettingsModal = ({
                                         Gratis aan te maken op{' '}
                                         <a
                                             href="https://openweathermap.org/api"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
+                                            target="_blank" rel="noopener noreferrer"
                                             className="text-blue-400 hover:underline"
                                         >
                                             openweathermap.org

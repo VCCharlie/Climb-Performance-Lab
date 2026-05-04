@@ -274,8 +274,8 @@ export const Row = React.memo(({
                                     profilerClimbByActivityId?.get(String(act.id))
                                         ? 'Open in Climb Profiler'
                                         : act.strava_map
-                                            ? 'Open in Climb Profiler (benadering — route uit Strava)'
-                                            : 'Open in Climb Profiler (standaard klim — geen route in data; kies klim in tab)'
+                                            ? 'Open in Climb Profiler (approximation — route from Strava)'
+                                            : 'Open in Climb Profiler (default climb — no route in data; pick climb in tab)'
                                 }
                                 aria-label="Open in Climb Profiler"
                             >
