@@ -14,6 +14,7 @@ import {
     stripUndefinedFields,
 } from '../utils/mergeActivities';
 import { findSafeImportReplacementDuplicate } from '../utils/importDuplicateMatch';
+import { persistImportedActivitiesReplacingDuplicates } from '../utils/importPersistence';
 import { enrichActivityGearFromStrava, buildStravaDetailEnrichmentUpdates } from '../utils/stravaGearEnrich';
 import { buildStravaKomSummaryFromActivityDetail } from '../utils/stravaSegmentKomSummary';
 import { resolveStravaGearDisplay } from '../utils/stravaBikesLocalMap';
@@ -1180,6 +1181,7 @@ const DataHub = ({
         let savedCount = 0;
         let replacedCount = 0;
         const idsToDelete = [];
+        let cloudPersisted = !db;
 
         if (activities && activities.length > 0) {
             toImport.forEach(newAct => {
@@ -1192,36 +1194,32 @@ const DataHub = ({
             });
         }
 
-        if (idsToDelete.length > 0) {
-            idsToDelete.forEach(id => onDelete(id));
-            if (db) {
-                try {
-                    await Promise.all(idsToDelete.map(id => deleteDoc(doc(db, "activities", String(id)))));
-                } catch (e) { console.error("Failed to delete duplicates from FB:", e); }
-            }
-        }
-
-        onImport(toImport);
-
         if (db) {
             try {
-                const writePromises = toImport.map(act => {
-                    if (!act.id) return Promise.resolve();
-                    const existing = (activities || []).find(a => String(a.id) === String(act.id));
-                    const payload = protectEnrichedFieldsOnMerge(act, existing);
-                    return setDoc(doc(db, "activities", String(act.id)), payload, { merge: true });
+                await persistImportedActivitiesReplacingDuplicates({
+                    activities,
+                    toImport,
+                    idsToDelete,
+                    writeActivity: (id, payload) => setDoc(doc(db, "activities", String(id)), payload, { merge: true }),
+                    deleteActivity: (id) => deleteDoc(doc(db, "activities", String(id))),
+                    mergePayload: protectEnrichedFieldsOnMerge,
                 });
-                await Promise.all(writePromises);
                 savedCount = toImport.length;
+                cloudPersisted = true;
             } catch (e) {
                 alert("Note: Data imported locally, but cloud backup failed: " + e.message);
             }
         }
 
+        onImport(toImport);
+        if (cloudPersisted && idsToDelete.length > 0) {
+            idsToDelete.forEach(id => onDelete(id));
+        }
+
         setShowModal(false);
         setFetchedActivities([]);
         setInternalTab('log');
-        alert(`Import Successful!\n\nImported: ${savedCount}\nReplaced Duplicates: ${replacedCount}`);
+        alert(`Import Successful!\n\nImported: ${savedCount}\nReplaced Duplicates: ${cloudPersisted ? replacedCount : 0}`);
     };
 
     const [previewSortConfig, setPreviewSortConfig] = useState({ key: 'date', direction: 'desc' });
