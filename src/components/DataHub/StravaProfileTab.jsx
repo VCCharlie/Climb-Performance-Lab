@@ -486,7 +486,8 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                 fetchedAt: new Date().toISOString()
             });
         } catch (e) {
-            setError(e.message);
+            const msg = e?.message != null ? String(e.message).trim() : '';
+            setError(msg || 'Strava profile refresh failed');
         } finally {
             setIsFetching(false);
             setFetchProgress('');
@@ -682,7 +683,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                 </p>
             )}
 
-            {error && (
+            {subTab !== 'vslog' && typeof error === 'string' && error.trim() !== '' && (
                 <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded p-3 flex gap-2">
                     <AlertCircle size={14} className="shrink-0 mt-0.5" /> {error}
                 </div>

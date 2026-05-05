@@ -18,6 +18,7 @@ const OverviewTab = ({
     onOpenActivityInLog,
     userSettings,
     updateUserSettings,
+    cloudVolumeGoalsSynced = false,
 }) => {
     if (!data || data.length === 0) {
         return (
@@ -34,6 +35,7 @@ const OverviewTab = ({
                     chartData={chartData || data}
                     userSettings={userSettings}
                     updateUserSettings={updateUserSettings}
+                    cloudVolumeGoalsSynced={cloudVolumeGoalsSynced}
                 />
             )}
 

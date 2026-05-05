@@ -16,8 +16,9 @@ import { VolumeGoalPeriodCard } from './VolumeGoalPeriodCard';
  * @param {object[]} props.chartData
  * @param {object} props.userSettings
  * @param {(key: string, value: unknown) => void} props.updateUserSettings
+ * @param {boolean} [props.cloudVolumeGoalsSynced] when false, goals stay on this device only until you sign in
  */
-const VolumeGoalsPanel = ({ chartData = [], userSettings, updateUserSettings }) => {
+const VolumeGoalsPanel = ({ chartData = [], userSettings, updateUserSettings, cloudVolumeGoalsSynced = false }) => {
     const [collapsed, setCollapsed] = useState(false);
     /** @type {Record<PeriodId, boolean>} */
     const [editing, setEditing] = useState({ weekly: false, monthly: false, yearly: false });
@@ -118,6 +119,12 @@ const VolumeGoalsPanel = ({ chartData = [], userSettings, updateUserSettings }) 
                 </div>
                 {collapsed ? <ChevronDown className="w-5 h-5 text-cdmuted shrink-0" /> : <ChevronUp className="w-5 h-5 text-cdmuted shrink-0" />}
             </button>
+
+            {!cloudVolumeGoalsSynced && (
+                <p className="text-[11px] text-yellow-600 dark:text-yellow-400/95 bg-yellow-500/10 border border-yellow-500/25 rounded-lg px-3 py-2 mb-3">
+                    Sign in with Google (header) to sync these goals across your devices. While signed out, changes stay in this browser only.
+                </p>
+            )}
 
             {!collapsed && (
                 <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-4">

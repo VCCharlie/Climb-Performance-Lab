@@ -11,8 +11,10 @@ import {
 import { defaultStravaVsLogUi, mergeStravaVsLogUi } from '../../utils/stravaVsLogUi';
 import { fetchAllBikeActivitiesForRecords, getStravaRawActivityListFetchCap } from '../../utils/stravaProfileRecords';
 import { readStravaVsLogScanCache, writeStravaVsLogScanCache, clearStravaVsLogScanCache } from '../../utils/stravaVsLogScanCache';
+import NlDateInput from '../NlDateInput';
 
 const LOCALE = 'en-US';
+const NL_LOCALE = 'nl-NL';
 
 const fmtKm = (km) =>
     `${Number(km).toLocaleString(LOCALE, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km`;
@@ -75,6 +77,10 @@ const StravaVsLogGapPanel = ({
     useEffect(() => () => {
         if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
     }, []);
+
+    useEffect(() => {
+        setScanError(null);
+    }, [stravaAthleteId]);
 
     useEffect(() => {
         const m = mergeStravaVsLogUi(persistedUi);
@@ -172,7 +178,8 @@ const StravaVsLogGapPanel = ({
                 }
             }
         } catch (e) {
-            setScanError(e?.message || 'Strava scan failed');
+            const msg = e?.message != null ? String(e.message).trim() : '';
+            setScanError(msg || 'Strava scan failed');
         } finally {
             setScanBusy(false);
             setScanProgress('');
@@ -202,7 +209,7 @@ const StravaVsLogGapPanel = ({
         if (!cachedScanMeta?.fetchedAt) return null;
         const t = Date.parse(cachedScanMeta.fetchedAt);
         if (Number.isNaN(t)) return null;
-        return new Date(t).toLocaleString(LOCALE, { dateStyle: 'medium', timeStyle: 'short' });
+        return new Date(t).toLocaleString(NL_LOCALE, { dateStyle: 'short', timeStyle: 'short' });
     }, [cachedScanMeta?.fetchedAt]);
 
     return (
@@ -222,28 +229,26 @@ const StravaVsLogGapPanel = ({
             <div className="flex flex-wrap gap-2 items-end">
                 <label className="flex flex-col gap-0.5 text-[10px] text-cdmuted font-bold uppercase">
                     From
-                    <input
-                        type="date"
+                    <NlDateInput
                         value={startYmd}
-                        onChange={(e) => {
-                            const v = e.target.value;
+                        onChange={(v) => {
                             setStartYmd(v);
                             schedulePersistUi({ startYmd: v, endYmd, includeEbikeRide, useFuzzyMatch });
                         }}
                         className="bg-cdbg border border-cdborder rounded px-2 py-1.5 text-xs text-cdtext font-mono"
+                        aria-label="From date (dd/mm/yyyy)"
                     />
                 </label>
                 <label className="flex flex-col gap-0.5 text-[10px] text-cdmuted font-bold uppercase">
                     To
-                    <input
-                        type="date"
+                    <NlDateInput
                         value={endYmd}
-                        onChange={(e) => {
-                            const v = e.target.value;
+                        onChange={(v) => {
                             setEndYmd(v);
                             schedulePersistUi({ startYmd, endYmd: v, includeEbikeRide, useFuzzyMatch });
                         }}
                         className="bg-cdbg border border-cdborder rounded px-2 py-1.5 text-xs text-cdtext font-mono"
+                        aria-label="To date (dd/mm/yyyy)"
                     />
                 </label>
                 <button
@@ -333,6 +338,8 @@ const StravaVsLogGapPanel = ({
                     {cacheNotice}
                 </div>
             )}
+
+            {typeof scanError === 'string' && scanError.trim() !== '' && (
                 <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded p-2 flex gap-2">
                     <AlertCircle size={14} className="shrink-0 mt-0.5" /> {scanError}
                 </div>

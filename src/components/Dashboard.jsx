@@ -43,6 +43,7 @@ const Dashboard = ({
     referenceEndDate,
     userSettings,
     updateUserSettings,
+    cloudVolumeGoalsSynced = false,
 }) => {
     const [dashboardTab, setDashboardTab] = useState('overview');
 
@@ -175,6 +176,7 @@ const Dashboard = ({
                     onOpenActivityInLog={onOpenActivityInLog}
                     userSettings={userSettings}
                     updateUserSettings={updateUserSettings}
+                    cloudVolumeGoalsSynced={cloudVolumeGoalsSynced}
                 />
             )}
 

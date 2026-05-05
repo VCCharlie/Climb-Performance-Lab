@@ -275,6 +275,10 @@ The app has **9 main tabs**, some with sub-tabs:
 - **User-facing strings** (labels, empty states, errors, coach copy): **English only** for new and changed code (see `.cursorrules`).
 - **Code comments**: Prefer English; older files may still contain Dutch notes.
 
+### Dates (calendar order in the UI)
+- **User-editable calendar dates** must use **day/month/year (dd/mm/yyyy)** order in the interface, independent of the browser locale. Use `NlDateInput` plus `formatIsoToNlDmy` / `parseNlDmyToIso` from `src/utils/formatters.js` (state stays ISO `YYYY-MM-DD` internally).
+- Do **not** use `<input type="date">` for app-controlled ranges: native pickers follow the OS locale (often mm/dd/yyyy). Prefer `NlDateInput` or explicit dd/mm formatting.
+
 ### File Size Guideline (from AGENTS.md)
 - Files exceeding 200 lines should be evaluated for extraction into helper modules
 - Follow Separation of Concerns: keep business logic out of UI components
