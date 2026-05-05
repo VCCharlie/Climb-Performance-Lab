@@ -79,6 +79,10 @@ const StravaVsLogGapPanel = ({
     }, []);
 
     useEffect(() => {
+        setScanError(null);
+    }, [stravaAthleteId]);
+
+    useEffect(() => {
         const m = mergeStravaVsLogUi(persistedUi);
         setStartYmd(m.startYmd);
         setEndYmd(m.endYmd);
@@ -174,7 +178,8 @@ const StravaVsLogGapPanel = ({
                 }
             }
         } catch (e) {
-            setScanError(e?.message || 'Strava scan failed');
+            const msg = e?.message != null ? String(e.message).trim() : '';
+            setScanError(msg || 'Strava scan failed');
         } finally {
             setScanBusy(false);
             setScanProgress('');
@@ -334,7 +339,7 @@ const StravaVsLogGapPanel = ({
                 </div>
             )}
 
-            {scanError && (
+            {typeof scanError === 'string' && scanError.trim() !== '' && (
                 <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded p-2 flex gap-2">
                     <AlertCircle size={14} className="shrink-0 mt-0.5" /> {scanError}
                 </div>
