@@ -162,11 +162,11 @@ const SettingsModal = ({
                             <div className="grid grid-cols-1 gap-4">
                                 <div>
                                     <label className={`block text-xs uppercase font-bold mb-1 ${labelClass}`}>Athlete ID</label>
-                                    <input type="text" value={intervalsConfig.athleteId} onChange={e => updateIntervalsConfig('athleteId', e.target.value)} className={`w-full border rounded p-3 outline-none ${inputClass}`} />
+                                    <input type="text" maxLength={30} value={intervalsConfig.athleteId} onChange={e => updateIntervalsConfig('athleteId', e.target.value)} className={`w-full border rounded p-3 outline-none ${inputClass}`} />
                                 </div>
                                 <div className="pt-2">
                                     <label className={`block text-xs uppercase font-bold mb-1 ${labelClass}`}>API Key</label>
-                                    <input type="password" value={intervalsConfig.apiKey} onChange={e => updateIntervalsConfig('apiKey', e.target.value)} className={`w-full border rounded p-3 outline-none ${inputClass}`} />
+                                    <input type="password" maxLength={100} value={intervalsConfig.apiKey} onChange={e => updateIntervalsConfig('apiKey', e.target.value)} className={`w-full border rounded p-3 outline-none ${inputClass}`} />
                                 </div>
                                 {/* GitHub PAT for manual sync trigger */}
                                 <div className="pt-2 border-t border-cdborder/30 mt-2">
@@ -176,6 +176,7 @@ const SettingsModal = ({
                                     </label>
                                     <input
                                         type="password"
+                                        maxLength={100}
                                         placeholder="ghp_xxxxxxxxxxxxxxxxxx"
                                         value={userSettings.githubPat || ''}
                                         onChange={e => updateUserSettings('githubPat', e.target.value)}
@@ -200,6 +201,7 @@ const SettingsModal = ({
                                     </label>
                                     <input
                                         type="password"
+                                        maxLength={100}
                                         placeholder="Voer API key in..."
                                         value={userSettings.openweatherApiKey || ''}
                                         onChange={e => updateUserSettings('openweatherApiKey', e.target.value)}
@@ -251,6 +253,7 @@ const SettingsModal = ({
                                         <label className={`block text-xs uppercase font-bold mb-1 ${labelClass}`}>Client ID</label>
                                         <input
                                             type="text"
+                                            maxLength={30}
                                             placeholder="12345"
                                             value={stravaConfig?.client_id || ''}
                                             onChange={e => updateStravaConfig('client_id', e.target.value)}
@@ -261,6 +264,7 @@ const SettingsModal = ({
                                         <label className={`block text-xs uppercase font-bold mb-1 ${labelClass}`}>Client Secret</label>
                                         <input
                                             type="password"
+                                            maxLength={100}
                                             placeholder="••••••••••••••••"
                                             value={stravaConfig?.client_secret || ''}
                                             onChange={e => updateStravaConfig('client_secret', e.target.value)}

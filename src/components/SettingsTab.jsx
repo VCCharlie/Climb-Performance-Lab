@@ -73,11 +73,11 @@ const SettingsTab = ({ intervalsConfig, updateIntervalsConfig, onSaveToCloud, th
                     <div className="grid grid-cols-1 gap-4">
                         <div>
                             <label className={`block text-xs uppercase font-bold mb-1 ${labelClass}`}>Athlete ID</label>
-                            <input type="text" placeholder="e.g. i12345" value={intervalsConfig.athleteId} onChange={e => updateIntervalsConfig('athleteId', e.target.value)} className={`w-full border rounded p-3 focus:border-orange-400 outline-none transition-colors ${inputClass}`} />
+                            <input type="text" maxLength={30} placeholder="e.g. i12345" value={intervalsConfig.athleteId} onChange={e => updateIntervalsConfig('athleteId', e.target.value)} className={`w-full border rounded p-3 focus:border-orange-400 outline-none transition-colors ${inputClass}`} />
                         </div>
                         <div>
                             <label className={`block text-xs uppercase font-bold mb-1 ${labelClass}`}>API Key</label>
-                            <input type="password" placeholder="Your API Key" value={intervalsConfig.apiKey} onChange={e => updateIntervalsConfig('apiKey', e.target.value)} className={`w-full border rounded p-3 focus:border-orange-400 outline-none transition-colors ${inputClass}`} />
+                            <input type="password" maxLength={100} placeholder="Your API Key" value={intervalsConfig.apiKey} onChange={e => updateIntervalsConfig('apiKey', e.target.value)} className={`w-full border rounded p-3 focus:border-orange-400 outline-none transition-colors ${inputClass}`} />
                         </div>
                     </div>
                 )}
