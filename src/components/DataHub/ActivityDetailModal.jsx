@@ -24,7 +24,7 @@ const StatBox = ({ label, value, unit, icon, color = "text-cdmuted" }) => (
     </div>
 );
 
-const ActivityDetailModal = ({ activity, onClose, getStravaToken }) => {
+const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp }) => {
     const [stravaData, setStravaData] = useState(null);
     const [stravaLoading, setStravaLoading] = useState(false);
     const [stravaError, setStravaError] = useState(null);
@@ -61,6 +61,12 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken }) => {
     }, [activity?.strava_id, getStravaToken]);
 
     if (!activity) return null;
+
+    /** Intensity factor IF = NP ÷ FTP (TrainingPeaks-style); uses profile FTP from Settings, not per-activity. */
+    const ftpForIf = Number(profileFtp) > 0 ? Number(profileFtp) : null;
+    const normPowerForIf = Number(activity.norm_power);
+    const intensityFactor =
+        ftpForIf != null && normPowerForIf > 0 ? (normPowerForIf / ftpForIf).toFixed(2) : null;
 
     const polyline = stravaData?.map?.summary_polyline;
     const segments = stravaData?.segment_efforts || [];
@@ -139,9 +145,16 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken }) => {
                                     <div className="text-xs text-cdmuted">NP®</div>
                                     <div className="font-bold text-yellow-400">{activity.norm_power}w</div>
                                 </div>
-                                <div className="bg-cdborder/30 p-2 rounded text-center">
-                                    <div className="text-xs text-cdmuted">Intensity</div>
-                                    <div className="font-bold text-cdtext">{activity.ftp > 0 ? (activity.norm_power / activity.ftp).toFixed(2) : '-'}</div>
+                                <div
+                                    className="bg-cdborder/30 p-2 rounded text-center"
+                                    title={
+                                        ftpForIf == null
+                                            ? 'Intensity factor (NP ÷ FTP). Set FTP in Settings → Profile to see this value.'
+                                            : 'Intensity factor (NP ÷ FTP) using your profile FTP from Settings.'
+                                    }
+                                >
+                                    <div className="text-xs text-cdmuted">IF®</div>
+                                    <div className="font-bold text-cdtext">{intensityFactor ?? '-'}</div>
                                 </div>
                                 <div className="bg-cdborder/30 p-2 rounded text-center">
                                     <div className="text-xs text-cdmuted">Work</div>

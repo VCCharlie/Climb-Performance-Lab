@@ -770,6 +770,7 @@ const App = () => {
                                 activityLogRangesExpanded={activityLogRangesExpanded}
                                 onActivityLogRangesExpandedChange={setActivityLogRangesExpanded}
                                 initialInternalTab={dataHubInternalTabFromRestore()}
+                                profileFtp={userSettings?.ftp}
                             />
                         )}
 
