@@ -193,6 +193,7 @@ const LongestRidesPanel = ({
                                 accentClass="border-emerald-500/35 bg-emerald-500/[0.07]"
                                 bounds={boundsPrimary}
                                 stats={statsPrimary}
+                                showRideAverages
                             />
                             {compareBounds && (
                                 <PeriodSummaryCard
@@ -200,6 +201,7 @@ const LongestRidesPanel = ({
                                     accentClass="border-blue-500/35 bg-blue-500/[0.07]"
                                     bounds={compareBounds}
                                     stats={statsCompare}
+                                    showRideAverages
                                 />
                             )}
                         </div>

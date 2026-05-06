@@ -90,13 +90,24 @@ describe('boundsToYmdPair', () => {
 describe('aggregatePeriodStats', () => {
     it('sums distance and climbing', () => {
         const acts = [
-            { distance: 50, climbing: 500 },
-            { distance: 30, climbing: 300 },
+            { distance: 50, climbing: 500, avg_speed: 25 },
+            { distance: 30, climbing: 300, avg_speed: 27 },
         ];
         const s = aggregatePeriodStats(acts);
         expect(s.rideCount).toBe(2);
         expect(s.distanceKm).toBe(80);
         expect(s.elevationM).toBe(800);
+        expect(s.avgDistanceKm).toBe(40);
+        expect(s.avgSpeedKmh).toBe(26);
+    });
+
+    it('returns null averages when empty or no speeds', () => {
+        expect(aggregatePeriodStats([]).avgDistanceKm).toBeNull();
+        expect(aggregatePeriodStats([]).avgSpeedKmh).toBeNull();
+        const noSpeed = [{ distance: 10, climbing: 100 }];
+        const s = aggregatePeriodStats(noSpeed);
+        expect(s.avgDistanceKm).toBe(10);
+        expect(s.avgSpeedKmh).toBeNull();
     });
 });
 
