@@ -4,7 +4,13 @@ import { formatDateDDMMYYYY, formatNlNumber } from '../../utils';
 import { activityExternalLinks } from '../../utils/dashboardActivityPeaks';
 import { formatLongRange } from './powerTopTenByDurationConstants';
 
-export const PeriodSummaryCard = ({ title, accentClass, bounds, stats }) => (
+export const PeriodSummaryCard = ({
+    title,
+    accentClass,
+    bounds,
+    stats,
+    showRideAverages = false,
+}) => (
     <div className={`rounded-lg border p-3 ${accentClass}`}>
         <div className="text-[10px] font-bold uppercase text-cdmuted mb-1">{title}</div>
         <p className="text-xs text-cdtext font-medium leading-snug mb-3">{bounds ? formatLongRange(bounds) : '—'}</p>
@@ -24,6 +30,26 @@ export const PeriodSummaryCard = ({ title, accentClass, bounds, stats }) => (
                 <div className="text-sm font-mono font-bold text-cdtext tabular-nums">{formatNlNumber(stats.elevationM)} m</div>
             </div>
         </div>
+        {showRideAverages && (
+            <div className="grid grid-cols-2 gap-2 text-center sm:text-left mt-2 pt-2 border-t border-cdborder/40">
+                <div>
+                    <div className="text-[9px] uppercase tracking-wide text-cdmuted font-bold">Avg distance</div>
+                    <div className="text-sm font-mono font-bold text-cdtext tabular-nums">
+                        {stats.avgDistanceKm != null && stats.rideCount > 0
+                            ? `${formatNlNumber(Math.round(stats.avgDistanceKm * 10) / 10)} km`
+                            : '—'}
+                    </div>
+                </div>
+                <div>
+                    <div className="text-[9px] uppercase tracking-wide text-cdmuted font-bold">Avg speed</div>
+                    <div className="text-sm font-mono font-bold text-cdtext tabular-nums">
+                        {stats.avgSpeedKmh != null
+                            ? `${formatNlNumber(Math.round(stats.avgSpeedKmh * 10) / 10)} km/h`
+                            : '—'}
+                    </div>
+                </div>
+            </div>
+        )}
     </div>
 );
 

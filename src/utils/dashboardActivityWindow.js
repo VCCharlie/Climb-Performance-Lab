@@ -3,7 +3,11 @@
  * Eindigt op referenceEndDate (EOD); start = zelfde rolling/cutoff als site-preset.
  */
 
-import { activityDistanceKm } from './activityFilterMetrics';
+import {
+    activityDistanceKm,
+    activityAvgSpeedKmh,
+    activityMovingTimeSec,
+} from './activityFilterMetrics';
 
 /**
  * @returns {{ start: Date, end: Date } | null}
@@ -121,16 +125,27 @@ export function aggregatePeriodStats(activities) {
     const list = activities || [];
     let distanceKm = 0;
     let elevationM = 0;
+    let speedSum = 0;
+    let speedCount = 0;
     for (const a of list) {
         const dk = activityDistanceKm(a);
         if (dk != null && !Number.isNaN(dk)) distanceKm += dk;
         const el = Number(a?.climbing);
         if (!Number.isNaN(el) && el > 0) elevationM += el;
+        const timeSec = activityMovingTimeSec(a);
+        const spd = activityAvgSpeedKmh(a, dk, timeSec);
+        if (spd != null && !Number.isNaN(spd)) {
+            speedSum += spd;
+            speedCount += 1;
+        }
     }
+    const rideCount = list.length;
     return {
-        rideCount: list.length,
+        rideCount,
         distanceKm,
         elevationM: Math.round(elevationM),
+        avgDistanceKm: rideCount > 0 ? distanceKm / rideCount : null,
+        avgSpeedKmh: speedCount > 0 ? speedSum / speedCount : null,
     };
 }
 
