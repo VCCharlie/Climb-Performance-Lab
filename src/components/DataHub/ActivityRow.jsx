@@ -1,13 +1,29 @@
 ﻿import React from 'react';
 import { Monitor, Footprints, Mountain, Bike, Trash2, ExternalLink } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
+import { activityIntensityFactor } from '../../utils/activityFilterMetrics';
 import { ACTIVITY_TABLE_COLUMNS } from '../../config';
 
-const ActivityRow = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview = false, isSelected = false, onToggleSelect, onToggleType, onViewDetail }) => {
+const ActivityRow = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview = false, isSelected = false, onToggleSelect, onToggleType, onViewDetail, profileFtp }) => {
     if (!act) return null;
 
     const renderCell = (col) => {
         try {
+            if (col.key === 'intensity_factor') {
+                const ifVal = activityIntensityFactor(act.norm_power, profileFtp);
+                if (ifVal == null) {
+                    const hint = !(Number(profileFtp) > 0)
+                        ? 'Set FTP in Settings to compute IF'
+                        : 'No normalized power for this activity';
+                    return <span className="text-cdmuted" title={hint}>—</span>;
+                }
+                return (
+                    <span className="text-cdtext tabular-nums font-medium" title="Intensity factor (NP ÷ profile FTP)">
+                        {ifVal.toFixed(2)}
+                    </span>
+                );
+            }
+
             const val = act[col.key];
             if (val === null || val === undefined) return <span className="text-slate-600">-</span>;
 

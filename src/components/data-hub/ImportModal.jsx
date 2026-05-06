@@ -16,7 +16,8 @@ const ImportModal = ({
     requestPreviewSort,
     confirmImport,
     rawData,
-    sortedFetchedActivities
+    sortedFetchedActivities,
+    profileFtp,
 }) => {
     const [showDebug, setShowDebug] = useState(false);
 
@@ -41,7 +42,7 @@ const ImportModal = ({
                         <TableHeader config={previewSortConfig} requestSort={requestPreviewSort} hasActions={false} isPreview={true} />
                         <tbody className="divide-y divide-cdborder bg-cdsurface">
                             {sortedFetchedActivities.map(act => (
-                                <Row key={act.id} act={act} isPreview={true} isSelected={selectedActivities.includes(act.id)} onToggleSelect={(id) => { if (selectedActivities.includes(id)) setSelectedActivities(s => s.filter(x => x !== id)); else setSelectedActivities(s => [...s, id]); }} onToggleType={toggleActivityTypeInPreview} />
+                                <Row key={act.id} act={act} isPreview={true} isSelected={selectedActivities.includes(act.id)} onToggleSelect={(id) => { if (selectedActivities.includes(id)) setSelectedActivities(s => s.filter(x => x !== id)); else setSelectedActivities(s => [...s, id]); }} onToggleType={toggleActivityTypeInPreview} profileFtp={profileFtp} />
                             ))}
                         </tbody>
                     </table>

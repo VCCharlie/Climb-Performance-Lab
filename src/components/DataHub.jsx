@@ -19,6 +19,7 @@ import { enrichActivityGearFromStrava, buildStravaDetailEnrichmentUpdates } from
 import { buildStravaKomSummaryFromActivityDetail } from '../utils/stravaSegmentKomSummary';
 import { resolveStravaGearDisplay } from '../utils/stravaBikesLocalMap';
 import { buildClimbMatchIndex, findBestClimbUsingIndex } from '../utils/activityClimbMatch';
+import { activityIntensityFactor } from '../utils/activityFilterMetrics';
 import { formatNlNumber } from '../utils/formatters';
 import {
     fetchStravaActivitiesInRange,
@@ -193,7 +194,7 @@ const DataHub = ({
         filterKjMax, setFilterKjMax,
         filterGearId, setFilterGearId,
         clearMetricFilters,
-    } = useActivityFilter(activities);
+    } = useActivityFilter(activities, profileFtp);
 
     const gearFilterOptions = useMemo(() => {
         const map = new Map();
@@ -1231,6 +1232,16 @@ const DataHub = ({
         const list = [...fetchedActivities];
         if (previewSortConfig.key) {
             list.sort((a, b) => {
+                if (previewSortConfig.key === 'intensity_factor') {
+                    const fa = activityIntensityFactor(a.norm_power, profileFtp);
+                    const fb = activityIntensityFactor(b.norm_power, profileFtp);
+                    const nullSentinel = previewSortConfig.direction === 'desc' ? -Infinity : Infinity;
+                    const aNum = fa != null ? fa : nullSentinel;
+                    const bNum = fb != null ? fb : nullSentinel;
+                    if (aNum < bNum) return previewSortConfig.direction === 'asc' ? -1 : 1;
+                    if (aNum > bNum) return previewSortConfig.direction === 'asc' ? 1 : -1;
+                    return 0;
+                }
                 let aVal = a[previewSortConfig.key];
                 let bVal = b[previewSortConfig.key];
                 if (typeof aVal === 'string') { aVal = aVal.toLowerCase(); bVal = bVal ? bVal.toLowerCase() : ''; }
@@ -1241,7 +1252,7 @@ const DataHub = ({
             });
         }
         return list;
-    }, [fetchedActivities, previewSortConfig]);
+    }, [fetchedActivities, previewSortConfig, profileFtp]);
 
 
     return (
@@ -1284,6 +1295,7 @@ const DataHub = ({
                 confirmImport={confirmImport}
                 rawData={rawData}
                 sortedFetchedActivities={sortedFetchedActivities}
+                profileFtp={profileFtp}
             />
             {showDuplicateModal && (
                 <DuplicateResolver
@@ -1992,6 +2004,7 @@ const DataHub = ({
                                 onToggleSelectAllVisible={toggleSelectAllVisible}
                                 onOpenProfiler={onOpenProfilerFromActivity}
                                 profilerClimbByActivityId={profilerClimbByActivityId}
+                                profileFtp={profileFtp}
                             />
                         )}
                     </>

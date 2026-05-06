@@ -5,6 +5,7 @@ import {
     Mountain, Edit2, Trash2, ExternalLink, Route, Trophy, Crown,
 } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
+import { activityIntensityFactor } from '../../utils/activityFilterMetrics';
 import { resolveStravaGearDisplay } from '../../utils/stravaBikesLocalMap';
 import { getKomBadgeCountsFromSummary, getKomBadgeDisplaySlots } from '../../utils/stravaSegmentKomSummary';
 import { ACTIVITY_TABLE_COLUMNS, MONTH_ORDER } from '../../config';
@@ -121,6 +122,7 @@ export const Row = React.memo(({
     onOpenProfiler,
     profilerClimbByActivityId,
     showBulkSelect = false,
+    profileFtp,
 }) => {
     const [isConfirmingDelete, setIsConfirmingDelete] = React.useState(false);
 
@@ -128,6 +130,21 @@ export const Row = React.memo(({
 
     const renderCell = (col) => {
         try {
+            if (col.key === 'intensity_factor') {
+                const ifVal = activityIntensityFactor(act.norm_power, profileFtp);
+                if (ifVal == null) {
+                    const hint = !(Number(profileFtp) > 0)
+                        ? 'Set FTP in Settings to compute IF'
+                        : 'No normalized power for this activity';
+                    return <span className="text-cdmuted" title={hint}>—</span>;
+                }
+                return (
+                    <span className="text-cdtext tabular-nums font-medium" title="Intensity factor (NP ÷ profile FTP)">
+                        {ifVal.toFixed(2)}
+                    </span>
+                );
+            }
+
             const val = act[col.key];
             if (val === null || val === undefined) return <span className="text-slate-600">-</span>;
 
@@ -341,6 +358,7 @@ export const Row = React.memo(({
         prevProps.isPreview === nextProps.isPreview &&
         prevProps.showBulkSelect === nextProps.showBulkSelect &&
         prevProps.profilerClimbByActivityId === nextProps.profilerClimbByActivityId &&
+        prevProps.profileFtp === nextProps.profileFtp &&
         prevProps.onOpenProfiler === nextProps.onOpenProfiler &&
         prevProps.onViewDetail === nextProps.onViewDetail
     );
@@ -365,6 +383,7 @@ const ActivityTable = React.memo(({
     showBulkSelect = false,
     allVisibleSelected = false,
     onToggleSelectAllVisible,
+    profileFtp,
 }) => {
     return (
         <div className="overflow-x-auto overflow-y-auto flex-1 border border-cdborder rounded-lg custom-scrollbar relative max-h-[70vh]">
@@ -398,6 +417,7 @@ const ActivityTable = React.memo(({
                                                 showBulkSelect={showBulkSelect}
                                                 onOpenProfiler={onOpenProfiler}
                                                 profilerClimbByActivityId={profilerClimbByActivityId}
+                                                profileFtp={profileFtp}
                                             />
                                         ))}
                                     </React.Fragment>
@@ -417,6 +437,7 @@ const ActivityTable = React.memo(({
                                 showBulkSelect={showBulkSelect}
                                 onOpenProfiler={onOpenProfiler}
                                 profilerClimbByActivityId={profilerClimbByActivityId}
+                                profileFtp={profileFtp}
                             />
                         ))
                     )}
