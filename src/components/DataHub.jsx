@@ -69,6 +69,8 @@ const DataHub = ({
     activityLogRangesExpanded = false,
     onActivityLogRangesExpandedChange,
     initialInternalTab = 'log',
+    /** Profile FTP (Settings) — used for intensity factor NP÷FTP in activity detail modal */
+    profileFtp,
 }) => {
     // UI State
     const [internalTab, setInternalTab] = useState(() => (
@@ -1250,6 +1252,7 @@ const DataHub = ({
                     activity={detailActivity}
                     onClose={() => setDetailActivity(null)}
                     getStravaToken={stravaGetToken}
+                    profileFtp={profileFtp}
                 />
             )}
             {editingActivity && (
