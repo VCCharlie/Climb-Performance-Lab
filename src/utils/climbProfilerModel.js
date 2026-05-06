@@ -107,8 +107,9 @@ export function computePowerRecommendations(profileData, ftp, intensityFraction)
 }
 
 export function computeClimbStats(profileData, selectedClimb) {
-    const maxGradient = Math.max(...profileData.map(p => p.gradient));
-    const minGradient = Math.min(...profileData.map(p => p.gradient));
+    // ⚡ Bolt Optimization: Use single-pass reduce to avoid call stack limits on long profiles
+    const maxGradient = profileData.reduce((max, p) => Math.max(max, p.gradient), -Infinity);
+    const minGradient = profileData.reduce((min, p) => Math.min(min, p.gradient), Infinity);
     const steepSections = profileData.filter(p => p.gradient > 10).length;
     const steepPercentage = (steepSections / profileData.length) * 100;
 

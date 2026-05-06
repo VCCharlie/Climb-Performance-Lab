@@ -146,8 +146,9 @@ const ClimbSelector = ({
   const [locError, setLocError] = useState('');
 
   // Range filters — initialized to cover full range
-  const dataMaxScore = useMemo(() => Math.max(...CLIMB_DATABASE.map(c => c.score || 0)), []);
-  const dataMaxFiets = useMemo(() => Math.max(...CLIMB_DATABASE.map(c => c.fiets || 0)), []);
+  // ⚡ Bolt Optimization: Use single-pass reduce instead of Math.max(...array.map())
+  const dataMaxScore = useMemo(() => CLIMB_DATABASE.reduce((max, c) => Math.max(max, c.score || 0), 0), []);
+  const dataMaxFiets = useMemo(() => CLIMB_DATABASE.reduce((max, c) => Math.max(max, c.fiets || 0), 0), []);
 
   const [minKm, setMinKm] = useState(0);
   const [maxKm, setMaxKm] = useState(200);

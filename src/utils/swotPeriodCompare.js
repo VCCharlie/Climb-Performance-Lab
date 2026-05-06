@@ -67,7 +67,7 @@ export function summarizeActivityWindow(activities, rangeStart, rangeEnd, ftp) {
         avgHoursPerWeek: totalSeconds / weeksInPeriod / 3600,
         avgElevPerWeek: totalElev / weeksInPeriod,
         highIntensityCount: highIntensity,
-        best5m: list.length ? Math.max(...list.map((a) => a.best_5min || 0)) : 0,
+        best5m: list.reduce((max, a) => Math.max(max, a.best_5min || 0), 0),
     };
 }
 

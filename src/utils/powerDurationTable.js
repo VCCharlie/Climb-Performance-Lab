@@ -59,7 +59,8 @@ function capSteadyAverageWatts(w, manualFtp) {
 
 function maxAnchorSec(anchors) {
     if (!anchors?.length) return 0;
-    return Math.max(...anchors.map((a) => a.sec));
+    // ⚡ Bolt Optimization: Use reduce instead of Math.max(...array.map()) to prevent call stack issues
+    return anchors.reduce((max, a) => Math.max(max, a.sec), 0);
 }
 
 /**

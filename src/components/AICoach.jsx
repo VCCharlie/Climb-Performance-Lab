@@ -132,9 +132,8 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
         }
 
         // Power Profile (Best 5m)
-        const best5m = periodActivities.length
-            ? Math.max(...periodActivities.map((a) => a.best_5min || 0))
-            : 0;
+        // ⚡ Bolt Optimization: Calculate max without spread operator on .map() result
+        const best5m = periodActivities.reduce((max, a) => Math.max(max, a.best_5min || 0), 0);
         if (ftp > 0 && best5m > ftp * 1.15) {
             strengths.push({
                 label: "Sterke VO2 Max Engine",

@@ -38,10 +38,14 @@ const PowerCurveChart = ({ data, manualFtp }) => {
         return DURATIONS.map(({ key, label }) => {
             // Apply sanity cap when FTP is known; otherwise use absolute ceiling of 1500 W
             const cap = manualFtp > 0 ? manualFtp * FTP_CAPS[key] : 1500;
-            const peak = Math.max(0, ...data
-                .map(a => Number(a[key]) || 0)
-                .filter(v => v <= cap)
-            );
+
+            // ⚡ Bolt Optimization: Use single-pass reduce instead of Math.max(...array.map().filter())
+            // Prevents call stack exceeded errors on large datasets and avoids intermediate array allocations
+            const peak = data.reduce((max, a) => {
+                const v = Number(a[key]) || 0;
+                return (v <= cap && v > max) ? v : max;
+            }, 0);
+
             return { label, watts: peak > 0 ? peak : null };
         }).filter(p => p.watts !== null);
     }, [data, manualFtp]);
