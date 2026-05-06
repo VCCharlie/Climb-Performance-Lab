@@ -7,7 +7,7 @@ import {
     previousWindowBounds,
     compareDaysBeforeWindow,
     boundsFromYmdRange,
-    aggregatePeriodStats,
+    aggregateStatsFromLongestRideRows,
     topNLongestRidesByDistanceKm,
     boundsToYmdPair,
 } from '../../utils/dashboardActivityWindow';
@@ -77,8 +77,16 @@ const LongestRidesPanel = ({
         [chartData, compareBounds],
     );
 
-    const statsPrimary = useMemo(() => aggregatePeriodStats(currentActs), [currentActs]);
-    const statsCompare = useMemo(() => aggregatePeriodStats(compareActs), [compareActs]);
+    const periodLabel = dashboardFilterLabel(timeRange);
+
+    const primaryRows = useMemo(() => topNLongestRidesByDistanceKm(currentActs, 10), [currentActs]);
+    const compareRows = useMemo(
+        () => (compareBounds ? topNLongestRidesByDistanceKm(compareActs, 10) : []),
+        [compareActs, compareBounds],
+    );
+
+    const statsPrimary = useMemo(() => aggregateStatsFromLongestRideRows(primaryRows), [primaryRows]);
+    const statsCompare = useMemo(() => aggregateStatsFromLongestRideRows(compareRows), [compareRows]);
 
     const diffSummary = useMemo(() => {
         if (!compareBounds || !boundsPrimary) return null;
@@ -91,14 +99,6 @@ const LongestRidesPanel = ({
         };
         return `Difference (column 1 − column 2): rides ${fmt(dr)} · km ${fmt(dk)} · elevation ${fmt(de, ' m')}`;
     }, [compareBounds, boundsPrimary, statsPrimary, statsCompare]);
-
-    const periodLabel = dashboardFilterLabel(timeRange);
-
-    const primaryRows = useMemo(() => topNLongestRidesByDistanceKm(currentActs, 10), [currentActs]);
-    const compareRows = useMemo(
-        () => (compareBounds ? topNLongestRidesByDistanceKm(compareActs, 10) : []),
-        [compareActs, compareBounds],
-    );
 
     if (!chartData?.length || !dashboardBounds) return null;
 
@@ -185,6 +185,12 @@ const LongestRidesPanel = ({
                             </label>
                         )}
                     </div>
+
+                    {boundsPrimary && (
+                        <p className="text-[11px] text-cdmuted leading-relaxed">
+                            Totals and averages in the boxes below include only the rides listed in the tables (top 10 by distance per column), not every ride in the date range.
+                        </p>
+                    )}
 
                     {boundsPrimary && (
                         <div className={`grid gap-3 ${compareBounds ? 'lg:grid-cols-2' : ''}`}>
