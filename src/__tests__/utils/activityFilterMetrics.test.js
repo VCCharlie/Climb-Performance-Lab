@@ -3,6 +3,7 @@ import {
   activityDistanceKm,
   activityMovingTimeSec,
   activityAvgSpeedKmh,
+  activityIntensityFactor,
   parseNumericBound,
   inNumericRange,
 } from '../../utils/activityFilterMetrics';
@@ -31,6 +32,18 @@ describe('activityAvgSpeedKmh', () => {
   it('derives from distance and time when avg_speed missing', () => {
     const spd = activityAvgSpeedKmh({ avg_speed: 0 }, 40, 3600);
     expect(spd).toBeCloseTo(40);
+  });
+});
+
+describe('activityIntensityFactor', () => {
+  it('returns NP divided by FTP when both valid', () => {
+    expect(activityIntensityFactor(270, 300)).toBeCloseTo(0.9);
+  });
+
+  it('returns null without FTP or NP', () => {
+    expect(activityIntensityFactor(270, 0)).toBe(null);
+    expect(activityIntensityFactor(0, 300)).toBe(null);
+    expect(activityIntensityFactor(undefined, 300)).toBe(null);
   });
 });
 

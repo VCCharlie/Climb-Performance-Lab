@@ -5,6 +5,7 @@ import {
     activityDistanceKm,
     activityMovingTimeSec,
     activityAvgSpeedKmh,
+    activityIntensityFactor,
     parseNumericBound,
     inNumericRange,
 } from '../utils/activityFilterMetrics';
@@ -42,7 +43,7 @@ function parseActivityDate(a) {
     }
 }
 
-const useActivityFilter = (activities) => {
+const useActivityFilter = (activities, profileFtp) => {
     const [search, setSearch] = useState("");
     const [indoorFilter, setIndoorFilter] = useState('all'); // 'all', 'indoor', 'outdoor'
     const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
@@ -242,6 +243,17 @@ const useActivityFilter = (activities) => {
 
         if (sortConfig.key) {
             filtered.sort((a, b) => {
+                if (sortConfig.key === 'intensity_factor') {
+                    const fa = activityIntensityFactor(a.norm_power, profileFtp);
+                    const fb = activityIntensityFactor(b.norm_power, profileFtp);
+                    const nullSentinel = sortConfig.direction === 'desc' ? -Infinity : Infinity;
+                    const aNum = fa != null ? fa : nullSentinel;
+                    const bNum = fb != null ? fb : nullSentinel;
+                    if (aNum < bNum) return sortConfig.direction === 'asc' ? -1 : 1;
+                    if (aNum > bNum) return sortConfig.direction === 'asc' ? 1 : -1;
+                    return 0;
+                }
+
                 let aVal = a[sortConfig.key];
                 let bVal = b[sortConfig.key];
 
@@ -261,7 +273,7 @@ const useActivityFilter = (activities) => {
             });
         }
         return filtered;
-    }, [activities, search, sortConfig, indoorFilter, virtualRideChip, thisWeekOnly, rollingDays, stravaLinkedOnly, noPowerOnly, withPowerOnly, highLoadOnly, longRideOnly, missingHrOnly, minTss, filterGearId, filterDistMin, filterDistMax, filterSpeedMin, filterSpeedMax, filterPowerMin, filterPowerMax, filterDurMinMin, filterDurMaxMin, filterElevMin, filterElevMax, filterKjMin, filterKjMax]);
+    }, [activities, search, sortConfig, profileFtp, indoorFilter, virtualRideChip, thisWeekOnly, rollingDays, stravaLinkedOnly, noPowerOnly, withPowerOnly, highLoadOnly, longRideOnly, missingHrOnly, minTss, filterGearId, filterDistMin, filterDistMax, filterSpeedMin, filterSpeedMax, filterPowerMin, filterPowerMax, filterDurMinMin, filterDurMaxMin, filterElevMin, filterElevMax, filterKjMin, filterKjMax]);
 
     const isGroupedView = sortConfig.key === 'date';
 

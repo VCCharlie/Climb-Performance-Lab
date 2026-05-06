@@ -43,6 +43,17 @@ export function activityAvgSpeedKmh(a, distKm, timeSec) {
 }
 
 /**
+ * Intensity factor IF = NP ÷ FTP (profile FTP from settings, not stored on activity).
+ * @returns {number | null}
+ */
+export function activityIntensityFactor(normPowerWatts, profileFtpWatts) {
+    const np = Number(normPowerWatts);
+    const ftp = Number(profileFtpWatts);
+    if (!Number.isFinite(np) || np <= 0 || !Number.isFinite(ftp) || ftp <= 0) return null;
+    return np / ftp;
+}
+
+/**
  * @param {string | number} str
  * @returns {number | null} null = no bound
  */

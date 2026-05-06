@@ -21,6 +21,8 @@ export const ACTIVITY_COLUMNS = [
     { key: 'climbing', label: 'Elev', align: 'right', width: 'w-11' },
     { key: 'avg_speed', label: 'Spd', align: 'right', width: 'w-9' },
     { key: 'norm_power', label: 'NP', align: 'right', width: 'w-9', highlight: 'yellow' },
+    /** UI-only: NP ÷ profile FTP; omitted from CSV export. */
+    { key: 'intensity_factor', label: 'IF', align: 'right', width: 'w-9', omitFromExport: true },
     { key: 'avg_power', label: 'Avg', align: 'right', width: 'w-9' },
     { key: 'avg_hr', label: 'HR', align: 'right', width: 'w-9', text: 'slate-400' },
     { key: 'max_hr', label: 'Max', align: 'right', width: 'w-9', text: 'slate-400' },

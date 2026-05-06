@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, Clock, MapPin, Zap, ExternalLink, Mountain, TrendingUp, Loader2, AlertCircle, Star, Bike, Trophy, Crown } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
+import { activityIntensityFactor } from '../../utils/activityFilterMetrics';
 import StravaMap from './StravaMap';
 import { formatSegmentTime } from '../../utils/strava';
 
@@ -62,11 +63,9 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp }) 
 
     if (!activity) return null;
 
-    /** Intensity factor IF = NP ÷ FTP (TrainingPeaks-style); uses profile FTP from Settings, not per-activity. */
-    const ftpForIf = Number(profileFtp) > 0 ? Number(profileFtp) : null;
-    const normPowerForIf = Number(activity.norm_power);
-    const intensityFactor =
-        ftpForIf != null && normPowerForIf > 0 ? (normPowerForIf / ftpForIf).toFixed(2) : null;
+    /** Intensity factor IF = NP ÷ FTP (TrainingPeaks-style); uses profile FTP from Settings. */
+    const ifRaw = activityIntensityFactor(activity.norm_power, profileFtp);
+    const intensityFactor = ifRaw != null ? ifRaw.toFixed(2) : null;
 
     const polyline = stravaData?.map?.summary_polyline;
     const segments = stravaData?.segment_efforts || [];
@@ -148,7 +147,7 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp }) 
                                 <div
                                     className="bg-cdborder/30 p-2 rounded text-center"
                                     title={
-                                        ftpForIf == null
+                                        !(Number(profileFtp) > 0)
                                             ? 'Intensity factor (NP ÷ FTP). Set FTP in Settings → Profile to see this value.'
                                             : 'Intensity factor (NP ÷ FTP) using your profile FTP from Settings.'
                                     }
