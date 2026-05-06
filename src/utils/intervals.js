@@ -48,7 +48,8 @@ export const normalizeIntervalsActivity = (item) => {
 
     // Fallback 1: Nested intervals
     if (maxPower === 0 && item.icu_intervals && Array.isArray(item.icu_intervals)) {
-        const intervalMax = Math.max(...item.icu_intervals.map(i => Number(i.max_watts) || 0));
+        // ⚡ Bolt Optimization: Calculate max without spread operator on .map() result
+        const intervalMax = item.icu_intervals.reduce((max, i) => Math.max(max, Number(i.max_watts) || 0), 0);
         if (intervalMax > 0) {
             maxPower = intervalMax;
             maxPowerSource = 'Interval';

@@ -167,7 +167,8 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp }) 
                                     <div className="text-[10px] text-cdmuted mb-2 uppercase font-bold text-center">Peak Power Curve</div>
                                     <div className="flex justify-between items-end h-28 gap-2 px-2">
                                         {powerCurve.map((p, idx) => {
-                                            const maxVal = Math.max(...powerCurve.map(i => i.val));
+                                            // ⚡ Bolt Optimization: Calculate max without spread operator on .map() result
+                                            const maxVal = powerCurve.reduce((max, i) => Math.max(max, i.val), 0);
                                             const heightPct = (p.val / maxVal) * 100;
                                             return (
                                                 <div key={idx} className="flex-1 flex flex-col h-full justify-end items-center group relative">
