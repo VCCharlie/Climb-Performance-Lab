@@ -166,3 +166,12 @@ export function topNLongestRidesByDistanceKm(activities, n = 10) {
     rows.sort((x, y) => y.km - x.km);
     return rows.slice(0, cap);
 }
+
+/**
+ * Totals and averages for the rides listed in the longest-rides table only (same rows as topNLongestRidesByDistanceKm).
+ * @param {{ activity: object, km: number }[]} rows
+ */
+export function aggregateStatsFromLongestRideRows(rows) {
+    const activities = (rows || []).map((r) => r?.activity).filter(Boolean);
+    return aggregatePeriodStats(activities);
+}

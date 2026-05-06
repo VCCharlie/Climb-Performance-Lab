@@ -8,6 +8,7 @@ import {
     calendarYearBounds,
     boundsToYmdPair,
     aggregatePeriodStats,
+    aggregateStatsFromLongestRideRows,
     topNLongestRidesByDistanceKm,
 } from '../../utils/dashboardActivityWindow';
 
@@ -108,6 +109,29 @@ describe('aggregatePeriodStats', () => {
         const s = aggregatePeriodStats(noSpeed);
         expect(s.avgDistanceKm).toBe(10);
         expect(s.avgSpeedKmh).toBeNull();
+    });
+});
+
+describe('aggregateStatsFromLongestRideRows', () => {
+    it('matches aggregatePeriodStats on the listed rides only', () => {
+        const acts = [
+            { id: 1, distance: 50, climbing: 500, avg_speed: 25 },
+            { id: 2, distance: 100, climbing: 800, avg_speed: 28 },
+            { id: 3, distance: 30, climbing: 200, avg_speed: 22 },
+        ];
+        const rows = topNLongestRidesByDistanceKm(acts, 2);
+        const s = aggregateStatsFromLongestRideRows(rows);
+        expect(s.rideCount).toBe(2);
+        expect(s.distanceKm).toBe(150);
+        expect(s.elevationM).toBe(1300);
+        expect(s.avgDistanceKm).toBe(75);
+        expect(s.avgSpeedKmh).toBeCloseTo(26.5, 5);
+    });
+
+    it('returns zero rides when rows empty', () => {
+        const s = aggregateStatsFromLongestRideRows([]);
+        expect(s.rideCount).toBe(0);
+        expect(s.avgDistanceKm).toBeNull();
     });
 });
 
