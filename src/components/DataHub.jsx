@@ -256,7 +256,11 @@ const DataHub = ({
             }
             return ids;
         }
-        return processedActivities.map((a) => a.id).filter((id) => id != null).map((id) => String(id));
+        // ⚡ Bolt Optimization: Use single-pass reduce instead of chained map/filter/map
+        return processedActivities.reduce((acc, a) => {
+            if (a.id != null) acc.push(String(a.id));
+            return acc;
+        }, []);
     }, [processedActivities, groupedActivities, isGroupedView, sortConfig.direction, isYearExpanded, isMonthExpanded]);
 
     const allVisibleSelected = visibleActivityIdsFlat.length > 0
@@ -586,7 +590,11 @@ const DataHub = ({
                     });
                 }
 
-                const uniqueGearIds = [...new Set(bikeActivities.map(a => a.gear_id).filter(id => id && !bikesMap[id]))];
+                // ⚡ Bolt Optimization: Use single-pass reduce instead of chained map/filter
+                const uniqueGearIds = [...new Set(bikeActivities.reduce((acc, a) => {
+                    if (a.gear_id && !bikesMap[a.gear_id]) acc.push(a.gear_id);
+                    return acc;
+                }, []))];
                 if (uniqueGearIds.length > 0) {
                     // Bolt: Batch API calls to Strava to prevent rate limits and connection exhaustion
                     await runInBatches(uniqueGearIds, 5, async gid => {
