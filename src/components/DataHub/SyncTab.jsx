@@ -125,8 +125,8 @@ const SyncTab = ({ intervalsConfig, existingActivities, onSyncResults, getStrava
                 <div className="flex justify-between mb-2">
                     <label className="text-xs uppercase font-bold text-cdmuted">Types</label>
                     <div className="space-x-2">
-                        <button onClick={() => setAllSportFilters(true)} className="text-[10px] text-blue-400">All</button>
-                        <button onClick={() => setAllSportFilters(false)} className="text-[10px] text-blue-400">None</button>
+                        <button type="button" onClick={() => setAllSportFilters(true)} className="text-[10px] text-blue-400 hover:text-blue-300 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded px-1 transition-colors">All</button>
+                        <button type="button" onClick={() => setAllSportFilters(false)} className="text-[10px] text-blue-400 hover:text-blue-300 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded px-1 transition-colors">None</button>
                     </div>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
