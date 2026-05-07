@@ -27,3 +27,6 @@
 ## $(date +%Y-%m-%d) - Optimize Math.max spread usage
 **Learning:** Using `Math.max(...array.map(...))` on potentially large arrays can result in 'RangeError: Maximum call stack size exceeded' and causes unnecessary memory allocations due to intermediate array creation.
 **Action:** Replace `Math.max(...array.map(...))` with a single-pass `reduce` call (e.g. `array.reduce((max, item) => Math.max(max, item.value), 0)`).
+## 2026-05-30 - Optimize chained array allocations
+**Learning:** Chaining `.map().filter().map()` or `.map().filter()` causes unnecessary intermediate array allocations, increasing memory usage and garbage collection pressure, particularly when processing large data sets in React components like `DataHub.jsx`.
+**Action:** Replace these chained array operations with a single-pass `.reduce()` to iterate the data only once and populate the accumulator directly, yielding better performance and less memory bloat.
