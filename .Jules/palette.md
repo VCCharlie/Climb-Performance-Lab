@@ -10,3 +10,7 @@
 ## 2024-05-02 - Keyboard Access for Group-Hover Hidden Elements
 **Learning:** When using `opacity-0 group-hover:opacity-100` to hide interactive elements (like icon buttons or links) until hovered, these elements become invisible to keyboard users who navigate via Tab. Simply adding `focus-visible:opacity-100` to the child element itself works, but often breaks the visual layout or container spacing because the parent container isn't aware of the focus.
 **Action:** Always add `group-focus-within/name:opacity-100` (or `focus-within:opacity-100`) to the container and `focus-visible:opacity-100` to the interactive element to ensure it reliably appears when focused via keyboard navigation, while maintaining the correct layout.
+
+## 2024-05-07 - Icon-Only Button Labeling and Keyboard Accessibility in DataHub
+**Learning:** Found numerous icon-only buttons in `src/components/DataHub.jsx` (such as Refresh, Tools, Sync Now, Export CSV, Strava gear, Merge pair, Delete selected, etc.) lacking `aria-label`s or `aria-hidden` on internal icons. They also lacked `focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none` classes, failing to provide proper keyboard focus indicators.
+**Action:** When creating or modifying button toolbars/menus, always ensure icon-only buttons have an `aria-label`. For buttons with text *and* an icon, add `aria-hidden="true"` to the SVG to prevent redundant screen reader announcements. Universally apply the standard `focus-visible` utility classes to ensure full keyboard navigation support.
