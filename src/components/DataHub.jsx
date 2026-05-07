@@ -1537,12 +1537,12 @@ const DataHub = ({
                                     type="button"
                                     onClick={handleFetchNewFromIntervals}
                                     disabled={isFetchingNewIntervals || isSyncing}
-                                    className="w-full sm:w-auto shrink-0 px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20"
+                                    className="w-full sm:w-auto shrink-0 px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
                                 >
                                     {isFetchingNewIntervals || isSyncing ? (
-                                        <Loader2 size={14} className="animate-spin" />
+                                        <Loader2 size={14} className="animate-spin" aria-hidden="true" />
                                     ) : (
-                                        <Download size={14} />
+                                        <Download size={14} aria-hidden="true" />
                                     )}
                                     {isFetchingNewIntervals ? 'Fetching…' : 'Fetch & merge'}
                                 </button>
@@ -1571,19 +1571,20 @@ const DataHub = ({
                                                 finally { setIsManualRefreshing(false); }
                                             }}
                                             disabled={isManualRefreshing}
-                                            className="flex items-center justify-center w-9 h-9 rounded border bg-cdsurface border-cdborder text-cdmuted hover:text-green-400 hover:border-green-500/50 transition-colors group disabled:opacity-50"
+                                            className="flex items-center justify-center w-9 h-9 rounded border bg-cdsurface border-cdborder text-cdmuted hover:text-green-400 hover:border-green-500/50 transition-colors group disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
                                             title="Refresh data"
+                                            aria-label="Refresh data"
                                         >
-                                            <RefreshCw size={14} className={isManualRefreshing ? 'animate-spin' : 'group-active:animate-spin'} />
+                                            <RefreshCw size={14} className={isManualRefreshing ? 'animate-spin' : 'group-active:animate-spin'} aria-hidden="true" />
                                         </button>
                                     )}
                                     <div className={`relative flex-1 min-w-0 md:flex-none md:w-auto max-w-full ${showUtilMenu ? 'z-[60]' : ''}`} ref={utilMenuRef}>
                                         <button
                                             type="button"
                                             onClick={() => setShowUtilMenu(v => !v)}
-                                            className="flex items-center justify-center gap-1.5 px-3 h-9 w-full md:w-auto rounded text-sm font-bold border bg-cdsurface border-cdborder text-cdtext hover:border-yellow-400 transition-all"
+                                            className="flex items-center justify-center gap-1.5 px-3 h-9 w-full md:w-auto rounded text-sm font-bold border bg-cdsurface border-cdborder text-cdtext hover:border-yellow-400 transition-all focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
                                         >
-                                            Tools <ChevronDown size={14} className={showUtilMenu ? 'rotate-180 transition-transform' : 'transition-transform'} />
+                                            Tools <ChevronDown size={14} className={showUtilMenu ? 'rotate-180 transition-transform' : 'transition-transform'} aria-hidden="true" />
                                         </button>
                                         {showUtilMenu && (
                                             <div className="absolute left-0 right-0 md:left-auto md:right-0 top-full mt-1 w-full min-w-[min(100%,16rem)] md:w-56 max-w-[calc(100vw-2rem)] md:max-w-none bg-cdsurface border border-cdborder rounded-lg shadow-xl z-[70] overflow-hidden">
@@ -1595,41 +1596,41 @@ const DataHub = ({
                                                             ? 'Select activities in the log (checkboxes). Sync uses the date range from those rows for Intervals.icu, then refreshes Strava link, gear, and segment / KOM badges for the same selection.'
                                                             : 'Re-fetch Intervals.icu for the date span of selected rows, match Strava in that window, then force-refresh Strava activity details (segments / KOM) for every selected ride that has strava_id.'
                                                     }
-                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-blue-400 hover:bg-cdborder disabled:opacity-40 disabled:cursor-not-allowed"
+                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-blue-400 hover:bg-cdborder disabled:opacity-40 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
                                                 >
-                                                    <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
+                                                    <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} aria-hidden="true" />
                                                     {isSyncing ? 'Working...' : 'Sync Now'}
                                                 </button>
                                             {stravaGetToken && (
                                                 <button
                                                     type="button"
                                                     onClick={() => { setShowStravaEnrichPanel(true); setShowUtilMenu(false); }}
-                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-orange-400 hover:bg-cdborder"
+                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-orange-400 hover:bg-cdborder focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
                                                 >
-                                                    <Link2 size={14} /> Strava enrichment
+                                                    <Link2 size={14} aria-hidden="true" /> Strava enrichment
                                                 </button>
                                             )}
                                                 <button
                                                     onClick={() => { findDuplicates(); setShowUtilMenu(false); }}
                                                     disabled={!activities || activities.length === 0}
-                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-orange-400 hover:bg-cdborder disabled:opacity-40"
+                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-orange-400 hover:bg-cdborder disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
                                                 >
-                                                    <Split size={14} /> Duplicates
+                                                    <Split size={14} aria-hidden="true" /> Duplicates
                                                 </button>
                                                 <button
                                                     onClick={openNoPowerFilter}
                                                     disabled={!activities || activities.length === 0}
-                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-yellow-400 hover:bg-cdborder disabled:opacity-40"
+                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-yellow-400 hover:bg-cdborder disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
                                                 >
-                                                    <Zap size={14} /> No Power
+                                                    <Zap size={14} aria-hidden="true" /> No Power
                                                 </button>
                                                 <div className="border-t border-cdborder" />
                                                 <button
                                                     onClick={() => { handleClearDatabase(); setShowUtilMenu(false); }}
                                                     disabled={isDeleting || !activities || activities.length === 0}
-                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-cdborder disabled:opacity-40"
+                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-cdborder disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
                                                 >
-                                                    {isDeleting ? <Loader2 className="animate-spin" size={14} /> : <Trash size={14} />}
+                                                    {isDeleting ? <Loader2 className="animate-spin" size={14} aria-hidden="true" /> : <Trash size={14} aria-hidden="true" />}
                                                     Clear DB
                                                 </button>
                                             </div>
@@ -1789,7 +1790,7 @@ const DataHub = ({
                                         <button
                                             type="button"
                                             onClick={() => onActivityLogRangesExpandedChange?.(true)}
-                                            className="text-[9px] font-bold text-cdmuted hover:text-cdtext underline"
+                                            className="text-[9px] font-bold text-cdmuted hover:text-cdtext underline focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm"
                                         >
                                             Expand
                                         </button>
@@ -1797,7 +1798,7 @@ const DataHub = ({
                                         <button
                                             type="button"
                                             onClick={() => onActivityLogRangesExpandedChange?.(false)}
-                                            className="text-[9px] font-bold text-cdmuted hover:text-cdtext underline"
+                                            className="text-[9px] font-bold text-cdmuted hover:text-cdtext underline focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm"
                                         >
                                             Collapse
                                         </button>
@@ -1805,7 +1806,7 @@ const DataHub = ({
                                             <button
                                                 type="button"
                                                 onClick={clearMetricFilters}
-                                                className="text-[9px] text-orange-400 hover:text-orange-300 underline"
+                                                className="text-[9px] text-orange-400 hover:text-orange-300 underline focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm"
                                             >
                                                 Clear ranges
                                             </button>
@@ -1890,25 +1891,25 @@ const DataHub = ({
                                     }}
                                     disabled={bulkSelectedIds.size === 0 || isBulkSaving}
                                     title="Apply type, gear, load, RPE, or FTP to all selected rows"
-                                    className="inline-flex items-center gap-1 px-2 py-1 rounded border border-cdaccent/50 text-cdaccent hover:bg-cdaccent/10 disabled:opacity-40"
+                                    className="inline-flex items-center gap-1 px-2 py-1 rounded border border-cdaccent/50 text-cdaccent hover:bg-cdaccent/10 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
                                 >
-                                    {isBulkSaving ? <Loader2 size={12} className="animate-spin" /> : <Edit2 size={12} />}
+                                    {isBulkSaving ? <Loader2 size={12} className="animate-spin" aria-hidden="true" /> : <Edit2 size={12} aria-hidden="true" />}
                                     Bulk edit
                                 </button>
                                 <button
                                     type="button"
                                     onClick={exportBulkCsv}
                                     disabled={bulkSelectedIds.size === 0}
-                                    className="inline-flex items-center gap-1 px-2 py-1 rounded border border-cdborder text-cdtext hover:border-green-500/50 disabled:opacity-40"
+                                    className="inline-flex items-center gap-1 px-2 py-1 rounded border border-cdborder text-cdtext hover:border-green-500/50 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
                                 >
-                                    <Download size={12} /> Export CSV
+                                    <Download size={12} aria-hidden="true" /> Export CSV
                                 </button>
                                 <button
                                     type="button"
                                     onClick={markBulkRecovery}
                                     disabled={bulkSelectedIds.size === 0}
                                     title="Sets load (TSS) to 35 for selected rows"
-                                    className="px-2 py-1 rounded border border-cdborder text-cdmuted hover:text-cdaccent hover:border-cdaccent/40 disabled:opacity-40"
+                                    className="px-2 py-1 rounded border border-cdborder text-cdmuted hover:text-cdaccent hover:border-cdaccent/40 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
                                 >
                                     Mark recovery (TSS 35)
                                 </button>
@@ -1918,9 +1919,9 @@ const DataHub = ({
                                         onClick={() => runGearBackfillFromStrava(selectedActivitiesForBulk)}
                                         disabled={isGearBackfilling || bulkSelectedIds.size === 0}
                                         title="Same as merge / Find-link: Strava activity details → gear, bike name, route (Climb Profiler)"
-                                        className="inline-flex items-center gap-1 px-2 py-1 rounded border border-amber-500/40 text-amber-400 hover:bg-amber-500/10 disabled:opacity-40"
+                                        className="inline-flex items-center gap-1 px-2 py-1 rounded border border-amber-500/40 text-amber-400 hover:bg-amber-500/10 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
                                     >
-                                        {isGearBackfilling ? <Loader2 size={12} className="animate-spin" /> : <Wrench size={12} />}
+                                        {isGearBackfilling ? <Loader2 size={12} className="animate-spin" aria-hidden="true" /> : <Wrench size={12} aria-hidden="true" />}
                                         Strava gear
                                     </button>
                                 )}
@@ -1929,25 +1930,25 @@ const DataHub = ({
                                     onClick={() => { setMergeError(null); setShowMergeModal(true); }}
                                     disabled={bulkSelectedIds.size !== 2}
                                     title="Select exactly two rows: Intervals + Strava import (strava_… id)"
-                                    className="inline-flex items-center gap-1 px-2 py-1 rounded border border-orange-500/40 text-orange-400 hover:bg-orange-500/10 disabled:opacity-40"
+                                    className="inline-flex items-center gap-1 px-2 py-1 rounded border border-orange-500/40 text-orange-400 hover:bg-orange-500/10 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
                                 >
-                                    <GitMerge size={12} /> Merge pair
+                                    <GitMerge size={12} aria-hidden="true" /> Merge pair
                                 </button>
                                 <button
                                     type="button"
                                     onClick={confirmBulkDeleteSelected}
                                     disabled={bulkSelectedIds.size === 0 || isDeleting}
                                     title="Remove selected activities from the log and cloud"
-                                    className="inline-flex items-center gap-1 px-2 py-1 rounded border border-red-500/40 text-red-400 hover:bg-red-500/10 disabled:opacity-40"
+                                    className="inline-flex items-center gap-1 px-2 py-1 rounded border border-red-500/40 text-red-400 hover:bg-red-500/10 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
                                 >
-                                    {isDeleting ? <Loader2 size={12} className="animate-spin" /> : <Trash size={12} />}
+                                    {isDeleting ? <Loader2 size={12} className="animate-spin" aria-hidden="true" /> : <Trash size={12} aria-hidden="true" />}
                                     Delete selected
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setBulkSelectedIds(new Set())}
                                     disabled={bulkSelectedIds.size === 0}
-                                    className="text-cdmuted hover:text-cdtext underline disabled:opacity-40"
+                                    className="text-cdmuted hover:text-cdtext underline disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
                                 >
                                     Clear selection
                                 </button>
@@ -1961,14 +1962,14 @@ const DataHub = ({
                                     <button
                                         type="button"
                                         onClick={expandAllGrouped}
-                                        className="text-[10px] font-bold px-2 py-1 rounded border border-cdborder text-cdmuted hover:text-cdaccent hover:border-cdaccent/50"
+                                        className="text-[10px] font-bold px-2 py-1 rounded border border-cdborder text-cdmuted hover:text-cdaccent hover:border-cdaccent/50 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
                                     >
                                         Alles uitklappen
                                     </button>
                                     <button
                                         type="button"
                                         onClick={collapseAllGrouped}
-                                        className="text-[10px] font-bold px-2 py-1 rounded border border-cdborder text-cdmuted hover:text-cdtext"
+                                        className="text-[10px] font-bold px-2 py-1 rounded border border-cdborder text-cdmuted hover:text-cdtext focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
                                     >
                                         Alles inklappen
                                     </button>
@@ -2052,7 +2053,7 @@ const DataHub = ({
                             <button
                                 type="button"
                                 onClick={() => setShowStravaEnrichPanel(false)}
-                                className="shrink-0 px-3 py-1.5 text-xs font-bold rounded border border-cdborder text-cdmuted hover:text-cdtext hover:border-yellow-400/50 transition-colors"
+                                className="shrink-0 px-3 py-1.5 text-xs font-bold rounded border border-cdborder text-cdmuted hover:text-cdtext hover:border-yellow-400/50 transition-colors focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
                             >
                                 Close
                             </button>
