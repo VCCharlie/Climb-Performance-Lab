@@ -46,3 +46,8 @@
 **Vulnerability:** The application was using `Math.random().toString(36)` to generate pseudo-random IDs for activities in `src/utils/intervals.js` and `src/utils/parsers.js`.
 **Learning:** `Math.random()` is not cryptographically secure, and the IDs it generates are predictable and more prone to collisions than true UUIDs. When creating unique identifiers, especially for objects that may be stored or synchronized, it's safer and more robust to use standardized UUIDs.
 **Prevention:** Use `crypto.randomUUID()` when generating unique identifiers in modern browser environments or Node.js. It generates a cryptographically secure UUIDv4 string directly.
+
+## 2026-05-01 - Add rel="noopener noreferrer" to external attribution links
+**Vulnerability:** External OpenStreetMap attribution links in Leaflet map components lacked `rel="noopener noreferrer"`, introducing a Reverse Tabnabbing risk when users clicked them.
+**Learning:** Leaflet `L.tileLayer` config typically receives an HTML string for attribution. These statically defined external links are just as vulnerable to Reverse Tabnabbing as JSX anchor tags and must be manually secured when passed as strings.
+**Prevention:** When injecting static HTML strings that contain external links into 3rd-party libraries (like Leaflet or chart configs), always ensure `target="_blank"` is accompanied by `rel="noopener noreferrer"`.

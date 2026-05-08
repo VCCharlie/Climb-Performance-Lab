@@ -159,7 +159,7 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
         });
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+            attribution: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>',
             maxZoom: 18,
         }).addTo(map);
 
