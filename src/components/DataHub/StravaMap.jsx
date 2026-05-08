@@ -30,7 +30,7 @@ const StravaMap = ({ polyline }) => {
         mapRef.current = map;
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            attribution: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>'
         }).addTo(map);
 
         const line = L.polyline(coords, { color: '#f97316', weight: 3, opacity: 0.85 });
