@@ -16,6 +16,9 @@ import { formatDateDDMMYYYY } from '../../utils';
 const CTL_DAYS = 42;
 const ATL_DAYS = 7;
 
+// ⚡ Bolt Optimization: Use array lookup instead of Date.toLocaleString() in loops
+const EN_SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 const calculateFitnessMetrics = (activities) => {
     if (!activities || activities.length === 0) return [];
 
@@ -120,7 +123,7 @@ const FormTab = ({
                                         stroke="#64748b"
                                         tickFormatter={(ts) => {
                                             const d = new Date(ts);
-                                            return `${d.getDate()} ${d.toLocaleDateString('en-GB', { month: 'short' })}`;
+                                            return `${d.getDate()} ${EN_SHORT_MONTHS[d.getMonth()]}`;
                                         }}
                                     />
                                     <YAxis stroke="#64748b" />

@@ -13,6 +13,9 @@ const formatNumber = (num) => {
     return num.toLocaleString('de-DE'); // 1.000 format
 };
 
+// ⚡ Bolt Optimization: Use array lookup instead of Date.toLocaleString() in loops
+const EN_SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 const StatCard = ({ title, value, unit, subtitle, icon, trend, colorClass, split, quickLink }) => {
     const Icon = icon;
     return (
@@ -465,11 +468,11 @@ const PerformanceModule = ({
                                     tickFormatter={(timestamp) => {
                                         const d = new Date(timestamp);
                                         if (showYearOnAxis) {
-                                            const month = d.toLocaleDateString('en-GB', { month: 'short' });
+                                            const month = EN_SHORT_MONTHS[d.getMonth()];
                                             const yearShort = d.getFullYear().toString().slice(-2);
                                             return `${d.getDate()} ${month} '${yearShort}`;
                                         }
-                                        return `${d.getDate()} ${d.toLocaleDateString('en-GB', { month: 'short' })}`;
+                                        return `${d.getDate()} ${EN_SHORT_MONTHS[d.getMonth()]}`;
                                     }}
                                 />
 

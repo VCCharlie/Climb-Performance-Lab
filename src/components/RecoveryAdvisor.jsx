@@ -2,6 +2,9 @@
 import { Activity, TrendingUp, TrendingDown, Calendar, AlertTriangle, CheckCircle, Zap, Info, Lightbulb } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts';
 
+// ⚡ Bolt Optimization: Use array lookup instead of Date.toLocaleString() in loops
+const NL_SHORT_MONTHS = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+
 // Custom tooltip moved outside component body
 const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
@@ -299,7 +302,10 @@ const RecoveryAdvisor = ({ activities, startDate, endDate }) => {
                             dataKey="date"
                             stroke="var(--color-cdmuted, #64748b)"
                             tick={{ fill: 'var(--color-cdmuted, #64748b)', fontSize: 10 }}
-                            tickFormatter={(date) => new Date(date).toLocaleDateString('nl-NL', { month: 'short', day: 'numeric' })}
+                            tickFormatter={(date) => {
+                                const d = new Date(date);
+                                return `${d.getDate()} ${NL_SHORT_MONTHS[d.getMonth()]}`;
+                            }}
                         />
                         <YAxis
                             stroke="var(--color-cdmuted, #64748b)"
