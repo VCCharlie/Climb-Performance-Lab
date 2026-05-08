@@ -31,9 +31,14 @@ const SectionHeader = ({ icon, iconColor, title, count, children }) => {
     const [open, setOpen] = useState(true);
     return (
         <div>
-            <button onClick={() => setOpen(v => !v)} className="flex items-center gap-2 w-full text-left mb-2 hover:text-cdtext transition-colors">
-                {open ? <ChevronDown size={12} className="text-cdmuted" /> : <ChevronRight size={12} className="text-cdmuted" />}
-                {React.createElement(icon, { size: 12, className: iconColor })}
+            <button
+                onClick={() => setOpen(v => !v)}
+                aria-expanded={open}
+                aria-label={`${open ? 'Collapse' : 'Expand'} ${title} section`}
+                className="flex items-center gap-2 w-full text-left mb-2 hover:text-cdtext transition-colors focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded"
+            >
+                {open ? <ChevronDown size={12} className="text-cdmuted" aria-hidden="true" /> : <ChevronRight size={12} className="text-cdmuted" aria-hidden="true" />}
+                {React.createElement(icon, { size: 12, className: iconColor, 'aria-hidden': "true" })}
                 <span className="text-xs uppercase font-bold text-cdmuted">{title}</span>
                 <span className="text-xs text-cdmuted ml-auto">{count}</span>
             </button>
