@@ -781,8 +781,11 @@ const DataHub = ({
             const newActivitiesRaw = await syncIntervals(syncStart, syncEnd, selectedTypes);
             const newActivities = newActivitiesRaw.filter((a) => selectedIdSet.has(String(a.id)));
 
+            // ⚡ Bolt Optimization: Use Map for O(1) lookups instead of O(N) array.find inside loops
+            const activitiesMap = new Map((activities || []).map((a) => [String(a.id), a]));
+
             const mergeNewInto = (act) => {
-                const existing = (activities || []).find((x) => String(x.id) === String(act.id));
+                const existing = activitiesMap.get(String(act.id));
                 return existing ? protectEnrichedFieldsOnMerge(act, existing) : act;
             };
             const mergedNews = newActivities.map(mergeNewInto);
@@ -804,7 +807,7 @@ const DataHub = ({
             if (db && mergedNews.length > 0) {
                 await Promise.all(
                     mergedNews.map((act) => {
-                        const existing = (activities || []).find((a) => String(a.id) === String(act.id));
+                        const existing = activitiesMap.get(String(act.id));
                         const payload = protectEnrichedFieldsOnMerge(act, existing);
                         return setDoc(doc(db, 'activities', String(act.id)), payload, { merge: true });
                     }),
@@ -914,8 +917,11 @@ const DataHub = ({
             const selectedTypes = Object.keys(sportFiltersAll).filter((k) => sportFiltersAll[k]);
             const newActivitiesRaw = await syncIntervals(syncStart, syncEnd, selectedTypes);
 
+            // ⚡ Bolt Optimization: Use Map for O(1) lookups instead of O(N) array.find inside loops
+            const activitiesMap = new Map((activities || []).map((a) => [String(a.id), a]));
+
             const mergeNewInto = (act) => {
-                const existing = (activities || []).find((x) => String(x.id) === String(act.id));
+                const existing = activitiesMap.get(String(act.id));
                 return existing ? protectEnrichedFieldsOnMerge(act, existing) : act;
             };
             let merged = (newActivitiesRaw || []).map(mergeNewInto);
@@ -937,7 +943,7 @@ const DataHub = ({
             if (merged.length > 0 && db) {
                 await Promise.all(
                     merged.map((act) => {
-                        const existing = (activities || []).find((a) => String(a.id) === String(act.id));
+                        const existing = activitiesMap.get(String(act.id));
                         const payload = protectEnrichedFieldsOnMerge(act, existing);
                         return setDoc(doc(db, 'activities', String(act.id)), payload, { merge: true });
                     }),
@@ -1038,8 +1044,11 @@ const DataHub = ({
         onImport(newActs);
         if (db) {
             try {
+                // ⚡ Bolt Optimization: Use Map for O(1) lookups instead of O(N) array.find inside loops
+                const activitiesMap = new Map((activities || []).map((a) => [String(a.id), a]));
+
                 await Promise.all(newActs.map(act => {
-                    const existing = (activities || []).find(a => String(a.id) === String(act.id));
+                    const existing = activitiesMap.get(String(act.id));
                     const payload = protectEnrichedFieldsOnMerge(act, existing);
                     return setDoc(doc(db, 'activities', String(act.id)), payload, { merge: true });
                 }));

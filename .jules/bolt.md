@@ -30,3 +30,7 @@
 ## 2026-05-30 - Optimize chained array allocations
 **Learning:** Chaining `.map().filter().map()` or `.map().filter()` causes unnecessary intermediate array allocations, increasing memory usage and garbage collection pressure, particularly when processing large data sets in React components like `DataHub.jsx`.
 **Action:** Replace these chained array operations with a single-pass `.reduce()` to iterate the data only once and populate the accumulator directly, yielding better performance and less memory bloat.
+
+## 2026-06-25 - Avoid O(N) array.find inside iteration loops
+**Learning:** Calling `array.find` inside a loop (like `.map()` or `.forEach()`) creates an O(N * M) time complexity. When processing large data sets (like bulk activity syncing or importing), this severely blocks the main thread and causes UI jank.
+**Action:** Before the loop, pre-compute a JavaScript `Map` keyed by a unique identifier (e.g. `id`). Inside the loop, replace the `array.find()` with a `map.get()` lookup. This reduces the time complexity to O(N + M).
