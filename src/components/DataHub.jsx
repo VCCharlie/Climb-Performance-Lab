@@ -1590,6 +1590,8 @@ const DataHub = ({
                                         <button
                                             type="button"
                                             onClick={() => setShowUtilMenu(v => !v)}
+                                            aria-expanded={showUtilMenu}
+                                            aria-haspopup="menu"
                                             className="flex items-center justify-center gap-1.5 px-3 h-9 w-full md:w-auto rounded text-sm font-bold border bg-cdsurface border-cdborder text-cdtext hover:border-yellow-400 transition-all focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
                                         >
                                             Tools <ChevronDown size={14} className={showUtilMenu ? 'rotate-180 transition-transform' : 'transition-transform'} aria-hidden="true" />
