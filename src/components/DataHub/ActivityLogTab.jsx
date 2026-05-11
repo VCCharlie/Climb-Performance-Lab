@@ -171,6 +171,7 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
                     </div>
                 )}
                 <button
+                    type="button"
                     onClick={handleScanDuplicates}
                     disabled={isScanning || !activities || activities.length < 2}
                     className="bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 border border-yellow-500/50 px-4 py-2 rounded flex items-center gap-2 text-sm font-bold transition-all disabled:opacity-50"
@@ -181,6 +182,7 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
                     {isScanning ? 'Scan...' : 'Fix Duplicates'}
                 </button>
                 <button
+                    type="button"
                     onClick={onClear}
                     disabled={isDeleting || !activities || activities.length === 0}
                     className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/50 px-4 py-2 rounded flex items-center gap-2 text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -204,7 +206,7 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
                                     <React.Fragment key={`year-group-${year}`}>
                                         <tr className="bg-cdborder/50">
                                             <td colSpan={ACTIVITY_TABLE_COLUMNS.length + 1} className="p-2 font-bold text-cdtext">
-                                                <button onClick={() => toggleYear(year)} className="flex items-center gap-2 outline-none" aria-label={`Toggle year ${year}`}>
+                                                <button type="button" onClick={() => toggleYear(year)} className="flex items-center gap-2 outline-none" aria-label={`Toggle year ${year}`}>
                                                     {expandedYears[year] ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {year}
                                                 </button>
                                             </td>
