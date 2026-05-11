@@ -5,6 +5,8 @@ import {
     formatWeekRangeLabelEn,
     buildMonthlyVolumeTotals,
     buildWeeklyVolumeTotals,
+    orderVolumeRowsChronological,
+    formatMonthChartTickEn,
 } from '../../utils/dashboardVolumeTotals';
 
 describe('ymdToMondayYmd', () => {
@@ -45,6 +47,24 @@ describe('buildMonthlyVolumeTotals', () => {
         expect(jan.distanceKm).toBe(80);
         expect(jan.elevationM).toBe(800);
         expect(jan.load).toBe(120);
+    });
+});
+
+describe('orderVolumeRowsChronological', () => {
+    it('sorts by key ascending', () => {
+        const rows = [
+            { key: '2026-02', label: 'b', rideCount: 1 },
+            { key: '2026-01', label: 'a', rideCount: 2 },
+        ];
+        const o = orderVolumeRowsChronological(rows);
+        expect(o.map((r) => r.key)).toEqual(['2026-01', '2026-02']);
+    });
+});
+
+describe('formatMonthChartTickEn', () => {
+    it('returns a short month tick', () => {
+        const s = formatMonthChartTickEn('2026-03');
+        expect(s.toLowerCase()).toContain('mar');
     });
 });
 
