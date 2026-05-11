@@ -1,6 +1,11 @@
 ﻿import React, { useState, useMemo, useEffect } from 'react';
 import { calculateBassettCorrection } from '../utils';
 import { normalizeDate } from '../utils/formatters';
+import {
+    getDashboardWindowBounds,
+    previousWindowBounds,
+    filterActivitiesInBounds,
+} from '../utils/dashboardActivityWindow';
 import OverviewTab from './dashboard/OverviewTab';
 import FormTab from './dashboard/FormTab';
 import PowerTab from './dashboard/PowerTab';
@@ -18,6 +23,15 @@ function readDashboardSubTab() {
         /* ignore */
     }
     return 'overview';
+}
+
+function shiftDashboardBoundsByYears(bounds, deltaYears) {
+    if (!bounds) return null;
+    const s = new Date(bounds.start.getTime());
+    const e = new Date(bounds.end.getTime());
+    s.setFullYear(s.getFullYear() + deltaYears);
+    e.setFullYear(e.getFullYear() + deltaYears);
+    return { start: s, end: e };
 }
 
 /**
@@ -134,6 +148,22 @@ const Dashboard = ({
         });
     }, [chartData, timeRange, customStart, customEnd]);
 
+    const volumeComparePrevPeriodActivities = useMemo(() => {
+        const b = getDashboardWindowBounds(timeRange, customStart, customEnd, referenceEndDate);
+        if (!b || !chartData.length) return [];
+        const prev = previousWindowBounds(b);
+        if (!prev) return [];
+        return filterActivitiesInBounds(chartData, prev);
+    }, [chartData, timeRange, customStart, customEnd, referenceEndDate]);
+
+    const volumeComparePrevYearActivities = useMemo(() => {
+        const b = getDashboardWindowBounds(timeRange, customStart, customEnd, referenceEndDate);
+        if (!b || !chartData.length) return [];
+        const shifted = shiftDashboardBoundsByYears(b, -1);
+        if (!shifted) return [];
+        return filterActivitiesInBounds(chartData, shifted);
+    }, [chartData, timeRange, customStart, customEnd, referenceEndDate]);
+
     // --- SMART TICKS CALCULATOR ---
     // Dit lost het probleem van de "volle x-as" op.
     const customTicks = useMemo(() => {
@@ -239,7 +269,12 @@ const Dashboard = ({
             )}
 
             {dashboardTab === 'volume' && (
-                <VolumeTotalsTab data={filteredData} onOpenActivityLogDateRange={onOpenActivityLogDateRange} />
+                <VolumeTotalsTab
+                    data={filteredData}
+                    comparePrevPeriodActivities={volumeComparePrevPeriodActivities}
+                    comparePrevYearActivities={volumeComparePrevYearActivities}
+                    onOpenActivityLogDateRange={onOpenActivityLogDateRange}
+                />
             )}
         </div>
     );

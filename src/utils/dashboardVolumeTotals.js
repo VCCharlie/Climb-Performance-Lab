@@ -227,3 +227,26 @@ export function monthKeyToDateRange(monthKey) {
     const endYmd = `${y}-${pad2(mo)}-${pad2(last.getDate())}`;
     return { startYmd, endYmd };
 }
+
+/**
+ * Monday YMD one calendar year earlier (re-aligned to Monday).
+ * @param {string} mondayYmd
+ */
+export function mondayOneYearBefore(mondayYmd) {
+    const dt = parseYmdLocal(mondayYmd);
+    if (!dt) return null;
+    dt.setFullYear(dt.getFullYear() - 1);
+    const ymd = `${dt.getFullYear()}-${pad2(dt.getMonth() + 1)}-${pad2(dt.getDate())}`;
+    return ymdToMondayYmd(ymd);
+}
+
+/**
+ * @param {string} monthKey - YYYY-MM
+ */
+export function monthKeyOneYearBefore(monthKey) {
+    if (!monthKey || monthKey.length < 7) return null;
+    const y = Number(monthKey.slice(0, 4)) - 1;
+    const mo = monthKey.slice(5, 7);
+    if (!Number.isFinite(y)) return null;
+    return `${y}-${mo}`;
+}

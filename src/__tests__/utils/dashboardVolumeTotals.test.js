@@ -9,6 +9,8 @@ import {
     formatMonthChartTickEn,
     trailingMovingAverage,
     monthKeyToDateRange,
+    mondayOneYearBefore,
+    monthKeyOneYearBefore,
 } from '../../utils/dashboardVolumeTotals';
 
 describe('ymdToMondayYmd', () => {
@@ -60,6 +62,20 @@ describe('orderVolumeRowsChronological', () => {
         ];
         const o = orderVolumeRowsChronological(rows);
         expect(o.map((r) => r.key)).toEqual(['2026-01', '2026-02']);
+    });
+});
+
+describe('monthKeyOneYearBefore', () => {
+    it('shifts year', () => {
+        expect(monthKeyOneYearBefore('2026-05')).toBe('2025-05');
+    });
+});
+
+describe('mondayOneYearBefore', () => {
+    it('returns a Monday YMD near one calendar year back', () => {
+        const out = mondayOneYearBefore('2026-01-05');
+        expect(out).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+        expect(ymdToMondayYmd(out)).toBe(out);
     });
 });
 

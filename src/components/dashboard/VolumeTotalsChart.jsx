@@ -20,6 +20,10 @@ import {
     trailingMovingAverage,
     addDaysToYmd,
     monthKeyToDateRange,
+    buildWeeklyVolumeTotals,
+    buildMonthlyVolumeTotals,
+    mondayOneYearBefore,
+    monthKeyOneYearBefore,
 } from '../../utils/dashboardVolumeTotals';
 
 const VOL_CHART_STORAGE_KEY = 'cpl.dashboard.volumeChart.v1';
@@ -38,7 +42,9 @@ function readVolumeChartPersist() {
 
 const STRAVA_ORANGE = '#ea580c';
 
-const BAR_SERIES_NAME = 'Period total';
+const BAR_SERIES_NAME = 'This period';
+const COMPARE_PREV = 'Previous period';
+const COMPARE_YEAR = 'Same window, last year';
 const trendSeriesName = (window) => `Trend (${window}-period avg)`;
 
 const METRICS = [
@@ -58,7 +64,13 @@ const pill = (active) =>
 /**
  * Strava-style bar chart: weekly or monthly buckets, metric toggles, summary for selected bar.
  */
-const VolumeTotalsChart = ({ weeklyRows, monthlyRows, onOpenActivityLogDateRange }) => {
+const VolumeTotalsChart = ({
+    weeklyRows,
+    monthlyRows,
+    onOpenActivityLogDateRange,
+    comparePrevPeriodActivities = [],
+    comparePrevYearActivities = [],
+}) => {
     const persisted = readVolumeChartPersist();
     const [cadence, setCadence] = useState(() => (persisted?.cadence === 'monthly' ? 'monthly' : 'weekly'));
     const [metricId, setMetricId] = useState(() =>
@@ -68,33 +80,82 @@ const VolumeTotalsChart = ({ weeklyRows, monthlyRows, onOpenActivityLogDateRange
         (typeof persisted?.selectedKey === 'string' ? persisted.selectedKey : null),
     );
 
+    const [compareMode, setCompareMode] = useState(() =>
+        (['off', 'prevPeriod', 'prevYear'].includes(persisted?.compareMode) ? persisted.compareMode : 'off'),
+    );
+
     useEffect(() => {
         if (typeof sessionStorage === 'undefined') return;
         sessionStorage.setItem(
             VOL_CHART_STORAGE_KEY,
-            JSON.stringify({ cadence, metricId, selectedKey }),
+            JSON.stringify({ cadence, metricId, selectedKey, compareMode }),
         );
-    }, [cadence, metricId, selectedKey]);
+    }, [cadence, metricId, selectedKey, compareMode]);
 
     const sourceRows = cadence === 'weekly' ? weeklyRows : monthlyRows;
     const chronological = useMemo(() => orderVolumeRowsChronological(sourceRows), [sourceRows]);
 
     const chartData = useMemo(() => {
-        const m = METRICS.find((x) => x.id === metricId) || METRICS[0];
+        const metric = METRICS.find((x) => x.id === metricId) || METRICS[0];
         const trendWindow = cadence === 'weekly' ? 4 : 3;
+
+        const compareActs =
+            compareMode === 'prevPeriod'
+                ? comparePrevPeriodActivities
+                : compareMode === 'prevYear'
+                    ? comparePrevYearActivities
+                    : null;
+
+        const compareRowsOrdered =
+            compareActs?.length > 0
+                ? orderVolumeRowsChronological(
+                    cadence === 'weekly'
+                        ? buildWeeklyVolumeTotals(compareActs)
+                        : buildMonthlyVolumeTotals(compareActs),
+                )
+                : [];
+
+        const compareKeyToVal = new Map(
+            compareRowsOrdered.map((r) => [r.key, Math.max(0, Number(metric.barValue(r)) || 0)]),
+        );
+
         const rows = chronological.map((r) => ({
             ...r,
-            barValue: Math.max(0, Number(m.barValue(r)) || 0),
+            barValue: Math.max(0, Number(metric.barValue(r)) || 0),
             tick: cadence === 'weekly' ? formatWeekChartTickEn(r.key) : formatMonthChartTickEn(r.key),
         }));
-        const vals = rows.map((r) => r.barValue);
+
+        const nAlign = Math.min(rows.length, compareRowsOrdered.length);
+        const offAlign = rows.length - nAlign;
+
+        const withCompare = rows.map((row, i) => {
+            let compareBar = 0;
+            if (compareMode === 'prevYear') {
+                const look =
+                    cadence === 'weekly' ? mondayOneYearBefore(row.key) : monthKeyOneYearBefore(row.key);
+                compareBar = look && compareKeyToVal.has(look) ? compareKeyToVal.get(look) : 0;
+            } else if (compareMode === 'prevPeriod' && nAlign > 0 && i >= offAlign) {
+                const pr = compareRowsOrdered[i - offAlign];
+                compareBar = pr ? Math.max(0, Number(metric.barValue(pr)) || 0) : 0;
+            }
+            return { ...row, compareBar };
+        });
+
+        const vals = withCompare.map((r) => r.barValue);
         const trend = trailingMovingAverage(vals, trendWindow);
-        return rows.map((r, i) => ({
+        return withCompare.map((r, i) => ({
             ...r,
             trendValue: trend[i],
             trendWindow,
         }));
-    }, [chronological, metricId, cadence]);
+    }, [
+        chronological,
+        metricId,
+        cadence,
+        compareMode,
+        comparePrevPeriodActivities,
+        comparePrevYearActivities,
+    ]);
 
     const selectedIndex = useMemo(() => {
         if (!chartData.length) return -1;
@@ -164,6 +225,19 @@ const VolumeTotalsChart = ({ weeklyRows, monthlyRows, onOpenActivityLogDateRange
                         {m.label}
                     </button>
                 ))}
+            </div>
+
+            <div className="flex flex-wrap gap-2 justify-center" role="group" aria-label="Compare">
+                <span className="text-[10px] text-cdmuted self-center mr-1 uppercase font-bold">Compare</span>
+                <button type="button" className={pill(compareMode === 'off')} onClick={() => setCompareMode('off')}>
+                    Off
+                </button>
+                <button type="button" className={pill(compareMode === 'prevPeriod')} onClick={() => setCompareMode('prevPeriod')}>
+                    Prev period
+                </button>
+                <button type="button" className={pill(compareMode === 'prevYear')} onClick={() => setCompareMode('prevYear')}>
+                    Last year
+                </button>
             </div>
 
             {selected && (
@@ -251,6 +325,17 @@ const VolumeTotalsChart = ({ weeklyRows, monthlyRows, onOpenActivityLogDateRange
                                 />
                             ))}
                         </Bar>
+                        {compareMode !== 'off' && (
+                            <Bar
+                                name={compareMode === 'prevYear' ? COMPARE_YEAR : COMPARE_PREV}
+                                dataKey="compareBar"
+                                fill="rgba(168, 85, 247, 0.42)"
+                                stroke="rgba(168, 85, 247, 0.75)"
+                                strokeWidth={1}
+                                radius={[4, 4, 0, 0]}
+                                isAnimationActive={false}
+                            />
+                        )}
                         <Line
                             type="monotone"
                             name={trendSeriesName(chartData[0]?.trendWindow ?? 4)}
@@ -264,18 +349,24 @@ const VolumeTotalsChart = ({ weeklyRows, monthlyRows, onOpenActivityLogDateRange
                     </ComposedChart>
                 </ResponsiveContainer>
             </div>
-            <div className="flex flex-wrap justify-center gap-6 text-[10px] text-cdmuted">
+            <div className="flex flex-wrap justify-center gap-4 sm:gap-6 text-[10px] text-cdmuted">
                 <span className="inline-flex items-center gap-1.5">
                     <span className="inline-block w-3 h-3 rounded-sm bg-blue-500/80" aria-hidden />
-                    Period total (bars)
+                    {BAR_SERIES_NAME} (bars)
                 </span>
+                {compareMode !== 'off' && (
+                    <span className="inline-flex items-center gap-1.5">
+                        <span className="inline-block w-3 h-3 rounded-sm bg-purple-500/50 border border-purple-400/60" aria-hidden />
+                        {compareMode === 'prevYear' ? COMPARE_YEAR : COMPARE_PREV}
+                    </span>
+                )}
                 <span className="inline-flex items-center gap-1.5">
                     <span className="inline-block w-7 h-0.5 rounded-full" style={{ backgroundColor: STRAVA_ORANGE }} aria-hidden />
                     {trendSeriesName(chartData[0]?.trendWindow ?? 4)}
                 </span>
             </div>
             <p className="text-[10px] text-cdmuted text-center">
-                Click a bar to pin that period. Bar height follows the selected metric; orange line is a rolling average of that series.
+                Prev period aligns trailing buckets; last year matches the same week/month one year back. Orange line = rolling average.
             </p>
         </div>
     );
