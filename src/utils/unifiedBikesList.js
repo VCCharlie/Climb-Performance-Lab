@@ -23,11 +23,17 @@ export function getStoredBikesFromLocalStorage() {
  */
 export function uniqueGearNamesFromActivities(allActivities) {
     if (!allActivities?.length) return [];
-    const rawId = (s) => /^b\d+$/i.test(String(s).trim());
-    const names = [...new Set(allActivities.map((a) => a.gear_name).filter(Boolean))]
-        .map((s) => String(s).trim())
-        .filter((s) => s && !rawId(s));
-    return names.sort((a, b) => a.localeCompare(b));
+    // ⚡ Bolt Optimization: Use single-pass for...of loop with a Set instead of chained map/filter
+    // This minimizes intermediate array allocations on hot paths.
+    const namesSet = new Set();
+    for (const a of allActivities) {
+        if (!a.gear_name) continue;
+        const name = String(a.gear_name).trim();
+        if (name && !/^b\d+$/i.test(name)) {
+            namesSet.add(name);
+        }
+    }
+    return [...namesSet].sort((a, b) => a.localeCompare(b));
 }
 
 /**

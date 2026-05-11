@@ -34,3 +34,7 @@
 ## 2026-06-25 - Avoid O(N) array.find inside iteration loops
 **Learning:** Calling `array.find` inside a loop (like `.map()` or `.forEach()`) creates an O(N * M) time complexity. When processing large data sets (like bulk activity syncing or importing), this severely blocks the main thread and causes UI jank.
 **Action:** Before the loop, pre-compute a JavaScript `Map` keyed by a unique identifier (e.g. `id`). Inside the loop, replace the `array.find()` with a `map.get()` lookup. This reduces the time complexity to O(N + M).
+
+## 2024-05-10 - Optimizing Map/Filter Chains
+**Learning:** Chaining multiple `.map().filter()` calls on large arrays (like `allActivities` when calculating unique gear names) creates unnecessary intermediate array allocations, adding overhead and memory churn.
+**Action:** Replace multiple chained `.map().filter()` on hot paths with a single-pass `for...of` loop and a `Set` to track unique entries directly without intermediate arrays.
