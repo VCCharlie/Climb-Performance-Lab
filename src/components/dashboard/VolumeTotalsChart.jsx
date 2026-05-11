@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { ExternalLink } from 'lucide-react';
 import {
     ComposedChart,
     Bar,
@@ -17,7 +18,23 @@ import {
     formatMonthChartTickEn,
     orderVolumeRowsChronological,
     trailingMovingAverage,
+    addDaysToYmd,
+    monthKeyToDateRange,
 } from '../../utils/dashboardVolumeTotals';
+
+const VOL_CHART_STORAGE_KEY = 'cpl.dashboard.volumeChart.v1';
+
+function readVolumeChartPersist() {
+    if (typeof sessionStorage === 'undefined') return null;
+    try {
+        const raw = sessionStorage.getItem(VOL_CHART_STORAGE_KEY);
+        if (!raw) return null;
+        const o = JSON.parse(raw);
+        return o && typeof o === 'object' ? o : null;
+    } catch {
+        return null;
+    }
+}
 
 const STRAVA_ORANGE = '#ea580c';
 
@@ -41,10 +58,23 @@ const pill = (active) =>
 /**
  * Strava-style bar chart: weekly or monthly buckets, metric toggles, summary for selected bar.
  */
-const VolumeTotalsChart = ({ weeklyRows, monthlyRows }) => {
-    const [cadence, setCadence] = useState('weekly');
-    const [metricId, setMetricId] = useState('distance');
-    const [selectedKey, setSelectedKey] = useState(null);
+const VolumeTotalsChart = ({ weeklyRows, monthlyRows, onOpenActivityLogDateRange }) => {
+    const persisted = readVolumeChartPersist();
+    const [cadence, setCadence] = useState(() => (persisted?.cadence === 'monthly' ? 'monthly' : 'weekly'));
+    const [metricId, setMetricId] = useState(() =>
+        (['distance', 'time', 'elevation', 'load'].includes(persisted?.metricId) ? persisted.metricId : 'distance'),
+    );
+    const [selectedKey, setSelectedKey] = useState(() =>
+        (typeof persisted?.selectedKey === 'string' ? persisted.selectedKey : null),
+    );
+
+    useEffect(() => {
+        if (typeof sessionStorage === 'undefined') return;
+        sessionStorage.setItem(
+            VOL_CHART_STORAGE_KEY,
+            JSON.stringify({ cadence, metricId, selectedKey }),
+        );
+    }, [cadence, metricId, selectedKey]);
 
     const sourceRows = cadence === 'weekly' ? weeklyRows : monthlyRows;
     const chronological = useMemo(() => orderVolumeRowsChronological(sourceRows), [sourceRows]);
@@ -76,6 +106,16 @@ const VolumeTotalsChart = ({ weeklyRows, monthlyRows }) => {
     }, [chartData, selectedKey]);
 
     const selected = selectedIndex >= 0 ? chartData[selectedIndex] : null;
+
+    const selectionDateRange = useMemo(() => {
+        if (!selected) return null;
+        if (cadence === 'weekly') {
+            const endYmd = addDaysToYmd(selected.key, 6);
+            if (!endYmd) return null;
+            return { startYmd: selected.key, endYmd };
+        }
+        return monthKeyToDateRange(selected.key);
+    }, [selected, cadence]);
 
     const yTickFormatter = (v) => {
         if (metricId === 'time') return `${Math.round(v * 10) / 10}h`;
@@ -127,8 +167,8 @@ const VolumeTotalsChart = ({ weeklyRows, monthlyRows }) => {
             </div>
 
             {selected && (
-                <div className="rounded-lg border border-cdborder/60 bg-cdbg/40 px-4 py-3 text-center">
-                    <p className="text-[11px] uppercase font-bold text-cdmuted mb-2">Totals for {selected.label}</p>
+                <div className="rounded-lg border border-cdborder/60 bg-cdbg/40 px-4 py-3 text-center space-y-3">
+                    <p className="text-[11px] uppercase font-bold text-cdmuted">Totals for {selected.label}</p>
                     <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm text-cdtext">
                         <div>
                             <div className="text-cdmuted text-[10px] uppercase font-bold">Distance</div>
@@ -147,6 +187,16 @@ const VolumeTotalsChart = ({ weeklyRows, monthlyRows }) => {
                             <div className="font-mono font-bold tabular-nums text-blue-400/95">{formatNlNumber(selected.load)}</div>
                         </div>
                     </div>
+                    {typeof onOpenActivityLogDateRange === 'function' && selectionDateRange && (
+                        <button
+                            type="button"
+                            onClick={() => onOpenActivityLogDateRange(selectionDateRange)}
+                            className="inline-flex items-center justify-center gap-1.5 mx-auto px-4 py-2 rounded-lg border border-cdaccent/50 bg-cdsurface text-xs font-bold text-cdaccent hover:bg-cdaccent/10 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                        >
+                            <ExternalLink size={14} className="shrink-0" aria-hidden />
+                            Open these rides in Activity log
+                        </button>
+                    )}
                 </div>
             )}
 

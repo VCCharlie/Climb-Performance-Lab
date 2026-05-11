@@ -211,3 +211,19 @@ export function trailingMovingAverage(values, window) {
     }
     return out;
 }
+
+/**
+ * First and last calendar day for a month bucket key (YYYY-MM).
+ * @param {string} monthKey
+ * @returns {{ startYmd: string, endYmd: string } | null}
+ */
+export function monthKeyToDateRange(monthKey) {
+    if (!monthKey || monthKey.length < 7) return null;
+    const y = Number(monthKey.slice(0, 4));
+    const mo = Number(monthKey.slice(5, 7));
+    if (!Number.isFinite(y) || !Number.isFinite(mo) || mo < 1 || mo > 12) return null;
+    const startYmd = `${y}-${pad2(mo)}-01`;
+    const last = new Date(y, mo, 0);
+    const endYmd = `${y}-${pad2(mo)}-${pad2(last.getDate())}`;
+    return { startYmd, endYmd };
+}

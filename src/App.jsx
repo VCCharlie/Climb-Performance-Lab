@@ -276,6 +276,20 @@ const App = () => {
         }));
         setActiveTab('profiler');
     }, []);
+
+    const clearActivityLogFilters = useCallback(() => {
+        setLogIsolateActivityId(null);
+        setLogDateRangeFilter(null);
+        setActivityFocusId(null);
+    }, []);
+
+    const openActivityLogDateRange = useCallback((range) => {
+        if (!range?.startYmd || !range?.endYmd) return;
+        setLogDateRangeFilter({ startYmd: range.startYmd, endYmd: range.endYmd });
+        setLogIsolateActivityId(null);
+        setActivityFocusId(null);
+        setActiveTab('activities');
+    }, []);
     const [fuelingState, setFuelingState] = useState({
         duration: 180,
         intensity: 0.85
@@ -375,6 +389,8 @@ const App = () => {
     /** Vanuit Dashboard: focus één activiteit in DataHub log; optioneel alleen die rit tonen (Peak eFTP). */
     const [activityFocusId, setActivityFocusId] = useState(null);
     const [logIsolateActivityId, setLogIsolateActivityId] = useState(null);
+    /** Activity Log: show only activities between these YYYY-MM-DD dates (from Dashboard Volume). */
+    const [logDateRangeFilter, setLogDateRangeFilter] = useState(null);
     /** Activity Log → Ranges panel: dicht na refresh; blijft open/dicht bij tab-wissel */
     const [activityLogRangesExpanded, setActivityLogRangesExpanded] = useState(false);
     const [raceSubTab, setRaceSubTab] = useState('fueling');       // 'fueling' | 'racepacing'
@@ -739,8 +755,10 @@ const App = () => {
                                     if (id == null) return;
                                     setActivityFocusId(String(id));
                                     setLogIsolateActivityId(opts?.isolate ? String(id) : null);
+                                    setLogDateRangeFilter(null);
                                     setActiveTab('activities');
                                 }}
+                                onOpenActivityLogDateRange={openActivityLogDateRange}
                             />
                         )}
 
@@ -768,10 +786,9 @@ const App = () => {
                                 focusActivityId={activityFocusId}
                                 onFocusActivityCleared={() => setActivityFocusId(null)}
                                 isolateActivityId={logIsolateActivityId}
-                                onClearLogIsolate={() => {
-                                    setLogIsolateActivityId(null);
-                                    setActivityFocusId(null);
-                                }}
+                                onClearLogIsolate={clearActivityLogFilters}
+                                logDateRangeFilter={logDateRangeFilter}
+                                onClearLogDateRange={clearActivityLogFilters}
                                 onOpenProfilerFromActivity={handleOpenProfilerFromActivity}
                                 climbDatabaseForMatch={CLIMB_DATABASE}
                                 activityLogRangesExpanded={activityLogRangesExpanded}

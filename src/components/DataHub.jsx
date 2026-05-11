@@ -20,7 +20,7 @@ import { buildStravaKomSummaryFromActivityDetail } from '../utils/stravaSegmentK
 import { resolveStravaGearDisplay } from '../utils/stravaBikesLocalMap';
 import { buildClimbMatchIndex, findBestClimbUsingIndex } from '../utils/activityClimbMatch';
 import { activityIntensityFactor } from '../utils/activityFilterMetrics';
-import { formatNlNumber } from '../utils/formatters';
+import { formatNlNumber, normalizeDate, formatDateDDMMYYYY } from '../utils/formatters';
 import {
     fetchStravaActivitiesInRange,
     linkIntervalsActivitiesToStravaList,
@@ -68,6 +68,9 @@ const DataHub = ({
     /** When set, Activity Log shows only this activity (from Dashboard Peak eFTP deep link). */
     isolateActivityId = null,
     onClearLogIsolate,
+    /** When set, Activity Log lists only activities with date in [startYmd, endYmd] (from Dashboard Volume). */
+    logDateRangeFilter = null,
+    onClearLogDateRange,
     onOpenProfilerFromActivity,
     climbDatabaseForMatch = CLIMB_DATABASE,
     activityLogRangesExpanded = false,
@@ -203,15 +206,34 @@ const DataHub = ({
         return () => clearTimeout(t);
     }, [focusActivityId, onFocusActivityCleared, activities, isGroupedView, openGroupedPathForActivity]);
 
+    useEffect(() => {
+        if (isolateActivityId || (logDateRangeFilter?.startYmd && logDateRangeFilter?.endYmd)) {
+            setInternalTab('log');
+        }
+    }, [isolateActivityId, logDateRangeFilter?.startYmd, logDateRangeFilter?.endYmd]);
+
     const isolatedActivity = useMemo(() => {
         if (!isolateActivityId || !activities?.length) return null;
         return activities.find((a) => String(a.id) === String(isolateActivityId)) ?? null;
     }, [isolateActivityId, activities]);
 
+    const rangeFilteredActivities = useMemo(() => {
+        const s = logDateRangeFilter?.startYmd;
+        const e = logDateRangeFilter?.endYmd;
+        if (!s || !e || !activities?.length) return null;
+        const list = activities.filter((a) => {
+            const d = normalizeDate(a?.date);
+            return d >= s && d <= e;
+        });
+        return [...list].sort((a, b) => normalizeDate(b.date).localeCompare(normalizeDate(a.date)));
+    }, [activities, logDateRangeFilter]);
+
     const logTableActivities = isolateActivityId
         ? (isolatedActivity ? [isolatedActivity] : [])
-        : (isGroupedView ? groupedActivities : processedActivities);
-    const logTableGrouped = isolateActivityId ? false : isGroupedView;
+        : rangeFilteredActivities != null
+            ? rangeFilteredActivities
+            : (isGroupedView ? groupedActivities : processedActivities);
+    const logTableGrouped = isolateActivityId || rangeFilteredActivities != null ? false : isGroupedView;
 
     const gearFilterOptions = useMemo(() => {
         const map = new Map();
@@ -1992,7 +2014,7 @@ const DataHub = ({
                             </div>
                         </div>
 
-                        {isGroupedView && !isolateActivityId && (
+                        {isGroupedView && !isolateActivityId && !(logDateRangeFilter?.startYmd && logDateRangeFilter?.endYmd) && (
                             <div className="flex flex-col gap-2">
                                 <div className="flex flex-wrap items-center gap-2">
                                     <button
@@ -2034,6 +2056,28 @@ const DataHub = ({
                             </div>
                         )}
 
+                        {logDateRangeFilter?.startYmd && logDateRangeFilter?.endYmd && (
+                            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-blue-500/35 bg-blue-500/[0.08] px-3 py-2 text-sm text-cdtext">
+                                <span>
+                                    Showing activities from{' '}
+                                    <strong className="text-cdtext">
+                                        {formatDateDDMMYYYY(`${logDateRangeFilter.startYmd}T12:00:00`)} –{' '}
+                                        {formatDateDDMMYYYY(`${logDateRangeFilter.endYmd}T12:00:00`)}
+                                    </strong>{' '}
+                                    (from Dashboard Volume).
+                                </span>
+                                {typeof onClearLogDateRange === 'function' && (
+                                    <button
+                                        type="button"
+                                        onClick={() => onClearLogDateRange()}
+                                        className="shrink-0 px-3 py-1.5 rounded-md border border-cdborder bg-cdsurface text-xs font-bold text-cdaccent hover:bg-cdborder/40"
+                                    >
+                                        Show full log
+                                    </button>
+                                )}
+                            </div>
+                        )}
+
                         {!activities ? (
                             <div className="flex-1 flex flex-col items-center justify-center text-cdmuted gap-4"><Loader2 className="animate-spin text-yellow-400" size={32} /><p>Loading Activities...</p></div>
                         ) : isolateActivityId && !isolatedActivity ? (
@@ -2050,7 +2094,21 @@ const DataHub = ({
                                     </button>
                                 )}
                             </div>
-                        ) : !isolateActivityId && processedActivities.length === 0 ? (
+                        ) : logDateRangeFilter?.startYmd && logDateRangeFilter?.endYmd && rangeFilteredActivities?.length === 0 ? (
+                            <div className="flex-1 flex flex-col items-center justify-center text-cdmuted gap-3 border border-dashed border-cdborder rounded-lg p-6">
+                                <AlertTriangle size={32} className="text-amber-500/90" />
+                                <p className="text-sm text-cdtext text-center">No activities in this date range in your log.</p>
+                                {typeof onClearLogDateRange === 'function' && (
+                                    <button
+                                        type="button"
+                                        onClick={() => onClearLogDateRange()}
+                                        className="px-4 py-2 rounded-lg border border-cdborder bg-cdsurface text-sm font-bold text-cdaccent hover:bg-cdborder/30"
+                                    >
+                                        Show full log
+                                    </button>
+                                )}
+                            </div>
+                        ) : !isolateActivityId && !(logDateRangeFilter?.startYmd && logDateRangeFilter?.endYmd) && processedActivities.length === 0 ? (
                             <div className="flex-1 flex flex-col items-center justify-center text-cdmuted gap-2 border border-dashed border-cdborder rounded-lg"><AlertTriangle size={32} className="text-slate-600" /><p>No activities found. Start with an Import!</p></div>
                         ) : (
                             <ActivityTable

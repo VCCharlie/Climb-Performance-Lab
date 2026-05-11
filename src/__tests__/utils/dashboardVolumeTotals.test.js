@@ -8,6 +8,7 @@ import {
     orderVolumeRowsChronological,
     formatMonthChartTickEn,
     trailingMovingAverage,
+    monthKeyToDateRange,
 } from '../../utils/dashboardVolumeTotals';
 
 describe('ymdToMondayYmd', () => {
@@ -59,6 +60,13 @@ describe('orderVolumeRowsChronological', () => {
         ];
         const o = orderVolumeRowsChronological(rows);
         expect(o.map((r) => r.key)).toEqual(['2026-01', '2026-02']);
+    });
+});
+
+describe('monthKeyToDateRange', () => {
+    it('returns full month span', () => {
+        expect(monthKeyToDateRange('2024-02')).toEqual({ startYmd: '2024-02-01', endYmd: '2024-02-29' });
+        expect(monthKeyToDateRange('2025-02')).toEqual({ startYmd: '2025-02-01', endYmd: '2025-02-28' });
     });
 });
 
