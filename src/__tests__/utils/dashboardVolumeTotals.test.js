@@ -7,6 +7,7 @@ import {
     buildWeeklyVolumeTotals,
     orderVolumeRowsChronological,
     formatMonthChartTickEn,
+    trailingMovingAverage,
 } from '../../utils/dashboardVolumeTotals';
 
 describe('ymdToMondayYmd', () => {
@@ -58,6 +59,16 @@ describe('orderVolumeRowsChronological', () => {
         ];
         const o = orderVolumeRowsChronological(rows);
         expect(o.map((r) => r.key)).toEqual(['2026-01', '2026-02']);
+    });
+});
+
+describe('trailingMovingAverage', () => {
+    it('computes expanding then trailing window', () => {
+        expect(trailingMovingAverage([10, 20, 30, 40], 4)).toEqual([10, 15, 20, 25]);
+    });
+
+    it('handles window 1', () => {
+        expect(trailingMovingAverage([5, 15], 1)).toEqual([5, 15]);
     });
 });
 

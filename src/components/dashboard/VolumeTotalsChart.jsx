@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import {
-    BarChart,
+    ComposedChart,
     Bar,
+    Line,
     XAxis,
     YAxis,
     Tooltip,
@@ -15,7 +16,13 @@ import {
     formatWeekChartTickEn,
     formatMonthChartTickEn,
     orderVolumeRowsChronological,
+    trailingMovingAverage,
 } from '../../utils/dashboardVolumeTotals';
+
+const STRAVA_ORANGE = '#ea580c';
+
+const BAR_SERIES_NAME = 'Period total';
+const trendSeriesName = (window) => `Trend (${window}-period avg)`;
 
 const METRICS = [
     { id: 'distance', label: 'Distance', barValue: (r) => r.distanceKm },
@@ -44,10 +51,18 @@ const VolumeTotalsChart = ({ weeklyRows, monthlyRows }) => {
 
     const chartData = useMemo(() => {
         const m = METRICS.find((x) => x.id === metricId) || METRICS[0];
-        return chronological.map((r) => ({
+        const trendWindow = cadence === 'weekly' ? 4 : 3;
+        const rows = chronological.map((r) => ({
             ...r,
             barValue: Math.max(0, Number(m.barValue(r)) || 0),
             tick: cadence === 'weekly' ? formatWeekChartTickEn(r.key) : formatMonthChartTickEn(r.key),
+        }));
+        const vals = rows.map((r) => r.barValue);
+        const trend = trailingMovingAverage(vals, trendWindow);
+        return rows.map((r, i) => ({
+            ...r,
+            trendValue: trend[i],
+            trendWindow,
         }));
     }, [chronological, metricId, cadence]);
 
@@ -68,12 +83,15 @@ const VolumeTotalsChart = ({ weeklyRows, monthlyRows }) => {
         return formatNlNumber(Math.round(v));
     };
 
-    const tooltipFormatter = (value) => {
+    const tooltipFormatter = (value, name) => {
         const v = Number(value) || 0;
-        if (metricId === 'time') return [`${Math.round(v * 10) / 10} h`, 'Time'];
-        if (metricId === 'distance') return [`${Math.round(v * 10) / 10} km`, 'Distance'];
-        if (metricId === 'elevation') return [`${Math.round(v)} m`, 'Elevation'];
-        return [`${Math.round(v)}`, 'Load (TSS)'];
+        const fmt = () => {
+            if (metricId === 'time') return `${Math.round(v * 10) / 10} h`;
+            if (metricId === 'distance') return `${Math.round(v * 10) / 10} km`;
+            if (metricId === 'elevation') return `${Math.round(v)} m`;
+            return `${Math.round(v)}`;
+        };
+        return [fmt(), name];
     };
 
     const xInterval = chartData.length > 18 ? Math.max(0, Math.floor(chartData.length / 14)) : 0;
@@ -134,7 +152,7 @@ const VolumeTotalsChart = ({ weeklyRows, monthlyRows }) => {
 
             <div className="h-[280px] w-full min-h-[220px]">
                 <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 4 }}>
+                    <ComposedChart data={chartData} margin={{ top: 12, right: 10, left: 0, bottom: 4 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#64748b" opacity={0.25} vertical={false} />
                         <XAxis
                             dataKey="tick"
@@ -164,6 +182,7 @@ const VolumeTotalsChart = ({ weeklyRows, monthlyRows }) => {
                             formatter={tooltipFormatter}
                         />
                         <Bar
+                            name={BAR_SERIES_NAME}
                             dataKey="barValue"
                             radius={[4, 4, 0, 0]}
                             onClick={(_entry, index) => {
@@ -182,11 +201,31 @@ const VolumeTotalsChart = ({ weeklyRows, monthlyRows }) => {
                                 />
                             ))}
                         </Bar>
-                    </BarChart>
+                        <Line
+                            type="monotone"
+                            name={trendSeriesName(chartData[0]?.trendWindow ?? 4)}
+                            dataKey="trendValue"
+                            stroke={STRAVA_ORANGE}
+                            strokeWidth={2.5}
+                            dot={false}
+                            isAnimationActive={false}
+                            activeDot={{ r: 4, fill: STRAVA_ORANGE, stroke: '#fff', strokeWidth: 1 }}
+                        />
+                    </ComposedChart>
                 </ResponsiveContainer>
             </div>
+            <div className="flex flex-wrap justify-center gap-6 text-[10px] text-cdmuted">
+                <span className="inline-flex items-center gap-1.5">
+                    <span className="inline-block w-3 h-3 rounded-sm bg-blue-500/80" aria-hidden />
+                    Period total (bars)
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                    <span className="inline-block w-7 h-0.5 rounded-full" style={{ backgroundColor: STRAVA_ORANGE }} aria-hidden />
+                    {trendSeriesName(chartData[0]?.trendWindow ?? 4)}
+                </span>
+            </div>
             <p className="text-[10px] text-cdmuted text-center">
-                Click a bar to pin that period. Bar height follows the selected metric; the summary always shows all four totals.
+                Click a bar to pin that period. Bar height follows the selected metric; orange line is a rolling average of that series.
             </p>
         </div>
     );
