@@ -106,7 +106,7 @@ const ImportTab = ({ intervalsConfig, onImportResults }) => {
                     />
                 </div>
 
-                <button onClick={handleManualImport} className="mt-4 w-full bg-yellow-400 hover:bg-yellow-300 text-slate-900 font-bold py-3 rounded shadow-lg shadow-yellow-400/20 transition-all">Verwerk Data</button>
+                <button type="button" onClick={handleManualImport} className="mt-4 w-full bg-yellow-400 hover:bg-yellow-300 text-slate-900 font-bold py-3 rounded shadow-lg shadow-yellow-400/20 transition-all">Verwerk Data</button>
             </div>
         </div>
     );

@@ -104,6 +104,7 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp }) 
                         </div>
                     </div>
                     <button
+                        type="button"
                         onClick={onClose}
                         className="p-2 hover:bg-cdsurface rounded-full text-cdmuted hover:text-cdtext focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
                         aria-label="Close modal"
