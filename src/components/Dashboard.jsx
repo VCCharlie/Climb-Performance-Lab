@@ -5,6 +5,7 @@ import OverviewTab from './dashboard/OverviewTab';
 import FormTab from './dashboard/FormTab';
 import PowerTab from './dashboard/PowerTab';
 import DistanceTab from './dashboard/DistanceTab';
+import VolumeTotalsTab from './dashboard/VolumeTotalsTab';
 
 /**
  * Enriches a single activity record with dashboard-specific derived fields:
@@ -164,6 +165,11 @@ const Dashboard = ({
                     onClick={() => setDashboardTab('distance')}
                     className={`flex-1 min-w-[5.5rem] py-3 text-sm font-bold ${dashboardTab === 'distance' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
                 >Distance</button>
+                <button
+                    type="button"
+                    onClick={() => setDashboardTab('volume')}
+                    className={`flex-1 min-w-[5.5rem] py-3 text-sm font-bold ${dashboardTab === 'volume' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
+                >Volume</button>
             </div>
 
             {/* TAB CONTENT */}
@@ -211,6 +217,10 @@ const Dashboard = ({
                     referenceEndDate={referenceEndDate}
                     onOpenActivityInLog={onOpenActivityInLog}
                 />
+            )}
+
+            {dashboardTab === 'volume' && (
+                <VolumeTotalsTab data={filteredData} />
             )}
         </div>
     );
