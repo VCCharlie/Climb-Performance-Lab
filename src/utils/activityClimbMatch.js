@@ -15,14 +15,23 @@ function stripDiacritics(s) {
 
 function normWords(str) {
     if (!str || typeof str !== 'string') return [];
-    return str
+    const parts = str
         .toLowerCase()
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
         .replace(/[^a-z0-9\s]/gi, ' ')
-        .split(/\s+/)
-        .map((w) => w.trim())
-        .filter((w) => w.length >= 4 && !STOP.has(w));
+        .split(/\s+/);
+
+    // ⚡ Bolt Optimization: Use single-pass for-of loop instead of chained .map().filter()
+    // to minimize intermediate array allocations in a hot path. The explicit .trim() is
+    // redundant because .split(/\s+/) already removes surrounding whitespace.
+    const words = [];
+    for (const w of parts) {
+        if (w.length >= 4 && !STOP.has(w)) {
+            words.push(w);
+        }
+    }
+    return words;
 }
 
 /** Tokens for index lookup when normWords is empty (e.g. short or stopword-heavy titles). */
@@ -30,7 +39,16 @@ function fallbackTokens(str) {
     if (!str || typeof str !== 'string') return [];
     const t = stripDiacritics(str.toLowerCase());
     const m = t.match(/[a-z0-9]{4,}/g);
-    return m ? [...new Set(m.filter((w) => !STOP.has(w)))] : [];
+
+    // ⚡ Bolt Optimization: Build Set in a single pass to avoid intermediate array allocation from .filter()
+    if (!m) return [];
+    const tokens = new Set();
+    for (const w of m) {
+        if (!STOP.has(w)) {
+            tokens.add(w);
+        }
+    }
+    return [...tokens];
 }
 
 /**
