@@ -184,15 +184,48 @@ const VolumeTotalsChart = ({
         return formatNlNumber(Math.round(v));
     };
 
-    const tooltipFormatter = (value, name) => {
+    const formatTooltipMetricValue = (value) => {
         const v = Number(value) || 0;
-        const fmt = () => {
-            if (metricId === 'time') return `${Math.round(v * 10) / 10} h`;
-            if (metricId === 'distance') return `${Math.round(v * 10) / 10} km`;
-            if (metricId === 'elevation') return `${Math.round(v)} m`;
-            return `${Math.round(v)}`;
-        };
-        return [fmt(), name];
+        if (metricId === 'time') return `${Math.round(v * 10) / 10} h`;
+        if (metricId === 'distance') return `${Math.round(v * 10) / 10} km`;
+        if (metricId === 'elevation') return `${Math.round(v)} m`;
+        return `${Math.round(v)}`;
+    };
+
+    const volumeTooltipContent = ({ active, payload }) => {
+        if (!active || !payload?.length) return null;
+        const title = payload[0]?.payload?.label || '';
+        return (
+            <div
+                style={{
+                    background: '#0f172a',
+                    border: '1px solid #475569',
+                    borderRadius: '8px',
+                    padding: '10px 12px',
+                    fontSize: '12px',
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
+                }}
+            >
+                <p style={{ margin: 0, marginBottom: 8, color: '#f8fafc', fontWeight: 700 }}>{title}</p>
+                {payload.map((p) => (
+                    <div
+                        key={`${p.dataKey}-${p.name}`}
+                        style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            gap: 16,
+                            marginTop: 4,
+                            lineHeight: 1.35,
+                        }}
+                    >
+                        <span style={{ color: '#cbd5e1' }}>{p.name}</span>
+                        <span style={{ color: '#f1f5f9', fontFamily: 'ui-monospace, monospace', fontWeight: 600 }}>
+                            {formatTooltipMetricValue(p.value)}
+                        </span>
+                    </div>
+                ))}
+            </div>
+        );
     };
 
     const xInterval = chartData.length > 18 ? Math.max(0, Math.floor(chartData.length / 14)) : 0;
@@ -291,20 +324,7 @@ const VolumeTotalsChart = ({
                             tickFormatter={yTickFormatter}
                             width={metricId === 'time' ? 44 : 36}
                         />
-                        <Tooltip
-                            contentStyle={{
-                                background: '#0f172a',
-                                border: '1px solid #334155',
-                                borderRadius: '8px',
-                                fontSize: '12px',
-                                color: '#f1f5f9',
-                            }}
-                            labelFormatter={(_, payload) => {
-                                const p = payload?.[0]?.payload;
-                                return p?.label || '';
-                            }}
-                            formatter={tooltipFormatter}
-                        />
+                        <Tooltip content={volumeTooltipContent} cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }} />
                         <Bar
                             name={BAR_SERIES_NAME}
                             dataKey="barValue"
