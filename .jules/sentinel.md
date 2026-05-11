@@ -51,3 +51,8 @@
 **Vulnerability:** External OpenStreetMap attribution links in Leaflet map components lacked `rel="noopener noreferrer"`, introducing a Reverse Tabnabbing risk when users clicked them.
 **Learning:** Leaflet `L.tileLayer` config typically receives an HTML string for attribution. These statically defined external links are just as vulnerable to Reverse Tabnabbing as JSX anchor tags and must be manually secured when passed as strings.
 **Prevention:** When injecting static HTML strings that contain external links into 3rd-party libraries (like Leaflet or chart configs), always ensure `target="_blank"` is accompanied by `rel="noopener noreferrer"`.
+
+## 2026-05-11 - [Hardcoded Firebase API Key Removal]
+**Vulnerability:** A hardcoded API key for Firebase (`AIzaSyBNWzcEXhzra-iCkHiZj_FdYUf0NcKvHAk`) was discovered in `src/firebase.js`.
+**Learning:** Hardcoding credentials, even if client-side API keys are sometimes considered less sensitive depending on the service's configuration, is a poor security practice. It exposes credentials in source control and makes rotation difficult.
+**Prevention:** Always extract API keys and secrets into environment variables. In Vite-based applications, use `import.meta.env` to inject configuration values securely during the build process. Ensure `.env` files are added to `.gitignore`.

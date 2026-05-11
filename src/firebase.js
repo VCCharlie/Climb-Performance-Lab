@@ -9,7 +9,7 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/
 // Firebase Web API keys are public project identifiers. Keep the env override for
 // deployments that inject it, but retain the known public key so static builds
 // (GitHub Pages) do not ship with an undefined apiKey.
-const firebaseApiKey = import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyBNWzcEXhzra-iCkHiZj_FdYUf0NcKvHAk";
+const firebaseApiKey = import.meta.env.VITE_FIREBASE_API_KEY;
 
 const firebaseConfig = {
   apiKey: firebaseApiKey,
