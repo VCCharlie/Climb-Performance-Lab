@@ -6,6 +6,7 @@ import {
     buildWeeklyVolumeTotals,
     formatDurationHoursMinutes,
 } from '../../utils/dashboardVolumeTotals';
+import VolumeTotalsChart from './VolumeTotalsChart';
 
 const TotalsTable = ({ rows, periodHeading }) => (
     <div className="overflow-x-auto rounded-lg border border-cdborder">
@@ -57,6 +58,8 @@ const VolumeTotalsTab = ({ data }) => {
                 Totals follow the <strong className="text-cdtext">same date filter</strong> as the rest of the Dashboard (preset or custom range).
                 Weeks start on <strong className="text-cdtext">Monday</strong>. Load is the sum of activity training load (TSS).
             </div>
+
+            <VolumeTotalsChart weeklyRows={weekly} monthlyRows={monthly} />
 
             <section>
                 <h3 className="text-sm font-bold text-cdtext mb-2 flex items-center gap-2">

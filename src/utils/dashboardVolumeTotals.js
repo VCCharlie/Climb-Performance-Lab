@@ -159,3 +159,36 @@ export function buildWeeklyVolumeTotals(activities) {
         })
         .sort((x, y) => y.key.localeCompare(x.key));
 }
+
+/**
+ * Oldest → newest (for time-series charts).
+ * @template {{ key: string }} T
+ * @param {T[]} rows
+ * @returns {T[]}
+ */
+export function orderVolumeRowsChronological(rows) {
+    return [...(rows || [])].sort((a, b) => a.key.localeCompare(b.key));
+}
+
+/**
+ * X-axis tick for a week bucket (key = Monday YYYY-MM-DD).
+ * @param {string} mondayYmd
+ */
+export function formatWeekChartTickEn(mondayYmd) {
+    const dt = parseYmdLocal(mondayYmd);
+    if (!dt) return mondayYmd || '';
+    return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+/**
+ * Compact month label for chart axis (YYYY-MM).
+ * @param {string} monthKey
+ */
+export function formatMonthChartTickEn(monthKey) {
+    if (!monthKey || monthKey.length < 7) return monthKey || '';
+    const y = Number(monthKey.slice(0, 4));
+    const mo = Number(monthKey.slice(5, 7));
+    if (!Number.isFinite(y) || !Number.isFinite(mo)) return monthKey;
+    const d = new Date(y, mo - 1, 1);
+    return d.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
+}
