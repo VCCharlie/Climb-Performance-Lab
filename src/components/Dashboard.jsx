@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo, useEffect } from 'react';
 import { calculateBassettCorrection } from '../utils';
 import { normalizeDate } from '../utils/formatters';
 import OverviewTab from './dashboard/OverviewTab';
@@ -6,6 +6,19 @@ import FormTab from './dashboard/FormTab';
 import PowerTab from './dashboard/PowerTab';
 import DistanceTab from './dashboard/DistanceTab';
 import VolumeTotalsTab from './dashboard/VolumeTotalsTab';
+
+const DASH_SUBTAB_STORAGE_KEY = 'cpl.dashboard.subTab.v1';
+
+function readDashboardSubTab() {
+    if (typeof sessionStorage === 'undefined') return 'overview';
+    try {
+        const v = sessionStorage.getItem(DASH_SUBTAB_STORAGE_KEY);
+        if (['overview', 'form', 'power', 'distance', 'volume'].includes(v)) return v;
+    } catch {
+        /* ignore */
+    }
+    return 'overview';
+}
 
 /**
  * Enriches a single activity record with dashboard-specific derived fields:
@@ -45,8 +58,14 @@ const Dashboard = ({
     userSettings,
     updateUserSettings,
     cloudVolumeGoalsSynced = false,
+    onOpenActivityLogDateRange,
 }) => {
-    const [dashboardTab, setDashboardTab] = useState('overview');
+    const [dashboardTab, setDashboardTab] = useState(readDashboardSubTab);
+
+    useEffect(() => {
+        if (typeof sessionStorage === 'undefined') return;
+        sessionStorage.setItem(DASH_SUBTAB_STORAGE_KEY, dashboardTab);
+    }, [dashboardTab]);
 
     // Alle historische data zit in Firestore via de deep sync — GCF niet meer nodig.
     const chartData = useMemo(() => {
@@ -220,7 +239,7 @@ const Dashboard = ({
             )}
 
             {dashboardTab === 'volume' && (
-                <VolumeTotalsTab data={filteredData} />
+                <VolumeTotalsTab data={filteredData} onOpenActivityLogDateRange={onOpenActivityLogDateRange} />
             )}
         </div>
     );

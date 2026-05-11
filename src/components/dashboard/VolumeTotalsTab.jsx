@@ -40,7 +40,7 @@ const TotalsTable = ({ rows, periodHeading }) => (
 /**
  * Dashboard: weekly & monthly distance, elevation, moving time, and TSS-style load totals.
  */
-const VolumeTotalsTab = ({ data }) => {
+const VolumeTotalsTab = ({ data, onOpenActivityLogDateRange }) => {
     const monthly = useMemo(() => buildMonthlyVolumeTotals(data), [data]);
     const weekly = useMemo(() => buildWeeklyVolumeTotals(data), [data]);
 
@@ -59,7 +59,7 @@ const VolumeTotalsTab = ({ data }) => {
                 Weeks start on <strong className="text-cdtext">Monday</strong>. Load is the sum of activity training load (TSS).
             </div>
 
-            <VolumeTotalsChart weeklyRows={weekly} monthlyRows={monthly} />
+            <VolumeTotalsChart weeklyRows={weekly} monthlyRows={monthly} onOpenActivityLogDateRange={onOpenActivityLogDateRange} />
 
             <section>
                 <h3 className="text-sm font-bold text-cdtext mb-2 flex items-center gap-2">
