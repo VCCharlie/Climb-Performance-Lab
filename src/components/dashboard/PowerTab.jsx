@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import PowerDurationTable from './PowerDurationTable';
 import PowerTopTenByDurationPanel from './PowerTopTenByDurationPanel';
 import PowerTabDetails from './PowerTabDetails';
+import PowerProfileRadar from './PowerProfileRadar';
 import { findBestPowerActivity, DASHBOARD_FTP_CAPS } from '../../utils/dashboardActivityPeaks';
 import { dashboardFilterLabel } from '../../utils/powerDurationTable';
 
@@ -145,6 +146,14 @@ const PowerTab = ({
                     <StatCard label="eFTP W/kg" value={stats.eFTPkg || null} unit="w/kg" color="text-green-400" />
                     <StatCard label="20m W/kg" value={stats.wkg20m || null} unit="w/kg" />
                 </div>
+            )}
+
+            {powerPeakRows.some((r) => (Number(r.watts) || 0) > 0) && (
+                <PowerProfileRadar
+                    powerPeakRows={powerPeakRows}
+                    manualFtp={manualFtp}
+                    onOpenActivityInLog={onOpenActivityInLog}
+                />
             )}
 
             {chartData.length > 0 && (
