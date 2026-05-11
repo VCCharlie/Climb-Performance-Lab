@@ -192,3 +192,22 @@ export function formatMonthChartTickEn(monthKey) {
     const d = new Date(y, mo - 1, 1);
     return d.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
 }
+
+/**
+ * Trailing moving average (same length as input). Used for trend overlay on volume charts.
+ * @param {number[]} values
+ * @param {number} window - max periods to include (>= 1)
+ * @returns {number[]}
+ */
+export function trailingMovingAverage(values, window) {
+    const w = Math.max(1, Math.floor(Number(window)) || 1);
+    const arr = values || [];
+    const out = [];
+    for (let i = 0; i < arr.length; i += 1) {
+        const start = Math.max(0, i - w + 1);
+        const slice = arr.slice(start, i + 1);
+        const sum = slice.reduce((a, b) => a + (Number(b) || 0), 0);
+        out.push(sum / slice.length);
+    }
+    return out;
+}
