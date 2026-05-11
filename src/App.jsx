@@ -372,8 +372,9 @@ const App = () => {
     // Sub-tab states for merged tabs
     const [trainingSubTab, setTrainingSubTab] = useState('coach'); // 'coach' | 'goal' | 'recovery'
 
-    /** Vanuit Dashboard: focus één activiteit in DataHub log */
+    /** Vanuit Dashboard: focus één activiteit in DataHub log; optioneel alleen die rit tonen (Peak eFTP). */
     const [activityFocusId, setActivityFocusId] = useState(null);
+    const [logIsolateActivityId, setLogIsolateActivityId] = useState(null);
     /** Activity Log → Ranges panel: dicht na refresh; blijft open/dicht bij tab-wissel */
     const [activityLogRangesExpanded, setActivityLogRangesExpanded] = useState(false);
     const [raceSubTab, setRaceSubTab] = useState('fueling');       // 'fueling' | 'racepacing'
@@ -734,9 +735,10 @@ const App = () => {
                                 userSettings={userSettings}
                                 updateUserSettings={(k, v) => setUserSettings((p) => ({ ...p, [k]: v }))}
                                 cloudVolumeGoalsSynced={!!user}
-                                onOpenActivityInLog={(id) => {
+                                onOpenActivityInLog={(id, opts) => {
                                     if (id == null) return;
                                     setActivityFocusId(String(id));
+                                    setLogIsolateActivityId(opts?.isolate ? String(id) : null);
                                     setActiveTab('activities');
                                 }}
                             />
@@ -765,6 +767,11 @@ const App = () => {
                                 onRefresh={forceRefreshActivities}
                                 focusActivityId={activityFocusId}
                                 onFocusActivityCleared={() => setActivityFocusId(null)}
+                                isolateActivityId={logIsolateActivityId}
+                                onClearLogIsolate={() => {
+                                    setLogIsolateActivityId(null);
+                                    setActivityFocusId(null);
+                                }}
                                 onOpenProfilerFromActivity={handleOpenProfilerFromActivity}
                                 climbDatabaseForMatch={CLIMB_DATABASE}
                                 activityLogRangesExpanded={activityLogRangesExpanded}

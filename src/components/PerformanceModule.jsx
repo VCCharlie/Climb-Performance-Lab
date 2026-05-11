@@ -16,7 +16,7 @@ const formatNumber = (num) => {
 // ⚡ Bolt Optimization: Use array lookup instead of Date.toLocaleString() in loops
 const EN_SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-const StatCard = ({ title, value, unit, subtitle, icon, trend, colorClass, split, quickLink }) => {
+const StatCard = ({ title, value, unit, subtitle, icon, trend, colorClass, split, quickLink, sourceMeta }) => {
     const Icon = icon;
     return (
     <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-lg relative overflow-hidden group hover:border-cdborder transition-all">
@@ -43,6 +43,12 @@ const StatCard = ({ title, value, unit, subtitle, icon, trend, colorClass, split
                     {trend === 'down' && <ArrowDown size={12} className="text-red-400" />}
                     <span className="text-cdmuted">{subtitle}</span>
                 </div>
+            )}
+
+            {sourceMeta && (
+                <p className="mt-2 text-[11px] text-cdtext leading-snug line-clamp-2 border-l-2 border-cdaccent/50 pl-2" title={sourceMeta}>
+                    {sourceMeta}
+                </p>
             )}
 
             {quickLink?.onClick && (
@@ -284,6 +290,13 @@ const PerformanceModule = ({
 
     const canOpenActivity = typeof onOpenActivityInLog === 'function';
 
+    const peakSourceMeta = (act) => {
+        if (!act?.date) return null;
+        const raw = (act.title && String(act.title).trim()) || 'Untitled';
+        const short = raw.length > 75 ? `${raw.slice(0, 72)}…` : raw;
+        return `${formatDateDDMMYYYY(act.date)} · ${short}`;
+    };
+
     return (
         <>
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
@@ -300,6 +313,7 @@ const PerformanceModule = ({
                     value={displayEftp}
                     unit="W"
                     subtitle="Best 20min × 0.95"
+                    sourceMeta={peak20Peak.activity ? peakSourceMeta(peak20Peak.activity) : null}
                     icon={TrendingUp}
                     trend={displayEftp >= displayFtp ? 'up' : 'down'}
                     colorClass="text-green-500"
@@ -308,7 +322,7 @@ const PerformanceModule = ({
                         peak20Peak.activity && canOpenActivity
                             ? {
                                 label: 'Open source activity',
-                                onClick: () => onOpenActivityInLog(peak20Peak.activity.id),
+                                onClick: () => onOpenActivityInLog(peak20Peak.activity.id, { isolate: true }),
                             }
                             : undefined
                     }
@@ -318,6 +332,7 @@ const PerformanceModule = ({
                     value={maxEftp60 || null}
                     unit="W"
                     subtitle="Best 60-min power"
+                    sourceMeta={peak60Peak.activity ? peakSourceMeta(peak60Peak.activity) : null}
                     icon={TrendingUp}
                     colorClass="text-emerald-400"
                     split={maxEftp60Indoor > 0 || maxEftp60Outdoor > 0
@@ -328,7 +343,7 @@ const PerformanceModule = ({
                         peak60Peak.activity && canOpenActivity
                             ? {
                                 label: 'Open source activity',
-                                onClick: () => onOpenActivityInLog(peak60Peak.activity.id),
+                                onClick: () => onOpenActivityInLog(peak60Peak.activity.id, { isolate: true }),
                             }
                             : undefined
                     }
@@ -375,7 +390,7 @@ const PerformanceModule = ({
                                     {canOpenActivity && (
                                         <button
                                             type="button"
-                                            onClick={() => onOpenActivityInLog(peak20Source.activity.id)}
+                                            onClick={() => onOpenActivityInLog(peak20Source.activity.id, { isolate: true })}
                                             className="inline-flex items-center gap-1 px-2 py-1 rounded border border-cdborder bg-cdborder/30 hover:bg-cdborder text-cdtext font-bold"
                                         >
                                             <ExternalLink size={12} /> Open in Activities
@@ -407,7 +422,7 @@ const PerformanceModule = ({
                                     {canOpenActivity && peak60Source.activity.id !== peak20Source.activity?.id && (
                                         <button
                                             type="button"
-                                            onClick={() => onOpenActivityInLog(peak60Source.activity.id)}
+                                            onClick={() => onOpenActivityInLog(peak60Source.activity.id, { isolate: true })}
                                             className="inline-flex items-center gap-1 px-2 py-1 rounded border border-cdborder bg-cdborder/30 hover:bg-cdborder text-cdtext font-bold"
                                         >
                                             <ExternalLink size={12} /> Open in Activities

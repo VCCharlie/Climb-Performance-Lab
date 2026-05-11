@@ -65,6 +65,9 @@ const DataHub = ({
     onStravaProfileData,
     focusActivityId = null,
     onFocusActivityCleared,
+    /** When set, Activity Log shows only this activity (from Dashboard Peak eFTP deep link). */
+    isolateActivityId = null,
+    onClearLogIsolate,
     onOpenProfilerFromActivity,
     climbDatabaseForMatch = CLIMB_DATABASE,
     activityLogRangesExpanded = false,
@@ -122,26 +125,6 @@ const DataHub = ({
         }
     }, [showStravaEnrichPanel]);
 
-    // Vanuit Dashboard: spring naar rit in het log en highlight kort
-    useEffect(() => {
-        if (!focusActivityId) return;
-        setInternalTab('log');
-        const t = setTimeout(() => {
-            const el = document.getElementById(`activity-row-${focusActivityId}`);
-            if (el) {
-                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                el.classList.add('ring-2', 'ring-yellow-400', 'ring-inset', 'bg-cdborder/40');
-                setTimeout(() => {
-                    el.classList.remove('ring-2', 'ring-yellow-400', 'ring-inset', 'bg-cdborder/40');
-                    onFocusActivityCleared?.();
-                }, 4500);
-            } else {
-                onFocusActivityCleared?.();
-            }
-        }, 200);
-        return () => clearTimeout(t);
-    }, [focusActivityId, onFocusActivityCleared]);
-
     // Determine which dates to use for Strava tab
     const stravaSearchDates = useMemo(() => ({
         startDate: stravaDateOverride || startDate,
@@ -167,6 +150,7 @@ const DataHub = ({
         sortConfig, requestSort,
         isYearExpanded, toggleYear,
         isMonthExpanded, toggleMonth,
+        openGroupedPathForActivity,
         expandAllGrouped,
         collapseAllGrouped,
         processedActivities, groupedActivities, isGroupedView,
@@ -195,6 +179,39 @@ const DataHub = ({
         filterGearId, setFilterGearId,
         clearMetricFilters,
     } = useActivityFilter(activities, profileFtp);
+
+    // Vanuit Dashboard: open juiste jaar/maand in gegroepeerde weergave, dan scroll + highlight
+    useEffect(() => {
+        if (!focusActivityId) return;
+        const act = activities?.find((a) => String(a.id) === String(focusActivityId));
+        if (act && isGroupedView) openGroupedPathForActivity(act);
+        setInternalTab('log');
+        const delayMs = act && isGroupedView ? 380 : 200;
+        const t = setTimeout(() => {
+            const el = document.getElementById(`activity-row-${focusActivityId}`);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.classList.add('ring-2', 'ring-yellow-400', 'ring-inset', 'bg-cdborder/40');
+                setTimeout(() => {
+                    el.classList.remove('ring-2', 'ring-yellow-400', 'ring-inset', 'bg-cdborder/40');
+                    onFocusActivityCleared?.();
+                }, 4500);
+            } else {
+                onFocusActivityCleared?.();
+            }
+        }, delayMs);
+        return () => clearTimeout(t);
+    }, [focusActivityId, onFocusActivityCleared, activities, isGroupedView, openGroupedPathForActivity]);
+
+    const isolatedActivity = useMemo(() => {
+        if (!isolateActivityId || !activities?.length) return null;
+        return activities.find((a) => String(a.id) === String(isolateActivityId)) ?? null;
+    }, [isolateActivityId, activities]);
+
+    const logTableActivities = isolateActivityId
+        ? (isolatedActivity ? [isolatedActivity] : [])
+        : (isGroupedView ? groupedActivities : processedActivities);
+    const logTableGrouped = isolateActivityId ? false : isGroupedView;
 
     const gearFilterOptions = useMemo(() => {
         const map = new Map();
@@ -1975,7 +1992,7 @@ const DataHub = ({
                             </div>
                         </div>
 
-                        {isGroupedView && (
+                        {isGroupedView && !isolateActivityId && (
                             <div className="flex flex-col gap-2">
                                 <div className="flex flex-wrap items-center gap-2">
                                     <button
@@ -2000,19 +2017,50 @@ const DataHub = ({
                             </div>
                         )}
 
+                        {isolateActivityId && (
+                            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-cdaccent/40 bg-cdaccent/10 px-3 py-2 text-sm text-cdtext">
+                                <span>
+                                    Showing <strong className="text-cdtext">one activity</strong> linked from the Dashboard (Peak eFTP source).
+                                </span>
+                                {typeof onClearLogIsolate === 'function' && (
+                                    <button
+                                        type="button"
+                                        onClick={() => onClearLogIsolate()}
+                                        className="shrink-0 px-3 py-1.5 rounded-md border border-cdborder bg-cdsurface text-xs font-bold text-cdaccent hover:bg-cdborder/40"
+                                    >
+                                        Show full log
+                                    </button>
+                                )}
+                            </div>
+                        )}
+
                         {!activities ? (
                             <div className="flex-1 flex flex-col items-center justify-center text-cdmuted gap-4"><Loader2 className="animate-spin text-yellow-400" size={32} /><p>Loading Activities...</p></div>
-                        ) : processedActivities.length === 0 ? (
+                        ) : isolateActivityId && !isolatedActivity ? (
+                            <div className="flex-1 flex flex-col items-center justify-center text-cdmuted gap-3 border border-dashed border-cdborder rounded-lg p-6">
+                                <AlertTriangle size={32} className="text-amber-500/90" />
+                                <p className="text-sm text-cdtext text-center">That activity is not in your log (it may have been removed).</p>
+                                {typeof onClearLogIsolate === 'function' && (
+                                    <button
+                                        type="button"
+                                        onClick={() => onClearLogIsolate()}
+                                        className="px-4 py-2 rounded-lg border border-cdborder bg-cdsurface text-sm font-bold text-cdaccent hover:bg-cdborder/30"
+                                    >
+                                        Show full log
+                                    </button>
+                                )}
+                            </div>
+                        ) : !isolateActivityId && processedActivities.length === 0 ? (
                             <div className="flex-1 flex flex-col items-center justify-center text-cdmuted gap-2 border border-dashed border-cdborder rounded-lg"><AlertTriangle size={32} className="text-slate-600" /><p>No activities found. Start with an Import!</p></div>
                         ) : (
                             <ActivityTable
-                                activities={isGroupedView ? groupedActivities : processedActivities}
+                                activities={logTableActivities}
                                 sortConfig={sortConfig}
                                 onSort={requestSort}
                                 onDelete={handleDeleteSingle}
                                 onEdit={setEditingActivity}
                                 onViewDetail={setDetailActivity}
-                                isGroupedView={isGroupedView}
+                                isGroupedView={logTableGrouped}
                                 isYearExpanded={isYearExpanded}
                                 onToggleYear={toggleYear}
                                 isMonthExpanded={isMonthExpanded}
