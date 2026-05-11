@@ -94,6 +94,22 @@ const useActivityFilter = (activities, profileFtp) => {
         setExpandedMonths(p => ({ ...(p || {}), [key]: !(p?.[key]) }));
     }, []);
 
+    /** Expand year/month so a grouped row exists in the DOM (e.g. Dashboard deep-link). */
+    const openGroupedPathForActivity = useCallback((activity) => {
+        if (!activity?.date) return;
+        try {
+            const d = new Date(activity.date);
+            if (Number.isNaN(d.getTime())) return;
+            const y = String(d.getFullYear());
+            const m = MONTH_ORDER[d.getMonth()];
+            const mk = `${y}-${m}`;
+            setExpandedYears((p) => ({ ...(p || {}), [y]: true }));
+            setExpandedMonths((p) => ({ ...(p || {}), [mk]: true }));
+        } catch {
+            /* invalid date */
+        }
+    }, []);
+
     // Checkers - Note: Default is now false because we prepopulate true keys!
     const isYearExpanded = useCallback((year) => expandedYears?.[year] === true, [expandedYears]);
     const isMonthExpanded = useCallback((year, month) => expandedMonths?.[`${year}-${month}`] === true, [expandedMonths]);
@@ -388,6 +404,7 @@ const useActivityFilter = (activities, profileFtp) => {
         sortConfig, requestSort,
         isYearExpanded, toggleYear,
         isMonthExpanded, toggleMonth,
+        openGroupedPathForActivity,
         expandAllGrouped,
         collapseAllGrouped,
         processedActivities,
