@@ -115,6 +115,15 @@ const PowerTab = ({
         });
     }, [data, manualFtp]);
 
+    /** Best per duration over full dashboard ride history (for radar outer ring). */
+    const historyPowerPeakRows = useMemo(() => {
+        if (!chartData?.length) return null;
+        return POWER_TABLE_KEYS.map(({ key, label }) => {
+            const { activity, watts } = findBestPowerActivity(chartData, key, manualFtp);
+            return { key, label, watts, activity };
+        });
+    }, [chartData, manualFtp]);
+
     const periodLabel = dashboardFilterLabel(timeRange);
     const hasPeriodData = Boolean(data?.length);
     const hasHistory = Boolean(chartData?.length);
@@ -151,6 +160,7 @@ const PowerTab = ({
             {powerPeakRows.some((r) => (Number(r.watts) || 0) > 0) && (
                 <PowerProfileRadar
                     powerPeakRows={powerPeakRows}
+                    historyPeakRows={historyPowerPeakRows}
                     manualFtp={manualFtp}
                     onOpenActivityInLog={onOpenActivityInLog}
                 />
