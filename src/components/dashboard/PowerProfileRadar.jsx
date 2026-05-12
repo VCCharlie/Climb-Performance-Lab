@@ -1,12 +1,12 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     RadarChart,
     PolarGrid,
     PolarAngleAxis,
     PolarRadiusAxis,
     Radar,
-    Tooltip,
     ResponsiveContainer,
+    Polygon,
 } from 'recharts';
 import { ExternalLink } from 'lucide-react';
 import { activityExternalLinks } from '../../utils/dashboardActivityPeaks';
@@ -17,101 +17,39 @@ const RADAR_MAX_FTP_PCT = 160;
 const RADAR_OUTER_STROKE = '#15803d';
 const RADAR_OUTER_FILL = 'rgba(22, 101, 52, 0.16)';
 
-/** Time to move the pointer from a dot onto the tooltip before it closes. */
-const RADAR_TOOLTIP_STICKY_MS = 380;
-
 function rowByKey(rows, key) {
     return (rows || []).find((r) => r.key === key) || null;
 }
 
-function PowerProfileRadarTooltip({ active, payload, onOpenActivityInLog, setTooltipWrapBoost }) {
-    const hideTimerRef = useRef(null);
-    const overPanelRef = useRef(false);
-    const activeRef = useRef(false);
+/** Filled web ignores pointer — only the dots receive hover/click. */
+function PeriodRadarFillShape(props) {
+    const { points, ...rest } = props;
+    return <Polygon {...rest} points={points} pointerEvents="none" />;
+}
 
-    const [overPanel, setOverPanel] = useState(false);
-    const [tipData, setTipData] = useState(null);
-
-    useEffect(() => {
-        activeRef.current = Boolean(active);
-    }, [active]);
-
-    useEffect(() => {
-        overPanelRef.current = overPanel;
-    }, [overPanel]);
-
-    const clearHideTimer = () => {
-        if (hideTimerRef.current) {
-            clearTimeout(hideTimerRef.current);
-            hideTimerRef.current = null;
-        }
-    };
-
-    const scheduleHide = () => {
-        clearHideTimer();
-        hideTimerRef.current = setTimeout(() => {
-            hideTimerRef.current = null;
-            if (!overPanelRef.current) {
-                setTipData(null);
-            }
-        }, RADAR_TOOLTIP_STICKY_MS);
-    };
-
-    useEffect(() => {
-        if (active) {
-            setOverPanel(false);
-        }
-    }, [active]);
-
-    useEffect(() => {
-        if (active && payload?.[0]?.payload) {
-            clearHideTimer();
-            setTipData(payload[0].payload);
-        } else if (!active && !overPanelRef.current) {
-            scheduleHide();
-        }
-        return clearHideTimer;
-        // scheduleHide uses refs + setState; only react to hover payload changes
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [active, payload]);
-
-    const d = (active && payload?.[0]?.payload) || tipData;
-
-    useLayoutEffect(() => {
-        if (typeof setTooltipWrapBoost !== 'function') return;
-        const has = tipData != null;
-        const boost = has && (!active || overPanel);
-        setTooltipWrapBoost(boost);
-    }, [active, overPanel, tipData, setTooltipWrapBoost]);
-
-    useEffect(() => () => {
-        if (typeof setTooltipWrapBoost === 'function') {
-            setTooltipWrapBoost(false);
-        }
-    }, [setTooltipWrapBoost]);
-
-    if (!d) return null;
-
+function PowerRadarDetailPanel({ d, pinned, onDismissPin, onOpenActivityInLog }) {
     const linksP = d.activityPeriod ? activityExternalLinks(d.activityPeriod) : [];
     const linksH = d.activityMax ? activityExternalLinks(d.activityMax) : [];
 
     return (
-        <div
-            className="rounded-lg border border-cdborder bg-cdsurface px-3 py-2 text-xs shadow-lg max-w-[260px] pointer-events-auto"
-            onMouseEnter={() => {
-                overPanelRef.current = true;
-                setOverPanel(true);
-                clearHideTimer();
-            }}
-            onMouseLeave={() => {
-                overPanelRef.current = false;
-                setOverPanel(false);
-                if (!activeRef.current) {
-                    scheduleHide();
-                }
-            }}
-        >
-            <div className="font-bold text-cdtext mb-2">{d.subject}</div>
+        <div className="rounded-lg border border-cdborder bg-cdsurface px-3 py-2 text-xs shadow-inner max-h-[min(280px,70vh)] overflow-y-auto custom-scrollbar">
+            <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="font-bold text-cdtext leading-tight">{d.subject}</div>
+                {pinned && (
+                    <button
+                        type="button"
+                        onClick={onDismissPin}
+                        className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-cdmuted hover:text-cdtext"
+                    >
+                        Dismiss
+                    </button>
+                )}
+            </div>
+            {pinned && (
+                <p className="text-[10px] text-cdmuted mb-2 border-b border-cdborder/40 pb-2">
+                    Pinned — click outside the chart or this panel to close.
+                </p>
+            )}
             <div className="space-y-2">
                 <div className="rounded-md border border-orange-500/30 bg-orange-500/10 px-2 py-1.5">
                     <div className="text-[10px] uppercase tracking-wide text-orange-200/90 font-bold">
@@ -188,7 +126,11 @@ function PowerProfileRadarTooltip({ active, payload, onOpenActivityInLog, setToo
  * Best powers by duration: inner web = this period, outer ring = best over dashboard history.
  */
 const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenActivityInLog }) => {
-    const [radarTooltipWrapBoost, setRadarTooltipWrapBoost] = useState(false);
+    const chartWrapRef = useRef(null);
+    const sidePanelRef = useRef(null);
+
+    const [hoverKey, setHoverKey] = useState(null);
+    const [pinnedKey, setPinnedKey] = useState(null);
 
     const data = useMemo(() => {
         const periodRows = powerPeakRows || [];
@@ -222,6 +164,60 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
             };
         });
     }, [powerPeakRows, historyPeakRows, manualFtp]);
+
+    const displayKey = pinnedKey || hoverKey;
+    const displayDatum = useMemo(
+        () => (displayKey ? data.find((row) => row.key === displayKey) : null),
+        [data, displayKey],
+    );
+
+    useEffect(() => {
+        if (!pinnedKey) return undefined;
+        const onDocMouseDown = (e) => {
+            const t = e.target;
+            if (chartWrapRef.current?.contains(t)) return;
+            if (sidePanelRef.current?.contains(t)) return;
+            setPinnedKey(null);
+        };
+        document.addEventListener('mousedown', onDocMouseDown);
+        return () => document.removeEventListener('mousedown', onDocMouseDown);
+    }, [pinnedKey]);
+
+    useEffect(() => {
+        if (!pinnedKey) return undefined;
+        const onKey = (e) => {
+            if (e.key === 'Escape') setPinnedKey(null);
+        };
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, [pinnedKey]);
+
+    const renderPeriodDot = useCallback(
+        (dotProps) => {
+            const { cx, cy, payload } = dotProps;
+            if (cx == null || cy == null || !payload?.key) return null;
+            const k = payload.key;
+            const hi = displayKey === k;
+            return (
+                <circle
+                    cx={cx}
+                    cy={cy}
+                    r={hi ? 12 : 9}
+                    fill={hi ? 'rgba(249, 115, 22, 0.38)' : 'rgba(249, 115, 22, 0.14)'}
+                    stroke="#c2410c"
+                    strokeWidth={hi ? 2.5 : 1.5}
+                    style={{ cursor: 'pointer' }}
+                    onMouseEnter={() => setHoverKey(k)}
+                    onMouseLeave={() => setHoverKey(null)}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setPinnedKey(k);
+                    }}
+                />
+            );
+        },
+        [displayKey],
+    );
 
     const showHistoryRing = useMemo(() => {
         if (!historyPeakRows?.length || !powerPeakRows?.length) return false;
@@ -276,72 +272,71 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
                 </span>
             </div>
 
-            <div className="h-[320px] w-full max-w-lg mx-auto">
-                <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart cx="50%" cy="52%" outerRadius="74%" data={data}>
-                        <PolarGrid
-                            stroke="#64748b"
-                            strokeOpacity={0.4}
-                            gridType="polygon"
+            <div className="flex flex-col sm:flex-row gap-3 max-w-3xl mx-auto items-stretch">
+                <div ref={chartWrapRef} className="flex-1 min-w-0 h-[320px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <RadarChart cx="50%" cy="52%" outerRadius="74%" data={data}>
+                            <PolarGrid
+                                stroke="#64748b"
+                                strokeOpacity={0.4}
+                                gridType="polygon"
+                            />
+                            <PolarAngleAxis
+                                dataKey="subject"
+                                tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }}
+                            />
+                            <PolarRadiusAxis
+                                angle={30}
+                                domain={[0, domainMax]}
+                                tick={{ fill: '#94a3b8', fontSize: 10 }}
+                                tickFormatter={(v) => `${v}%`}
+                            />
+                            <Radar
+                                name="Best in history"
+                                dataKey="pctMax"
+                                stroke={RADAR_OUTER_STROKE}
+                                fill={RADAR_OUTER_FILL}
+                                fillOpacity={1}
+                                strokeWidth={2.5}
+                                strokeDasharray="6 5"
+                                dot={false}
+                                isAnimationActive={false}
+                                pointerEvents="none"
+                            />
+                            <Radar
+                                name="This period"
+                                dataKey="pctPeriod"
+                                stroke="#ea580c"
+                                fill="rgba(249, 115, 22, 0.42)"
+                                fillOpacity={1}
+                                strokeWidth={2}
+                                shape={PeriodRadarFillShape}
+                                dot={renderPeriodDot}
+                                activeDot={false}
+                                isAnimationActive={false}
+                            />
+                        </RadarChart>
+                    </ResponsiveContainer>
+                </div>
+
+                <div
+                    ref={sidePanelRef}
+                    className="w-full sm:w-[240px] shrink-0 sm:border-l border-cdborder/50 sm:pl-3 flex flex-col justify-center min-h-[120px]"
+                >
+                    {displayDatum ? (
+                        <PowerRadarDetailPanel
+                            d={displayDatum}
+                            pinned={Boolean(pinnedKey)}
+                            onDismissPin={() => setPinnedKey(null)}
+                            onOpenActivityInLog={onOpenActivityInLog}
                         />
-                        <PolarAngleAxis
-                            dataKey="subject"
-                            tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }}
-                        />
-                        <PolarRadiusAxis
-                            angle={30}
-                            domain={[0, domainMax]}
-                            tick={{ fill: '#94a3b8', fontSize: 10 }}
-                            tickFormatter={(v) => `${v}%`}
-                        />
-                        <Radar
-                            name="Best in history"
-                            dataKey="pctMax"
-                            stroke={RADAR_OUTER_STROKE}
-                            fill={RADAR_OUTER_FILL}
-                            fillOpacity={1}
-                            strokeWidth={2.5}
-                            strokeDasharray="6 5"
-                            dot={false}
-                            isAnimationActive={false}
-                        />
-                        <Radar
-                            name="This period"
-                            dataKey="pctPeriod"
-                            stroke="#ea580c"
-                            fill="rgba(249, 115, 22, 0.42)"
-                            fillOpacity={1}
-                            strokeWidth={2}
-                            dot={{
-                                r: 4,
-                                fill: '#ffedd5',
-                                stroke: '#c2410c',
-                                strokeWidth: 2,
-                            }}
-                            activeDot={{
-                                r: 14,
-                                fill: 'rgba(249, 115, 22, 0.12)',
-                                stroke: 'rgba(234, 88, 12, 0.55)',
-                                strokeWidth: 1,
-                            }}
-                            isAnimationActive={false}
-                        />
-                        <Tooltip
-                            content={(tipProps) => (
-                                <PowerProfileRadarTooltip
-                                    {...tipProps}
-                                    onOpenActivityInLog={onOpenActivityInLog}
-                                    setTooltipWrapBoost={setRadarTooltipWrapBoost}
-                                />
-                            )}
-                            wrapperStyle={{
-                                pointerEvents: 'auto',
-                                ...(radarTooltipWrapBoost ? { visibility: 'visible', zIndex: 50 } : {}),
-                            }}
-                            cursor={{ strokeDasharray: '4 4' }}
-                        />
-                    </RadarChart>
-                </ResponsiveContainer>
+                    ) : (
+                        <p className="text-[11px] text-cdmuted leading-relaxed">
+                            Hover a point on the orange web for details. Click a point to pin this panel; click
+                            outside the chart or press Esc to dismiss.
+                        </p>
+                    )}
+                </div>
             </div>
 
             <ul className="text-[11px] text-cdmuted space-y-1.5 border-t border-cdborder/50 pt-3">
