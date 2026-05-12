@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
     RadarChart,
     PolarGrid,
@@ -13,14 +13,183 @@ import { activityExternalLinks } from '../../utils/dashboardActivityPeaks';
 
 const RADAR_MAX_FTP_PCT = 160;
 
+/** Dark green dashed “max / history” ring — distinct from orange period fill. */
+const RADAR_OUTER_STROKE = '#15803d';
+const RADAR_OUTER_FILL = 'rgba(22, 101, 52, 0.16)';
+
+/** Time to move the pointer from a dot onto the tooltip before it closes. */
+const RADAR_TOOLTIP_STICKY_MS = 380;
+
 function rowByKey(rows, key) {
     return (rows || []).find((r) => r.key === key) || null;
+}
+
+function PowerProfileRadarTooltip({ active, payload, onOpenActivityInLog, setTooltipWrapBoost }) {
+    const hideTimerRef = useRef(null);
+    const overPanelRef = useRef(false);
+    const activeRef = useRef(false);
+
+    const [overPanel, setOverPanel] = useState(false);
+    const [tipData, setTipData] = useState(null);
+
+    useEffect(() => {
+        activeRef.current = Boolean(active);
+    }, [active]);
+
+    useEffect(() => {
+        overPanelRef.current = overPanel;
+    }, [overPanel]);
+
+    const clearHideTimer = () => {
+        if (hideTimerRef.current) {
+            clearTimeout(hideTimerRef.current);
+            hideTimerRef.current = null;
+        }
+    };
+
+    const scheduleHide = () => {
+        clearHideTimer();
+        hideTimerRef.current = setTimeout(() => {
+            hideTimerRef.current = null;
+            if (!overPanelRef.current) {
+                setTipData(null);
+            }
+        }, RADAR_TOOLTIP_STICKY_MS);
+    };
+
+    useEffect(() => {
+        if (active) {
+            setOverPanel(false);
+        }
+    }, [active]);
+
+    useEffect(() => {
+        if (active && payload?.[0]?.payload) {
+            clearHideTimer();
+            setTipData(payload[0].payload);
+        } else if (!active && !overPanelRef.current) {
+            scheduleHide();
+        }
+        return clearHideTimer;
+        // scheduleHide uses refs + setState; only react to hover payload changes
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [active, payload]);
+
+    const d = (active && payload?.[0]?.payload) || tipData;
+
+    useLayoutEffect(() => {
+        if (typeof setTooltipWrapBoost !== 'function') return;
+        const has = tipData != null;
+        const boost = has && (!active || overPanel);
+        setTooltipWrapBoost(boost);
+    }, [active, overPanel, tipData, setTooltipWrapBoost]);
+
+    useEffect(() => () => {
+        if (typeof setTooltipWrapBoost === 'function') {
+            setTooltipWrapBoost(false);
+        }
+    }, [setTooltipWrapBoost]);
+
+    if (!d) return null;
+
+    const linksP = d.activityPeriod ? activityExternalLinks(d.activityPeriod) : [];
+    const linksH = d.activityMax ? activityExternalLinks(d.activityMax) : [];
+
+    return (
+        <div
+            className="rounded-lg border border-cdborder bg-cdsurface px-3 py-2 text-xs shadow-lg max-w-[260px] pointer-events-auto"
+            onMouseEnter={() => {
+                overPanelRef.current = true;
+                setOverPanel(true);
+                clearHideTimer();
+            }}
+            onMouseLeave={() => {
+                overPanelRef.current = false;
+                setOverPanel(false);
+                if (!activeRef.current) {
+                    scheduleHide();
+                }
+            }}
+        >
+            <div className="font-bold text-cdtext mb-2">{d.subject}</div>
+            <div className="space-y-2">
+                <div className="rounded-md border border-orange-500/30 bg-orange-500/10 px-2 py-1.5">
+                    <div className="text-[10px] uppercase tracking-wide text-orange-200/90 font-bold">
+                        This period
+                    </div>
+                    <div className="text-cdtext font-mono font-bold tabular-nums">{d.wattsPeriod} W</div>
+                    {d.activityPeriod?.title && (
+                        <div className="text-cdmuted mt-0.5 truncate" title={d.activityPeriod.title}>
+                            {d.activityPeriod.title}
+                        </div>
+                    )}
+                    <div className="flex flex-wrap gap-2 mt-1.5">
+                        {d.activityPeriod && typeof onOpenActivityInLog === 'function' && d.activityPeriod.id != null && (
+                            <button
+                                type="button"
+                                onClick={() => onOpenActivityInLog(d.activityPeriod.id)}
+                                className="text-[10px] font-bold text-cdaccent hover:underline inline-flex items-center gap-0.5"
+                            >
+                                <ExternalLink size={10} /> Log
+                            </button>
+                        )}
+                        {linksP.map((l) => (
+                            <a
+                                key={l.label}
+                                href={l.href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[10px] font-bold text-cdmuted hover:text-cdaccent"
+                            >
+                                {l.label}
+                            </a>
+                        ))}
+                    </div>
+                </div>
+                <div className="rounded-md border border-emerald-800/45 bg-emerald-950/25 px-2 py-1.5">
+                    <div className="text-[10px] uppercase tracking-wide text-emerald-200/95 font-bold">
+                        Best in history
+                    </div>
+                    <div className="text-cdtext font-mono font-bold tabular-nums">{d.wattsMax} W</div>
+                    {d.activityMax?.title && (
+                        <div className="text-cdmuted mt-0.5 truncate" title={d.activityMax.title}>
+                            {d.activityMax.title}
+                        </div>
+                    )}
+                    <div className="flex flex-wrap gap-2 mt-1.5">
+                        {d.activityMax && typeof onOpenActivityInLog === 'function' && d.activityMax.id != null && (
+                            <button
+                                type="button"
+                                onClick={() => onOpenActivityInLog(d.activityMax.id)}
+                                className="text-[10px] font-bold text-cdaccent hover:underline inline-flex items-center gap-0.5"
+                            >
+                                <ExternalLink size={10} /> Log
+                            </button>
+                        )}
+                        {linksH.map((l) => (
+                            <a
+                                key={`h-${l.label}`}
+                                href={l.href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[10px] font-bold text-cdmuted hover:text-cdaccent"
+                            >
+                                {l.label}
+                            </a>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 }
 
 /**
  * Best powers by duration: inner web = this period, outer ring = best over dashboard history.
  */
 const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenActivityInLog }) => {
+    const [radarTooltipWrapBoost, setRadarTooltipWrapBoost] = useState(false);
+
     const data = useMemo(() => {
         const periodRows = powerPeakRows || [];
         const historyRows =
@@ -79,88 +248,6 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
         ? `Both shapes use % of your FTP (${manualFtp} W), capped at ${RADAR_MAX_FTP_PCT}% on the chart.`
         : `FTP not set — both shapes use % of the strongest value among these durations (max of period and history, ${noFtpScaleMaxW} W in this view), capped at ${RADAR_MAX_FTP_PCT}%.`;
 
-    const radarTooltip = ({ active, payload }) => {
-        if (!active || !payload?.length) return null;
-        const d = payload[0]?.payload;
-        if (!d) return null;
-        const linksP = d.activityPeriod ? activityExternalLinks(d.activityPeriod) : [];
-        const linksH = d.activityMax ? activityExternalLinks(d.activityMax) : [];
-
-        return (
-            <div className="rounded-lg border border-cdborder bg-cdsurface px-3 py-2 text-xs shadow-lg max-w-[260px]">
-                <div className="font-bold text-cdtext mb-2">{d.subject}</div>
-                <div className="space-y-2">
-                    <div className="rounded-md border border-orange-500/30 bg-orange-500/10 px-2 py-1.5">
-                        <div className="text-[10px] uppercase tracking-wide text-orange-200/90 font-bold">
-                            This period
-                        </div>
-                        <div className="text-cdtext font-mono font-bold tabular-nums">{d.wattsPeriod} W</div>
-                        {d.activityPeriod?.title && (
-                            <div className="text-cdmuted mt-0.5 truncate" title={d.activityPeriod.title}>
-                                {d.activityPeriod.title}
-                            </div>
-                        )}
-                        <div className="flex flex-wrap gap-2 mt-1.5">
-                            {d.activityPeriod && typeof onOpenActivityInLog === 'function' && d.activityPeriod.id != null && (
-                                <button
-                                    type="button"
-                                    onClick={() => onOpenActivityInLog(d.activityPeriod.id)}
-                                    className="text-[10px] font-bold text-cdaccent hover:underline inline-flex items-center gap-0.5"
-                                >
-                                    <ExternalLink size={10} /> Log
-                                </button>
-                            )}
-                            {linksP.map((l) => (
-                                <a
-                                    key={l.label}
-                                    href={l.href}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-[10px] font-bold text-cdmuted hover:text-cdaccent"
-                                >
-                                    {l.label}
-                                </a>
-                            ))}
-                        </div>
-                    </div>
-                    <div className="rounded-md border border-slate-500/35 bg-slate-500/10 px-2 py-1.5">
-                        <div className="text-[10px] uppercase tracking-wide text-slate-300 font-bold">
-                            Best in history
-                        </div>
-                        <div className="text-cdtext font-mono font-bold tabular-nums">{d.wattsMax} W</div>
-                        {d.activityMax?.title && (
-                            <div className="text-cdmuted mt-0.5 truncate" title={d.activityMax.title}>
-                                {d.activityMax.title}
-                            </div>
-                        )}
-                        <div className="flex flex-wrap gap-2 mt-1.5">
-                            {d.activityMax && typeof onOpenActivityInLog === 'function' && d.activityMax.id != null && (
-                                <button
-                                    type="button"
-                                    onClick={() => onOpenActivityInLog(d.activityMax.id)}
-                                    className="text-[10px] font-bold text-cdaccent hover:underline inline-flex items-center gap-0.5"
-                                >
-                                    <ExternalLink size={10} /> Log
-                                </button>
-                            )}
-                            {linksH.map((l) => (
-                                <a
-                                    key={`h-${l.label}`}
-                                    href={l.href}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-[10px] font-bold text-cdmuted hover:text-cdaccent"
-                                >
-                                    {l.label}
-                                </a>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
     return (
         <div className="bg-cdsurface border border-cdborder rounded-xl p-6 shadow-xl space-y-4">
             <div>
@@ -178,8 +265,8 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
                 </span>
                 <span className="inline-flex items-center gap-2">
                     <span
-                        className="h-0 w-6 shrink-0 border-t-2 border-dashed border-slate-400"
-                        style={{ borderColor: 'rgba(148, 163, 184, 0.95)' }}
+                        className="h-0 w-6 shrink-0 border-t-2 border-dashed border-emerald-700"
+                        style={{ borderColor: RADAR_OUTER_STROKE }}
                     />
                     <span>
                         <span className="font-semibold text-cdtext">Outer ring</span>
@@ -210,10 +297,10 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
                         <Radar
                             name="Best in history"
                             dataKey="pctMax"
-                            stroke="rgba(148, 163, 184, 0.95)"
-                            fill="rgba(148, 163, 184, 0.07)"
+                            stroke={RADAR_OUTER_STROKE}
+                            fill={RADAR_OUTER_FILL}
                             fillOpacity={1}
-                            strokeWidth={2.25}
+                            strokeWidth={2.5}
                             strokeDasharray="6 5"
                             dot={false}
                             isAnimationActive={false}
@@ -231,9 +318,28 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
                                 stroke: '#c2410c',
                                 strokeWidth: 2,
                             }}
+                            activeDot={{
+                                r: 14,
+                                fill: 'rgba(249, 115, 22, 0.12)',
+                                stroke: 'rgba(234, 88, 12, 0.55)',
+                                strokeWidth: 1,
+                            }}
                             isAnimationActive={false}
                         />
-                        <Tooltip content={radarTooltip} cursor={{ strokeDasharray: '4 4' }} />
+                        <Tooltip
+                            content={(tipProps) => (
+                                <PowerProfileRadarTooltip
+                                    {...tipProps}
+                                    onOpenActivityInLog={onOpenActivityInLog}
+                                    setTooltipWrapBoost={setRadarTooltipWrapBoost}
+                                />
+                            )}
+                            wrapperStyle={{
+                                pointerEvents: 'auto',
+                                ...(radarTooltipWrapBoost ? { visibility: 'visible', zIndex: 50 } : {}),
+                            }}
+                            cursor={{ strokeDasharray: '4 4' }}
+                        />
                     </RadarChart>
                 </ResponsiveContainer>
             </div>
@@ -246,7 +352,7 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
                             {d.wattsPeriod > 0 ? `${d.wattsPeriod} W` : '—'}
                         </span>
                         <span className="text-cdmuted">/</span>
-                        <span className="font-mono text-slate-300 tabular-nums" title="Best in app history">
+                        <span className="font-mono text-emerald-400/95 tabular-nums" title="Best in app history">
                             {d.wattsMax > 0 ? `${d.wattsMax} W` : '—'}
                         </span>
                         {d.activityPeriod && typeof onOpenActivityInLog === 'function' && d.activityPeriod.id != null && (
