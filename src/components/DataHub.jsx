@@ -472,6 +472,11 @@ const DataHub = ({
                 return;
             }
             setGearBackfillMsg(`Writing ${updates.length} activities…`);
+
+            // ⚡ Bolt Optimization: Use Map for O(1) lookups instead of O(N) array.find inside loops
+            const withStravaMap = new Map((withStrava || []).map(a => [String(a.id), a]));
+            const activitiesMap = new Map((activities || []).map(a => [String(a.id), a]));
+
             const CHUNK = 25;
             for (let i = 0; i < updates.length; i += CHUNK) {
                 const slice = updates.slice(i, i + CHUNK);
@@ -483,8 +488,7 @@ const DataHub = ({
                     );
                 }
                 const mergedObjs = slice.map(({ id, data }) => {
-                    const prev = withStrava.find((a) => String(a.id) === String(id))
-                        || activities.find((a) => String(a.id) === String(id));
+                    const prev = withStravaMap.get(String(id)) || activitiesMap.get(String(id));
                     return { ...(prev || {}), ...data };
                 });
                 onImport(mergedObjs);
@@ -539,8 +543,11 @@ const DataHub = ({
                 }
             }
 
+            // ⚡ Bolt Optimization: Use Map for O(1) lookups instead of O(N) array.find inside loops
+            const activitiesMap = new Map((activities || []).map((a) => [String(a.id), a]));
+
             const results = await runInBatches(list, 15, async (act) => {
-                const prev = (activities || []).find((a) => String(a.id) === String(act.id)) || act;
+                const prev = activitiesMap.get(String(act.id)) || act;
                 let toSave = stripUndefinedFields({ ...prev, ...patch });
                 if (token && toSave.strava_id) {
                     try {
