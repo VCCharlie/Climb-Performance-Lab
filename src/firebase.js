@@ -6,10 +6,12 @@ import { getFirestore } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 
-// Firebase Web API keys are public project identifiers. Keep the env override for
-// deployments that inject it, but retain the known public key so static builds
-// (GitHub Pages) do not ship with an undefined apiKey.
-const firebaseApiKey = import.meta.env.VITE_FIREBASE_API_KEY;
+// Firebase Web API keys are public client identifiers (not secrets). Restrict abuse in
+// Google Cloud Console (API key HTTP referrer / bundle id). Optional env override for
+// forks or key rotation — GitHub Pages must either set VITE_FIREBASE_API_KEY in CI or
+// rely on this fallback so Auth/Firestore initialize (see .github/workflows/static.yml).
+const firebaseApiKey =
+    import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyBNWzcEXhzra-iCkHiZj_FdYUf0NcKvHAk";
 
 const firebaseConfig = {
   apiKey: firebaseApiKey,
