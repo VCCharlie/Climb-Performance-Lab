@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Gauge, Mountain, Activity, Utensils, Brain, Route, Settings as SettingsIcon, TrendingUp, Menu, X, Heart, Trophy, Cloud, ChevronRight, Map as MapIcon, Flag } from 'lucide-react';
 import { doc, setDoc, getDoc, collection, onSnapshot, getDocsFromServer, waitForPendingWrites } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, reload } from "firebase/auth";
 import { db, auth } from './firebase';
 import { CLIMB_DATABASE } from './climbs';
 import { calculatePowerZones } from './utils';
@@ -395,11 +395,29 @@ const App = () => {
     const [activityLogRangesExpanded, setActivityLogRangesExpanded] = useState(false);
     const [raceSubTab, setRaceSubTab] = useState('fueling');       // 'fueling' | 'racepacing'
 
-    // Auth Listener
+    const photoReloadAttemptedRef = useRef(new Set());
+
+    // Auth Listener — one optional reload if Google did not attach a photo URL yet.
     useEffect(() => {
         if (!auth) return;
-        const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-            setUser(firebaseUser);
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+            if (!firebaseUser) {
+                photoReloadAttemptedRef.current.clear();
+                setUser(null);
+                return;
+            }
+            if (!firebaseUser.photoURL) {
+                const uid = firebaseUser.uid;
+                if (!photoReloadAttemptedRef.current.has(uid)) {
+                    photoReloadAttemptedRef.current.add(uid);
+                    try {
+                        await reload(firebaseUser);
+                    } catch {
+                        photoReloadAttemptedRef.current.delete(uid);
+                    }
+                }
+            }
+            setUser(auth.currentUser);
         });
         return () => unsubscribe();
     }, []);
