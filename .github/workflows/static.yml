@@ -28,6 +28,10 @@ jobs:
       - name: Install dependencies
         run: npm install
       - name: Build
+        env:
+          # Optional: set repository secret VITE_FIREBASE_API_KEY to override the client key.
+          # If unset, src/firebase.js falls back to the project’s public web API key so Pages builds still work.
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
         run: npm run build
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
