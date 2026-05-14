@@ -26,7 +26,6 @@ import os
 
 
 DEFAULT_ALLOWED_CORS_ORIGINS = "http://localhost:5173,https://vccharlie.github.io"
-DEFAULT_CORS_FALLBACK_ORIGIN = "http://localhost:5173"
 
 
 def resolve_cors_origin(origin):
@@ -34,11 +33,9 @@ def resolve_cors_origin(origin):
     allowed_origins_env = os.environ.get("ALLOWED_CORS_ORIGINS", DEFAULT_ALLOWED_CORS_ORIGINS)
     allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
 
-    if "*" in allowed_origins:
-        return "*"
-    if origin in allowed_origins:
+    if origin in allowed_origins and origin != "*":
         return origin
-    return allowed_origins[0] if allowed_origins else DEFAULT_CORS_FALLBACK_ORIGIN
+    return None
 
 
 def get_credentials_from_secrets():
@@ -424,21 +421,21 @@ def sync_intervals(request):
     # Handle CORS preflight
     if request.method == "OPTIONS":
         headers = {
-            "Access-Control-Allow-Origin": cors_origin,
             "Access-Control-Allow-Methods": "POST, OPTIONS",
             "Access-Control-Allow-Headers": "Content-Type",
             "Access-Control-Max-Age": "3600",
         }
-        if cors_origin != "*":
+        if cors_origin:
+            headers["Access-Control-Allow-Origin"] = cors_origin
             headers["Vary"] = "Origin"
         return ("", 204, headers)
 
     # CORS headers for actual request
     cors_headers = {
-        "Access-Control-Allow-Origin": cors_origin,
         "Content-Type": "application/json"
     }
-    if cors_origin != "*":
+    if cors_origin:
+        cors_headers["Access-Control-Allow-Origin"] = cors_origin
         cors_headers["Vary"] = "Origin"
 
     try:

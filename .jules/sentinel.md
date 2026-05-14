@@ -56,3 +56,7 @@
 **Vulnerability:** A hardcoded API key for Firebase (`AIzaSyBNWzcEXhzra-iCkHiZj_FdYUf0NcKvHAk`) was discovered in `src/firebase.js`.
 **Learning:** Hardcoding credentials, even if client-side API keys are sometimes considered less sensitive depending on the service's configuration, is a poor security practice. It exposes credentials in source control and makes rotation difficult.
 **Prevention:** Always extract API keys and secrets into environment variables. In Vite-based applications, use `import.meta.env` to inject configuration values securely during the build process. Ensure `.env` files are added to `.gitignore`.
+## 2026-05-14 - [Fix overly permissive CORS configuration]
+**Vulnerability:** The Python cloud function previously included an overly permissive CORS setup that allowed the wildcard `*` origin and failed to correctly drop CORS response headers for unmatched origins, risking unwanted cross-origin access.
+**Learning:** Proper implementation of CORS logic must explicitly reject wildcards for sensitive endpoints, and when an origin is unmatched against the allowlist, the server should completely omit the `Access-Control-Allow-Origin` header rather than falling back to a default allowed origin.
+**Prevention:** Strictly validate incoming `Origin` headers against a defined list, omitting CORS response headers entirely if the validation fails.
