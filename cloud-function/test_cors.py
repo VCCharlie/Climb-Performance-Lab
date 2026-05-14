@@ -32,9 +32,17 @@ class CorsOriginTests(unittest.TestCase):
 
     def test_env_allowlist_overrides_defaults(self):
         with patch.dict("os.environ", {"ALLOWED_CORS_ORIGINS": "https://example.com"}, clear=True):
-            self.assertEqual(
-                main.resolve_cors_origin("https://vccharlie.github.io"),
-                "https://example.com",
+            self.assertIsNone(
+                main.resolve_cors_origin("https://vccharlie.github.io")
+            )
+
+    def test_rejects_wildcard(self):
+        with patch.dict("os.environ", {"ALLOWED_CORS_ORIGINS": "*"}, clear=True):
+            self.assertIsNone(
+                main.resolve_cors_origin("*")
+            )
+            self.assertIsNone(
+                main.resolve_cors_origin("https://example.com")
             )
 
 
