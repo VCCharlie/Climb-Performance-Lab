@@ -38,3 +38,10 @@
 ## 2024-05-10 - Optimizing Map/Filter Chains
 **Learning:** Chaining multiple `.map().filter()` calls on large arrays (like `allActivities` when calculating unique gear names) creates unnecessary intermediate array allocations, adding overhead and memory churn.
 **Action:** Replace multiple chained `.map().filter()` on hot paths with a single-pass `for...of` loop and a `Set` to track unique entries directly without intermediate arrays.
+## 2026-06-25 - Avoid O(N) array.findIndex inside iteration loops
+**Learning:** Similar to `array.find`, calling `array.findIndex` inside an array iteration creates an O(N * M) time complexity overhead, particularly noticeable on large loops in React components like `DataHub.jsx`.
+**Action:** Pre-compute a `Map` of existing elements keyed by an identifier and use `map.get()` logic to modify elements in place with an O(1) time complexity, and loop over the original array via traditional `for...` loops to maintain indices properly if direct index lookup is required.
+
+## 2026-06-25 - Maintain clean workspaces
+**Learning:** Using tools like `cat` to create `.diff` files and patching them directly can leave unwanted garbage files in the repository if not explicitly removed.
+**Action:** Always clean up temporary workspace files (e.g., `patch.diff`, `test.js`) created during the development process to avoid inadvertently introducing them into version control.
