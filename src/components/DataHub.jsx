@@ -883,11 +883,14 @@ const DataHub = ({
                         );
                         detailFailed = failed;
                         if (updates.length > 0 && db) {
+                            // ⚡ Bolt Optimization: Use Map for O(1) lookups instead of O(N) array.find inside loops
+                            const activitiesMap = new Map((activities || []).map((a) => [String(a.id), a]));
+                            const workingMap = new Map((working || []).map((a) => [String(a.id), a]));
+
                             await Promise.all(
                                 updates.map(({ id, data }) => {
-                                    const existingRow = working.find((x) => String(x.id) === String(id))
-                                        || (activities || []).find((x) => String(x.id) === String(id))
-                                        || {};
+                                    const strId = String(id);
+                                    const existingRow = workingMap.get(strId) || activitiesMap.get(strId) || {};
                                     return setDoc(
                                         doc(db, 'activities', String(id)),
                                         protectEnrichedFieldsOnMerge(data, existingRow),
@@ -895,14 +898,18 @@ const DataHub = ({
                                     );
                                 }),
                             );
-                            for (const { id, data } of updates) {
-                                const wi = working.findIndex((x) => String(x.id) === String(id));
-                                if (wi >= 0) {
-                                    working[wi] = stripUndefinedFields({ ...working[wi], ...data });
+                            const updatesMap = new Map(updates.map(u => [String(u.id), u]));
+                            for (let i = 0; i < working.length; i++) {
+                                const strId = String(working[i].id);
+                                const update = updatesMap.get(strId);
+                                if (update) {
+                                    const updated = stripUndefinedFields({ ...working[i], ...update.data });
+                                    working[i] = updated;
+                                    workingMap.set(strId, updated);
                                 }
                             }
                             onImport(updates.map(({ id, data }) => {
-                                const prev = working.find((x) => String(x.id) === String(id)) || {};
+                                const prev = workingMap.get(String(id)) || {};
                                 return protectEnrichedFieldsOnMerge({ ...prev, ...data }, prev);
                             }));
                         }
@@ -1025,11 +1032,15 @@ const DataHub = ({
                         );
                         detailFailed = failed;
                         if (updates.length > 0 && db) {
+                            // ⚡ Bolt Optimization: Use Map for O(1) lookups instead of O(N) array.find inside loops
+                            const activitiesMap = new Map((activities || []).map((a) => [String(a.id), a]));
+                            const mergedMap = new Map((merged || []).map((a) => [String(a.id), a]));
+                            const updatesMap = new Map(updates.map(u => [String(u.id), u]));
+
                             await Promise.all(
                                 updates.map(({ id, data }) => {
-                                    const existingRow = merged.find((x) => String(x.id) === String(id))
-                                        || (activities || []).find((x) => String(x.id) === String(id))
-                                        || {};
+                                    const strId = String(id);
+                                    const existingRow = mergedMap.get(strId) || activitiesMap.get(strId) || {};
                                     return setDoc(
                                         doc(db, 'activities', String(id)),
                                         protectEnrichedFieldsOnMerge(data, existingRow),
@@ -1037,14 +1048,17 @@ const DataHub = ({
                                     );
                                 }),
                             );
-                            for (const { id, data } of updates) {
-                                const wi = merged.findIndex((x) => String(x.id) === String(id));
-                                if (wi >= 0) {
-                                    merged[wi] = stripUndefinedFields({ ...merged[wi], ...data });
+                            for (let i = 0; i < merged.length; i++) {
+                                const strId = String(merged[i].id);
+                                const update = updatesMap.get(strId);
+                                if (update) {
+                                    const updatedData = stripUndefinedFields({ ...merged[i], ...update.data });
+                                    merged[i] = updatedData;
+                                    mergedMap.set(strId, updatedData);
                                 }
                             }
                             onImport(updates.map(({ id, data }) => {
-                                const prev = merged.find((x) => String(x.id) === String(id)) || {};
+                                const prev = mergedMap.get(String(id)) || {};
                                 return protectEnrichedFieldsOnMerge({ ...prev, ...data }, prev);
                             }));
                         }
