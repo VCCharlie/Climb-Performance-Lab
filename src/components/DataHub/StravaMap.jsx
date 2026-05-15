@@ -64,11 +64,13 @@ const StravaMap = ({ polyline }) => {
         <div className="relative">
             <div ref={containerRef} style={{ height }} className="rounded-lg overflow-hidden border border-cdborder/50 transition-all duration-300" />
             <button
+                type="button"
                 onClick={() => setExpanded(e => !e)}
-                className="absolute top-2 right-2 z-[500] bg-cdbg/80 hover:bg-cdbg text-cdmuted hover:text-cdtext border border-cdborder/50 rounded p-1 transition-colors"
+                className="absolute top-2 right-2 z-[500] bg-cdbg/80 hover:bg-cdbg text-cdmuted hover:text-cdtext border border-cdborder/50 rounded p-1 transition-colors focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
                 title={expanded ? 'Verkleinen' : 'Vergroten'}
+                aria-label={expanded ? 'Collapse map' : 'Expand map'}
             >
-                {expanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                {expanded ? <Minimize2 size={14} aria-hidden="true" /> : <Maximize2 size={14} aria-hidden="true" />}
             </button>
         </div>
     );
