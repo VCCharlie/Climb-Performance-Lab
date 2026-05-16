@@ -45,3 +45,6 @@
 ## 2026-06-25 - Maintain clean workspaces
 **Learning:** Using tools like `cat` to create `.diff` files and patching them directly can leave unwanted garbage files in the repository if not explicitly removed.
 **Action:** Always clean up temporary workspace files (e.g., `patch.diff`, `test.js`) created during the development process to avoid inadvertently introducing them into version control.
+## 2026-06-25 - Avoid O(N*M) lookups and chained reduce in React Component State Derivations
+**Learning:** In React components (like `BucketList.jsx`), deriving complex state (e.g. tracking done items, counting statuses, calculating max scores/totals) through multiple consecutive chained `.filter()`, `.map()`, and nested `.find()` iterations causes enormous GC pressure and algorithmic overhead $O(N \times M)$.
+**Action:** Replace multiple sequential array iterations and aggregations with a single `useMemo` block containing a unified `for...of` loop. Pre-compute multiple metrics simultaneously (like counts, totals, maximums) in one pass through the data.

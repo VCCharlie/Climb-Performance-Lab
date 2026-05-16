@@ -27,27 +27,32 @@ const BucketList = ({ initialState, onStateChange }) => {
 
     // Calculate achievements
     const achievements = useMemo(() => {
-        const done = Object.entries(climbStatus).filter(([, status]) => status === 'done').map(([id]) => id);
-        const doneClimbs = done.map(id => CLIMB_DATABASE.find(c => c.id === id)).filter(Boolean);
+        const doneClimbs = [];
+        for (const climb of CLIMB_DATABASE) {
+            if (climbStatus[climb.id] === 'done') {
+                doneClimbs.push(climb);
+            }
+        }
+        const doneLength = doneClimbs.length;
 
         const badges = [];
 
         // First climb
-        if (done.length >= 1) {
+        if (doneLength >= 1) {
             badges.push({ title: '🚴 First Ascent', description: 'Voltooid je eerste beklimming!' });
         }
 
         // Milestones
-        if (done.length >= 5) {
+        if (doneLength >= 5) {
             badges.push({ title: '⭐ Klim Enthousiast', description: '5 beklimmingen voltooid' });
         }
-        if (done.length >= 10) {
+        if (doneLength >= 10) {
             badges.push({ title: '🏅 Klim Specialist', description: '10 beklimmingen voltooid' });
         }
-        if (done.length >= 25) {
+        if (doneLength >= 25) {
             badges.push({ title: '👑 Klim Koning', description: '25 beklimmingen voltooid' });
         }
-        if (done.length >= 50) {
+        if (doneLength >= 50) {
             badges.push({ title: '🦅 Berg Legende', description: '50 beklimmingen voltooid' });
         }
 
@@ -78,13 +83,29 @@ const BucketList = ({ initialState, onStateChange }) => {
 
         // Iconic climbs
         const iconicClimbs = ['fr_alpe', 'fr_ventoux', 'fr_tourmalet', 'it_stelvio', 'it_zoncolan'];
-        const iconicDone = done.filter(id => iconicClimbs.includes(id)).length;
+        const iconicDone = doneClimbs.filter(c => iconicClimbs.includes(c.id)).length;
         if (iconicDone >= 3) {
             badges.push({ title: '🏆 Iconische Cols', description: '3 legendarische cols voltooid' });
         }
 
         // Total elevation
-        const totalElevation = doneClimbs.reduce((sum, c) => sum + c.elevation, 0);
+        // Single-pass optimization for stats
+        let totalElevation = 0;
+        let totalGrade = 0;
+        let hardestClimb = doneClimbs.length > 0 ? doneClimbs[0] : null;
+        let maxScore = hardestClimb ? (hardestClimb.elevation * hardestClimb.elevation) / (hardestClimb.lengthKm * 10000) : 0;
+
+        for (const c of doneClimbs) {
+            totalElevation += c.elevation;
+            totalGrade += c.avgGrade;
+
+            const cScore = (c.elevation * c.elevation) / (c.lengthKm * 10000);
+            if (cScore > maxScore) {
+                maxScore = cScore;
+                hardestClimb = c;
+            }
+        }
+
         if (totalElevation >= 10000) {
             badges.push({ title: '📈 Everest Challenge', description: `${Math.round(totalElevation)}m totaal geklommen!` });
         }
@@ -92,16 +113,23 @@ const BucketList = ({ initialState, onStateChange }) => {
         return {
             badges,
             stats: {
-                totalDone: done.length,
+                totalDone: doneLength,
                 totalElevation,
-                avgGrade: doneClimbs.length > 0 ? (doneClimbs.reduce((sum, c) => sum + c.avgGrade, 0) / doneClimbs.length).toFixed(1) : 0,
-                hardestClimb: doneClimbs.length > 0 ? doneClimbs.reduce((max, c) => {
-                    const cScore = (c.elevation * c.elevation) / (c.lengthKm * 10000);
-                    const maxScore = (max.elevation * max.elevation) / (max.lengthKm * 10000);
-                    return cScore > maxScore ? c : max;
-                }, doneClimbs[0]) : null
+                avgGrade: doneClimbs.length > 0 ? (totalGrade / doneClimbs.length).toFixed(1) : 0,
+                hardestClimb
             }
         };
+    }, [climbStatus]);
+
+    // Pre-calculate status counts for the filter dropdown in a single pass (O(N) vs 4 * O(N))
+    const statusCounts = useMemo(() => {
+        let done = 0, planned = 0, want = 0, todo = CLIMB_DATABASE.length;
+        for (const status of Object.values(climbStatus)) {
+            if (status === 'done') { done++; todo--; }
+            else if (status === 'planned') { planned++; todo--; }
+            else if (status === 'want') { want++; todo--; }
+        }
+        return { done, planned, want, todo };
     }, [climbStatus]);
 
     // Filter and sort climbs
@@ -226,10 +254,10 @@ const BucketList = ({ initialState, onStateChange }) => {
                         className="w-full px-3 py-2 bg-cdborder border border-cdborder rounded text-cdtext text-sm focus:border-yellow-400 outline-none"
                     >
                         <option value="all">Alle ({CLIMB_DATABASE.length})</option>
-                        <option value="done">Voltooid ({Object.values(climbStatus).filter(s => s === 'done').length})</option>
-                        <option value="planned">Gepland ({Object.values(climbStatus).filter(s => s === 'planned').length})</option>
-                        <option value="want">Wil doen ({Object.values(climbStatus).filter(s => s === 'want').length})</option>
-                        <option value="todo">Te doen ({CLIMB_DATABASE.length - Object.keys(climbStatus).length})</option>
+                        <option value="done">Voltooid ({statusCounts.done})</option>
+                        <option value="planned">Gepland ({statusCounts.planned})</option>
+                        <option value="want">Wil doen ({statusCounts.want})</option>
+                        <option value="todo">Te doen ({statusCounts.todo})</option>
                     </select>
                 </div>
 
