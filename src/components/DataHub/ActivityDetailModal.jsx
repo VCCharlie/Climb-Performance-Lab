@@ -172,9 +172,14 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp }) 
                                             const maxVal = powerCurve.reduce((max, i) => Math.max(max, i.val), 0);
                                             const heightPct = (p.val / maxVal) * 100;
                                             return (
-                                                <div key={idx} className="flex-1 flex flex-col h-full justify-end items-center group relative">
+                                                <div
+                                                    key={idx}
+                                                    tabIndex="0"
+                                                    aria-label={`Peak power for ${p.label}: ${p.val} watts`}
+                                                    className="flex-1 flex flex-col h-full justify-end items-center group relative focus-within:opacity-100 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded"
+                                                >
                                                     <div className="absolute top-0 w-full text-center">
-                                                        <span className="text-[10px] font-bold text-cdtext opacity-0 group-hover:opacity-100 transition-opacity bg-cdsurface px-1 rounded border border-cdborder shadow-sm z-10">{p.val}w</span>
+                                                        <span className="text-[10px] font-bold text-cdtext opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity bg-cdsurface px-1 rounded border border-cdborder shadow-sm z-10">{p.val}w</span>
                                                     </div>
                                                     <div className="flex-1 w-full flex items-end">
                                                         <div className="w-full bg-yellow-500/20 group-hover:bg-yellow-500/40 rounded-t transition-all" style={{ height: `${heightPct}%` }}>
