@@ -110,17 +110,21 @@ const ActivityHeatmap = ({ data }) => {
                     {/* Week columns */}
                     {weeks.map((week, wi) => (
                         <div key={wi} className="flex flex-col gap-1">
-                            {week.map((cell) => (
-                                <div
-                                    key={cell.key}
-                                    title={cell.level >= 0 ? cell.label : ''}
-                                    className={`rounded-sm cursor-default transition-opacity hover:opacity-75 ${cell.level === -1
-                                            ? 'opacity-0'
-                                            : LEVEL_CLASSES[cell.level]
-                                        }`}
-                                    style={{ width: 13, height: 13 }}
-                                />
-                            ))}
+                            {week.map((cell) => {
+                                const isValid = cell.level >= 0;
+                                return (
+                                    <div
+                                        key={cell.key}
+                                        title={isValid ? cell.label : ''}
+                                        tabIndex={isValid ? 0 : undefined}
+                                        className={`cursor-default transition-opacity hover:opacity-75 ${!isValid
+                                                ? 'opacity-0'
+                                                : `${LEVEL_CLASSES[cell.level]} rounded-sm focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none`
+                                            }`}
+                                        style={{ width: 13, height: 13 }}
+                                    />
+                                );
+                            })}
                         </div>
                     ))}
                 </div>

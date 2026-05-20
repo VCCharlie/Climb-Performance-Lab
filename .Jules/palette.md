@@ -11,3 +11,7 @@
 ## 2023-10-27 - Icon-only buttons accessibility pattern
 **Learning:** React components (like `StravaMap.jsx`) using lucide-react icons for expand/collapse actions often lack `aria-label`, `type="button"`, and explicit `aria-hidden="true"` on the SVG, breaking screen reader UX.
 **Action:** Always verify icon-only buttons have descriptive `aria-label`s, `type="button"`, `aria-hidden="true"` on the icon itself, and keyboard focus classes like `focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none`.
+
+## 2025-05-20 - Missing keyboard accessibility on data visualization components
+**Learning:** Found that custom data visualizations (like the power curve in `ActivityDetailModal.jsx` and the squares in `ActivityHeatmap.jsx`) relying on hover states to show tooltips are inaccessible to keyboard users and screen readers. Specifically, `opacity-0 group-hover:opacity-100` was missing equivalent focus states, and the interactive graphical elements lacked `tabIndex="0"` and focus outlines.
+**Action:** Always add `tabIndex="0"`, standard focus rings (`focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none`), and `focus-within:opacity-100` to make custom chart tooltips readable for keyboard navigators. For iterating elements like heatmap cells, only apply `tabIndex="0"` to valid interactive cells (skipping empty placeholder cells).
