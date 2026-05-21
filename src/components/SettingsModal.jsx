@@ -101,7 +101,7 @@ const SettingsModal = ({
                     <h2 className={`text-xl font-bold ${titleClass} flex items-center gap-2`}>
                         <Settings className="text-cdmuted" /> Settings & Configuration
                     </h2>
-                    <button onClick={onClose} aria-label="Close modal" className="p-1 hover:bg-cdborder/50 rounded transition-colors focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none">
+                    <button type="button" onClick={onClose} aria-label="Close modal" className="p-1 hover:bg-cdborder/50 rounded transition-colors focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none">
                         <X size={24} className={isDark ? 'text-cdmuted' : 'text-slate-600'} />
                     </button>
                 </div>
@@ -125,6 +125,7 @@ const SettingsModal = ({
                                         <p className="text-xs text-cdmuted">Schakel tussen thema's.</p>
                                     </div>
                                     <button
+                                        type="button"
                                         role="switch"
                                         aria-checked={isDark}
                                         aria-label="Toggle Black/White Mode"
@@ -141,6 +142,7 @@ const SettingsModal = ({
                                         <p className="text-xs text-cdmuted">Verberg gewicht & FTP.</p>
                                     </div>
                                     <button
+                                        type="button"
                                         role="switch"
                                         aria-checked={userSettings.privacyMode}
                                         aria-label="Toggle Privacy Mode"
@@ -289,6 +291,7 @@ const SettingsModal = ({
                                                     </span>
                                                 )}
                                                 <button
+                                                    type="button"
                                                     onClick={stravaAuth.disconnectStrava}
                                                     className="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded font-bold text-sm transition-colors"
                                                 >
@@ -297,6 +300,7 @@ const SettingsModal = ({
                                             </>
                                         ) : (
                                             <button
+                                                type="button"
                                                 onClick={stravaAuth.connectStrava}
                                                 className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded font-bold text-sm transition-colors"
                                             >
@@ -315,7 +319,7 @@ const SettingsModal = ({
                                 <h3 className={`font-bold ${titleClass}`}>Backup & Data</h3>
                             </div>
                             <div className="flex gap-3">
-                                <button onClick={handleExport} className="flex-1 bg-cdborder hover:bg-slate-600 text-cdtext py-2 rounded text-sm font-bold flex items-center justify-center gap-2">
+                                <button type="button" onClick={handleExport} className="flex-1 bg-cdborder hover:bg-slate-600 text-cdtext py-2 rounded text-sm font-bold flex items-center justify-center gap-2">
                                     <Download size={14} /> Export JSON
                                 </button>
                                 <label className="flex-1 bg-cdborder hover:bg-slate-600 text-cdtext py-2 rounded text-sm font-bold flex items-center justify-center gap-2 cursor-pointer">
@@ -338,17 +342,17 @@ const SettingsModal = ({
                                 <div>
                                     <label className={`block text-[10px] uppercase font-bold mb-1 ${labelClass} text-blue-500`}>Current FTP (W)</label>
                                     <div className="flex items-center gap-1">
-                                        <button onClick={() => updateUserSettings('ftp', (userSettings.ftp || 250) - 1)} className={`p-2 rounded ${isDark ? 'bg-cdborder hover:bg-slate-600' : 'bg-gray-200 hover:bg-gray-300'}`}>-</button>
+                                        <button type="button" onClick={() => updateUserSettings('ftp', (userSettings.ftp || 250) - 1)} className={`p-2 rounded ${isDark ? 'bg-cdborder hover:bg-slate-600' : 'bg-gray-200 hover:bg-gray-300'}`}>-</button>
                                         <input type="number" value={userSettings.ftp || ''} onChange={e => updateUserSettings('ftp', Number(e.target.value))} className={`w-full border rounded p-2 text-sm outline-none font-bold text-center ${inputClass}`} />
-                                        <button onClick={() => updateUserSettings('ftp', (userSettings.ftp || 250) + 1)} className={`p-2 rounded ${isDark ? 'bg-cdborder hover:bg-slate-600' : 'bg-gray-200 hover:bg-gray-300'}`}>+</button>
+                                        <button type="button" onClick={() => updateUserSettings('ftp', (userSettings.ftp || 250) + 1)} className={`p-2 rounded ${isDark ? 'bg-cdborder hover:bg-slate-600' : 'bg-gray-200 hover:bg-gray-300'}`}>+</button>
                                     </div>
                                 </div>
                                 <div>
                                     <label className={`block text-[10px] uppercase font-bold mb-1 ${labelClass}`}>Body Weight (kg)</label>
                                     <div className="flex items-center gap-1">
-                                        <button onClick={() => updateUserSettings('weight', parseFloat(((userSettings.weight || 70) - 0.1).toFixed(1)))} className={`p-2 rounded ${isDark ? 'bg-cdborder hover:bg-slate-600' : 'bg-gray-200 hover:bg-gray-300'}`}>-</button>
+                                        <button type="button" onClick={() => updateUserSettings('weight', parseFloat(((userSettings.weight || 70) - 0.1).toFixed(1)))} className={`p-2 rounded ${isDark ? 'bg-cdborder hover:bg-slate-600' : 'bg-gray-200 hover:bg-gray-300'}`}>-</button>
                                         <input type="number" value={userSettings.weight || ''} onChange={e => updateUserSettings('weight', Number(e.target.value))} className={`w-full border rounded p-2 text-sm outline-none text-center ${inputClass}`} />
-                                        <button onClick={() => updateUserSettings('weight', parseFloat(((userSettings.weight || 70) + 0.1).toFixed(1)))} className={`p-2 rounded ${isDark ? 'bg-cdborder hover:bg-slate-600' : 'bg-gray-200 hover:bg-gray-300'}`}>+</button>
+                                        <button type="button" onClick={() => updateUserSettings('weight', parseFloat(((userSettings.weight || 70) + 0.1).toFixed(1)))} className={`p-2 rounded ${isDark ? 'bg-cdborder hover:bg-slate-600' : 'bg-gray-200 hover:bg-gray-300'}`}>+</button>
                                     </div>
                                 </div>
                                 <div>
@@ -435,8 +439,8 @@ const SettingsModal = ({
 
                 {/* FOOTER ACTIONS */}
                 <div className={`p-4 border-t ${isDark ? 'border-cdborder' : 'border-gray-200'} flex justify-end gap-3`}>
-                    <button onClick={onClose} className="px-4 py-2 font-bold text-cdmuted hover:text-slate-700">Close</button>
-                    <button onClick={handleSave} disabled={isSaving} className={`flex items-center gap-2 px-6 py-2 rounded-lg font-bold text-cdtext transition-all ${isSaving ? 'bg-slate-600' : 'bg-green-500 hover:bg-green-600 shadow-lg shadow-green-500/20'}`}>
+                    <button type="button" onClick={onClose} className="px-4 py-2 font-bold text-cdmuted hover:text-slate-700">Close</button>
+                    <button type="button" onClick={handleSave} disabled={isSaving} className={`flex items-center gap-2 px-6 py-2 rounded-lg font-bold text-cdtext transition-all ${isSaving ? 'bg-slate-600' : 'bg-green-500 hover:bg-green-600 shadow-lg shadow-green-500/20'}`}>
                         {isSaving ? <RefreshCw size={18} className="animate-spin" /> : <Save size={18} />}
                         {isSaving ? 'Saving...' : 'Save All Changes'}
                     </button>
