@@ -163,13 +163,14 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp }) 
                             </div>
 
                             {/* Power Curve */}
-                            {powerCurve.length > 0 && (
+                            {powerCurve.length > 0 && (() => {
+                                // ⚡ Bolt Optimization: Calculate max outside the map loop to prevent redundant iterations
+                                const maxVal = powerCurve.reduce((max, i) => Math.max(max, i.val), 0);
+                                return (
                                 <div className="bg-cdbg/50 rounded-lg p-3 border border-cdborder/50">
                                     <div className="text-[10px] text-cdmuted mb-2 uppercase font-bold text-center">Peak Power Curve</div>
                                     <div className="flex justify-between items-end h-28 gap-2 px-2">
                                         {powerCurve.map((p, idx) => {
-                                            // ⚡ Bolt Optimization: Calculate max without spread operator on .map() result
-                                            const maxVal = powerCurve.reduce((max, i) => Math.max(max, i.val), 0);
                                             const heightPct = (p.val / maxVal) * 100;
                                             return (
                                                 <div
@@ -192,7 +193,8 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp }) 
                                         })}
                                     </div>
                                 </div>
-                            )}
+                                );
+                            })()}
                         </div>
                     )}
 
