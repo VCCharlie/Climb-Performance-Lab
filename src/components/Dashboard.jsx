@@ -193,29 +193,49 @@ const Dashboard = ({
             </div>
 
             {/* SUB-TABS NAVIGATION */}
-            <div className="flex flex-wrap border-b border-cdborder mb-4">
+            <div className="flex flex-wrap border-b border-cdborder mb-4" role="tablist" aria-label="Dashboard Tabs">
                 <button
                     type="button"
+                    id="tab-overview"
+                    role="tab"
+                    aria-selected={dashboardTab === 'overview'}
+                    aria-controls="tabpanel-overview"
                     onClick={() => setDashboardTab('overview')}
                     className={`flex-1 min-w-[5.5rem] py-3 text-sm font-bold ${dashboardTab === 'overview' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
                 >Overview</button>
                 <button
                     type="button"
+                    id="tab-form"
+                    role="tab"
+                    aria-selected={dashboardTab === 'form'}
+                    aria-controls="tabpanel-form"
                     onClick={() => setDashboardTab('form')}
                     className={`flex-1 min-w-[5.5rem] py-3 text-sm font-bold ${dashboardTab === 'form' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
                 >Form</button>
                 <button
                     type="button"
+                    id="tab-power"
+                    role="tab"
+                    aria-selected={dashboardTab === 'power'}
+                    aria-controls="tabpanel-power"
                     onClick={() => setDashboardTab('power')}
                     className={`flex-1 min-w-[5.5rem] py-3 text-sm font-bold ${dashboardTab === 'power' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
                 >Power</button>
                 <button
                     type="button"
+                    id="tab-distance"
+                    role="tab"
+                    aria-selected={dashboardTab === 'distance'}
+                    aria-controls="tabpanel-distance"
                     onClick={() => setDashboardTab('distance')}
                     className={`flex-1 min-w-[5.5rem] py-3 text-sm font-bold ${dashboardTab === 'distance' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
                 >Distance</button>
                 <button
                     type="button"
+                    id="tab-volume"
+                    role="tab"
+                    aria-selected={dashboardTab === 'volume'}
+                    aria-controls="tabpanel-volume"
                     onClick={() => setDashboardTab('volume')}
                     className={`flex-1 min-w-[5.5rem] py-3 text-sm font-bold ${dashboardTab === 'volume' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
                 >Volume</button>
@@ -223,58 +243,68 @@ const Dashboard = ({
 
             {/* TAB CONTENT */}
             {dashboardTab === 'overview' && (
-                <OverviewTab
-                    data={filteredData}
-                    chartData={chartData}
-                    manualFtp={manualFtp}
-                    customTicks={customTicks}
-                    onOpenActivityInLog={onOpenActivityInLog}
-                    userSettings={userSettings}
-                    updateUserSettings={updateUserSettings}
-                    cloudVolumeGoalsSynced={cloudVolumeGoalsSynced}
-                />
+                <div role="tabpanel" id="tabpanel-overview" aria-labelledby="tab-overview">
+                    <OverviewTab
+                        data={filteredData}
+                        chartData={chartData}
+                        manualFtp={manualFtp}
+                        customTicks={customTicks}
+                        onOpenActivityInLog={onOpenActivityInLog}
+                        userSettings={userSettings}
+                        updateUserSettings={updateUserSettings}
+                        cloudVolumeGoalsSynced={cloudVolumeGoalsSynced}
+                    />
+                </div>
             )}
 
             {dashboardTab === 'form' && (
-                <FormTab
-                    data={filteredData}
-                    customTicks={customTicks}
-                />
+                <div role="tabpanel" id="tabpanel-form" aria-labelledby="tab-form">
+                    <FormTab
+                        data={filteredData}
+                        customTicks={customTicks}
+                    />
+                </div>
             )}
 
             {dashboardTab === 'power' && (
-                <PowerTab
-                    data={filteredData}
-                    customTicks={customTicks}
-                    chartData={chartData}
-                    manualFtp={manualFtp}
-                    timeRange={timeRange}
-                    customStart={customStart}
-                    customEnd={customEnd}
-                    referenceEndDate={referenceEndDate}
-                    weightKg={userWeightKg}
-                    onOpenActivityInLog={onOpenActivityInLog}
-                />
+                <div role="tabpanel" id="tabpanel-power" aria-labelledby="tab-power">
+                    <PowerTab
+                        data={filteredData}
+                        customTicks={customTicks}
+                        chartData={chartData}
+                        manualFtp={manualFtp}
+                        timeRange={timeRange}
+                        customStart={customStart}
+                        customEnd={customEnd}
+                        referenceEndDate={referenceEndDate}
+                        weightKg={userWeightKg}
+                        onOpenActivityInLog={onOpenActivityInLog}
+                    />
+                </div>
             )}
 
             {dashboardTab === 'distance' && (
-                <DistanceTab
-                    chartData={chartData}
-                    timeRange={timeRange}
-                    customStart={customStart}
-                    customEnd={customEnd}
-                    referenceEndDate={referenceEndDate}
-                    onOpenActivityInLog={onOpenActivityInLog}
-                />
+                <div role="tabpanel" id="tabpanel-distance" aria-labelledby="tab-distance">
+                    <DistanceTab
+                        chartData={chartData}
+                        timeRange={timeRange}
+                        customStart={customStart}
+                        customEnd={customEnd}
+                        referenceEndDate={referenceEndDate}
+                        onOpenActivityInLog={onOpenActivityInLog}
+                    />
+                </div>
             )}
 
             {dashboardTab === 'volume' && (
-                <VolumeTotalsTab
-                    data={filteredData}
-                    comparePrevPeriodActivities={volumeComparePrevPeriodActivities}
-                    comparePrevYearActivities={volumeComparePrevYearActivities}
-                    onOpenActivityLogDateRange={onOpenActivityLogDateRange}
-                />
+                <div role="tabpanel" id="tabpanel-volume" aria-labelledby="tab-volume">
+                    <VolumeTotalsTab
+                        data={filteredData}
+                        comparePrevPeriodActivities={volumeComparePrevPeriodActivities}
+                        comparePrevYearActivities={volumeComparePrevYearActivities}
+                        onOpenActivityLogDateRange={onOpenActivityLogDateRange}
+                    />
+                </div>
             )}
         </div>
     );
