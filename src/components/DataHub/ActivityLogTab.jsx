@@ -68,9 +68,11 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
     // Filter Logic
     const processedActivities = useMemo(() => {
         if (!sortedItems) return [];
+        // ⚡ Bolt Optimization: Extract search.toLowerCase() outside the filter loop to avoid O(N) redundant string allocations
+        const lowerSearch = search.toLowerCase();
         return sortedItems.filter(a => {
             if (!isValidActivity(a)) return false;
-            return (a.title && a.title.toLowerCase().includes(search.toLowerCase())) || (a.date && a.date.includes(search));
+            return (a.title && a.title.toLowerCase().includes(lowerSearch)) || (a.date && a.date.includes(search));
         });
     }, [sortedItems, search]);
 
