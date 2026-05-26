@@ -552,6 +552,17 @@ const App = () => {
                 openweatherApiKey: userSettings.openweatherApiKey ? '' : ''
             };
             const safeStrava = { ...stravaConfig, client_secret: stravaConfig.client_secret ? '' : '' };
+            const intervalsForLog = {
+                ...intervalsConfig,
+                apiKey: intervalsConfig.apiKey ? '***REDACTED***' : ''
+            };
+
+            const bodyForLog = {
+                ...userSettings,
+                githubPat: userSettings.githubPat ? '***REDACTED***' : '',
+                openweatherApiKey: userSettings.openweatherApiKey ? '***REDACTED***' : ''
+            };
+
             const stravaForLog = {
                 ...stravaConfig,
                 client_secret: stravaConfig.client_secret ? '***REDACTED***' : '',
@@ -560,8 +571,8 @@ const App = () => {
             };
 
             console.log("Saving Settings to Cloud:", {
-                intervals: safeIntervals,
-                body: safeBody,
+                intervals: intervalsForLog,
+                body: bodyForLog,
                 theme,
                 bucketList: bucketListState,
                 strava: stravaForLog,

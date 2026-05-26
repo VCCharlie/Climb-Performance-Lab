@@ -60,3 +60,8 @@
 **Vulnerability:** The Python cloud function previously included an overly permissive CORS setup that allowed the wildcard `*` origin and failed to correctly drop CORS response headers for unmatched origins, risking unwanted cross-origin access.
 **Learning:** Proper implementation of CORS logic must explicitly reject wildcards for sensitive endpoints, and when an origin is unmatched against the allowlist, the server should completely omit the `Access-Control-Allow-Origin` header rather than falling back to a default allowed origin.
 **Prevention:** Strictly validate incoming `Origin` headers against a defined list, omitting CORS response headers entirely if the validation fails.
+
+## 2026-05-26 - [Sensitive Data Exposure in Console Logs - User Settings]
+**Vulnerability:** Similar to previous config leaks, the application was logging the full `userSettings` object to the browser console when saving settings to the cloud (`src/App.jsx`). This included sensitive information such as the `githubPat` and `openweatherApiKey`.
+**Learning:** When adding new sensitive configurations to an existing settings object, it's easy to forget to update the corresponding console log sanitization steps, especially if they are logged in bulk (e.g. `body: userSettings`).
+**Prevention:** Apply strict property picking for logs instead of logging the full object, or explicitly redact newly added secrets within the logging payload.
