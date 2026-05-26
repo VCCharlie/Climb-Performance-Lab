@@ -51,3 +51,6 @@
 ## 2026-05-22 - Avoid redundant aggregate calculations in array.map loops
 **Learning:** In React components, performing aggregate calculations like `array.reduce(Math.max)` inside an `array.map` loop is highly inefficient. It recalculates the exact same aggregate value for every element in the array, resulting in O(N²) time complexity and redundant memory allocations. This is particularly wasteful when the aggregate value is a constant for the duration of the loop.
 **Action:** Extract aggregate calculations (like `Math.max`, sum, average) so they are computed only once *before* the `array.map` loop. Use an IIFE `(() => { ... })()` or a `useMemo` hook to cleanly scope the extracted variable if it's within a JSX block.
+## 2026-05-25 - Extract expensive string operations from loops
+**Learning:** In React components like `ActivityLogTab.jsx`, calling methods like `.toLowerCase()` inside array iteration callbacks (e.g., `array.filter`) for static values like a search query creates O(N) redundant string allocations and overhead.
+**Action:** Pre-compute the transformed value outside the loop (e.g. `const lowerSearch = search.toLowerCase();`) to reduce the inner loop's complexity and improve rendering performance during rapid typing.
