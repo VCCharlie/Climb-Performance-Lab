@@ -156,6 +156,9 @@ const useActivityFilter = (activities, profileFtp) => {
             || elMin != null || elMax != null
             || kjMin != null || kjMax != null;
 
+        // ⚡ Bolt Optimization: Compute searchLower once outside the filter loop
+        const searchLower = search ? search.toLowerCase() : '';
+
         let filtered = activities.filter(a => {
             if (!isValid(a)) return false;
 
@@ -232,7 +235,6 @@ const useActivityFilter = (activities, profileFtp) => {
             }
 
             // Search
-            const searchLower = search.toLowerCase();
             if (!searchLower) return true;
 
             // 1. Title Match

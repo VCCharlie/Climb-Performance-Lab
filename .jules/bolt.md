@@ -54,3 +54,6 @@
 ## 2026-05-25 - Extract expensive string operations from loops
 **Learning:** In React components like `ActivityLogTab.jsx`, calling methods like `.toLowerCase()` inside array iteration callbacks (e.g., `array.filter`) for static values like a search query creates O(N) redundant string allocations and overhead.
 **Action:** Pre-compute the transformed value outside the loop (e.g. `const lowerSearch = search.toLowerCase();`) to reduce the inner loop's complexity and improve rendering performance during rapid typing.
+## 2025-05-26 - Hoisting repeated string operations out of React array iteration
+**Learning:** In hot rendering paths like `useActivityFilter.js`, performing operations like `string.toLowerCase()` *inside* the array `.filter()` callback forces the runtime to re-allocate and process the string repeatedly for every item (O(N)). In an application that processes large numbers of activities on the client-side, this quickly becomes a hidden performance drain during every keystroke of a search input.
+**Action:** Always hoist variables that rely solely on external state (like the search query) outside of iteration callbacks. Evaluate them once before the loop (O(1)) and pass the pre-computed value in.
