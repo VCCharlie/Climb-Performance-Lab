@@ -98,10 +98,19 @@ const useActivityFilter = (activities, profileFtp) => {
     const openGroupedPathForActivity = useCallback((activity) => {
         if (!activity?.date) return;
         try {
-            const d = new Date(activity.date);
-            if (Number.isNaN(d.getTime())) return;
-            const y = String(d.getFullYear());
-            const m = MONTH_ORDER[d.getMonth()];
+            // ⚡ Bolt Optimization: Use regex for ISO dates to avoid expensive new Date() allocations
+            const ymdMatch = String(activity.date).match(/^(\d{4})-(\d{2})-(\d{2})/);
+            let y, mIndex;
+            if (ymdMatch) {
+                y = ymdMatch[1];
+                mIndex = parseInt(ymdMatch[2], 10) - 1;
+            } else {
+                const d = new Date(activity.date);
+                if (Number.isNaN(d.getTime())) return;
+                y = String(d.getFullYear());
+                mIndex = d.getMonth();
+            }
+            const m = MONTH_ORDER[mIndex];
             const mk = `${y}-${m}`;
             setExpandedYears((p) => ({ ...(p || {}), [y]: true }));
             setExpandedMonths((p) => ({ ...(p || {}), [mk]: true }));
@@ -244,16 +253,31 @@ const useActivityFilter = (activities, profileFtp) => {
             if (a.date) {
                 if (a.date.includes(searchLower)) return true;
 
-                try {
-                    const d = new Date(a.date);
-                    const day = d.getDate();
-                    const month = d.getMonth() + 1;
-                    const year = d.getFullYear();
-                    const dmy = `${day}-${month}-${year}`;
-                    const ddmm = `${day.toString().padStart(2, '0')}-${month.toString().padStart(2, '0')}-${year}`;
+                // ⚡ Bolt Optimization: Use regex for ISO dates to avoid expensive new Date() allocations in filter loops
+                const ymdMatch = String(a.date).match(/^(\d{4})-(\d{2})-(\d{2})/);
+                if (ymdMatch) {
+                    const year = ymdMatch[1];
+                    const monthStr = ymdMatch[2];
+                    const dayStr = ymdMatch[3];
+                    const dayNum = parseInt(dayStr, 10);
+                    const monthNum = parseInt(monthStr, 10);
+                    const dmy = `${dayNum}-${monthNum}-${year}`;
+                    const ddmm = `${dayStr}-${monthStr}-${year}`;
                     if (dmy.includes(searchLower) || ddmm.includes(searchLower)) return true;
-                } catch {
-                    /* invalid date */
+                } else {
+                    try {
+                        const d = new Date(a.date);
+                        if (!Number.isNaN(d.getTime())) {
+                            const day = d.getDate();
+                            const month = d.getMonth() + 1;
+                            const year = d.getFullYear();
+                            const dmy = `${day}-${month}-${year}`;
+                            const ddmm = `${day.toString().padStart(2, '0')}-${month.toString().padStart(2, '0')}-${year}`;
+                            if (dmy.includes(searchLower) || ddmm.includes(searchLower)) return true;
+                        }
+                    } catch {
+                        /* invalid date */
+                    }
                 }
             }
             return false;
@@ -301,9 +325,19 @@ const useActivityFilter = (activities, profileFtp) => {
 
         processedActivities.forEach(act => {
             try {
-                const d = new Date(act.date);
-                const y = d.getFullYear();
-                const m = MONTH_ORDER[d.getMonth()];
+                // ⚡ Bolt Optimization: Use regex for ISO dates to avoid expensive new Date() allocations in loops
+                const ymdMatch = String(act.date).match(/^(\d{4})-(\d{2})-(\d{2})/);
+                let y, mIndex;
+                if (ymdMatch) {
+                    y = ymdMatch[1];
+                    mIndex = parseInt(ymdMatch[2], 10) - 1;
+                } else {
+                    const d = new Date(act.date);
+                    if (Number.isNaN(d.getTime())) return;
+                    y = String(d.getFullYear());
+                    mIndex = d.getMonth();
+                }
+                const m = MONTH_ORDER[mIndex];
                 if (!groups[y]) groups[y] = {};
                 if (!groups[y][m]) groups[y][m] = [];
                 groups[y][m].push(act);
