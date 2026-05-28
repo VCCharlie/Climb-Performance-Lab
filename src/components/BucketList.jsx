@@ -138,9 +138,11 @@ const BucketList = ({ initialState, onStateChange }) => {
 
         // Filter by search
         if (searchTerm) {
+            // ⚡ Bolt Optimization: Extract searchTerm.toLowerCase() outside the filter loop to avoid O(N) redundant string allocations
+            const searchLower = searchTerm.toLowerCase();
             filtered = filtered.filter(climb =>
-                climb.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                climb.country.toLowerCase().includes(searchTerm.toLowerCase())
+                climb.name.toLowerCase().includes(searchLower) ||
+                climb.country.toLowerCase().includes(searchLower)
             );
         }
 
