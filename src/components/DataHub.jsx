@@ -1524,9 +1524,9 @@ const DataHub = ({
                 <button id="tab-import" role="tab" aria-selected={internalTab === 'import'} aria-controls="tabpanel-import" onClick={() => setInternalTab('import')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'import' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Import Data</button>
             </div>
 
-            <div role="tabpanel" id={`tabpanel-${internalTab}`} aria-labelledby={`tab-${internalTab}`} className="p-4 flex-1 overflow-hidden flex flex-col">
+            <div className="flex-1 overflow-hidden flex flex-col">
                 {internalTab === 'log' && (
-                    <>
+                    <div role="tabpanel" id="tabpanel-log" aria-labelledby="tab-log" className="p-4 flex-1 overflow-hidden flex flex-col">
                         {/* DYNAMISCHE SYNC STATUS BANNER */}
                         {syncStatus && (
                             <div className={`flex flex-col gap-1 text-xs font-bold px-3 py-2 rounded-lg mb-3 ${syncStatus === 'success' || syncStatus === 'done' || syncStatus === 'enriching' || syncStatus === 'started'
@@ -2154,11 +2154,11 @@ const DataHub = ({
                                 profileFtp={profileFtp}
                             />
                         )}
-                    </>
+                    </div>
                 )}
 
                 {internalTab === 'import' && (
-                    <div className="p-4">
+                    <div role="tabpanel" id="tabpanel-import" aria-labelledby="tab-import" className="flex-1 overflow-hidden flex flex-col p-4">
                         <ImportSection
                             intervalsConfig={intervalsConfig}
                             stravaGetToken={stravaGetToken}
@@ -2169,13 +2169,15 @@ const DataHub = ({
                 )}
 
                 {internalTab === 'strava-profile' && (
-                    <StravaProfileTab
-                        getStravaToken={stravaGetToken}
-                        athleteId={stravaAthleteId}
-                        persistedData={stravaProfileData}
-                        onDataChange={onStravaProfileData}
-                        activities={activities}
-                    />
+                    <div role="tabpanel" id="tabpanel-strava-profile" aria-labelledby="tab-strava-profile" className="flex-1 overflow-hidden flex flex-col p-4">
+                        <StravaProfileTab
+                            getStravaToken={stravaGetToken}
+                            athleteId={stravaAthleteId}
+                            persistedData={stravaProfileData}
+                            onDataChange={onStravaProfileData}
+                            activities={activities}
+                        />
+                    </div>
                 )}
             </div>
 

@@ -18,3 +18,7 @@
 ## 2024-05-24 - Screen-Reader Tab Accessibility with React Conditional Rendering
 **Learning:** When using React conditional rendering for tab content (e.g., `{activeTab === 'overview' && <OverviewTab />}`), screen readers may not announce the active panel properly if each panel is conditionally mounted without a wrapper. The standard WAI-ARIA tab pattern expects the `role="tabpanel"` element to be clearly associated with the active `role="tab"`.
 **Action:** Always wrap conditionally rendered tab content in a single persistent container with `role="tabpanel"`, `id={`tabpanel-${activeTab}`}`, and `aria-labelledby={`tab-${activeTab}`}` to ensure robust screen-reader support.
+
+## 2025-05-24 - Screen-Reader Tab Accessibility with React Conditional Rendering
+**Learning:** When using React conditional rendering for tab content (e.g., `{activeTab === 'overview' && <OverviewTab />}`), wrapping all conditionally rendered panels inside a single `div` that dynamically changes its `id` and `aria-labelledby` based on the active tab breaks the WAI-ARIA tab pattern. Screen readers can lose context of the active tabpanel if the `tabpanel` does not have a stable ID corresponding to the `aria-controls` of the tabs.
+**Action:** Always wrap each individual conditionally rendered tab panel component in its own static `<div role="tabpanel" id="tabpanel-[name]" aria-labelledby="tab-[name]">` container to ensure robust screen-reader support and prevent dangling `aria-controls` references on inactive tabs.
