@@ -35,7 +35,14 @@ const ImportModal = ({
                     <button onClick={() => setSelectedActivities(fetchedActivities.map(r => r.id))} className="text-xs bg-cdborder px-3 py-1.5 rounded text-cdtext hover:bg-slate-600">Select All</button>
                     <button onClick={() => setSelectedActivities([])} className="text-xs bg-cdborder px-3 py-1.5 rounded text-cdtext hover:bg-slate-600">Deselect All</button>
                     <div className="w-px h-4 bg-slate-600 mx-1"></div>
-                    <button onClick={() => { const withPower = fetchedActivities.filter(a => a.avg_power > 0 || a.norm_power > 0).map(a => a.id); setSelectedActivities(withPower); }} className="text-xs bg-emerald-600/30 border border-emerald-500/50 px-3 py-1.5 rounded text-emerald-300 hover:bg-emerald-600/50 flex items-center gap-1"><Zap size={12} /> Only With Power</button>
+                    <button onClick={() => {
+                        // ⚡ Bolt Optimization: Use single-pass reduce instead of chained filter/map
+                        const withPower = fetchedActivities.reduce((acc, a) => {
+                            if (a.avg_power > 0 || a.norm_power > 0) acc.push(a.id);
+                            return acc;
+                        }, []);
+                        setSelectedActivities(withPower);
+                    }} className="text-xs bg-emerald-600/30 border border-emerald-500/50 px-3 py-1.5 rounded text-emerald-300 hover:bg-emerald-600/50 flex items-center gap-1"><Zap size={12} /> Only With Power</button>
                 </div>
                 <div className="overflow-auto flex-1 min-h-0 custom-scrollbar">
                     <table className="w-full text-left text-xs whitespace-nowrap">

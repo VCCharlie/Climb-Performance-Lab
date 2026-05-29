@@ -19,7 +19,11 @@ const ReviewModal = ({
     const handleSelectAll = () => setSelectedActivities(fetchedActivities.map(r => r.id));
     const handleDeselectAll = () => setSelectedActivities([]);
     const handleSelectWithPower = () => {
-        const withPower = fetchedActivities.filter(a => a.avg_power > 0 || a.norm_power > 0).map(a => a.id);
+        // ⚡ Bolt Optimization: Use single-pass reduce instead of chained filter/map
+        const withPower = fetchedActivities.reduce((acc, a) => {
+            if (a.avg_power > 0 || a.norm_power > 0) acc.push(a.id);
+            return acc;
+        }, []);
         setSelectedActivities(withPower);
     };
 

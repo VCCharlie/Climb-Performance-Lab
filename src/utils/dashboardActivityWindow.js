@@ -172,6 +172,10 @@ export function topNLongestRidesByDistanceKm(activities, n = 10) {
  * @param {{ activity: object, km: number }[]} rows
  */
 export function aggregateStatsFromLongestRideRows(rows) {
-    const activities = (rows || []).map((r) => r?.activity).filter(Boolean);
+    // ⚡ Bolt Optimization: Use single-pass reduce instead of chained map/filter
+    const activities = (rows || []).reduce((acc, r) => {
+        if (r?.activity) acc.push(r.activity);
+        return acc;
+    }, []);
     return aggregatePeriodStats(activities);
 }
