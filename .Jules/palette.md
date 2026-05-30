@@ -22,3 +22,7 @@
 ## 2025-05-24 - Screen-Reader Tab Accessibility with React Conditional Rendering
 **Learning:** When using React conditional rendering for tab content (e.g., `{activeTab === 'overview' && <OverviewTab />}`), wrapping all conditionally rendered panels inside a single `div` that dynamically changes its `id` and `aria-labelledby` based on the active tab breaks the WAI-ARIA tab pattern. Screen readers can lose context of the active tabpanel if the `tabpanel` does not have a stable ID corresponding to the `aria-controls` of the tabs.
 **Action:** Always wrap each individual conditionally rendered tab panel component in its own static `<div role="tabpanel" id="tabpanel-[name]" aria-labelledby="tab-[name]">` container to ensure robust screen-reader support and prevent dangling `aria-controls` references on inactive tabs.
+
+## 2025-05-24 - Screen-Reader Tab Accessibility on Deeply Nested Tabs
+**Learning:** Sub-tab navigations deep within a UI (such as those appearing conditionally after authentication) often miss WAI-ARIA tab attributes because developers treat them as generic toggle buttons rather than primary navigation. This causes screen readers to announce them merely as buttons, hiding their relationship to the panels below.
+**Action:** When implementing sub-tab toggles, ensure standard WAI-ARIA tab patterns are applied: `role="tablist"`, `role="tab"`, `aria-selected`, `aria-controls`, and individual static `role="tabpanel"` wrappers for conditionally rendered content sections.
