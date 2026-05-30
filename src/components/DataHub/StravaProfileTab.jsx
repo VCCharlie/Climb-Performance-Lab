@@ -690,9 +690,13 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
             )}
 
             {getStravaToken && (
-                <div className="flex border-b border-cdborder">
+                <div className="flex border-b border-cdborder" role="tablist" aria-label="Strava Profile Sub-tabs">
                     <button
                         type="button"
+                        id="tab-strava-overview"
+                        role="tab"
+                        aria-selected={subTab === 'overview'}
+                        aria-controls="tabpanel-strava-overview"
                         onClick={() => setSubTab('overview')}
                         className={`flex-1 py-2.5 text-xs font-bold ${subTab === 'overview' ? 'text-orange-400 border-b-2 border-orange-400 -mb-px' : 'text-cdmuted hover:text-cdtext'}`}
                     >
@@ -700,6 +704,10 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                     </button>
                     <button
                         type="button"
+                        id="tab-strava-ridestats"
+                        role="tab"
+                        aria-selected={subTab === 'ridestats'}
+                        aria-controls="tabpanel-strava-ridestats"
                         onClick={() => setSubTab('ridestats')}
                         className={`flex-1 py-2.5 text-xs font-bold ${subTab === 'ridestats' ? 'text-orange-400 border-b-2 border-orange-400 -mb-px' : 'text-cdmuted hover:text-cdtext'}`}
                     >
@@ -707,6 +715,10 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                     </button>
                     <button
                         type="button"
+                        id="tab-strava-vslog"
+                        role="tab"
+                        aria-selected={subTab === 'vslog'}
+                        aria-controls="tabpanel-strava-vslog"
                         onClick={() => setSubTab('vslog')}
                         className={`flex-1 py-2.5 text-xs font-bold ${subTab === 'vslog' ? 'text-orange-400 border-b-2 border-orange-400 -mb-px' : 'text-cdmuted hover:text-cdtext'}`}
                     >
@@ -716,7 +728,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
             )}
 
             {subTab === 'overview' && (
-                <>
+                <div role="tabpanel" id="tabpanel-strava-overview" aria-labelledby="tab-strava-overview" className="space-y-6">
                     {recent && (recent.count > 0 || recent.distance > 0) && (
                         <section className="space-y-2">
                             <h3 className="text-xs font-bold text-cdtext uppercase tracking-wide flex items-center gap-2">
@@ -845,11 +857,11 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                             )}
                         </section>
                     )}
-                </>
+                </div>
             )}
 
             {subTab === 'ridestats' && stats && (
-                <div className="space-y-6 animate-in fade-in duration-200">
+                <div role="tabpanel" id="tabpanel-strava-ridestats" aria-labelledby="tab-strava-ridestats" className="space-y-6 animate-in fade-in duration-200">
                     <section className="space-y-2">
                         <h3 className="text-xs font-bold text-cdtext uppercase tracking-wide flex items-center gap-2">
                             <TrendingUp size={13} className="text-orange-400" /> Strava API — ride totals & averages
@@ -905,37 +917,41 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
             )}
 
             {subTab === 'vslog' && (
-                <StravaVsLogGapPanel
-                    activities={activities}
+                <div role="tabpanel" id="tabpanel-strava-vslog" aria-labelledby="tab-strava-vslog">
+                    <StravaVsLogGapPanel
+                        activities={activities}
                     scannedBikeActivities={scannedBikeActivities}
                     historyComplete={rawActivityScan?.historyComplete}
                     getStravaToken={getStravaToken}
                     persistedUi={data?.vsLogUi}
                     onPersistUi={persistVsLogUi}
-                    stravaAthleteId={athleteId}
-                />
+                        stravaAthleteId={athleteId}
+                    />
+                </div>
             )}
 
             {subTab === 'overview' && bikes && bikes.length > 0 && (
-                <section className="space-y-2">
-                    <h3 className="text-xs font-bold text-cdtext uppercase tracking-wide flex items-center gap-2">
-                        <Bike size={13} className="text-orange-400" /> Bikes ({bikes.length})
-                    </h3>
-                    <div className="space-y-1">
-                        {bikes.map(bike => (
-                            <div key={bike.id} className={`flex items-center gap-3 bg-cdbg/60 border rounded-lg px-3 py-2 text-xs ${bike.retired ? 'border-cdborder/30 opacity-60' : 'border-cdborder'}`}>
-                                <Bike size={13} className={bike.retired ? 'text-cdmuted shrink-0' : 'text-orange-400 shrink-0'} />
-                                <span className="flex-1 font-medium text-cdtext truncate">{bike.name || <span className="text-cdmuted italic">Unnamed</span>}</span>
-                                <span className="text-cdmuted shrink-0">{fmt.dist(bike.distance || 0)}</span>
-                                {bike.retired && <span className="text-[10px] text-cdmuted shrink-0">Retired</span>}
-                            </div>
-                        ))}
-                    </div>
-                </section>
+                <div role="tabpanel" id="tabpanel-strava-overview-bikes" aria-labelledby="tab-strava-overview">
+                    <section className="space-y-2">
+                        <h3 className="text-xs font-bold text-cdtext uppercase tracking-wide flex items-center gap-2">
+                            <Bike size={13} className="text-orange-400" /> Bikes ({bikes.length})
+                        </h3>
+                        <div className="space-y-1">
+                            {bikes.map(bike => (
+                                <div key={bike.id} className={`flex items-center gap-3 bg-cdbg/60 border rounded-lg px-3 py-2 text-xs ${bike.retired ? 'border-cdborder/30 opacity-60' : 'border-cdborder'}`}>
+                                    <Bike size={13} className={bike.retired ? 'text-cdmuted shrink-0' : 'text-orange-400 shrink-0'} />
+                                    <span className="flex-1 font-medium text-cdtext truncate">{bike.name || <span className="text-cdmuted italic">Unnamed</span>}</span>
+                                    <span className="text-cdmuted shrink-0">{fmt.dist(bike.distance || 0)}</span>
+                                    {bike.retired && <span className="text-[10px] text-cdmuted shrink-0">Retired</span>}
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                </div>
             )}
 
             {subTab === 'overview' && (koms || starred) && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+                <div role="tabpanel" id="tabpanel-strava-overview-segments" aria-labelledby="tab-strava-overview" className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
                     {koms && (
                         <section className="space-y-2 min-w-0 rounded-xl border border-cdborder/60 bg-cdbg/20 p-3">
                             <h3 className="text-xs font-bold text-cdtext uppercase tracking-wide flex flex-wrap items-center gap-2">
