@@ -102,3 +102,6 @@ MIT
 ## Contributing
 
 Contributions are welcome. Please follow [AGENTS.md](./AGENTS.md).
+
+## Configuration
+Ensure VITE_FIREBASE_API_KEY is set in your .env file.
