@@ -322,9 +322,9 @@ const SettingsModal = ({
                                 <button type="button" onClick={handleExport} className="flex-1 bg-cdborder hover:bg-slate-600 text-cdtext py-2 rounded text-sm font-bold flex items-center justify-center gap-2">
                                     <Download size={14} /> Export JSON
                                 </button>
-                                <label className="flex-1 bg-cdborder hover:bg-slate-600 text-cdtext py-2 rounded text-sm font-bold flex items-center justify-center gap-2 cursor-pointer">
+                                <label className="flex-1 bg-cdborder hover:bg-slate-600 text-cdtext py-2 rounded text-sm font-bold flex items-center justify-center gap-2 cursor-pointer focus-within:ring-2 focus-within:ring-yellow-400 focus-within:outline-none">
                                     <Upload size={14} /> Import JSON
-                                    <input type="file" accept=".json" onChange={handleImportFile} className="hidden" />
+                                    <input type="file" accept=".json" onChange={handleImportFile} className="sr-only" />
                                 </label>
                             </div>
                         </div>

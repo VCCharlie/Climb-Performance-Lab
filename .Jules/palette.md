@@ -26,3 +26,7 @@
 ## 2025-05-24 - Screen-Reader Tab Accessibility on Deeply Nested Tabs
 **Learning:** Sub-tab navigations deep within a UI (such as those appearing conditionally after authentication) often miss WAI-ARIA tab attributes because developers treat them as generic toggle buttons rather than primary navigation. This causes screen readers to announce them merely as buttons, hiding their relationship to the panels below.
 **Action:** When implementing sub-tab toggles, ensure standard WAI-ARIA tab patterns are applied: `role="tablist"`, `role="tab"`, `aria-selected`, `aria-controls`, and individual static `role="tabpanel"` wrappers for conditionally rendered content sections.
+
+## 2025-05-31 - Visually Hidden Elements Accessibility
+**Learning:** Hiding interactive file inputs using Tailwind's `hidden` or `display: none` completely removes them from the accessibility tree, breaking keyboard navigation for file uploads.
+**Action:** Use `sr-only` instead of `hidden` on the `<input type="file" />` element, and add standard keyboard focus states (e.g., `focus-within:ring-2 focus-within:ring-yellow-400 focus-within:outline-none`) to the parent container to visually indicate focus.

@@ -70,7 +70,7 @@ const ImportSection = ({
                     }}
                     onClick={() => document.getElementById('fileInput').click()}
                     className={`
-                                    border-2 border-dashed rounded-lg p-8 mb-4 text-center cursor-pointer transition-all
+                                    border-2 border-dashed rounded-lg p-8 mb-4 text-center cursor-pointer transition-all focus-within:ring-2 focus-within:ring-yellow-400 focus-within:outline-none
                                     ${isDragging ? 'border-yellow-400 bg-yellow-400/10' : 'border-cdborder hover:border-slate-400 bg-cdsurface'}
                                 `}
                 >
@@ -78,7 +78,7 @@ const ImportSection = ({
                         id="fileInput"
                         type="file"
                         accept=".csv,.json"
-                        className="hidden"
+                        className="sr-only"
                         onChange={(e) => e.target.files && handleFileUpload(e.target.files[0])}
                     />
                     <Upload className={`mx-auto mb-2 ${isDragging ? 'text-yellow-400' : 'text-cdmuted'}`} size={32} />
