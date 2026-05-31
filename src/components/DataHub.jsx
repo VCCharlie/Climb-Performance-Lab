@@ -588,6 +588,7 @@ const DataHub = ({
             // 1. Haal Strava activiteiten op (List view)
             let page = 1;
             let allActivities = [];
+            let bikeSoFar = 0;
             try {
                 setStravaListProgress({ page: 1, bikeCount: 0 });
                 while (true) {
@@ -604,7 +605,9 @@ const DataHub = ({
                     const data = await resp.json();
                     if (!Array.isArray(data) || data.length === 0) break;
                     allActivities = allActivities.concat(data);
-                    const bikeSoFar = allActivities.filter((a) => STRAVA_BIKE_TYPES.has(a.sport_type || a.type)).length;
+                    // ⚡ Bolt Optimization: Avoid O(N²) scaling by filtering only the new data page
+                    // instead of re-filtering the growing accumulated array every loop iteration.
+                    bikeSoFar += data.filter((a) => STRAVA_BIKE_TYPES.has(a.sport_type || a.type)).length;
                     setStravaListProgress({ page, bikeCount: bikeSoFar });
                     if (data.length < 200) break;
                     page++;

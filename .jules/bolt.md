@@ -60,3 +60,6 @@
 ## 2026-05-27 - Regex extraction instead of Date parsing inside loops
 **Learning:** Instantiating `new Date(string)` inside hot filtering loops (like array.filter for search) to extract `getFullYear`, `getMonth`, or `getDate` generates massive memory overhead and reduces responsiveness for client-side search across thousands of records. Using regex capture groups (like `String(date).match(/^(\d{4})-(\d{2})-(\d{2})/`) to slice ISO-formatted dates is exponentially faster and reduces garbage collection pauses.
 **Action:** Replace `new Date(dateString)` in hot iteration loops (such as filtering or mapping large activity arrays) with regex string extraction when you only need to read the year, month, and day parts, keeping the `new Date` call strictly as a fallback.
+## 2026-06-25 - Avoid O(N^2) array.filter in pagination loops
+**Learning:** Calling `array.filter` on an accumulated array inside a pagination while-loop (e.g. `allActivities.concat(data); allActivities.filter(...)`) recalculates the filter across the entire growing array repeatedly. This results in $O(N^2)$ time complexity as the array grows.
+**Action:** Filter only the *newly fetched page data* (`data.filter(...)`) and add it to a running accumulator variable, keeping the complexity at $O(N)$.
