@@ -180,6 +180,7 @@ const StravaEnrichTab = ({
             // Haal alle activiteiten op, gepagineerd (max 200 per pagina)
             let page = 1;
             let allActivities = [];
+            let bikeSoFar = 0;
             while (true) {
                 const resp = await fetch(
                     `https://www.strava.com/api/v3/athlete/activities?after=${afterTs}&before=${beforeTs}&per_page=200&page=${page}`,
@@ -189,7 +190,9 @@ const StravaEnrichTab = ({
                 const data = await resp.json();
                 if (!Array.isArray(data) || data.length === 0) break;
                 allActivities = allActivities.concat(data);
-                const bikeSoFar = allActivities.filter((a) => STRAVA_BIKE_TYPES.has(a.sport_type || a.type)).length;
+                // ⚡ Bolt Optimization: Avoid O(N²) scaling by filtering only the new data page
+                // instead of re-filtering the growing accumulated array every loop iteration.
+                bikeSoFar += data.filter((a) => STRAVA_BIKE_TYPES.has(a.sport_type || a.type)).length;
                 setFetchProgress(`Strava list page ${page} · ~${bikeSoFar} bike activities so far…`);
                 if (data.length < 200) break;
                 page++;
