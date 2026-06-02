@@ -551,7 +551,12 @@ const App = () => {
                 githubPat: userSettings.githubPat ? '' : '',
                 openweatherApiKey: userSettings.openweatherApiKey ? '' : ''
             };
-            const safeStrava = { ...stravaConfig, client_secret: stravaConfig.client_secret ? '' : '' };
+            const safeStrava = {
+                ...stravaConfig,
+                client_secret: stravaConfig.client_secret ? '' : '',
+                access_token: stravaConfig.access_token ? '' : '',
+                refresh_token: stravaConfig.refresh_token ? '' : ''
+            };
             const intervalsForLog = {
                 ...intervalsConfig,
                 apiKey: intervalsConfig.apiKey ? '***REDACTED***' : ''
