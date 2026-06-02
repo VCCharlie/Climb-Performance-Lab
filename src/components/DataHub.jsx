@@ -14,7 +14,10 @@ import {
     stripUndefinedFields,
 } from '../utils/mergeActivities';
 import { findSafeImportReplacementDuplicate } from '../utils/importDuplicateMatch';
-import { persistImportedActivitiesReplacingDuplicates } from '../utils/importPersistence';
+import {
+    persistImportedActivitiesReplacingDuplicates,
+    prepareImportedActivitiesForDuplicateReplacement,
+} from '../utils/importPersistence';
 import { enrichActivityGearFromStrava, buildStravaDetailEnrichmentUpdates } from '../utils/stravaGearEnrich';
 import { buildStravaKomSummaryFromActivityDetail } from '../utils/stravaSegmentKomSummary';
 import { resolveStravaGearDisplay } from '../utils/stravaBikesLocalMap';
@@ -1262,39 +1265,38 @@ const DataHub = ({
     const confirmImport = async () => {
         const toImport = fetchedActivities.filter(a => selectedActivities.includes(a.id));
         let savedCount = 0;
-        let replacedCount = 0;
-        const idsToDelete = [];
         let cloudPersisted = !db;
-
-        if (activities && activities.length > 0) {
-            toImport.forEach(newAct => {
-                const duplicate = findSafeImportReplacementDuplicate(activities, newAct);
-
-                if (duplicate) {
-                    idsToDelete.push(duplicate.id);
-                    replacedCount++;
+        const { preparedImport, idsToDelete, replacedCount } = prepareImportedActivitiesForDuplicateReplacement({
+            activities,
+            toImport,
+            findDuplicate: findSafeImportReplacementDuplicate,
+            mergeDuplicate: (newAct, duplicate) => {
+                if (isLikelyIntervalsActivityId(newAct.id) && isStravaOnlyActivityId(duplicate.id)) {
+                    return mergeActivitiesIntervalsPrimary(newAct, duplicate);
                 }
-            });
-        }
+
+                return protectEnrichedFieldsOnMerge(newAct, duplicate);
+            },
+        });
 
         if (db) {
             try {
                 await persistImportedActivitiesReplacingDuplicates({
                     activities,
-                    toImport,
+                    toImport: preparedImport,
                     idsToDelete,
                     writeActivity: (id, payload) => setDoc(doc(db, "activities", String(id)), payload, { merge: true }),
                     deleteActivity: (id) => deleteDoc(doc(db, "activities", String(id))),
                     mergePayload: protectEnrichedFieldsOnMerge,
                 });
-                savedCount = toImport.length;
+                savedCount = preparedImport.length;
                 cloudPersisted = true;
             } catch (e) {
                 alert("Note: Data imported locally, but cloud backup failed: " + e.message);
             }
         }
 
-        onImport(toImport);
+        onImport(preparedImport);
         if (cloudPersisted && idsToDelete.length > 0) {
             idsToDelete.forEach(id => onDelete(id));
         }

@@ -1,4 +1,38 @@
 /**
+ * Build the rows that should be persisted when an import replaces duplicate
+ * activity ids. The merge happens before deletion so the replacement row can
+ * carry enrichment fields from the duplicate that is about to be removed.
+ *
+ * @param {object} args
+ * @param {object[]} args.activities existing rows
+ * @param {object[]} args.toImport incoming rows selected for import
+ * @param {(activities: object[], incoming: object) => object|null} args.findDuplicate
+ * @param {(incoming: object, duplicate: object) => object} args.mergeDuplicate
+ * @returns {{preparedImport: object[], idsToDelete: Array<string|number>, replacedCount: number}}
+ */
+export function prepareImportedActivitiesForDuplicateReplacement({
+    activities = [],
+    toImport = [],
+    findDuplicate,
+    mergeDuplicate,
+}) {
+    const idsToDelete = [];
+    let replacedCount = 0;
+
+    const preparedImport = (toImport || []).map((activity) => {
+        const duplicate = findDuplicate ? findDuplicate(activities || [], activity) : null;
+        if (!duplicate) return activity;
+
+        idsToDelete.push(duplicate.id);
+        replacedCount++;
+
+        return mergeDuplicate ? mergeDuplicate(activity, duplicate) : activity;
+    });
+
+    return { preparedImport, idsToDelete, replacedCount };
+}
+
+/**
  * Persist imported activity rows before removing duplicate rows they replace.
  * This avoids cloud data loss if a replacement write fails partway through an import.
  *

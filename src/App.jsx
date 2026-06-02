@@ -30,6 +30,10 @@ import useStravaAuth from './hooks/useStravaAuth';
 import { SPORT_TYPES } from './config';
 import { consumeNavRestore } from './utils/sessionNavRestore';
 import { mergeVolumeGoals } from './utils/volumeGoals';
+import {
+    mergeActivitiesPreservingEnrichment,
+    prepareProtectedActivityUpserts,
+} from './utils/activityUpsert';
 
 const MAIN_TAB_IDS = new Set([
     'dashboard', 'physics', 'activities', 'training', 'race', 'gearoptimizer',
@@ -172,19 +176,25 @@ const App = () => {
 
     // Stable DataHub Handlers
     const handleImportActivities = useCallback((n) => {
-        setActivities((prev) => {
-            const map = new Map();
-            const upsert = (act) => {
-                if (!act || act.id == null) return;
-                const k = String(act.id);
-                const cur = map.get(k);
-                map.set(k, cur ? { ...cur, ...act } : act);
-            };
-            (prev || []).forEach(upsert);
-            (n || []).forEach(upsert);
-            return Array.from(map.values());
-        });
+        setActivities((prev) => mergeActivitiesPreservingEnrichment(prev, n));
     }, []);
+
+    const handleSettingsSyncComplete = useCallback(async (newActs) => {
+        if (!newActs || newActs.length === 0) return 0;
+
+        const mergedActivities = prepareProtectedActivityUpserts(activities, newActs);
+
+        if (db) {
+            await Promise.all(
+                mergedActivities
+                    .filter((act) => act?.id != null)
+                    .map((act) => setDoc(doc(db, 'activities', String(act.id)), act, { merge: true })),
+            );
+        }
+
+        handleImportActivities(mergedActivities);
+        return mergedActivities.length;
+    }, [activities, handleImportActivities]);
 
     const handleDeleteActivity = useCallback((id) => {
         // Optimistic local update: verwijder direct uit state zodat de UI meteen reageert.
@@ -991,14 +1001,7 @@ const App = () => {
                                 fullData={{ activities, settings: userSettings, intervals: intervalsConfig, bucketList: bucketListState }}
                                 onImportBackup={handleImportBackup}
                                 syncState={{ syncDates, setSyncDates, sportFilters, setSportFilters, isSyncing, syncProgress, syncIntervals }}
-                                onSyncComplete={(newActs) => {
-                                    setActivities(prev => {
-                                        const map = new Map();
-                                        prev.forEach(act => map.set(act.id, act));
-                                        newActs.forEach(act => map.set(act.id, act));
-                                        return Array.from(map.values());
-                                    });
-                                }}
+                                onSyncComplete={handleSettingsSyncComplete}
                                 stravaConfig={stravaConfig}
                                 updateStravaConfig={updateStravaConfig}
                                 stravaAuth={stravaAuth}
