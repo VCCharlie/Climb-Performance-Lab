@@ -217,9 +217,14 @@ const StravaEnrichTab = ({
 
             // Haal gear-naam op voor fietsen die niet via /athlete zijn teruggegeven
             // (Strava geeft via /athlete alleen default-gear; andere fietsen via /gear/{id})
-            const unknownGearIds = [...new Set(
-                bikeActivities.map(a => a.gear_id).filter(id => id && !bikesMap[id])
-            )];
+            // ⚡ Bolt Optimization: Use single-pass for-of loop and Set to avoid chained .map().filter()
+            const unknownGearSet = new Set();
+            for (const a of bikeActivities) {
+                if (a.gear_id && !bikesMap[a.gear_id]) {
+                    unknownGearSet.add(a.gear_id);
+                }
+            }
+            const unknownGearIds = [...unknownGearSet];
             if (unknownGearIds.length > 0) {
                 setFetchProgress(`Loading bike names (${unknownGearIds.length})…`);
                 // Batch to prevent hitting browser connection limits or Strava API rate limits
@@ -328,14 +333,16 @@ const StravaEnrichTab = ({
 
         // 2. Importeer nieuwe activiteiten (alleen in Strava, niet op site) — inclusief gear
         if (selectedNew.size > 0) {
-            const newActs = results.unmatchedStrava
-                .filter(a => selectedNew.has(String(a.id)))
-                .map(a => {
+            // ⚡ Bolt Optimization: Use single-pass reduce instead of chained .filter().map()
+            const newActs = results.unmatchedStrava.reduce((acc, a) => {
+                if (selectedNew.has(String(a.id))) {
                     const norm = normalizeStravaActivity(a);
                     const gearId = a.gear_id || null;
                     const gearName = gearId ? (bikesMap[gearId] || 'Strava bike') : null;
-                    return { ...norm, ...(gearId && { gear_id: gearId, gear_name: gearName }) };
-                });
+                    acc.push({ ...norm, ...(gearId && { gear_id: gearId, gear_name: gearName }) });
+                }
+                return acc;
+            }, []);
             if (onImportNew && newActs.length > 0) onImportNew(newActs);
         }
 
@@ -372,12 +379,21 @@ const StravaEnrichTab = ({
                 }
             }
             const updatedIds = new Set([...selectedGearUpdate]);
-            setResults(prev => ({
-                ...prev,
-                alreadyLinked: prev.alreadyLinked.map(m =>
-                    updatedIds.has(String(m.strava.id)) ? { ...m, needsGear: false, needsRpe: false, needsHr: false } : m
-                )
-            }));
+            // ⚡ Bolt Optimization: Use single-pass for loop over map
+            setResults(prev => {
+                const newAlreadyLinked = [];
+                for (const m of prev.alreadyLinked) {
+                    if (updatedIds.has(String(m.strava.id))) {
+                        newAlreadyLinked.push({ ...m, needsGear: false, needsRpe: false, needsHr: false });
+                    } else {
+                        newAlreadyLinked.push(m);
+                    }
+                }
+                return {
+                    ...prev,
+                    alreadyLinked: newAlreadyLinked
+                };
+            });
             setSelectedGearUpdate(new Set());
         }
 

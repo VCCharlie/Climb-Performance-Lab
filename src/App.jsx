@@ -649,7 +649,8 @@ const App = () => {
 
                                 {/* Mobile-only Range Display / Quick Toggle */}
                                 <div className="flex bg-cdbg/50 rounded border border-cdborder p-1 gap-1">
-                                    {(timeRange === 'Custom' ? ['Custom'] : [timeRange, '1Y']).filter((v, i, a) => a.indexOf(v) === i).map(r => (
+                                    {/* ⚡ Bolt Optimization: Use Set to avoid chained .filter().map() allocation */}
+                                    {[...new Set(timeRange === 'Custom' ? ['Custom'] : [timeRange, '1Y'])].map(r => (
                                         <button
                                             key={`mob-quick-${r}`}
                                             onClick={() => setTimeRange(r)}

@@ -354,8 +354,16 @@ export function buildCoachPlan({ metrics, flags, goalId }) {
     const actions = actionsForPlan(focus, metrics, flags);
     const headline = headlineForFocus(focus, goalId);
 
-    const workoutIds = [...new Set(weekPlan.map((d) => d.workoutId).filter(Boolean))];
-    const workouts = workoutIds.map((id) => COACH_WORKOUT_LIBRARY[id]).filter(Boolean);
+    // ⚡ Bolt Optimization: Use single-pass loops instead of chained .map().filter()
+    const workoutIdSet = new Set();
+    for (const d of weekPlan) {
+        if (d.workoutId) workoutIdSet.add(d.workoutId);
+    }
+    const workouts = [];
+    for (const id of workoutIdSet) {
+        const workout = COACH_WORKOUT_LIBRARY[id];
+        if (workout) workouts.push(workout);
+    }
 
     return {
         focus,
