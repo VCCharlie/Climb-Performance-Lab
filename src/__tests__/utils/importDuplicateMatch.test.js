@@ -71,7 +71,7 @@ describe('import duplicate replacement matching', () => {
       },
     ];
     const incoming = {
-      id: 'intervals',
+      id: '123456',
       strava_id: '123456789',
       date: '2026-04-30',
       type: 'Ride',
@@ -85,7 +85,7 @@ describe('import duplicate replacement matching', () => {
   it('does not select an Intervals row for deletion when importing a Strava row', () => {
     const activities = [
       {
-        id: 'intervals',
+        id: '123456',
         strava_id: '123456789',
         date: '2026-04-30',
         type: 'Ride',
@@ -121,7 +121,7 @@ describe('import duplicate replacement matching', () => {
       strava_kom_summary: kom,
     };
     const incoming = {
-      id: 'intervals',
+      id: '123456',
       strava_id: '123456789',
       date: '2026-04-30',
       type: 'Ride',
@@ -150,7 +150,7 @@ describe('import duplicate replacement matching', () => {
 
   it('merges a Strava import into the existing Intervals row instead of deleting it', () => {
     const existing = {
-      id: 'intervals',
+      id: '123456',
       strava_id: '123456789',
       date: '2026-04-30',
       type: 'Ride',
