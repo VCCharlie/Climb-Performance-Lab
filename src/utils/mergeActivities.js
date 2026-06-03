@@ -93,6 +93,7 @@ export function mergeActivitiesIntervalsPrimary(primary, secondary) {
         p.strava_id = norm || String(s.strava_id).trim();
     }
     if (s.strava_map) p.strava_map = s.strava_map;
+    if (s.strava_kom_summary) p.strava_kom_summary = s.strava_kom_summary;
     if (s.gear_id) {
         p.gear_id = s.gear_id;
         const gn = (s.gear_name != null && String(s.gear_name).trim() !== '')

@@ -30,6 +30,7 @@ import useStravaAuth from './hooks/useStravaAuth';
 import { SPORT_TYPES } from './config';
 import { consumeNavRestore } from './utils/sessionNavRestore';
 import { mergeVolumeGoals } from './utils/volumeGoals';
+import { protectEnrichedFieldsOnMerge } from './utils/firestoreActivityMerge';
 
 const MAIN_TAB_IDS = new Set([
     'dashboard', 'physics', 'activities', 'training', 'race', 'gearoptimizer',
@@ -195,6 +196,40 @@ const App = () => {
     const handleClearActivities = useCallback(() => {
         setActivities([]);
     }, []);
+
+    const handleSettingsIntervalsSyncComplete = useCallback(async (newActs = []) => {
+        if (!Array.isArray(newActs) || newActs.length === 0) return;
+
+        const currentById = new Map(
+            (activities || [])
+                .filter((act) => act?.id != null)
+                .map((act) => [String(act.id), act])
+        );
+        const mergedActs = newActs
+            .filter((act) => act?.id != null)
+            .map((act) => protectEnrichedFieldsOnMerge(act, currentById.get(String(act.id))));
+
+        if (db && mergedActs.length > 0) {
+            await Promise.all(
+                mergedActs.map((act) =>
+                    setDoc(doc(db, "activities", String(act.id)), act, { merge: true })
+                )
+            );
+        }
+
+        setActivities(prev => {
+            const map = new Map();
+            (prev || []).forEach((act) => {
+                if (act?.id != null) map.set(String(act.id), act);
+            });
+            mergedActs.forEach((act) => {
+                const key = String(act.id);
+                const existing = map.get(key);
+                map.set(key, protectEnrichedFieldsOnMerge(act, existing));
+            });
+            return Array.from(map.values());
+        });
+    }, [activities]);
 
     // Manual refresh: wacht op lokale writes, haal daarna bewust van de server (niet van cache).
     const forceRefreshActivities = useCallback(async () => {
@@ -991,14 +1026,7 @@ const App = () => {
                                 fullData={{ activities, settings: userSettings, intervals: intervalsConfig, bucketList: bucketListState }}
                                 onImportBackup={handleImportBackup}
                                 syncState={{ syncDates, setSyncDates, sportFilters, setSportFilters, isSyncing, syncProgress, syncIntervals }}
-                                onSyncComplete={(newActs) => {
-                                    setActivities(prev => {
-                                        const map = new Map();
-                                        prev.forEach(act => map.set(act.id, act));
-                                        newActs.forEach(act => map.set(act.id, act));
-                                        return Array.from(map.values());
-                                    });
-                                }}
+                                onSyncComplete={handleSettingsIntervalsSyncComplete}
                                 stravaConfig={stravaConfig}
                                 updateStravaConfig={updateStravaConfig}
                                 stravaAuth={stravaAuth}

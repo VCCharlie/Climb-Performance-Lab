@@ -1,5 +1,10 @@
 import { parseDurationToSeconds } from './formatters';
 import { normalizeStravaActivityId } from './strava';
+import {
+    isLikelyIntervalsActivityId,
+    isStravaOnlyActivityId,
+    mergeActivitiesIntervalsPrimary,
+} from './mergeActivities';
 
 export function movingTimeToSeconds(value) {
     if (value == null || value === '') return 0;
@@ -45,8 +50,75 @@ export function isSafeImportReplacementDuplicate(existing, incoming) {
     return timeDiff < 300 && distDiff < 0.5;
 }
 
+function canReplaceWithIncomingCanonical(existing, incoming) {
+    return (
+        isSafeImportReplacementDuplicate(existing, incoming)
+        && isStravaOnlyActivityId(existing.id)
+        && isLikelyIntervalsActivityId(incoming.id)
+    );
+}
+
+function canMergeIntoExistingCanonical(existing, incoming) {
+    return (
+        isSafeImportReplacementDuplicate(existing, incoming)
+        && isLikelyIntervalsActivityId(existing.id)
+        && isStravaOnlyActivityId(incoming.id)
+    );
+}
+
+function findCanonicalImportDuplicate(existingActivities = [], incomingActivity) {
+    return existingActivities.find((existing) =>
+        canReplaceWithIncomingCanonical(existing, incomingActivity)
+        || canMergeIntoExistingCanonical(existing, incomingActivity)
+    ) || null;
+}
+
 export function findSafeImportReplacementDuplicate(existingActivities = [], incomingActivity) {
     return existingActivities.find((existing) =>
-        isSafeImportReplacementDuplicate(existing, incomingActivity)
+        canReplaceWithIncomingCanonical(existing, incomingActivity)
     ) || null;
+}
+
+export function buildImportReplacementPlan(existingActivities = [], incomingActivities = []) {
+    const existingById = new Map(
+        (existingActivities || [])
+            .filter((activity) => activity?.id != null)
+            .map((activity) => [String(activity.id), activity])
+    );
+    const idsToDelete = [];
+    const idsMarkedForDelete = new Set();
+    const activitiesToImport = [];
+    let replacedCount = 0;
+
+    const markForDelete = (id) => {
+        if (id == null) return;
+        const key = String(id);
+        if (idsMarkedForDelete.has(key)) return;
+        idsMarkedForDelete.add(key);
+        idsToDelete.push(id);
+    };
+
+    (incomingActivities || []).forEach((incoming) => {
+        const duplicate = findCanonicalImportDuplicate(existingActivities, incoming);
+
+        if (duplicate && canReplaceWithIncomingCanonical(duplicate, incoming)) {
+            activitiesToImport.push(mergeActivitiesIntervalsPrimary(incoming, duplicate));
+            markForDelete(duplicate.id);
+            replacedCount += 1;
+            return;
+        }
+
+        if (duplicate && canMergeIntoExistingCanonical(duplicate, incoming)) {
+            activitiesToImport.push(mergeActivitiesIntervalsPrimary(duplicate, incoming));
+            if (existingById.has(String(incoming.id))) {
+                markForDelete(incoming.id);
+            }
+            replacedCount += 1;
+            return;
+        }
+
+        activitiesToImport.push(incoming);
+    });
+
+    return { activitiesToImport, idsToDelete, replacedCount };
 }

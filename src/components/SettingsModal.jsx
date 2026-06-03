@@ -40,7 +40,7 @@ const SettingsModal = ({
         try {
             const newRides = await syncIntervals(syncDates.start, syncDates.end, selectedTypes);
             if (newRides && newRides.length > 0) {
-                if (onSyncComplete) onSyncComplete(newRides);
+                if (onSyncComplete) await onSyncComplete(newRides);
                 alert(`Sync successful! Handled ${newRides.length} activities.`);
             } else if (newRides) {
                 alert("No activities found in range.");
