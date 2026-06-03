@@ -65,3 +65,8 @@
 **Vulnerability:** Similar to previous config leaks, the application was logging the full `userSettings` object to the browser console when saving settings to the cloud (`src/App.jsx`). This included sensitive information such as the `githubPat` and `openweatherApiKey`.
 **Learning:** When adding new sensitive configurations to an existing settings object, it's easy to forget to update the corresponding console log sanitization steps, especially if they are logged in bulk (e.g. `body: userSettings`).
 **Prevention:** Apply strict property picking for logs instead of logging the full object, or explicitly redact newly added secrets within the logging payload.
+
+## 2026-06-05 - [Sensitive Data Serialization - OAuth Tokens]
+**Vulnerability:** The application was serializing the full `stravaConfig` object to the cloud database when saving settings (`src/App.jsx`). While `client_secret` was redacted, the `access_token` and `refresh_token` were inadvertently being sent to the database.
+**Learning:** When redacting sensitive configuration objects for persistence, it's critical to redact all forms of credentials, including OAuth tokens (access and refresh tokens). Focusing only on manually entered secrets like `client_secret` leaves dynamically obtained tokens exposed in the database payload.
+**Prevention:** Thoroughly review all fields within an object being serialized to the database. Explicitly redact all forms of credentials, including short-lived and long-lived OAuth tokens, alongside primary secrets.
