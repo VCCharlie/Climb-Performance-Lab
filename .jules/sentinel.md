@@ -65,3 +65,7 @@
 **Vulnerability:** Similar to previous config leaks, the application was logging the full `userSettings` object to the browser console when saving settings to the cloud (`src/App.jsx`). This included sensitive information such as the `githubPat` and `openweatherApiKey`.
 **Learning:** When adding new sensitive configurations to an existing settings object, it's easy to forget to update the corresponding console log sanitization steps, especially if they are logged in bulk (e.g. `body: userSettings`).
 **Prevention:** Apply strict property picking for logs instead of logging the full object, or explicitly redact newly added secrets within the logging payload.
+## 2024-06-06 - Unredacted OAuth Tokens in Cloud Sync
+**Vulnerability:** Strava OAuth `access_token` and `refresh_token` were being synced to the cloud database (Firestore) in plaintext.
+**Learning:** The `saveSettingsToCloud` function in `src/App.jsx` correctly redacted the `client_secret` but overlooked the dynamic OAuth tokens stored in the same configuration object. Because the application uses client-side API calls to Strava, tokens are held in client state and inadvertently backed up during settings sync.
+**Prevention:** When building redaction filters for cloud backups, explicitly define an allowlist of safe fields rather than a denylist, or ensure the entire credential payload is comprehensively scrubbed of all tokens and keys.
