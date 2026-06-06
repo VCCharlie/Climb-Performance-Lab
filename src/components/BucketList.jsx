@@ -56,12 +56,46 @@ const BucketList = ({ initialState, onStateChange }) => {
             badges.push({ title: '🦅 Berg Legende', description: '50 beklimmingen voltooid' });
         }
 
-        // Specific regions
-        const frenchClimbs = doneClimbs.filter(c => c.country === 'FR').length;
-        const italianClimbs = doneClimbs.filter(c => c.country === 'IT').length;
-        const swissClimbs = doneClimbs.filter(c => c.country === 'CH').length;
-        const zwiftClimbs = doneClimbs.filter(c => c.country === 'ZWIFT').length;
+        // ⚡ Bolt Optimization: Use single-pass for...of loop instead of chained .filter().length
+        let frenchClimbs = 0;
+        let italianClimbs = 0;
+        let swissClimbs = 0;
+        let zwiftClimbs = 0;
+        let hardClimbs = 0;
+        let iconicDone = 0;
 
+        let totalElevation = 0;
+        let totalGrade = 0;
+        let hardestClimb = doneClimbs.length > 0 ? doneClimbs[0] : null;
+        let maxScore = hardestClimb ? (hardestClimb.elevation * hardestClimb.elevation) / (hardestClimb.lengthKm * 10000) : 0;
+
+        const iconicClimbs = new Set(['fr_alpe', 'fr_ventoux', 'fr_tourmalet', 'it_stelvio', 'it_zoncolan']);
+
+        for (const c of doneClimbs) {
+            // Region stats
+            if (c.country === 'FR') frenchClimbs++;
+            else if (c.country === 'IT') italianClimbs++;
+            else if (c.country === 'CH') swissClimbs++;
+            else if (c.country === 'ZWIFT') zwiftClimbs++;
+
+            // Difficulty stats
+            if (c.avgGrade > 8) hardClimbs++;
+
+            // Iconic stats
+            if (iconicClimbs.has(c.id)) iconicDone++;
+
+            // Elevation and grade stats
+            totalElevation += c.elevation;
+            totalGrade += c.avgGrade;
+
+            const cScore = (c.elevation * c.elevation) / (c.lengthKm * 10000);
+            if (cScore > maxScore) {
+                maxScore = cScore;
+                hardestClimb = c;
+            }
+        }
+
+        // Specific regions
         if (frenchClimbs >= 10) {
             badges.push({ title: '🇫🇷 Alpen Expert', description: '10 Franse cols voltooid' });
         }
@@ -76,34 +110,13 @@ const BucketList = ({ initialState, onStateChange }) => {
         }
 
         // Difficulty badges
-        const hardClimbs = doneClimbs.filter(c => c.avgGrade > 8).length;
         if (hardClimbs >= 5) {
             badges.push({ title: '⛰️ Steep Master', description: '5 cols >8% gemiddeld voltooid' });
         }
 
         // Iconic climbs
-        const iconicClimbs = ['fr_alpe', 'fr_ventoux', 'fr_tourmalet', 'it_stelvio', 'it_zoncolan'];
-        const iconicDone = doneClimbs.filter(c => iconicClimbs.includes(c.id)).length;
         if (iconicDone >= 3) {
             badges.push({ title: '🏆 Iconische Cols', description: '3 legendarische cols voltooid' });
-        }
-
-        // Total elevation
-        // Single-pass optimization for stats
-        let totalElevation = 0;
-        let totalGrade = 0;
-        let hardestClimb = doneClimbs.length > 0 ? doneClimbs[0] : null;
-        let maxScore = hardestClimb ? (hardestClimb.elevation * hardestClimb.elevation) / (hardestClimb.lengthKm * 10000) : 0;
-
-        for (const c of doneClimbs) {
-            totalElevation += c.elevation;
-            totalGrade += c.avgGrade;
-
-            const cScore = (c.elevation * c.elevation) / (c.lengthKm * 10000);
-            if (cScore > maxScore) {
-                maxScore = cScore;
-                hardestClimb = c;
-            }
         }
 
         if (totalElevation >= 10000) {

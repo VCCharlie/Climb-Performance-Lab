@@ -63,3 +63,6 @@
 ## 2026-06-25 - Avoid O(N^2) array.filter in pagination loops
 **Learning:** Calling `array.filter` on an accumulated array inside a pagination while-loop (e.g. `allActivities.concat(data); allActivities.filter(...)`) recalculates the filter across the entire growing array repeatedly. This results in $O(N^2)$ time complexity as the array grows.
 **Action:** Filter only the *newly fetched page data* (`data.filter(...)`) and add it to a running accumulator variable, keeping the complexity at $O(N)$.
+## 2024-05-24 - Avoid O(N * M) multiple array.filter.length calls in useMemo
+**Learning:** In React components (like `BucketList.jsx`), executing multiple `.filter(...).length` statements sequentially inside a `useMemo` block creates unnecessary intermediate array allocations and causes O(N * M) time complexity where N is the data length and M is the number of filters.
+**Action:** Replace sequential `.filter(...).length` calls with a single `for...of` loop to calculate multiple metrics simultaneously in one pass over the data, which reduces it to O(N) complexity and completely avoids intermediate array instantiations.
