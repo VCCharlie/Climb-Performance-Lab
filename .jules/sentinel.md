@@ -65,3 +65,9 @@
 **Vulnerability:** Similar to previous config leaks, the application was logging the full `userSettings` object to the browser console when saving settings to the cloud (`src/App.jsx`). This included sensitive information such as the `githubPat` and `openweatherApiKey`.
 **Learning:** When adding new sensitive configurations to an existing settings object, it's easy to forget to update the corresponding console log sanitization steps, especially if they are logged in bulk (e.g. `body: userSettings`).
 **Prevention:** Apply strict property picking for logs instead of logging the full object, or explicitly redact newly added secrets within the logging payload.
+
+## 2025-06-08 - Exposure of OAuth tokens in Cloud Storage Logs
+
+**Vulnerability:** OAuth tokens (`access_token`, `refresh_token`) were being logged and saved unredacted in the user's settings cloud database payload (`firebase`) constructed in `saveSettingsToCloud`.
+**Learning:** While `client_secret` was being redacted correctly to create a `safeStrava` payload, the potentially more dangerous access and refresh tokens were forgotten during the redaction phase of the cloud backup implementation.
+**Prevention:** Always comprehensively review all fields in data structures that authenticate users, interact with third-party APIs, and especially payloads containing credentials. Assume any object with 'token', 'secret', or 'key' properties requires explicit redaction when serialized to logs or external storage unless strictly necessary for that specific operation.
