@@ -63,3 +63,6 @@
 ## 2026-06-25 - Avoid O(N^2) array.filter in pagination loops
 **Learning:** Calling `array.filter` on an accumulated array inside a pagination while-loop (e.g. `allActivities.concat(data); allActivities.filter(...)`) recalculates the filter across the entire growing array repeatedly. This results in $O(N^2)$ time complexity as the array grows.
 **Action:** Filter only the *newly fetched page data* (`data.filter(...)`) and add it to a running accumulator variable, keeping the complexity at $O(N)$.
+## 2026-06-08 - Enforce Explicit Code Discovery Before Planning
+**Learning:** Generating an execution plan that references internal file code structures (like variable names, specific loops, or specific hooks) before those structures have been explicitly revealed by a terminal command like `sed`, `cat`, or `grep` will be rejected due to a Groundedness Rule violation. Relying purely on partial trace outputs or assumptions leads to required plan revisions.
+**Action:** When creating or revising a plan, ensure all referenced code elements have been concretely and completely revealed in the terminal output trace. Use targeted tools like `sed -n 'X,Yp' filename` to fetch required file chunks completely before planning rather than relying on truncated previews.
