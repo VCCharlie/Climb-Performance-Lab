@@ -23,6 +23,9 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Register SW from a tiny script in index.html (not after the ~3MB app bundle loads).
+      injectRegister: 'script',
+      scope: appBase,
       includeAssets: ['favicon.png', 'vite.svg'],
       manifest: {
         id: `${appBase}?source=pwa`,
@@ -32,20 +35,27 @@ export default defineConfig({
         theme_color: '#1e2330',
         background_color: '#f0f2f5',
         display: 'standalone',
-        orientation: 'portrait',
+        display_override: ['standalone', 'minimal-ui'],
+        orientation: 'any',
         start_url: appBase,
         scope: appBase,
         lang: 'en',
         categories: ['sports', 'health', 'fitness'],
         icons: [
           {
-            src: 'favicon.png',
+            src: `${appBase}favicon.png`,
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: `${appBase}favicon.png`,
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any',
           },
           {
-            src: 'favicon.png',
+            src: `${appBase}favicon.png`,
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',
