@@ -23,8 +23,8 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      // Register SW from a tiny script in index.html (not after the ~3MB app bundle loads).
-      injectRegister: 'script',
+      // SW registers via inline script at the top of index.html (earliest possible).
+      injectRegister: false,
       scope: appBase,
       includeAssets: ['favicon.png', 'vite.svg'],
       manifest: {
@@ -40,6 +40,7 @@ export default defineConfig({
         start_url: appBase,
         scope: appBase,
         lang: 'en',
+        prefer_related_applications: false,
         categories: ['sports', 'health', 'fitness'],
         icons: [
           {
