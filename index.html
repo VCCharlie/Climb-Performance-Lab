@@ -11,6 +11,16 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Climb Lab" />
+    <script>
+      (function registerClimbLabPwa() {
+        if (!('serviceWorker' in navigator)) return;
+        var scopePath = new URL('./', window.location.href).pathname;
+        if (!scopePath.endsWith('/')) scopePath += '/';
+        navigator.serviceWorker.register(scopePath + 'sw.js', { scope: scopePath }).catch(function (err) {
+          console.warn('[Climb Lab PWA] Service worker registration failed:', err);
+        });
+      })();
+    </script>
     <title>Climb Lab Pro</title>
     <!-- Google Fonts: Barlow & Barlow Condensed -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
