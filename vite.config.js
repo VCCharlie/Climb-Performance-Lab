@@ -26,7 +26,7 @@ export default defineConfig({
       // SW registers via inline script at the top of index.html (earliest possible).
       injectRegister: false,
       scope: appBase,
-      includeAssets: ['favicon.png', 'vite.svg'],
+      includeAssets: ['favicon.png', 'pwa-192.png', 'pwa-512.png', 'pwa-maskable-512.png', 'vite.svg'],
       manifest: {
         id: `${appBase}?source=pwa`,
         name: 'Climb Performance Lab',
@@ -44,19 +44,19 @@ export default defineConfig({
         categories: ['sports', 'health', 'fitness'],
         icons: [
           {
-            src: `${appBase}favicon.png`,
+            src: `${appBase}pwa-192.png`,
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any',
           },
           {
-            src: `${appBase}favicon.png`,
+            src: `${appBase}pwa-512.png`,
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any',
           },
           {
-            src: `${appBase}favicon.png`,
+            src: `${appBase}pwa-maskable-512.png`,
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',
