@@ -63,3 +63,6 @@
 ## 2026-06-25 - Avoid O(N^2) array.filter in pagination loops
 **Learning:** Calling `array.filter` on an accumulated array inside a pagination while-loop (e.g. `allActivities.concat(data); allActivities.filter(...)`) recalculates the filter across the entire growing array repeatedly. This results in $O(N^2)$ time complexity as the array grows.
 **Action:** Filter only the *newly fetched page data* (`data.filter(...)`) and add it to a running accumulator variable, keeping the complexity at $O(N)$.
+## 2024-05-18 - Single-pass reduce over chained array methods
+**Learning:** Using chained array methods like `.filter().map()` or `.map().filter()` creates intermediate array allocations. For potentially large arrays, this can affect performance and increase memory usage.
+**Action:** Replace chained array iteration methods with a single-pass `Array.prototype.reduce()` to track the desired output and avoid intermediate array allocations.
