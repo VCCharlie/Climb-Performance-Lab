@@ -56,9 +56,9 @@ const BucketList = ({ initialState, onStateChange }) => {
             badges.push({ title: '🦅 Berg Legende', description: '50 beklimmingen voltooid' });
         }
 
-        const iconicClimbs = ['fr_alpe', 'fr_ventoux', 'fr_tourmalet', 'it_stelvio', 'it_zoncolan'];
+        const iconicClimbs = new Set(['fr_alpe', 'fr_ventoux', 'fr_tourmalet', 'it_stelvio', 'it_zoncolan']);
 
-        // ⚡ Bolt Optimization: Use single-pass for-of loop instead of multiple .filter().length
+        // ⚡ Bolt Optimization: Use single-pass for...of loop instead of chained .filter().length
         let frenchClimbs = 0;
         let italianClimbs = 0;
         let swissClimbs = 0;
@@ -72,13 +72,19 @@ const BucketList = ({ initialState, onStateChange }) => {
         let maxScore = hardestClimb ? (hardestClimb.elevation * hardestClimb.elevation) / (hardestClimb.lengthKm * 10000) : 0;
 
         for (const c of doneClimbs) {
+            // Region stats
             if (c.country === 'FR') frenchClimbs++;
-            if (c.country === 'IT') italianClimbs++;
-            if (c.country === 'CH') swissClimbs++;
-            if (c.country === 'ZWIFT') zwiftClimbs++;
-            if (c.avgGrade > 8) hardClimbs++;
-            if (iconicClimbs.includes(c.id)) iconicDone++;
+            else if (c.country === 'IT') italianClimbs++;
+            else if (c.country === 'CH') swissClimbs++;
+            else if (c.country === 'ZWIFT') zwiftClimbs++;
 
+            // Difficulty stats
+            if (c.avgGrade > 8) hardClimbs++;
+
+            // Iconic stats
+            if (iconicClimbs.has(c.id)) iconicDone++;
+
+            // Elevation and grade stats
             totalElevation += c.elevation;
             totalGrade += c.avgGrade;
 
