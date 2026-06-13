@@ -225,15 +225,16 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
     }, [data, historyPeakRows, powerPeakRows]);
 
     const domainMax = useMemo(() => {
-        const peak = Math.max(
-            ...data.flatMap((d) => [d.pctPeriod, d.pctMax]),
+        const peak = data.reduce(
+            (acc, d) => Math.max(acc, d.pctPeriod, d.pctMax),
             manualFtp > 0 ? 100 : 0,
         );
         return Math.min(RADAR_MAX_FTP_PCT, Math.max(40, Math.ceil(peak / 10) * 10 + 10));
     }, [data, manualFtp]);
 
     const noFtpScaleMaxW = useMemo(
-        () => (data.length ? Math.max(0, ...data.map((x) => Math.max(x.wattsPeriod, x.wattsMax))) : 0),
+        // ⚡ Bolt Optimization: Use single-pass reduce instead of Math.max(...array.map())
+        () => (data.length ? data.reduce((max, x) => Math.max(max, x.wattsPeriod, x.wattsMax), 0) : 0),
         [data],
     );
 
