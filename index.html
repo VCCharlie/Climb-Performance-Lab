@@ -2,8 +2,25 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/pwa-512.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#1e2330" />
+    <meta name="description" content="Cycling performance analysis for climbers — power, pacing, and training insights." />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Climb Lab" />
+    <script>
+      (function registerClimbLabPwa() {
+        if (!('serviceWorker' in navigator)) return;
+        var scopePath = new URL('./', window.location.href).pathname;
+        if (!scopePath.endsWith('/')) scopePath += '/';
+        navigator.serviceWorker.register(scopePath + 'sw.js', { scope: scopePath }).catch(function (err) {
+          console.warn('[Climb Lab PWA] Service worker registration failed:', err);
+        });
+      })();
+    </script>
     <title>Climb Lab Pro</title>
     <!-- Google Fonts: Barlow & Barlow Condensed -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />

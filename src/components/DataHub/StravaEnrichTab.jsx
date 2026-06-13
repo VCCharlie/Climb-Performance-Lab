@@ -217,8 +217,12 @@ const StravaEnrichTab = ({
 
             // Haal gear-naam op voor fietsen die niet via /athlete zijn teruggegeven
             // (Strava geeft via /athlete alleen default-gear; andere fietsen via /gear/{id})
+            // ⚡ Bolt Optimization: Use single-pass reduce instead of chained map/filter
             const unknownGearIds = [...new Set(
-                bikeActivities.map(a => a.gear_id).filter(id => id && !bikesMap[id])
+                bikeActivities.reduce((acc, a) => {
+                    if (a.gear_id && !bikesMap[a.gear_id]) acc.push(a.gear_id);
+                    return acc;
+                }, [])
             )];
             if (unknownGearIds.length > 0) {
                 setFetchProgress(`Loading bike names (${unknownGearIds.length})…`);

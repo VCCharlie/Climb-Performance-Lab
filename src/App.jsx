@@ -24,6 +24,7 @@ import BucketList from './components/BucketList';
 import WeatherClimb from './components/WeatherClimb';
 import ClimbMap from './components/ClimbMap';
 import NlDateInput from './components/NlDateInput';
+import PwaInstallBanner from './components/PwaInstallBanner';
 
 import useIntervalsSync from './hooks/useIntervalsSync';
 import useStravaAuth from './hooks/useStravaAuth';
@@ -1007,6 +1008,8 @@ const App = () => {
                     </>
                 )}
             </main>
+
+            <PwaInstallBanner />
         </div>
     );
 };
