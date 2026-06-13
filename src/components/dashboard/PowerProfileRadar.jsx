@@ -233,7 +233,8 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
     }, [data, manualFtp]);
 
     const noFtpScaleMaxW = useMemo(
-        () => (data.length ? Math.max(0, ...data.map((x) => Math.max(x.wattsPeriod, x.wattsMax))) : 0),
+        // ⚡ Bolt Optimization: Use single-pass reduce instead of Math.max(...array.map())
+        () => (data.length ? data.reduce((max, x) => Math.max(max, x.wattsPeriod, x.wattsMax), 0) : 0),
         [data],
     );
 

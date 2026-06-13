@@ -63,3 +63,7 @@
 ## 2026-06-25 - Avoid O(N^2) array.filter in pagination loops
 **Learning:** Calling `array.filter` on an accumulated array inside a pagination while-loop (e.g. `allActivities.concat(data); allActivities.filter(...)`) recalculates the filter across the entire growing array repeatedly. This results in $O(N^2)$ time complexity as the array grows.
 **Action:** Filter only the *newly fetched page data* (`data.filter(...)`) and add it to a running accumulator variable, keeping the complexity at $O(N)$.
+
+## 2024-06-13 - Optimize Math.max with Array.prototype.map and spread syntax
+**Learning:** Using `Math.max(0, ...data.map(...))` on potentially large arrays can result in 'RangeError: Maximum call stack size exceeded' and causes unnecessary memory allocations due to intermediate array creation.
+**Action:** Replace `Math.max(...array.map(...))` with a single-pass `reduce` call (e.g. `array.reduce((max, item) => Math.max(max, item.value), 0)`). This provides an O(n) calculation without the overhead of intermediate object creation.
