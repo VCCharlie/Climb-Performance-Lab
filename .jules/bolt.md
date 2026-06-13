@@ -66,3 +66,11 @@
 ## 2024-05-24 - Avoid O(N * M) multiple array.filter.length calls in useMemo
 **Learning:** In React components (like `BucketList.jsx`), executing multiple `.filter(...).length` statements sequentially inside a `useMemo` block creates unnecessary intermediate array allocations and causes O(N * M) time complexity where N is the data length and M is the number of filters.
 **Action:** Replace sequential `.filter(...).length` calls with a single `for...of` loop to calculate multiple metrics simultaneously in one pass over the data, which reduces it to O(N) complexity and completely avoids intermediate array instantiations.
+
+## 2024-05-18 - Single-pass reduce over chained array methods
+**Learning:** Using chained array methods like `.filter().map()` or `.map().filter()` creates intermediate array allocations. For potentially large arrays, this can affect performance and increase memory usage.
+**Action:** Replace chained array iteration methods with a single-pass `Array.prototype.reduce()` to track the desired output and avoid intermediate array allocations.
+
+## 2024-06-13 - Optimize Math.max with Array.prototype.map and spread syntax
+**Learning:** Using `Math.max(0, ...data.map(...))` on potentially large arrays can result in 'RangeError: Maximum call stack size exceeded' and causes unnecessary memory allocations due to intermediate array creation.
+**Action:** Replace `Math.max(...array.map(...))` with a single-pass `reduce` call (e.g. `array.reduce((max, item) => Math.max(max, item.value), 0)`). This provides an O(n) calculation without the overhead of intermediate object creation.

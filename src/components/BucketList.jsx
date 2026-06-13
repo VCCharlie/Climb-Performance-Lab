@@ -56,6 +56,8 @@ const BucketList = ({ initialState, onStateChange }) => {
             badges.push({ title: '🦅 Berg Legende', description: '50 beklimmingen voltooid' });
         }
 
+        const iconicClimbs = new Set(['fr_alpe', 'fr_ventoux', 'fr_tourmalet', 'it_stelvio', 'it_zoncolan']);
+
         // ⚡ Bolt Optimization: Use single-pass for...of loop instead of chained .filter().length
         let frenchClimbs = 0;
         let italianClimbs = 0;
@@ -68,8 +70,6 @@ const BucketList = ({ initialState, onStateChange }) => {
         let totalGrade = 0;
         let hardestClimb = doneClimbs.length > 0 ? doneClimbs[0] : null;
         let maxScore = hardestClimb ? (hardestClimb.elevation * hardestClimb.elevation) / (hardestClimb.lengthKm * 10000) : 0;
-
-        const iconicClimbs = new Set(['fr_alpe', 'fr_ventoux', 'fr_tourmalet', 'it_stelvio', 'it_zoncolan']);
 
         for (const c of doneClimbs) {
             // Region stats

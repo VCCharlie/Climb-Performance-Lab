@@ -74,8 +74,9 @@ const DuplicateReviewModal = ({ conflicts, onResolve, onClose }) => {
                 </div>
             </div>
             <button
+                type="button"
                 onClick={() => handleKeep(item.id)}
-                className="mt-auto w-full py-2 bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/50 rounded font-bold text-sm transition-all flex items-center justify-center gap-2"
+                className="mt-auto w-full py-2 bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/50 rounded font-bold text-sm transition-all flex items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
             >
                 <Check size={16} /> Keep This
             </button>
@@ -94,7 +95,7 @@ const DuplicateReviewModal = ({ conflicts, onResolve, onClose }) => {
                             <p className="text-xs text-cdmuted">Conflict {currentIndex + 1} of {conflicts.length}</p>
                         </div>
                     </div>
-                    <button onClick={onClose} aria-label="Close modal" className="p-2 hover:bg-cdsurface rounded-full text-cdmuted hover:text-cdtext focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"><X size={20} /></button>
+                    <button type="button" onClick={onClose} aria-label="Close modal" className="p-2 hover:bg-cdsurface rounded-full text-cdmuted hover:text-cdtext focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"><X size={20} /></button>
                 </div>
 
                 {/* Body */}
@@ -113,7 +114,7 @@ const DuplicateReviewModal = ({ conflicts, onResolve, onClose }) => {
                                 <DiffRow icon={Activity} valA={itemA.norm_power} valB={itemB.norm_power} formatFn={(v) => `${Math.round(v || 0)} np`} />
                             </div>
                             <div className="flex justify-center mt-4">
-                                <button onClick={() => { onResolve([]); /* Keep both implies no deletion, just remove from list */ }} className="text-xs text-cdmuted hover:text-cdtext underline">Switch to next (Keep Both)</button>
+                                <button type="button" onClick={() => { onResolve([]); /* Keep both implies no deletion, just remove from list */ }} className="text-xs text-cdmuted hover:text-cdtext underline focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded">Switch to next (Keep Both)</button>
                             </div>
                         </div>
 
@@ -127,12 +128,12 @@ const DuplicateReviewModal = ({ conflicts, onResolve, onClose }) => {
                         <div className="text-xs text-cdmuted">Resolving duplicates cleans up your analytics.</div>
                         <div className="flex gap-2">
                             {/* Optional: Skip button if we want to defer decision */}
-                            <button onClick={() => {
+                            <button type="button" onClick={() => {
                                 // Logic to skip without removing
                                 // Just remove from local view or advance index
                                 // Ideally we emit 'skip'
                                 onResolve([]);
-                            }} className="px-3 py-1 text-xs text-cdmuted hover:text-cdtext">Skip</button>
+                            }} className="px-3 py-1 text-xs text-cdmuted hover:text-cdtext focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded">Skip</button>
                         </div>
                     </div>
                 )}
