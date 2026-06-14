@@ -86,9 +86,16 @@ export function aggregatePaceSummary(g, s, range, nowRef) {
     if (usable.length === 0) {
         return { text: 'Period just started — pace compares after a few days.', tone: 'muted' };
     }
-    const behind = usable.filter((st) => st === 'behind').length;
-    const ahead = usable.filter((st) => st === 'ahead').length;
-    const onTrack = usable.filter((st) => st === 'on_track').length;
+
+    // ⚡ Bolt Optimization: Use single-pass for...of loop instead of multiple .filter().length
+    let behind = 0;
+    let ahead = 0;
+    let onTrack = 0;
+    for (const st of usable) {
+        if (st === 'behind') behind++;
+        else if (st === 'ahead') ahead++;
+        else if (st === 'on_track') onTrack++;
+    }
 
     if (behind > 0 && ahead === 0) {
         return { text: 'Overall: behind linear pace for your set goals.', tone: 'behind' };

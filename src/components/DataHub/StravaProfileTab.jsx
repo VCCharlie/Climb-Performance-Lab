@@ -564,8 +564,17 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                 },
             }
             : rawActivityScan;
-    const komCount = koms ? koms.filter(e => e.is_kom !== false).length : 0;
-    const crCount = koms ? koms.filter(e => e.is_kom === false).length : 0;
+
+    // ⚡ Bolt Optimization: Use single-pass for...of loop instead of multiple .filter().length
+    let komCount = 0;
+    let crCount = 0;
+    if (koms) {
+        for (const e of koms) {
+            if (e.is_kom !== false) komCount++;
+            if (e.is_kom === false) crCount++;
+        }
+    }
+
     const recent = stats?.recent_ride_totals;
     const profileName = athleteDisplayName(athlete);
     const location = athleteLocation(athlete);

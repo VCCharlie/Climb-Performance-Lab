@@ -78,3 +78,7 @@
 ## 2024-06-13 - Optimize Math.max with Array.prototype.map and spread syntax
 **Learning:** Using `Math.max(0, ...data.map(...))` on potentially large arrays can result in 'RangeError: Maximum call stack size exceeded' and causes unnecessary memory allocations due to intermediate array creation.
 **Action:** Replace `Math.max(...array.map(...))` with a single-pass `reduce` call (e.g. `array.reduce((max, item) => Math.max(max, item.value), 0)`). This provides an O(n) calculation without the overhead of intermediate object creation.
+
+## 2024-05-18 - Single-pass for...of loop over multiple filter().length
+**Learning:** Using multiple `.filter().length` calls consecutively on the same array to calculate distinct counters causes redundant full iterations over the dataset and creates unnecessary intermediate array allocations, resulting in O(N * M) performance overhead and increased memory churn.
+**Action:** Replace consecutive `.filter().length` statements with a single `for...of` loop or `.reduce()` to iterate the dataset exactly once, incrementing multiple counters simultaneously (O(N)).
