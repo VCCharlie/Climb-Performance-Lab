@@ -82,3 +82,7 @@
 ## 2024-05-18 - Single-pass for...of loop over multiple filter().length
 **Learning:** Using multiple `.filter().length` calls consecutively on the same array to calculate distinct counters causes redundant full iterations over the dataset and creates unnecessary intermediate array allocations, resulting in O(N * M) performance overhead and increased memory churn.
 **Action:** Replace consecutive `.filter().length` statements with a single `for...of` loop or `.reduce()` to iterate the dataset exactly once, incrementing multiple counters simultaneously (O(N)).
+
+## 2024-05-18 - Avoid nested O(N*M) array.find for time-threshold matching
+**Learning:** Using `array.find()` inside a loop to match items based on a time threshold (e.g., `Math.abs(actTime - sTime) < 900000`) creates an O(N*M) time complexity, which can severely block the main thread for large datasets. Direct `Map` lookups aren't possible because the match is a range, not an exact key.
+**Action:** Use a time-bucketed Map strategy. Pre-compute a Map where keys are bucket indices (e.g., `Math.floor(time / 900000)`). Inside the loop, calculate the target bucket and search only within `bucket - 1`, `bucket`, and `bucket + 1`. This reduces the search space to a constant number, lowering overall time complexity to O(N + M).

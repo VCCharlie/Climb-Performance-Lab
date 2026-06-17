@@ -69,12 +69,28 @@ const SyncTab = ({ intervalsConfig, existingActivities, onSyncResults, getStrava
 
                             // Match logica toepassen op de nieuwe ritten (om ze te verrijken voor opslag)
                             if (enrichedNewActivities.length > 0) {
+                                // ⚡ Bolt Optimization: Use time-bucketed Map for O(1) lookups instead of O(N*M) array.find inside loops
+                                const BUCKET_MS = 900000;
+                                const stravaBuckets = new Map();
+                                for (const s of stravaActivities) {
+                                    const sTime = new Date(s.start_date_local || s.start_date).getTime();
+                                    const bucket = Math.floor(sTime / BUCKET_MS);
+                                    if (!stravaBuckets.has(bucket)) stravaBuckets.set(bucket, []);
+                                    stravaBuckets.get(bucket).push({ ...s, sTime });
+                                }
+
                                 enrichedNewActivities = enrichedNewActivities.map(act => {
                                     const actTime = new Date(act.date).getTime();
-                                    const matchedStrava = stravaActivities.find(s => {
-                                        const sTime = new Date(s.start_date_local || s.start_date).getTime();
-                                        return Math.abs(actTime - sTime) < 900000;
-                                    });
+                                    const bucket = Math.floor(actTime / BUCKET_MS);
+
+                                    // Check adjacent buckets for matches within the 15m window
+                                    const candidates = [
+                                        ...(stravaBuckets.get(bucket - 1) || []),
+                                        ...(stravaBuckets.get(bucket) || []),
+                                        ...(stravaBuckets.get(bucket + 1) || [])
+                                    ];
+
+                                    const matchedStrava = candidates.find(s => Math.abs(actTime - s.sTime) < BUCKET_MS);
 
                                     if (matchedStrava) {
                                         const stravaTitle = (matchedStrava.name || '').trim();
