@@ -802,9 +802,13 @@ const DataHub = ({
         }
 
         const selectedActs = selectedActivitiesForBulk;
+        // ⚡ Bolt Optimization: Use single-pass reduce instead of chained map/filter
         const dateParts = selectedActs
-            .map((a) => (a?.date && String(a.date).split('T')[0]) || '')
-            .filter(Boolean)
+            .reduce((acc, a) => {
+                const dp = (a?.date && String(a.date).split('T')[0]) || '';
+                if (dp) acc.push(dp);
+                return acc;
+            }, [])
             .sort();
         if (dateParts.length === 0) {
             setSyncStatus('error');
