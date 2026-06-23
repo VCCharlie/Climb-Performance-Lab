@@ -86,3 +86,7 @@
 ## 2024-05-18 - Avoid nested O(N*M) array.find for time-threshold matching
 **Learning:** Using `array.find()` inside a loop to match items based on a time threshold (e.g., `Math.abs(actTime - sTime) < 900000`) creates an O(N*M) time complexity, which can severely block the main thread for large datasets. Direct `Map` lookups aren't possible because the match is a range, not an exact key.
 **Action:** Use a time-bucketed Map strategy. Pre-compute a Map where keys are bucket indices (e.g., `Math.floor(time / 900000)`). Inside the loop, calculate the target bucket and search only within `bucket - 1`, `bucket`, and `bucket + 1`. This reduces the search space to a constant number, lowering overall time complexity to O(N + M).
+
+## 2026-06-25 - Avoid O(N*M) chained array methods inside mapping operations
+**Learning:** Using chained array methods like `.map().filter().sort()` inside another array mapping operation (e.g. `arrayA.map(a => arrayB.map(...).filter(...).sort(...))`) creates O(N * M) time complexity and severe performance degradation, allocating huge amounts of intermediate arrays in memory.
+**Action:** Pre-calculate needed data from the inner array in a single O(M) pass, and inside the outer mapping loop, use a standard `for...of` loop to determine the desired metric (like a minimum score) while skipping redundant array allocations.
