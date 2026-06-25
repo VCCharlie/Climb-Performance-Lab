@@ -39,18 +39,28 @@ export function summarizeActivityWindow(activities, rangeStart, rangeEnd, ftp) {
     const periodDays = Math.max(1, spanMs / MS_DAY);
     const weeksInPeriod = Math.max(1, periodDays / 7);
 
-    const totalLoad = list.reduce((acc, a) => acc + (a.load || 0), 0);
+    // ⚡ Bolt Optimization: Use single-pass for...of loop to calculate all metrics
+    // simultaneously, avoiding multiple consecutive iterations and allocations.
+    let totalLoad = 0;
+    let totalKm = 0;
+    let totalElev = 0;
+    let totalSeconds = 0;
+    let highIntensity = 0;
+    let best5m = 0;
+
+    for (const a of list) {
+        totalLoad += (a.load || 0);
+        totalKm += (Number(a.distance) || 0);
+        totalElev += (Number(a.climbing) || 0);
+        totalSeconds += movingTimeToSeconds(a.moving_time);
+        if (ftp > 0 && (a.norm_power || 0) > ftp * 0.9) {
+            highIntensity++;
+        }
+        best5m = Math.max(best5m, a.best_5min || 0);
+    }
+
     const avgWeeklyLoad = totalLoad / weeksInPeriod;
     const ridesPerWeek = list.length / weeksInPeriod;
-
-    const totalKm = list.reduce((acc, a) => acc + (Number(a.distance) || 0), 0);
-    const totalElev = list.reduce((acc, a) => acc + (Number(a.climbing) || 0), 0);
-    const totalSeconds = list.reduce((acc, a) => acc + movingTimeToSeconds(a.moving_time), 0);
-
-    const highIntensity =
-        ftp > 0
-            ? list.filter((a) => (a.norm_power || 0) > ftp * 0.9).length
-            : 0;
 
     const fmtOpts = { day: 'numeric', month: 'short', year: 'numeric' };
 
@@ -67,7 +77,7 @@ export function summarizeActivityWindow(activities, rangeStart, rangeEnd, ftp) {
         avgHoursPerWeek: totalSeconds / weeksInPeriod / 3600,
         avgElevPerWeek: totalElev / weeksInPeriod,
         highIntensityCount: highIntensity,
-        best5m: list.reduce((max, a) => Math.max(max, a.best_5min || 0), 0),
+        best5m,
     };
 }
 
