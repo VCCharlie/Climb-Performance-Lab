@@ -839,9 +839,11 @@ const DataHub = ({
             };
             const mergedNews = newActivities.map(mergeNewInto);
 
+            const workingIndexMap = new Map(working.map((x, i) => [String(x.id), i]));
+
             for (const n of mergedNews) {
-                const i = working.findIndex((x) => String(x.id) === String(n.id));
-                if (i >= 0) {
+                const i = workingIndexMap.get(String(n.id));
+                if (i !== undefined) {
                     working[i] = protectEnrichedFieldsOnMerge({ ...working[i], ...n }, working[i]);
                 }
             }

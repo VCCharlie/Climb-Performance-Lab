@@ -86,3 +86,6 @@
 ## 2024-05-18 - Avoid nested O(N*M) array.find for time-threshold matching
 **Learning:** Using `array.find()` inside a loop to match items based on a time threshold (e.g., `Math.abs(actTime - sTime) < 900000`) creates an O(N*M) time complexity, which can severely block the main thread for large datasets. Direct `Map` lookups aren't possible because the match is a range, not an exact key.
 **Action:** Use a time-bucketed Map strategy. Pre-compute a Map where keys are bucket indices (e.g., `Math.floor(time / 900000)`). Inside the loop, calculate the target bucket and search only within `bucket - 1`, `bucket`, and `bucket + 1`. This reduces the search space to a constant number, lowering overall time complexity to O(N + M).
+## 2024-06-25 - Avoid O(N) array.findIndex inside iteration loops
+**Learning:** Similar to `array.find`, calling `array.findIndex` inside an array iteration creates an O(N * M) time complexity overhead, particularly noticeable on large loops in React components like `DataHub.jsx`.
+**Action:** Pre-compute a `Map` of existing elements keyed by an identifier and use `map.get()` logic to modify elements in place with an O(1) time complexity, and loop over the original array via traditional `for...` loops to maintain indices properly if direct index lookup is required.

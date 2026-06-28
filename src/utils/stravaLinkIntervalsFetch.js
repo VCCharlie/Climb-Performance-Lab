@@ -118,10 +118,14 @@ export function applyStravaFuzzyMatchesToIntervals(intervalsActivities, stravaAc
     if (bikeStrava.length === 0 || merged.length === 0) return;
 
     const result = matchStravaToSite(bikeStrava, merged);
+
+    // ⚡ Bolt Optimization: Use Map for O(1) lookups instead of O(N) array.findIndex
+    const mergedIndexMap = new Map(merged.map((x, i) => [String(x.id), i]));
+
     for (const m of result.matched || []) {
         if (m.confidence === 'low') continue;
-        const i = merged.findIndex((x) => String(x.id) === String(m.site.id));
-        if (i < 0) continue;
+        const i = mergedIndexMap.get(String(m.site.id));
+        if (i === undefined) continue;
         const row = merged[i];
         if (row.strava_id) continue;
         const stravaTitle = (m.strava.name || '').trim();
