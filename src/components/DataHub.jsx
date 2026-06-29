@@ -13,7 +13,7 @@ import {
     isLikelyIntervalsActivityId,
     stripUndefinedFields,
 } from '../utils/mergeActivities';
-import { findSafeImportReplacementDuplicate } from '../utils/importDuplicateMatch';
+import { buildImportReplacementPlan } from '../utils/importDuplicateMatch';
 import { persistImportedActivitiesReplacingDuplicates } from '../utils/importPersistence';
 import { enrichActivityGearFromStrava, buildStravaDetailEnrichmentUpdates } from '../utils/stravaGearEnrich';
 import { buildStravaKomSummaryFromActivityDetail } from '../utils/stravaSegmentKomSummary';
@@ -1272,47 +1272,40 @@ const DataHub = ({
     const confirmImport = async () => {
         const toImport = fetchedActivities.filter(a => selectedActivities.includes(a.id));
         let savedCount = 0;
-        let replacedCount = 0;
-        const idsToDelete = [];
         let cloudPersisted = !db;
-
-        if (activities && activities.length > 0) {
-            toImport.forEach(newAct => {
-                const duplicate = findSafeImportReplacementDuplicate(activities, newAct);
-
-                if (duplicate) {
-                    idsToDelete.push(duplicate.id);
-                    replacedCount++;
-                }
-            });
-        }
+        const replacementPlan = buildImportReplacementPlan(activities, toImport);
+        const activitiesById = new Map((activities || []).map((activity) => [String(activity.id), activity]));
+        const importPayloads = replacementPlan.activitiesToImport.map((activity) => {
+            const existing = activitiesById.get(String(activity.id));
+            return protectEnrichedFieldsOnMerge(activity, existing);
+        });
 
         if (db) {
             try {
                 await persistImportedActivitiesReplacingDuplicates({
                     activities,
-                    toImport,
-                    idsToDelete,
+                    toImport: importPayloads,
+                    idsToDelete: replacementPlan.idsToDelete,
                     writeActivity: (id, payload) => setDoc(doc(db, "activities", String(id)), payload, { merge: true }),
                     deleteActivity: (id) => deleteDoc(doc(db, "activities", String(id))),
                     mergePayload: protectEnrichedFieldsOnMerge,
                 });
-                savedCount = toImport.length;
+                savedCount = importPayloads.length;
                 cloudPersisted = true;
             } catch (e) {
                 alert("Note: Data imported locally, but cloud backup failed: " + e.message);
             }
         }
 
-        onImport(toImport);
-        if (cloudPersisted && idsToDelete.length > 0) {
-            idsToDelete.forEach(id => onDelete(id));
+        onImport(importPayloads);
+        if (cloudPersisted && replacementPlan.idsToDelete.length > 0) {
+            replacementPlan.idsToDelete.forEach(id => onDelete(id));
         }
 
         setShowModal(false);
         setFetchedActivities([]);
         setInternalTab('log');
-        alert(`Import Successful!\n\nImported: ${savedCount}\nReplaced Duplicates: ${cloudPersisted ? replacedCount : 0}`);
+        alert(`Import Successful!\n\nImported: ${savedCount}\nReplaced Duplicates: ${cloudPersisted ? replacementPlan.replacedCount : 0}`);
     };
 
     const [previewSortConfig, setPreviewSortConfig] = useState({ key: 'date', direction: 'desc' });
