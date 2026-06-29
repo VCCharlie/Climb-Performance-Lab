@@ -2,7 +2,10 @@
 **Learning:** Comparing ISO date strings natively (`a.date < b.date`) instead of parsing them first via `new Date(a.date).getTime()` is extremely fast (around ~20x faster in Node.js/V8) and removes unnecessary overhead from the garbage collector during sorting, particularly when rendering tables or dashboards that sort large activity datasets multiple times on changes.
 **Action:** When working with ISO formatted string dates, especially in frequently executed `.sort()` logic, use string comparison directly: `(a, b) => a < b ? -1 : (a > b ? 1 : 0)`.
 
-## 2026-05-24 - Batched API Calls to Prevent Rate Limits\n\n**Learning:** When fetching data via APIs (like Strava), sending too many concurrent requests using `Promise.all` can trigger rate limits or browser connection exhaustion.\n**Action:** Use the `runInBatches` utility (from `src/utils`) instead of `Promise.all` to limit concurrent requests and improve reliability.
+## 2026-05-24 - Batched API Calls to Prevent Rate Limits
+
+**Learning:** When fetching data via APIs (like Strava), sending too many concurrent requests using `Promise.all` can trigger rate limits or browser connection exhaustion.
+**Action:** Use the `runInBatches` utility (from `src/utils`) instead of `Promise.all` to limit concurrent requests and improve reliability.
 
 ## 2026-06-25 - Date comparison performance in loops
 **Learning:** Instantiating `new Date(d.date)` within `array.filter()` or `.map()` loops is significantly slower than string lexicographical comparison when parsing ISO-8601 strings. However, naively comparing raw inputs like `d.date.slice(0, 10)` can crash if `d.date` is unexpectedly a timestamp number or Date object (e.g. from Firebase).
@@ -20,7 +23,9 @@
 **Learning:** Calling `Date.toLocaleString()` inside loops or array maps (like chart data generation) creates huge performance bottlenecks because it repeatedly instantiates the `Intl.DateTimeFormat` API. This is especially true for dashboards rendering hundreds of data points.
 **Action:** When creating text labels for months/dates inside loops, use array lookups with predefined text strings (e.g., `const NL_MONTHS = ['jan', 'feb', ...]`) and simple string manipulation instead.
 
-## 2026-05-29 - Batched API Calls for Gear Fetching\n**Learning:** In DataHub.jsx, fetching gear details from Strava concurrently using Promise.all can cause rate limits and exhaust browser connections if the user has many bikes or gears.\n**Action:** Replaced Promise.all with the local runInBatches utility to chunk external API requests and prevent throttling issues.## 2024-05-24 - [Avoid Spread Operator with Large Arrays in Math.max/min]
+## 2026-05-29 - Batched API Calls for Gear Fetching
+**Learning:** In DataHub.jsx, fetching gear details from Strava concurrently using Promise.all can cause rate limits and exhaust browser connections if the user has many bikes or gears.
+**Action:** Replaced Promise.all with the local runInBatches utility to chunk external API requests and prevent throttling issues.## 2024-05-24 - [Avoid Spread Operator with Large Arrays in Math.max/min]
 **Learning:** Using the spread operator (`...`) with `Math.max()` or `Math.min()` on potentially large arrays can cause a `RangeError: Maximum call stack size exceeded` because JavaScript engines limit the number of arguments a function can accept. Chaining `.map()` and `.filter()` before spreading also creates unnecessary intermediate arrays, increasing memory usage and garbage collection overhead.
 **Action:** Replace `Math.max(0, ...array.map().filter())` with a single-pass `for...of` loop to track the maximum value. This prevents call stack errors, eliminates intermediate array allocations, and is significantly faster for large datasets.
 
@@ -63,3 +68,33 @@
 ## 2026-06-25 - Avoid O(N^2) array.filter in pagination loops
 **Learning:** Calling `array.filter` on an accumulated array inside a pagination while-loop (e.g. `allActivities.concat(data); allActivities.filter(...)`) recalculates the filter across the entire growing array repeatedly. This results in $O(N^2)$ time complexity as the array grows.
 **Action:** Filter only the *newly fetched page data* (`data.filter(...)`) and add it to a running accumulator variable, keeping the complexity at $O(N)$.
+## 2026-06-08 - Enforce Explicit Code Discovery Before Planning
+**Learning:** Generating an execution plan that references internal file code structures (like variable names, specific loops, or specific hooks) before those structures have been explicitly revealed by a terminal command like `sed`, `cat`, or `grep` will be rejected due to a Groundedness Rule violation. Relying purely on partial trace outputs or assumptions leads to required plan revisions.
+**Action:** When creating or revising a plan, ensure all referenced code elements have been concretely and completely revealed in the terminal output trace. Use targeted tools like `sed -n 'X,Yp' filename` to fetch required file chunks completely before planning rather than relying on truncated previews.
+
+## 2024-05-24 - Avoid O(N * M) multiple array.filter.length calls in useMemo
+**Learning:** In React components (like `BucketList.jsx`), executing multiple `.filter(...).length` statements sequentially inside a `useMemo` block creates unnecessary intermediate array allocations and causes O(N * M) time complexity where N is the data length and M is the number of filters.
+**Action:** Replace sequential `.filter(...).length` calls with a single `for...of` loop to calculate multiple metrics simultaneously in one pass over the data, which reduces it to O(N) complexity and completely avoids intermediate array instantiations.
+
+## 2024-05-18 - Single-pass reduce over chained array methods
+**Learning:** Using chained array methods like `.filter().map()` or `.map().filter()` creates intermediate array allocations. For potentially large arrays, this can affect performance and increase memory usage.
+**Action:** Replace chained array iteration methods with a single-pass `Array.prototype.reduce()` to track the desired output and avoid intermediate array allocations.
+
+## 2024-06-13 - Optimize Math.max with Array.prototype.map and spread syntax
+**Learning:** Using `Math.max(0, ...data.map(...))` on potentially large arrays can result in 'RangeError: Maximum call stack size exceeded' and causes unnecessary memory allocations due to intermediate array creation.
+**Action:** Replace `Math.max(...array.map(...))` with a single-pass `reduce` call (e.g. `array.reduce((max, item) => Math.max(max, item.value), 0)`). This provides an O(n) calculation without the overhead of intermediate object creation.
+
+## 2024-05-18 - Single-pass for...of loop over multiple filter().length
+**Learning:** Using multiple `.filter().length` calls consecutively on the same array to calculate distinct counters causes redundant full iterations over the dataset and creates unnecessary intermediate array allocations, resulting in O(N * M) performance overhead and increased memory churn.
+**Action:** Replace consecutive `.filter().length` statements with a single `for...of` loop or `.reduce()` to iterate the dataset exactly once, incrementing multiple counters simultaneously (O(N)).
+
+## 2024-05-18 - Avoid nested O(N*M) array.find for time-threshold matching
+**Learning:** Using `array.find()` inside a loop to match items based on a time threshold (e.g., `Math.abs(actTime - sTime) < 900000`) creates an O(N*M) time complexity, which can severely block the main thread for large datasets. Direct `Map` lookups aren't possible because the match is a range, not an exact key.
+**Action:** Use a time-bucketed Map strategy. Pre-compute a Map where keys are bucket indices (e.g., `Math.floor(time / 900000)`). Inside the loop, calculate the target bucket and search only within `bucket - 1`, `bucket`, and `bucket + 1`. This reduces the search space to a constant number, lowering overall time complexity to O(N + M).
+## 2026-06-25 - Avoid O(N*M) chained array methods inside mapping operations
+**Learning:** Using chained array methods like `.map().filter().sort()` inside another array mapping operation (e.g. `arrayA.map(a => arrayB.map(...).filter(...).sort(...))`) creates O(N * M) time complexity and severe performance degradation, allocating huge amounts of intermediate arrays in memory.
+**Action:** Pre-calculate needed data from the inner array in a single O(M) pass, and inside the outer mapping loop, use a standard `for...of` loop to determine the desired metric (like a minimum score) while skipping redundant array allocations.
+
+## 2026-06-25 - Use single pass to avoid O(N) intermediate array iterations
+**Learning:** In utility functions computing summary metrics (like `summarizeActivityWindow`), chaining or consecutive calls of `.reduce()` and `.filter()` result in unnecessary complete O(N) array iterations for every single metric and trigger repeated unneeded intermediate iterations.
+**Action:** Replace multiple separate array passes with a single `for...of` loop to aggregate multiple metrics at once in an O(N) complexity overall, reducing memory footprint and main thread blocking.

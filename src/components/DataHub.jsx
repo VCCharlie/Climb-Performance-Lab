@@ -802,9 +802,13 @@ const DataHub = ({
         }
 
         const selectedActs = selectedActivitiesForBulk;
+        // ⚡ Bolt Optimization: Use single-pass reduce instead of chained map/filter
         const dateParts = selectedActs
-            .map((a) => (a?.date && String(a.date).split('T')[0]) || '')
-            .filter(Boolean)
+            .reduce((acc, a) => {
+                const dp = (a?.date && String(a.date).split('T')[0]) || '';
+                if (dp) acc.push(dp);
+                return acc;
+            }, [])
             .sort();
         if (dateParts.length === 0) {
             setSyncStatus('error');
@@ -839,9 +843,15 @@ const DataHub = ({
             };
             const mergedNews = newActivities.map(mergeNewInto);
 
+            // ⚡ Bolt Optimization: Use a Map for index lookup instead of nested findIndex
+            const workingIndexMap = new Map();
+            for (let i = 0; i < working.length; i++) {
+                workingIndexMap.set(String(working[i].id), i);
+            }
+
             for (const n of mergedNews) {
-                const i = working.findIndex((x) => String(x.id) === String(n.id));
-                if (i >= 0) {
+                const i = workingIndexMap.get(String(n.id));
+                if (i !== undefined) {
                     working[i] = protectEnrichedFieldsOnMerge({ ...working[i], ...n }, working[i]);
                 }
             }
@@ -1404,7 +1414,7 @@ const DataHub = ({
                                     </h3>
                                     <p className="text-xs text-cdmuted mt-0.5">Select which ones to remove.</p>
                                 </div>
-                                <button aria-label="Close modal" onClick={() => setShowNoPowerModal(false)} className="text-cdmuted hover:text-cdtext text-lg font-bold px-2 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded">✕</button>
+                                <button type="button" aria-label="Close modal" onClick={() => setShowNoPowerModal(false)} className="text-cdmuted hover:text-cdtext text-lg font-bold px-2 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded">✕</button>
                             </div>
                             <div className="flex items-center gap-3 px-4 py-2 border-b border-cdborder bg-cdbg/40">
                                 <input type="checkbox" checked={allSelected} onChange={toggleAll} className="accent-yellow-400 w-4 h-4" />
@@ -1427,7 +1437,7 @@ const DataHub = ({
                                 ))}
                             </div>
                             <div className="flex justify-end gap-3 p-4 border-t border-cdborder">
-                                <button onClick={() => setShowNoPowerModal(false)} className="px-4 py-2 text-cdmuted hover:text-cdtext font-bold text-sm">Close</button>
+                                <button type="button" onClick={() => setShowNoPowerModal(false)} className="px-4 py-2 text-cdmuted hover:text-cdtext font-bold text-sm">Close</button>
                                 <button
                                     onClick={deleteNoPowerSelected}
                                     disabled={isDeleting || noPowerSelected.length === 0}
@@ -1517,14 +1527,14 @@ const DataHub = ({
 
             {/* TABS */}
             <div className="flex border-b border-cdborder" role="tablist" aria-label="Data Hub Tabs">
-                <button id="tab-log" role="tab" aria-selected={internalTab === 'log'} aria-controls="tabpanel-log" onClick={() => setInternalTab('log')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'log' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Activity Log</button>
+                <button type="button" id="tab-log" role="tab" aria-selected={internalTab === 'log'} aria-controls="tabpanel-log" onClick={() => setInternalTab('log')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'log' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Activity Log</button>
                 {stravaGetToken && (
-                    <button id="tab-strava-profile" role="tab" aria-selected={internalTab === 'strava-profile'} aria-controls="tabpanel-strava-profile" onClick={() => setInternalTab('strava-profile')} className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-1.5 ${internalTab === 'strava-profile' ? 'bg-cdborder text-orange-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>
+                    <button type="button" id="tab-strava-profile" role="tab" aria-selected={internalTab === 'strava-profile'} aria-controls="tabpanel-strava-profile" onClick={() => setInternalTab('strava-profile')} className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-1.5 ${internalTab === 'strava-profile' ? 'bg-cdborder text-orange-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>
                         <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" /></svg>
                         Strava Profile
                     </button>
                 )}
-                <button id="tab-import" role="tab" aria-selected={internalTab === 'import'} aria-controls="tabpanel-import" onClick={() => setInternalTab('import')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'import' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Import Data</button>
+                <button type="button" id="tab-import" role="tab" aria-selected={internalTab === 'import'} aria-controls="tabpanel-import" onClick={() => setInternalTab('import')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'import' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Import Data</button>
             </div>
 
             <div className="flex-1 overflow-hidden flex flex-col">
@@ -1637,9 +1647,9 @@ const DataHub = ({
                                         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search (name or 4-2-2024)..." className="w-full bg-cdbg border border-cdborder rounded pl-10 pr-4 py-2 text-sm text-cdtext outline-none focus:border-yellow-400" />
                                     </div>
                                     <div className="flex bg-cdbg rounded border border-cdborder p-1 shrink-0">
-                                        <button onClick={() => { setIndoorFilter('all'); setVirtualRideChip(false); }} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'all' ? 'bg-cdborder text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}>All</button>
-                                        <button onClick={() => { setIndoorFilter('outdoor'); setVirtualRideChip(false); }} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'outdoor' ? 'bg-green-600 text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}>Out</button>
-                                        <button onClick={() => { setIndoorFilter('indoor'); setVirtualRideChip(false); }} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'indoor' ? 'bg-orange-600 text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}>In</button>
+                                        <button type="button" aria-pressed={indoorFilter === 'all'} onClick={() => { setIndoorFilter('all'); setVirtualRideChip(false); }} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'all' ? 'bg-cdborder text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}>All</button>
+                                        <button type="button" aria-pressed={indoorFilter === 'outdoor'} onClick={() => { setIndoorFilter('outdoor'); setVirtualRideChip(false); }} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'outdoor' ? 'bg-green-600 text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}>Out</button>
+                                        <button type="button" aria-pressed={indoorFilter === 'indoor'} onClick={() => { setIndoorFilter('indoor'); setVirtualRideChip(false); }} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'indoor' ? 'bg-orange-600 text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}>In</button>
                                     </div>
                                 </div>
                                 <div className="flex gap-2 shrink-0 w-full md:w-auto justify-end">

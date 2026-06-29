@@ -30,3 +30,8 @@
 ## 2025-05-31 - Visually Hidden Elements Accessibility
 **Learning:** Hiding interactive file inputs using Tailwind's `hidden` or `display: none` completely removes them from the accessibility tree, breaking keyboard navigation for file uploads.
 **Action:** Use `sr-only` instead of `hidden` on the `<input type="file" />` element, and add standard keyboard focus states (e.g., `focus-within:ring-2 focus-within:ring-yellow-400 focus-within:outline-none`) to the parent container to visually indicate focus.
+## 2025-06-07 - Explicit Button Types in Modals
+**Learning:** Interactive buttons within generic modals (like 'Keep This' or 'Switch to next' in `DuplicateReviewModal`) often lack explicit `type="button"` attributes and standard focus rings, increasing the risk of accidental form submissions and reducing keyboard accessibility.
+## 2025-06-07 - Explicit Button Types in Modals
+**Learning:** Interactive buttons within generic modals (like 'Keep This' or 'Switch to next' in DuplicateReviewModal) often lack explicit type='button' attributes and standard focus rings, increasing the risk of accidental form submissions and reducing keyboard accessibility.
+**Action:** Always verify that all interactive button elements in dialogs/modals include type='button' and standard focus states like focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none.
