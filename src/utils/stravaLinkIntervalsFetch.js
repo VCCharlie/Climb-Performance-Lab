@@ -134,10 +134,12 @@ export function applyStravaFuzzyMatchesToIntervals(intervalsActivities, stravaAc
 
     const result = matchStravaToSite(bikeStrava, merged);
 
-    // ⚡ Bolt Optimization: Replace O(N*M) nested findIndex loop with O(1) Map lookup
+    // ⚡ Bolt Optimization: Use Map for O(1) index lookups instead of nested findIndex
     const mergedIndexMap = new Map();
-    for (let idx = 0; idx < merged.length; idx++) {
-        mergedIndexMap.set(String(merged[idx].id), idx);
+    for (let i = 0; i < merged.length; i++) {
+        if (merged[i]) {
+            mergedIndexMap.set(String(merged[i].id), i);
+        }
     }
 
     for (const m of result.matched || []) {

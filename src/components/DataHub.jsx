@@ -839,9 +839,15 @@ const DataHub = ({
             };
             const mergedNews = newActivities.map(mergeNewInto);
 
+            // ⚡ Bolt Optimization: Use a Map for index lookup instead of nested findIndex
+            const workingIndexMap = new Map();
+            for (let i = 0; i < working.length; i++) {
+                workingIndexMap.set(String(working[i].id), i);
+            }
+
             for (const n of mergedNews) {
-                const i = working.findIndex((x) => String(x.id) === String(n.id));
-                if (i >= 0) {
+                const i = workingIndexMap.get(String(n.id));
+                if (i !== undefined) {
                     working[i] = protectEnrichedFieldsOnMerge({ ...working[i], ...n }, working[i]);
                 }
             }
