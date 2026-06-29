@@ -76,31 +76,46 @@ export async function fetchStravaActivitiesInRange(token, startYmd, endYmd) {
 export function linkIntervalsActivitiesToStravaList(intervalsActivities, stravaActivities, opts = {}) {
     const win = opts.matchWindowMs ?? DEFAULT_MATCH_MS;
     const list = stravaActivities || [];
+
+    // ⚡ Bolt Optimization: Use single-pass pre-calculation of Strava items and O(1) loop iteration
+    // instead of O(N*M) chained .map().filter().sort() inside intervals mapping
+    const stravaItems = [];
+    for (const s of list) {
+        const sTime = startTimeMs(s);
+        if (sTime != null) {
+            stravaItems.push({ activity: s, time: sTime });
+        }
+    }
+
     return (intervalsActivities || []).map((act) => {
         if (!act || act.strava_id) return act;
         const actTime = new Date(act.date).getTime();
         if (Number.isNaN(actTime)) return act;
-        const matchedStrava = list
-            .map((s) => {
-                const sTime = startTimeMs(s);
-                if (sTime == null) return null;
-                const timeDiff = Math.abs(actTime - sTime);
-                if (timeDiff >= win || !compatibleSportType(act, s)) return null;
-                const distDiff = distanceDiffRatio(act, s);
-                if (distDiff != null && distDiff > MAX_DISTANCE_DIFF_RATIO) return null;
-                return {
-                    activity: s,
-                    score: (timeDiff / win) + (distDiff == null ? 0 : distDiff * 0.75),
-                };
-            })
-            .filter(Boolean)
-            .sort((a, b) => a.score - b.score)[0]?.activity;
-        if (!matchedStrava) return act;
-        const stravaTitle = (matchedStrava.name || '').trim();
+
+        let bestMatch = null;
+        let bestScore = Infinity;
+
+        for (const { activity: s, time: sTime } of stravaItems) {
+            const timeDiff = Math.abs(actTime - sTime);
+            if (timeDiff >= win) continue;
+            if (!compatibleSportType(act, s)) continue;
+
+            const distDiff = distanceDiffRatio(act, s);
+            if (distDiff != null && distDiff > MAX_DISTANCE_DIFF_RATIO) continue;
+
+            const score = (timeDiff / win) + (distDiff == null ? 0 : distDiff * 0.75);
+            if (score < bestScore) {
+                bestScore = score;
+                bestMatch = s;
+            }
+        }
+
+        if (!bestMatch) return act;
+        const stravaTitle = (bestMatch.name || '').trim();
         return {
             ...act,
-            strava_id: String(matchedStrava.id),
-            gear_id: matchedStrava.gear_id || act.gear_id || null,
+            strava_id: String(bestMatch.id),
+            gear_id: bestMatch.gear_id || act.gear_id || null,
             ...(stravaTitle && { title: stravaTitle }),
         };
     });
