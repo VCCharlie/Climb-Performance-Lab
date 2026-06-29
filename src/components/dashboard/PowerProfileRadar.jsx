@@ -225,6 +225,7 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
     }, [data, historyPeakRows, powerPeakRows]);
 
     const domainMax = useMemo(() => {
+        // ⚡ Bolt Optimization: Use single-pass reduce instead of Math.max(...array.flatMap()) to prevent call stack issues and avoid intermediate array allocations
         const peak = data.reduce(
             (acc, d) => Math.max(acc, d.pctPeriod, d.pctMax),
             manualFtp > 0 ? 100 : 0,
@@ -233,7 +234,7 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
     }, [data, manualFtp]);
 
     const noFtpScaleMaxW = useMemo(
-        // ⚡ Bolt Optimization: Use single-pass reduce instead of Math.max(...array.map())
+        // ⚡ Bolt Optimization: Use single-pass reduce instead of Math.max(...array.map()) to prevent call stack issues and avoid intermediate array allocations
         () => (data.length ? data.reduce((max, x) => Math.max(max, x.wattsPeriod, x.wattsMax), 0) : 0),
         [data],
     );
