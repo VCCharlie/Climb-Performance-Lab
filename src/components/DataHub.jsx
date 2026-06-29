@@ -13,11 +13,8 @@ import {
     isLikelyIntervalsActivityId,
     stripUndefinedFields,
 } from '../utils/mergeActivities';
-import { findSafeImportReplacementDuplicate } from '../utils/importDuplicateMatch';
-import {
-    persistImportedActivitiesReplacingDuplicates,
-    prepareImportedActivitiesForDuplicateReplacement,
-} from '../utils/importPersistence';
+import { buildImportReplacementPlan } from '../utils/importDuplicateMatch';
+import { persistImportedActivitiesReplacingDuplicates } from '../utils/importPersistence';
 import { enrichActivityGearFromStrava, buildStravaDetailEnrichmentUpdates } from '../utils/stravaGearEnrich';
 import { buildStravaKomSummaryFromActivityDetail } from '../utils/stravaSegmentKomSummary';
 import { resolveStravaGearDisplay } from '../utils/stravaBikesLocalMap';
@@ -1276,45 +1273,39 @@ const DataHub = ({
         const toImport = fetchedActivities.filter(a => selectedActivities.includes(a.id));
         let savedCount = 0;
         let cloudPersisted = !db;
-        const { preparedImport, idsToDelete, replacedCount } = prepareImportedActivitiesForDuplicateReplacement({
-            activities,
-            toImport,
-            findDuplicate: findSafeImportReplacementDuplicate,
-            mergeDuplicate: (newAct, duplicate) => {
-                if (isLikelyIntervalsActivityId(newAct.id) && isStravaOnlyActivityId(duplicate.id)) {
-                    return mergeActivitiesIntervalsPrimary(newAct, duplicate);
-                }
-
-                return protectEnrichedFieldsOnMerge(newAct, duplicate);
-            },
+        const replacementPlan = buildImportReplacementPlan(activities, toImport);
+        const activitiesById = new Map((activities || []).map((activity) => [String(activity.id), activity]));
+        const importPayloads = replacementPlan.activitiesToImport.map((activity) => {
+            const existing = activitiesById.get(String(activity.id));
+            return protectEnrichedFieldsOnMerge(activity, existing);
         });
 
         if (db) {
             try {
                 await persistImportedActivitiesReplacingDuplicates({
                     activities,
-                    toImport: preparedImport,
-                    idsToDelete,
+                    toImport: importPayloads,
+                    idsToDelete: replacementPlan.idsToDelete,
                     writeActivity: (id, payload) => setDoc(doc(db, "activities", String(id)), payload, { merge: true }),
                     deleteActivity: (id) => deleteDoc(doc(db, "activities", String(id))),
                     mergePayload: protectEnrichedFieldsOnMerge,
                 });
-                savedCount = preparedImport.length;
+                savedCount = importPayloads.length;
                 cloudPersisted = true;
             } catch (e) {
                 alert("Note: Data imported locally, but cloud backup failed: " + e.message);
             }
         }
 
-        onImport(preparedImport);
-        if (cloudPersisted && idsToDelete.length > 0) {
-            idsToDelete.forEach(id => onDelete(id));
+        onImport(importPayloads);
+        if (cloudPersisted && replacementPlan.idsToDelete.length > 0) {
+            replacementPlan.idsToDelete.forEach(id => onDelete(id));
         }
 
         setShowModal(false);
         setFetchedActivities([]);
         setInternalTab('log');
-        alert(`Import Successful!\n\nImported: ${savedCount}\nReplaced Duplicates: ${cloudPersisted ? replacedCount : 0}`);
+        alert(`Import Successful!\n\nImported: ${savedCount}\nReplaced Duplicates: ${cloudPersisted ? replacementPlan.replacedCount : 0}`);
     };
 
     const [previewSortConfig, setPreviewSortConfig] = useState({ key: 'date', direction: 'desc' });

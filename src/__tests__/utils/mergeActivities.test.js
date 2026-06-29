@@ -86,6 +86,7 @@ describe('mergeActivitiesIntervalsPrimary', () => {
   });
 
   it('keeps power from primary, adds strava from secondary', () => {
+    const komSummary = { label: 'PR · KOM#2', tooltip: 'Segment (PR, KOM#2)' };
     const primary = {
       id: '100',
       title: 'Ride',
@@ -100,11 +101,13 @@ describe('mergeActivitiesIntervalsPrimary', () => {
       strava_id: '999',
       norm_power: 0,
       avg_power: 0,
+      strava_kom_summary: komSummary,
     };
     const m = mergeActivitiesIntervalsPrimary(primary, secondary);
     expect(m.id).toBe('100');
     expect(m.strava_id).toBe('999');
     expect(m.norm_power).toBe(250);
     expect(m.title).toBe('Nice climb day');
+    expect(m.strava_kom_summary).toEqual(komSummary);
   });
 });
