@@ -802,9 +802,13 @@ const DataHub = ({
         }
 
         const selectedActs = selectedActivitiesForBulk;
+        // ⚡ Bolt Optimization: Use single-pass reduce instead of chained map/filter
         const dateParts = selectedActs
-            .map((a) => (a?.date && String(a.date).split('T')[0]) || '')
-            .filter(Boolean)
+            .reduce((acc, a) => {
+                const dp = (a?.date && String(a.date).split('T')[0]) || '';
+                if (dp) acc.push(dp);
+                return acc;
+            }, [])
             .sort();
         if (dateParts.length === 0) {
             setSyncStatus('error');
@@ -839,7 +843,11 @@ const DataHub = ({
             };
             const mergedNews = newActivities.map(mergeNewInto);
 
-            const workingIndexMap = new Map(working.map((x, i) => [String(x.id), i]));
+            // ⚡ Bolt Optimization: Use a Map for index lookup instead of nested findIndex
+            const workingIndexMap = new Map();
+            for (let i = 0; i < working.length; i++) {
+                workingIndexMap.set(String(working[i].id), i);
+            }
 
             for (const n of mergedNews) {
                 const i = workingIndexMap.get(String(n.id));
