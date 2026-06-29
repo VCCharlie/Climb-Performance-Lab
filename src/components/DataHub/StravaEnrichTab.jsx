@@ -74,10 +74,12 @@ const StravaEnrichTab = ({
     const [results, setResults] = useState(persistedResults ?? null);
     const [selectedMatches, setSelectedMatches] = useState(() => {
         if (!persistedResults?.matched) return new Set();
+        // ⚡ Bolt Optimization: Use single-pass reduce instead of chained map/filter
         return new Set(
-            persistedResults.matched
-                .filter(m => m.confidence !== 'low')
-                .map(m => String(m.strava.id))
+            persistedResults.matched.reduce((acc, m) => {
+                if (m.confidence !== 'low') acc.push(String(m.strava.id));
+                return acc;
+            }, [])
         );
     });
     const [selectedNew, setSelectedNew] = useState(new Set());
@@ -157,9 +159,11 @@ const StravaEnrichTab = ({
         setResults(result);
         onResultsChange?.(result);
         setSelectedMatches(new Set(
-            result.matched
-                .filter(m => m.confidence !== 'low')
-                .map(m => String(m.strava.id))
+            // ⚡ Bolt Optimization: Use single-pass reduce instead of chained map/filter
+            result.matched.reduce((acc, m) => {
+                if (m.confidence !== 'low') acc.push(String(m.strava.id));
+                return acc;
+            }, [])
         ));
         setSelectedNew(new Set());
     }, [onResultsChange]);
