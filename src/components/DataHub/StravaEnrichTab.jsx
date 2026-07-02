@@ -5,6 +5,10 @@ import { db } from '../../firebase';
 import { runInBatches } from '../../utils';
 import { matchStravaToSite, normalizeStravaActivity, STRAVA_BIKE_TYPES } from '../../utils/stravaMatch';
 import { stravaHttpErrorMessage } from '../../utils/stravaHttp';
+import {
+    applyStravaDetailFieldsToAlreadyLinkedMatch,
+    buildAlreadyLinkedStravaUpdate,
+} from '../../utils/stravaGearEnrich';
 
 // Strava logo SVG
 const StravaIcon = ({ size = 14 }) => (
@@ -262,22 +266,8 @@ const StravaEnrichTab = ({
 
                         if (detResp.ok) {
                             const detailed = await detResp.json();
-
-                            const siteHasRpe = m.site.rpe && m.site.rpe > 0;
-                            const siteHasGear = !!m.site.gear_id;
-                            const siteHasHr = m.site.avg_hr && m.site.avg_hr > 0;
-
-                            m.needsRpe = !siteHasRpe && !!detailed.perceived_exertion;
-                            m.needsGear = !siteHasGear && !!detailed.gear_id;
-                            m.needsHr = !siteHasHr && !!detailed.average_heartrate;
-
-                            if (m.needsRpe) {
-                                m.strava.perceived_exertion = detailed.perceived_exertion;
-                            }
-                            if (m.needsHr) {
-                                m.strava.average_heartrate = detailed.average_heartrate;
-                                m.strava.max_heartrate = detailed.max_heartrate;
-                            }
+                            const enrichedMatch = applyStravaDetailFieldsToAlreadyLinkedMatch(m, detailed);
+                            Object.assign(m, enrichedMatch, { strava: enrichedMatch.strava });
                         }
                     } catch { console.warn("Detail fetch failed for Strava", m.strava.id); }
                 });
@@ -352,41 +342,33 @@ const StravaEnrichTab = ({
             const toUpdate = (results.alreadyLinked || []).filter(m =>
                 (m.needsGear || m.needsRpe || m.needsHr) && selectedGearUpdate.has(String(m.strava.id))
             );
+            const successfullyUpdatedIds = new Set();
             for (const { strava, site } of toUpdate) {
                 try {
-                    if (db) {
-                        const gearId = strava.gear_id || null;
-                        const gearName = gearId ? (bikesMap[gearId] || 'Strava bike') : null;
-                        const stravaTitle = (strava.name || '').trim();
-                        const updateData = {
-                            ...(gearId && { gear_id: gearId, gear_name: gearName }),
-                            ...(stravaTitle && { title: stravaTitle }),
-                            ...((!site.rpe || site.rpe === 0) && strava.perceived_exertion && { rpe: strava.perceived_exertion }),
-                            ...((!site.avg_hr || site.avg_hr === 0) && strava.average_heartrate && { avg_hr: Math.round(strava.average_heartrate) }),
-                            ...((!site.max_hr || site.max_hr === 0) && strava.max_heartrate && { max_hr: Math.round(strava.max_heartrate) })
-                        };
+                    const updateData = buildAlreadyLinkedStravaUpdate({ strava, site }, bikesMap);
 
-                        if (Object.keys(updateData).length > 0) {
-                            await setDoc(
-                                doc(db, 'activities', String(site.id)),
-                                updateData,
-                                { merge: true }
-                            );
-                            count++;
-                        }
+                    if (Object.keys(updateData).length > 0 && db) {
+                        await setDoc(
+                            doc(db, 'activities', String(site.id)),
+                            updateData,
+                            { merge: true }
+                        );
+                        count++;
+                        successfullyUpdatedIds.add(String(strava.id));
                     }
                 } catch (e) {
                     console.error('Data update fout voor', site.id, e);
                 }
             }
-            const updatedIds = new Set([...selectedGearUpdate]);
             setResults(prev => ({
                 ...prev,
                 alreadyLinked: prev.alreadyLinked.map(m =>
-                    updatedIds.has(String(m.strava.id)) ? { ...m, needsGear: false, needsRpe: false, needsHr: false } : m
+                    successfullyUpdatedIds.has(String(m.strava.id)) ? { ...m, needsGear: false, needsRpe: false, needsHr: false } : m
                 )
             }));
-            setSelectedGearUpdate(new Set());
+            setSelectedGearUpdate(prev => new Set(
+                [...prev].filter(id => !successfullyUpdatedIds.has(String(id)))
+            ));
         }
 
         setAppliedCount(count);

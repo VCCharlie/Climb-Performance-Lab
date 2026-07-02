@@ -24,6 +24,11 @@ export function prepareProtectedActivityUpserts(existingActivities = [], incomin
         });
 }
 
+export function prepareProtectedActivityUpsertsFromCurrent(getExistingActivities, incomingActivities = []) {
+    const existingActivities = typeof getExistingActivities === 'function' ? getExistingActivities() : [];
+    return prepareProtectedActivityUpserts(existingActivities, incomingActivities);
+}
+
 export function mergeActivitiesPreservingEnrichment(existingActivities = [], incomingActivities = []) {
     const mergedById = new Map();
 

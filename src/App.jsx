@@ -33,7 +33,7 @@ import { consumeNavRestore } from './utils/sessionNavRestore';
 import { mergeVolumeGoals } from './utils/volumeGoals';
 import {
     mergeActivitiesPreservingEnrichment,
-    prepareProtectedActivityUpserts,
+    prepareProtectedActivityUpsertsFromCurrent,
 } from './utils/activityUpsert';
 
 const MAIN_TAB_IDS = new Set([
@@ -167,6 +167,24 @@ const App = () => {
     );
 
     const [activities, setActivities] = useState([]);
+    const activitiesRef = useRef([]);
+    const setActivitiesState = useCallback((nextActivities) => {
+        if (typeof nextActivities !== 'function') {
+            activitiesRef.current = nextActivities;
+            setActivities(nextActivities);
+            return;
+        }
+
+        setActivities((prev) => {
+            const resolvedActivities = nextActivities(prev);
+            activitiesRef.current = resolvedActivities;
+            return resolvedActivities;
+        });
+    }, []);
+
+    useEffect(() => {
+        activitiesRef.current = activities;
+    }, [activities]);
 
     // Meest recente activiteitsdatum voor de "Bijgewerkt" indicator in de header
     const lastActivityDate = useMemo(() => {
@@ -177,13 +195,16 @@ const App = () => {
 
     // Stable DataHub Handlers
     const handleImportActivities = useCallback((n) => {
-        setActivities((prev) => mergeActivitiesPreservingEnrichment(prev, n));
-    }, []);
+        setActivitiesState((prev) => mergeActivitiesPreservingEnrichment(prev, n));
+    }, [setActivitiesState]);
 
     const handleSettingsSyncComplete = useCallback(async (newActs) => {
         if (!newActs || newActs.length === 0) return 0;
 
-        const mergedActivities = prepareProtectedActivityUpserts(activities, newActs);
+        const mergedActivities = prepareProtectedActivityUpsertsFromCurrent(
+            () => activitiesRef.current,
+            newActs,
+        );
 
         if (db) {
             await Promise.all(
@@ -195,17 +216,17 @@ const App = () => {
 
         handleImportActivities(mergedActivities);
         return mergedActivities.length;
-    }, [activities, handleImportActivities]);
+    }, [handleImportActivities]);
 
     const handleDeleteActivity = useCallback((id) => {
         // Optimistic local update: verwijder direct uit state zodat de UI meteen reageert.
         // De Firebase onSnapshot listener (regel ~317) bevestigt de delete daarna vanuit de server.
-        setActivities(prev => prev.filter(a => String(a.id) !== String(id)));
-    }, []);
+        setActivitiesState(prev => prev.filter(a => String(a.id) !== String(id)));
+    }, [setActivitiesState]);
 
     const handleClearActivities = useCallback(() => {
-        setActivities([]);
-    }, []);
+        setActivitiesState([]);
+    }, [setActivitiesState]);
 
     // Manual refresh: wacht op lokale writes, haal daarna bewust van de server (niet van cache).
     const forceRefreshActivities = useCallback(async () => {
@@ -223,15 +244,15 @@ const App = () => {
             if (loadedActs.length > 0) {
                 // Optimization: use string comparison for ISO dates to speed up sort
                 loadedActs.sort((a, b) => a.date < b.date ? 1 : (a.date > b.date ? -1 : 0));
-                setActivities(loadedActs);
+                setActivitiesState(loadedActs);
                 console.log(`[Refresh] Server-fetch van ${loadedActs.length} activiteiten.`);
             } else {
-                setActivities([]);
+                setActivitiesState([]);
             }
         } catch (e) {
             console.error("Fout tijdens handmatig vernieuwen:", e);
         }
-    }, []); // db is een module-level constante, geen reactive state
+    }, [setActivitiesState]); // db is een module-level constante, geen reactive state
 
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -521,11 +542,11 @@ const App = () => {
                 // Optimization: use string comparison for ISO dates to speed up sort
                 loadedActs.sort((a, b) => a.date < b.date ? 1 : (a.date > b.date ? -1 : 0));
                 React.startTransition(() => {
-                    setActivities(loadedActs);
+                    setActivitiesState(loadedActs);
                 });
             } else {
                 React.startTransition(() => {
-                    setActivities([]);
+                    setActivitiesState([]);
                 });
             }
 
@@ -541,7 +562,7 @@ const App = () => {
         });
 
         return () => unsubscribe();
-    }, [user]); // Re-subscribe if user changes (security rules might change)
+    }, [user, setActivitiesState]); // Re-subscribe if user changes (security rules might change)
 
     // Update Power Zones
     useEffect(() => {
@@ -604,9 +625,9 @@ const App = () => {
     const handleImportBackup = (backupData) => {
         if (backupData.settings) setUserSettings(prev => ({ ...prev, ...backupData.settings }));
         if (backupData.intervals) setIntervalsConfig(backupData.intervals);
-        if (backupData.activities) setActivities(backupData.activities);
+        if (backupData.activities) setActivitiesState(backupData.activities);
         if (backupData.bucketList) setBucketListState(backupData.bucketList);
-        alert("Backup succesvol hersteld!");
+        alert("Backup restored successfully!");
     };
 
     // Chart Data logic moved to Dashboard.jsx

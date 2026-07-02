@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
+  applyStravaDetailFieldsToAlreadyLinkedMatch,
+  buildAlreadyLinkedStravaUpdate,
   enrichActivityGearFromStrava,
   fetchStravaGearName,
   buildStravaDetailEnrichmentUpdates,
@@ -94,6 +96,53 @@ describe('enrichActivityGearFromStrava', () => {
     );
     expect(out.strava_kom_summary).not.toBeNull();
     expect(String(out.strava_kom_summary?.tooltip || '')).toContain('Seg A');
+  });
+});
+
+describe('already-linked Strava enrichment helpers', () => {
+  it('copies gear from detailed Strava activity when the list item omitted it', () => {
+    const match = {
+      site: { id: '10', rpe: 0, avg_hr: 0 },
+      strava: { id: 999, name: 'Hill reps' },
+    };
+
+    const enriched = applyStravaDetailFieldsToAlreadyLinkedMatch(match, {
+      gear_id: 'bike99',
+      perceived_exertion: 7,
+      average_heartrate: 149.4,
+      max_heartrate: 181.2,
+    });
+
+    expect(enriched.needsGear).toBe(true);
+    expect(enriched.strava.gear_id).toBe('bike99');
+    expect(enriched.needsRpe).toBe(true);
+    expect(enriched.needsHr).toBe(true);
+  });
+
+  it('builds a Firestore patch from detailed gear/RPE/HR data for already-linked rows', () => {
+    const patch = buildAlreadyLinkedStravaUpdate(
+      {
+        site: { id: '10', rpe: 0, avg_hr: 0, max_hr: 0 },
+        strava: {
+          id: 999,
+          name: 'Hill reps',
+          gear_id: 'bike99',
+          perceived_exertion: 7,
+          average_heartrate: 149.4,
+          max_heartrate: 181.2,
+        },
+      },
+      { bike99: 'Tarmac SL8' },
+    );
+
+    expect(patch).toEqual({
+      gear_id: 'bike99',
+      gear_name: 'Tarmac SL8',
+      title: 'Hill reps',
+      rpe: 7,
+      avg_hr: 149,
+      max_hr: 181,
+    });
   });
 });
 

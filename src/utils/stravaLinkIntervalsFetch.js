@@ -76,6 +76,13 @@ export async function fetchStravaActivitiesInRange(token, startYmd, endYmd) {
 export function linkIntervalsActivitiesToStravaList(intervalsActivities, stravaActivities, opts = {}) {
     const win = opts.matchWindowMs ?? DEFAULT_MATCH_MS;
     const list = stravaActivities || [];
+    const usedStravaIds = new Set();
+
+    for (const activity of intervalsActivities || []) {
+        if (activity?.strava_id != null) {
+            usedStravaIds.add(String(activity.strava_id));
+        }
+    }
 
     // ⚡ Bolt Optimization: Use single-pass pre-calculation of Strava items and O(1) loop iteration
     // instead of O(N*M) chained .map().filter().sort() inside intervals mapping
@@ -96,6 +103,9 @@ export function linkIntervalsActivitiesToStravaList(intervalsActivities, stravaA
         let bestScore = Infinity;
 
         for (const { activity: s, time: sTime } of stravaItems) {
+            const stravaId = s?.id != null ? String(s.id) : null;
+            if (!stravaId || usedStravaIds.has(stravaId)) continue;
+
             const timeDiff = Math.abs(actTime - sTime);
             if (timeDiff >= win) continue;
             if (!compatibleSportType(act, s)) continue;
@@ -112,6 +122,7 @@ export function linkIntervalsActivitiesToStravaList(intervalsActivities, stravaA
 
         if (!bestMatch) return act;
         const stravaTitle = (bestMatch.name || '').trim();
+        usedStravaIds.add(String(bestMatch.id));
         return {
             ...act,
             strava_id: String(bestMatch.id),

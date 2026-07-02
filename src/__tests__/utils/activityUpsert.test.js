@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
     mergeActivitiesPreservingEnrichment,
     prepareProtectedActivityUpserts,
+    prepareProtectedActivityUpsertsFromCurrent,
 } from '../../utils/activityUpsert';
 
 describe('activity upsert helpers', () => {
@@ -54,6 +55,39 @@ describe('activity upsert helpers', () => {
             {
                 ...existing,
                 norm_power: 252,
+            },
+        ]);
+    });
+
+    it('prepares protected upserts from the current activity snapshot at call time', () => {
+        const staleExisting = {
+            id: '100',
+            title: 'Morning Ride',
+            avg_hr: 0,
+        };
+        const currentExisting = {
+            id: '100',
+            title: 'Strava enriched ride',
+            strava_id: '123',
+            gear_id: 'bike-1',
+            gear_name: 'Race Bike',
+            avg_hr: 151,
+        };
+        const incoming = {
+            id: '100',
+            title: 'Morning Ride',
+            avg_hr: 0,
+            load: 88,
+        };
+        let current = [staleExisting];
+        const getCurrent = () => current;
+
+        current = [currentExisting];
+
+        expect(prepareProtectedActivityUpsertsFromCurrent(getCurrent, [incoming])).toEqual([
+            {
+                ...currentExisting,
+                load: 88,
             },
         ]);
     });

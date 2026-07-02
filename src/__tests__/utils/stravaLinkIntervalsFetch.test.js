@@ -47,6 +47,36 @@ describe('stravaLinkIntervalsFetch', () => {
         expect(out[0].title).toBe('Ride A');
     });
 
+    it('does not assign the same Strava activity to multiple Intervals rows', () => {
+        const intervals = [
+            { id: 'i1', date: '2026-05-01T10:00:00', title: 'Duplicate A', type: 'Ride', distance: 50 },
+            { id: 'i2', date: '2026-05-01T10:01:00', title: 'Duplicate B', type: 'Ride', distance: 50.1 },
+        ];
+        const strava = [
+            { id: 111, start_date_local: '2026-05-01T10:00:30', name: 'Strava A', sport_type: 'Ride', distance: 50000 },
+        ];
+
+        const out = linkIntervalsActivitiesToStravaList(intervals, strava);
+
+        expect(out[0].strava_id).toBe('111');
+        expect(out[1].strava_id).toBeUndefined();
+    });
+
+    it('does not reuse a Strava activity that is already linked in the Intervals rows', () => {
+        const intervals = [
+            { id: 'i1', date: '2026-05-01T10:00:00', title: 'Already', type: 'Ride', distance: 50, strava_id: '111' },
+            { id: 'i2', date: '2026-05-01T10:01:00', title: 'Candidate', type: 'Ride', distance: 50 },
+        ];
+        const strava = [
+            { id: 111, start_date_local: '2026-05-01T10:01:00', name: 'Already linked', sport_type: 'Ride', distance: 50000 },
+        ];
+
+        const out = linkIntervalsActivitiesToStravaList(intervals, strava);
+
+        expect(out[0].strava_id).toBe('111');
+        expect(out[1].strava_id).toBeUndefined();
+    });
+
     it('applyStravaFuzzyMatchesToIntervals links same-day ride by distance/duration', () => {
         const intervals = [
             { id: 'i1', date: '2026-05-01T10:00:00', distance: 50.1, moving_time: 7200, type: 'Ride' },
