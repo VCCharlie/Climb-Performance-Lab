@@ -154,7 +154,13 @@ const RecoveryAdvisor = ({ activities, startDate, endDate }) => {
         }
 
         // Monotony check (last 7 days)
-        const recentLoads = last7Days.map(d => d.load).filter(l => l > 0);
+        // ⚡ Bolt Optimization: Use single-pass reduce instead of chained .map().filter()
+        const recentLoads = last7Days.reduce((acc, d) => {
+            if (d.load > 0) {
+                acc.push(d.load);
+            }
+            return acc;
+        }, []);
         if (recentLoads.length >= 5) {
             const avgLoad = recentLoads.reduce((a, b) => a + b, 0) / recentLoads.length;
             const stdDev = Math.sqrt(recentLoads.reduce((sum, load) => sum + Math.pow(load - avgLoad, 2), 0) / recentLoads.length);
