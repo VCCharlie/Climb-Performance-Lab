@@ -27,7 +27,13 @@ const DuplicateReviewModal = ({ conflicts, onResolve, onClose }) => {
 
     const handleKeep = (keepId) => {
         // Resolve: keepId is the one to keep. The others in this conflict group should be deleted.
-        const idsToDelete = currentConflict.items.filter(item => item.id !== keepId).map(item => item.id);
+        // ⚡ Bolt Optimization: Use single-pass reduce instead of chained .filter().map()
+        const idsToDelete = currentConflict.items.reduce((acc, item) => {
+            if (item.id !== keepId) {
+                acc.push(item.id);
+            }
+            return acc;
+        }, []);
 
         onResolve(idsToDelete);
 
