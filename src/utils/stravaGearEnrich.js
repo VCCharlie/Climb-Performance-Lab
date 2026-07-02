@@ -85,6 +85,62 @@ export async function fetchStravaGearName(gearId, token) {
     }
 }
 
+function positiveNumber(value) {
+    const number = Number(value);
+    return Number.isFinite(number) && number > 0;
+}
+
+export function applyStravaDetailFieldsToAlreadyLinkedMatch(match, detailed) {
+    if (!match || !detailed) return match;
+
+    const site = match.site || {};
+    const strava = { ...(match.strava || {}) };
+    const gearId = detailed.gear_id != null && String(detailed.gear_id).trim() !== ''
+        ? String(detailed.gear_id)
+        : null;
+
+    const needsRpe = !positiveNumber(site.rpe) && positiveNumber(detailed.perceived_exertion);
+    const needsGear = !site.gear_id && !!gearId;
+    const needsHr = !positiveNumber(site.avg_hr) && positiveNumber(detailed.average_heartrate);
+
+    if (needsRpe) {
+        strava.perceived_exertion = detailed.perceived_exertion;
+    }
+    if (needsGear) {
+        strava.gear_id = gearId;
+    }
+    if (needsHr) {
+        strava.average_heartrate = detailed.average_heartrate;
+        strava.max_heartrate = detailed.max_heartrate;
+    }
+
+    return {
+        ...match,
+        strava,
+        needsRpe,
+        needsGear,
+        needsHr,
+    };
+}
+
+export function buildAlreadyLinkedStravaUpdate(match, bikesMap = {}) {
+    const strava = match?.strava || {};
+    const site = match?.site || {};
+    const gearId = strava.gear_id != null && String(strava.gear_id).trim() !== ''
+        ? String(strava.gear_id)
+        : null;
+    const gearName = gearId ? (bikesMap[gearId] || 'Strava bike') : null;
+    const stravaTitle = (strava.name || '').trim();
+
+    return stripUndefinedFields({
+        ...(gearId && { gear_id: gearId, gear_name: gearName }),
+        ...(stravaTitle && { title: stravaTitle }),
+        ...((!site.rpe || site.rpe === 0) && strava.perceived_exertion && { rpe: strava.perceived_exertion }),
+        ...((!site.avg_hr || site.avg_hr === 0) && strava.average_heartrate && { avg_hr: Math.round(strava.average_heartrate) }),
+        ...((!site.max_hr || site.max_hr === 0) && strava.max_heartrate && { max_hr: Math.round(strava.max_heartrate) }),
+    });
+}
+
 /**
  * @param {object} merged - Activity after merge (must have strava_id)
  * @param {object | null} stravaSide - Duplicate row (may have gear_id from list API)
