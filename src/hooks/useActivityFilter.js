@@ -157,13 +157,15 @@ const useActivityFilter = (activities, profileFtp) => {
         const kjMin = parseNumericBound(filterKjMin);
         const kjMax = parseNumericBound(filterKjMax);
 
+        const needDist = dMin != null || dMax != null;
+        const needSpeed = spMin != null || spMax != null;
+        const needDur = durMin != null || durMax != null;
+        const needPower = pwMin != null || pwMax != null;
+        const needElev = elMin != null || elMax != null;
+        const needKj = kjMin != null || kjMax != null;
+
         const anyMetric =
-            dMin != null || dMax != null
-            || spMin != null || spMax != null
-            || pwMin != null || pwMax != null
-            || durMin != null || durMax != null
-            || elMin != null || elMax != null
-            || kjMin != null || kjMax != null;
+            needDist || needSpeed || needPower || needDur || needElev || needKj;
 
         // ⚡ Bolt Optimization: Compute searchLower once outside the filter loop
         const searchLower = search ? search.toLowerCase() : '';
@@ -214,33 +216,47 @@ const useActivityFilter = (activities, profileFtp) => {
             }
 
             if (anyMetric) {
-                const distKm = activityDistanceKm(a);
-                const timeSec = activityMovingTimeSec(a);
-                const speedKmh = activityAvgSpeedKmh(a, distKm, timeSec);
-                const durMinVal = timeSec != null ? timeSec / 60 : null;
-                const powerVal = (() => {
-                    const ap = Number(a.avg_power) || 0;
-                    const np = Number(a.norm_power) || 0;
-                    return ap > 0 ? ap : np > 0 ? np : null;
-                })();
-                const elev = Number(a.climbing);
-                const elevVal = !Number.isNaN(elev) && elev > 0 ? elev : null;
-                const kj = Number(a.work);
-                const kjVal = !Number.isNaN(kj) && kj > 0 ? kj : null;
+                // ⚡ Bolt Optimization: Only calculate metrics if they are needed for filtering
+                let distKm, timeSec;
+                if (needDist || needSpeed) {
+                    distKm = activityDistanceKm(a);
+                    if (needDist && !inNumericRange(distKm, dMin, dMax, { requireValue: true })) return false;
+                }
 
-                const needDist = dMin != null || dMax != null;
-                const needSpeed = spMin != null || spMax != null;
-                const needDur = durMin != null || durMax != null;
-                const needPower = pwMin != null || pwMax != null;
-                const needElev = elMin != null || elMax != null;
-                const needKj = kjMin != null || kjMax != null;
+                if (needSpeed || needDur) {
+                    timeSec = activityMovingTimeSec(a);
+                }
 
-                if (needDist && !inNumericRange(distKm, dMin, dMax, { requireValue: true })) return false;
-                if (needSpeed && !inNumericRange(speedKmh, spMin, spMax, { requireValue: true })) return false;
-                if (needDur && !inNumericRange(durMinVal, durMin, durMax, { requireValue: true })) return false;
-                if (needPower && !inNumericRange(powerVal, pwMin, pwMax, { requireValue: true })) return false;
-                if (needElev && !inNumericRange(elevVal, elMin, elMax, { requireValue: true })) return false;
-                if (needKj && !inNumericRange(kjVal, kjMin, kjMax, { requireValue: true })) return false;
+                if (needSpeed) {
+                    const speedKmh = activityAvgSpeedKmh(a, distKm, timeSec);
+                    if (!inNumericRange(speedKmh, spMin, spMax, { requireValue: true })) return false;
+                }
+
+                if (needDur) {
+                    const durMinVal = timeSec != null ? timeSec / 60 : null;
+                    if (!inNumericRange(durMinVal, durMin, durMax, { requireValue: true })) return false;
+                }
+
+                if (needPower) {
+                    const powerVal = (() => {
+                        const ap = Number(a.avg_power) || 0;
+                        const np = Number(a.norm_power) || 0;
+                        return ap > 0 ? ap : np > 0 ? np : null;
+                    })();
+                    if (!inNumericRange(powerVal, pwMin, pwMax, { requireValue: true })) return false;
+                }
+
+                if (needElev) {
+                    const elev = Number(a.climbing);
+                    const elevVal = !Number.isNaN(elev) && elev > 0 ? elev : null;
+                    if (!inNumericRange(elevVal, elMin, elMax, { requireValue: true })) return false;
+                }
+
+                if (needKj) {
+                    const kj = Number(a.work);
+                    const kjVal = !Number.isNaN(kj) && kj > 0 ? kj : null;
+                    if (!inNumericRange(kjVal, kjMin, kjMax, { requireValue: true })) return false;
+                }
             }
 
             // Search
