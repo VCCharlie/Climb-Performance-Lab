@@ -16,6 +16,7 @@ import { dashboardFilterLabel } from '../../utils/powerDurationTable';
 import PowerTopTenCustomRanges from './PowerTopTenCustomRanges';
 import { PeriodSummaryCard } from './powerTopTenByDurationUi';
 import LongestRidesTable from './LongestRidesTable';
+import { chartCardShellClass } from '../../utils/chartTheme';
 
 /**
  * Top 10 longest rides (distance km) in the dashboard window, optionally compared to a second period.
@@ -107,7 +108,7 @@ const LongestRidesPanel = ({
         : formatLongRange(dashboardBounds);
 
     return (
-        <div className="bg-cdsurface border border-cdborder rounded-xl shadow-xl overflow-hidden">
+        <div className={`${chartCardShellClass} overflow-hidden`}>
             <button
                 type="button"
                 onClick={() => setExpanded((e) => !e)}

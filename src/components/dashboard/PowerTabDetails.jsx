@@ -7,13 +7,20 @@ import { ExternalLink } from 'lucide-react';
 import PowerCurveChart from './charts/PowerCurveChart';
 import { formatDateDDMMYYYY } from '../../utils';
 import { activityExternalLinks } from '../../utils/dashboardActivityPeaks';
+import { ChartTooltip } from '../ui';
+import { getChartTheme, chartCardClassLg } from '../../utils/chartTheme';
+
+const DURATION_LABELS = { a_5min: '5 min', b_20min: '20 min', c_60min: '60 min' };
 
 /**
  * Table of best powers by duration, monthly chart, and MMP curve — only rendered when period stats exist.
  */
-const PowerTabDetails = ({ powerPeakRows, monthlyBests, data, manualFtp, onOpenActivityInLog }) => (
+const PowerTabDetails = ({ powerPeakRows, monthlyBests, data, manualFtp, onOpenActivityInLog }) => {
+    const theme = getChartTheme();
+
+    return (
     <>
-        <div className="bg-cdsurface border border-cdborder rounded-xl p-6 shadow-xl">
+        <div className={chartCardClassLg}>
             <h3 className="text-lg font-bold text-cdtext mb-1">Best powers in this period</h3>
             <p className="text-xs text-cdmuted mb-4">
                 Strongest value per duration in your filtered data (same caps as the chart). Similar to the power view on{' '}
@@ -81,7 +88,7 @@ const PowerTabDetails = ({ powerPeakRows, monthlyBests, data, manualFtp, onOpenA
             </div>
         </div>
 
-        <div className="bg-cdsurface border border-cdborder rounded-xl p-6 shadow-xl">
+        <div className={chartCardClassLg}>
             <h3 className="text-lg font-bold text-cdtext mb-4">Best monthly efforts (W)</h3>
             <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
@@ -89,34 +96,35 @@ const PowerTabDetails = ({ powerPeakRows, monthlyBests, data, manualFtp, onOpenA
                         data={monthlyBests}
                         margin={{ top: 5, right: 20, left: 0, bottom: 0 }}
                     >
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" vertical={false} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} opacity={0.65} vertical={false} />
                         <XAxis
                             dataKey="label"
-                            stroke="#64748b"
-                            tick={{ fontSize: 11 }}
+                            stroke={theme.axis}
+                            tick={{ fill: theme.axis, fontSize: 11 }}
                             interval={0}
                             minTickGap={30}
                         />
-                        <YAxis stroke="#64748b" />
+                        <YAxis stroke={theme.axis} tick={{ fill: theme.axis, fontSize: 11 }} />
                         <Tooltip
-                            contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f1f5f9' }}
-                            itemStyle={{ color: '#94a3b8' }}
-                            formatter={(value, name) => {
-                                const labels = { 'a_5min': '5 min', 'b_20min': '20 min', 'c_60min': '60 min' };
-                                return [value ? `${value} W` : '-', labels[name] ?? name];
-                            }}
+                            content={(props) => (
+                                <ChartTooltip
+                                    {...props}
+                                    formatter={(value, name) => [
+                                        value ? `${value} W` : '—',
+                                        DURATION_LABELS[name] ?? name,
+                                    ]}
+                                />
+                            )}
+                            cursor={theme.cursor}
                         />
                         <Legend
                             iconType="circle"
                             wrapperStyle={{ paddingTop: '16px' }}
-                            formatter={(value) => {
-                                const labels = { 'a_5min': '5 min', 'b_20min': '20 min', 'c_60min': '60 min' };
-                                return labels[value] ?? value;
-                            }}
+                            formatter={(value) => DURATION_LABELS[value] ?? value}
                         />
-                        <Line type="monotone" dataKey="a_5min"  stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} connectNulls />
-                        <Line type="monotone" dataKey="b_20min" stroke="#f97316" strokeWidth={2} dot={{ r: 3 }} connectNulls />
-                        <Line type="monotone" dataKey="c_60min" stroke="#22c55e" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                        <Line type="monotone" dataKey="a_5min" stroke={theme.blue} strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                        <Line type="monotone" dataKey="b_20min" stroke={theme.primary} strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                        <Line type="monotone" dataKey="c_60min" stroke={theme.green} strokeWidth={2} dot={{ r: 3 }} connectNulls />
                     </LineChart>
                 </ResponsiveContainer>
             </div>
@@ -124,6 +132,7 @@ const PowerTabDetails = ({ powerPeakRows, monthlyBests, data, manualFtp, onOpenA
 
         <PowerCurveChart data={data} manualFtp={manualFtp} />
     </>
-);
+    );
+};
 
 export default PowerTabDetails;

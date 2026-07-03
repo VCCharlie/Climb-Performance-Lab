@@ -25,6 +25,7 @@ import WeatherClimb from './components/WeatherClimb';
 import ClimbMap from './components/ClimbMap';
 import NlDateInput from './components/NlDateInput';
 import PwaInstallBanner from './components/PwaInstallBanner';
+import { LoadingPanel } from './components/ui';
 import { SegmentedControl, inputBaseClass } from './components/ui';
 
 import useIntervalsSync from './hooks/useIntervalsSync';
@@ -803,9 +804,9 @@ const App = () => {
                 })()}
 
                 {isLoading ? (
-                    <div className="flex justify-center items-center h-64 text-cdmuted animate-pulse">Laden van data...</div>
+                    <LoadingPanel />
                 ) : (
-                    <>
+                    <div className="cd-enter">
                         {activeTab === 'dashboard' && (
                             <Dashboard
                                 theme={theme}
@@ -1027,7 +1028,7 @@ const App = () => {
                                 stravaAuth={stravaAuth}
                             />
                         )}
-                    </>
+                    </div>
                 )}
             </main>
 

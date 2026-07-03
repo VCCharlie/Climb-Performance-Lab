@@ -8,6 +8,7 @@ import {
     sumVolumeForRange,
 } from '../../utils/volumeGoals';
 import { VolumeGoalPeriodCard } from './VolumeGoalPeriodCard';
+import { chartCardClass } from '../../utils/chartTheme';
 
 /** @typedef {'weekly'|'monthly'|'yearly'} PeriodId */
 
@@ -102,7 +103,7 @@ const VolumeGoalsPanel = ({ chartData = [], userSettings, updateUserSettings, cl
     ];
 
     return (
-        <div className="bg-cdsurface border border-cdborder rounded-xl p-4 shadow-xl">
+        <div className={chartCardClass}>
             <button
                 type="button"
                 onClick={() => setCollapsed((c) => !c)}

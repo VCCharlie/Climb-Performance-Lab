@@ -8,6 +8,7 @@ import {
 } from '../../utils/powerDurationTable';
 import { formatDateDDMMYYYY } from '../../utils';
 import { activityExternalLinks } from '../../utils/dashboardActivityPeaks';
+import { chartCardClassLg } from '../../utils/chartTheme';
 
 const COL_STYLES = [
     { key: 'd42', label: '42 d', headerClass: 'bg-violet-600/90 text-white' },
@@ -147,7 +148,7 @@ const PowerDurationTable = ({
     };
 
     return (
-        <div className="bg-cdsurface border border-cdborder rounded-xl p-6 shadow-xl overflow-visible relative">
+        <div className={`${chartCardClassLg} overflow-visible relative`}>
             <h3 className="text-lg font-bold text-cdtext mb-1">Power-duration (intervals.icu-style)</h3>
             <p className="text-xs text-cdmuted mb-4 max-w-3xl leading-relaxed">
                 Layout similar to{' '}

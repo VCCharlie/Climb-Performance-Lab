@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { chartCardClass } from '../../../utils/chartTheme';
 
 /**
  * ActivityHeatmap — 52-week activity intensity grid.
@@ -74,7 +75,7 @@ const ActivityHeatmap = ({ data }) => {
 
     if (cells.length === 0) {
         return (
-            <div className="bg-cdsurface border border-cdborder rounded-xl p-5 shadow-xl">
+            <div className={chartCardClass}>
                 <h3 className="text-sm font-bold text-cdtext uppercase tracking-wider mb-4">Activity heatmap</h3>
                 <div className="h-24 flex items-center justify-center text-cdmuted text-sm">No heatmap data</div>
             </div>
@@ -88,7 +89,7 @@ const ActivityHeatmap = ({ data }) => {
     }
 
     return (
-        <div className="bg-cdsurface border border-cdborder rounded-xl p-5 shadow-xl">
+        <div className={chartCardClass}>
             <h3 className="text-sm font-bold text-cdtext uppercase tracking-wider mb-4">
                 Activity heatmap — last 52 weeks
             </h3>
@@ -117,7 +118,7 @@ const ActivityHeatmap = ({ data }) => {
                                         key={cell.key}
                                         title={isValid ? cell.label : ''}
                                         tabIndex={isValid ? 0 : undefined}
-                                        className={`cursor-default transition-opacity hover:opacity-75 ${!isValid
+                                        className={`cursor-default cd-transition hover:opacity-75 ${!isValid
                                                 ? 'opacity-0'
                                                 : `${LEVEL_CLASSES[cell.level]} rounded-sm focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none`
                                             }`}

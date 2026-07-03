@@ -1,18 +1,19 @@
 import React from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { chartTooltipShellClass, getChartTheme } from '../../utils/chartTheme';
 
-const CustomTooltip = ({ active, payload, showPowerZones, powerRecommendations }) => {
+const ProfilerTooltip = ({ active, payload, showPowerZones, powerRecommendations }) => {
     if (active && payload && payload.length) {
         const data = payload[0].payload;
-        const powerData = powerRecommendations?.find(p => Math.abs(p.distance - data.distance) < 0.1);
+        const powerData = powerRecommendations?.find((p) => Math.abs(p.distance - data.distance) < 0.1);
         return (
-            <div className="bg-cdsurface border border-cdborder p-3 rounded-lg shadow-xl text-left">
-                <p className="text-cdtext text-sm font-bold">{data.distance.toFixed(1)} km</p>
-                <p className="text-cdtext text-xs">Hoogte: {Math.round(data.elevation).toLocaleString('nl-NL')} m</p>
-                <p className="text-cdaccent text-xs font-semibold mt-1">Helling: {data.gradient.toFixed(1)}%</p>
+            <div className={chartTooltipShellClass}>
+                <p className="text-cdtext text-sm font-semibold">{data.distance.toFixed(1)} km</p>
+                <p className="text-cdtext text-xs">Elevation: {Math.round(data.elevation).toLocaleString('en-GB')} m</p>
+                <p className="text-cdprimary text-xs font-semibold mt-1">Gradient: {data.gradient.toFixed(1)}%</p>
                 {showPowerZones && powerData && (
-                    <p className="text-blue-400 text-xs mt-1">
-                        Advies vermogen: {powerData.recommendedPower} W
+                    <p className="text-cdblue text-xs mt-1">
+                        Suggested power: {powerData.recommendedPower} W
                         {powerData.zone?.name && (
                             <span className="text-cdmuted"> · {powerData.zone.name}</span>
                         )}
@@ -29,10 +30,8 @@ const ProfilerCharts = ({
     powerRecommendations,
     showPowerZones,
     selectedClimb,
-    isDark
 }) => {
-    const grid = isDark ? '#334155' : '#e2e8f0';
-    const axis = isDark ? '#94a3b8' : '#64748b';
+    const theme = getChartTheme();
 
     const gradientId = `profilerGrad-${selectedClimb?.id || 'x'}`;
     const elevId = `profilerElev-${selectedClimb?.id || 'x'}`;
@@ -62,31 +61,32 @@ const ProfilerCharts = ({
                                 <stop offset="95%" stopColor="#22c55e" stopOpacity={0.35} />
                             </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke={grid} opacity={0.6} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} opacity={0.6} />
                         <XAxis
                             dataKey="distance"
-                            stroke={axis}
-                            tick={{ fill: axis, fontSize: 11 }}
+                            stroke={theme.axis}
+                            tick={{ fill: theme.axis, fontSize: 11 }}
                             tickFormatter={(v) => `${v.toFixed(1)}`}
-                            label={{ value: 'km', position: 'insideBottom', offset: -4, fill: axis, fontSize: 11 }}
+                            label={{ value: 'km', position: 'insideBottom', offset: -4, fill: theme.axis, fontSize: 11 }}
                         />
                         <YAxis
-                            stroke={axis}
-                            tick={{ fill: axis, fontSize: 11 }}
+                            stroke={theme.axis}
+                            tick={{ fill: theme.axis, fontSize: 11 }}
                             domain={[0, 'auto']}
-                            label={{ value: '%', angle: -90, position: 'insideLeft', fill: axis, fontSize: 11 }}
+                            label={{ value: '%', angle: -90, position: 'insideLeft', fill: theme.axis, fontSize: 11 }}
                         />
                         <Tooltip
                             content={
-                                <CustomTooltip
+                                <ProfilerTooltip
                                     showPowerZones={showPowerZones}
                                     powerRecommendations={powerRecommendations}
                                 />
                             }
+                            cursor={theme.cursor}
                         />
                         <ReferenceLine
                             x={selectedClimb.lengthKm / 2}
-                            stroke={isDark ? '#eab308' : '#ca8a04'}
+                            stroke={theme.brand}
                             strokeDasharray="4 4"
                             strokeOpacity={0.7}
                         />
@@ -117,26 +117,27 @@ const ProfilerCharts = ({
                                 <stop offset="95%" stopColor="#1e40af" stopOpacity={0.25} />
                             </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke={grid} opacity={0.6} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} opacity={0.6} />
                         <XAxis
                             dataKey="distance"
-                            stroke={axis}
-                            tick={{ fill: axis, fontSize: 11 }}
+                            stroke={theme.axis}
+                            tick={{ fill: theme.axis, fontSize: 11 }}
                             tickFormatter={(v) => `${v.toFixed(1)}`}
-                            label={{ value: 'km', position: 'insideBottom', offset: -4, fill: axis, fontSize: 11 }}
+                            label={{ value: 'km', position: 'insideBottom', offset: -4, fill: theme.axis, fontSize: 11 }}
                         />
                         <YAxis
-                            stroke={axis}
-                            tick={{ fill: axis, fontSize: 11 }}
-                            label={{ value: 'm', angle: -90, position: 'insideLeft', fill: axis, fontSize: 11 }}
+                            stroke={theme.axis}
+                            tick={{ fill: theme.axis, fontSize: 11 }}
+                            label={{ value: 'm', angle: -90, position: 'insideLeft', fill: theme.axis, fontSize: 11 }}
                         />
                         <Tooltip
                             content={
-                                <CustomTooltip
+                                <ProfilerTooltip
                                     showPowerZones={showPowerZones}
                                     powerRecommendations={powerRecommendations}
                                 />
                             }
+                            cursor={theme.cursor}
                         />
                         <Area
                             type="monotone"
