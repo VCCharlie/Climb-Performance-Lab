@@ -1,51 +1,68 @@
-/* Basis instellingen voor de App */
-:root {
-  /* 1. SCALING LOGICA (Nieuw) */
-  /* Dit is de standaard grootte. 1rem = 16px */
-  font-size: 16px;
+@import './theme/tokens.css';
 
-  /* 2. JOUW STIJLEN (Behouden) */
+/* App base — values driven by MD3 tokens in tokens.css */
+:root {
+  font-size: 16px;
   font-family: 'Barlow', sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
-  /* Basic Light Theme defaults */
-  color-scheme: light;
-  color: #1e2330;
-  /* cdtext */
-  background-color: #f0f2f5;
-  /* cdbg */
-
+  color: var(--cd-text);
+  background-color: var(--cd-surface-dim);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ... media queries ... */
-
-/* Zorg dat de app de volledige hoogte pakt */
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background-color: #f0f2f5;
+  background-color: var(--cd-surface-dim);
+  color: var(--cd-text);
   font-family: 'Barlow', sans-serif;
   overflow-x: hidden;
 }
 
-/* Custom Scrollbar (Nodig voor de lijsten in je dashboard) */
+/* Themed scrollbars */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #1e293b;
-  /* slate-800 */
+  background: var(--cd-surface-container-low);
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: #475569;
-  /* slate-600 */
+  background-color: var(--cd-surface-container-high);
   border-radius: 20px;
+}
+
+/* MD3 motion utility — opt-in on interactive elements */
+.cd-transition {
+  transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+  transition-duration: var(--cd-duration-short);
+  transition-timing-function: var(--cd-ease-emphasized);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cd-transition {
+    transition-duration: 0.01ms;
+  }
+}
+
+/* MD3 focus ring helper */
+.cd-focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--cd-surface-bright), 0 0 0 4px var(--cd-focus-ring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

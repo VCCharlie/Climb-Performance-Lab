@@ -4,6 +4,9 @@ import './index.css'
 import './utils/leaflet-setup'
 import App from './App.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
+import { applyTheme, readStoredTheme } from './theme/applyTheme'
+
+applyTheme(readStoredTheme())
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

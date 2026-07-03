@@ -5,7 +5,18 @@
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/pwa-512.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#1e2330" />
+    <meta name="theme-color" content="#e8eaed" />
+    <script>
+      (function initThemeClass() {
+        try {
+          if (localStorage.getItem('theme') === 'dark') {
+            document.documentElement.classList.add('dark');
+          }
+        } catch (e) {
+          /* ignore */
+        }
+      })();
+    </script>
     <meta name="description" content="Cycling performance analysis for climbers — power, pacing, and training insights." />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -29,18 +40,50 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
+        darkMode: 'class',
         theme: {
           extend: {
             colors: {
-              cdbg: '#f0f2f5',
-              cdsurface: '#ffffff',
-              cdborder: '#e2e8f0',
-              cdaccent: '#f97316',
-              cdblue: '#3b82f6',
-              cdtext: '#1e2330',
-              cdmuted: '#64748b',
-              cdgreen: '#16a34a',
-              cdred: '#dc2626'
+              /* Legacy aliases — map to CSS variables for dark-mode parity */
+              cdbg: 'var(--cd-bg)',
+              cdsurface: 'var(--cd-surface-legacy)',
+              cdborder: 'var(--cd-border)',
+              cdaccent: 'var(--cd-accent)',
+              cdtext: 'var(--cd-text)',
+              cdmuted: 'var(--cd-muted)',
+              cdblue: 'var(--cd-blue)',
+              cdgreen: 'var(--cd-green)',
+              cdred: 'var(--cd-red)',
+              /* MD3 surface ladder */
+              cdsurfacedim: 'var(--cd-surface-dim)',
+              cdsurfacemid: 'var(--cd-surface)',
+              cdsurfacebright: 'var(--cd-surface-bright)',
+              cdsurfacelow: 'var(--cd-surface-container-low)',
+              cdsurfacehigh: 'var(--cd-surface-container-high)',
+              /* MD3 primary roles */
+              cdprimary: 'var(--cd-primary)',
+              cdonprimary: 'var(--cd-on-primary)',
+              cdprimarycontainer: 'var(--cd-primary-container)',
+              cdonprimarycontainer: 'var(--cd-on-primary-container)',
+              /* Brand secondary */
+              cdbrand: 'var(--cd-brand)',
+              cdonbrand: 'var(--cd-on-brand)',
+              /* Overlays */
+              cdscrim: 'var(--cd-scrim)'
+            },
+            borderRadius: {
+              cdsm: 'var(--cd-radius-sm)',
+              cdmd: 'var(--cd-radius-md)',
+              cdlg: 'var(--cd-radius-lg)',
+              cdxl: 'var(--cd-radius-xl)'
+            },
+            transitionTimingFunction: {
+              emphasized: 'var(--cd-ease-emphasized)'
+            },
+            transitionDuration: {
+              short: 'var(--cd-duration-short)',
+              medium: 'var(--cd-duration-medium)',
+              long: 'var(--cd-duration-long)'
             },
             fontFamily: {
               sans: ['Barlow', 'sans-serif'],
