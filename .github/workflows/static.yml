@@ -10,9 +10,11 @@ permissions:
   pages: write
   id-token: write
 
+# Do not cancel an in-flight Pages deploy — cancellation can leave the Pages
+# deployment lock wedged and cause "Deployment failed, try again later."
 concurrency:
   group: "pages"
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -23,14 +25,12 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'npm'
+          node-version: 22
+          cache: npm
       - name: Install dependencies
-        run: npm install
+        run: npm ci
       - name: Build
         env:
-          # Optional: set repository secret VITE_FIREBASE_API_KEY to override the client key.
-          # If unset, src/firebase.js falls back to the project’s public web API key so Pages builds still work.
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
         run: npm run build
       - name: Upload artifact
@@ -41,10 +41,28 @@ jobs:
   deploy:
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url || steps.deployment-retry.outputs.page_url }}
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     steps:
+      # GitHub Pages allows only one deployment in flight per site. A prior deploy
+      # may still be settling when this job starts — retry once after a short wait.
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        continue-on-error: true
+      - name: Wait for in-flight deployment to settle
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 90
+      - name: Deploy to GitHub Pages (retry)
+        if: steps.deployment.outcome == 'failure'
+        id: deployment-retry
+        uses: actions/deploy-pages@v4
+      - name: Fail if both deploy attempts failed
+        if: steps.deployment.outcome == 'failure' && steps.deployment-retry.outcome == 'failure'
+        run: |
+          echo "GitHub Pages deployment failed twice. Re-run the workflow or check https://www.githubstatus.com/"
+          exit 1
