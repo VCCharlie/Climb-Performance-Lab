@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Activity, Settings, LogIn, LogOut, User, Cloud, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { loginWithGoogle, logout } from '../firebase';
+import { IconButton, cn } from './ui';
 
 function initialsFromUser(user) {
     const n = user?.displayName?.trim() || user?.email?.trim() || '';
@@ -10,6 +11,25 @@ function initialsFromUser(user) {
         return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
     }
     return n.slice(0, 2).toUpperCase();
+}
+
+function formatUpdatedAt(dateToDisplay) {
+    if (!dateToDisplay) return null;
+    const d = new Date(dateToDisplay);
+    const today = new Date();
+    const isToday = d.getDate() === today.getDate()
+        && d.getMonth() === today.getMonth()
+        && d.getFullYear() === today.getFullYear();
+
+    if (isToday) {
+        return `Today, ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
+    }
+    return d.toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
 }
 
 const Header = ({ userSettings, onOpenSettings, user, syncStatus, lastActivityDate }) => {
@@ -58,87 +78,71 @@ const Header = ({ userSettings, onOpenSettings, user, syncStatus, lastActivityDa
 
     const displayWeight = userSettings.privacyMode ? '***' : `${userSettings.weight} kg`;
     const displayFtp = userSettings.privacyMode ? '***' : `${userSettings.ftp} W`;
-
-    const dateToDisplay = lastSyncTime || lastActivityDate;
-    let formattedDate = null;
-
-    if (dateToDisplay) {
-        const d = new Date(dateToDisplay);
-        const today = new Date();
-        const isToday = d.getDate() === today.getDate()
-            && d.getMonth() === today.getMonth()
-            && d.getFullYear() === today.getFullYear();
-
-        if (isToday) {
-            formattedDate = `Vandaag, ${d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}`;
-        } else {
-            formattedDate = d.toLocaleDateString('nl-NL', {
-                day: 'numeric',
-                month: 'short',
-                hour: '2-digit',
-                minute: '2-digit',
-            });
-        }
-    }
+    const formattedDate = formatUpdatedAt(lastSyncTime || lastActivityDate);
 
     const isSynced = syncStatus === 'synced' || syncStatus === 'success' || syncStatus === 'done';
     const isSyncing = syncStatus === 'syncing' || syncStatus === 'started' || syncStatus === 'enriching';
 
+    const syncLabel = isSynced ? 'Synced' : isSyncing ? 'Syncing' : syncStatus === 'error' ? 'Offline' : 'Idle';
+
     const showGooglePhoto = Boolean(user?.photoURL) && !avatarImgFailed;
 
     return (
-        <header className="bg-cdbg border-b border-cdborder p-3 md:p-4 sticky top-0 z-40 backdrop-blur-md bg-opacity-80">
-            <div className="max-w-7xl mx-auto flex justify-between items-center">
-                <div className="flex items-center gap-2 md:gap-3">
-                    <div className="bg-yellow-400 p-1.5 md:p-2 rounded-lg shadow-lg shadow-yellow-400/20">
-                        <Activity className="text-cdtext w-5 h-5 md:w-6 md:h-6" />
+        <header className="sticky top-0 z-40 border-b border-cdborder/50 bg-cdsurface/85 backdrop-blur-md supports-[backdrop-filter]:bg-cdsurface/75">
+            <div className="max-w-7xl mx-auto flex justify-between items-center gap-3 px-3 py-2.5 md:px-4 md:py-3">
+                <div className="flex items-center gap-2.5 md:gap-3 min-w-0">
+                    <div className="bg-cdbrand p-2 rounded-cdmd shrink-0" aria-hidden>
+                        <Activity className="text-cdonbrand w-5 h-5 md:w-6 md:h-6" />
                     </div>
-                    <div>
-                        <h1 className="text-lg md:text-xl font-black tracking-tight text-cdtext uppercase italic">
-                            Climb<span className="text-yellow-400">Lab</span>
+                    <div className="min-w-0">
+                        <h1 className="text-lg md:text-xl font-head font-bold tracking-tight text-cdtext truncate">
+                            Climb<span className="text-cdbrand">Lab</span>
                         </h1>
-                        <p className="hidden sm:block text-xs text-cdmuted font-mono">Performance Analytics</p>
+                        <p className="hidden sm:block text-xs text-cdmuted">Performance Analytics</p>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 md:gap-4">
-                    <div className="flex items-center gap-2 md:mr-4 md:border-r md:border-cdborder md:pr-4" title={`Sync Status: ${syncStatus || 'idle'}`}>
-                        {isSynced && <CheckCircle size={16} className="text-green-500" />}
-                        {isSyncing && <RefreshCw size={16} className="text-yellow-400 animate-spin" />}
-                        {syncStatus === 'error' && <AlertCircle size={16} className="text-red-500" />}
-                        {(syncStatus === 'idle' || !syncStatus) && <Cloud size={16} className="text-cdmuted" />}
-
-                        <span className="text-[10px] uppercase font-bold text-cdmuted hidden md:block">
-                            {isSynced ? 'Synced' : isSyncing ? 'Syncing' : syncStatus === 'error' ? 'Offline' : 'Idle'}
+                <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
+                    <div
+                        className="hidden sm:flex items-center gap-1.5 rounded-full bg-cdsurfacelow px-2.5 py-1.5"
+                        title={`Sync status: ${syncStatus || 'idle'}`}
+                    >
+                        {isSynced && <CheckCircle size={14} className="text-cdgreen shrink-0" aria-hidden />}
+                        {isSyncing && <RefreshCw size={14} className="text-cdbrand animate-spin shrink-0" aria-hidden />}
+                        {syncStatus === 'error' && <AlertCircle size={14} className="text-cdred shrink-0" aria-hidden />}
+                        {(syncStatus === 'idle' || !syncStatus) && <Cloud size={14} className="text-cdmuted shrink-0" aria-hidden />}
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-cdmuted hidden md:inline">
+                            {syncLabel}
                         </span>
                     </div>
 
                     {formattedDate && (
-                        <div className="hidden md:flex flex-col justify-center mr-4 border-r border-cdborder pr-4">
-                            <span className="text-[10px] uppercase tracking-widest text-cdmuted font-mono whitespace-nowrap">
-                                Bijgewerkt: {formattedDate}
+                        <div className="hidden lg:flex flex-col justify-center rounded-cdmd bg-cdsurfacelow px-2.5 py-1.5 mr-1">
+                            <span className="text-[10px] font-medium text-cdmuted whitespace-nowrap tabular-nums">
+                                Updated {formattedDate}
                             </span>
                         </div>
                     )}
 
-                    <div className="hidden md:flex gap-4 text-xs font-mono mr-4 border-r border-cdborder pr-4">
+                    <div className="hidden md:flex items-center gap-2 rounded-cdmd bg-cdsurfacelow px-2.5 py-1.5 mr-1">
                         <div className="text-right">
-                            <span className="block text-cdmuted uppercase text-[10px]">Weight</span>
-                            <span className="text-cdtext font-bold">{displayWeight}</span>
+                            <span className="block text-cdmuted text-[10px] font-medium uppercase tracking-wide">Weight</span>
+                            <span className="text-cdtext text-xs font-semibold tabular-nums">{displayWeight}</span>
                         </div>
+                        <div className="w-px h-8 bg-cdborder/60" aria-hidden />
                         <div className="text-right">
-                            <span className="block text-cdmuted uppercase text-[10px]">FTP</span>
-                            <span className="text-yellow-400 font-bold">{displayFtp}</span>
+                            <span className="block text-cdmuted text-[10px] font-medium uppercase tracking-wide">FTP</span>
+                            <span className="text-cdprimary text-xs font-semibold tabular-nums">{displayFtp}</span>
                         </div>
                     </div>
 
-                    <button
-                        type="button"
+                    <IconButton
+                        variant="text"
                         onClick={handleAuth}
                         disabled={authBusy}
-                        className="flex items-center gap-2 text-xs font-bold text-cdmuted hover:text-cdtext transition-colors focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-full p-1 disabled:opacity-50 disabled:pointer-events-none"
-                        title={user ? `Logged in as ${user.displayName || user.email || 'account'}` : 'Login with Google'}
-                        aria-label={user ? `Logout ${user.displayName || user.email || 'account'}` : 'Login with Google'}
+                        className={cn('!w-auto !h-10 !rounded-cdmd px-1.5 gap-2', user && 'pr-2')}
+                        title={user ? `Logged in as ${user.displayName || user.email || 'account'}` : 'Sign in with Google'}
+                        aria-label={user ? `Sign out ${user.displayName || user.email || 'account'}` : 'Sign in with Google'}
                     >
                         {user ? (
                             <>
@@ -152,34 +156,32 @@ const Header = ({ userSettings, onOpenSettings, user, syncStatus, lastActivityDa
                                     />
                                 ) : (
                                     <div
-                                        className="w-8 h-8 rounded-full border border-cdborder bg-cdsurface flex items-center justify-center text-[11px] font-black text-cdtext"
+                                        className="w-8 h-8 rounded-full border border-cdborder bg-cdsurface flex items-center justify-center text-[11px] font-bold text-cdtext"
                                         aria-hidden
-                                        title={user.displayName || user.email || 'Account'}
                                     >
                                         {initialsFromUser(user)}
                                     </div>
                                 )}
-                                <LogOut size={16} className="hidden sm:block" />
+                                <LogOut size={16} className="hidden sm:block text-cdmuted" aria-hidden />
                             </>
                         ) : (
                             <>
-                                <div className="w-8 h-8 rounded-full bg-cdsurface flex items-center justify-center">
+                                <div className="w-8 h-8 rounded-full bg-cdsurfacelow flex items-center justify-center text-cdmuted" aria-hidden>
                                     <User size={16} />
                                 </div>
-                                <LogIn size={16} className="hidden sm:block" />
+                                <LogIn size={16} className="hidden sm:block text-cdmuted" aria-hidden />
                             </>
                         )}
-                    </button>
+                    </IconButton>
 
-                    <button
-                        type="button"
+                    <IconButton
+                        variant="outlined"
                         onClick={onOpenSettings}
-                        aria-label="Settings and Configuration"
+                        aria-label="Settings"
                         title="Settings"
-                        className="bg-cdsurface hover:bg-cdborder p-2 rounded-full text-cdtext transition-all shadow-lg border border-cdborder focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
                     >
-                        <Settings size={20} aria-hidden="true" />
-                    </button>
+                        <Settings size={20} aria-hidden />
+                    </IconButton>
                 </div>
             </div>
         </header>

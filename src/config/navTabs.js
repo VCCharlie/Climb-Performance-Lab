@@ -1,0 +1,29 @@
+import {
+    Gauge,
+    Mountain,
+    Activity,
+    Brain,
+    Route,
+    Settings,
+    TrendingUp,
+    Trophy,
+    Cloud,
+    Map as MapIcon,
+} from 'lucide-react';
+
+/** Shared time-range presets for dashboard filtering. */
+export const TIME_RANGE_OPTIONS = ['1M', '3M', '6M', '1Y', '3Y', '6Y', 'ALL', 'Custom'];
+
+/** Primary app navigation tabs (10 main sections). */
+export const MAIN_NAV_TABS = [
+    { id: 'dashboard', label: 'Dashboard', icon: Gauge },
+    { id: 'activities', label: 'Activities', icon: Activity },
+    { id: 'training', label: 'Training', icon: Brain },
+    { id: 'physics', label: 'Climbs', icon: Mountain },
+    { id: 'race', label: 'Race', icon: Route },
+    { id: 'gearoptimizer', label: 'Gear', icon: Settings },
+    { id: 'profiler', label: 'Profiler', icon: TrendingUp },
+    { id: 'bucketlist', label: 'Bucket List', icon: Trophy },
+    { id: 'climbmap', label: 'Map', icon: MapIcon },
+    { id: 'weather', label: 'Weather', icon: Cloud },
+];
