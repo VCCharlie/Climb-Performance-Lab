@@ -25,6 +25,7 @@ import WeatherClimb from './components/WeatherClimb';
 import ClimbMap from './components/ClimbMap';
 import NlDateInput from './components/NlDateInput';
 import PwaInstallBanner from './components/PwaInstallBanner';
+import { SegmentedControl, inputBaseClass } from './components/ui';
 
 import useIntervalsSync from './hooks/useIntervalsSync';
 import useStravaAuth from './hooks/useStravaAuth';
@@ -769,31 +770,30 @@ const App = () => {
                                         })}
                                     </nav>
                                     {/* Periode-selector – altijd zichtbaar in tab-lint */}
-                                    <div className="flex items-center gap-1 bg-cdbg/50 rounded-lg p-1 border border-cdborder shrink-0 ml-4">
-                                        {['1M', '3M', '6M', '1Y', '3Y', '6Y', 'ALL', 'Custom'].map(r => (
-                                            <button
-                                                key={`desk-range-${r}`}
-                                                onClick={() => setTimeRange(r)}
-                                                className={`px-2.5 py-1 text-[10px] font-bold uppercase rounded transition-all ${timeRange === r
-                                                    ? 'bg-cdaccent text-white shadow border border-cdaccent'
-                                                    : 'text-cdmuted hover:text-cdtext hover:bg-cdsurface border border-transparent'}`}
-                                            >
-                                                {r}
-                                            </button>
-                                        ))}
+                                    <div className="flex items-center gap-1 shrink-0 ml-4">
+                                        <SegmentedControl
+                                            size="sm"
+                                            value={timeRange}
+                                            onChange={setTimeRange}
+                                            aria-label="Time range"
+                                            options={['1M', '3M', '6M', '1Y', '3Y', '6Y', 'ALL', 'Custom'].map((r) => ({
+                                                value: r,
+                                                label: r,
+                                            }))}
+                                        />
                                     </div>
                                 </div>
                                 {/* Custom datum-inputs – toon alleen bij Custom */}
                                 {timeRange === 'Custom' && (
                                     <div className="flex justify-end pb-1.5 -mt-1 animate-in fade-in slide-in-from-right-2">
-                                        <div className="flex items-center gap-2 bg-cdbg/50 p-1.5 rounded-lg border border-cdborder">
+                                        <div className="flex items-center gap-2 bg-cdsurfacelow p-1.5 rounded-cdmd border border-cdborder/60">
                                             <NlDateInput value={customStart} onChange={setCustomStart}
-                                                className="bg-cdsurface text-cdtext text-[10px] rounded px-2 py-1 outline-none border border-cdborder"
-                                                aria-label="Startdatum (dd/mm/jjjj)" />
+                                                className={`${inputBaseClass} text-[10px] py-1`}
+                                                aria-label="Start date (dd/mm/yyyy)" />
                                             <span className="text-cdmuted text-[10px]">–</span>
                                             <NlDateInput value={customEnd} onChange={setCustomEnd}
-                                                className="bg-cdsurface text-cdtext text-[10px] rounded px-2 py-1 outline-none border border-cdborder"
-                                                aria-label="Einddatum (dd/mm/jjjj)" />
+                                                className={`${inputBaseClass} text-[10px] py-1`}
+                                                aria-label="End date (dd/mm/yyyy)" />
                                         </div>
                                     </div>
                                 )}
@@ -869,26 +869,19 @@ const App = () => {
                         {/* Training: AI Coach + Recovery Advisor (sub-tabs) */}
                         {activeTab === 'training' && (
                             <div>
-                                <div className="flex gap-1 mb-4 border-b border-cdborder/50 pb-2">
-                                    <button
-                                        onClick={() => setTrainingSubTab('coach')}
-                                        className={`flex items-center gap-1.5 px-4 py-2 text-sm font-bold rounded-t transition-all ${trainingSubTab === 'coach' ? 'bg-cdsurface border border-cdborder border-b-transparent text-cdaccent' : 'text-cdmuted hover:text-cdtext'}`}
-                                    >
-                                        <Brain size={14} /> AI Coach
-                                    </button>
-                                    <button
-                                        onClick={() => setTrainingSubTab('goal')}
-                                        className={`flex items-center gap-1.5 px-4 py-2 text-sm font-bold rounded-t transition-all ${trainingSubTab === 'goal' ? 'bg-cdsurface border border-cdborder border-b-transparent text-cdaccent' : 'text-cdmuted hover:text-cdtext'}`}
-                                    >
-                                        <Flag size={14} /> Doel & planning
-                                    </button>
-                                    <button
-                                        onClick={() => setTrainingSubTab('recovery')}
-                                        className={`flex items-center gap-1.5 px-4 py-2 text-sm font-bold rounded-t transition-all ${trainingSubTab === 'recovery' ? 'bg-cdsurface border border-cdborder border-b-transparent text-cdaccent' : 'text-cdmuted hover:text-cdtext'}`}
-                                    >
-                                        <Heart size={14} /> Recovery
-                                    </button>
-                                </div>
+                                <SegmentedControl
+                                    className="mb-4"
+                                    size="lg"
+                                    caps={false}
+                                    value={trainingSubTab}
+                                    onChange={setTrainingSubTab}
+                                    aria-label="Training section"
+                                    options={[
+                                        { value: 'coach', label: 'AI Coach', icon: Brain },
+                                        { value: 'goal', label: 'Goals & Planning', icon: Flag },
+                                        { value: 'recovery', label: 'Recovery', icon: Heart },
+                                    ]}
+                                />
                                 {trainingSubTab === 'coach' && (
                                     <AICoach
                                         activities={activities}
@@ -919,20 +912,18 @@ const App = () => {
                         {/* Race: Fueling + Race Pacing (sub-tabs) */}
                         {activeTab === 'race' && (
                             <div>
-                                <div className="flex gap-1 mb-4 border-b border-cdborder/50 pb-2">
-                                    <button
-                                        onClick={() => setRaceSubTab('fueling')}
-                                        className={`flex items-center gap-1.5 px-4 py-2 text-sm font-bold rounded-t transition-all ${raceSubTab === 'fueling' ? 'bg-cdsurface border border-cdborder border-b-transparent text-cdaccent' : 'text-cdmuted hover:text-cdtext'}`}
-                                    >
-                                        <Utensils size={14} /> Fueling
-                                    </button>
-                                    <button
-                                        onClick={() => setRaceSubTab('racepacing')}
-                                        className={`flex items-center gap-1.5 px-4 py-2 text-sm font-bold rounded-t transition-all ${raceSubTab === 'racepacing' ? 'bg-cdsurface border border-cdborder border-b-transparent text-cdaccent' : 'text-cdmuted hover:text-cdtext'}`}
-                                    >
-                                        <Route size={14} /> Race Pacing
-                                    </button>
-                                </div>
+                                <SegmentedControl
+                                    className="mb-4"
+                                    size="lg"
+                                    caps={false}
+                                    value={raceSubTab}
+                                    onChange={setRaceSubTab}
+                                    aria-label="Race section"
+                                    options={[
+                                        { value: 'fueling', label: 'Fueling', icon: Utensils },
+                                        { value: 'racepacing', label: 'Race Pacing', icon: Route },
+                                    ]}
+                                />
                                 {raceSubTab === 'fueling' && (
                                     <FuelingStrategy
                                         initialDuration={fuelingState.duration}
