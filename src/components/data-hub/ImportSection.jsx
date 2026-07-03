@@ -2,6 +2,7 @@
 import { Download, Upload, ArrowUpRight } from 'lucide-react';
 import { smartParseCSV, smartParseJSON } from '../../utils';
 import ManualActivityImportBlock from './ManualActivityImportBlock';
+import { Button, Card, inputBaseClass, cn } from '../ui';
 
 const ImportSection = ({
     intervalsConfig = { athleteId: '' },
@@ -9,94 +10,122 @@ const ImportSection = ({
     stravaGetToken,
     onFetchedActivityFromUrl,
 }) => {
-    const [importText, setImportText] = useState("");
+    const [importText, setImportText] = useState('');
     const [isDragging, setIsDragging] = useState(false);
 
     const handleFileUpload = (file) => {
         if (!file) return;
         const reader = new FileReader();
         reader.onload = (e) => {
-            const text = e.target.result;
-            setImportText(text);
+            setImportText(e.target.result);
         };
         reader.readAsText(file);
     };
 
     const handleProcessInfo = () => {
         const text = importText.trim();
-        if (!text) { alert("Paste data into the field first."); return; }
+        if (!text) {
+            alert('Paste data into the field first.');
+            return;
+        }
 
-        const parsedData = text.startsWith('[') || text.startsWith('{') ? smartParseJSON(text) : smartParseCSV(text);
+        const parsedData = text.startsWith('[') || text.startsWith('{')
+            ? smartParseJSON(text)
+            : smartParseCSV(text);
 
         if (parsedData.length > 0) {
             onDataDetected(parsedData);
-            setImportText(""); // Clear after success?
+            setImportText('');
         } else {
-            alert("No valid activities found.");
+            alert('No valid activities found.');
         }
     };
 
     return (
         <div className="space-y-6">
             {typeof onFetchedActivityFromUrl === 'function' && (
-                <div className="rounded-xl border-2 border-yellow-500/50 bg-yellow-500/5 p-1 shadow-lg shadow-yellow-500/10">
+                <Card variant="outlined" className="border-cdprimary/30 bg-cdprimarycontainer/10">
                     <ManualActivityImportBlock
                         intervalsConfig={intervalsConfig}
                         stravaGetToken={stravaGetToken}
                         onFetchedActivity={onFetchedActivityFromUrl}
                     />
-                </div>
+                </Card>
             )}
 
-            <div className="bg-cdbg/50 p-4 rounded border border-cdborder">
-                <h4 className="text-cdtext font-bold text-sm mb-2 flex items-center gap-2"><Download size={16} className="text-blue-400" /> Step 1: Download data</h4>
-                <p className="text-xs text-cdmuted mb-3">Open Intervals Activities, switch to list view, select rides, then <strong>Edit &gt; Export CSV</strong>.</p>
-                <a href={`https://intervals.icu/athlete/${intervalsConfig.athleteId}/activities`} target="_blank" rel="noopener noreferrer" className="text-xs bg-cdborder hover:bg-slate-600 text-cdtext px-3 py-2 rounded inline-flex items-center gap-2 transition-colors">Open Intervals.icu Activities <ArrowUpRight size={12} /></a>
-            </div>
+            <Card variant="filled" padding="md">
+                <h4 className="text-cdtext font-semibold text-sm mb-2 flex items-center gap-2">
+                    <Download size={16} className="text-cdblue" aria-hidden />
+                    Step 1: Download data
+                </h4>
+                <p className="text-xs text-cdmuted mb-3">
+                    Open Intervals Activities, switch to list view, select rides, then <strong>Edit &gt; Export CSV</strong>.
+                </p>
+                <a
+                    href={`https://intervals.icu/athlete/${intervalsConfig.athleteId}/activities`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-1.5 h-8 px-3 text-xs font-semibold rounded-cdmd bg-cdprimarycontainer text-cdonprimarycontainer hover:brightness-95 cd-transition cd-focus-ring"
+                >
+                    Open Intervals.icu Activities
+                    <ArrowUpRight size={12} aria-hidden />
+                </a>
+            </Card>
 
             <div>
-                <h4 className="text-cdtext font-bold text-sm mb-2 flex items-center gap-2"><Upload size={16} className="text-green-400" /> Step 2: Import file</h4>
+                <h4 className="text-cdtext font-semibold text-sm mb-2 flex items-center gap-2">
+                    <Upload size={16} className="text-cdgreen" aria-hidden />
+                    Step 2: Import file
+                </h4>
 
-                {/* DRAG & DROP ZONE */}
                 <div
                     onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                     onDragLeave={() => setIsDragging(false)}
                     onDrop={(e) => {
                         e.preventDefault();
                         setIsDragging(false);
-                        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                        if (e.dataTransfer.files?.[0]) {
                             handleFileUpload(e.dataTransfer.files[0]);
                         }
                     }}
-                    onClick={() => document.getElementById('fileInput').click()}
-                    className={`
-                                    border-2 border-dashed rounded-lg p-8 mb-4 text-center cursor-pointer transition-all focus-within:ring-2 focus-within:ring-yellow-400 focus-within:outline-none
-                                    ${isDragging ? 'border-yellow-400 bg-yellow-400/10' : 'border-cdborder hover:border-slate-400 bg-cdsurface'}
-                                `}
+                    onClick={() => document.getElementById('fileInput')?.click()}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') document.getElementById('fileInput')?.click(); }}
+                    role="button"
+                    tabIndex={0}
+                    className={cn(
+                        'border-2 border-dashed rounded-cdlg p-8 mb-4 text-center cursor-pointer cd-transition cd-focus-ring',
+                        isDragging
+                            ? 'border-cdprimary bg-cdprimarycontainer/30'
+                            : 'border-cdborder hover:border-cdprimary/40 bg-cdsurfacelow',
+                    )}
                 >
                     <input
                         id="fileInput"
                         type="file"
                         accept=".csv,.json"
                         className="sr-only"
-                        onChange={(e) => e.target.files && handleFileUpload(e.target.files[0])}
+                        onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
                     />
-                    <Upload className={`mx-auto mb-2 ${isDragging ? 'text-yellow-400' : 'text-cdmuted'}`} size={32} />
-                    <p className="text-sm font-bold text-cdtext">Click to browse or drop a file here</p>
+                    <Upload className={cn('mx-auto mb-2', isDragging ? 'text-cdprimary' : 'text-cdmuted')} size={32} aria-hidden />
+                    <p className="text-sm font-semibold text-cdtext">Click to browse or drop a file here</p>
                     <p className="text-xs text-cdmuted mt-1">Supports .csv and .json exports from Intervals.icu</p>
                 </div>
 
                 <div className="relative">
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-cdbg px-2 text-[10px] text-cdmuted uppercase font-bold">Or paste text</span>
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-cdsurface px-2 text-[10px] text-cdmuted font-semibold uppercase tracking-wide">
+                        Or paste text
+                    </span>
                     <textarea
-                        className="w-full h-32 bg-cdsurface border border-cdborder rounded p-3 text-xs font-mono text-cdtext focus:border-yellow-400 outline-none transition-colors"
+                        className={cn(inputBaseClass, 'h-32 text-xs font-mono resize-y')}
                         placeholder="Paste CSV or JSON here…"
                         value={importText}
-                        onChange={e => setImportText(e.target.value)}
+                        onChange={(e) => setImportText(e.target.value)}
                     />
                 </div>
 
-                <button onClick={handleProcessInfo} className="mt-4 w-full bg-yellow-400 hover:bg-yellow-300 text-slate-900 font-bold py-3 rounded shadow-lg shadow-yellow-400/20 transition-all">Process data (CSV or JSON)</button>
+                <Button variant="filled" size="lg" fullWidth className="mt-4" type="button" onClick={handleProcessInfo}>
+                    Process data (CSV or JSON)
+                </Button>
             </div>
         </div>
     );
