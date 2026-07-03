@@ -9,37 +9,53 @@ import { activityIntensityFactor } from '../../utils/activityFilterMetrics';
 import { resolveStravaGearDisplay } from '../../utils/stravaBikesLocalMap';
 import { getKomBadgeCountsFromSummary, getKomBadgeDisplaySlots } from '../../utils/stravaSegmentKomSummary';
 import { ACTIVITY_TABLE_COLUMNS, MONTH_ORDER } from '../../config';
+import {
+    tableShellClass,
+    tableClass,
+    tableHeadClass,
+    tableHeadCellClass,
+    tableBodyClass,
+    tableRowStateClass,
+    tableCellClass,
+    tableGroupYearClass,
+    tableGroupMonthClass,
+} from '../ui/tableStyles';
 
 const SortIcon = ({ colKey, config }) => {
     if (config.key !== colKey) return <ArrowUpDown size={12} className="opacity-30 inline" />;
-    return config.direction === 'asc' ? <ChevronUp size={12} className="text-yellow-400 inline" /> : <ChevronDown size={12} className="text-yellow-400 inline" />;
+    return config.direction === 'asc'
+        ? <ChevronUp size={12} className="text-cdprimary inline" />
+        : <ChevronDown size={12} className="text-cdprimary inline" />;
 };
 
 export const TableHeader = ({ config, requestSort, hasActions = true, isPreview = false, showBulkSelect = false, allVisibleSelected = false, onToggleSelectAllVisible }) => (
-    <thead className="bg-cdbg text-cdmuted uppercase font-bold sticky top-0 z-10 shadow-md text-[0.65rem] tracking-wider">
+    <thead className={tableHeadClass}>
         <tr>
             {showBulkSelect && (
-                <th className="px-1 py-1.5 w-8 text-center">
+                <th className={`${tableHeadCellClass} w-8 text-center`}>
                     <input
                         type="checkbox"
-                        className="accent-yellow-400 w-3.5 h-3.5"
+                        className="accent-cdprimary w-3.5 h-3.5 cursor-pointer"
                         checked={allVisibleSelected}
                         onChange={onToggleSelectAllVisible}
                         title="Select all visible"
                     />
                 </th>
             )}
-            {isPreview && <th className="px-1.5 py-1.5 w-8"></th>}
+            {isPreview && <th className={`${tableHeadCellClass} w-8`} />}
             {ACTIVITY_TABLE_COLUMNS.map((col) => (
-                <th key={col.key} className={`px-1.5 py-1.5 cursor-pointer hover:bg-cdsurface transition-colors select-none text-${col.align} ${col.width || ''}`} onClick={() => requestSort && requestSort(col.key)}>
-                    <span className={`flex items-center gap-0.5 ${col.align === 'right' ? 'justify-end' : col.align === 'center' ? 'justify-center' : 'justify-start'}`}>
-                        {col.align === 'left' && <span>{col.label}</span>}
+                <th
+                    key={col.key}
+                    className={`${tableHeadCellClass} text-${col.align} ${col.width || ''}`}
+                    onClick={() => requestSort && requestSort(col.key)}
+                >
+                    <span className={`flex items-center gap-1 ${col.align === 'right' ? 'justify-end' : col.align === 'center' ? 'justify-center' : 'justify-start'}`}>
+                        <span>{col.label}</span>
                         {requestSort && <SortIcon colKey={col.key} config={config} />}
-                        {col.align !== 'left' && <span>{col.label}</span>}
                     </span>
                 </th>
             ))}
-            {hasActions && <th className="px-1 py-1.5 text-right w-24">Links</th>}
+            {hasActions && <th className={`${tableHeadCellClass} text-right w-24`}>Links</th>}
         </tr>
     </thead>
 );
@@ -257,7 +273,7 @@ export const Row = React.memo(({
     return (
         <tr
             id={act.id != null ? `activity-row-${act.id}` : undefined}
-            className={`group hover:bg-cdborder/50 transition-colors border-b border-cdborder/50 ${isSelected && showBulkSelect ? 'bg-cdborder/30' : ''}`}
+            className={tableRowStateClass({ isSelected, showBulkSelect: showBulkSelect || isPreview })}
         >
             {showBulkSelect && (
                 <td className="px-1 py-1 w-8 text-center" onClick={(e) => e.stopPropagation()}>
@@ -270,7 +286,7 @@ export const Row = React.memo(({
                 </td>
             )}
             {isPreview && <td className="px-1.5 py-1 w-8"><input type="checkbox" checked={isSelected} readOnly className="w-4 h-4 accent-green-500 cursor-pointer" /></td>}
-            {ACTIVITY_TABLE_COLUMNS.map(col => <td key={col.key} className={`px-1.5 py-1 text-${col.align} text-[11px] leading-tight ${col.width || ''}`}>{renderCell(col)}</td>)}
+            {ACTIVITY_TABLE_COLUMNS.map(col => <td key={col.key} className={`${tableCellClass} text-${col.align} ${col.width || ''}`}>{renderCell(col)}</td>)}
             {!isPreview && <td className="px-1 py-1 text-right w-24">
                 {isConfirmingDelete ? (
                     <div className="flex gap-2 justify-end">
@@ -386,8 +402,8 @@ const ActivityTable = React.memo(({
     profileFtp,
 }) => {
     return (
-        <div className="overflow-x-auto overflow-y-auto flex-1 border border-cdborder rounded-lg custom-scrollbar relative max-h-[70vh]">
-            <table className="w-full text-left text-[11px] leading-tight whitespace-nowrap">
+        <div className={tableShellClass}>
+            <table className={tableClass}>
                 <TableHeader
                     config={sortConfig}
                     requestSort={onSort}
@@ -397,14 +413,14 @@ const ActivityTable = React.memo(({
                     allVisibleSelected={allVisibleSelected}
                     onToggleSelectAllVisible={onToggleSelectAllVisible}
                 />
-                <tbody className="divide-y divide-cdborder bg-cdsurface">
+                <tbody className={tableBodyClass}>
                     {isGroupedView ? (
                         Object.keys(activities).sort((a, b) => sortConfig.direction === 'asc' ? a - b : b - a).map(year => (
                             <React.Fragment key={year}>
-                                <tr id={`year-${year}`} className="bg-cdborder/50 scroll-mt-10"><td colSpan={ACTIVITY_TABLE_COLUMNS.length + 1 + (showBulkSelect ? 1 : 0)} className="p-2 font-bold text-cdtext"><button type="button" onClick={() => onToggleYear(year)} className="flex items-center gap-2 w-full text-left hover:text-yellow-400">{isYearExpanded(year) ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {year}</button></td></tr>
+                                <tr id={`year-${year}`} className={tableGroupYearClass}><td colSpan={ACTIVITY_TABLE_COLUMNS.length + 1 + (showBulkSelect ? 1 : 0)} className="px-3 py-2 font-semibold text-cdtext"><button type="button" onClick={() => onToggleYear(year)} className="flex items-center gap-2 w-full text-left hover:text-cdprimary cd-transition cd-focus-ring rounded-cdsm">{isYearExpanded(year) ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {year}</button></td></tr>
                                 {isYearExpanded(year) && Object.keys(activities[year]).sort((a, b) => { const diff = MONTH_ORDER.indexOf(b) - MONTH_ORDER.indexOf(a); return sortConfig.direction === 'asc' ? -diff : diff; }).map(month => (
                                     <React.Fragment key={month}>
-                                        <tr id={`month-${year}-${month}`} className="bg-cdborder/20 scroll-mt-12"><td colSpan={ACTIVITY_TABLE_COLUMNS.length + 1 + (showBulkSelect ? 1 : 0)} className="px-8 py-1 text-[10px] uppercase font-bold text-cdmuted"><button type="button" onClick={() => onToggleMonth(year, month)} className="flex items-center gap-1 hover:text-cdtext text-left w-full transition-colors">{isMonthExpanded(year, month) ? <ChevronDown size={12} /> : <ChevronRight size={12} />} {month}</button></td></tr>
+                                        <tr id={`month-${year}-${month}`} className={tableGroupMonthClass}><td colSpan={ACTIVITY_TABLE_COLUMNS.length + 1 + (showBulkSelect ? 1 : 0)} className="px-6 py-1.5 text-xs font-semibold text-cdmuted"><button type="button" onClick={() => onToggleMonth(year, month)} className="flex items-center gap-1 hover:text-cdtext text-left w-full cd-transition cd-focus-ring rounded-cdsm">{isMonthExpanded(year, month) ? <ChevronDown size={12} /> : <ChevronRight size={12} />} {month}</button></td></tr>
                                         {isMonthExpanded(year, month) && activities[year][month].map(act => (
                                             <Row
                                                 key={act.id}
