@@ -28,6 +28,7 @@ import PwaInstallBanner from './components/PwaInstallBanner';
 
 import useIntervalsSync from './hooks/useIntervalsSync';
 import useStravaAuth from './hooks/useStravaAuth';
+import { applyTheme } from './theme/applyTheme';
 import { SPORT_TYPES } from './config';
 import { consumeNavRestore } from './utils/sessionNavRestore';
 import { mergeVolumeGoals } from './utils/volumeGoals';
@@ -63,6 +64,11 @@ const App = () => {
         return t && MAIN_TAB_IDS.has(t) ? t : 'dashboard';
     });
     const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
+
+    useEffect(() => {
+        applyTheme(theme);
+    }, [theme]);
+
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [syncStatus, setSyncStatus] = useState('idle'); // 'idle', 'syncing', 'synced', 'error'
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);

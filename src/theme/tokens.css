@@ -1,0 +1,87 @@
+/**
+ * Climb Lab — Material Design 3 design tokens (Phase 1)
+ *
+ * Legacy `cd*` Tailwind aliases map to these CSS variables so existing
+ * components keep working while new code can use the surface ladder.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* ── Surface ladder (tonal elevation) ── */
+  --cd-surface-dim: #e8eaed;
+  --cd-surface: #f4f5f7;
+  --cd-surface-bright: #ffffff;
+  --cd-surface-container-low: #eef0f3;
+  --cd-surface-container-high: #e2e5ea;
+
+  /* ── Content ── */
+  --cd-text: #1e2330;
+  --cd-muted: #64748b;
+  --cd-border: #dce1e8;
+
+  /* ── Primary (interaction accent) ── */
+  --cd-primary: #ea580c;
+  --cd-on-primary: #ffffff;
+  --cd-primary-container: #ffedd5;
+  --cd-on-primary-container: #7c2d12;
+
+  /* ── Brand secondary (header / key highlights) ── */
+  --cd-brand: #facc15;
+  --cd-on-brand: #1e2330;
+
+  /* ── Semantic ── */
+  --cd-blue: #3b82f6;
+  --cd-green: #16a34a;
+  --cd-red: #dc2626;
+
+  /* ── Legacy aliases (backward compatible) ── */
+  --cd-bg: var(--cd-surface-dim);
+  --cd-surface-legacy: var(--cd-surface-bright);
+  --cd-accent: var(--cd-primary);
+
+  /* ── Focus & overlays ── */
+  --cd-focus-ring: rgb(234 88 12 / 0.4);
+  --cd-scrim: rgb(30 35 48 / 0.4);
+
+  /* ── Motion (MD3 emphasized easing) ── */
+  --cd-ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --cd-duration-short: 150ms;
+  --cd-duration-medium: 250ms;
+  --cd-duration-long: 350ms;
+
+  /* ── Shape scale ── */
+  --cd-radius-sm: 0.5rem;
+  --cd-radius-md: 0.75rem;
+  --cd-radius-lg: 1rem;
+  --cd-radius-xl: 1.5rem;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --cd-surface-dim: #0f1218;
+  --cd-surface: #141820;
+  --cd-surface-bright: #1a1f2b;
+  --cd-surface-container-low: #1e2430;
+  --cd-surface-container-high: #252c3a;
+
+  --cd-text: #e8eaed;
+  --cd-muted: #94a3b8;
+  --cd-border: #2f3848;
+
+  --cd-primary: #fb923c;
+  --cd-on-primary: #1a0f08;
+  --cd-primary-container: #3d2010;
+  --cd-on-primary-container: #ffedd5;
+
+  --cd-brand: #facc15;
+  --cd-on-brand: #1e2330;
+
+  --cd-blue: #60a5fa;
+  --cd-green: #4ade80;
+  --cd-red: #f87171;
+
+  --cd-focus-ring: rgb(251 146 60 / 0.45);
+  --cd-scrim: rgb(0 0 0 / 0.55);
+}
