@@ -2,6 +2,7 @@
 import { Settings, Activity, RefreshCw, Save, Moon, Sun, Shield, Target, Bell, Database, Download, Upload, Zap, X, Link, Unlink } from 'lucide-react';
 import { calculatePowerZones } from '../utils';
 import SyncPanel from './data-hub/SyncPanel';
+import { Button } from './ui';
 
 // Strava logo SVG
 const StravaIcon = ({ size = 16 }) => (
@@ -439,11 +440,19 @@ const SettingsModal = ({
 
                 {/* FOOTER ACTIONS */}
                 <div className={`p-4 border-t ${isDark ? 'border-cdborder' : 'border-gray-200'} flex justify-end gap-3`}>
-                    <button type="button" onClick={onClose} className="px-4 py-2 font-bold text-cdmuted hover:text-slate-700">Close</button>
-                    <button type="button" onClick={handleSave} disabled={isSaving} className={`flex items-center gap-2 px-6 py-2 rounded-lg font-bold text-cdtext transition-all ${isSaving ? 'bg-slate-600' : 'bg-green-500 hover:bg-green-600 shadow-lg shadow-green-500/20'}`}>
+                    <Button type="button" variant="text" onClick={onClose}>
+                        Close
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="success"
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        loading={isSaving}
+                    >
                         {isSaving ? <RefreshCw size={18} className="animate-spin" /> : <Save size={18} />}
                         {isSaving ? 'Saving...' : 'Save All Changes'}
-                    </button>
+                    </Button>
                 </div>
             </div>
         </div>
