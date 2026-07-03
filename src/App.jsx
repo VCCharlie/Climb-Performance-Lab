@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Gauge, Mountain, Activity, Utensils, Brain, Route, Settings as SettingsIcon, TrendingUp, Menu, X, Heart, Trophy, Cloud, ChevronRight, Map as MapIcon, Flag } from 'lucide-react';
+import { Utensils, Brain, Route, Heart, Flag } from 'lucide-react';
 import { doc, setDoc, getDoc, collection, onSnapshot, getDocsFromServer, waitForPendingWrites } from "firebase/firestore";
 import { onAuthStateChanged, reload } from "firebase/auth";
 import { db, auth } from './firebase';
@@ -23,9 +23,9 @@ import RecoveryAdvisor from './components/RecoveryAdvisor';
 import BucketList from './components/BucketList';
 import WeatherClimb from './components/WeatherClimb';
 import ClimbMap from './components/ClimbMap';
-import NlDateInput from './components/NlDateInput';
 import PwaInstallBanner from './components/PwaInstallBanner';
-import { SegmentedControl, inputBaseClass } from './components/ui';
+import { SegmentedControl } from './components/ui';
+import { MainNav } from './components/shell';
 
 import useIntervalsSync from './hooks/useIntervalsSync';
 import useStravaAuth from './hooks/useStravaAuth';
@@ -655,155 +655,21 @@ const App = () => {
             />
 
             <main className={`mx-auto p-3 space-y-4 transition-all duration-300 ${activeTab === 'activities' ? 'max-w-[95%]' : 'max-w-7xl'}`}>
-                {/* Navigation - Desktop & Mobile */}
-                {(() => {
-                    // 9 main tabs (Training = coach+recovery, Race = fueling+racepacing)
-                    const mainTabs = [
-                        { id: 'dashboard', label: 'Dashboard', icon: Gauge },
-                        { id: 'activities', label: 'Activities', icon: Activity },
-                        { id: 'training', label: 'Training', icon: Brain },
-                        { id: 'physics', label: 'Climbs', icon: Mountain },
-                        { id: 'race', label: 'Race', icon: Route },
-                        { id: 'gearoptimizer', label: 'Gear', icon: SettingsIcon },
-                        { id: 'profiler', label: 'Profiler', icon: TrendingUp },
-                        { id: 'bucketlist', label: 'Bucket List', icon: Trophy },
-                        { id: 'climbmap', label: 'Map', icon: MapIcon },
-                        { id: 'weather', label: 'Weather', icon: Cloud },
-                    ];
-
-                    // Map old sub-tabs to their parent for mobile label
-                    const mobileLabel = mainTabs.find(t => t.id === activeTab)?.label || 'Menu';
-
-                    return (
-                        <div className="relative">
-                            {/* Mobile: Hamburger Button */}
-                            <div className="flex items-center gap-2 mb-4 md:hidden">
-                                <button
-                                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                                    className="flex items-center gap-2 px-4 py-2 bg-cdsurface rounded border border-cdborder text-cdtext flex-1"
-                                >
-                                    {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-                                    <span className="font-bold text-sm">{mobileLabel}</span>
-                                </button>
-
-                                {/* Mobile-only Range Display / Quick Toggle */}
-                                <div className="flex bg-cdbg/50 rounded border border-cdborder p-1 gap-1">
-                                    {/* ⚡ Bolt Optimization: Use Set to avoid chained .filter().map() allocation */}
-                                    {[...new Set(timeRange === 'Custom' ? ['Custom'] : [timeRange, '1Y'])].map(r => (
-                                        <button
-                                            key={`mob-quick-${r}`}
-                                            onClick={() => setTimeRange(r)}
-                                            className={`px-2 py-1 text-[10px] font-bold rounded ${timeRange === r ? 'bg-cdaccent text-white' : 'text-cdmuted'}`}
-                                        >
-                                            {r}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Mobile Range Selector (Scrollable Bar) */}
-                            <div className="md:hidden flex items-center gap-1 overflow-x-auto pb-3 mb-1 no-scrollbar -mx-1 px-1">
-                                {['1M', '3M', '6M', '1Y', '3Y', '6Y', 'ALL', 'Custom'].map(r => (
-                                    <button
-                                        key={`mob-range-${r}`}
-                                        onClick={() => setTimeRange(r)}
-                                        className={`px-3 py-1.5 text-[10px] font-bold uppercase rounded whitespace-nowrap transition-all border ${timeRange === r
-                                            ? 'bg-cdaccent text-white border-cdaccent shadow'
-                                            : 'text-cdmuted hover:text-cdtext bg-cdbg/50 border-cdborder'}`}
-                                    >
-                                        {r}
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* Mobile Custom Date Inputs */}
-                            {timeRange === 'Custom' && (
-                                <div className="md:hidden flex items-center gap-2 bg-cdbg/50 p-2 rounded-lg border border-cdborder mb-4 animate-in fade-in slide-in-from-top-2">
-                                    <NlDateInput value={customStart} onChange={setCustomStart}
-                                        className="bg-cdsurface text-cdtext text-[10px] rounded px-2 py-1.5 outline-none border border-cdborder flex-1"
-                                        aria-label="Startdatum (dd/mm/jjjj)" />
-                                    <span className="text-cdmuted text-[10px]">–</span>
-                                    <NlDateInput value={customEnd} onChange={setCustomEnd}
-                                        className="bg-cdsurface text-cdtext text-[10px] rounded px-2 py-1.5 outline-none border border-cdborder flex-1"
-                                        aria-label="Einddatum (dd/mm/jjjj)" />
-                                </div>
-                            )}
-
-                            {/* Mobile: Dropdown Menu */}
-                            {isMobileMenuOpen && (
-                                <div className="md:hidden absolute top-12 left-0 right-0 bg-cdsurface border border-cdborder rounded-lg shadow-xl z-50 mb-4">
-                                    {mainTabs.map(item => {
-                                        const isActive = activeTab === item.id;
-                                        return (
-                                            <button
-                                                key={item.id}
-                                                onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }}
-                                                className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${isActive ? 'bg-cdaccent/20 text-cdaccent border-l-4 border-cdaccent' : 'text-cdtext hover:bg-cdborder'}`}
-                                            >
-                                                <item.icon className="w-4 h-4" />
-                                                {item.label}
-                                                {(item.id === 'training' || item.id === 'race') && (
-                                                    <ChevronRight size={12} className="ml-auto text-cdmuted" />
-                                                )}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            )}
-
-                            {/* Desktop: Horizontal Tabs + globale periode-selector rechts */}
-                            <div className="hidden md:block border-b border-cdborder/50 mb-4">
-                                <div className="flex items-end justify-between pb-2">
-                                    <nav className="flex overflow-x-auto gap-1">
-                                        {mainTabs.map(item => {
-                                            const isActive = activeTab === item.id;
-                                            return (
-                                                <button
-                                                    key={item.id}
-                                                    onClick={() => setActiveTab(item.id)}
-                                                    className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold transition-all border-b-2 whitespace-nowrap ${isActive ? 'border-cdaccent text-cdtext' : 'border-transparent text-cdmuted hover:text-cdtext'}`}
-                                                >
-                                                    <item.icon className={`w-3.5 h-3.5 ${isActive ? 'text-cdaccent' : ''}`} />
-                                                    {item.label}
-                                                </button>
-                                            );
-                                        })}
-                                    </nav>
-                                    {/* Periode-selector – altijd zichtbaar in tab-lint */}
-                                    <div className="flex items-center gap-1 shrink-0 ml-4">
-                                        <SegmentedControl
-                                            size="sm"
-                                            value={timeRange}
-                                            onChange={setTimeRange}
-                                            aria-label="Time range"
-                                            options={['1M', '3M', '6M', '1Y', '3Y', '6Y', 'ALL', 'Custom'].map((r) => ({
-                                                value: r,
-                                                label: r,
-                                            }))}
-                                        />
-                                    </div>
-                                </div>
-                                {/* Custom datum-inputs – toon alleen bij Custom */}
-                                {timeRange === 'Custom' && (
-                                    <div className="flex justify-end pb-1.5 -mt-1 animate-in fade-in slide-in-from-right-2">
-                                        <div className="flex items-center gap-2 bg-cdsurfacelow p-1.5 rounded-cdmd border border-cdborder/60">
-                                            <NlDateInput value={customStart} onChange={setCustomStart}
-                                                className={`${inputBaseClass} text-[10px] py-1`}
-                                                aria-label="Start date (dd/mm/yyyy)" />
-                                            <span className="text-cdmuted text-[10px]">–</span>
-                                            <NlDateInput value={customEnd} onChange={setCustomEnd}
-                                                className={`${inputBaseClass} text-[10px] py-1`}
-                                                aria-label="End date (dd/mm/yyyy)" />
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    );
-                })()}
+                <MainNav
+                    activeTab={activeTab}
+                    onTabChange={setActiveTab}
+                    timeRange={timeRange}
+                    onTimeRangeChange={setTimeRange}
+                    customStart={customStart}
+                    customEnd={customEnd}
+                    onCustomStart={setCustomStart}
+                    onCustomEnd={setCustomEnd}
+                    isMobileMenuOpen={isMobileMenuOpen}
+                    onMobileMenuOpenChange={setIsMobileMenuOpen}
+                />
 
                 {isLoading ? (
-                    <div className="flex justify-center items-center h-64 text-cdmuted animate-pulse">Laden van data...</div>
+                    <div className="flex justify-center items-center h-64 text-cdmuted animate-pulse">Loading data…</div>
                 ) : (
                     <>
                         {activeTab === 'dashboard' && (
