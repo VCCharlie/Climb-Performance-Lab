@@ -33,7 +33,7 @@ import { CLIMB_DATABASE } from '../climbs';
 // Sub-components
 import EditActivityModal from './data-hub/EditActivityModal';
 import BulkEditActivitiesModal from './data-hub/BulkEditActivitiesModal';
-import ActivityTable from './data-hub/ActivityTable';
+import ActivityLogView from './data-hub/ActivityLogView';
 import ActivityColumnPicker from './data-hub/ActivityColumnPicker';
 import ImportModal from './data-hub/ImportModal';
 import DuplicateResolver from './data-hub/DuplicateResolver';
@@ -2156,7 +2156,7 @@ const DataHub = ({
                         ) : !isolateActivityId && !(logDateRangeFilter?.startYmd && logDateRangeFilter?.endYmd) && processedActivities.length === 0 ? (
                             <div className="flex-1 flex flex-col items-center justify-center text-cdmuted gap-2 border border-dashed border-cdborder rounded-lg"><AlertTriangle size={32} className="text-slate-600" /><p>No activities found. Start with an Import!</p></div>
                         ) : (
-                            <ActivityTable
+                            <ActivityLogView
                                 activities={logTableActivities}
                                 sortConfig={sortConfig}
                                 onSort={requestSort}
