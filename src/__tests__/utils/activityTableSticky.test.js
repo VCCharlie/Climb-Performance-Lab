@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
     buildStickyColumnMeta,
     stickyTableCellProps,
+    stickyActionsCellProps,
     hasPinnedColumns,
     PINNED_TABLE_COLUMN_KEYS,
 } from '../../utils/activityTableSticky';
@@ -48,6 +49,14 @@ describe('activityTableSticky', () => {
         expect(hasPinnedColumns([{ key: 'distance' }], false)).toBe(false);
         expect(hasPinnedColumns([{ key: 'distance' }], true)).toBe(true);
         expect(hasPinnedColumns(essentialCols, false)).toBe(true);
+    });
+
+    it('pins actions column on the right when pinActions is true', () => {
+        const meta = buildStickyColumnMeta(essentialCols, true, true);
+        expect(meta.get('__actions__')).toEqual({ right: 0, zIndex: 14, width: 96 });
+        const props = stickyActionsCellProps(meta, { isHeader: true });
+        expect(props.className).toContain('activity-table-sticky-right');
+        expect(props.style?.right).toBe(0);
     });
 
     it('exports expected pinned keys', () => {

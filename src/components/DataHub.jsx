@@ -34,6 +34,7 @@ import { CLIMB_DATABASE } from '../climbs';
 import EditActivityModal from './data-hub/EditActivityModal';
 import BulkEditActivitiesModal from './data-hub/BulkEditActivitiesModal';
 import ActivityLogView from './data-hub/ActivityLogView';
+import ActivityLogBulkBar from './data-hub/ActivityLogBulkBar';
 import ActivityColumnPicker from './data-hub/ActivityColumnPicker';
 import ImportModal from './data-hub/ImportModal';
 import DuplicateResolver from './data-hub/DuplicateResolver';
@@ -2281,6 +2282,21 @@ const DataHub = ({
                         </div>
                     </div>
                 </div>
+            )}
+
+            {internalTab === 'log' && (
+                <ActivityLogBulkBar
+                    count={bulkSelectedIds.size}
+                    onBulkEdit={() => {
+                        setEditingActivity(null);
+                        setShowBulkEditModal(true);
+                    }}
+                    onExport={exportBulkCsv}
+                    onClearSelection={() => setBulkSelectedIds(new Set())}
+                    onDelete={confirmBulkDeleteSelected}
+                    isDeleting={isDeleting}
+                    isBulkSaving={isBulkSaving}
+                />
             )}
         </div>
     );

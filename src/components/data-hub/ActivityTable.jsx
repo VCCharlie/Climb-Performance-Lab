@@ -8,7 +8,7 @@ import { formatDateDDMMYYYY, formatTime } from '../../utils';
 import { activityIntensityFactor } from '../../utils/activityFilterMetrics';
 import { resolveStravaGearDisplay } from '../../utils/stravaBikesLocalMap';
 import { getKomBadgeCountsFromSummary, getKomBadgeDisplaySlots } from '../../utils/stravaSegmentKomSummary';
-import { buildStickyColumnMeta, stickyTableCellProps } from '../../utils/activityTableSticky';
+import { buildStickyColumnMeta, stickyTableCellProps, stickyActionsCellProps } from '../../utils/activityTableSticky';
 import { ACTIVITY_TABLE_COLUMNS, MONTH_ORDER } from '../../config';
 import TableScrollShell from './TableScrollShell';
 import {
@@ -39,7 +39,9 @@ export const TableHeader = ({
     onToggleSelectAllVisible,
     columns = ACTIVITY_TABLE_COLUMNS,
     stickyMeta = null,
-}) => (
+}) => {
+    const actionsSticky = stickyActionsCellProps(stickyMeta, { isHeader: true });
+    return (
     <thead className={tableHeadClass}>
         <tr>
             {showBulkSelect && (() => {
@@ -76,10 +78,18 @@ export const TableHeader = ({
                 </th>
                 );
             })}
-            {hasActions && <th className={`${tableHeadCellClass} text-right w-24`}>Links</th>}
+            {hasActions && (
+                <th
+                    className={`${tableHeadCellClass} text-right w-24 ${actionsSticky.className}`.trim()}
+                    style={actionsSticky.style}
+                >
+                    Links
+                </th>
+            )}
         </tr>
     </thead>
-);
+    );
+};
 
 // Strava logo SVG (inline, geen extra dependency)
 const StravaIcon = () => (
@@ -334,14 +344,20 @@ export const Row = React.memo(({
                     </td>
                 );
             })}
-            {!isPreview && <td className="px-1 py-1 text-right w-24">
+            {!isPreview && (() => {
+                const actionsSticky = stickyActionsCellProps(stickyMeta, { isSelected, showBulkSelect });
+                return (
+            <td
+                className={`px-1 py-1 text-right w-24 ${actionsSticky.className}`.trim()}
+                style={actionsSticky.style}
+            >
                 {isConfirmingDelete ? (
                     <div className="flex gap-2 justify-end">
                         <button onClick={(e) => { e.stopPropagation(); setIsConfirmingDelete(false); onDelete(act.id); }} className="text-red-500 font-bold text-xs bg-red-500/10 px-2 py-1 rounded">SURE?</button>
                         <button onClick={(e) => { e.stopPropagation(); setIsConfirmingDelete(false); }} className="text-cdmuted text-xs px-2 py-1">Cancel</button>
                     </div>
                 ) : (
-                    <div className="flex gap-0.5 justify-end opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                    <div className="flex gap-0.5 justify-end opacity-0 group-hover:opacity-100 focus-within:opacity-100 [@media(pointer:coarse)]:opacity-100 transition-opacity">
                         {onOpenProfiler && (
                             <button
                                 type="button"
@@ -408,7 +424,9 @@ export const Row = React.memo(({
                         </button>
                     </div>
                 )}
-            </td>}
+            </td>
+                );
+            })()}
         </tr>
     );
 }, (prevProps, nextProps) => {
@@ -454,7 +472,7 @@ const ActivityTable = React.memo(({
     const columns = visibleColumns;
     const colSpan = columns.length + 1 + (showBulkSelect ? 1 : 0);
     const stickyMeta = useMemo(
-        () => buildStickyColumnMeta(columns, showBulkSelect),
+        () => buildStickyColumnMeta(columns, showBulkSelect, true),
         [columns, showBulkSelect],
     );
 

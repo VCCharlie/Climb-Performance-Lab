@@ -69,6 +69,14 @@ body {
   box-shadow: 4px 0 8px -4px rgb(0 0 0 / 0.18);
 }
 
+.activity-table-sticky-right {
+  position: sticky;
+}
+
+.activity-table-sticky-edge-left {
+  box-shadow: -4px 0 8px -4px rgb(0 0 0 / 0.18);
+}
+
 .activity-table-scroll-fade-left {
   background: linear-gradient(to right, var(--cd-surface) 15%, transparent);
 }

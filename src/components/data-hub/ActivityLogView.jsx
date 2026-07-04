@@ -8,7 +8,8 @@ import ActivityCardList from './ActivityCardList';
  */
 const ActivityLogView = (props) => {
     const useCardLayout = useActivityCardLayout();
-    if (useCardLayout) return <ActivityCardList {...props} />;
+    const bulkSelectionActive = (props.selectedActivityIds?.size ?? 0) > 0;
+    if (useCardLayout) return <ActivityCardList {...props} bulkSelectionActive={bulkSelectionActive} />;
     return <ActivityTable {...props} />;
 };
 

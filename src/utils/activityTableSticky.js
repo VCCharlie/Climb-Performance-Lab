@@ -8,12 +8,16 @@ const COLUMN_STICKY_WIDTH_PX = {
 };
 
 const BULK_SELECT_STICKY_WIDTH_PX = 32;
+const ACTIONS_STICKY_WIDTH_PX = 96;
+
+export const STICKY_ACTIONS_KEY = '__actions__';
 
 /**
  * Compute sticky `left` offsets for pinned columns in visible order.
- * @returns {Map<string, { left: number, zIndex: number }>}
+ * Optionally pins the actions column on the right.
+ * @returns {Map<string, { left?: number, right?: number, zIndex: number, width?: number }>}
  */
-export function buildStickyColumnMeta(visibleColumns, showBulkSelect = false) {
+export function buildStickyColumnMeta(visibleColumns, showBulkSelect = false, pinActions = false) {
     const meta = new Map();
     let left = 0;
 
@@ -31,6 +35,10 @@ export function buildStickyColumnMeta(visibleColumns, showBulkSelect = false) {
             width,
         });
         left += width;
+    }
+
+    if (pinActions) {
+        meta.set(STICKY_ACTIONS_KEY, { right: 0, zIndex: 14, width: ACTIONS_STICKY_WIDTH_PX });
     }
 
     return meta;
@@ -59,6 +67,30 @@ export function stickyTableCellProps(key, meta, { isHeader = false, isSelected =
     return {
         className: classes.join(' '),
         style: { left: sticky.left, zIndex: sticky.zIndex },
+    };
+}
+
+/**
+ * Props for the sticky right actions column.
+ */
+export function stickyActionsCellProps(meta, { isHeader = false, isSelected = false, showBulkSelect = false } = {}) {
+    const sticky = meta?.get(STICKY_ACTIONS_KEY);
+    if (!sticky) {
+        return { className: '', style: undefined };
+    }
+
+    const classes = [
+        isHeader ? 'activity-table-sticky-head' : 'activity-table-sticky-body',
+        'activity-table-sticky-right',
+        'activity-table-sticky-edge-left',
+    ];
+    if (!isHeader && isSelected && showBulkSelect) {
+        classes.push('activity-table-sticky-selected');
+    }
+
+    return {
+        className: classes.join(' '),
+        style: { right: sticky.right, zIndex: sticky.zIndex },
     };
 }
 

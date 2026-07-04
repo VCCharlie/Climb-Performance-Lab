@@ -2,6 +2,7 @@ import React from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { MONTH_ORDER } from '../../config';
 import { cardListShellClass } from '../ui/tableStyles';
+import { cn } from '../ui/cn';
 import ActivityCard from './ActivityCard';
 
 const GroupButton = ({ expanded, onClick, className, children }) => (
@@ -35,6 +36,7 @@ const ActivityCardList = React.memo(({
     onToggleSelectAllVisible,
     profileFtp,
     visibleColumns,
+    bulkSelectionActive = false,
 }) => {
     const cardProps = {
         onDelete,
@@ -48,7 +50,7 @@ const ActivityCardList = React.memo(({
     };
 
     return (
-        <div className={cardListShellClass}>
+        <div className={cn(cardListShellClass, bulkSelectionActive && 'pb-24')}>
             {showBulkSelect && (
                 <label className="flex items-center gap-2 px-1 py-1.5 mb-1 text-xs text-cdmuted border-b border-cdborder/40">
                     <input
