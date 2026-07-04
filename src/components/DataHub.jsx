@@ -38,6 +38,7 @@ import ActivityColumnPicker from './data-hub/ActivityColumnPicker';
 import ImportModal from './data-hub/ImportModal';
 import DuplicateResolver from './data-hub/DuplicateResolver';
 import QuickNav from './data-hub/QuickNav';
+import AnchoredDropdownPortal from './ui/AnchoredDropdownPortal';
 import ImportSection from './data-hub/ImportSection';
 import ActivityDetailModal from './DataHub/ActivityDetailModal';
 import StravaEnrichTab from './DataHub/StravaEnrichTab';
@@ -95,6 +96,7 @@ const DataHub = ({
     const [noPowerSelected, setNoPowerSelected] = useState([]);
     const [showUtilMenu, setShowUtilMenu] = useState(false);
     const utilMenuRef = useRef(null);
+    const utilMenuButtonRef = useRef(null);
     const [showStravaEnrichPanel, setShowStravaEnrichPanel] = useState(false);
     const [fetchIntervalsDates, setFetchIntervalsDates] = useState(() => ({
         start: new Date(new Date().setDate(new Date().getDate() - 14)).toISOString().split('T')[0],
@@ -1237,14 +1239,16 @@ const DataHub = ({
     };
 
     useEffect(() => {
+        if (!showUtilMenu) return undefined;
         const handler = (e) => {
-            if (utilMenuRef.current && !utilMenuRef.current.contains(e.target)) {
-                setShowUtilMenu(false);
-            }
+            const target = e.target;
+            if (utilMenuRef.current?.contains(target)) return;
+            if (target.closest?.('[data-anchored-dropdown]')) return;
+            setShowUtilMenu(false);
         };
         document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
-    }, []);
+    }, [showUtilMenu]);
 
     const resolveDuplicate = async (action, dup) => {
         const { a, b } = dup;
@@ -1647,7 +1651,7 @@ const DataHub = ({
                             </div>
                         </div>
 
-                        <div className="shrink-0 space-y-3 mb-3 lg:mb-4 max-h-[38vh] lg:max-h-none overflow-y-auto lg:overflow-visible custom-scrollbar pr-0.5">
+                        <div className={`shrink-0 space-y-3 mb-3 lg:mb-4 max-h-[38vh] lg:max-h-none custom-scrollbar pr-0.5 ${showUtilMenu ? 'overflow-visible' : 'overflow-y-auto'} lg:overflow-visible`}>
                             <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
                                 <div className="flex gap-2 w-full md:w-auto flex-1 min-w-0">
                                     <div className="relative flex-1 min-w-0">
@@ -1686,6 +1690,7 @@ const DataHub = ({
                                     )}
                                     <div className={`relative flex-1 min-w-0 md:flex-none md:w-auto max-w-full ${showUtilMenu ? 'z-[60]' : ''}`} ref={utilMenuRef}>
                                         <button
+                                            ref={utilMenuButtonRef}
                                             type="button"
                                             onClick={() => setShowUtilMenu(v => !v)}
                                             aria-expanded={showUtilMenu}
@@ -1694,8 +1699,12 @@ const DataHub = ({
                                         >
                                             Tools <ChevronDown size={14} className={showUtilMenu ? 'rotate-180 transition-transform' : 'transition-transform'} aria-hidden="true" />
                                         </button>
-                                        {showUtilMenu && (
-                                            <div className="absolute left-0 right-0 md:left-auto md:right-0 top-full mt-1 w-full min-w-[min(100%,16rem)] md:w-56 max-w-[calc(100vw-2rem)] md:max-w-none bg-cdsurface border border-cdborder rounded-lg shadow-xl z-[70] overflow-hidden">
+                                        <AnchoredDropdownPortal
+                                            open={showUtilMenu}
+                                            anchorRef={utilMenuButtonRef}
+                                            onClose={() => setShowUtilMenu(false)}
+                                            minWidth={224}
+                                        >
                                                 <button
                                                     onClick={handleSync}
                                                     disabled={isSyncing || bulkSelectedIds.size === 0}
@@ -1741,8 +1750,7 @@ const DataHub = ({
                                                     {isDeleting ? <Loader2 className="animate-spin" size={14} aria-hidden="true" /> : <Trash size={14} aria-hidden="true" />}
                                                     Clear DB
                                                 </button>
-                                            </div>
-                                        )}
+                                        </AnchoredDropdownPortal>
                                     </div>
                                 </div>
                             </div>

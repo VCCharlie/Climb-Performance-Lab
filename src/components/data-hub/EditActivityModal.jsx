@@ -5,6 +5,7 @@ import { formatTime } from '../../utils';
 import NlDateInput from '../NlDateInput';
 import { SPORT_TYPES } from '../../config';
 import { buildUnifiedBikesList } from '../../utils/unifiedBikesList';
+import ModalPortal from '../ui/ModalPortal';
 
 const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFindOnStrava }) => {
     // Lokale state voor het formulier
@@ -43,6 +44,7 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
     }, [formData.gear_id, formData.gear_name, unifiedBikesList]);
 
     return (
+        <ModalPortal>
         <div className="fixed inset-0 bg-cdbg/95 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
             <div className="bg-cdsurface border border-cdborder rounded-xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
                 <div className="flex justify-between items-center p-4 border-b border-cdborder bg-cdbg rounded-t-xl">
@@ -294,6 +296,7 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                 </form>
             </div>
         </div>
+        </ModalPortal>
     );
 };
 
