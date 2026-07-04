@@ -1,26 +1,41 @@
-import { useState, useEffect } from 'react';
+import { useSyncExternalStore } from 'react';
+import {
+    CARD_LAYOUT_MEDIA_QUERY,
+    prefersActivityCardLayout,
+    subscribeCardLayoutPreference,
+    getCardLayoutMediaQueryList,
+} from '../utils/activityLogLayout';
+
+function subscribeToMediaQuery(query, callback) {
+    const mq = window.matchMedia(query);
+    mq.addEventListener('change', callback);
+    return () => mq.removeEventListener('change', callback);
+}
+
+function getMediaQuerySnapshot(query) {
+    return window.matchMedia(query).matches;
+}
 
 /**
- * Subscribe to a CSS media query. Uses matchMedia with a change listener.
+ * Subscribe to a CSS media query (useSyncExternalStore — reliable in PWAs).
  * @param {string} query
  * @returns {boolean}
  */
 export default function useMediaQuery(query) {
-    const [matches, setMatches] = useState(() => {
-        if (typeof window === 'undefined') return false;
-        return window.matchMedia(query).matches;
-    });
-
-    useEffect(() => {
-        const mq = window.matchMedia(query);
-        const onChange = (e) => setMatches(e.matches);
-        mq.addEventListener('change', onChange);
-        setMatches(mq.matches);
-        return () => mq.removeEventListener('change', onChange);
-    }, [query]);
-
-    return matches;
+    return useSyncExternalStore(
+        (callback) => subscribeToMediaQuery(query, callback),
+        () => getMediaQuerySnapshot(query),
+        () => false,
+    );
 }
 
-/** Tailwind `md` breakpoint — card layout below this width. */
-export const MOBILE_CARD_LAYOUT_MQ = '(max-width: 767px)';
+/** Card layout for Activity Log (wide touch + narrow viewports). */
+export function useActivityCardLayout() {
+    return useSyncExternalStore(
+        subscribeCardLayoutPreference,
+        prefersActivityCardLayout,
+        () => false,
+    );
+}
+
+export { CARD_LAYOUT_MEDIA_QUERY, getCardLayoutMediaQueryList };

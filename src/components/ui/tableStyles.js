@@ -2,11 +2,11 @@ import { cn } from './cn';
 
 /** Outer scroll container for mobile activity cards (vertical only). */
 export const cardListShellClass =
-  'overflow-y-auto flex-1 rounded-cdlg border border-cdborder/60 bg-cdsurface custom-scrollbar relative max-h-[70vh] p-2';
+  'overflow-y-auto overflow-x-hidden flex-1 min-h-0 rounded-cdlg border border-cdborder/60 bg-cdsurface custom-scrollbar relative max-h-[min(70vh,100%)] lg:max-h-[70vh] p-2';
 
 /** Outer scroll container for data tables (MD3 tonal surface, no header shadow). */
 export const tableShellClass =
-  'overflow-x-auto overflow-y-auto flex-1 rounded-cdlg border border-cdborder/60 bg-cdsurface custom-scrollbar relative max-h-[70vh]';
+  'overflow-x-auto overflow-y-auto flex-1 min-h-0 rounded-cdlg border border-cdborder/60 bg-cdsurface custom-scrollbar relative max-h-[min(70vh,100%)] lg:max-h-[70vh]';
 
 export const tableClass = 'w-full text-left text-sm leading-snug whitespace-nowrap';
 

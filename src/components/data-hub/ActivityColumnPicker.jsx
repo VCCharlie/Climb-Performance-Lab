@@ -4,6 +4,7 @@ import {
     ACTIVITY_TABLE_COLUMNS,
     ACTIVITY_COLUMN_PRESET_LABELS,
 } from '../../config';
+import { cn } from '../ui/cn';
 
 const PRESET_ORDER = ['essential', 'power', 'full'];
 
@@ -16,6 +17,7 @@ const ActivityColumnPicker = ({
     applyPreset,
     toggleColumn,
     isColumnVisible,
+    className = '',
 }) => {
     const [open, setOpen] = useState(false);
     const rootRef = useRef(null);
@@ -41,7 +43,7 @@ const ActivityColumnPicker = ({
         : (ACTIVITY_COLUMN_PRESET_LABELS[activePreset] || 'Columns');
 
     return (
-        <div className="relative shrink-0" ref={rootRef}>
+        <div className={cn('relative shrink-0', className)} ref={rootRef}>
             <button
                 type="button"
                 onClick={() => setOpen((v) => !v)}
