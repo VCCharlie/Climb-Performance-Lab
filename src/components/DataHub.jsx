@@ -21,6 +21,7 @@ import { resolveStravaGearDisplay } from '../utils/stravaBikesLocalMap';
 import { buildClimbMatchIndex, findBestClimbUsingIndex } from '../utils/activityClimbMatch';
 import { activityIntensityFactor } from '../utils/activityFilterMetrics';
 import { formatNlNumber, normalizeDate, formatDateDDMMYYYY } from '../utils/formatters';
+import { devLog } from '../utils/safeLog';
 import {
     fetchStravaActivitiesInRange,
     linkIntervalsActivitiesToStravaList,
@@ -794,13 +795,13 @@ const DataHub = ({
         const autoStart = cutoff;
         const autoEnd = new Date().toISOString().split('T')[0];
 
-        console.log(`[Auto-Enrichment] ${needsEnrichment.length} activiteiten missen data, background verrijking starten...`);
+        devLog(`[Auto-Enrichment] ${needsEnrichment.length} activities missing data, starting background enrichment...`);
         performSilentStravaEnrichment(activities.filter(a => {
             const d = a.date?.split('T')[0];
             return d && d >= autoStart && d <= autoEnd;
         }), autoStart, autoEnd).then(count => {
             if (count > 0) {
-                console.log(`[Auto-Enrichment] ✅ ${count} activiteiten automatisch verrijkt met Strava data.`);
+                devLog(`[Auto-Enrichment] Enriched ${count} activities with Strava data.`);
             }
         }).catch(err => {
             console.warn("[Auto-Enrichment] Achtergrond verrijking mislukt:", err.message);
