@@ -4,6 +4,7 @@ import { formatDateDDMMYYYY, formatTime } from '../../utils';
 import { activityIntensityFactor } from '../../utils/activityFilterMetrics';
 import StravaMap from './StravaMap';
 import { formatSegmentTime } from '../../utils/strava';
+import ModalPortal from '../ui/ModalPortal';
 
 // Strava logo SVG
 const StravaIcon = ({ size = 14 }) => (
@@ -79,6 +80,7 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp }) 
     ].filter(p => p.val > 0);
 
     return (
+        <ModalPortal>
         <div className="fixed inset-0 bg-cdbg/95 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-cdsurface border border-cdborder rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden relative">
 
@@ -302,6 +304,7 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp }) 
                 </div>
             </div>
         </div>
+        </ModalPortal>
     );
 };
 
