@@ -8,8 +8,17 @@ const SCROLL_EDGE_THRESHOLD = 4;
 /**
  * Horizontally scrollable table shell with edge fade hints and optional nudge buttons.
  */
-const TableScrollShell = ({ children, className = '' }) => {
+const TableScrollShell = React.forwardRef(({ children, className = '' }, forwardedRef) => {
     const scrollRef = useRef(null);
+
+    const setScrollRef = useCallback((node) => {
+        scrollRef.current = node;
+        if (typeof forwardedRef === 'function') {
+            forwardedRef(node);
+        } else if (forwardedRef) {
+            forwardedRef.current = node;
+        }
+    }, [forwardedRef]);
     const [edges, setEdges] = useState({ left: false, right: false });
 
     const updateEdges = useCallback(() => {
@@ -48,7 +57,7 @@ const TableScrollShell = ({ children, className = '' }) => {
     return (
         <div className={`relative flex-1 min-h-0 ${className}`.trim()}>
             <div
-                ref={scrollRef}
+                ref={setScrollRef}
                 className={`${tableShellClass} scroll-smooth`}
             >
                 {children}
@@ -89,6 +98,8 @@ const TableScrollShell = ({ children, className = '' }) => {
             )}
         </div>
     );
-};
+});
+
+TableScrollShell.displayName = 'TableScrollShell';
 
 export default TableScrollShell;

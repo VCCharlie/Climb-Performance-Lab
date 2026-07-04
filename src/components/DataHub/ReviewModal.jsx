@@ -49,7 +49,7 @@ const ReviewModal = ({
                     <button type="button" onClick={handleDeselectAll} className="text-xs bg-cdborder px-3 py-1.5 rounded text-cdtext hover:bg-slate-600 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none">Deselect All</button>
                     <div className="w-px h-4 bg-slate-600 mx-1"></div>
                     <button type="button" onClick={handleSelectWithPower} className="text-xs bg-emerald-600/30 border border-emerald-500/50 px-3 py-1.5 rounded text-emerald-300 hover:bg-emerald-600/50 flex items-center gap-1 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"><Zap size={12} /> Only With Power</button>
-                    <span className="text-[10px] text-yellow-400 ml-auto flex items-center gap-1"><Info size={10} /> Klik icoon: Ride ↔ Virtual</span>
+                    <span className="text-[10px] text-yellow-400 ml-auto flex items-center gap-1"><Info size={10} /> Click icon: Ride ↔ Virtual</span>
                 </div>
                 <div className="overflow-auto flex-1 min-h-0 custom-scrollbar">
                     <table className="w-full text-left text-xs whitespace-nowrap">
@@ -69,7 +69,7 @@ const ReviewModal = ({
                     </table>
                 </div>
                 <div className="flex-shrink-0 p-3 border-t border-cdborder flex justify-between items-center bg-cdbg">
-                    <span className="text-xs text-cdmuted">{selectedActivities.length} van {fetchedActivities.length} geselecteerd</span>
+                    <span className="text-xs text-cdmuted">{selectedActivities.length} of {fetchedActivities.length} selected</span>
                     <div className="flex gap-2">
                         <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-cdmuted hover:text-cdtext focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm">Cancel</button>
                         <button type="button" onClick={onImport} disabled={selectedActivities.length === 0} className="px-6 py-2 text-sm font-bold bg-green-500 hover:bg-green-400 disabled:bg-slate-600 disabled:text-cdmuted text-cdtext rounded-lg shadow-lg shadow-green-500/20 transition-all focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none">✓ Import {selectedActivities.length}</button>

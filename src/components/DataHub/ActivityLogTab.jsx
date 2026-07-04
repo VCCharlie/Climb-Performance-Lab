@@ -40,7 +40,7 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
                 setDuplicateConflicts(conflicts);
                 setShowDupModal(true);
             } else {
-                alert("Geen dubbele activiteiten gevonden! (Clean status: 100%)");
+                alert("No duplicate activities found. (Clean status: 100%)");
             }
         }, 100);
     };
@@ -56,7 +56,7 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
             copy.shift(); // Remove the first one (current)
             if (copy.length === 0) {
                 setShowDupModal(false);
-                alert("Alle conflicten opgelost!");
+                alert("All conflicts resolved.");
             }
             return copy;
         });
@@ -160,7 +160,7 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
                             className="text-[10px] font-bold px-2 py-2 rounded border border-cdborder text-cdmuted hover:text-cdaccent"
                             aria-label="Expand all groups"
                         >
-                            Alles open
+                            Expand all
                         </button>
                         <button
                             type="button"
@@ -168,7 +168,7 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
                             className="text-[10px] font-bold px-2 py-2 rounded border border-cdborder text-cdmuted hover:text-cdtext"
                             aria-label="Collapse all groups"
                         >
-                            Alles dicht
+                            Collapse all
                         </button>
                     </div>
                 )}
@@ -191,7 +191,7 @@ const ActivityLogTab = ({ activities, onDelete, onClear, isDeleting }) => {
                     aria-label="Clear all activities from database"
                 >
                     {isDeleting ? <Loader2 className="animate-spin" size={16} /> : <Trash size={16} />}
-                    {isDeleting ? 'Wissen...' : 'Clear Database'}
+                    {isDeleting ? 'Clearing...' : 'Clear Database'}
                 </button>
             </div>
 
