@@ -2,6 +2,8 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, ComposedChart } from 'recharts';
 import { Activity, TrendingUp, Zap, Calendar, ArrowUp, ArrowDown, ExternalLink, ListTree } from 'lucide-react';
 import { formatDateDDMMYYYY } from '../utils';
+import { ChartTooltip } from './ui';
+import { getChartTheme, chartCardClassLg } from '../utils/chartTheme';
 import {
     findPeakEftp20Activity,
     findPeakEftp60Activity,
@@ -120,7 +122,7 @@ const PeriodStatistics = ({ data }) => {
     const outdoorDist = totalDistance - indoorDist;
 
     return (
-        <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl mb-6"> {/* Added mb-6 */}
+        <div className={`${chartCardClassLg} mb-6`}>
             <div className="flex items-center gap-2 mb-6 border-b border-cdborder pb-4">
                 <Calendar className="text-yellow-400" size={20} />
                 <h3 className="text-lg font-bold text-cdtext">Period Statistics</h3>
@@ -240,6 +242,7 @@ const PerformanceModule = ({
         return diffDays > 360;
     }, [data]);
 
+    const theme = getChartTheme();
 
     // --- 1. Stat Calculation ---
     const latest = filteredData.length > 0 ? filteredData[filteredData.length - 1] : null;
@@ -451,7 +454,7 @@ const PerformanceModule = ({
             <PeriodStatistics data={filteredData} />
 
             <div className="grid grid-cols-1 gap-6">
-                <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl">
+                <div className={chartCardClassLg}>
                     <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
                         <h3 className="text-lg font-bold text-cdtext flex items-center gap-2">
                             <Activity className="text-blue-400" size={20} />
@@ -491,15 +494,17 @@ const PerformanceModule = ({
                                     }}
                                 />
 
-                                <YAxis yAxisId="left" stroke="#64748b" domain={['auto', 'auto']} />
-                                <YAxis yAxisId="right" orientation="right" stroke="#8b5cf6" domain={[0, 'auto']} hide />
+                                <YAxis yAxisId="left" stroke={theme.axis} tick={{ fill: theme.axis, fontSize: 11 }} domain={['auto', 'auto']} />
+                                <YAxis yAxisId="right" orientation="right" stroke={theme.axis} domain={[0, 'auto']} hide />
 
                                 <Tooltip
-                                    contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', color: '#1e2330' }}
-                                    itemStyle={{ color: '#1e2330' }}
-                                    labelStyle={{ color: '#64748b' }}
-                                    labelFormatter={(label) => formatDateDDMMYYYY(label)}
-                                // Use formatted numbers in tooltip too if possible, but default is okay
+                                    content={(props) => (
+                                        <ChartTooltip
+                                            {...props}
+                                            labelFormatter={(label) => formatDateDDMMYYYY(label)}
+                                        />
+                                    )}
+                                    cursor={theme.cursor}
                                 />
                                 <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
 

@@ -3,6 +3,8 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
     ResponsiveContainer
 } from 'recharts';
+import { ChartTooltip } from '../../ui';
+import { getChartTheme, chartCardClass } from '../../../utils/chartTheme';
 
 /**
  * BarChartCard — Reusable bar chart for a single metric (distance, tss or elevation).
@@ -94,9 +96,10 @@ const BarChartCard = ({ data, metric, title, unit, color }) => {
     }, [data, metric, groupBy, rideType]);
 
     const isTime = metric === 'moving_time';
+    const theme = getChartTheme();
 
     return (
-        <div className="bg-cdsurface border border-cdborder rounded-xl p-5 shadow-xl">
+        <div className={chartCardClass}>
             <div className="flex items-start justify-between mb-4">
                 <h3 className="text-sm font-bold text-cdtext uppercase tracking-wider">{title}</h3>
                 <div className="flex flex-col items-end gap-2">
@@ -139,19 +142,24 @@ const BarChartCard = ({ data, metric, title, unit, color }) => {
                 <div className="h-44">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                            <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} opacity={0.65} vertical={false} />
                             <XAxis
                                 dataKey="label"
-                                stroke="#64748b"
-                                tick={{ fontSize: 10 }}
+                                stroke={theme.axis}
+                                tick={theme.axisTick}
                                 interval="preserveStartEnd"
                                 minTickGap={groupBy === 'week' ? 40 : 20}
                             />
-                            <YAxis stroke="#64748b" tick={{ fontSize: 10 }} width={36} />
+                            <YAxis stroke={theme.axis} tick={theme.axisTick} width={36} />
                             <Tooltip
-                                contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f1f5f9', fontSize: 12 }}
-                                formatter={(val) => [`${val.toLocaleString('en-GB')} ${isTime ? 'h' : unit}`, title]}
-                                cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+                                content={(props) => (
+                                    <ChartTooltip
+                                        {...props}
+                                        hideLabel
+                                        formatter={(val) => [`${Number(val).toLocaleString('en-GB')} ${isTime ? 'h' : unit}`, title]}
+                                    />
+                                )}
+                                cursor={theme.cursor}
                             />
                             <Bar dataKey="value" name={title} fill={color} radius={[3, 3, 0, 0]} />
                         </BarChart>

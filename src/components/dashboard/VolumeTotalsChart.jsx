@@ -12,6 +12,8 @@ import {
     Cell,
 } from 'recharts';
 import { formatNlNumber } from '../../utils/formatters';
+import { ChartTooltip } from '../ui';
+import { getChartTheme, chartCardClass } from '../../utils/chartTheme';
 import {
     formatDurationHoursMinutes,
     formatWeekChartTickEn,
@@ -192,41 +194,7 @@ const VolumeTotalsChart = ({
         return `${Math.round(v)}`;
     };
 
-    const volumeTooltipContent = ({ active, payload }) => {
-        if (!active || !payload?.length) return null;
-        const title = payload[0]?.payload?.label || '';
-        return (
-            <div
-                style={{
-                    background: '#0f172a',
-                    border: '1px solid #475569',
-                    borderRadius: '8px',
-                    padding: '10px 12px',
-                    fontSize: '12px',
-                    boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
-                }}
-            >
-                <p style={{ margin: 0, marginBottom: 8, color: '#f8fafc', fontWeight: 700 }}>{title}</p>
-                {payload.map((p) => (
-                    <div
-                        key={`${p.dataKey}-${p.name}`}
-                        style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            gap: 16,
-                            marginTop: 4,
-                            lineHeight: 1.35,
-                        }}
-                    >
-                        <span style={{ color: '#cbd5e1' }}>{p.name}</span>
-                        <span style={{ color: '#f1f5f9', fontFamily: 'ui-monospace, monospace', fontWeight: 600 }}>
-                            {formatTooltipMetricValue(p.value)}
-                        </span>
-                    </div>
-                ))}
-            </div>
-        );
-    };
+    const theme = getChartTheme();
 
     const xInterval = chartData.length > 18 ? Math.max(0, Math.floor(chartData.length / 14)) : 0;
 
@@ -239,7 +207,7 @@ const VolumeTotalsChart = ({
     }
 
     return (
-        <div className="rounded-xl border border-cdborder bg-cdsurface p-4 shadow-lg space-y-4">
+        <div className={`${chartCardClass} space-y-4`}>
             <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-3">
                 <h3 className="text-sm font-bold text-cdtext">Volume chart</h3>
                 <div className="flex flex-wrap gap-2" role="group" aria-label="Week or month">
@@ -310,21 +278,30 @@ const VolumeTotalsChart = ({
             <div className="h-[280px] w-full min-h-[220px]">
                 <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={chartData} margin={{ top: 12, right: 10, left: 0, bottom: 4 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#64748b" opacity={0.25} vertical={false} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} opacity={0.65} vertical={false} />
                         <XAxis
                             dataKey="tick"
-                            tick={{ fill: '#94a3b8', fontSize: 10 }}
+                            tick={{ fill: theme.axis, fontSize: 10 }}
                             interval={xInterval}
                             angle={chartData.length > 10 ? -32 : 0}
                             textAnchor={chartData.length > 10 ? 'end' : 'middle'}
                             height={chartData.length > 10 ? 52 : 28}
                         />
                         <YAxis
-                            tick={{ fill: '#94a3b8', fontSize: 10 }}
+                            tick={{ fill: theme.axis, fontSize: 10 }}
                             tickFormatter={yTickFormatter}
                             width={metricId === 'time' ? 44 : 36}
                         />
-                        <Tooltip content={volumeTooltipContent} cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }} />
+                        <Tooltip
+                            content={(props) => (
+                                <ChartTooltip
+                                    {...props}
+                                    label={props.payload?.[0]?.payload?.label ?? props.label}
+                                    formatter={(value, name) => [formatTooltipMetricValue(value), name]}
+                                />
+                            )}
+                            cursor={theme.cursor}
+                        />
                         <Bar
                             name={BAR_SERIES_NAME}
                             dataKey="barValue"

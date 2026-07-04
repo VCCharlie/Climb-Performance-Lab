@@ -4,6 +4,8 @@ import {
     Legend, ResponsiveContainer, ReferenceLine
 } from 'recharts';
 import { formatDateDDMMYYYY } from '../../utils';
+import { ChartTooltip } from '../ui';
+import { getChartTheme, chartCardClassLg } from '../../utils/chartTheme';
 
 /**
  * FormTab: Shows CTL, ATL and TSB (fitness / fatigue / form) progression over time.
@@ -93,6 +95,8 @@ const FormTab = ({
             ? 'text-yellow-400'
             : 'text-red-400';
 
+    const theme = getChartTheme();
+
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
             {latest ? (
@@ -103,7 +107,7 @@ const FormTab = ({
                         <StatBadge label="TSB (Form)" value={latest.tsb} color={tsbColor} />
                     </div>
 
-                    <div className="bg-cdsurface border border-cdborder rounded-xl p-6 shadow-xl">
+                    <div className={chartCardClassLg}>
                         <h3 className="text-lg font-bold text-cdtext mb-4">CTL / ATL / TSB</h3>
                         <div className="h-72">
                             <ResponsiveContainer width="100%" height="100%">
@@ -111,7 +115,7 @@ const FormTab = ({
                                     data={fitnessData}
                                     margin={{ top: 5, right: 20, left: 0, bottom: 0 }}
                                 >
-                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" vertical={false} />
+                                    <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} opacity={0.65} vertical={false} />
                                     <XAxis
                                         dataKey="dateNum"
                                         type="number"
@@ -120,23 +124,28 @@ const FormTab = ({
                                         ticks={axisTicks}
                                         interval={0}
                                         minTickGap={50}
-                                        stroke="#64748b"
+                                        stroke={theme.axis}
+                                        tick={{ fill: theme.axis, fontSize: 11 }}
                                         tickFormatter={(ts) => {
                                             const d = new Date(ts);
                                             return `${d.getDate()} ${EN_SHORT_MONTHS[d.getMonth()]}`;
                                         }}
                                     />
-                                    <YAxis stroke="#64748b" />
+                                    <YAxis stroke={theme.axis} tick={{ fill: theme.axis, fontSize: 11 }} />
                                     <Tooltip
-                                        contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f1f5f9' }}
-                                        itemStyle={{ color: '#94a3b8' }}
-                                        labelFormatter={(ts) => formatDateDDMMYYYY(ts)}
+                                        content={(props) => (
+                                            <ChartTooltip
+                                                {...props}
+                                                labelFormatter={(ts) => formatDateDDMMYYYY(ts)}
+                                            />
+                                        )}
+                                        cursor={theme.cursor}
                                     />
                                     <Legend iconType="circle" wrapperStyle={{ paddingTop: '16px' }} />
-                                    <ReferenceLine y={0} stroke="rgba(255,255,255,0.12)" />
-                                    <Line type="monotone" dataKey="ctl" name="CTL" stroke="#3b82f6" strokeWidth={2} dot={false} />
-                                    <Line type="monotone" dataKey="atl" name="ATL" stroke="#f97316" strokeWidth={2} dot={false} />
-                                    <Line type="monotone" dataKey="tsb" name="TSB" stroke="#22c55e" strokeWidth={2} dot={false} />
+                                    <ReferenceLine y={0} stroke={theme.grid} />
+                                    <Line type="monotone" dataKey="ctl" name="CTL" stroke={theme.blue} strokeWidth={2} dot={false} />
+                                    <Line type="monotone" dataKey="atl" name="ATL" stroke={theme.primary} strokeWidth={2} dot={false} />
+                                    <Line type="monotone" dataKey="tsb" name="TSB" stroke={theme.green} strokeWidth={2} dot={false} />
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>

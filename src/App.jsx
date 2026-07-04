@@ -24,7 +24,7 @@ import BucketList from './components/BucketList';
 import WeatherClimb from './components/WeatherClimb';
 import ClimbMap from './components/ClimbMap';
 import PwaInstallBanner from './components/PwaInstallBanner';
-import { SegmentedControl } from './components/ui';
+import { LoadingPanel, SegmentedControl } from './components/ui';
 import { MainNav } from './components/shell';
 
 import useIntervalsSync from './hooks/useIntervalsSync';
@@ -669,9 +669,9 @@ const App = () => {
                 />
 
                 {isLoading ? (
-                    <div className="flex justify-center items-center h-64 text-cdmuted animate-pulse">Loading data…</div>
+                    <LoadingPanel />
                 ) : (
-                    <>
+                    <div className="cd-enter">
                         {activeTab === 'dashboard' && (
                             <Dashboard
                                 theme={theme}
@@ -893,7 +893,7 @@ const App = () => {
                                 stravaAuth={stravaAuth}
                             />
                         )}
-                    </>
+                    </div>
                 )}
             </main>
 

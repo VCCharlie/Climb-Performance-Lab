@@ -18,6 +18,7 @@ import {
     formatLongRange,
 } from './powerTopTenByDurationConstants';
 import PowerTopTenExpandedBody from './PowerTopTenExpandedBody';
+import { chartCardShellClass } from '../../utils/chartTheme';
 
 /**
  * Top 10 per fixed duration (interpolated), optionally vs previous period or N days before.
@@ -121,7 +122,7 @@ const PowerTopTenByDurationPanel = ({
         : formatLongRange(dashboardBounds);
 
     return (
-        <div className="bg-cdsurface border border-cdborder rounded-xl shadow-xl overflow-hidden">
+        <div className={`${chartCardShellClass} overflow-hidden`}>
             <button
                 type="button"
                 onClick={() => setExpanded((e) => !e)}

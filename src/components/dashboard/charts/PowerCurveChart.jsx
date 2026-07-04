@@ -3,6 +3,8 @@ import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
     ResponsiveContainer, ReferenceLine
 } from 'recharts';
+import { ChartTooltip } from '../../ui';
+import { getChartTheme, chartCardClass, chartCardClassLg } from '../../../utils/chartTheme';
 
 /**
  * PowerCurveChart — Mean Maximal Power (MMP) curve.
@@ -50,9 +52,11 @@ const PowerCurveChart = ({ data, manualFtp }) => {
         }).filter(p => p.watts !== null);
     }, [data, manualFtp]);
 
+    const theme = getChartTheme();
+
     if (curveData.length === 0) {
         return (
-            <div className="bg-cdsurface border border-cdborder rounded-xl p-6 shadow-xl">
+            <div className={chartCardClassLg}>
                 <h3 className="text-lg font-bold text-cdtext mb-2">Power Curve (MMP)</h3>
                 <div className="h-48 flex items-center justify-center text-cdmuted text-sm">
                     No best-effort data available in this period.
@@ -66,7 +70,7 @@ const PowerCurveChart = ({ data, manualFtp }) => {
     const eFTP = best20m ? Math.round(best20m * 0.95) : null;
 
     return (
-        <div className="bg-cdsurface border border-cdborder rounded-xl p-6 shadow-xl">
+        <div className={chartCardClassLg}>
             <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-cdtext">Power Curve (MMP)</h3>
                 {eFTP && (
@@ -80,43 +84,44 @@ const PowerCurveChart = ({ data, manualFtp }) => {
                     <AreaChart data={curveData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
                         <defs>
                             <linearGradient id="mmpGradient" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#f97316" stopOpacity={0.35} />
-                                <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+                                <stop offset="5%" stopColor={theme.primary} stopOpacity={0.35} />
+                                <stop offset="95%" stopColor={theme.primary} stopOpacity={0} />
                             </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" vertical={false} />
-                        <XAxis
-                            dataKey="label"
-                            stroke="#64748b"
-                            tick={{ fontSize: 12 }}
-                        />
+                        <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} opacity={0.65} vertical={false} />
+                        <XAxis dataKey="label" stroke={theme.axis} tick={theme.axisTick} />
                         <YAxis
-                            stroke="#64748b"
-                            tick={{ fontSize: 11 }}
+                            stroke={theme.axis}
+                            tick={theme.axisTick}
                             domain={['auto', 'auto']}
                             tickFormatter={(v) => `${v}W`}
                         />
                         <Tooltip
-                            contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f1f5f9' }}
-                            formatter={(v) => [`${v} W`, 'MMP']}
-                            itemStyle={{ color: '#f97316' }}
+                            content={(props) => (
+                                <ChartTooltip
+                                    {...props}
+                                    hideLabel
+                                    formatter={(v) => [`${v} W`, 'MMP']}
+                                />
+                            )}
+                            cursor={theme.cursor}
                         />
                         {eFTP && (
                             <ReferenceLine
                                 y={eFTP}
-                                stroke="#22c55e"
+                                stroke={theme.green}
                                 strokeDasharray="6 3"
-                                label={{ value: `eFTP ${eFTP}W`, fill: '#22c55e', fontSize: 10, dy: -6 }}
+                                label={{ value: `eFTP ${eFTP}W`, fill: theme.green, fontSize: 10, dy: -6 }}
                             />
                         )}
                         <Area
                             type="monotone"
                             dataKey="watts"
                             name="MMP"
-                            stroke="#f97316"
+                            stroke={theme.primary}
                             strokeWidth={2.5}
                             fill="url(#mmpGradient)"
-                            dot={{ r: 5, fill: '#f97316', strokeWidth: 0 }}
+                            dot={{ r: 5, fill: theme.primary, strokeWidth: 0 }}
                             activeDot={{ r: 7 }}
                         />
                     </AreaChart>

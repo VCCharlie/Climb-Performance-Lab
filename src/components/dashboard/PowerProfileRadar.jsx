@@ -10,6 +10,7 @@ import {
 } from 'recharts';
 import { ExternalLink } from 'lucide-react';
 import { activityExternalLinks } from '../../utils/dashboardActivityPeaks';
+import { chartCardClassLg } from '../../utils/chartTheme';
 
 const RADAR_MAX_FTP_PCT = 160;
 
@@ -247,7 +248,7 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
         : `FTP not set — both shapes use % of the strongest value among these durations (max of period and history, ${noFtpScaleMaxW} W in this view), capped at ${RADAR_MAX_FTP_PCT}%.`;
 
     return (
-        <div className="bg-cdsurface border border-cdborder rounded-xl p-6 shadow-xl space-y-4">
+        <div className={`${chartCardClassLg} space-y-4`}>
             <div>
                 <h3 className="text-lg font-bold text-cdtext mb-1">Power profile (this period)</h3>
                 <p className="text-xs text-cdmuted leading-relaxed">{scaleHint}</p>

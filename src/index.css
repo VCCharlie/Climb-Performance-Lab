@@ -57,6 +57,45 @@ body {
   box-shadow: 0 0 0 2px var(--cd-surface-bright), 0 0 0 4px var(--cd-focus-ring);
 }
 
+/* Skeleton shimmer */
+@keyframes cd-skeleton-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.85; }
+}
+
+.cd-skeleton {
+  background-color: var(--cd-surface-container-high);
+  border-radius: var(--cd-radius-md);
+  animation: cd-skeleton-pulse 1.6s var(--cd-ease-emphasized) infinite;
+}
+
+/* Content enter — use when replacing loading placeholders */
+@keyframes cd-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cd-enter {
+  animation: cd-fade-in var(--cd-duration-medium) var(--cd-ease-emphasized) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cd-skeleton {
+    animation: none;
+    opacity: 0.65;
+  }
+
+  .cd-enter {
+    animation: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
