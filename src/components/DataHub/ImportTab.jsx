@@ -18,7 +18,7 @@ const ImportTab = ({ intervalsConfig, onImportResults }) => {
 
     const processText = (text) => {
         const trimmed = text.trim();
-        if (!trimmed) { alert("Geen data gevonden."); return; }
+        if (!trimmed) { alert("No data found."); return; }
 
         let parsedData = [];
         try {
@@ -32,11 +32,11 @@ const ImportTab = ({ intervalsConfig, onImportResults }) => {
                 onImportResults(parsedData);
                 setImportText("");
             } else {
-                alert("Kon geen geldige activiteiten vinden. Controleer of het formaat CSV of JSON is.");
+                alert("Could not find valid activities. Check that the format is CSV or JSON.");
             }
         } catch (err) {
             console.error(err);
-            alert("Fout bij verwerken data: " + err.message);
+            alert("Error processing data: " + err.message);
         }
     };
 
@@ -66,13 +66,13 @@ const ImportTab = ({ intervalsConfig, onImportResults }) => {
     return (
         <div className="space-y-6">
             <div className="bg-cdbg/50 p-4 rounded border border-cdborder">
-                <h4 className="text-cdtext font-bold text-sm mb-2 flex items-center gap-2"><Download size={16} className="text-blue-400" /> Stap 1: Download Data</h4>
-                <p className="text-xs text-cdmuted mb-3">Ga naar de Intervals Activities pagina, klik op "List View", selecteer je ritten en kies <strong>Edit &gt; Export CSV</strong>.</p>
+                <h4 className="text-cdtext font-bold text-sm mb-2 flex items-center gap-2"><Download size={16} className="text-blue-400" /> Step 1: Download data</h4>
+                <p className="text-xs text-cdmuted mb-3">Go to the Intervals Activities page, click &quot;List View&quot;, select your rides, then choose <strong>Edit &gt; Export CSV</strong>.</p>
                 <a href={`https://intervals.icu/athlete/${intervalsConfig.athleteId}/activities`} target="_blank" rel="noopener noreferrer" className="text-xs bg-cdborder hover:bg-slate-600 text-cdtext px-3 py-2 rounded inline-flex items-center gap-2 transition-colors">Open Intervals.icu Activities <ArrowUpRight size={12} /></a>
             </div>
 
             <div>
-                <h4 className="text-cdtext font-bold text-sm mb-2 flex items-center gap-2"><Upload size={16} className="text-green-400" /> Stap 2: Importeer Bestand</h4>
+                <h4 className="text-cdtext font-bold text-sm mb-2 flex items-center gap-2"><Upload size={16} className="text-green-400" /> Step 2: Import file</h4>
 
                 <div
                     className={`relative w-full h-48 border-2 border-dashed rounded-lg flex flex-col items-center justify-center transition-all p-4
@@ -83,30 +83,29 @@ const ImportTab = ({ intervalsConfig, onImportResults }) => {
                 >
                     <div className="text-center space-y-2 pointer-events-none">
                         <Upload size={32} className={`mx-auto ${isDragging ? 'text-yellow-400' : 'text-cdmuted'}`} />
-                        <p className="text-sm font-medium text-cdtext">Sleep je CSV/JSON bestand hierheen</p>
-                        <p className="text-xs text-cdmuted">of plak de tekst hieronder</p>
+                        <p className="text-sm font-medium text-cdtext">Drop your CSV/JSON file here</p>
+                        <p className="text-xs text-cdmuted">or paste text below</p>
                     </div>
 
                     <textarea
                         className="mt-4 w-full h-full absolute inset-0 opacity-0 cursor-pointer"
                         value={importText}
                         onChange={e => setImportText(e.target.value)}
-                        placeholder="Plak tekst hier..." // Hidden but accessible for paste
+                        placeholder="Paste text here..."
                     />
                 </div>
 
-                {/* Fallback Text Area for Manual Paste if Drag & Drop fails or prefers text */}
                 <div className="mt-4">
-                    <p className="text-xs text-cdmuted mb-1">Of plak de tekst direct:</p>
+                    <p className="text-xs text-cdmuted mb-1">Or paste text directly:</p>
                     <textarea
                         className="w-full h-24 bg-cdbg border border-cdborder rounded p-2 text-xs font-mono text-cdtext focus:border-yellow-400 outline-none transition-colors"
-                        placeholder="Plak hier je CSV of JSON data..."
+                        placeholder="Paste your CSV or JSON data here..."
                         value={importText}
                         onChange={(e) => setImportText(e.target.value)}
                     />
                 </div>
 
-                <button type="button" onClick={handleManualImport} className="mt-4 w-full bg-yellow-400 hover:bg-yellow-300 text-slate-900 font-bold py-3 rounded shadow-lg shadow-yellow-400/20 transition-all">Verwerk Data</button>
+                <button type="button" onClick={handleManualImport} className="mt-4 w-full bg-yellow-400 hover:bg-yellow-300 text-slate-900 font-bold py-3 rounded shadow-lg shadow-yellow-400/20 transition-all">Process data</button>
             </div>
         </div>
     );

@@ -1,5 +1,6 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import {
     ArrowUpDown, ChevronUp, ChevronDown, ChevronRight, Monitor, Bike, Footprints,
     Mountain, Edit2, Trash2, ExternalLink, Route, Trophy, Crown,
@@ -9,6 +10,12 @@ import { activityIntensityFactor } from '../../utils/activityFilterMetrics';
 import { resolveStravaGearDisplay } from '../../utils/stravaBikesLocalMap';
 import { getKomBadgeCountsFromSummary, getKomBadgeDisplaySlots } from '../../utils/stravaSegmentKomSummary';
 import { buildStickyColumnMeta, stickyTableCellProps, stickyActionsCellProps } from '../../utils/activityTableSticky';
+import {
+    flattenActivityList,
+    estimateFlattenedRowSize,
+    getFlattenedRowKey,
+    shouldVirtualizeActivityList,
+} from '../../utils/activityListFlatten';
 import { ACTIVITY_TABLE_COLUMNS, MONTH_ORDER } from '../../config';
 import TableScrollShell from './TableScrollShell';
 import {
@@ -203,7 +210,7 @@ export const Row = React.memo(({
                     <div
                         className={`flex justify-center items-center h-full ${isPreview ? 'cursor-pointer hover:text-yellow-400' : ''}`}
                         onClick={(e) => { if (isPreview && onToggleType) { e.stopPropagation(); onToggleType(act.id); } }}
-                        title={isPreview ? `Huidig: ${val}. Klik om te wijzigen.` : val}
+                        title={isPreview ? `Current: ${val}. Click to change.` : val}
                     >
                         {val === 'VirtualRide' ? <Monitor size={15} className="text-orange-400" title="Virtual Ride" /> :
                             val === 'Run' ? <Footprints size={15} className="text-blue-400" title="Run" /> :
@@ -471,13 +478,89 @@ const ActivityTable = React.memo(({
 }) => {
     const columns = visibleColumns;
     const colSpan = columns.length + 1 + (showBulkSelect ? 1 : 0);
+    const scrollRef = useRef(null);
     const stickyMeta = useMemo(
         () => buildStickyColumnMeta(columns, showBulkSelect, true),
         [columns, showBulkSelect],
     );
 
+    const flatRows = useMemo(
+        () => flattenActivityList({
+            activities,
+            isGroupedView,
+            sortConfig,
+            isYearExpanded,
+            isMonthExpanded,
+        }),
+        [activities, isGroupedView, sortConfig, isYearExpanded, isMonthExpanded],
+    );
+
+    const useVirtual = shouldVirtualizeActivityList(flatRows);
+
+    const virtualizer = useVirtualizer({
+        count: useVirtual ? flatRows.length : 0,
+        getScrollElement: () => scrollRef.current,
+        estimateSize: (index) => estimateFlattenedRowSize(flatRows[index], 'table'),
+        overscan: 12,
+    });
+
+    const virtualItems = useVirtual ? virtualizer.getVirtualItems() : [];
+    const paddingTop = virtualItems.length > 0 ? virtualItems[0].start : 0;
+    const paddingBottom = virtualItems.length > 0
+        ? virtualizer.getTotalSize() - virtualItems[virtualItems.length - 1].end
+        : 0;
+
+    const renderFlatRow = (row) => {
+        if (row.type === 'year') {
+            return (
+                <tr id={`year-${row.year}`} className={tableGroupYearClass}>
+                    <td colSpan={colSpan} className="px-3 py-2 font-semibold text-cdtext">
+                        <button type="button" onClick={() => onToggleYear(row.year)} className="flex items-center gap-2 w-full text-left hover:text-cdprimary cd-transition cd-focus-ring rounded-cdsm">
+                            {isYearExpanded(row.year) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                            {' '}
+                            {row.year}
+                        </button>
+                    </td>
+                </tr>
+            );
+        }
+
+        if (row.type === 'month') {
+            return (
+                <tr id={`month-${row.year}-${row.month}`} className={tableGroupMonthClass}>
+                    <td colSpan={colSpan} className="px-6 py-1.5 text-xs font-semibold text-cdmuted">
+                        <button type="button" onClick={() => onToggleMonth(row.year, row.month)} className="flex items-center gap-1 hover:text-cdtext text-left w-full cd-transition cd-focus-ring rounded-cdsm">
+                            {isMonthExpanded(row.year, row.month) ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                            {' '}
+                            {row.month}
+                        </button>
+                    </td>
+                </tr>
+            );
+        }
+
+        const act = row.act;
+        return (
+            <Row
+                key={act.id}
+                act={act}
+                onDelete={onDelete}
+                onEdit={onEdit}
+                onViewDetail={onViewDetail}
+                onToggleSelect={onToggleSelectRow}
+                isSelected={selectedActivityIds?.has(String(act.id))}
+                showBulkSelect={showBulkSelect}
+                onOpenProfiler={onOpenProfiler}
+                profilerClimbByActivityId={profilerClimbByActivityId}
+                profileFtp={profileFtp}
+                columns={columns}
+                stickyMeta={stickyMeta}
+            />
+        );
+    };
+
     return (
-        <TableScrollShell>
+        <TableScrollShell ref={scrollRef}>
             <table className={tableClass}>
                 <TableHeader
                     config={sortConfig}
@@ -491,7 +574,28 @@ const ActivityTable = React.memo(({
                     stickyMeta={stickyMeta}
                 />
                 <tbody className={tableBodyClass}>
-                    {isGroupedView ? (
+                    {useVirtual ? (
+                        <>
+                            {paddingTop > 0 && (
+                                <tr aria-hidden="true">
+                                    <td colSpan={colSpan} style={{ height: paddingTop, padding: 0, border: 0 }} />
+                                </tr>
+                            )}
+                            {virtualItems.map((virtualRow) => {
+                                const row = flatRows[virtualRow.index];
+                                return (
+                                    <React.Fragment key={getFlattenedRowKey(row, virtualRow.index)}>
+                                        {renderFlatRow(row)}
+                                    </React.Fragment>
+                                );
+                            })}
+                            {paddingBottom > 0 && (
+                                <tr aria-hidden="true">
+                                    <td colSpan={colSpan} style={{ height: paddingBottom, padding: 0, border: 0 }} />
+                                </tr>
+                            )}
+                        </>
+                    ) : isGroupedView ? (
                         Object.keys(activities).sort((a, b) => sortConfig.direction === 'asc' ? a - b : b - a).map(year => (
                             <React.Fragment key={year}>
                                 <tr id={`year-${year}`} className={tableGroupYearClass}><td colSpan={colSpan} className="px-3 py-2 font-semibold text-cdtext"><button type="button" onClick={() => onToggleYear(year)} className="flex items-center gap-2 w-full text-left hover:text-cdprimary cd-transition cd-focus-ring rounded-cdsm">{isYearExpanded(year) ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {year}</button></td></tr>
