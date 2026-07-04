@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
     ArrowUpDown, ChevronUp, ChevronDown, ChevronRight, Monitor, Bike, Footprints,
     Mountain, Edit2, Trash2, ExternalLink, Route, Trophy, Crown,
@@ -8,9 +8,10 @@ import { formatDateDDMMYYYY, formatTime } from '../../utils';
 import { activityIntensityFactor } from '../../utils/activityFilterMetrics';
 import { resolveStravaGearDisplay } from '../../utils/stravaBikesLocalMap';
 import { getKomBadgeCountsFromSummary, getKomBadgeDisplaySlots } from '../../utils/stravaSegmentKomSummary';
+import { buildStickyColumnMeta, stickyTableCellProps } from '../../utils/activityTableSticky';
 import { ACTIVITY_TABLE_COLUMNS, MONTH_ORDER } from '../../config';
+import TableScrollShell from './TableScrollShell';
 import {
-    tableShellClass,
     tableClass,
     tableHeadClass,
     tableHeadCellClass,
@@ -37,11 +38,17 @@ export const TableHeader = ({
     allVisibleSelected = false,
     onToggleSelectAllVisible,
     columns = ACTIVITY_TABLE_COLUMNS,
+    stickyMeta = null,
 }) => (
     <thead className={tableHeadClass}>
         <tr>
-            {showBulkSelect && (
-                <th className={`${tableHeadCellClass} w-8 text-center`}>
+            {showBulkSelect && (() => {
+                const sticky = stickyTableCellProps('__bulk__', stickyMeta, { isHeader: true });
+                return (
+                <th
+                    className={`${tableHeadCellClass} w-8 text-center ${sticky.className}`.trim()}
+                    style={sticky.style}
+                >
                     <input
                         type="checkbox"
                         className="accent-cdprimary w-3.5 h-3.5 cursor-pointer"
@@ -50,12 +57,16 @@ export const TableHeader = ({
                         title="Select all visible"
                     />
                 </th>
-            )}
+                );
+            })()}
             {isPreview && <th className={`${tableHeadCellClass} w-8`} />}
-            {columns.map((col) => (
+            {columns.map((col) => {
+                const sticky = stickyTableCellProps(col.key, stickyMeta, { isHeader: true });
+                return (
                 <th
                     key={col.key}
-                    className={`${tableHeadCellClass} text-${col.align} ${col.width || ''}`}
+                    className={`${tableHeadCellClass} text-${col.align} ${col.width || ''} ${sticky.className}`.trim()}
+                    style={sticky.style}
                     onClick={() => requestSort && requestSort(col.key)}
                 >
                     <span className={`flex items-center gap-1 ${col.align === 'right' ? 'justify-end' : col.align === 'center' ? 'justify-center' : 'justify-start'}`}>
@@ -63,7 +74,8 @@ export const TableHeader = ({
                         {requestSort && <SortIcon colKey={col.key} config={config} />}
                     </span>
                 </th>
-            ))}
+                );
+            })}
             {hasActions && <th className={`${tableHeadCellClass} text-right w-24`}>Links</th>}
         </tr>
     </thead>
@@ -149,6 +161,7 @@ export const Row = React.memo(({
     showBulkSelect = false,
     profileFtp,
     columns = ACTIVITY_TABLE_COLUMNS,
+    stickyMeta = null,
 }) => {
     const [isConfirmingDelete, setIsConfirmingDelete] = React.useState(false);
 
@@ -285,8 +298,17 @@ export const Row = React.memo(({
             id={act.id != null ? `activity-row-${act.id}` : undefined}
             className={tableRowStateClass({ isSelected, showBulkSelect: showBulkSelect || isPreview })}
         >
-            {showBulkSelect && (
-                <td className="px-1 py-1 w-8 text-center" onClick={(e) => e.stopPropagation()}>
+            {showBulkSelect && (() => {
+                const sticky = stickyTableCellProps('__bulk__', stickyMeta, {
+                    isSelected,
+                    showBulkSelect,
+                });
+                return (
+                <td
+                    className={`px-1 py-1 w-8 text-center ${sticky.className}`.trim()}
+                    style={sticky.style}
+                    onClick={(e) => e.stopPropagation()}
+                >
                     <input
                         type="checkbox"
                         checked={isSelected}
@@ -294,9 +316,24 @@ export const Row = React.memo(({
                         className="accent-yellow-400 w-3.5 h-3.5 cursor-pointer"
                     />
                 </td>
-            )}
+                );
+            })()}
             {isPreview && <td className="px-1.5 py-1 w-8"><input type="checkbox" checked={isSelected} readOnly className="w-4 h-4 accent-green-500 cursor-pointer" /></td>}
-            {columns.map(col => <td key={col.key} className={`${tableCellClass} text-${col.align} ${col.width || ''}`}>{renderCell(col)}</td>)}
+            {columns.map((col) => {
+                const sticky = stickyTableCellProps(col.key, stickyMeta, {
+                    isSelected,
+                    showBulkSelect,
+                });
+                return (
+                    <td
+                        key={col.key}
+                        className={`${tableCellClass} text-${col.align} ${col.width || ''} ${sticky.className}`.trim()}
+                        style={sticky.style}
+                    >
+                        {renderCell(col)}
+                    </td>
+                );
+            })}
             {!isPreview && <td className="px-1 py-1 text-right w-24">
                 {isConfirmingDelete ? (
                     <div className="flex gap-2 justify-end">
@@ -383,6 +420,8 @@ export const Row = React.memo(({
         prevProps.isSelected === nextProps.isSelected &&
         prevProps.isPreview === nextProps.isPreview &&
         prevProps.showBulkSelect === nextProps.showBulkSelect &&
+        prevProps.columns === nextProps.columns &&
+        prevProps.stickyMeta === nextProps.stickyMeta &&
         prevProps.profilerClimbByActivityId === nextProps.profilerClimbByActivityId &&
         prevProps.profileFtp === nextProps.profileFtp &&
         prevProps.onOpenProfiler === nextProps.onOpenProfiler &&
@@ -414,9 +453,13 @@ const ActivityTable = React.memo(({
 }) => {
     const columns = visibleColumns;
     const colSpan = columns.length + 1 + (showBulkSelect ? 1 : 0);
+    const stickyMeta = useMemo(
+        () => buildStickyColumnMeta(columns, showBulkSelect),
+        [columns, showBulkSelect],
+    );
 
     return (
-        <div className={tableShellClass}>
+        <TableScrollShell>
             <table className={tableClass}>
                 <TableHeader
                     config={sortConfig}
@@ -427,6 +470,7 @@ const ActivityTable = React.memo(({
                     allVisibleSelected={allVisibleSelected}
                     onToggleSelectAllVisible={onToggleSelectAllVisible}
                     columns={columns}
+                    stickyMeta={stickyMeta}
                 />
                 <tbody className={tableBodyClass}>
                     {isGroupedView ? (
@@ -450,6 +494,7 @@ const ActivityTable = React.memo(({
                                                 profilerClimbByActivityId={profilerClimbByActivityId}
                                                 profileFtp={profileFtp}
                                                 columns={columns}
+                                                stickyMeta={stickyMeta}
                                             />
                                         ))}
                                     </React.Fragment>
@@ -471,12 +516,13 @@ const ActivityTable = React.memo(({
                                 profilerClimbByActivityId={profilerClimbByActivityId}
                                 profileFtp={profileFtp}
                                 columns={columns}
+                                stickyMeta={stickyMeta}
                             />
                         ))
                     )}
                 </tbody>
             </table>
-        </div>
+        </TableScrollShell>
     );
 });
 
