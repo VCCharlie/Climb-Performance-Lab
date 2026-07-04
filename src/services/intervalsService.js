@@ -1,5 +1,8 @@
 // src/services/intervalsService.js
 
+import { fetchWithTimeout } from '../utils/fetchWithTimeout';
+import { devLog } from '../utils/safeLog';
+
 /**
  * API URL van de Google Cloud Function
  */
@@ -26,13 +29,13 @@ export async function fetchIntervalsData(startDate, endDate) {
       const age = Date.now() - timestamp;
 
       if (age < CACHE_DURATION) {
-        console.log(`[IntervalsService] Returning cached data for ${startDate} - ${endDate}`);
+        devLog(`[IntervalsService] Returning cached data for ${startDate} - ${endDate}`);
         return data;
       }
     }
 
     // 2. Fetch API
-    const response = await fetch(API_URL, {
+    const response = await fetchWithTimeout(API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
