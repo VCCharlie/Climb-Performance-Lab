@@ -5,6 +5,7 @@ import { onAuthStateChanged, reload } from "firebase/auth";
 import { db, auth } from './firebase';
 import { CLIMB_DATABASE } from './climbs';
 import { calculatePowerZones } from './utils';
+import { devLog, redactSecrets } from './utils/safeLog';
 
 // Components
 import Header from './components/Header';
@@ -253,7 +254,7 @@ const App = () => {
                 // Optimization: use string comparison for ISO dates to speed up sort
                 loadedActs.sort((a, b) => a.date < b.date ? 1 : (a.date > b.date ? -1 : 0));
                 setActivitiesState(loadedActs);
-                console.log(`[Refresh] Server-fetch van ${loadedActs.length} activiteiten.`);
+                devLog(`[Refresh] Server-fetch of ${loadedActs.length} activities.`);
             } else {
                 setActivitiesState([]);
             }
@@ -592,32 +593,14 @@ const App = () => {
                 openweatherApiKey: userSettings.openweatherApiKey ? '' : ''
             };
             const safeStrava = { ...stravaConfig, client_secret: stravaConfig.client_secret ? '' : '' };
-            const intervalsForLog = {
-                ...intervalsConfig,
-                apiKey: intervalsConfig.apiKey ? '***REDACTED***' : ''
-            };
-
-            const bodyForLog = {
-                ...userSettings,
-                githubPat: userSettings.githubPat ? '***REDACTED***' : '',
-                openweatherApiKey: userSettings.openweatherApiKey ? '***REDACTED***' : ''
-            };
-
-            const stravaForLog = {
-                ...stravaConfig,
-                client_secret: stravaConfig.client_secret ? '***REDACTED***' : '',
-                access_token: stravaConfig.access_token ? '***REDACTED***' : '',
-                refresh_token: stravaConfig.refresh_token ? '***REDACTED***' : ''
-            };
-
-            console.log("Saving Settings to Cloud:", {
-                intervals: intervalsForLog,
-                body: bodyForLog,
+            devLog('Saving Settings to Cloud:', redactSecrets({
+                intervals: intervalsConfig,
+                body: userSettings,
                 theme,
                 bucketList: bucketListState,
-                strava: stravaForLog,
-                stravaProfile: stravaProfileData
-            });
+                strava: stravaConfig,
+                stravaProfile: stravaProfileData,
+            }));
             await setDoc(doc(db, "settings", settingsId), {
                 intervals: safeIntervals,
                 body: safeBody,

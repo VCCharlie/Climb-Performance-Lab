@@ -7,6 +7,7 @@ import { normalizeStravaActivity } from './stravaMatch';
 import { normalizeStravaActivityId } from './strava';
 import { enrichActivityGearFromStrava } from './stravaGearEnrich';
 import { mergeActivitiesIntervalsPrimary } from './mergeActivities';
+import { fetchWithTimeout } from './fetchWithTimeout';
 
 const STRAVA_ACTIVITY_RE = /strava\.com\/(?:activities|activity)\/(\d+)/i;
 /** Intervals: /activities/123, /activities/i123… (API id is often `i` + digits — do not strip the `i`). */
@@ -39,7 +40,7 @@ export async function fetchStravaActivityDetailAsSiteActivity(stravaActivityId, 
     const sid = normalizeStravaActivityId(stravaActivityId);
     if (!sid || !token) throw new Error('Invalid Strava activity id or missing token.');
 
-    const resp = await fetch(
+    const resp = await fetchWithTimeout(
         `https://www.strava.com/api/v3/activities/${encodeURIComponent(sid)}?include_all_efforts=true`,
         { headers: { Authorization: `Bearer ${token}` } },
     );
@@ -82,7 +83,7 @@ export async function fetchIntervalsActivityAsSiteActivity(intervalsActivityId, 
     const authString = btoa(`API_KEY:${intervalsConfig.apiKey}`);
     const url = `https://intervals.icu/api/v1/activity/${encodeURIComponent(id)}`;
 
-    const resp = await fetch(url, {
+    const resp = await fetchWithTimeout(url, {
         method: 'GET',
         headers: {
             Authorization: `Basic ${authString}`,

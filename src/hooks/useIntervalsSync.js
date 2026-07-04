@@ -1,30 +1,18 @@
 import { useState } from 'react';
-import { normalizeIntervalsActivity } from '../utils/intervals'; // Added local normalizer
+import { normalizeIntervalsActivity } from '../utils/intervals';
+import { fetchWithTimeout } from '../utils/fetchWithTimeout';
+import { devLog } from '../utils/safeLog';
 
 const useIntervalsSync = (intervalsConfig) => {
     const [isSyncing, setIsSyncing] = useState(false);
     const [syncProgress, setSyncProgress] = useState(null);
     const [error, setError] = useState(null);
 
-    // Helper: Fetch with Timeout
-    const fetchWithTimeout = async (url, options = {}, timeout = 30000) => {
-        const controller = new AbortController();
-        const id = setTimeout(() => controller.abort(), timeout);
-        try {
-            const response = await fetch(url, { ...options, signal: controller.signal });
-            clearTimeout(id);
-            return response;
-        } catch (error) {
-            clearTimeout(id);
-            throw error;
-        }
-    };
-
     const syncIntervals = async (startDate, endDate, allowedTypes) => {
         setIsSyncing(true);
         setSyncProgress("Connecting to Intervals.icu...");
         setError(null);
-        console.log("Starting Intervals.icu Sync via Direct API...");
+        devLog("Starting Intervals.icu Sync via Direct API...");
 
         try {
             // Validate credentials
@@ -32,9 +20,9 @@ const useIntervalsSync = (intervalsConfig) => {
                 throw new Error("Missing Intervals.icu credentials. Please configure in Settings.");
             }
 
-            console.log(`Requesting activities from ${startDate} to ${endDate}`);
+            devLog(`Requesting activities from ${startDate} to ${endDate}`);
             if (allowedTypes && allowedTypes.length > 0) {
-                console.log(`Sport filters: ${allowedTypes.join(', ')}`);
+                devLog(`Sport filters: ${allowedTypes.join(', ')}`);
             }
 
             setSyncProgress("Fetching activities from Intervals.icu...");
@@ -42,7 +30,6 @@ const useIntervalsSync = (intervalsConfig) => {
             const url = `https://intervals.icu/api/v1/athlete/${intervalsConfig.athleteId}/activities?oldest=${startDate}&newest=${endDate}`;
             const authString = btoa(`API_KEY:${intervalsConfig.apiKey}`);
 
-            // Call API directly
             const response = await fetchWithTimeout(url, {
                 method: 'GET',
                 headers: {
@@ -60,7 +47,7 @@ const useIntervalsSync = (intervalsConfig) => {
             setSyncProgress("Processing activities...");
             const rawActivities = await response.json();
 
-            console.log(`✅ Successfully fetched ${rawActivities.length} activities from Intervals.icu`);
+            devLog(`✅ Successfully fetched ${rawActivities.length} activities from Intervals.icu`);
 
             if (rawActivities.length === 0) {
                 setSyncProgress(null);

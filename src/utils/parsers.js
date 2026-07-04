@@ -9,6 +9,7 @@ import { normalizeIntervalsActivity } from './intervals';
 // dependency (intervals.js → parsers.js → intervals.js). Imported for local
 // use and re-exported so existing imports from parsers.js keep working.
 import { determineActivityType } from './activityTypes';
+import { devLog } from './safeLog';
 export { determineActivityType };
 
 // --- DATA CLEANING ---
@@ -137,7 +138,7 @@ export const smartParseCSV = (text) => {
     }
 
     const delimiter = detectDelimiter(lines);
-    console.log(`[SmartParseCSV] Detected delimiter: '${delimiter}'`);
+    devLog(`[SmartParseCSV] Detected delimiter: '${delimiter}'`);
 
     const rows = parseCSVToRows(text, delimiter);
     if (rows.length < 2) {
