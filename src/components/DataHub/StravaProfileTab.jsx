@@ -45,7 +45,7 @@ const fmt = {
         const sec = Number(s) || 0;
         const h = Math.floor(sec / 3600);
         const mi = Math.floor((sec % 3600) / 60);
-        return h > 0 ? `${h}u ${mi}m` : `${mi}m`;
+        return h > 0 ? `${h}h ${mi}m` : `${mi}m`;
     },
     segTime: (s) => {
         const sec = Number(s) || 0;
@@ -224,15 +224,15 @@ const ProfileDataFreshnessLine = ({ fetchedAt, scanMeta }) => {
     const listCap = getStravaRawActivityListFetchCap();
     let nextRefresh = '';
     if (scanMeta && scanMeta.historyComplete === false) {
-        nextRefresh = `Volgende refresh haalt tot ${fmt.int(listCap)} activiteiten op bij Strava; recordlinks en scan-tabellen kunnen oudere ritten missen.`;
+        nextRefresh = `Next refresh fetches up to ${fmt.int(listCap)} activities from Strava; record links and scan tables may miss older rides.`;
     } else if (scanMeta && scanMeta.historyComplete === true) {
-        nextRefresh = 'Volgende refresh haalt opnieuw Strava-statistieken, KOMs, starred segments en je volledige gescande rithistorie op (binnen dezelfde API-limieten).';
+        nextRefresh = 'Next refresh re-fetches Strava stats, KOMs, starred segments, and your full scanned ride history (within the same API limits).';
     } else {
-        nextRefresh = 'Volgende refresh werkt Strava-statistieken en lijsten bij; gebruik Refresh na koppelen om de activiteitenscan te laden (recordlinks / indoor-outdoor).';
+        nextRefresh = 'Next refresh updates Strava stats and lists; use Refresh after connecting to load the activity scan (record links / indoor-outdoor).';
     }
     return (
         <p className="text-[10px] text-cdmuted leading-relaxed">
-            <span className="text-cdtext font-medium">Profieldata van {dateStr}</span>
+            <span className="text-cdtext font-medium">Profile data from {dateStr}</span>
             <span className="mx-1.5 text-cdborder">·</span>
             {nextRefresh}
         </p>
@@ -265,23 +265,23 @@ const YtdYearOverYearBlock = ({ ytdYoy }) => {
     const line = (label, cur, prev, pct, fmtCur) => {
         if (prev === 0 && cur === 0) return null;
         const arrow = pct == null ? '—' : pct > 0 ? `+${fmt.num(Math.abs(pct), 0)}%` : `-${fmt.num(Math.abs(pct), 0)}%`;
-        const cmp = pct == null ? 'geen vergelijking vorig jaar' : `${arrow} t.o.v. dezelfde periode vorig jaar`;
+        const cmp = pct == null ? 'no comparison with last year' : `${arrow} vs same period last year`;
         return (
             <p className="text-[11px] text-cdtext">
                 <span className="font-bold text-cdmuted">{label}:</span>{' '}
-                {fmtCur(cur)} <span className="text-cdmuted">(vorig jaar {fmtCur(prev)})</span>
+                {fmtCur(cur)} <span className="text-cdmuted">(last year {fmtCur(prev)})</span>
                 <span className="text-orange-400 font-medium"> · {cmp}</span>
             </p>
         );
     };
     return (
         <div className="rounded-xl border border-cdborder/70 bg-cdbg/40 p-3 space-y-1">
-            <h4 className="text-[10px] font-bold text-cdmuted uppercase tracking-wide">YTD t.o.v. vorig jaar (zelfde kalenderdatum)</h4>
-            <p className="text-[9px] text-cdmuted mb-2">Berekend uit je gescande Strava-fietsritten bij deze refresh — alleen betrouwbaar als je volledige historie in de scan past.</p>
-            {line('Afstand', thisYtd.distance, prevYtd.distance, dPct, (m) => fmt.dist(m))}
-            {line('Hoogtemeters', thisYtd.elevation_gain, prevYtd.elevation_gain, ePct, (m) => fmt.elev(m))}
-            {line('Bewegingstijd', thisYtd.moving_time, prevYtd.moving_time, tPct, (s) => fmt.time(s))}
-            {line('Ritten', thisYtd.count, prevYtd.count, cPct, (n) => `${fmt.int(n)} ritten`)}
+            <h4 className="text-[10px] font-bold text-cdmuted uppercase tracking-wide">YTD vs last year (same calendar date)</h4>
+            <p className="text-[9px] text-cdmuted mb-2">Calculated from your scanned Strava bike rides at this refresh — reliable only if your full history fits in the scan.</p>
+            {line('Distance', thisYtd.distance, prevYtd.distance, dPct, (m) => fmt.dist(m))}
+            {line('Elevation', thisYtd.elevation_gain, prevYtd.elevation_gain, ePct, (m) => fmt.elev(m))}
+            {line('Moving time', thisYtd.moving_time, prevYtd.moving_time, tPct, (s) => fmt.time(s))}
+            {line('Rides', thisYtd.count, prevYtd.count, cPct, (n) => `${fmt.int(n)} rides`)}
         </div>
     );
 };

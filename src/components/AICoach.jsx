@@ -21,7 +21,7 @@ function movingTimeToSeconds(val) {
 function formatVsPrimaryPct(pct) {
     if (pct == null || Number.isNaN(pct)) return '—';
     const sign = pct > 0 ? '+' : '';
-    return `${sign}${Math.round(pct)}% t.o.v. gekozen periode`;
+    return `${sign}${Math.round(pct)}% vs. selected period`;
 }
 
 const AICoach = ({ activities, userSettings, startDate, endDate }) => {
@@ -55,10 +55,10 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
         const fmtOpts = { day: 'numeric', month: 'short', year: 'numeric' };
         const periodLabel = (startDate || endDate)
             ? `${startD.toLocaleDateString('nl-NL', fmtOpts)} – ${endD.toLocaleDateString('nl-NL', fmtOpts)}`
-            : 'afgelopen 30 dagen';
+            : 'last 30 days';
 
         const periodScope =
-            periodDays < 45 ? 'korte' : periodDays < 400 ? 'middellange' : 'lange';
+            periodDays < 45 ? 'short' : periodDays < 400 ? 'medium' : 'long';
 
         const periodComparison = buildPeriodComparison(activities, startD, endD, ftp);
 
@@ -91,26 +91,26 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
         // Consistency Check
         if (periodActivities.length >= consistencyHigh) {
             strengths.push({
-                label: "Hoge consistentie",
-                context: `Je hebt ${periodActivities.length} keer getraind in de ${periodLabel} (>3x/week). Consistentie is de belangrijkste factor voor mitochondriële aanpassing en aerobe basis.`
+                label: "High consistency",
+                context: `You trained ${periodActivities.length} times in the ${periodLabel} (>3x/week). Consistency is the most important factor for mitochondrial adaptation and aerobic base.`
             });
         } else if (periodActivities.length < consistencyLow) {
             weaknesses.push({
-                label: "Lage frequentie",
-                context: `Slechts ${periodActivities.length} ritten in de ${periodLabel}. Zonder regelmatige prikkels (minimaal 2-3x per week) zal je conditie stagneren of achteruitgaan.`
+                label: "Low frequency",
+                context: `Only ${periodActivities.length} rides in the ${periodLabel}. Without regular stimulus (at least 2–3x per week), your fitness will stagnate or decline.`
             });
         }
 
         // Load Trend (TSB proxy)
         if (avgWeeklyLoad > 400) {
             strengths.push({
-                label: "Sterke basisconditie (CTL)",
-                context: `Je gemiddelde weekload is ${Math.round(avgWeeklyLoad)} TSS. Dit duidt op een solide 'Chronic Training Load' (CTL), wat betekent dat je lichaam goed belastbaar is voor zwaardere blokken.`
+                label: "Strong base fitness (CTL)",
+                context: `Your average weekly load is ${Math.round(avgWeeklyLoad)} TSS. This indicates a solid Chronic Training Load (CTL), meaning your body can handle heavier training blocks.`
             });
         } else if (avgWeeklyLoad < 100) {
             opportunities.push({
-                label: "Ruimte voor volumeverhoging",
-                context: `Met een load van slechts ${Math.round(avgWeeklyLoad)} TSS/week heb je nog veel ruimte om progressie te boeken door simpelweg meer volume of frequentie toe te voegen.`
+                label: "Room to increase volume",
+                context: `With a load of only ${Math.round(avgWeeklyLoad)} TSS/week, you still have plenty of room to progress by simply adding more volume or frequency.`
             });
         }
 
@@ -120,14 +120,14 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
             : 0;
         if (ftp > 0 && highIntensity > intensityHigh) {
             threats.push({
-                label: "Monotony & Burnout Risico",
-                context: `Je hebt ${highIntensity} zware sessies (>90% FTP) gedaan in de ${periodLabel}. Te veel intensiteit zonder rustige duurtraining leidt tot een plateau en verhoogt het risico op overtraining.`
+                label: "Monotony & burnout risk",
+                context: `You completed ${highIntensity} hard sessions (>90% FTP) in the ${periodLabel}. Too much intensity without easy endurance rides leads to a plateau and increases overtraining risk.`
             });
         }
         if (ftp > 0 && highIntensity < intensityLow) {
             weaknesses.push({
-                label: "Gebrek aan intensiteit",
-                context: `In de ${periodLabel} zaten maar weinig sessies boven ~90% FTP (${highIntensity}×, terwijl we bij deze periode minstens ~${intensityLow} zouden verwachten voor een volledig profiel). Voor een hoger plafond (VO2) heb je gerichte intervalprikkels nodig.`
+                label: "Lack of intensity",
+                context: `In the ${periodLabel}, only a few sessions were above ~90% FTP (${highIntensity}×, while we'd expect at least ~${intensityLow} for this period for a complete profile). For a higher ceiling (VO2), you need targeted interval stimulus.`
             });
         }
 
@@ -136,42 +136,42 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
         const best5m = periodActivities.reduce((max, a) => Math.max(max, a.best_5min || 0), 0);
         if (ftp > 0 && best5m > ftp * 1.15) {
             strengths.push({
-                label: "Sterke VO2 Max Engine",
-                context: `Je 5-minuten power is ${best5m}W, wat erg sterk is t.o.v. je FTP. Dit wijst op een goed ontwikkelde aerobe capaciteit. Je zou dit kunnen uitbuiten in korte, steile beklimmingen.`
+                label: "Strong VO2 Max engine",
+                context: `Your 5-minute power is ${best5m}W, which is very strong relative to your FTP. This points to well-developed aerobic capacity. You could exploit this on short, steep climbs.`
             });
         } else if (ftp > 0 && best5m > 0 && best5m < ftp * 0.92 && periodActivities.length >= 3) {
             weaknesses.push({
-                label: "Beperkte korte power",
-                context: `Je beste 5 min in deze periode is ${best5m}W vs FTP ${ftp}W. Dat wijst op weinig training rond VO2/threshold-boven. Korte blokken boven FTP kunnen je plafond helpen verhogen.`
+                label: "Limited short power",
+                context: `Your best 5 min in this period is ${best5m}W vs FTP ${ftp}W. That suggests little training around VO2/threshold and above. Short blocks above FTP can help raise your ceiling.`
             });
         }
 
         // Volume / duur (periode-afhankelijk)
         if (periodActivities.length >= 3 && avgKmPerWeek < 35 && avgWeeklyLoad >= 80) {
             opportunities.push({
-                label: "Meer duur-kilometers",
-                context: `Je rijdt ~${Math.round(avgKmPerWeek)} km/week over ${periodLabel} terwijl de TSS al redelijk is — vaak zitten hier korte of virtuele ritten achter. Meer continue duur kan je aerobe efficiëntie versterken.`
+                label: "More endurance kilometers",
+                context: `You ride ~${Math.round(avgKmPerWeek)} km/week over ${periodLabel} while TSS is already reasonable — often that means short or virtual rides. More continuous endurance can strengthen your aerobic efficiency.`
             });
         }
 
         if (weeksInPeriod >= 3 && longRideCount < expectedLongRidesLo && periodActivities.length >= 4) {
             weaknesses.push({
-                label: "Weinig lange ritten",
-                context: `In ~${Math.round(weeksInPeriod)} weken heb je ${longRideCount}× ≥2u gereden (verwacht minstens ~${expectedLongRidesLo} voor een uitgebalanceerd duurprofiel). Plan af en toe een langere Z2-rit.`
+                label: "Few long rides",
+                context: `In ~${Math.round(weeksInPeriod)} weeks you rode ${longRideCount}× ≥2h (expected at least ~${expectedLongRidesLo} for a balanced endurance profile). Plan an occasional longer Z2 ride.`
             });
         }
 
         if (periodActivities.length >= 5 && virtualCount / periodActivities.length > 0.65) {
             threats.push({
-                label: "Zwaar virtueel",
-                context: `${virtualCount} van ${periodActivities.length} sessies zijn virtueel. Dat kan prima, maar te weinig buiten (variatie, techniek, wind) beperkt transfer naar echte beklimmingen.`
+                label: "Heavy on virtual",
+                context: `${virtualCount} of ${periodActivities.length} sessions are virtual. That can be fine, but too little outdoor riding (variety, skills, wind) limits transfer to real climbs.`
             });
         }
 
         if (periodActivities.length >= 4 && avgElevPerWeek < 200 && avgKmPerWeek > 50) {
             opportunities.push({
-                label: "Meer hoogtemeters",
-                context: `Gemiddeld ~${Math.round(avgElevPerWeek)} hm/week in deze periode bij ${Math.round(avgKmPerWeek)} km/week — relatief vlak. Heuvels en herhaalde beklimmingen trainen kracht-uithouding specifiek voor klimmen.`
+                label: "More elevation gain",
+                context: `Average ~${Math.round(avgElevPerWeek)} m/week in this period at ${Math.round(avgKmPerWeek)} km/week — relatively flat. Hills and repeated climbs train climbing-specific muscular endurance.`
             });
         }
 
@@ -200,14 +200,14 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
             if (tssW2 > tssW1 * 1.15) {
                 loadTrendUp = true;
                 opportunities.push({
-                    label: "Oplopende weekload",
-                    context: `In de tweede helft van ${periodLabel} ligt je gemiddelde TSS/week (~${Math.round(tssW2)}) duidelijk hoger dan in de eerste (~${Math.round(tssW1)}). Je zit in opbouw — plan herstel zodra prestatie of motivatie zakt.`
+                    label: "Rising weekly load",
+                    context: `In the second half of ${periodLabel}, your average TSS/week (~${Math.round(tssW2)}) is clearly higher than in the first (~${Math.round(tssW1)}). You're in a build phase — plan recovery once performance or motivation drops.`
                 });
             } else if (tssW1 > tssW2 * 1.15) {
                 loadTrendDown = true;
                 threats.push({
-                    label: "Afnemende belasting",
-                    context: `Je TSS/week was hoger in de eerste helft (~${Math.round(tssW1)}) dan in de tweede (~${Math.round(tssW2)}) van ${periodLabel}. Als dat geen bewuste rustfase is, dreigt detraining of onderliggende vermoeidheid.`
+                    label: "Declining load",
+                    context: `Your TSS/week was higher in the first half (~${Math.round(tssW1)}) than in the second (~${Math.round(tssW2)}) of ${periodLabel}. If that's not a deliberate rest phase, detraining or underlying fatigue may be a risk.`
                 });
             }
         }
@@ -226,20 +226,20 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
         if (periodActivities.length === 0) {
             return {
                 strengths: [{
-                    label: "Geen data om te beoordelen",
-                    context: `Er zijn geen activiteiten in ${periodLabel}. Kies een andere datumrange of importeer/sync je training — dan kan de coach patronen zien.`
+                    label: "No data to assess",
+                    context: `There are no activities in ${periodLabel}. Choose a different date range or import/sync your training — then the coach can spot patterns.`
                 }],
                 weaknesses: [{
-                    label: "Analyse niet mogelijk",
-                    context: "Zonder ritten in dit venster kunnen we geen zwaktes afleiden uit je logs. Controleer of je filter (1M, 3M, …) klopt met je import."
+                    label: "Analysis not possible",
+                    context: "Without rides in this window we can't derive weaknesses from your logs. Check whether your filter (1M, 3M, …) matches your import."
                 }],
                 opportunities: [{
-                    label: "Start met loggen",
-                    context: "Zodra er activiteiten in deze periode staan, verschijnen hier concrete kansen (volume, intensiteit, duur) afgestemd op je gekozen range."
+                    label: "Start logging",
+                    context: "Once activities appear in this period, concrete opportunities (volume, intensity, duration) tailored to your selected range will show up here."
                 }],
                 threats: [{
-                    label: "Blind vliegen",
-                    context: "Zonder data in het gekozen venster mis je signalen (te weinig rust, te veel harde dagen). Gebruik een periode waarin je wél hebt getraind."
+                    label: "Flying blind",
+                    context: "Without data in the selected window you miss signals (too little rest, too many hard days). Use a period in which you actually trained."
                 }],
                 avgWeeklyLoad: 0,
                 periodLabel,
@@ -264,26 +264,26 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
         // Fillers: periodespecifiek i.p.v. identieke boilerplate
         if (strengths.length === 0) {
             strengths.push({
-                label: "Geen opvallende pluspunten",
-                context: `Over ${periodLabel} (${periodScope} venster) vallen er geen duidelijke sterktes op volgens de huidige regels. Dat betekent vooral: geen extreme patronen — vergelijk met een kortere periode voor recente trends.`
+                label: "No standout strengths",
+                context: `Over ${periodLabel} (${periodScope} window) no clear strengths stand out under the current rules. That mainly means no extreme patterns — compare with a shorter period for recent trends.`
             });
         }
         if (weaknesses.length === 0) {
             weaknesses.push({
-                label: "Geen duidelijke zwakte",
-                context: `In ${periodLabel}: ${periodActivities.length} ritten, ~${ridesPerWeek.toFixed(1)}×/week, ~${Math.round(avgWeeklyLoad)} TSS/week, ~${Math.round(avgKmPerWeek)} km/week, ~${avgHoursPerWeek.toFixed(1)} u/week. Geen rode vlag op frequentie, intensiteit of korte power — je zit in het midden van het profiel.`
+                label: "No clear weakness",
+                context: `In ${periodLabel}: ${periodActivities.length} rides, ~${ridesPerWeek.toFixed(1)}×/week, ~${Math.round(avgWeeklyLoad)} TSS/week, ~${Math.round(avgKmPerWeek)} km/week, ~${avgHoursPerWeek.toFixed(1)} h/week. No red flags on frequency, intensity, or short power — you're in the middle of the profile.`
             });
         }
         if (opportunities.length === 0) {
             opportunities.push({
-                label: "Verfijn je focus",
-                context: `Met ~${Math.round(avgWeeklyLoad)} TSS/week over ${periodLabel} is er geen simpele 'hefboom' (te weinig volume of te weinig intensiteit). Kies bewust één doel: meer structuur, specifieke klimtraining, of een rustweek — afhankelijk van wat je buiten deze cijfers voelt.`
+                label: "Refine your focus",
+                context: `With ~${Math.round(avgWeeklyLoad)} TSS/week over ${periodLabel} there is no simple lever (too little volume or too little intensity). Deliberately pick one goal: more structure, specific climb training, or a rest week — depending on how you feel beyond these numbers.`
             });
         }
         if (threats.length === 0) {
             threats.push({
-                label: "Geen harde risico's in data",
-                context: `We zien geen overlading aan harde sessies (${highIntensity}× >90% FTP, drempel ~${intensityHigh} voor deze periode). Bij ${periodDays < 60 ? 'korte' : 'langere'} periodes: blijf opletten op opeenstapeling van zware weken en slaap/stress buiten het zadel.`
+                label: "No hard risks in data",
+                context: `We don't see overload from hard sessions (${highIntensity}× >90% FTP, threshold ~${intensityHigh} for this period). For ${periodDays < 60 ? 'short' : 'longer'} periods: keep watching for stacking heavy weeks and sleep/stress off the bike.`
             });
         }
 
@@ -341,7 +341,7 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
 
     const opportunitiesForDisplay = useMemo(() => {
         return swot.opportunities.map((o) =>
-            o.label === 'Verfijn je focus'
+            o.label === 'Refine your focus'
                 ? { ...o, extraActions: coachPlan.actions }
                 : o
         );
@@ -353,7 +353,7 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
         const today = urlParams.get('day') ? parseInt(urlParams.get('day')) : new Date().getDay();
 
         const isWeekend = (today === 0 || today === 6);
-        const dayNames = ['Zondag', 'Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrijdag', 'Zaterdag'];
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
         const options = [];
 
@@ -362,9 +362,9 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
             options.push({
                 id: 'weekend_long',
                 title: "Weekend Warrior: Endurance",
-                duration: "3u - 4u",
+                duration: "3h - 4h",
                 focus: "Zone 2 (Endurance)",
-                description: "De basis van elke wielrenner. Lange, rustige duurtraining (Z2) stimuleert vetverbranding en capillaire dichtheid. Wees strikt: niet stiekem Tempo rijden!",
+                description: "The foundation of every cyclist. Long, easy endurance (Z2) stimulates fat burning and capillary density. Be strict: don't sneak into Tempo!",
                 type: "endurance",
                 zwoSteps: [
                     { type: 'Warmup', duration: 900, powerLow: 0.50, powerHigh: 0.65 },
@@ -378,9 +378,9 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
             options.push({
                 id: 'weekend_tempo',
                 title: "Time Crunched: Tempo Climbs",
-                duration: "1u 30m - 2u",
+                duration: "1h 30m - 2h",
                 focus: "Zone 3 (Tempo)",
-                description: "Heb je minder tijd? Rij dan wat intensiever. Zoek heuvels op en rij ze in 'Tempo' (Z3). Dit is geen volle bak, maar wel 'comfortabel hard'.",
+                description: "Short on time? Ride a bit harder. Find hills and ride them at Tempo (Z3). Not all-out, but comfortably hard.",
                 type: "interval",
                 zwoSteps: [
                     { type: 'Warmup', duration: 900, powerLow: 0.50, powerHigh: 0.70 },
@@ -401,16 +401,16 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
                     title: "Active Recovery",
                     duration: "45m - 60m",
                     focus: "Zone 1 (Recovery)",
-                    description: "Actief herstel bevordert de doorbloeding en afvoer van afvalstoffen. Houd de hartslag laag en cadans hoog (95+ rpm). Voelt het zwaar? Stop dan.",
+                    description: "Active recovery improves blood flow and waste removal. Keep heart rate low and cadence high (95+ rpm). If it feels hard, stop.",
                     type: "recovery",
                     zwoSteps: [{ type: 'SteadyState', duration: 2700, power: 0.50 }]
                 });
                 options.push({
                     id: 'recovery_rest',
-                    title: "Totale Rustdag",
+                    title: "Full Rest Day",
                     duration: "0m",
                     focus: "Sleep & Nutrition",
-                    description: "Soms is de beste training: niet trainen. Geef je spieren en hormoonsysteem 100% rust. Focus op slaapkwaliteit en eiwitrijke voeding.",
+                    description: "Sometimes the best workout is not training. Give your muscles and hormonal system full rest. Focus on sleep quality and protein-rich nutrition.",
                     type: "recovery",
                     zwoSteps: [] // No file
                 });
@@ -423,9 +423,9 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
                     options.push({
                         id: 'vo2_micro',
                         title: "VO2 Max: Micro-Bursts",
-                        duration: "1u 15m",
+                        duration: "1h 15m",
                         focus: "3 sets, 10x (30s ON / 15s OFF)",
-                        description: "Korte, hevige prikkels om je zuurstofopname (VO2max) te verhogen. 30s @ 120% FTP, 15s rust. Zeer zwaar maar efficiënt.",
+                        description: "Short, intense bursts to raise oxygen uptake (VO2max). 30s @ 120% FTP, 15s rest. Very hard but efficient.",
                         type: "interval",
                         zwoSteps: [
                             { type: 'Warmup', duration: 900, powerLow: 0.50, powerHigh: 0.75 },
@@ -440,9 +440,9 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
                     options.push({
                         id: 'vo2_long',
                         title: "VO2 Max: 4x5 min",
-                        duration: "1u 30m",
+                        duration: "1h 30m",
                         focus: "4x 5m @ 108% FTP",
-                        description: "Klassieke VO2 intervallen. Langer in de 'pijnzone'. Dit traint niet alleen je plafond, maar ook je tolerantie voor verzuring.",
+                        description: "Classic VO2 intervals. Longer in the pain zone. This trains not only your ceiling but also your tolerance for acidosis.",
                         type: "interval",
                         zwoSteps: [
                             { type: 'Warmup', duration: 1200, powerLow: 0.50, powerHigh: 0.75 },
@@ -461,9 +461,9 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
                     options.push({
                         id: 'sst_classic',
                         title: "Sweetspot: 2x20m",
-                        duration: "1u 30m",
+                        duration: "1h 30m",
                         focus: "2x 20m @ 90% FTP",
-                        description: "De gouden standaard voor het vergroten van je motor (TTE). Net onder je omslagpunt. Mentaal zwaar, fysiek goed herstelbaar.",
+                        description: "The gold standard for growing your engine (TTE). Just below your tipping point. Mentally tough, physically well recoverable.",
                         type: "interval",
                         zwoSteps: [
                             { type: 'Warmup', duration: 1200, powerLow: 0.50, powerHigh: 0.75 },
@@ -476,9 +476,9 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
                     options.push({
                         id: 'threshold_ou',
                         title: "Over-Unders",
-                        duration: "1u 20m",
+                        duration: "1h 20m",
                         focus: "3x (2m @ 105% / 2m @ 90%)",
-                        description: "Wisselend boven en onder je FTP rijden. Dit leert je lichaam om lactaat te verwerken ('shuttling') terwijl je hard doorfietst.",
+                        description: "Alternate above and below FTP. This teaches your body to process lactate ('shuttling') while riding hard.",
                         type: "interval",
                         zwoSteps: [
                             { type: 'Warmup', duration: 1200, powerLow: 0.50, powerHigh: 0.75 },
@@ -502,7 +502,7 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
     // --- 3. DOWNLOAD HANDLER ---
     const handleDownloadZwo = (workout) => {
         if (!workout.zwoSteps || workout.zwoSteps.length === 0) {
-            alert("Voor deze rustdag is er geen workout file nodig. Geniet van de rust!");
+            alert("No workout file needed for this rest day. Enjoy the rest!");
             return;
         }
 
@@ -561,7 +561,7 @@ ${workout.zwoSteps.map(step => {
             <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl flex items-center justify-between">
                 <div>
                     <h2 className="text-xl font-bold text-cdtext flex items-center gap-2"><Brain className="text-purple-400" /> AI Performance Coach</h2>
-                    <p className="text-sm text-cdmuted">Gebaseerd op je data van {swot.periodLabel}.</p>
+                    <p className="text-sm text-cdmuted">Based on your data from {swot.periodLabel}.</p>
                 </div>
                 <div className="text-right hidden md:block">
                     <div className="text-2xl font-bold text-cdtext">{Math.round(swot.avgWeeklyLoad)} TSS</div>
@@ -574,15 +574,15 @@ ${workout.zwoSteps.map(step => {
                 {/* --- 1. WORKOUT SUGGESTIONS (Left Col) --- */}
                 <div className="lg:col-span-1 space-y-4">
                     <div className="flex items-center gap-2 text-cdmuted text-sm uppercase font-bold tracking-wider">
-                        <Calendar size={14} /> {recommendations.dayName} Sessies
+                        <Calendar size={14} /> {recommendations.dayName} Sessions
                     </div>
 
                     {recommendations.options.map((opt, idx) => {
                         const styles = getCardStyles(opt.type);
                         return (
                             <div key={opt.id} className={`p-5 rounded-xl border-2 transition-colors relative ${styles.container} ${idx > 0 && 'opacity-90 scale-95 origin-top mt-2'}`}>
-                                {idx === 0 && <div className="absolute -top-3 left-4 px-2 py-0.5 bg-yellow-400 text-slate-900 text-[10px] font-bold uppercase rounded">Aanbevolen</div>}
-                                {idx > 0 && <div className="absolute -top-3 left-4 px-2 py-0.5 bg-cdsurface border border-cdborder text-cdtext text-[10px] font-bold uppercase rounded">Alternatief</div>}
+                                {idx === 0 && <div className="absolute -top-3 left-4 px-2 py-0.5 bg-yellow-400 text-slate-900 text-[10px] font-bold uppercase rounded">Recommended</div>}
+                                {idx > 0 && <div className="absolute -top-3 left-4 px-2 py-0.5 bg-cdsurface border border-cdborder text-cdtext text-[10px] font-bold uppercase rounded">Alternative</div>}
 
                                 <div className="flex justify-between items-start mb-2 mt-2">
                                     <h3 className={`text-lg font-bold ${styles.text}`}>{opt.title}</h3>
@@ -615,10 +615,10 @@ ${workout.zwoSteps.map(step => {
 
                 {/* --- 2. SWOT MATRIX (Right Col, 2 span) --- */}
                 <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 h-fit">
-                    <SwotCard title="Strengths (Kracht)" items={swot.strengths} icon={CheckCircle} color="text-green-500" border="border-green-500" />
-                    <SwotCard title="Weaknesses (Zwaktes)" items={swot.weaknesses} icon={AlertTriangle} color="text-red-500" border="border-red-500" />
-                    <SwotCard title="Opportunities (Kansen)" items={opportunitiesForDisplay} icon={TrendingUp} color="text-blue-500" border="border-blue-500" />
-                    <SwotCard title="Threats (Bedreigingen)" items={swot.threats} icon={Activity} color="text-yellow-500" border="border-yellow-500" />
+                    <SwotCard title="Strengths" items={swot.strengths} icon={CheckCircle} color="text-green-500" border="border-green-500" />
+                    <SwotCard title="Weaknesses" items={swot.weaknesses} icon={AlertTriangle} color="text-red-500" border="border-red-500" />
+                    <SwotCard title="Opportunities" items={opportunitiesForDisplay} icon={TrendingUp} color="text-blue-500" border="border-blue-500" />
+                    <SwotCard title="Threats" items={swot.threats} icon={Activity} color="text-yellow-500" border="border-yellow-500" />
                 </div>
             </div>
 
@@ -626,21 +626,21 @@ ${workout.zwoSteps.map(step => {
             <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl space-y-4">
                 <h3 className="text-lg font-bold text-cdtext flex items-center gap-2">
                     <GitCompareArrows size={20} className="text-cdaccent shrink-0" />
-                    Periodevergelijking (trend)
+                    Period comparison (trend)
                 </h3>
                 <p className="text-xs text-cdmuted leading-relaxed">
-                    Naast je gekozen venster kijken we naar <strong className="text-cdtext font-medium">het even lange stuk ervoor</strong> (directe vergelijking) en — als je periode kort genoeg is — naar het <strong className="text-cdtext font-medium">afgelopen jaar minus je huidige periode</strong> (langere context). Zo zie je bv. of je laatste maand zwaarder of lichter is dan het jaargemiddelde ervoor.
+                    Beyond your selected window we look at <strong className="text-cdtext font-medium">the equally long stretch before it</strong> (direct comparison) and — if your period is short enough — at the <strong className="text-cdtext font-medium">past year minus your current period</strong> (longer context). That shows whether your latest month is heavier or lighter than the year average before it.
                 </p>
                 <div className="overflow-x-auto rounded-lg border border-cdborder">
                     <table className="w-full text-left text-sm min-w-[640px]">
                         <thead>
                             <tr className="bg-cdborder/40 text-cdmuted text-xs uppercase">
-                                <th className="px-3 py-2 font-semibold">Venster</th>
-                                <th className="px-3 py-2 font-semibold">Datums</th>
-                                <th className="px-3 py-2 font-semibold text-right">Ritten</th>
+                                <th className="px-3 py-2 font-semibold">Window</th>
+                                <th className="px-3 py-2 font-semibold">Dates</th>
+                                <th className="px-3 py-2 font-semibold text-right">Rides</th>
                                 <th className="px-3 py-2 font-semibold text-right">TSS/wk</th>
                                 <th className="px-3 py-2 font-semibold text-right">km/wk</th>
-                                <th className="px-3 py-2 font-semibold text-right">u/wk</th>
+                                <th className="px-3 py-2 font-semibold text-right">h/wk</th>
                                 <th className="px-3 py-2 font-semibold text-right">&gt;90% FTP</th>
                                 <th className="px-3 py-2 font-semibold text-right">Δ TSS</th>
                             </tr>
@@ -667,12 +667,12 @@ ${workout.zwoSteps.map(step => {
                 </div>
                 {!swot.periodComparison.prior && swot.coachMetrics?.rideCount > 0 && (
                     <p className="text-xs text-cdmuted">
-                        Geen directe voorganger: je gekozen periode reikt te ver terug of er is onvoldoende marge vóór de startdatum in je activiteitenlijst.
+                        No direct predecessor: your selected period goes too far back or there isn't enough margin before the start date in your activity list.
                     </p>
                 )}
                 {!swot.periodComparison.yearRest && swot.coachMetrics?.rideCount > 0 && (
                     <p className="text-xs text-cdmuted">
-                        Jaar-context wordt alleen getoond voor periodes van ongeveer 2 weken tot onder de 10 maanden; bij &quot;alles&quot; of zeer lange ranges gebruik je vooral de eerste vergelijkingsrij.
+                        Year context is only shown for periods from about 2 weeks to under 10 months; for &quot;all&quot; or very long ranges, use the first comparison row mainly.
                     </p>
                 )}
             </div>
@@ -685,7 +685,7 @@ ${workout.zwoSteps.map(step => {
                         {coachPlan.headline}
                     </h3>
                     <label className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-cdmuted">
-                        <span className="font-semibold text-cdtext whitespace-nowrap">Trainingsdoel</span>
+                        <span className="font-semibold text-cdtext whitespace-nowrap">Training goal</span>
                         <select
                             value={coachGoalId}
                             onChange={(e) => setCoachGoalId(e.target.value)}
@@ -700,13 +700,13 @@ ${workout.zwoSteps.map(step => {
                     </label>
                 </div>
                 <p className="text-xs text-cdmuted leading-relaxed">
-                    Dit weekvoorstel combineert je gekozen periode ({swot.periodLabel}), de SWOT-signalen en — bij &quot;Automatisch&quot; — de sterkste aandachtspunten uit je data. Gebruik het als startpunt; pas aan naar schema, weer en herstel.
+                    This weekly proposal combines your selected period ({swot.periodLabel}), SWOT signals, and — with &quot;Automatic&quot; — the strongest focus points from your data. Use it as a starting point; adjust for schedule, weather, and recovery.
                 </p>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div>
                         <h4 className="text-sm font-bold text-cdtext uppercase tracking-wide mb-2 flex items-center gap-2">
-                            <ListChecks size={16} className="text-cdaccent" /> Concrete acties
+                            <ListChecks size={16} className="text-cdaccent" /> Concrete actions
                         </h4>
                         <ul className="list-disc list-inside space-y-2 text-sm text-cdtext leading-relaxed">
                             {coachPlan.actions.map((line, i) => (
@@ -715,12 +715,12 @@ ${workout.zwoSteps.map(step => {
                         </ul>
                     </div>
                     <div>
-                        <h4 className="text-sm font-bold text-cdtext uppercase tracking-wide mb-2">Voorbeeldweek (Ma–Zo)</h4>
+                        <h4 className="text-sm font-bold text-cdtext uppercase tracking-wide mb-2">Example week (Mon–Sun)</h4>
                         <div className="rounded-lg border border-cdborder overflow-hidden text-sm">
                             <table className="w-full text-left">
                                 <thead>
                                     <tr className="bg-cdborder/40 text-cdmuted text-xs uppercase">
-                                        <th className="px-3 py-2 font-semibold">Dag</th>
+                                        <th className="px-3 py-2 font-semibold">Day</th>
                                         <th className="px-3 py-2 font-semibold">Focus</th>
                                         <th className="px-3 py-2 font-semibold w-24 text-right">.zwo</th>
                                     </tr>
@@ -759,7 +759,7 @@ ${workout.zwoSteps.map(step => {
 
                 {coachPlan.workouts.length > 0 && (
                     <div>
-                        <h4 className="text-sm font-bold text-cdtext uppercase tracking-wide mb-3">Workouts uit dit plan (alle .zwo)</h4>
+                        <h4 className="text-sm font-bold text-cdtext uppercase tracking-wide mb-3">Workouts from this plan (all .zwo)</h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
                             {coachPlan.workouts.map((w) => {
                                 const styles = getCardStyles(w.type);

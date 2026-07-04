@@ -102,7 +102,7 @@ export function buildPeriodComparison(activities, primaryStart, primaryEnd, ftp)
 
     rows.push({
         key: 'primary',
-        label: 'Gekozen periode',
+        label: 'Selected period',
         rangeLabel: primary.periodLabel,
         ...pickRowMetrics(primary),
     });
@@ -122,7 +122,7 @@ export function buildPeriodComparison(activities, primaryStart, primaryEnd, ftp)
 
         rows.push({
             key: 'prior',
-            label: 'Ervoor (zelfde lengte)',
+            label: 'Prior period (same length)',
             rangeLabel: prior.periodLabel,
             ...pickRowMetrics(prior),
             vsPrimaryTssPct: tssPct,
@@ -134,22 +134,22 @@ export function buildPeriodComparison(activities, primaryStart, primaryEnd, ftp)
             if (tssPct != null && tssPct > 15) {
                 swotExtras.push({
                     quadrant: 'strengths',
-                    label: 'Meer volume dan het vorige blok',
-                    context: `TSS/week is ~${Math.round(tssPct)}% hoger dan in het even lange venster ervoor (${prior.periodLabel}: ~${Math.round(prior.avgWeeklyLoad)} → nu ~${Math.round(primary.avgWeeklyLoad)}). Je zit in opbouw — let op herstel.`,
+                    label: 'Higher volume than the previous block',
+                    context: `TSS/week is ~${Math.round(tssPct)}% higher than in the equally long window before (${prior.periodLabel}: ~${Math.round(prior.avgWeeklyLoad)} → now ~${Math.round(primary.avgWeeklyLoad)}). You're building — watch recovery.`,
                 });
             } else if (tssPct != null && tssPct < -15) {
                 swotExtras.push({
                     quadrant: 'weaknesses',
-                    label: 'Minder volume dan het vorige blok',
-                    context: `TSS/week ligt ~${Math.round(Math.abs(tssPct))}% lager dan in ${prior.periodLabel} (~${Math.round(prior.avgWeeklyLoad)} → ~${Math.round(primary.avgWeeklyLoad)}). Als dat geen bewuste rust is, verlies je snel trainingsprikkels.`,
+                    label: 'Lower volume than the previous block',
+                    context: `TSS/week is ~${Math.round(Math.abs(tssPct))}% lower than in ${prior.periodLabel} (~${Math.round(prior.avgWeeklyLoad)} → ~${Math.round(primary.avgWeeklyLoad)}). If that isn't deliberate rest, you'll lose training stimulus quickly.`,
                 });
             }
 
             if (ridesPct != null && ridesPct > 20 && (tssPct == null || tssPct < 10)) {
                 swotExtras.push({
                     quadrant: 'opportunities',
-                    label: 'Meer ritten, vergelijkbare TSS',
-                    context: `Je fietst vaker per week (+~${Math.round(ridesPct)}% vs ${prior.periodLabel}) maar TSS/week stijgt beperkt. Kijk of je structuur (kortere ritten) past bij je doel — of voeg duur toe.`,
+                    label: 'More rides, similar TSS',
+                    context: `You ride more often per week (+~${Math.round(ridesPct)}% vs ${prior.periodLabel}) but TSS/week rises only slightly. Check whether your structure (shorter rides) fits your goal — or add duration.`,
                 });
             }
         }
@@ -175,7 +175,7 @@ export function buildPeriodComparison(activities, primaryStart, primaryEnd, ftp)
 
         rows.push({
             key: 'yearRest',
-            label: 'Jaar ervoor (zonder je huidige periode)',
+            label: 'Year before (excluding current period)',
             rangeLabel: yearRest.periodLabel,
             ...pickRowMetrics(yearRest),
             vsPrimaryTssPct: tssYPct,
@@ -187,14 +187,14 @@ export function buildPeriodComparison(activities, primaryStart, primaryEnd, ftp)
             if (tssYPct != null && tssYPct > 12) {
                 swotExtras.push({
                     quadrant: 'opportunities',
-                    label: 'Recenter zwaarder dan je jaargemiddelde ervoor',
-                    context: `Je huidige periode (${primary.periodLabel}) zit ~${Math.round(tssYPct)}% boven je gemiddelde TSS/week in het deel van het afgelopen jaar vóór dit venster (~${Math.round(yearRest.avgWeeklyLoad)} → ~${Math.round(primary.avgWeeklyLoad)}). Goed voor progressie als je herstel goed is.`,
+                    label: 'Recent period heavier than your prior year average',
+                    context: `Your current period (${primary.periodLabel}) is ~${Math.round(tssYPct)}% above your average TSS/week in the part of the past year before this window (~${Math.round(yearRest.avgWeeklyLoad)} → ~${Math.round(primary.avgWeeklyLoad)}). Good for progression if recovery is on track.`,
                 });
             } else if (tssYPct != null && tssYPct < -12) {
                 swotExtras.push({
                     quadrant: 'threats',
-                    label: 'Recenter lichter dan je jaargemiddelde ervoor',
-                    context: `TSS/week ligt ~${Math.round(Math.abs(tssYPct))}% onder je gemiddelde in ${yearRest.periodLabel}. Controleer of dit bewust is (rust/peiling) — anders schuift je chronic load terug.`,
+                    label: 'Recent period lighter than your prior year average',
+                    context: `TSS/week is ~${Math.round(Math.abs(tssYPct))}% below your average in ${yearRest.periodLabel}. Check whether this is deliberate (rest/testing) — otherwise chronic load slips backward.`,
                 });
             }
 
@@ -206,8 +206,8 @@ export function buildPeriodComparison(activities, primaryStart, primaryEnd, ftp)
             ) {
                 swotExtras.push({
                     quadrant: 'weaknesses',
-                    label: 'Minder harde sessies dan eerder dit jaar',
-                    context: `In je huidige venster zitten ${primary.highIntensityCount}× sessies >90% FTP; in het jaardeel ervoor ${yearRest.highIntensityCount}× (over langere tijd gespreid). Als je plafond wilt vasthouden, plan weer 1–2 kwaliteitsdagen per week.`,
+                    label: 'Fewer hard sessions than earlier this year',
+                    context: `In your current window there are ${primary.highIntensityCount} sessions >90% FTP; in the year portion before ${yearRest.highIntensityCount} (spread over more time). If you want to hold your ceiling, schedule 1–2 quality days per week again.`,
                 });
             }
         }

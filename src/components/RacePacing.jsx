@@ -121,19 +121,19 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
         // Warning flags
         const warnings = [];
         if (glycogenPercent > 90) {
-            warnings.push("KRITIEK: Glycogeen depot bijna leeg! Verhoog carb intake.");
+            warnings.push("CRITICAL: Glycogen stores nearly depleted! Increase carb intake.");
         } else if (glycogenPercent > 70) {
-            warnings.push("WAARSCHUWING: Hoge glycogeen depletie. Zorg voor voldoende voeding.");
+            warnings.push("WARNING: High glycogen depletion. Ensure adequate nutrition.");
         }
 
         if (totalTime > 300) {
-            warnings.push("Race duurt >5 uur. Overweeg pacing te verlagen naar 0.75-0.80 IF.");
+            warnings.push("Race lasts >5 hours. Consider lowering pacing to 0.75-0.80 IF.");
         }
 
         // Calculate required carbs per hour
         const carbsPerHour = (totalCarbs / (totalTime / 60));
         if (carbsPerHour > 100) {
-            warnings.push("Te hoog carb verbruik! Dit is niet realistisch vol te houden.");
+            warnings.push("Carb intake too high! This is not realistic to sustain.");
         }
 
         return {
@@ -164,13 +164,13 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
 
             {/* Methodology Info */}
             <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-                <h4 className="text-blue-400 font-bold text-sm mb-2">ℹ️ Hoe werkt dit?</h4>
+                <h4 className="text-blue-400 font-bold text-sm mb-2">ℹ️ How does this work?</h4>
                 <div className="text-xs text-cdtext space-y-1">
-                    <p><strong>• Climb tijden:</strong> Berekend via physics engine (zwaartekracht, luchtweerstand, rolweerstand)</p>
-                    <p><strong>• Energie verbruik:</strong> Mechanisch vermogen (kJ) → Metabolisch verbruik (lichaam is ~23% efficient)</p>
-                    <p><strong>• Koolhydraten:</strong> Bij race intensiteit komt ~60% energie uit glycogeen. 1g carbs = 4 kcal</p>
-                    <p><strong>• Glycogeen depot:</strong> Getrainde atleet heeft ~500g glycogeen (~2000 kcal) beschikbaar</p>
-                    <p><strong>💡 Tip:</strong> Vermijd depletie &gt;80% - je hebt ook nog energie nodig voor vlakke stukken!</p>
+                    <p><strong>• Climb times:</strong> Calculated via physics engine (gravity, air resistance, rolling resistance)</p>
+                    <p><strong>• Energy expenditure:</strong> Mechanical power (kJ) → Metabolic expenditure (body is ~23% efficient)</p>
+                    <p><strong>• Carbohydrates:</strong> At race intensity ~60% of energy comes from glycogen. 1g carbs = 4 kcal</p>
+                    <p><strong>• Glycogen stores:</strong> Trained athlete has ~500g glycogen (~2000 kcal) available</p>
+                    <p><strong>💡 Tip:</strong> Avoid depletion &gt;80% - you still need energy for flat sections!</p>
                 </div>
             </div>
 
@@ -178,7 +178,7 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Left: Climb Selection */}
                 <div className="space-y-4">
-                    <h3 className="text-sm font-bold text-cdtext uppercase tracking-wide">Voeg Beklimmingen Toe</h3>
+                    <h3 className="text-sm font-bold text-cdtext uppercase tracking-wide">Add Climbs</h3>
 
                     {/* Climb Selector */}
                     <ClimbSelector
@@ -204,10 +204,10 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
                             className="w-full h-2 bg-cdborder rounded-lg appearance-none cursor-pointer accent-yellow-400"
                         />
                         <div className="text-xs text-cdmuted mt-1">
-                            {targetIntensity < 0.75 && "Endurance pace - goed voor ultralange races"}
-                            {targetIntensity >= 0.75 && targetIntensity < 0.85 && "Tempo pace - houdbaar voor 3-5 uur"}
-                            {targetIntensity >= 0.85 && targetIntensity < 0.95 && "Race pace - houdbaar voor 1-3 uur"}
-                            {targetIntensity >= 0.95 && "Threshold+ - alleen voor korte races!"}
+                            {targetIntensity < 0.75 && "Endurance pace - good for ultra-long races"}
+                            {targetIntensity >= 0.75 && targetIntensity < 0.85 && "Tempo pace - sustainable for 3-5 hours"}
+                            {targetIntensity >= 0.85 && targetIntensity < 0.95 && "Race pace - sustainable for 1-3 hours"}
+                            {targetIntensity >= 0.95 && "Threshold+ - only for short races!"}
                         </div>
                     </div>
                 </div>
@@ -221,7 +221,7 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
                     <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
                         {selectedClimbs.length === 0 ? (
                             <div className="text-center py-8 text-cdmuted text-sm">
-                                Nog geen beklimmingen toegevoegd
+                                No climbs added yet
                             </div>
                         ) : (
                             selectedClimbs.map((climb, idx) => (
@@ -245,7 +245,7 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
 
                                     {/* Recovery Time Input */}
                                     <div className="flex items-center gap-2 text-xs">
-                                        <span className="text-cdmuted">Recovery na climb:</span>
+                                        <span className="text-cdmuted">Recovery after climb:</span>
                                         <input
                                             type="number"
                                             value={recoveryMinutes[climb.id] || 0}
@@ -255,7 +255,7 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
                                             })}
                                             className="w-16 bg-cdsurface border border-cdborder rounded px-2 py-1 text-cdtext"
                                         />
-                                        <span className="text-cdmuted">minuten</span>
+                                        <span className="text-cdmuted">minutes</span>
                                     </div>
                                 </div>
                             ))
@@ -271,10 +271,10 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
                             >
                                 <span className="flex items-center gap-2">
                                     <MapIcon size={14} className="text-cdaccent" />
-                                    Route op kaart
+                                    Route on map
                                     {selectedClimbs.filter(c => c.lat).length < selectedClimbs.length && (
                                         <span className="text-[10px] text-orange-400 font-normal">
-                                            (Zwift/geen GPS: niet zichtbaar)
+                                            (Zwift/no GPS: not visible)
                                         </span>
                                     )}
                                 </span>
@@ -385,15 +385,15 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
                     <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                             <div className="flex-1">
-                                <h4 className="text-green-700 font-bold text-sm mb-2">💡 Voedingsstrategie</h4>
+                                <h4 className="text-green-700 font-bold text-sm mb-2">💡 Nutrition Strategy</h4>
                                 <p className="text-sm text-cdtext">
-                                    Voor deze race heb je <strong>{Math.round(raceStrategy.totalCarbs)}g koolhydraten</strong> nodig
-                                    ({Math.round(raceStrategy.carbsPerHour)}g/uur).
-                                    {raceStrategy.carbsPerHour <= 60 && " Dit is goed haalbaar met standaard sportvoeding."}
+                                    For this race you need <strong>{Math.round(raceStrategy.totalCarbs)}g carbohydrates</strong>
+                                    ({Math.round(raceStrategy.carbsPerHour)}g/hour).
+                                    {raceStrategy.carbsPerHour <= 60 && " This is achievable with standard sports nutrition."}
                                     {raceStrategy.carbsPerHour > 60 && raceStrategy.carbsPerHour <= 90 &&
-                                        " Train je spijsvertering met deze hoge carb intake!"}
+                                        " Train your gut with this high carb intake!"}
                                     {raceStrategy.carbsPerHour > 90 &&
-                                        " Dit is extreem hoog - overweeg pacing te verlagen of extra herstel tussen climbs."}
+                                        " This is extremely high - consider lowering pacing or adding extra recovery between climbs."}
                                 </p>
                             </div>
                             {onExportToFueling && (

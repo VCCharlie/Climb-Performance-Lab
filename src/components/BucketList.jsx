@@ -39,21 +39,21 @@ const BucketList = ({ initialState, onStateChange }) => {
 
         // First climb
         if (doneLength >= 1) {
-            badges.push({ title: '🚴 First Ascent', description: 'Voltooid je eerste beklimming!' });
+            badges.push({ title: '🚴 First Ascent', description: 'Completed your first climb!' });
         }
 
         // Milestones
         if (doneLength >= 5) {
-            badges.push({ title: '⭐ Klim Enthousiast', description: '5 beklimmingen voltooid' });
+            badges.push({ title: '⭐ Climbing Enthusiast', description: '5 climbs completed' });
         }
         if (doneLength >= 10) {
-            badges.push({ title: '🏅 Klim Specialist', description: '10 beklimmingen voltooid' });
+            badges.push({ title: '🏅 Climb Specialist', description: '10 climbs completed' });
         }
         if (doneLength >= 25) {
-            badges.push({ title: '👑 Klim Koning', description: '25 beklimmingen voltooid' });
+            badges.push({ title: '👑 Climb King', description: '25 climbs completed' });
         }
         if (doneLength >= 50) {
-            badges.push({ title: '🦅 Berg Legende', description: '50 beklimmingen voltooid' });
+            badges.push({ title: '🦅 Mountain Legend', description: '50 climbs completed' });
         }
 
         const iconicClimbs = new Set(['fr_alpe', 'fr_ventoux', 'fr_tourmalet', 'it_stelvio', 'it_zoncolan']);
@@ -97,30 +97,30 @@ const BucketList = ({ initialState, onStateChange }) => {
 
         // Specific regions
         if (frenchClimbs >= 10) {
-            badges.push({ title: '🇫🇷 Alpen Expert', description: '10 Franse cols voltooid' });
+            badges.push({ title: '🇫🇷 Alpine Expert', description: '10 French cols completed' });
         }
         if (italianClimbs >= 5) {
-            badges.push({ title: '🇮🇹 Giro Specialist', description: '5 Italiaanse cols voltooid' });
+            badges.push({ title: '🇮🇹 Giro Specialist', description: '5 Italian cols completed' });
         }
         if (swissClimbs >= 3) {
-            badges.push({ title: '🇨🇭 Swiss Master', description: '3 Zwitserse cols voltooid' });
+            badges.push({ title: '🇨🇭 Swiss Master', description: '3 Swiss cols completed' });
         }
         if (zwiftClimbs >= 5) {
-            badges.push({ title: '🎮 Virtual Climber', description: '5 Zwift climbs voltooid' });
+            badges.push({ title: '🎮 Virtual Climber', description: '5 Zwift climbs completed' });
         }
 
         // Difficulty badges
         if (hardClimbs >= 5) {
-            badges.push({ title: '⛰️ Steep Master', description: '5 cols >8% gemiddeld voltooid' });
+            badges.push({ title: '⛰️ Steep Master', description: '5 cols >8% average completed' });
         }
 
         // Iconic climbs
         if (iconicDone >= 3) {
-            badges.push({ title: '🏆 Iconische Cols', description: '3 legendarische cols voltooid' });
+            badges.push({ title: '🏆 Iconic Cols', description: '3 legendary cols completed' });
         }
 
         if (totalElevation >= 10000) {
-            badges.push({ title: '📈 Everest Challenge', description: `${Math.round(totalElevation)}m totaal geklommen!` });
+            badges.push({ title: '📈 Everest Challenge', description: `${Math.round(totalElevation)}m total climbed!` });
         }
 
         return {
@@ -194,7 +194,7 @@ const BucketList = ({ initialState, onStateChange }) => {
                     Climb Bucket List
                 </h2>
                 <div className="text-xs text-cdmuted bg-cdbg px-3 py-1 rounded-full border border-cdborder">
-                    {achievements.stats.totalDone} / {CLIMB_DATABASE.length} voltooid
+                    {achievements.stats.totalDone} / {CLIMB_DATABASE.length} completed
                 </div>
             </div>
 
@@ -204,23 +204,23 @@ const BucketList = ({ initialState, onStateChange }) => {
                 <div className="bg-cdbg p-4 rounded border border-cdborder">
                     <h3 className="text-cdtext font-bold text-sm mb-3 flex items-center gap-2">
                         <Trophy className="text-yellow-400" size={16} />
-                        Statistieken
+                        Statistics
                     </h3>
                     <div className="grid grid-cols-2 gap-3 text-sm">
                         <div>
-                            <p className="text-cdmuted text-xs">Voltooid</p>
+                            <p className="text-cdmuted text-xs">Completed</p>
                             <p className="text-cdtext font-bold text-lg">{achievements.stats.totalDone}</p>
                         </div>
                         <div>
-                            <p className="text-cdmuted text-xs">Totaal hoogtemeters</p>
+                            <p className="text-cdmuted text-xs">Total elevation</p>
                             <p className="text-cdtext font-bold text-lg">{Math.round(achievements.stats.totalElevation).toLocaleString('nl-NL')}m</p>
                         </div>
                         <div>
-                            <p className="text-cdmuted text-xs">Gem. hellingspercentage</p>
+                            <p className="text-cdmuted text-xs">Avg. gradient</p>
                             <p className="text-cdtext font-bold text-lg">{achievements.stats.avgGrade}%</p>
                         </div>
                         <div>
-                            <p className="text-cdmuted text-xs">Zwaarste col</p>
+                            <p className="text-cdmuted text-xs">Hardest col</p>
                             <p className="text-cdtext font-bold text-sm">{achievements.stats.hardestClimb?.name.substring(0, 15) || '-'}</p>
                         </div>
                     </div>
@@ -234,7 +234,7 @@ const BucketList = ({ initialState, onStateChange }) => {
                     </h3>
                     <div className="space-y-2 max-h-32 overflow-y-auto custom-scrollbar">
                         {achievements.badges.length === 0 ? (
-                            <p className="text-cdmuted text-xs">Voltooi je eerste climb om badges te verdienen!</p>
+                            <p className="text-cdmuted text-xs">Complete your first climb to earn badges!</p>
                         ) : (
                             achievements.badges.map((badge, idx) => (
                                 <div key={idx} className="bg-cdsurface p-2 rounded text-xs">
@@ -254,7 +254,7 @@ const BucketList = ({ initialState, onStateChange }) => {
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-cdmuted" size={16} />
                     <input
                         type="text"
-                        placeholder="Zoek climb..."
+                        placeholder="Search climb..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full pl-10 pr-3 py-2 bg-cdborder border border-cdborder rounded text-cdtext text-sm focus:border-yellow-400 outline-none"
@@ -268,11 +268,11 @@ const BucketList = ({ initialState, onStateChange }) => {
                         onChange={(e) => setFilterStatus(e.target.value)}
                         className="w-full px-3 py-2 bg-cdborder border border-cdborder rounded text-cdtext text-sm focus:border-yellow-400 outline-none"
                     >
-                        <option value="all">Alle ({CLIMB_DATABASE.length})</option>
-                        <option value="done">Voltooid ({statusCounts.done})</option>
-                        <option value="planned">Gepland ({statusCounts.planned})</option>
-                        <option value="want">Wil doen ({statusCounts.want})</option>
-                        <option value="todo">Te doen ({statusCounts.todo})</option>
+                        <option value="all">All ({CLIMB_DATABASE.length})</option>
+                        <option value="done">Completed ({statusCounts.done})</option>
+                        <option value="planned">Planned ({statusCounts.planned})</option>
+                        <option value="want">Want to do ({statusCounts.want})</option>
+                        <option value="todo">To do ({statusCounts.todo})</option>
                     </select>
                 </div>
 
@@ -283,9 +283,9 @@ const BucketList = ({ initialState, onStateChange }) => {
                         onChange={(e) => setSortBy(e.target.value)}
                         className="w-full px-3 py-2 bg-cdborder border border-cdborder rounded text-cdtext text-sm focus:border-yellow-400 outline-none"
                     >
-                        <option value="name">Sorteer: Naam</option>
-                        <option value="difficulty">Sorteer: Moeilijkheid</option>
-                        <option value="status">Sorteer: Status</option>
+                        <option value="name">Sort: Name</option>
+                        <option value="difficulty">Sort: Difficulty</option>
+                        <option value="status">Sort: Status</option>
                     </select>
                 </div>
             </div>
@@ -293,7 +293,7 @@ const BucketList = ({ initialState, onStateChange }) => {
             {/* Climb List */}
             <div className="bg-cdbg p-4 rounded border border-cdborder">
                 <h3 className="text-cdtext font-bold text-sm mb-3 uppercase tracking-wide">
-                    Beklimmingen ({filteredClimbs.length})
+                    Climbs ({filteredClimbs.length})
                 </h3>
                 <div className="space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
                     {filteredClimbs.map(climb => {
@@ -330,7 +330,7 @@ const BucketList = ({ initialState, onStateChange }) => {
                                                 ? 'bg-green-500 text-white'
                                                 : 'bg-cdborder text-cdmuted hover:bg-green-100 hover:text-green-600'
                                                 }`}
-                                            title="Voltooid"
+                                            title="Completed"
                                         >
                                             <Check size={14} />
                                         </button>
@@ -340,7 +340,7 @@ const BucketList = ({ initialState, onStateChange }) => {
                                                 ? 'bg-blue-500 text-white'
                                                 : 'bg-cdborder text-cdmuted hover:bg-blue-100 hover:text-blue-600'
                                                 }`}
-                                            title="Gepland"
+                                            title="Planned"
                                         >
                                             <Clock size={14} />
                                         </button>
@@ -350,7 +350,7 @@ const BucketList = ({ initialState, onStateChange }) => {
                                                 ? 'bg-yellow-500 text-white'
                                                 : 'bg-cdborder text-cdmuted hover:bg-yellow-100 hover:text-yellow-600'
                                                 }`}
-                                            title="Wil doen"
+                                            title="Want to do"
                                         >
                                             <Star size={14} />
                                         </button>

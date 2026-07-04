@@ -43,15 +43,15 @@ class ErrorBoundary extends React.Component {
                         boxShadow: '0 4px 24px rgba(0,0,0,0.08)'
                     }}>
                         <h1 style={{ color: '#dc2626', fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-                            ⚠️ Applicatie kon niet laden
+                            ⚠️ Application could not load
                         </h1>
                         <p style={{ color: '#64748b', fontSize: '0.875rem', marginBottom: '1rem' }}>
-                            Er is een onverwachte fout opgetreden tijdens het renderen. Zie hieronder voor details.
+                            An unexpected error occurred while rendering. See details below.
                         </p>
 
                         <details open style={{ marginBottom: '1rem' }}>
                             <summary style={{ cursor: 'pointer', fontWeight: 600, color: '#1e2330', marginBottom: '0.5rem' }}>
-                                Foutmelding
+                                Error message
                             </summary>
                             <pre style={{
                                 background: '#f8fafc',
@@ -100,7 +100,7 @@ class ErrorBoundary extends React.Component {
                                 fontSize: '0.875rem'
                             }}
                         >
-                            Pagina herladen
+                            Reload page
                         </button>
                     </div>
                 </div>

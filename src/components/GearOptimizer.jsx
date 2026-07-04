@@ -136,21 +136,21 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
         if (gearAnalysis.easiest.cadenceNeeded < 60) {
             tips.push({
                 type: 'warning',
-                message: `Je lichtste versnelling (${gearAnalysis.easiest.chainring}x${gearAnalysis.easiest.cog}) vereist een cadans van ${Math.round(gearAnalysis.easiest.cadenceNeeded)} rpm. Dit is te laag (<60 rpm).`
+                message: `Your easiest gear (${gearAnalysis.easiest.chainring}x${gearAnalysis.easiest.cog}) needs a cadence of ${Math.round(gearAnalysis.easiest.cadenceNeeded)} rpm. That is too low (<60 rpm).`
             });
             tips.push({
                 type: 'suggestion',
-                message: `Overweeg een cassette met een groter verzet (bijv. 32T of 34T ipv ${cassette[cassette.length - 1]}T).`
+                message: `Consider a cassette with a larger cog (e.g. 32T or 34T instead of ${cassette[cassette.length - 1]}T).`
             });
         } else if (gearAnalysis.easiest.cadenceNeeded > 100) {
             tips.push({
                 type: 'info',
-                message: `Je versnelling is erg licht. Je hebt marge voor een zwaarder verzet of hogere power.`
+                message: `Your gearing is very light. You have margin for a harder gear or higher power.`
             });
         } else {
             tips.push({
                 type: 'success',
-                message: `Je versnelling is geschikt voor deze klim! Je kunt een cadans tussen 60-100 rpm houden.`
+                message: `Your gearing suits this climb! You can hold cadence between 60–100 rpm.`
             });
         }
 
@@ -158,7 +158,7 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
         if (selectedClimb.avgGrade > 10 && cassette[cassette.length - 1] < 32) {
             tips.push({
                 type: 'warning',
-                message: `Voor hellingen boven 10% is een 32T+ cassette sterk aan te raden.`
+                message: `For gradients above 10%, a 32T+ cassette is strongly recommended.`
             });
         }
 

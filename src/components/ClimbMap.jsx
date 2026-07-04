@@ -264,16 +264,16 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
             userMarkerRef.current = L.marker([userPos.lat, userPos.lng], {
                 icon: createUserIcon(),
                 zIndexOffset: 1000,
-                title: 'Jouw locatie',
+                title: 'Your location',
             })
                 .addTo(mapInstanceRef.current)
-                .bindPopup('<strong>📍 Jouw locatie</strong>');
+                .bindPopup('<strong>📍 Your location</strong>');
         }
     }, [userPos]);
 
     const locateMe = useCallback(() => {
         if (!navigator.geolocation) {
-            setLocError('Geolocation niet beschikbaar in deze browser.');
+            setLocError('Geolocation is not available in this browser.');
             return;
         }
         setLocating(true);
@@ -287,7 +287,7 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
                 setLocating(false);
             },
             (err) => {
-                setLocError('Locatie kon niet worden bepaald: ' + err.message);
+                setLocError('Could not determine location: ' + err.message);
                 setLocating(false);
             },
             { timeout: 8000 }
@@ -308,11 +308,11 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
                     <div>
                         <h2 className="text-lg font-bold text-cdtext flex items-center gap-2">
                             <MapPin size={18} className="text-cdaccent" />
-                            Klimmen Kaart
+                            Climbs Map
                         </h2>
                         <p className="text-xs text-cdmuted mt-0.5">
-                            {totalShown.toLocaleString('nl-NL')} van {REAL_CLIMBS.length.toLocaleString('nl-NL')} klimmen zichtbaar
-                            {trackLoading && <span className="ml-2 text-yellow-400 animate-pulse">· track laden...</span>}
+                            {totalShown.toLocaleString('nl-NL')} of {REAL_CLIMBS.length.toLocaleString('nl-NL')} climbs visible
+                            {trackLoading && <span className="ml-2 text-yellow-400 animate-pulse">· loading track...</span>}
                             {selectedClimb && !trackLoading && (
                                 <span className="ml-2 text-yellow-400">· {selectedClimb.name}</span>
                             )}
@@ -323,7 +323,7 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
                         {userPos ? (
                             <div className="flex items-center gap-1 bg-blue-500/10 border border-blue-500/30 rounded-lg px-3 py-1.5">
                                 <LocateFixed size={13} className="text-blue-400" />
-                                <span className="text-xs text-blue-400 font-bold">In de buurt</span>
+                                <span className="text-xs text-blue-400 font-bold">Nearby</span>
                                 <select
                                     value={nearbyRadius || 100}
                                     onChange={e => setNearbyRadius(Number(e.target.value))}
@@ -344,7 +344,7 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
                                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-cdborder text-xs font-bold text-cdmuted hover:text-cdtext hover:border-yellow-400 transition-colors"
                             >
                                 <LocateFixed size={13} className={locating ? 'animate-pulse text-yellow-400' : ''} />
-                                {locating ? 'Bepalen...' : '📍 In de buurt'}
+                                {locating ? 'Locating...' : '📍 Nearby'}
                             </button>
                         )}
                         {locError && <span className="text-xs text-red-400">{locError}</span>}
@@ -366,7 +366,7 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
                     <div className="mt-3 pt-3 border-t border-cdborder/50 flex flex-wrap gap-4 items-end">
                         {/* Land */}
                         <div className="flex flex-col gap-1">
-                            <span className="text-[10px] uppercase text-cdmuted font-bold">Land</span>
+                            <span className="text-[10px] uppercase text-cdmuted font-bold">Country</span>
                             <div className="flex gap-1.5 flex-wrap max-w-xs">
                                 {uniqueCountries.slice(0, 12).map(c => (
                                     <button
@@ -374,7 +374,7 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
                                         onClick={() => setCountryFilter(c)}
                                         className={`px-2 py-0.5 rounded-full text-xs font-bold transition-colors flex items-center gap-1 ${countryFilter === c ? 'bg-yellow-400 text-slate-900' : 'bg-cdbg border border-cdborder text-cdmuted hover:text-cdtext'}`}
                                     >
-                                        {c === 'All' ? 'Alle' : <><FlagIcon country={c} size="sm" />{c}</>}
+                                        {c === 'All' ? 'All' : <><FlagIcon country={c} size="sm" />{c}</>}
                                     </button>
                                 ))}
                             </div>
@@ -382,7 +382,7 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
 
                         {/* Stijging */}
                         <div className="flex flex-col gap-1">
-                            <span className="text-[10px] uppercase text-cdmuted font-bold">Stijging (%)</span>
+                            <span className="text-[10px] uppercase text-cdmuted font-bold">Gradient (%)</span>
                             <div className="flex items-center gap-2">
                                 <input
                                     type="number" min={0} max={maxGrade} step={0.5}
@@ -420,7 +420,7 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
                     ))}
                     <span className="flex items-center gap-1">
                         <span style={{ background: '#3b82f6', width: 10, height: 10, borderRadius: '50%', border: '2px solid white', display: 'inline-block' }} />
-                        Jouw locatie
+                        Your location
                     </span>
                 </div>
             </div>
