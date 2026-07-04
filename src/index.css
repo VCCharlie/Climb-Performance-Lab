@@ -27,6 +27,14 @@ body {
 /* Themed scrollbars */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
+}
+
+@media (pointer: coarse) {
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {

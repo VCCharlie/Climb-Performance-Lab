@@ -28,7 +28,16 @@ const SortIcon = ({ colKey, config }) => {
         : <ChevronDown size={12} className="text-cdprimary inline" />;
 };
 
-export const TableHeader = ({ config, requestSort, hasActions = true, isPreview = false, showBulkSelect = false, allVisibleSelected = false, onToggleSelectAllVisible }) => (
+export const TableHeader = ({
+    config,
+    requestSort,
+    hasActions = true,
+    isPreview = false,
+    showBulkSelect = false,
+    allVisibleSelected = false,
+    onToggleSelectAllVisible,
+    columns = ACTIVITY_TABLE_COLUMNS,
+}) => (
     <thead className={tableHeadClass}>
         <tr>
             {showBulkSelect && (
@@ -43,7 +52,7 @@ export const TableHeader = ({ config, requestSort, hasActions = true, isPreview 
                 </th>
             )}
             {isPreview && <th className={`${tableHeadCellClass} w-8`} />}
-            {ACTIVITY_TABLE_COLUMNS.map((col) => (
+            {columns.map((col) => (
                 <th
                     key={col.key}
                     className={`${tableHeadCellClass} text-${col.align} ${col.width || ''}`}
@@ -139,6 +148,7 @@ export const Row = React.memo(({
     profilerClimbByActivityId,
     showBulkSelect = false,
     profileFtp,
+    columns = ACTIVITY_TABLE_COLUMNS,
 }) => {
     const [isConfirmingDelete, setIsConfirmingDelete] = React.useState(false);
 
@@ -286,7 +296,7 @@ export const Row = React.memo(({
                 </td>
             )}
             {isPreview && <td className="px-1.5 py-1 w-8"><input type="checkbox" checked={isSelected} readOnly className="w-4 h-4 accent-green-500 cursor-pointer" /></td>}
-            {ACTIVITY_TABLE_COLUMNS.map(col => <td key={col.key} className={`${tableCellClass} text-${col.align} ${col.width || ''}`}>{renderCell(col)}</td>)}
+            {columns.map(col => <td key={col.key} className={`${tableCellClass} text-${col.align} ${col.width || ''}`}>{renderCell(col)}</td>)}
             {!isPreview && <td className="px-1 py-1 text-right w-24">
                 {isConfirmingDelete ? (
                     <div className="flex gap-2 justify-end">
@@ -400,7 +410,11 @@ const ActivityTable = React.memo(({
     allVisibleSelected = false,
     onToggleSelectAllVisible,
     profileFtp,
+    visibleColumns = ACTIVITY_TABLE_COLUMNS,
 }) => {
+    const columns = visibleColumns;
+    const colSpan = columns.length + 1 + (showBulkSelect ? 1 : 0);
+
     return (
         <div className={tableShellClass}>
             <table className={tableClass}>
@@ -412,15 +426,16 @@ const ActivityTable = React.memo(({
                     showBulkSelect={showBulkSelect}
                     allVisibleSelected={allVisibleSelected}
                     onToggleSelectAllVisible={onToggleSelectAllVisible}
+                    columns={columns}
                 />
                 <tbody className={tableBodyClass}>
                     {isGroupedView ? (
                         Object.keys(activities).sort((a, b) => sortConfig.direction === 'asc' ? a - b : b - a).map(year => (
                             <React.Fragment key={year}>
-                                <tr id={`year-${year}`} className={tableGroupYearClass}><td colSpan={ACTIVITY_TABLE_COLUMNS.length + 1 + (showBulkSelect ? 1 : 0)} className="px-3 py-2 font-semibold text-cdtext"><button type="button" onClick={() => onToggleYear(year)} className="flex items-center gap-2 w-full text-left hover:text-cdprimary cd-transition cd-focus-ring rounded-cdsm">{isYearExpanded(year) ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {year}</button></td></tr>
+                                <tr id={`year-${year}`} className={tableGroupYearClass}><td colSpan={colSpan} className="px-3 py-2 font-semibold text-cdtext"><button type="button" onClick={() => onToggleYear(year)} className="flex items-center gap-2 w-full text-left hover:text-cdprimary cd-transition cd-focus-ring rounded-cdsm">{isYearExpanded(year) ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {year}</button></td></tr>
                                 {isYearExpanded(year) && Object.keys(activities[year]).sort((a, b) => { const diff = MONTH_ORDER.indexOf(b) - MONTH_ORDER.indexOf(a); return sortConfig.direction === 'asc' ? -diff : diff; }).map(month => (
                                     <React.Fragment key={month}>
-                                        <tr id={`month-${year}-${month}`} className={tableGroupMonthClass}><td colSpan={ACTIVITY_TABLE_COLUMNS.length + 1 + (showBulkSelect ? 1 : 0)} className="px-6 py-1.5 text-xs font-semibold text-cdmuted"><button type="button" onClick={() => onToggleMonth(year, month)} className="flex items-center gap-1 hover:text-cdtext text-left w-full cd-transition cd-focus-ring rounded-cdsm">{isMonthExpanded(year, month) ? <ChevronDown size={12} /> : <ChevronRight size={12} />} {month}</button></td></tr>
+                                        <tr id={`month-${year}-${month}`} className={tableGroupMonthClass}><td colSpan={colSpan} className="px-6 py-1.5 text-xs font-semibold text-cdmuted"><button type="button" onClick={() => onToggleMonth(year, month)} className="flex items-center gap-1 hover:text-cdtext text-left w-full cd-transition cd-focus-ring rounded-cdsm">{isMonthExpanded(year, month) ? <ChevronDown size={12} /> : <ChevronRight size={12} />} {month}</button></td></tr>
                                         {isMonthExpanded(year, month) && activities[year][month].map(act => (
                                             <Row
                                                 key={act.id}
@@ -434,6 +449,7 @@ const ActivityTable = React.memo(({
                                                 onOpenProfiler={onOpenProfiler}
                                                 profilerClimbByActivityId={profilerClimbByActivityId}
                                                 profileFtp={profileFtp}
+                                                columns={columns}
                                             />
                                         ))}
                                     </React.Fragment>
@@ -454,6 +470,7 @@ const ActivityTable = React.memo(({
                                 onOpenProfiler={onOpenProfiler}
                                 profilerClimbByActivityId={profilerClimbByActivityId}
                                 profileFtp={profileFtp}
+                                columns={columns}
                             />
                         ))
                     )}
