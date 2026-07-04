@@ -33,7 +33,7 @@ import { CLIMB_DATABASE } from '../climbs';
 // Sub-components
 import EditActivityModal from './data-hub/EditActivityModal';
 import BulkEditActivitiesModal from './data-hub/BulkEditActivitiesModal';
-import ActivityTable from './data-hub/ActivityTable';
+import ActivityLogView from './data-hub/ActivityLogView';
 import ActivityColumnPicker from './data-hub/ActivityColumnPicker';
 import ImportModal from './data-hub/ImportModal';
 import DuplicateResolver from './data-hub/DuplicateResolver';
@@ -48,6 +48,7 @@ import NlDateInput from './NlDateInput';
 import useActivityFilter from '../hooks/useActivityFilter';
 import useIntervalsSync from '../hooks/useIntervalsSync';
 import useActivityColumnVisibility from '../hooks/useActivityColumnVisibility';
+import { useActivityCardLayout } from '../hooks/useMediaQuery';
 
 const DataHub = ({
     activities,
@@ -118,6 +119,9 @@ const DataHub = ({
         toggleColumn,
         isColumnVisible,
     } = useActivityColumnVisibility();
+
+    const useCardLayout = useActivityCardLayout();
+    const [logMobileFiltersOpen, setLogMobileFiltersOpen] = useState(false);
 
     // State for single-day Strava search (Tools → Strava enrichment panel)
     const [stravaDateOverride, setStravaDateOverride] = useState(null);
@@ -1543,7 +1547,7 @@ const DataHub = ({
 
             <div className="flex-1 overflow-hidden flex flex-col">
                 {internalTab === 'log' && (
-                    <div role="tabpanel" id="tabpanel-log" aria-labelledby="tab-log" className="p-4 flex-1 overflow-hidden flex flex-col">
+                    <div role="tabpanel" id="tabpanel-log" aria-labelledby="tab-log" className="p-4 flex-1 min-h-0 overflow-hidden flex flex-col">
                         {/* DYNAMISCHE SYNC STATUS BANNER */}
                         {syncStatus && (
                             <div className={`flex flex-col gap-1 text-xs font-bold px-3 py-2 rounded-lg mb-3 ${syncStatus === 'success' || syncStatus === 'done' || syncStatus === 'enriching' || syncStatus === 'started'
@@ -1583,7 +1587,7 @@ const DataHub = ({
                             </div>
                         )}
 
-                        <div className="rounded-lg border border-cdborder bg-cdsurface/80 p-3 space-y-2 mb-3">
+                        <div className="hidden lg:block rounded-lg border border-cdborder bg-cdsurface/80 p-3 space-y-2 mb-3 shrink-0">
                             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                                 <div className="min-w-0">
                                     <h4 className="text-xs font-bold text-cdtext uppercase tracking-wide">Fetch new from Intervals.icu</h4>
@@ -1643,7 +1647,7 @@ const DataHub = ({
                             </div>
                         </div>
 
-                        <div className="space-y-3 mb-4">
+                        <div className="shrink-0 space-y-3 mb-3 lg:mb-4 max-h-[38vh] lg:max-h-none overflow-y-auto lg:overflow-visible custom-scrollbar pr-0.5">
                             <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
                                 <div className="flex gap-2 w-full md:w-auto flex-1 min-w-0">
                                     <div className="relative flex-1 min-w-0">
@@ -1661,6 +1665,7 @@ const DataHub = ({
                                         applyPreset={applyPreset}
                                         toggleColumn={toggleColumn}
                                         isColumnVisible={isColumnVisible}
+                                        className="hidden lg:flex"
                                     />
                                 </div>
                                 <div className="flex gap-2 shrink-0 w-full md:w-auto justify-end">
@@ -1741,6 +1746,20 @@ const DataHub = ({
                                     </div>
                                 </div>
                             </div>
+
+                            {useCardLayout && (
+                                <button
+                                    type="button"
+                                    onClick={() => setLogMobileFiltersOpen((v) => !v)}
+                                    className="lg:hidden w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-cdborder bg-cdsurface text-xs font-bold text-cdtext cd-transition focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                                    aria-expanded={logMobileFiltersOpen}
+                                >
+                                    <span>{logMobileFiltersOpen ? 'Hide filters & bulk' : 'Filters & bulk actions'}</span>
+                                    <ChevronDown size={14} className={`text-cdmuted cd-transition ${logMobileFiltersOpen ? 'rotate-180' : ''}`} aria-hidden />
+                                </button>
+                            )}
+
+                            <div className={`space-y-3 ${useCardLayout && !logMobileFiltersOpen ? 'hidden' : ''} lg:block`}>
                             <div className="flex flex-wrap items-center gap-2">
                                 <span className="text-[10px] font-bold text-cdmuted uppercase shrink-0">Quick</span>
                                 <button
@@ -2057,33 +2076,37 @@ const DataHub = ({
                                 </button>
                                 <span className="text-cdmuted hidden sm:inline">Row checkboxes · header selects visible</span>
                             </div>
+                            </div>
                         </div>
 
                         {isGroupedView && !isolateActivityId && !(logDateRangeFilter?.startYmd && logDateRangeFilter?.endYmd) && (
-                            <div className="flex flex-col gap-2">
+                            <div className="flex flex-col gap-2 shrink-0 mb-2 lg:mb-0">
                                 <div className="flex flex-wrap items-center gap-2">
                                     <button
                                         type="button"
                                         onClick={expandAllGrouped}
                                         className="text-[10px] font-bold px-2 py-1 rounded border border-cdborder text-cdmuted hover:text-cdaccent hover:border-cdaccent/50 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
                                     >
-                                        Alles uitklappen
+                                        Expand all
                                     </button>
                                     <button
                                         type="button"
                                         onClick={collapseAllGrouped}
                                         className="text-[10px] font-bold px-2 py-1 rounded border border-cdborder text-cdmuted hover:text-cdtext focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
                                     >
-                                        Alles inklappen
+                                        Collapse all
                                     </button>
                                     <span className="text-[9px] text-cdmuted hidden sm:inline">
-                                        Bulk-select gebruikt alleen zichtbare rijen — eerst uitklappen of “Alles uitklappen”.
+                                        Bulk select only includes visible rows — expand groups or use Expand all first.
                                     </span>
                                 </div>
+                                <div className="hidden lg:block">
                                 <QuickNav groupedActivities={groupedActivities} isYearExpanded={isYearExpanded} onToggleYear={toggleYear} />
+                                </div>
                             </div>
                         )}
 
+                        <div className="flex-1 min-h-0 flex flex-col gap-2">
                         {isolateActivityId && (
                             <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-cdaccent/40 bg-cdaccent/10 px-3 py-2 text-sm text-cdtext">
                                 <span>
@@ -2156,7 +2179,8 @@ const DataHub = ({
                         ) : !isolateActivityId && !(logDateRangeFilter?.startYmd && logDateRangeFilter?.endYmd) && processedActivities.length === 0 ? (
                             <div className="flex-1 flex flex-col items-center justify-center text-cdmuted gap-2 border border-dashed border-cdborder rounded-lg"><AlertTriangle size={32} className="text-slate-600" /><p>No activities found. Start with an Import!</p></div>
                         ) : (
-                            <ActivityTable
+                            <div className="flex-1 min-h-0 flex flex-col">
+                            <ActivityLogView
                                 activities={logTableActivities}
                                 sortConfig={sortConfig}
                                 onSort={requestSort}
@@ -2178,7 +2202,9 @@ const DataHub = ({
                                 profileFtp={profileFtp}
                                 visibleColumns={visibleColumns}
                             />
+                            </div>
                         )}
+                        </div>
                     </div>
                 )}
 

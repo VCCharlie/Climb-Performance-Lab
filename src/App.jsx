@@ -24,6 +24,7 @@ import BucketList from './components/BucketList';
 import WeatherClimb from './components/WeatherClimb';
 import ClimbMap from './components/ClimbMap';
 import PwaInstallBanner from './components/PwaInstallBanner';
+import PwaUpdateBanner from './components/PwaUpdateBanner';
 import { LoadingPanel, SegmentedControl } from './components/ui';
 import { MainNav } from './components/shell';
 
@@ -898,6 +899,7 @@ const App = () => {
             </main>
 
             <PwaInstallBanner />
+            <PwaUpdateBanner />
         </div>
     );
 };

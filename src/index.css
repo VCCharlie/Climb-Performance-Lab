@@ -46,6 +46,37 @@ body {
   border-radius: 20px;
 }
 
+/* Activity table — sticky identifier columns (desktop horizontal scroll) */
+.activity-table-sticky-head {
+  position: sticky;
+  background-color: var(--cd-surface-container-low);
+}
+
+.activity-table-sticky-body {
+  position: sticky;
+  background-color: var(--cd-surface);
+}
+
+.group:hover .activity-table-sticky-body:not(.activity-table-sticky-selected) {
+  background-color: color-mix(in srgb, var(--cd-surface-container-low) 80%, var(--cd-surface));
+}
+
+.activity-table-sticky-selected {
+  background-color: color-mix(in srgb, var(--cd-primary-container) 35%, var(--cd-surface));
+}
+
+.activity-table-sticky-edge {
+  box-shadow: 4px 0 8px -4px rgb(0 0 0 / 0.18);
+}
+
+.activity-table-scroll-fade-left {
+  background: linear-gradient(to right, var(--cd-surface) 15%, transparent);
+}
+
+.activity-table-scroll-fade-right {
+  background: linear-gradient(to left, var(--cd-surface) 15%, transparent);
+}
+
 /* MD3 motion utility — opt-in on interactive elements */
 .cd-transition {
   transition-property: color, background-color, border-color, box-shadow, transform, opacity;
