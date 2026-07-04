@@ -21,7 +21,7 @@ const ProfilerInsights = ({ tacticalZones, ftp, intensityPct, pacingMetrics }) =
             <div className="bg-cdbg/60 p-4 rounded-xl border border-cdborder">
                 <h3 className="text-cdtext font-bold text-sm mb-3 tracking-wide flex items-center gap-2">
                     <MapPin size={16} className="text-cdaccent shrink-0" />
-                    Tactische referenties
+                    Tactical references
                 </h3>
                 <ul className="space-y-2">
                     {sorted.map((zone, idx) => (
@@ -35,12 +35,12 @@ const ProfilerInsights = ({ tacticalZones, ftp, intensityPct, pacingMetrics }) =
                             <span className="flex-1 leading-snug">{zone.label}</span>
                             {zone.type === 'steep' && (
                                 <span className="text-[10px] uppercase tracking-wide text-red-400/90 shrink-0">
-                                    spanning
+                                    stress
                                 </span>
                             )}
                             {zone.type === 'recovery' && (
                                 <span className="text-[10px] uppercase tracking-wide text-emerald-400/90 shrink-0">
-                                    herstel
+                                    recovery
                                 </span>
                             )}
                         </li>
@@ -51,43 +51,43 @@ const ProfilerInsights = ({ tacticalZones, ftp, intensityPct, pacingMetrics }) =
             <div className="rounded-xl border border-blue-500/25 bg-blue-500/5 p-4">
                 <h4 className="text-cdtext font-bold text-sm mb-3 flex items-center gap-2">
                     <Lightbulb size={16} className="text-blue-400 shrink-0" />
-                    Pacing &amp; energiebeheer
+                    Pacing &amp; energy management
                 </h4>
                 <ul className="text-sm text-cdtext space-y-2.5 leading-relaxed">
                     <li className="flex gap-2">
                         <Mountain size={14} className="text-cdmuted shrink-0 mt-0.5" />
                         <span>
-                            <strong className="text-cdtext">Start:</strong> kalm instappen; bouw in de eerste minuten
-                            richting je doelintensiteit (~{Math.round(ftp * (intensityPct / 100))} W).
+                            <strong className="text-cdtext">Start:</strong> ease in calmly; build toward your target
+                            intensity in the first minutes (~{Math.round(ftp * (intensityPct / 100))} W).
                         </span>
                     </li>
                     <li className="flex gap-2">
                         <Gauge size={14} className="text-cdmuted shrink-0 mt-0.5" />
                         <span>
-                            <strong className="text-cdtext">Steil:</strong> houd het vermogen stabiel en laat de snelheid
-                            zakken — vooral bij hellingen boven ~10%.
+                            <strong className="text-cdtext">Steep:</strong> keep power steady and let speed
+                            drop — especially on gradients above ~10%.
                         </span>
                     </li>
                     <li className="flex gap-2">
                         <Gauge size={14} className="text-cdmuted shrink-0 mt-0.5" />
                         <span>
-                            <strong className="text-cdtext">Vlakkere stukken:</strong> optioneel iets drukken (
-                            ~{pushFlat} W) om tijd te winnen zonder de steile delen te verbranden.
+                            <strong className="text-cdtext">Flatter sections:</strong> optionally push a bit harder (
+                            ~{pushFlat} W) to gain time without burning out on the steep parts.
                         </span>
                     </li>
                     <li className="flex gap-2">
                         <Gauge size={14} className="text-cdmuted shrink-0 mt-0.5" />
                         <span>
-                            <strong className="text-cdtext">Afronding:</strong> als je nog reserve hebt, laatste km naar
+                            <strong className="text-cdtext">Finish:</strong> if you still have reserves, push the last km toward
                             threshold (~{finish} W).
                         </span>
                     </li>
                 </ul>
                 {pacingMetrics?.energyKj > 0 && (
                     <p className="mt-4 text-xs text-cdmuted border-t border-cdborder pt-3">
-                        Indicatieve mechanische arbeid bij dit doelvermogen:{' '}
-                        <strong className="text-cdtext">{pacingMetrics.energyKj.toLocaleString('nl-NL')} kJ</strong> — géén
-                        voedingsadvies; add ~25% voor rendementsverliezen.
+                        Indicative mechanical work at this target power:{' '}
+                        <strong className="text-cdtext">{pacingMetrics.energyKj.toLocaleString('nl-NL')} kJ</strong> — not
+                        nutrition advice; add ~25% for efficiency losses.
                     </p>
                 )}
             </div>

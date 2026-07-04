@@ -68,7 +68,7 @@ const SettingsTab = ({ intervalsConfig, updateIntervalsConfig, onSaveToCloud, th
                         <h3 className={`font-bold ${titleClass}`}>Intervals.icu Integration</h3>
                     </div>
                     <p className="text-sm text-cdmuted">
-                        Deze gegevens worden gebruikt om je ritten te synchroniseren. 
+                        These credentials are used to sync your rides.
                     </p>
                     <div className="grid grid-cols-1 gap-4">
                         <div>

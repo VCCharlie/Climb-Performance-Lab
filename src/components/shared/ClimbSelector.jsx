@@ -102,11 +102,11 @@ const NumberFilter = ({ label, value, onChange, min, max, step = 1, showDecimals
 
 const CAT_OPTIONS = ['All', 'HC', '1', '2', '3', '4'];
 const SORT_OPTIONS = [
-  { value: 'name', label: 'Naam A-Z' },
-  { value: 'grade', label: 'Stijging %' },
-  { value: 'length', label: 'Lengte km' },
+  { value: 'name', label: 'Name A-Z' },
+  { value: 'grade', label: 'Gradient %' },
+  { value: 'length', label: 'Length km' },
   { value: 'score', label: 'Score' },
-  { value: 'fiets', label: 'Fiets' },
+  { value: 'fiets', label: 'Bike' },
 ];
 
 const RADIUS_OPTIONS = [50, 100, 200, 500];
@@ -254,7 +254,7 @@ const ClimbSelector = ({
 
   const locateMe = useCallback(() => {
     if (!navigator.geolocation) {
-      setLocError('Geolocation niet beschikbaar.');
+      setLocError('Geolocation not available.');
       return;
     }
     setLocating(true);
@@ -266,7 +266,7 @@ const ClimbSelector = ({
         setLocating(false);
       },
       (err) => {
-        setLocError('Locatie kon niet worden bepaald.');
+        setLocError('Could not determine location.');
         setLocating(false);
       },
       { timeout: 8000 }
@@ -311,7 +311,7 @@ const ClimbSelector = ({
           <input
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            placeholder="Zoek klimmen (naam, land, regio)..."
+            placeholder="Search climbs (name, country, region)..."
             className="w-full bg-cdsurface border border-cdborder rounded pl-10 pr-4 py-2 text-sm text-cdtext outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400"
           />
         </div>
@@ -334,7 +334,7 @@ const ClimbSelector = ({
             <button
               onClick={locateMe}
               disabled={locating}
-              title="Filter op klimmen in de buurt"
+              title="Filter climbs nearby"
               className="flex items-center gap-1 px-2.5 py-2 rounded border text-xs font-bold transition-colors text-cdmuted border-cdborder hover:text-blue-400 hover:border-blue-400"
             >
               <LocateFixed size={13} className={locating ? 'animate-pulse text-blue-400' : ''} />
@@ -366,7 +366,7 @@ const ClimbSelector = ({
             onClick={() => setCatFilter(cat)}
             className={`px-2.5 py-0.5 rounded-full text-xs font-bold transition-colors ${catFilter === cat ? 'bg-purple-500 text-white border border-purple-400' : 'bg-cdsurface border border-cdborder text-cdmuted hover:text-cdtext'}`}
           >
-            {cat === 'All' ? 'Cat: Alle' : `Cat ${cat}`}
+            {cat === 'All' ? 'Cat: All' : `Cat ${cat}`}
           </button>
         ))}
       </div>
@@ -379,7 +379,7 @@ const ClimbSelector = ({
             onClick={() => handleCountryChange(c)}
             className={`px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-colors flex items-center gap-1 ${countryFilter === c ? 'bg-yellow-400 text-slate-900 border border-yellow-400' : 'bg-cdsurface border-cdborder border text-cdmuted hover:text-cdtext'}`}
           >
-            {c === 'All' ? <><Globe size={12} />Alle</> : <><FlagIcon country={c} size="sm" />{c}</>}
+            {c === 'All' ? <><Globe size={12} />All</> : <><FlagIcon country={c} size="sm" />{c}</>}
           </button>
         ))}
       </div>
@@ -393,7 +393,7 @@ const ClimbSelector = ({
               onClick={() => setRegionFilter(r)}
               className={`px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${regionFilter === r ? 'bg-orange-400 text-slate-900 border border-orange-400' : 'bg-cdsurface border border-cdborder text-cdmuted hover:text-cdtext'}`}
             >
-              {r === 'All' ? 'Alle regio\'s' : r}
+              {r === 'All' ? 'All regions' : r}
             </button>
           ))}
         </div>
@@ -404,7 +404,7 @@ const ClimbSelector = ({
         <div className="bg-cdbg/50 p-3 rounded-lg border border-cdborder space-y-3">
           {/* Length + Grade */}
           <div>
-            <p className="text-[10px] text-cdmuted uppercase font-bold mb-2">Lengte &amp; Stijging</p>
+            <p className="text-[10px] text-cdmuted uppercase font-bold mb-2">Length &amp; Gradient</p>
             <div className="flex flex-wrap gap-3">
               <NumberFilter label="Min km" value={minKm} onChange={setMinKm} min={0} max={maxKm} step={1} />
               <NumberFilter label="Max km" value={maxKm} onChange={setMaxKm} min={minKm} max={200} step={1} />
@@ -414,17 +414,17 @@ const ClimbSelector = ({
           </div>
           {/* Score + Fiets */}
           <div>
-            <p className="text-[10px] text-cdmuted uppercase font-bold mb-2">Score &amp; Fiets</p>
+            <p className="text-[10px] text-cdmuted uppercase font-bold mb-2">Score &amp; Bike</p>
             <div className="flex flex-wrap gap-3">
               <NumberFilter label="Min Score" value={minScore} onChange={setMinScore} min={0} max={maxScore} step={1000} />
               <NumberFilter label="Max Score" value={maxScore} onChange={setMaxScore} min={minScore} max={dataMaxScore} step={1000} />
-              <NumberFilter label="Min Fiets" value={minFiets} onChange={setMinFiets} min={0} max={maxFiets} step={100} />
-              <NumberFilter label="Max Fiets" value={maxFiets} onChange={setMaxFiets} min={minFiets} max={dataMaxFiets} step={100} />
+              <NumberFilter label="Min Bike" value={minFiets} onChange={setMinFiets} min={0} max={maxFiets} step={100} />
+              <NumberFilter label="Max Bike" value={maxFiets} onChange={setMaxFiets} min={minFiets} max={dataMaxFiets} step={100} />
             </div>
           </div>
           {/* Sort */}
           <div className="flex items-center gap-2 pt-1 border-t border-cdborder/50">
-            <span className="text-[10px] text-cdmuted uppercase font-bold">Sorteren:</span>
+            <span className="text-[10px] text-cdmuted uppercase font-bold">Sort:</span>
             <select
               value={sortBy}
               onChange={e => setSortBy(e.target.value)}
@@ -435,7 +435,7 @@ const ClimbSelector = ({
             <button
               onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
               className="p-1.5 rounded border border-cdborder text-cdmuted hover:text-cdtext hover:bg-cdsurface transition-colors"
-              title={sortDir === 'asc' ? 'Oplopend' : 'Aflopend'}
+              title={sortDir === 'asc' ? 'Ascending' : 'Descending'}
             >
               {sortDir === 'asc' ? <SortAsc size={13} /> : <SortDesc size={13} />}
             </button>
@@ -447,7 +447,7 @@ const ClimbSelector = ({
       <div className="flex gap-2">
         <div className="flex-1 relative">
           <span className="absolute right-8 top-3 text-[10px] text-cdmuted pointer-events-none z-10">
-            {filteredClimbs.length} resultaten
+            {filteredClimbs.length} results
           </span>
           <select
             className="w-full bg-cdsurface text-cdtext rounded p-3 text-sm border border-cdborder outline-none focus:border-yellow-400"
@@ -460,7 +460,7 @@ const ClimbSelector = ({
               }
             }}
           >
-            {mode === 'multi' && <option value="">Kies en voeg toe...</option>}
+            {mode === 'multi' && <option value="">Choose and add...</option>}
             {Object.keys(climbsGrouped).sort().map(group => (
               <optgroup key={group} label={group}>
                 {climbsGrouped[group].map(c => (

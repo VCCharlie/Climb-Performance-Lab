@@ -3,7 +3,7 @@ import { Activity, TrendingUp, TrendingDown, Calendar, AlertTriangle, CheckCircl
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts';
 
 // ⚡ Bolt Optimization: Use array lookup instead of Date.toLocaleString() in loops
-const NL_SHORT_MONTHS = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+const NL_SHORT_MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 
 // Custom tooltip moved outside component body
 const CustomTooltip = ({ active, payload }) => {
@@ -61,7 +61,7 @@ const RecoveryAdvisor = ({ activities, startDate, endDate }) => {
             return d;
         })();
 
-        // Warmup: begin CTL/ATL computation 42 dagen vóór de weergaveperiode
+        // Warmup: begin CTL/ATL computation 42 days before display range
         const warmupStart = new Date(startD);
         warmupStart.setDate(warmupStart.getDate() - CTL_DAYS);
 
@@ -90,7 +90,7 @@ const RecoveryAdvisor = ({ activities, startDate, endDate }) => {
         const fmtOpts = { day: 'numeric', month: 'short', year: 'numeric' };
         const rangeLabel = startDate || endDate
             ? `${startD.toLocaleDateString('nl-NL', fmtOpts)} – ${endD.toLocaleDateString('nl-NL', fmtOpts)}`
-            : 'Laatste 90 Dagen';
+            : 'Last 90 days';
 
         // Current metrics (last data point in display range)
         const current = chartData[chartData.length - 1];
@@ -106,29 +106,29 @@ const RecoveryAdvisor = ({ activities, startDate, endDate }) => {
         if (current.tsb < -30) {
             recommendations.push({
                 type: 'warning',
-                title: 'Hoog risico op overtraining',
-                message: 'Je TSB is zeer negatief (<-30). Neem direct 2-3 rustdagen of doe alleen lichte recovery rides.',
+                title: 'High overtraining risk',
+                message: 'Your TSB is very negative (<-30). Take 2–3 rest days immediately or do only light recovery rides.',
                 icon: AlertTriangle
             });
         } else if (current.tsb < -10) {
             recommendations.push({
                 type: 'caution',
-                title: 'Verhoogde vermoeidheid',
-                message: 'Je TSB is negatief. Overweeg een rustdag of lichte training om herstel te bevorderen.',
+                title: 'Elevated fatigue',
+                message: 'Your TSB is negative. Consider a rest day or light training to promote recovery.',
                 icon: TrendingDown
             });
         } else if (current.tsb > 25) {
             recommendations.push({
                 type: 'info',
-                title: 'Te veel herstel',
-                message: 'Je TSB is zeer positief (>25). Je bent fris, maar verliest mogelijk conditie. Voeg intensieve training toe.',
+                title: 'Too much recovery',
+                message: 'Your TSB is very positive (>25). You are fresh but may be losing fitness. Add some intensity.',
                 icon: Calendar
             });
         } else if (current.tsb >= 5 && current.tsb <= 25) {
             recommendations.push({
                 type: 'success',
-                title: 'Optimale vorm',
-                message: 'Je TSB is in de race zone (5-25). Perfect voor wedstrijden of zware trainingen!',
+                title: 'Optimal form',
+                message: 'Your TSB is in the race zone (5–25). Perfect for races or hard training sessions!',
                 icon: CheckCircle
             });
         }
@@ -140,15 +140,15 @@ const RecoveryAdvisor = ({ activities, startDate, endDate }) => {
         if (ctlTrend > 5) {
             recommendations.push({
                 type: 'success',
-                title: 'Conditie stijgt',
-                message: `Je CTL is ${Math.round(ctlTrend)} punten gestegen deze week. Goede progressie!`,
+                title: 'Fitness rising',
+                message: `Your CTL rose ${Math.round(ctlTrend)} points this week. Good progress!`,
                 icon: TrendingUp
             });
         } else if (ctlTrend < -5) {
             recommendations.push({
                 type: 'warning',
-                title: 'Conditieverlies',
-                message: `Je CTL is ${Math.abs(Math.round(ctlTrend))} punten gedaald. Verhoog trainingsvolume om fitness te behouden.`,
+                title: 'Fitness loss',
+                message: `Your CTL dropped ${Math.abs(Math.round(ctlTrend))} points. Increase training volume to maintain fitness.`,
                 icon: TrendingDown
             });
         }
@@ -169,8 +169,8 @@ const RecoveryAdvisor = ({ activities, startDate, endDate }) => {
             if (monotony > 2.5) {
                 recommendations.push({
                     type: 'caution',
-                    title: 'Hoge training monotonie',
-                    message: 'Je training is te eentonig (zelfde intensiteit elke dag). Wissel af tussen zware en lichte dagen.',
+                    title: 'High training monotony',
+                    message: 'Your training is too uniform (same intensity every day). Alternate hard and easy days.',
                     icon: Zap
                 });
             }
@@ -190,8 +190,8 @@ const RecoveryAdvisor = ({ activities, startDate, endDate }) => {
                 </h2>
                 <div className="text-center py-12 text-cdmuted">
                     <Calendar size={48} className="mx-auto mb-4 opacity-50" />
-                    <p>Geen activiteiten gevonden in de geselecteerde periode.</p>
-                    <p className="text-sm mt-2">Import je trainingsdata via de Data Hub tab of pas de periode-selector aan.</p>
+                    <p>No activities found in the selected period.</p>
+                    <p className="text-sm mt-2">Import your training data via the Data Hub tab or adjust the period selector.</p>
                 </div>
             </div>
         );
@@ -211,12 +211,12 @@ const RecoveryAdvisor = ({ activities, startDate, endDate }) => {
 
             {/* Methodology Info */}
             <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-                <h4 className="text-blue-400 font-bold text-sm mb-2">ℹ️ Hoe werkt dit?</h4>
+                <h4 className="text-blue-400 font-bold text-sm mb-2">ℹ️ How does this work?</h4>
                 <div className="text-xs text-cdtext space-y-1">
-                    <p><strong>• CTL (Fitness):</strong> 42-daags gemiddelde van training load. Hogere waarde = betere conditie</p>
-                    <p><strong>• ATL (Fatigue):</strong> 7-daags gemiddelde. Hogere waarde = meer vermoeidheid</p>
-                    <p><strong>• TSB (Form):</strong> CTL - ATL. Negatief = vermoeid, Positief = fris, 5-25 = race ready</p>
-                    <p><strong>💡 Ideaal TSB voor races:</strong> +5 tot +25 (fris maar niet deconditioned)</p>
+                    <p><strong>• CTL (Fitness):</strong> 42-day average of training load. Higher value = better fitness</p>
+                    <p><strong>• ATL (Fatigue):</strong> 7-day average. Higher value = more fatigue</p>
+                    <p><strong>• TSB (Form):</strong> CTL − ATL. Negative = tired, positive = fresh, 5–25 = race ready</p>
+                    <p><strong>💡 Ideal TSB for races:</strong> +5 to +25 (fresh but not deconditioned)</p>
                 </div>
             </div>
 
@@ -270,7 +270,7 @@ const RecoveryAdvisor = ({ activities, startDate, endDate }) => {
             {/* Recommendations */}
             {trainingMetrics.recommendations.length > 0 && (
                 <div className="space-y-2">
-                    <h3 className="text-cdtext font-bold text-sm uppercase tracking-wide">Aanbevelingen</h3>
+                    <h3 className="text-cdtext font-bold text-sm uppercase tracking-wide">Recommendations</h3>
                     {trainingMetrics.recommendations.map((rec, idx) => {
                         const Icon = rec.icon;
                         return (

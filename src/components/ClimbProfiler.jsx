@@ -34,7 +34,7 @@ function formatClimbDuration(minutes) {
     if (minutes >= 60) {
         const h = Math.floor(minutes / 60);
         const m = Math.round(minutes % 60);
-        return `${h}u ${m}m`;
+        return `${h}h ${m}m`;
     }
     return `${Math.round(minutes)} min`;
 }
@@ -102,22 +102,22 @@ const ClimbProfiler = ({ userSettings, initialState, onStateChange, theme = 'lig
                 <div>
                     <h2 className="text-xl md:text-2xl font-bold text-cdtext flex items-center gap-2">
                         <Mountain className="text-emerald-400 shrink-0" size={26} />
-                        Klim-profiler
+                        Climb Profiler
                     </h2>
                     <p className="text-sm text-cdmuted mt-1 max-w-xl">
-                        Hellings- en hoogtebeeld op basis van lengte, hoogtemeters en gemiddelde helling. Geschikt voor
-                        tactische voorbereiding; geen exacte GPS-segmentdata.
+                        Gradient and elevation view based on length, elevation gain, and average gradient. Suitable for
+                        tactical preparation; not exact GPS segment data.
                     </p>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-cdmuted bg-cdbg px-3 py-2 rounded-lg border border-cdborder shrink-0">
                     <Info size={14} className="text-cdaccent shrink-0" />
-                    <span>Model: variatie rond gem. helling</span>
+                    <span>Model: variation around avg. gradient</span>
                 </div>
             </div>
 
             <div className="bg-cdbg/50 p-4 rounded-xl border border-cdborder">
                 <label className="text-[11px] text-cdmuted uppercase tracking-wider block mb-2 font-semibold">
-                    Beklimming
+                    Climb
                 </label>
                 <ClimbSelector mode="single" selected={selectedClimb} onSelect={setSelectedClimb} />
                 <div className="flex flex-wrap items-center gap-2 mt-3">
@@ -144,24 +144,24 @@ const ClimbProfiler = ({ userSettings, initialState, onStateChange, theme = 'lig
                     <div className="text-2xl font-bold text-cdtext tabular-nums">
                         {climbStats.maxGradient.toFixed(1)}%
                     </div>
-                    <div className="text-[11px] text-cdmuted uppercase tracking-wide mt-1">Max. helling</div>
+                    <div className="text-[11px] text-cdmuted uppercase tracking-wide mt-1">Max. gradient</div>
                 </div>
                 <div className="bg-cdbg/60 p-4 rounded-xl border border-cdborder">
                     <Mountain className="w-5 h-5 text-amber-400 mb-2" />
                     <div className="text-2xl font-bold text-cdtext tabular-nums">{selectedClimb.avgGrade}%</div>
-                    <div className="text-[11px] text-cdmuted uppercase tracking-wide mt-1">Gem. helling</div>
+                    <div className="text-[11px] text-cdmuted uppercase tracking-wide mt-1">Avg. gradient</div>
                 </div>
                 <div className="bg-cdbg/60 p-4 rounded-xl border border-cdborder">
                     <AlertTriangle className="w-5 h-5 text-orange-400 mb-2" />
                     <div className="text-2xl font-bold text-cdtext tabular-nums">
                         {climbStats.steepPercentage.toFixed(0)}%
                     </div>
-                    <div className="text-[11px] text-cdmuted uppercase tracking-wide mt-1">Steile samples</div>
+                    <div className="text-[11px] text-cdmuted uppercase tracking-wide mt-1">Steep samples</div>
                 </div>
                 <div className="bg-cdbg/60 p-4 rounded-xl border border-cdborder">
                     <Flag className="w-5 h-5 text-emerald-400 mb-2" />
                     <div className="text-2xl font-bold text-cdtext tabular-nums">{climbStats.difficultyScore}</div>
-                    <div className="text-[11px] text-cdmuted uppercase tracking-wide mt-1">Last-index</div>
+                    <div className="text-[11px] text-cdmuted uppercase tracking-wide mt-1">Difficulty index</div>
                 </div>
             </div>
 
@@ -169,43 +169,43 @@ const ClimbProfiler = ({ userSettings, initialState, onStateChange, theme = 'lig
                 <div className="bg-cdbg/60 p-4 rounded-xl border border-cdborder md:col-span-1">
                     <div className="flex items-center gap-2 text-cdmuted text-[11px] uppercase tracking-wide font-semibold mb-2">
                         <Timer size={14} className="text-cdaccent" />
-                        Indicatie · Ferrari VAM
+                        Estimate · Ferrari VAM
                     </div>
                     <div className="text-lg font-bold text-cdtext tabular-nums">
                         {formatClimbDuration(pacingMetrics.timeMinutes)}
                     </div>
                     <p className="text-xs text-cdmuted mt-1 leading-snug">
-                        Geschatte klimtijd bij {intensityPct}% FTP ({pacingMetrics.targetPower} W), VAM ~{' '}
-                        {pacingMetrics.vam.toLocaleString('nl-NL')} m/u.
+                        Estimated climb time at {intensityPct}% FTP ({pacingMetrics.targetPower} W), VAM ~{' '}
+                        {pacingMetrics.vam.toLocaleString('nl-NL')} m/h.
                     </p>
                 </div>
                 <div className="bg-cdbg/60 p-4 rounded-xl border border-cdborder">
                     <div className="flex items-center gap-2 text-cdmuted text-[11px] uppercase tracking-wide font-semibold mb-2">
                         <Zap size={14} className="text-cdaccent" />
-                        W/kg (systeem)
+                        W/kg (system)
                     </div>
                     <div className="text-lg font-bold text-cdtext tabular-nums">{pacingMetrics.wPerKg} W/kg</div>
                     <p className="text-xs text-cdmuted mt-1 leading-snug">
-                        Lichaam + fiets ({totalWeight.toFixed(1)} kg) uit instellingen.
+                        Body + bike ({totalWeight.toFixed(1)} kg) from settings.
                     </p>
                 </div>
                 <div className="bg-cdbg/60 p-4 rounded-xl border border-cdborder">
                     <div className="flex items-center gap-2 text-cdmuted text-[11px] uppercase tracking-wide font-semibold mb-2">
                         <Activity size={14} className="text-cdaccent" />
-                        Gem. snelheid
+                        Avg. speed
                     </div>
                     <div className="text-lg font-bold text-cdtext tabular-nums">{pacingMetrics.avgKmh} km/h</div>
-                    <p className="text-xs text-cdmuted mt-1 leading-snug">Afgeleid uit lengte ÷ geschatte tijd.</p>
+                    <p className="text-xs text-cdmuted mt-1 leading-snug">Derived from length ÷ estimated time.</p>
                 </div>
             </div>
 
             <div className="bg-cdbg/40 p-4 rounded-xl border border-cdborder space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <label className="text-sm font-semibold text-cdtext" htmlFor="profiler-intensity">
-                        Doelintensiteit: {intensityPct}% FTP
+                        Target intensity: {intensityPct}% FTP
                     </label>
                     <span className="text-xs text-cdmuted">
-                        Adviesvermogen en zone-hints schalen mee ({Math.round(ftp * targetIntensity)} W basis).
+                        Advisory power and zone hints scale accordingly ({Math.round(ftp * targetIntensity)} W baseline).
                     </span>
                 </div>
                 <input
@@ -219,7 +219,7 @@ const ClimbProfiler = ({ userSettings, initialState, onStateChange, theme = 'lig
                     className="w-full accent-yellow-500 h-2"
                 />
                 <div className="flex justify-between text-[10px] text-cdmuted uppercase tracking-wide">
-                    <span>65% duur / tempo</span>
+                    <span>65% endurance / tempo</span>
                     <span>100% threshold</span>
                 </div>
             </div>
@@ -227,10 +227,10 @@ const ClimbProfiler = ({ userSettings, initialState, onStateChange, theme = 'lig
             <div className="space-y-2">
                 <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-cdtext uppercase tracking-wide">
-                        Coggan-zones (t.o.v. FTP)
+                        Coggan zones (relative to FTP)
                     </span>
                     <span className="text-[10px] text-cdmuted">
-                        0–{Math.round(ZONE_BAR_MAX_FTP_RATIO * 100)}% FTP · marker = doel {intensityPct}%
+                        0–{Math.round(ZONE_BAR_MAX_FTP_RATIO * 100)}% FTP · marker = target {intensityPct}%
                     </span>
                 </div>
                 <div className="relative h-3 rounded-full border border-cdborder overflow-hidden">
@@ -255,7 +255,7 @@ const ClimbProfiler = ({ userSettings, initialState, onStateChange, theme = 'lig
                     />
                 </div>
                 <p className="text-[10px] text-cdmuted">
-                    Zones zijn indicatief; echte verdeling hangt van profiel en conditie af.
+                    Zones are indicative; actual distribution depends on profile and fitness.
                 </p>
             </div>
 
@@ -267,7 +267,7 @@ const ClimbProfiler = ({ userSettings, initialState, onStateChange, theme = 'lig
                         onChange={() => setShowPowerZones(!showPowerZones)}
                         className="accent-yellow-500 rounded border-cdborder"
                     />
-                    Toon vermogensadvies in tooltip
+                    Show power advice in tooltip
                 </label>
             </div>
 

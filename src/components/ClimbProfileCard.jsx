@@ -6,22 +6,22 @@ const ClimbProfileCard = ({ climb }) => {
 
     const sectors = [
         {
-            name: 'Begin',
+            name: 'Start',
             km: `0 – ${(climb.lengthKm * 0.3).toFixed(1)} km`,
             grade: (climb.avgGrade * 0.8).toFixed(1),
-            focus: 'Ritme zoeken, ademhaling onder controle'
+            focus: 'Find your rhythm, keep breathing under control'
         },
         {
-            name: 'Midden',
+            name: 'Middle',
             km: `${(climb.lengthKm * 0.3).toFixed(1)} – ${(climb.lengthKm * 0.8).toFixed(1)} km`,
             grade: (climb.avgGrade * 1.1).toFixed(1),
-            focus: 'Sweet spot / tempo, aerodynamische houding'
+            focus: 'Sweet spot / tempo, aerodynamic position'
         },
         {
-            name: 'Finale',
+            name: 'Finish',
             km: `${(climb.lengthKm * 0.8).toFixed(1)} km – top`,
             grade: (climb.avgGrade * 1.2).toFixed(1),
-            focus: 'Indien reserve: uit het zadel of versnelling licht verlagen'
+            focus: 'If you have reserves: out of the saddle or slightly lower gearing'
         }
     ];
 
@@ -30,17 +30,17 @@ const ClimbProfileCard = ({ climb }) => {
             <div className="border-b border-cdborder pb-4 mb-4">
                 <h3 className="text-lg font-bold text-cdtext flex items-center gap-2">
                     <Map className="text-cdaccent shrink-0" size={20} />
-                    Sectoren
+                    Sectors
                 </h3>
                 <p className="text-xs text-cdmuted mt-2 leading-relaxed">
-                    Globale fasering op basis van afstand — combineer met het hellingsprofiel links voor je pacing.
+                    Overall phasing by distance — combine with the gradient profile on the left for your pacing.
                 </p>
             </div>
 
             <div className="flex gap-2 mb-5">
                 <div className="bg-cdbg/70 flex-1 rounded-lg border border-cdborder p-3 text-center">
                     <Ruler className="w-4 h-4 text-cdmuted mx-auto mb-1" />
-                    <div className="text-[10px] text-cdmuted uppercase tracking-wide">Lengte</div>
+                    <div className="text-[10px] text-cdmuted uppercase tracking-wide">Length</div>
                     <div className="text-lg font-bold text-cdtext tabular-nums">{climb.lengthKm} km</div>
                 </div>
                 <div className="bg-cdbg/70 flex-1 rounded-lg border border-cdborder p-3 text-center">
@@ -50,7 +50,7 @@ const ClimbProfileCard = ({ climb }) => {
                 </div>
                 <div className="bg-cdbg/70 flex-1 rounded-lg border border-cdborder p-3 text-center">
                     <TrendingUp className="w-4 h-4 text-cdmuted mx-auto mb-1" />
-                    <div className="text-[10px] text-cdmuted uppercase tracking-wide">Gem.</div>
+                    <div className="text-[10px] text-cdmuted uppercase tracking-wide">Avg.</div>
                     <div className="text-lg font-bold text-cdaccent tabular-nums">{climb.avgGrade}%</div>
                 </div>
             </div>

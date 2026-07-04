@@ -41,7 +41,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
     const [weatherError, setWeatherError] = useState(null);
     const [weatherSuccess, setWeatherSuccess] = useState(null);
 
-    // 14-day forecast (Open-Meteo, geen API key nodig)
+    // 14-day forecast (Open-Meteo, no API key required)
     const [forecastData, setForecastData] = useState(null);
     const [forecastLocation, setForecastLocation] = useState('');
 
@@ -146,17 +146,17 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
     // Fetch weather from OpenWeatherMap API
     const fetchWeather = async () => {
         if (!apiKey) {
-            setWeatherError('Voer eerst een OpenWeatherMap API key in via Settings (gratis op openweathermap.org)');
+            setWeatherError('Enter an OpenWeatherMap API key in Settings first (free at openweathermap.org)');
             return;
         }
 
         if (!locationInput.trim()) {
-            setWeatherError('Voer een locatie in');
+            setWeatherError('Enter a location');
             return;
         }
 
         if (selectedClimb.country === 'ZWIFT') {
-            setWeatherError('Zwift-klimmen zijn virtueel – geen weersdata beschikbaar.');
+            setWeatherError('Zwift climbs are virtual – no weather data available.');
             return;
         }
 
@@ -180,11 +180,11 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
             if (!response.ok) {
                 const errData = await response.json().catch(() => ({}));
                 if (response.status === 401) {
-                    throw new Error('Ongeldige API key. Controleer je sleutel op openweathermap.org');
+                    throw new Error('Invalid API key. Check your key at openweathermap.org');
                 } else if (response.status === 404) {
-                    throw new Error('Locatie niet gevonden. Zoek een stad in de buurt van de klim.');
+                    throw new Error('Location not found. Search for a town near the climb.');
                 } else {
-                    throw new Error(errData.message || 'Onbekende fout bij ophalen weersdata');
+                    throw new Error(errData.message || 'Unknown error fetching weather data');
                 }
             }
 
@@ -194,29 +194,29 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
             setHumidity(data.main.humidity);
             setWindSpeed(Math.round(data.wind.speed * 3.6)); // m/s to km/h
             setWindDirection('none');
-            setWeatherSuccess(`Weersdata geladen voor ${data.name} (${data.sys?.country || ''})`);
+            setWeatherSuccess(`Weather data loaded for ${data.name} (${data.sys?.country || ''})`);
             setWeatherError(null);
 
-            // Haal ook de 14-daagse prognose op via Open-Meteo
+            // Also fetch the 14-day forecast via Open-Meteo
             fetchForecast(
                 selectedLocation?.lat ?? data.coord?.lat,
                 selectedLocation?.lon ?? data.coord?.lon,
                 data.name
             );
         } catch (error) {
-            setWeatherError(error.message || 'Fout bij ophalen weer');
+            setWeatherError(error.message || 'Error fetching weather');
         } finally {
             setIsLoadingWeather(false);
         }
     };
 
-    // Fetch 14-day daily forecast from Open-Meteo (gratis, geen API key)
+    // Fetch 14-day daily forecast from Open-Meteo (free, no API key)
     const fetchForecast = async (lat, lon, cityName) => {
         try {
             let fLat = lat;
             let fLon = lon;
 
-            // Geen coördinaten? Open-Meteo geocoding als fallback
+            // No coordinates? Open-Meteo geocoding as fallback
             if (fLat == null || fLon == null) {
                 const geoRes = await fetch(
                     `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&format=json`
@@ -248,7 +248,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
             })));
             setForecastLocation(cityName);
         } catch {
-            // Stil falen — prognose is optioneel
+            // Fail silently — forecast is optional
         }
     };
 
@@ -333,11 +333,11 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
         const timeDifference = adjustedTimeMinutes - baseTimeMinutes;
 
         const warnings = [];
-        if (temperature > 30) warnings.push('Hoge temperatuur (>30°C): verhoogd risico op hyperthermie. Extra hydratatie nodig!');
-        else if (temperature > 25) warnings.push('Warme omstandigheden: drink extra en overweeg vroeger te starten.');
-        if (temperature < 5) warnings.push('Lage temperatuur (<5°C): zorg voor voldoende warme kleding!');
-        if (windDirection === 'headwind' && windSpeed > 20) warnings.push('Sterke tegenwind (>20 km/h): verwacht significant lagere snelheid.');
-        if (humidity > 80) warnings.push('Hoge luchtvochtigheid (>80%): zweet verdampt slecht, risico op oververhitting.');
+        if (temperature > 30) warnings.push('High temperature (>30°C): increased risk of hyperthermia. Extra hydration needed!');
+        else if (temperature > 25) warnings.push('Warm conditions: drink extra and consider an earlier start.');
+        if (temperature < 5) warnings.push('Low temperature (<5°C): make sure you have warm enough clothing!');
+        if (windDirection === 'headwind' && windSpeed > 20) warnings.push('Strong headwind (>20 km/h): expect significantly lower speed.');
+        if (humidity > 80) warnings.push('High humidity (>80%): sweat evaporates poorly, risk of overheating.');
 
         return {
             baseTime: baseTimeMinutes,
@@ -364,12 +364,12 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
             </div>
 
             <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-                <h4 className="text-blue-400 font-bold text-sm mb-2">ℹ️ Hoe werkt dit?</h4>
+                <h4 className="text-blue-400 font-bold text-sm mb-2">ℹ️ How does this work?</h4>
                 <div className="text-xs text-cdtext space-y-1">
-                    <p><strong>• Temperatuur:</strong> Beïnvloedt luchtdichtheid (-0.4%/°C) én power output (warmte/koude stress)</p>
-                    <p><strong>• Wind:</strong> Tegenwind verhoogt luchtweerstand, meewind verlaagt deze</p>
-                    <p><strong>• Luchtvochtigheid:</strong> Hoge vochtigheid vermindert zweet verdamping (oververhitting risico)</p>
-                    <p><strong>💡 Tip:</strong> Plan je beklimmingen in de ochtend bij warme dagen!</p>
+                    <p><strong>• Temperature:</strong> Affects air density (-0.4%/°C) and power output (heat/cold stress)</p>
+                    <p><strong>• Wind:</strong> Headwind increases air resistance, tailwind reduces it</p>
+                    <p><strong>• Humidity:</strong> High humidity reduces sweat evaporation (overheating risk)</p>
+                    <p><strong>💡 Tip:</strong> Plan your climbs in the morning on hot days!</p>
                 </div>
             </div>
 
@@ -377,19 +377,19 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
             <div className="bg-cdbg p-4 rounded border border-cdborder space-y-4">
                 <h3 className="text-cdtext font-bold text-sm flex items-center gap-2">
                     <Cloud className="text-cyan-400" size={16} />
-                    Live Weersgegevens Ophalen (Optioneel)
+                    Fetch Live Weather Data (Optional)
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Location Search with Autocomplete */}
                     <div className="col-span-1 md:col-span-2">
-                        <label className="text-xs text-cdmuted uppercase block mb-1">Locatie</label>
+                        <label className="text-xs text-cdmuted uppercase block mb-1">Location</label>
                         <div className="flex gap-2">
                             <div className="relative flex-1" ref={suggestionsRef}>
                                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-cdmuted z-10" size={14} />
                                 <input
                                     type="text"
-                                    placeholder="Zoek stad of dorp..."
+                                    placeholder="Search city or town..."
                                     value={locationInput}
                                     onChange={(e) => searchLocations(e.target.value)}
                                     onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
@@ -427,11 +427,11 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                                 ) : (
                                     <RefreshCw size={14} />
                                 )}
-                                Haal op
+                                Fetch
                             </button>
                         </div>
                         {!apiKey && locationInput && (
-                            <p className="text-xs text-yellow-500 mt-1">Voer een API key in voor locatie-suggesties</p>
+                            <p className="text-xs text-yellow-500 mt-1">Enter an API key for location suggestions</p>
                         )}
                     </div>
                 </div>
@@ -449,14 +449,14 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                     </div>
                 )}
 
-                {/* 14-daagse visuele prognose */}
+                {/* 14-day visual forecast */}
                 <WeatherForecastStrip forecastData={forecastData} locationLabel={forecastLocation} />
                 {!weatherError && !weatherSuccess && !isLoadingWeather && locationInput && (
                     <div className="text-xs text-cdmuted flex items-center gap-1">
                         <Lightbulb size={12} className="text-yellow-500" />
                         {selectedLocation?.lat !== undefined
-                            ? `Coördinaten beschikbaar voor ${locationInput} – klik "Haal op"`
-                            : `Klik op "Haal op" voor ${locationInput}`
+                            ? `Coordinates available for ${locationInput} – click "Fetch"`
+                            : `Click "Fetch" for ${locationInput}`
                         }
                     </div>
                 )}
@@ -469,7 +469,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                     <h3 className="text-sm font-bold text-cdtext uppercase tracking-wide">Climb & Power</h3>
                     <div className="bg-cdbg/50 p-4 rounded border border-cdborder space-y-3">
                         <div>
-                            <label className="text-xs text-cdmuted uppercase">Beklimming</label>
+                            <label className="text-xs text-cdmuted uppercase">Climb</label>
                             <select
                                 onChange={(e) => {
                                     const climb = CLIMB_DATABASE.find(c => c.id === e.target.value);
@@ -505,11 +505,11 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
 
                 {/* Right: Weather */}
                 <div className="space-y-4">
-                    <h3 className="text-sm font-bold text-cdtext uppercase tracking-wide">Weersomstandigheden</h3>
+                    <h3 className="text-sm font-bold text-cdtext uppercase tracking-wide">Weather Conditions</h3>
                     <div className="bg-cdbg/50 p-4 rounded border border-cdborder space-y-4">
                         <div>
                             <div className="flex justify-between text-xs text-cdtext mb-1">
-                                <span className="flex items-center gap-1"><Thermometer size={12} /> Temperatuur</span>
+                                <span className="flex items-center gap-1"><Thermometer size={12} /> Temperature</span>
                                 <span className="font-mono text-orange-400">{temperature}°C</span>
                             </div>
                             <input type="range" min="-5" max="40" step="1" value={temperature}
@@ -518,7 +518,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                         </div>
                         <div>
                             <div className="flex justify-between text-xs text-cdtext mb-1">
-                                <span className="flex items-center gap-1"><Wind size={12} /> Windsnelheid</span>
+                                <span className="flex items-center gap-1"><Wind size={12} /> Wind Speed</span>
                                 <span className="font-mono text-cyan-400">{windSpeed} km/h</span>
                             </div>
                             <input type="range" min="0" max="50" step="5" value={windSpeed}
@@ -526,12 +526,12 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                                 className="w-full h-2 bg-cdborder rounded-lg appearance-none cursor-pointer accent-cyan-400" />
                         </div>
                         <div>
-                            <label className="text-xs text-cdmuted uppercase">Windrichting</label>
+                            <label className="text-xs text-cdmuted uppercase">Wind Direction</label>
                             <div className="grid grid-cols-3 gap-2 mt-1">
                                 {[
-                                    { id: 'none', label: 'Geen' },
-                                    { id: 'headwind', label: 'Tegenwind' },
-                                    { id: 'tailwind', label: 'Meewind' }
+                                    { id: 'none', label: 'None' },
+                                    { id: 'headwind', label: 'Headwind' },
+                                    { id: 'tailwind', label: 'Tailwind' }
                                 ].map(option => (
                                     <button key={option.id} onClick={() => setWindDirection(option.id)}
                                         className={`px-2 py-1 text-xs rounded uppercase ${windDirection === option.id ? 'bg-cyan-500 text-white font-bold' : 'bg-cdsurface text-cdmuted hover:bg-cdborder'}`}>
@@ -542,7 +542,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                         </div>
                         <div>
                             <div className="flex justify-between text-xs text-cdtext mb-1">
-                                <span className="flex items-center gap-1"><Droplets size={12} /> Luchtvochtigheid</span>
+                                <span className="flex items-center gap-1"><Droplets size={12} /> Humidity</span>
                                 <span className="font-mono text-blue-400">{humidity}%</span>
                             </div>
                             <input type="range" min="20" max="100" step="5" value={humidity}
@@ -555,12 +555,12 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
 
             {/* Results */}
             <div className="bg-cdbg p-6 rounded border border-cdborder space-y-4">
-                <h3 className="text-cdtext font-bold text-sm uppercase tracking-wide">Voorspelling</h3>
+                <h3 className="text-cdtext font-bold text-sm uppercase tracking-wide">Prediction</h3>
                 <div className="grid grid-cols-2 gap-4">
                     <div className="bg-cdsurface p-4 rounded border border-cdborder">
                         <div className="flex items-center gap-2 mb-2">
                             <Sun className="text-center-yellow-500" size={16} />
-                            <span className="text-xs text-cdmuted uppercase">Ideale omstandigheden</span>
+                            <span className="text-xs text-cdmuted uppercase">Ideal Conditions</span>
                         </div>
                         <div className="text-2xl font-bold text-cdtext">
                             {Math.floor(weatherAdjustedCalculation.baseTime / 60)}h{Math.round(weatherAdjustedCalculation.baseTime % 60).toString().padStart(2, '0')}m
@@ -570,7 +570,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                     <div className="bg-cdsurface p-4 rounded border border-cdborder">
                         <div className="flex items-center gap-2 mb-2">
                             <Cloud className="text-cyan-400" size={16} />
-                            <span className="text-xs text-cdmuted uppercase">Met weercorrectie</span>
+                            <span className="text-xs text-cdmuted uppercase">With Weather Adjustment</span>
                         </div>
                         <div className={`text-2xl font-bold ${weatherAdjustedCalculation.timeDifference > 0 ? 'text-red-400' : weatherAdjustedCalculation.timeDifference < 0 ? 'text-green-400' : 'text-cdtext'}`}>
                             {Math.floor(weatherAdjustedCalculation.adjustedTime / 60)}h{Math.round(weatherAdjustedCalculation.adjustedTime % 60).toString().padStart(2, '0')}m
@@ -587,13 +587,13 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                     }`}>
                     <p className="font-bold text-sm">
                         {weatherAdjustedCalculation.timeDifference > 0 ? '+' : ''}
-                        {Math.round(weatherAdjustedCalculation.timeDifference)} minuten verschil
+                        {Math.round(weatherAdjustedCalculation.timeDifference)} minutes difference
                     </p>
                     <p className="text-xs mt-1">
-                        {Math.abs(weatherAdjustedCalculation.timeDifference) < 1 && 'Minimale impact van weersomstandigheden'}
-                        {weatherAdjustedCalculation.timeDifference >= 1 && weatherAdjustedCalculation.timeDifference <= 5 && 'Matige impact – plan extra tijd in'}
-                        {weatherAdjustedCalculation.timeDifference > 5 && 'Sterke impact – overweeg andere dag of lagere power'}
-                        {weatherAdjustedCalculation.timeDifference < -1 && 'Gunstige omstandigheden – snellere tijd mogelijk!'}
+                        {Math.abs(weatherAdjustedCalculation.timeDifference) < 1 && 'Minimal impact from weather conditions'}
+                        {weatherAdjustedCalculation.timeDifference >= 1 && weatherAdjustedCalculation.timeDifference <= 5 && 'Moderate impact – allow extra time'}
+                        {weatherAdjustedCalculation.timeDifference > 5 && 'Strong impact – consider another day or lower power'}
+                        {weatherAdjustedCalculation.timeDifference < -1 && 'Favorable conditions – faster time possible!'}
                     </p>
                 </div>
 

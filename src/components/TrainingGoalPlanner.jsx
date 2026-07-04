@@ -69,26 +69,26 @@ const TrainingGoalPlanner = ({ activities, userSettings, startDate, endDate, onO
             <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl">
                 <h2 className="text-xl font-bold text-cdtext flex items-center gap-2 mb-2">
                     <Mountain className="text-cdaccent shrink-0" size={22} />
-                    Doel & planning
+                    Goal & planning
                 </h2>
                 <p className="text-sm text-cdmuted leading-relaxed max-w-3xl">
-                    Stel een <strong className="text-cdtext font-medium">datum</strong> en het <strong className="text-cdtext font-medium">profiel</strong> van je doel in (afstand, hoogtemeters, optioneel duur, verwachte gemiddelde intensiteit als % FTP).
-                    We schatten de <strong className="text-cdtext font-medium">TSS van de doeldag</strong> en geven een <strong className="text-cdtext font-medium">weekschema</strong> met stijgende weekload en taper — afgestemd op je recente TSS (laatste 4 weken in je geselecteerde dashboard-periode).
+                    Set a <strong className="text-cdtext font-medium">date</strong> and the <strong className="text-cdtext font-medium">profile</strong> of your target (distance, elevation, optional duration, expected average intensity as % FTP).
+                    We estimate <strong className="text-cdtext font-medium">event-day TSS</strong> and provide a <strong className="text-cdtext font-medium">weekly schedule</strong> with rising load and taper — aligned with your recent TSS (last 4 weeks in your selected dashboard period).
                 </p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-cdsurface p-5 rounded-xl border border-cdborder space-y-4">
                     <h3 className="text-sm font-bold text-cdtext uppercase tracking-wide flex items-center gap-2">
-                        <CalendarDays size={16} className="text-cdaccent" /> Doel instellen
+                        <CalendarDays size={16} className="text-cdaccent" /> Set your goal
                     </h3>
 
-                    <label className="block text-xs text-cdmuted font-semibold">Doeldatum</label>
+                    <label className="block text-xs text-cdmuted font-semibold">Target date</label>
                     <NlDateInput
                         value={goalDate}
                         onChange={(v) => v && setGoalDate(v)}
                         className="w-full bg-cdborder border border-cdborder rounded-lg px-3 py-2 text-cdtext"
-                        aria-label="Doeldatum (dd/mm/jjjj)"
+                        aria-label="Target date (dd/mm/yyyy)"
                     />
 
                     <div className="flex gap-2">
@@ -97,25 +97,25 @@ const TrainingGoalPlanner = ({ activities, userSettings, startDate, endDate, onO
                             onClick={() => setSource('custom')}
                             className={`flex-1 py-2 px-3 rounded-lg text-sm font-bold border ${source === 'custom' ? 'border-cdaccent text-cdaccent bg-cdaccent/10' : 'border-cdborder text-cdmuted'}`}
                         >
-                            Eigen afstand
+                            Custom distance
                         </button>
                         <button
                             type="button"
                             onClick={() => setSource('climb')}
                             className={`flex-1 py-2 px-3 rounded-lg text-sm font-bold border ${source === 'climb' ? 'border-cdaccent text-cdaccent bg-cdaccent/10' : 'border-cdborder text-cdmuted'}`}
                         >
-                            Uit klimdatabase
+                            From climb database
                         </button>
                     </div>
 
                     {source === 'climb' ? (
                         <div className="space-y-2">
-                            <label className="block text-xs text-cdmuted font-semibold">Zoek klim</label>
+                            <label className="block text-xs text-cdmuted font-semibold">Search climb</label>
                             <input
                                 type="text"
                                 value={climbSearch}
                                 onChange={(e) => setClimbSearch(e.target.value)}
-                                placeholder="Bv. Galibier, Stelvio…"
+                                placeholder="e.g. Galibier, Stelvio…"
                                 className="w-full bg-cdborder border border-cdborder rounded-lg px-3 py-2 text-cdtext text-sm"
                             />
                             <div className="max-h-36 overflow-y-auto rounded-lg border border-cdborder divide-y divide-cdborder custom-scrollbar">
@@ -134,18 +134,18 @@ const TrainingGoalPlanner = ({ activities, userSettings, startDate, endDate, onO
                         </div>
                     ) : null}
 
-                    <label className="block text-xs text-cdmuted font-semibold">Naam doel (vrij)</label>
+                    <label className="block text-xs text-cdmuted font-semibold">Event name (optional)</label>
                     <input
                         type="text"
                         value={eventName}
                         onChange={(e) => setEventName(e.target.value)}
-                        placeholder="Bv. Marmotte, lokale granfondo…"
+                        placeholder="e.g. Marmotte, local gran fondo…"
                         className="w-full bg-cdborder border border-cdborder rounded-lg px-3 py-2 text-cdtext"
                     />
 
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-xs text-cdmuted font-semibold mb-1">Afstand (km)</label>
+                            <label className="block text-xs text-cdmuted font-semibold mb-1">Distance (km)</label>
                             <input
                                 type="number"
                                 min="0"
@@ -156,7 +156,7 @@ const TrainingGoalPlanner = ({ activities, userSettings, startDate, endDate, onO
                             />
                         </div>
                         <div>
-                            <label className="block text-xs text-cdmuted font-semibold mb-1">Hoogtemeters (m)</label>
+                            <label className="block text-xs text-cdmuted font-semibold mb-1">Elevation (m)</label>
                             <input
                                 type="number"
                                 min="0"
@@ -169,7 +169,7 @@ const TrainingGoalPlanner = ({ activities, userSettings, startDate, endDate, onO
 
                     <div>
                         <label className="block text-xs text-cdmuted font-semibold mb-1">
-                            Verwachte duur (u, optioneel — anders schatting uit km + hm)
+                            Expected duration (h, optional — otherwise estimated from km + elevation)
                         </label>
                         <input
                             type="number"
@@ -177,14 +177,14 @@ const TrainingGoalPlanner = ({ activities, userSettings, startDate, endDate, onO
                             step="0.25"
                             value={durationHours}
                             onChange={(e) => setDurationHours(e.target.value)}
-                            placeholder="Bv. 5.5"
+                            placeholder="e.g. 5.5"
                             className="w-full bg-cdborder border border-cdborder rounded-lg px-3 py-2 text-cdtext"
                         />
                     </div>
 
                     <div>
                         <label className="block text-xs text-cdmuted font-semibold mb-1">
-                            Verwacht gemiddelde intensiteit: {targetPctFtp}% FTP
+                            Expected average intensity: {targetPctFtp}% FTP
                             {zoneForTarget ? (
                                 <span className="text-cdaccent ml-1">(~{zoneForTarget.id} {zoneForTarget.label})</span>
                             ) : null}
@@ -203,19 +203,19 @@ const TrainingGoalPlanner = ({ activities, userSettings, startDate, endDate, onO
                         </div>
                         {expectedAvgWatts != null ? (
                             <p className="mt-2 text-xs text-cdtext bg-cdborder/40 border border-cdborder rounded-lg px-3 py-2">
-                                Bij jouw FTP van <strong>{ftp} W</strong> komt {targetPctFtp}% neer op ongeveer{' '}
-                                <strong className="text-cdaccent">{expectedAvgWatts} W</strong> als verwacht <em>gemiddeld</em> vermogen over het doel (geen NP; echte ritten wisselen per minuut).
+                                At your FTP of <strong>{ftp} W</strong>, {targetPctFtp}% is about{' '}
+                                <strong className="text-cdaccent">{expectedAvgWatts} W</strong> as expected <em>average</em> power over the event (not NP; real rides vary minute to minute).
                             </p>
                         ) : (
                             <p className="mt-2 text-xs text-cdmuted">
-                                Vul je FTP in bij Instellingen om hier het verwachte gemiddelde vermogen in watt te zien.
+                                Enter your FTP in Settings to see expected average power in watts here.
                             </p>
                         )}
                     </div>
                 </div>
 
                 <div className="bg-cdsurface p-5 rounded-xl border border-cdborder space-y-4">
-                    <h3 className="text-sm font-bold text-cdtext uppercase tracking-wide">Wat we inschatten</h3>
+                    <h3 className="text-sm font-bold text-cdtext uppercase tracking-wide">What we estimate</h3>
 
                     {planResult.error ? (
                         <p className="text-sm text-red-400">{planResult.error}</p>
@@ -223,15 +223,15 @@ const TrainingGoalPlanner = ({ activities, userSettings, startDate, endDate, onO
                         <>
                             <p className="text-sm text-cdtext leading-relaxed">{planResult.demand.narrative}</p>
                             <dl className="grid grid-cols-2 gap-2 text-sm">
-                                <dt className="text-cdmuted">Weken tot doel</dt>
+                                <dt className="text-cdmuted">Weeks to event</dt>
                                 <dd className="text-cdtext font-mono font-bold">{planResult.weeksToEvent}</dd>
-                                <dt className="text-cdmuted">Recente TSS/week (4 wk)</dt>
+                                <dt className="text-cdmuted">Recent TSS/week (4 wk)</dt>
                                 <dd className="text-cdtext font-mono font-bold">{planResult.recentWeeklyTss}</dd>
-                                <dt className="text-cdmuted">Geschatte TSS doeldag</dt>
+                                <dt className="text-cdmuted">Estimated event-day TSS</dt>
                                 <dd className="text-cdtext font-mono font-bold">{planResult.demand.estimatedEventTss}</dd>
                             </dl>
                             <p className="text-xs text-cdmuted leading-relaxed border-t border-cdborder pt-3">
-                                Periode voor “recente TSS” volgt je dashboard-filter (start: {startDate || '—'}). Pas het filter aan onder het dashboard als je een andere referentie wilt.
+                                The period for “recent TSS” follows your dashboard filter (start: {startDate || '—'}). Adjust the filter below the dashboard if you want a different reference.
                             </p>
                         </>
                     )}
@@ -240,15 +240,15 @@ const TrainingGoalPlanner = ({ activities, userSettings, startDate, endDate, onO
 
             {!planResult.error && planResult.plan?.weeks?.length > 0 && (
                 <div className="bg-cdsurface p-5 rounded-xl border border-cdborder space-y-4">
-                    <h3 className="text-sm font-bold text-cdtext uppercase tracking-wide">Weekplan richting je doel</h3>
+                    <h3 className="text-sm font-bold text-cdtext uppercase tracking-wide">Weekly plan toward your goal</h3>
                     <p className="text-sm text-cdmuted">{planResult.plan.summary}</p>
                     <div className="overflow-x-auto rounded-lg border border-cdborder">
                         <table className="w-full text-sm text-left min-w-[520px]">
                             <thead>
                                 <tr className="bg-cdborder/40 text-cdmuted text-xs uppercase">
                                     <th className="px-3 py-2 font-semibold">Week</th>
-                                    <th className="px-3 py-2 font-semibold">Fase</th>
-                                    <th className="px-3 py-2 font-semibold text-right">Doel TSS/wk</th>
+                                    <th className="px-3 py-2 font-semibold">Phase</th>
+                                    <th className="px-3 py-2 font-semibold text-right">Target TSS/wk</th>
                                     <th className="px-3 py-2 font-semibold">Focus</th>
                                 </tr>
                             </thead>
@@ -269,7 +269,7 @@ const TrainingGoalPlanner = ({ activities, userSettings, startDate, endDate, onO
 
             {planResult.tips?.length > 0 && (
                 <div className="bg-cdsurface p-5 rounded-xl border border-cdborder border-l-4 border-l-yellow-500">
-                    <h3 className="text-sm font-bold text-cdtext mb-2">Let op</h3>
+                    <h3 className="text-sm font-bold text-cdtext mb-2">Note</h3>
                     <ul className="list-disc list-inside text-sm text-cdtext space-y-1">
                         {planResult.tips.map((t, i) => (
                             <li key={i}>{t}</li>
@@ -279,7 +279,7 @@ const TrainingGoalPlanner = ({ activities, userSettings, startDate, endDate, onO
             )}
 
             <div className="flex flex-wrap items-center gap-3 text-sm text-cdmuted">
-                <span>Combineer met herstel en vorm:</span>
+                <span>Combine with recovery and form:</span>
                 {typeof onOpenRecovery === 'function' ? (
                     <button
                         type="button"
@@ -287,11 +287,11 @@ const TrainingGoalPlanner = ({ activities, userSettings, startDate, endDate, onO
                         className="inline-flex items-center gap-1.5 font-bold text-cdaccent hover:underline"
                     >
                         <Heart size={16} />
-                        Open Recovery-tab
+                        Open Recovery tab
                         <ChevronRight size={16} />
                     </button>
                 ) : (
-                    <span className="text-cdtext">Gebruik de subtab Recovery voor CTL/ATL/TSB.</span>
+                    <span className="text-cdtext">Use the Recovery sub-tab for CTL/ATL/TSB.</span>
                 )}
             </div>
         </div>

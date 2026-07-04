@@ -1,12 +1,12 @@
 /**
- * Planning richting een datumdoel: geschatte belasting van het doel,
- * wekelijkse TSS-richting en fasen (basis / opbouw / specifiek / taper).
+ * Planning toward a target date: estimated event load,
+ * weekly TSS guidance and phases (base / build / specific / taper).
  */
 
 const MS_DAY = 86400000;
 
 /**
- * Gemiddelde TSS/week over de laatste `weeks` volledige weken vóór `endDate`.
+ * Average TSS/week over the last `weeks` full weeks before `endDate`.
  */
 export function avgWeeklyTssRecent(activities, endDate, weeks = 4) {
     if (!activities?.length || weeks < 1) return 0;
@@ -23,7 +23,7 @@ export function avgWeeklyTssRecent(activities, endDate, weeks = 4) {
 }
 
 /**
- * Schat duur (u) als gebruiker die niet invult: km + hm als sportieve granfondo-achtige rit.
+ * Estimate duration (h) when user does not provide it: km + elevation as a sportive-style ride.
  */
 export function estimateDurationHours(distanceKm, elevationM) {
     const d = Math.max(0, Number(distanceKm) || 0);
@@ -35,9 +35,9 @@ export function estimateDurationHours(distanceKm, elevationM) {
 }
 
 /**
- * TSS-schatting voor (geplande) inspanning: TSS ≈ uren × 100 × IF² (gangbare benadering).
+ * TSS estimate for (planned) effort: TSS ≈ hours × 100 × IF² (common approximation).
  * @param {number} hours
- * @param {number} intensityFactor 0.55–1.0 (als decimaal, bv. 0.78 voor ~78% FTP)
+ * @param {number} intensityFactor 0.55–1.0 (decimal, e.g. 0.78 for ~78% FTP)
  */
 export function estimateSessionTss(hours, intensityFactor) {
     const h = Math.max(0.25, hours);
@@ -49,8 +49,8 @@ export function estimateSessionTss(hours, intensityFactor) {
  * @param {object} p
  * @param {number} p.distanceKm
  * @param {number} p.elevationM
- * @param {number|null} p.durationHours - optioneel
- * @param {number} p.targetPctFtp - 55–100 (% van FTP als gemiddelde voor het doel)
+ * @param {number|null} p.durationHours - optional
+ * @param {number} p.targetPctFtp - 55–100 (% of FTP as average for the event)
  */
 export function estimateGoalEventDemand(p) {
     const distanceKm = Number(p.distanceKm) || 0;
@@ -70,7 +70,7 @@ export function estimateGoalEventDemand(p) {
         const avgGrade = (elevationM / (distanceKm * 1000)) * 100;
         if (avgGrade > 5) {
             climbStressNote =
-                ' Steile profielen vragen vaak herhaalde boven-drempelspikes; plan extra rust rond het doel en oefen vergelijkbare cadans.';
+                ' Steep profiles often need repeated above-threshold spikes; plan extra rest around the event and practice similar cadence.';
         }
     }
 
@@ -81,23 +81,23 @@ export function estimateGoalEventDemand(p) {
         intensityFactor,
         targetPctFtp: pct,
         estimatedEventTss: tssOneDay,
-        narrative: `Geschat ~${durationHours.toFixed(1)} u tegen ~${pct}% FTP → ruwweg ${tssOneDay} TSS op de doeldag (eenmalige piekbelasting).${climbStressNote}`,
+        narrative: `Estimated ~${durationHours.toFixed(1)} h at ~${pct}% FTP → roughly ${tssOneDay} TSS on event day (one-off peak load).${climbStressNote}`,
     };
 }
 
 const TAPER_WEEKS = 2;
 
 function phaseForWeek(weekIndex, totalWeeks) {
-    if (totalWeeks <= TAPER_WEEKS) return { key: 'taper', label: 'Taper / fris' };
+    if (totalWeeks <= TAPER_WEEKS) return { key: 'taper', label: 'Taper / fresh' };
     const buildWeeks = totalWeeks - TAPER_WEEKS;
     const r = weekIndex / Math.max(1, buildWeeks - 1);
-    if (r < 0.35) return { key: 'base', label: 'Basis / volume' };
-    if (r < 0.7) return { key: 'build', label: 'Opbouw / load' };
-    return { key: 'specific', label: 'Specifiek richting doel' };
+    if (r < 0.35) return { key: 'base', label: 'Base / volume' };
+    if (r < 0.7) return { key: 'build', label: 'Build / load' };
+    return { key: 'specific', label: 'Event-specific' };
 }
 
 /**
- * Bouwt wekenlijst met doel-TSS en korte focus.
+ * Builds week list with target TSS and short focus notes.
  */
 export function buildWeeklyGoalPlan({
     weeksToEvent,
@@ -110,7 +110,7 @@ export function buildWeeklyGoalPlan({
         return {
             weeks: [],
             summary:
-                'Je doeldatum is vandaag of in het verleden. Stel een nieuwe datum in of gebruik Recovery om te peilen of je voldoende fris bent.',
+                'Your target date is today or in the past. Set a new date or use Recovery to check whether you are fresh enough.',
         };
     }
 
@@ -142,13 +142,13 @@ export function buildWeeklyGoalPlan({
 
         let focus = '';
         if (phase.key === 'base') {
-            focus = 'Vooral Z2-duur, 1× sweetspot optioneel; beperk harde dagen tot 1.';
+            focus = 'Mostly Z2 endurance, optional 1× sweetspot; cap hard days at 1.';
         } else if (phase.key === 'build') {
-            focus = 'Verhoog week-TSS geleidelijk; 1–2 kwaliteitsdagen (sweetspot/VO2) afhankelijk van herstel.';
+            focus = 'Increase weekly TSS gradually; 1–2 quality days (sweetspot/VO2) depending on recovery.';
         } else if (phase.key === 'specific') {
-            focus = `Benader doelprofiel: ${eventDemand.distanceKm ? `~${Math.round(eventDemand.distanceKm)} km` : 'afstand'}, ${eventDemand.elevationM ? `~${Math.round(eventDemand.elevationM)} hm` : 'hoogte'} — kortere versies of herhaalde beklimmingen.`;
+            focus = `Approach event profile: ${eventDemand.distanceKm ? `~${Math.round(eventDemand.distanceKm)} km` : 'distance'}, ${eventDemand.elevationM ? `~${Math.round(eventDemand.elevationM)} m elev` : 'elevation'} — shorter versions or repeated climbs.`;
         } else {
-            focus = 'Volume omlaag, slapen, geen nieuwe prikkels; licht losrijden voor het doel.';
+            focus = 'Reduce volume, sleep, no new stimuli; easy spins before the event.';
         }
 
         weeks.push({
@@ -162,14 +162,14 @@ export function buildWeeklyGoalPlan({
 
     const summary =
         W <= TAPER_WEEKS
-            ? `Nog maar ${W} week(en): focus op rust en licht werk — geen zware blokken meer.`
-            : `Van ~${Math.round(start)} naar ~${peakTarget} TSS/week piek, daarna ${TAPER_WEEKS} taper-weken richting ~${eventDayTss} TSS op de doeldag (schatting).`;
+            ? `Only ${W} week(s) left: focus on rest and light work — no heavy blocks anymore.`
+            : `From ~${Math.round(start)} to ~${peakTarget} TSS/week peak, then ${TAPER_WEEKS} taper weeks toward ~${eventDayTss} TSS on event day (estimate).`;
 
     return { weeks, summary, peakTarget, taperWeeks: TAPER_WEEKS };
 }
 
 /**
- * Volledige plan-object voor de UI.
+ * Full plan object for the UI.
  */
 export function computeTrainingGoalPlan({
     goalDateStr,
@@ -180,7 +180,7 @@ export function computeTrainingGoalPlan({
 }) {
     const goalEnd = goalDateStr ? new Date(goalDateStr) : null;
     if (!goalEnd || Number.isNaN(goalEnd.getTime())) {
-        return { error: 'Kies een geldige doeldatum.' };
+        return { error: 'Choose a valid target date.' };
     }
 
     const todayStart = new Date(today);
@@ -209,13 +209,13 @@ export function computeTrainingGoalPlan({
 
     const tips = [];
     if (recentWeeklyTss > 400 && weeksToEvent < 3) {
-        tips.push('Je recente weekload is hoog en het doel is dichtbij: check Recovery (TSB) en overweeg een rustweek vóór het doel.');
+        tips.push('Your recent weekly load is high and the event is soon: check Recovery (TSB) and consider a rest week before the event.');
     }
     if (demand.elevationM > 1500 && demand.durationHours < 3) {
-        tips.push('Veel hoogtemeters op korte afstand: train herhaalde korte klimmen en trapfrequentie, niet alleen vlakke kilometers.');
+        tips.push('Lots of elevation in a short distance: train repeated short climbs and cadence, not only flat kilometers.');
     }
     if (weeksToEvent > 20) {
-        tips.push('Lange horizon: herzie deze planning elke 3–4 weken op basis van je werkelijke TSS en hoe je je voelt.');
+        tips.push('Long horizon: revisit this plan every 3–4 weeks based on your actual TSS and how you feel.');
     }
 
     return {

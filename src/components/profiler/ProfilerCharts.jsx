@@ -39,18 +39,18 @@ const ProfilerCharts = ({
     return (
         <div className="space-y-5">
             <p className="text-xs text-cdmuted leading-relaxed px-1">
-                Geen GPS-segmentdata: de kromme is een <span className="text-cdtext font-medium">eenvoudig model</span> met
-                maar een paar hellingspatronen (afhankelijk van de gemiddelde helling). Nuttig als <span className="text-cdtext font-medium">afstandsschaal</span> en om{' '}
-                <span className="text-cdtext font-medium">vermogenstips in de tooltip</span> te illustreren — niet als
-                exacte locatie van steile stukken.
+                No GPS segment data: the curve is a <span className="text-cdtext font-medium">simple model</span> with
+                only a few gradient patterns (depending on average gradient). Useful as a <span className="text-cdtext font-medium">distance scale</span> and to illustrate{' '}
+                <span className="text-cdtext font-medium">power tips in the tooltip</span> — not as the
+                exact location of steep sections.
             </p>
             <div className="bg-cdbg/60 p-4 rounded-xl border border-cdborder">
                 <div className="flex items-center justify-between mb-3">
                     <div>
-                        <h3 className="text-cdtext font-bold text-sm tracking-wide">Hellingsprofiel (model)</h3>
-                        <p className="text-[10px] text-cdmuted mt-0.5">Geschat · niet de echte klim</p>
+                        <h3 className="text-cdtext font-bold text-sm tracking-wide">Gradient profile (model)</h3>
+                        <p className="text-[10px] text-cdmuted mt-0.5">Estimated · not the actual climb</p>
                     </div>
-                    <span className="text-[10px] text-cdmuted uppercase shrink-0">% t.o.v. afstand</span>
+                    <span className="text-[10px] text-cdmuted uppercase shrink-0">% vs. distance</span>
                 </div>
                 <ResponsiveContainer width="100%" height={260}>
                     <AreaChart data={profileData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
@@ -104,10 +104,10 @@ const ProfilerCharts = ({
             <div className="bg-cdbg/60 p-4 rounded-xl border border-cdborder">
                 <div className="flex items-center justify-between mb-3">
                     <div>
-                        <h3 className="text-cdtext font-bold text-sm tracking-wide">Hoogte (totaal uit database)</h3>
-                        <p className="text-[10px] text-cdmuted mt-0.5">Lineair verdeeld over de lengte · geen echte bochten</p>
+                        <h3 className="text-cdtext font-bold text-sm tracking-wide">Elevation (total from database)</h3>
+                        <p className="text-[10px] text-cdmuted mt-0.5">Linearly distributed over length · no real switchbacks</p>
                     </div>
-                    <span className="text-[10px] text-cdmuted uppercase shrink-0">kumulatief</span>
+                    <span className="text-[10px] text-cdmuted uppercase shrink-0">cumulative</span>
                 </div>
                 <ResponsiveContainer width="100%" height={220}>
                     <AreaChart data={profileData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
