@@ -14,31 +14,56 @@ export const ACTIVITY_COLUMNS = [
     { key: 'data_source', label: 'Source', align: 'center', width: 'w-[4.5rem]', hideInTable: true },
     { key: 'title', label: 'Title', align: 'left', width: 'min-w-0 max-w-[240px] truncate' },
     /** Populated from Strava activity detail (segment_efforts) after gear/map enrich — see strava_kom_summary. */
-    { key: 'strava_kom_summary', label: 'Seg', align: 'left', width: 'w-[4.5rem]', omitFromExport: true },
-    { key: 'gear_name', label: 'Bike', align: 'left', width: 'w-24 max-w-[7rem]' },
+    { key: 'strava_kom_summary', label: 'Seg', align: 'left', width: 'w-[4.5rem]', omitFromExport: true, hideByDefault: true },
+    { key: 'gear_name', label: 'Bike', align: 'left', width: 'w-24 max-w-[7rem]', hideByDefault: true },
     { key: 'moving_time', label: 'Time', align: 'right', width: 'w-[3.25rem]' },
     { key: 'distance', label: 'Dist', align: 'right', width: 'w-11' },
     { key: 'climbing', label: 'Elev', align: 'right', width: 'w-11' },
-    { key: 'avg_speed', label: 'Spd', align: 'right', width: 'w-9' },
+    { key: 'avg_speed', label: 'Spd', align: 'right', width: 'w-9', hideByDefault: true },
     { key: 'norm_power', label: 'NP', align: 'right', width: 'w-9', highlight: 'yellow' },
     /** UI-only: NP ÷ profile FTP; omitted from CSV export. */
-    { key: 'intensity_factor', label: 'IF', align: 'right', width: 'w-9', omitFromExport: true },
-    { key: 'avg_power', label: 'Avg', align: 'right', width: 'w-9' },
-    { key: 'avg_hr', label: 'HR', align: 'right', width: 'w-9', text: 'slate-400' },
-    { key: 'max_hr', label: 'Max', align: 'right', width: 'w-9', text: 'slate-400' },
-    { key: 'work', label: 'kJ', align: 'right', width: 'w-10', text: 'slate-400' },
+    { key: 'intensity_factor', label: 'IF', align: 'right', width: 'w-9', omitFromExport: true, hideByDefault: true },
+    { key: 'avg_power', label: 'Avg', align: 'right', width: 'w-9', hideByDefault: true },
+    { key: 'avg_hr', label: 'HR', align: 'right', width: 'w-9', text: 'slate-400', hideByDefault: true },
+    { key: 'max_hr', label: 'Max', align: 'right', width: 'w-9', text: 'slate-400', hideByDefault: true },
+    { key: 'work', label: 'kJ', align: 'right', width: 'w-10', text: 'slate-400', hideByDefault: true },
     { key: 'load', label: 'Load', align: 'right', width: 'w-10', highlight: 'blue' },
-    { key: 'rpe', label: 'RPE', align: 'right', width: 'w-8' },
+    { key: 'rpe', label: 'RPE', align: 'right', width: 'w-8', hideByDefault: true },
     // Power Curve kolommen (1m, 5m, 10m, 20m, 60m)
-    { key: 'best_1min', label: '1m', align: 'right', width: 'w-10', text: 'slate-400' },
-    { key: 'best_5min', label: '5m', align: 'right', width: 'w-10', text: 'slate-400' },
-    { key: 'best_10min', label: '10m', align: 'right', width: 'w-10', text: 'slate-400' },
-    { key: 'best_20min', label: '20m', align: 'right', width: 'w-10', text: 'slate-400' },
-    { key: 'best_60min', label: '60m', align: 'right', width: 'w-10', text: 'slate-400' },
+    { key: 'best_1min', label: '1m', align: 'right', width: 'w-10', text: 'slate-400', hideByDefault: true },
+    { key: 'best_5min', label: '5m', align: 'right', width: 'w-10', text: 'slate-400', hideByDefault: true },
+    { key: 'best_10min', label: '10m', align: 'right', width: 'w-10', text: 'slate-400', hideByDefault: true },
+    { key: 'best_20min', label: '20m', align: 'right', width: 'w-10', text: 'slate-400', hideByDefault: true },
+    { key: 'best_60min', label: '60m', align: 'right', width: 'w-10', text: 'slate-400', hideByDefault: true },
 ];
 
 /** Columns shown in Activity Log / Import preview tables (excludes hideInTable). */
 export const ACTIVITY_TABLE_COLUMNS = ACTIVITY_COLUMNS.filter((c) => !c.hideInTable);
+
+/** Default visible keys for Activity Log (columns without hideByDefault). */
+export const ACTIVITY_LOG_DEFAULT_VISIBLE_KEYS = ACTIVITY_TABLE_COLUMNS
+    .filter((c) => !c.hideByDefault)
+    .map((c) => c.key);
+
+/**
+ * Activity Log column presets — keys must exist in ACTIVITY_TABLE_COLUMNS.
+ * `full` is resolved dynamically to all table column keys.
+ */
+export const ACTIVITY_COLUMN_PRESETS = {
+    essential: ['date', 'type', 'title', 'moving_time', 'distance', 'climbing', 'norm_power', 'load'],
+    power: [
+        'date', 'type', 'title', 'moving_time', 'distance', 'climbing',
+        'norm_power', 'load', 'avg_power', 'intensity_factor',
+        'best_1min', 'best_5min', 'best_20min',
+    ],
+    full: null,
+};
+
+export const ACTIVITY_COLUMN_PRESET_LABELS = {
+    essential: 'Essential',
+    power: 'Power',
+    full: 'Full',
+};
 
 // 2. Sport Filters
 export const SPORT_TYPES = [

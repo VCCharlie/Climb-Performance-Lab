@@ -34,6 +34,7 @@ import { CLIMB_DATABASE } from '../climbs';
 import EditActivityModal from './data-hub/EditActivityModal';
 import BulkEditActivitiesModal from './data-hub/BulkEditActivitiesModal';
 import ActivityTable from './data-hub/ActivityTable';
+import ActivityColumnPicker from './data-hub/ActivityColumnPicker';
 import ImportModal from './data-hub/ImportModal';
 import DuplicateResolver from './data-hub/DuplicateResolver';
 import QuickNav from './data-hub/QuickNav';
@@ -46,6 +47,7 @@ import NlDateInput from './NlDateInput';
 // Hooks
 import useActivityFilter from '../hooks/useActivityFilter';
 import useIntervalsSync from '../hooks/useIntervalsSync';
+import useActivityColumnVisibility from '../hooks/useActivityColumnVisibility';
 
 const DataHub = ({
     activities,
@@ -107,6 +109,15 @@ const DataHub = ({
     const [gearBackfillMsg, setGearBackfillMsg] = useState(null);
     const [showBulkEditModal, setShowBulkEditModal] = useState(false);
     const [isBulkSaving, setIsBulkSaving] = useState(false);
+
+    const {
+        visibleColumns,
+        visibleKeys,
+        activePreset,
+        applyPreset,
+        toggleColumn,
+        isColumnVisible,
+    } = useActivityColumnVisibility();
 
     // State for single-day Strava search (Tools → Strava enrichment panel)
     const [stravaDateOverride, setStravaDateOverride] = useState(null);
@@ -1644,6 +1655,13 @@ const DataHub = ({
                                         <button type="button" aria-pressed={indoorFilter === 'outdoor'} onClick={() => { setIndoorFilter('outdoor'); setVirtualRideChip(false); }} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'outdoor' ? 'bg-green-600 text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}>Out</button>
                                         <button type="button" aria-pressed={indoorFilter === 'indoor'} onClick={() => { setIndoorFilter('indoor'); setVirtualRideChip(false); }} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'indoor' ? 'bg-orange-600 text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}>In</button>
                                     </div>
+                                    <ActivityColumnPicker
+                                        visibleKeys={visibleKeys}
+                                        activePreset={activePreset}
+                                        applyPreset={applyPreset}
+                                        toggleColumn={toggleColumn}
+                                        isColumnVisible={isColumnVisible}
+                                    />
                                 </div>
                                 <div className="flex gap-2 shrink-0 w-full md:w-auto justify-end">
                                     {onRefresh && (
@@ -2158,6 +2176,7 @@ const DataHub = ({
                                 onOpenProfiler={onOpenProfilerFromActivity}
                                 profilerClimbByActivityId={profilerClimbByActivityId}
                                 profileFtp={profileFtp}
+                                visibleColumns={visibleColumns}
                             />
                         )}
                     </div>
