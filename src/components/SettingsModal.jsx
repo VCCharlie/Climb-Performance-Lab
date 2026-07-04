@@ -3,6 +3,7 @@ import { Settings, Activity, RefreshCw, Save, Moon, Sun, Shield, Target, Bell, D
 import { calculatePowerZones } from '../utils';
 import SyncPanel from './data-hub/SyncPanel';
 import { Button, IconButton, inputBaseClass, modalScrimClass, modalPanelClass, modalHeaderClass, modalFooterClass } from './ui';
+import ModalPortal from './ui/ModalPortal';
 
 // Strava logo SVG
 const StravaIcon = ({ size = 16 }) => (
@@ -90,6 +91,7 @@ const SettingsModal = ({
 
 
     return (
+        <ModalPortal>
         <div className={modalScrimClass}>
             <div className={modalPanelClass} role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
 
@@ -452,6 +454,7 @@ const SettingsModal = ({
                 </div>
             </div>
         </div>
+        </ModalPortal>
     );
 };
 
