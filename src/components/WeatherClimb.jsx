@@ -3,6 +3,7 @@ import { Cloud, Wind, Thermometer, Droplets, Sun, AlertTriangle, Search, Refresh
 import { CLIMB_DATABASE } from '../climbs';
 import WeatherForecastStrip from './WeatherForecastStrip';
 import FlagIcon from './FlagIcon';
+import { geocodeLocation, fetchCurrentWeather } from '../services/openWeatherProxy';
 
 // Approximate locations for popular climbs (city/town for weather lookup)
 const CLIMB_LOCATIONS = {
@@ -106,24 +107,14 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
         if (debounceRef.current) clearTimeout(debounceRef.current);
 
         debounceRef.current = setTimeout(async () => {
-            if (!apiKey) {
-                // Show suggestions without API key hint
-                setShowSuggestions(false);
-                return;
-            }
-
             setIsLoadingSuggestions(true);
             try {
-                const res = await fetch(
-                    `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(query)}&limit=5&appid=${apiKey}`
-                );
-                if (!res.ok) throw new Error('Geocoding failed');
-                const data = await res.json();
-                const results = data.map(item => ({
+                const data = await geocodeLocation(query, apiKey);
+                const results = data.map((item) => ({
                     q: `${item.lat},${item.lon}`,
                     lat: item.lat,
                     lon: item.lon,
-                    label: [item.name, item.state, item.country].filter(Boolean).join(', ')
+                    label: [item.name, item.state, item.country].filter(Boolean).join(', '),
                 }));
                 setSuggestions(results);
                 setShowSuggestions(results.length > 0);
@@ -145,11 +136,6 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
 
     // Fetch weather from OpenWeatherMap API
     const fetchWeather = async () => {
-        if (!apiKey) {
-            setWeatherError('Enter an OpenWeatherMap API key in Settings first (free at openweathermap.org)');
-            return;
-        }
-
         if (!locationInput.trim()) {
             setWeatherError('Enter a location');
             return;
@@ -165,30 +151,11 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
         setWeatherSuccess(null);
 
         try {
-            let url;
-            if (selectedLocation?.lat !== undefined && selectedLocation?.lon !== undefined) {
-                // Use coordinates for more reliable lookup
-                url = `https://api.openweathermap.org/data/2.5/weather?lat=${selectedLocation.lat}&lon=${selectedLocation.lon}&appid=${apiKey}&units=metric`;
-            } else {
-                // Fall back to city name query
-                const q = selectedLocation?.q || locationInput.trim();
-                url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(q)}&appid=${apiKey}&units=metric`;
-            }
+            const location = selectedLocation?.lat !== undefined && selectedLocation?.lon !== undefined
+                ? { lat: selectedLocation.lat, lon: selectedLocation.lon }
+                : { q: selectedLocation?.q || locationInput.trim() };
 
-            const response = await fetch(url);
-
-            if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                if (response.status === 401) {
-                    throw new Error('Invalid API key. Check your key at openweathermap.org');
-                } else if (response.status === 404) {
-                    throw new Error('Location not found. Search for a town near the climb.');
-                } else {
-                    throw new Error(errData.message || 'Unknown error fetching weather data');
-                }
-            }
-
-            const data = await response.json();
+            const data = await fetchCurrentWeather(location, apiKey);
 
             setTemperature(Math.round(data.main.temp));
             setHumidity(data.main.humidity);
@@ -416,8 +383,8 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                             </div>
                             <button
                                 onClick={fetchWeather}
-                                disabled={isLoadingWeather || !apiKey || !locationInput.trim()}
-                                className={`px-4 py-2 rounded text-sm font-bold transition-colors flex items-center gap-2 whitespace-nowrap ${isLoadingWeather || !apiKey || !locationInput.trim()
+                                disabled={isLoadingWeather || !locationInput.trim()}
+                                className={`px-4 py-2 rounded text-sm font-bold transition-colors flex items-center gap-2 whitespace-nowrap ${isLoadingWeather || !locationInput.trim()
                                     ? 'bg-cdborder text-cdmuted cursor-not-allowed'
                                     : 'bg-cyan-500 hover:bg-cyan-600 text-white'
                                     }`}
@@ -430,9 +397,9 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                                 Fetch
                             </button>
                         </div>
-                        {!apiKey && locationInput && (
-                            <p className="text-xs text-yellow-500 mt-1">Enter an API key for location suggestions</p>
-                        )}
+                        <p className="text-xs text-cdmuted mt-1">
+                            Weather uses the secure cloud proxy (no API key needed). Add a key in Settings only as fallback.
+                        </p>
                     </div>
                 </div>
 

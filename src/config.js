@@ -85,3 +85,6 @@ export const MONTH_ORDER = [
 
 // 4. API Endpoints
 export const CLOUD_SYNC_URL = "https://sync-intervals-97555677694.europe-west1.run.app";
+export const OPENWEATHER_PROXY_URL =
+    import.meta.env.VITE_OPENWEATHER_PROXY_URL
+    || 'https://europe-west1-climb-performance-lab.cloudfunctions.net/openweather-proxy';

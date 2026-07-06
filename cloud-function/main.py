@@ -38,6 +38,15 @@ def resolve_cors_origin(origin):
     return None
 
 
+def build_cors_headers(cors_origin, content_type="application/json"):
+    """Response headers for CORS-enabled JSON responses."""
+    headers = {"Content-Type": content_type}
+    if cors_origin:
+        headers["Access-Control-Allow-Origin"] = cors_origin
+        headers["Vary"] = "Origin"
+    return headers
+
+
 def get_credentials_from_secrets():
     """
     Retrieve credentials from Google Cloud Secret Manager via environment variables.
@@ -431,12 +440,7 @@ def sync_intervals(request):
         return ("", 204, headers)
 
     # CORS headers for actual request
-    cors_headers = {
-        "Content-Type": "application/json"
-    }
-    if cors_origin:
-        cors_headers["Access-Control-Allow-Origin"] = cors_origin
-        cors_headers["Vary"] = "Origin"
+    cors_headers = build_cors_headers(cors_origin)
 
     try:
         # Parse request
