@@ -98,7 +98,7 @@ const App = () => {
             volumeGoals: mergeVolumeGoals(null),
             notifications: { highLoad: 150, lowPower: 150, minWeight: 67, restDay: 3 },
             powerZones: [],
-            githubPat: '', // GitHub PAT for manual nightly-sync trigger
+            githubPat: '', // Legacy — nightly sync uses GitHub Actions secrets, not in-app PAT
             openweatherApiKey: '' // OpenWeather API Key
         };
         if (saved) {
@@ -734,7 +734,6 @@ const App = () => {
                                 onImport={handleImportActivities}
                                 onDelete={handleDeleteActivity}
                                 onClear={handleClearActivities}
-                                githubPat={userSettings.githubPat}
                                 intervalsConfig={intervalsConfig}
                                 stravaGetToken={stravaAuth.isConnected ? stravaAuth.getValidToken : null}
                                 startDate={globalStartDate}

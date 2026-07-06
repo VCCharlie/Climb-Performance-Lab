@@ -192,34 +192,30 @@ const SettingsModal = ({
                                     <input type="text" maxLength={30} value={intervalsConfig.athleteId} onChange={e => updateIntervalsConfig('athleteId', e.target.value)} className={fieldClass} />
                                 </div>
                                 <div className="pt-2">
-                                    <label className={`block text-xs font-semibold mb-1 text-cdmuted`}>API Key</label>
-                                    <input type="password" maxLength={100} value={intervalsConfig.apiKey} onChange={e => updateIntervalsConfig('apiKey', e.target.value)} className={fieldClass} />
-                                </div>
-                                {/* GitHub PAT for manual sync trigger */}
-                                <div className="pt-2 border-t border-cdborder/30 mt-2">
                                     <label className={`block text-xs font-semibold mb-1 text-cdmuted`}>
-                                        GitHub PAT
-                                        <span className="text-cdmuted font-normal ml-1 normal-case">(voor "Sync Now" knop)</span>
+                                        API Key
+                                        <span className="text-cdmuted font-normal ml-1 normal-case">(optional on this device)</span>
                                     </label>
-                                    <input
-                                        type="password"
-                                        maxLength={100}
-                                        placeholder="ghp_xxxxxxxxxxxxxxxxxx"
-                                        value={userSettings.githubPat || ''}
-                                        onChange={e => updateUserSettings('githubPat', e.target.value)}
-                                        className={fieldClass}
-                                    />
+                                    <input type="password" maxLength={100} value={intervalsConfig.apiKey} onChange={e => updateIntervalsConfig('apiKey', e.target.value)} className={fieldClass} />
                                     <p className="text-xs text-cdmuted mt-1">
-                                        Maak een PAT aan op{' '}
-                                        <a
-                                            href="https://github.com/settings/tokens/new?scopes=workflow"
-                                            target="_blank" rel="noopener noreferrer"
-                                            className="text-blue-400 hover:underline"
-                                        >
-                                            github.com/settings/tokens
-                                        </a>{' '}
-                                        met scope <code className="bg-cdborder px-1 rounded">workflow</code>.
+                                        Leave empty to sync via the secure cloud function (same credentials as nightly GitHub Actions sync).
+                                        Add a key here only if you need direct browser access to Intervals.icu.
                                     </p>
+                                </div>
+                                <div className="pt-2 border-t border-cdborder/30 mt-2">
+                                    <p className="text-xs font-semibold text-cdtext mb-1">Nightly server sync</p>
+                                    <p className="text-xs text-cdmuted mb-2">
+                                        Automated sync uses repository secrets (<code className="bg-cdborder px-1 rounded">INTERVALS_API_KEY</code>).
+                                        Trigger a manual run on GitHub:
+                                    </p>
+                                    <a
+                                        href="https://github.com/VCCharlie/Climb-Performance-Lab/actions/workflows/nightly-sync.yml"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-xs text-cdaccent hover:underline inline-flex items-center gap-1"
+                                    >
+                                        Open GitHub Actions workflow
+                                    </a>
                                 </div>
                                 {/* OpenWeatherMap API Key */}
                                 <div className="pt-2 border-t border-cdborder/30 mt-2">
@@ -229,11 +225,14 @@ const SettingsModal = ({
                                     <input
                                         type="password"
                                         maxLength={100}
-                                        placeholder="Voer API key in..."
+                                        placeholder="Your OpenWeather API key"
                                         value={userSettings.openweatherApiKey || ''}
                                         onChange={e => updateUserSettings('openweatherApiKey', e.target.value)}
                                         className={fieldClass}
                                     />
+                                    <p className="text-xs text-cdmuted mt-1">
+                                        Stored on this device only. Re-enter after switching browsers or clearing site data.
+                                    </p>
                                     <p className="text-xs text-cdmuted mt-1">
                                         Gratis aan te maken op{' '}
                                         <a

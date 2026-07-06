@@ -59,8 +59,7 @@ const DataHub = ({
     onDelete,
     onClear,
     onRefresh,
-    // githubPat,
-    intervalsConfig, // New Prop
+    intervalsConfig,
     stravaGetToken,
     startDate,
     endDate,
