@@ -422,7 +422,7 @@ def sync_intervals(request):
     if request.method == "OPTIONS":
         headers = {
             "Access-Control-Allow-Methods": "POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
             "Access-Control-Max-Age": "3600",
         }
         if cors_origin:
