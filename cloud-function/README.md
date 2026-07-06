@@ -210,3 +210,49 @@ curl -X POST http://localhost:8080 \
 - Secrets are stored encrypted in Google Cloud
 - The function URL is public but credentials are server-side
 - Consider adding authentication if deploying for multiple users
+
+## OpenWeather Proxy (`openweather-proxy`)
+
+Proxies geocoding and current-weather requests so the browser never needs an OpenWeather API key.
+
+### Create secret
+
+```bash
+echo -n "your-openweather-key" | gcloud secrets create openweather-api-key --data-file=-
+```
+
+### Deploy
+
+```bash
+gcloud functions deploy openweather-proxy \
+    --gen2 \
+    --runtime python312 \
+    --trigger-http \
+    --allow-unauthenticated \
+    --region europe-west1 \
+    --entry-point openweather_proxy \
+    --set-secrets 'OPENWEATHER_API_KEY=openweather-api-key:latest' \
+    --set-env-vars ALLOWED_CORS_ORIGINS='http://localhost:5173,https://vccharlie.github.io' \
+    --source .
+```
+
+### Request
+
+**POST** `openweather-proxy`
+
+Geocode:
+```json
+{ "action": "geocode", "query": "Bourg-d'Oisans", "limit": 5 }
+```
+
+Current weather (coordinates):
+```json
+{ "action": "weather", "lat": 45.05, "lon": 6.07 }
+```
+
+Current weather (city):
+```json
+{ "action": "weather", "q": "Bourg-d'Oisans,FR" }
+```
+
+Frontend URL: `src/config.js` → `OPENWEATHER_PROXY_URL` (override with `VITE_OPENWEATHER_PROXY_URL` in CI if needed).
