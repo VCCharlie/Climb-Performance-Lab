@@ -2,6 +2,7 @@
 import { Settings, Activity, RefreshCw, Save, Moon, Sun, Shield, Target, Bell, Database, Download, Upload, Zap, X, Link, Unlink } from 'lucide-react';
 import { calculatePowerZones } from '../utils';
 import SyncPanel from './data-hub/SyncPanel';
+import { buildBackupExport, validateBackupPayload, describeBackupImport, BACKUP_MAX_BYTES } from '../utils/backupSchema';
 import { Button, IconButton, inputBaseClass, modalScrimClass, modalPanelClass, modalHeaderClass, modalFooterClass } from './ui';
 import ModalPortal from './ui/ModalPortal';
 
@@ -17,7 +18,7 @@ const SettingsModal = ({
     intervalsConfig, updateIntervalsConfig,
     userSettings, updateUserSettings,
     onSaveToCloud, theme, setTheme,
-    fullData, onImportBackup,
+    fullData, onImportBackup, onCleanupCloudTokens,
     syncState, onSyncComplete,
     stravaConfig, updateStravaConfig, stravaAuth
 }) => {
@@ -65,28 +66,55 @@ const SettingsModal = ({
 
     // 1. BACKUP & EXPORT FUNCTIE
     const handleExport = () => {
-        const dataStr = JSON.stringify(fullData, null, 2);
+        const dataStr = JSON.stringify(buildBackupExport(fullData), null, 2);
         const blob = new Blob([dataStr], { type: "application/json" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.download = `climb_lab_backup_${new Date().toISOString().split('T')[0]}.json`;
         link.href = url;
         link.click();
+        URL.revokeObjectURL(url);
     };
 
     const handleImportFile = (e) => {
         const file = e.target.files[0];
+        e.target.value = '';
         if (!file) return;
+        if (file.size > BACKUP_MAX_BYTES) {
+            alert(`Backup file is too large (max ${Math.round(BACKUP_MAX_BYTES / (1024 * 1024))} MB).`);
+            return;
+        }
         const reader = new FileReader();
         reader.onload = (event) => {
             try {
                 const data = JSON.parse(event.target.result);
+                const validation = validateBackupPayload(data);
+                if (!validation.ok) {
+                    alert('Invalid backup file: ' + validation.error);
+                    return;
+                }
+                const sections = describeBackupImport(data);
+                const message = sections.length > 0
+                    ? `Import backup?\n\nThis will overwrite:\n• ${sections.join('\n• ')}`
+                    : 'Import backup?';
+                if (!window.confirm(message)) return;
                 if (onImportBackup) onImportBackup(data);
             } catch (err) {
                 alert('Error reading file: ' + err.message);
             }
         };
         reader.readAsText(file);
+    };
+
+    const handleCleanupCloudTokens = async () => {
+        if (!onCleanupCloudTokens) return;
+        const confirmed = window.confirm(
+            'Remove OAuth tokens from the cloud database?\n\n'
+            + 'Your local Strava connection stays intact. '
+            + 'Use this after a security update if tokens were previously stored in Firestore.',
+        );
+        if (!confirmed) return;
+        await onCleanupCloudTokens();
     };
 
 
@@ -315,6 +343,9 @@ const SettingsModal = ({
                                 <Database className="text-blue-400" size={18} />
                                 <h3 className="font-bold text-cdtext">Backup & Data</h3>
                             </div>
+                            <p className="text-xs text-cdmuted mb-3">
+                                Export may include API keys and tokens in plain text — store the file securely.
+                            </p>
                             <div className="flex gap-3">
                                 <Button type="button" variant="tonal" className="flex-1" onClick={handleExport}>
                                     <Download size={14} aria-hidden /> Export JSON
@@ -327,6 +358,28 @@ const SettingsModal = ({
                                 </label>
                             </div>
                         </div>
+
+                        {/* CLOUD SECURITY */}
+                        {onCleanupCloudTokens && (
+                            <div className={sectionClass}>
+                                <div className="flex items-center gap-2 pb-2 border-b border-cdborder/50 mb-4">
+                                    <Shield className="text-cdgreen" size={18} />
+                                    <h3 className="font-bold text-cdtext">Cloud Security</h3>
+                                </div>
+                                <p className="text-xs text-cdmuted mb-3">
+                                    OAuth tokens are kept on this device only. If older saves stored tokens in the cloud,
+                                    use the button below to remove them without disconnecting Strava locally.
+                                </p>
+                                <Button
+                                    type="button"
+                                    variant="tonal"
+                                    className="w-full"
+                                    onClick={handleCleanupCloudTokens}
+                                >
+                                    Remove stored tokens from cloud
+                                </Button>
+                            </div>
+                        )}
                     </div>
 
                     {/* KOLOM 2: DOELEN & ZONES */}
