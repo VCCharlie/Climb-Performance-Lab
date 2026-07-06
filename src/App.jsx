@@ -6,6 +6,14 @@ import { db, auth } from './firebase';
 import { CLIMB_DATABASE } from './climbs';
 import { calculatePowerZones } from './utils';
 import { devLog, redactSecrets } from './utils/safeLog';
+import {
+    stravaConfigForCloud,
+    mergeStravaConfigFromCloud,
+    intervalsConfigForCloud,
+    mergeIntervalsConfigFromCloud,
+    userSettingsForCloud,
+    mergeUserSettingsFromCloud,
+} from './utils/settingsCloudMerge';
 
 // Components
 import Header from './components/Header';
@@ -491,10 +499,12 @@ const App = () => {
 
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    if (data.intervals) setIntervalsConfig(data.intervals);
+                    if (data.intervals) {
+                        setIntervalsConfig((prev) => mergeIntervalsConfigFromCloud(data.intervals, prev));
+                    }
                     if (data.body) {
                         setUserSettings((prev) => {
-                            const merged = { ...prev, ...data.body };
+                            const merged = mergeUserSettingsFromCloud(data.body, prev);
                             merged.volumeGoals = mergeVolumeGoals(merged.volumeGoals);
                             return merged;
                         });
@@ -508,8 +518,11 @@ const App = () => {
                         localStorage.setItem('bucketListState', JSON.stringify(data.bucketList));
                     }
                     if (data.strava) {
-                        setStravaConfig(data.strava);
-                        localStorage.setItem('stravaConfig', JSON.stringify(data.strava));
+                        setStravaConfig((prev) => {
+                            const merged = mergeStravaConfigFromCloud(data.strava, prev);
+                            localStorage.setItem('stravaConfig', JSON.stringify(merged));
+                            return merged;
+                        });
                     }
                     if (data.stravaProfile) {
                         setStravaProfileData(data.stravaProfile);
@@ -585,14 +598,10 @@ const App = () => {
         try {
             const settingsId = user ? `user_${user.uid}` : "user_prefs";
 
-            // SECURITY: Never save raw API keys or secrets to the cloud database
-            const safeIntervals = { ...intervalsConfig, apiKey: intervalsConfig.apiKey ? '' : '' };
-            const safeBody = {
-                ...userSettings,
-                githubPat: userSettings.githubPat ? '' : '',
-                openweatherApiKey: userSettings.openweatherApiKey ? '' : ''
-            };
-            const safeStrava = { ...stravaConfig, client_secret: stravaConfig.client_secret ? '' : '' };
+            // SECURITY: Never save raw API keys, secrets, or OAuth tokens to Firestore
+            const safeIntervals = intervalsConfigForCloud(intervalsConfig);
+            const safeBody = userSettingsForCloud(userSettings);
+            const safeStrava = stravaConfigForCloud(stravaConfig);
             devLog('Saving Settings to Cloud:', redactSecrets({
                 intervals: intervalsConfig,
                 body: userSettings,
@@ -613,12 +622,47 @@ const App = () => {
         } catch (e) { alert("Error saving settings: " + e.message); }
     };
 
+    const cleanupCloudTokens = async () => {
+        if (!db) {
+            alert('Cloud database is not available.');
+            return;
+        }
+        try {
+            const settingsId = user ? `user_${user.uid}` : 'user_prefs';
+            await setDoc(doc(db, 'settings', settingsId), {
+                strava: stravaConfigForCloud(stravaConfig),
+            }, { merge: true });
+            alert('Stored OAuth tokens were removed from the cloud. Your local Strava connection is unchanged.');
+        } catch (e) {
+            alert('Could not clean cloud tokens: ' + e.message);
+        }
+    };
+
     const handleImportBackup = (backupData) => {
-        if (backupData.settings) setUserSettings(prev => ({ ...prev, ...backupData.settings }));
-        if (backupData.intervals) setIntervalsConfig(backupData.intervals);
+        if (backupData.settings) {
+            setUserSettings((prev) => ({ ...prev, ...backupData.settings }));
+        }
+        if (backupData.intervals) {
+            setIntervalsConfig((prev) => ({ ...prev, ...backupData.intervals }));
+        }
         if (backupData.activities) setActivitiesState(backupData.activities);
         if (backupData.bucketList) setBucketListState(backupData.bucketList);
-        alert("Backup restored successfully!");
+        if (backupData.strava) {
+            setStravaConfig((prev) => {
+                const merged = { ...prev, ...backupData.strava };
+                localStorage.setItem('stravaConfig', JSON.stringify(merged));
+                return merged;
+            });
+        }
+        if (backupData.stravaProfile) {
+            setStravaProfileData(backupData.stravaProfile);
+            localStorage.setItem('stravaProfileData', JSON.stringify(backupData.stravaProfile));
+        }
+        if (backupData.theme) {
+            setTheme(backupData.theme);
+            localStorage.setItem('theme', backupData.theme);
+        }
+        alert('Backup restored successfully!');
     };
 
     // Chart Data logic moved to Dashboard.jsx
@@ -868,8 +912,17 @@ const App = () => {
                                     setTheme(newTheme);
                                     localStorage.setItem('theme', newTheme);
                                 }}
-                                fullData={{ activities, settings: userSettings, intervals: intervalsConfig, bucketList: bucketListState }}
+                                fullData={{
+                                    activities,
+                                    settings: userSettings,
+                                    intervals: intervalsConfig,
+                                    bucketList: bucketListState,
+                                    strava: stravaConfig,
+                                    stravaProfile: stravaProfileData,
+                                    theme,
+                                }}
                                 onImportBackup={handleImportBackup}
+                                onCleanupCloudTokens={cleanupCloudTokens}
                                 syncState={{ syncDates, setSyncDates, sportFilters, setSportFilters, isSyncing, syncProgress, syncIntervals }}
                                 onSyncComplete={handleSettingsSyncComplete}
                                 stravaConfig={stravaConfig}
