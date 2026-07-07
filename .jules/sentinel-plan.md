@@ -181,6 +181,7 @@ Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' https
 
 - Switch to enforcing `Content-Security-Policy` after violations resolved.
 - `frame-ancestors 'none'` in CSP covers clickjacking protection (meta `X-Frame-Options` not available on GitHub Pages).
+- **Google Sign-In hosts required in CSP:** `script-src` → `apis.google.com`, `www.gstatic.com`; `frame-src` → `accounts.google.com`, `*.google.com`, `*.firebaseapp.com`; `form-action` → `accounts.google.com` (without these, `signInWithPopup` fails with `auth/internal-error`).
 - **PR:** `🛡️ Sentinel Phase 3.2: enforce CSP`
 
 ### 3.3 Subresource Integrity (interim)
