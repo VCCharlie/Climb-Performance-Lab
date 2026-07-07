@@ -2,7 +2,7 @@
 
 **Status:** Living document — master plan for phased security hardening  
 **Last audit:** 2026-07-07  
-**Progress:** Phase 0–2 ✅ merged · Phase 3.1 in progress · OpenWeather GCP proxy **skipped** (per-device API key) · Phase 4+ pending owner review  
+**Progress:** Phase 0–3.2 ✅ · Phase 4.0 ✅ · Phase 4.1 rules **in repo** (deploy pending owner sign-off) · Phase 4.2–6 + final audit pending  
 **Scope:** Client SPA (`src/`), PWA (`index.html`, Workbox), Cloud Function (`cloud-function/`), CI (`.github/workflows/`)  
 **Constraint (owner):** No changes that risk locking the owner out of Firebase/Google OAuth or existing cloud data without an explicit backup + rollback plan.
 
@@ -54,12 +54,14 @@ This plan addresses them in **six phases**, smallest/safest first. Each phase is
 | Location | Fields | Encrypted? | Synced to Firestore? |
 |----------|--------|------------|----------------------|
 | `localStorage.intervalsConfig` | `apiKey`, `athleteId` | No | `apiKey` stripped on save; `athleteId` yes |
-| `localStorage.stravaConfig` | `client_secret`, `access_token`, `refresh_token` | No | `client_secret` stripped; **tokens still saved** |
+| `localStorage.stravaConfig` | `client_secret`, `access_token`, `refresh_token` | No | **Phase 2:** tokens stripped from new Firestore writes |
 | `localStorage.userSettings` | `githubPat`, `openweatherApiKey` | No | Stripped on save |
 | Backup JSON export | All of the above in plaintext | No | N/A (user file) |
 | `src/firebase.js` | Firebase Web API key fallback | Public client id | N/A |
 
-**Known gap (High):** `saveSettingsToCloud` in `App.jsx` builds `safeStrava` with spread of full `stravaConfig` — only `client_secret` is cleared; `access_token` and `refresh_token` are persisted to Firestore and re-loaded into `localStorage` on login.
+**Known gap (resolved Phase 2):** OAuth tokens no longer written to Firestore on save; local tokens preserved on merge.
+
+**Remaining gap (High):** Firestore rules in production may still be permissive until Phase 4.1 deploy (rules file is in repo; owner must deploy).
 
 ---
 
@@ -188,8 +190,9 @@ Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' https
 
 - Add `integrity` + `crossorigin` to Google Fonts link if hashes stable.
 - Tailwind CDN script cannot use SRI (dynamic) — long-term fix is Phase 6 bundle.
+- **Status:** Optional — defer until Phase 6 Tailwind bundle (Google may rotate font CSS hashes).
 
-**Phase 3 exit criteria:** App renders correctly on GitHub Pages; no CSP violations in normal flows.
+**Phase 3 exit criteria:** ✅ App renders on GitHub Pages; CSP enforced; login + sync flows work.
 
 ---
 
@@ -229,12 +232,19 @@ Expected model:
 
 ```
 settings/{docId}  →  request.auth != null && docId == 'user_' + request.auth.uid
-activities/{id}   →  authenticated read/write (or owner-scoped if multi-tenant planned)
+activities/{id}   →  authenticated read/write (single-owner shared log today)
 ```
 
-- Export current rules from Firebase console into `firestore.rules` in repo.
-- Add rules unit tests via Firebase emulator.
-- **PR:** `🛡️ Sentinel Phase 4.1: document and test Firestore rules`
+| Deliverable | Status |
+|-------------|--------|
+| `firestore.rules` in repo | ✅ |
+| `firebase.json` + emulator config | ✅ |
+| Rules unit tests (`npm run test:rules`) | ✅ |
+| Deploy guide `docs/FIRESTORE_RULES.md` | ✅ |
+| **Owner deploy** to Firebase Console | ⏳ pending sign-off |
+
+- **PR:** `🛡️ Sentinel Phase 4.1: Firestore rules + tests`
+- **Deploy:** Owner only — see `docs/FIRESTORE_RULES.md` (backup + rollback steps)
 
 ### 4.2 Cloud Function authentication
 
@@ -284,7 +294,55 @@ Recommended: **Option A** for `sync-intervals-v2` endpoint used by `intervalsSer
 | npm audit fix (non-breaking) | `npm audit fix` |
 | Pin Tailwind to bundled build | Remove CDN; use PostCSS — large diff, separate initiative |
 | Dependabot / Renovate | Enable on repo |
-| Quarterly Sentinel re-scan | Re-run this checklist |
+| Quarterly Sentinel re-scan | Re-run Phase 7 checklist |
+
+---
+
+## Phase 7 — Post-completion full audit (final gate)
+
+**When:** After Phases 1–6 are merged/deployed and owner confirms normal daily use for one release cycle.
+
+**Goal:** Confirm nothing regressed; capture residual risks; decide if further hardening is worth the UX cost.
+
+### 7.1 Automated checks
+
+```bash
+npm run lint
+npm run test:run
+npm run test:rules
+npm run build
+npm audit
+```
+
+### 7.2 Manual security smoke (owner)
+
+| Flow | Pass? |
+|------|-------|
+| Google sign-in / sign-out → SignInGate hides data | |
+| Settings save + reload | |
+| JSON backup export → import round-trip | |
+| Intervals sync (direct or cloud fallback) | |
+| Strava connect + enrich | |
+| Training volume goals persist after logout/login | |
+| DevTools Console: no CSP violations in normal use | |
+| DevTools Console: no secrets in logs during save/sync | |
+
+### 7.3 Configuration review
+
+| Item | Action |
+|------|--------|
+| Firestore rules in production match `firestore.rules` | Firebase Console → Rules |
+| GCP Firebase API key referrer restrictions | GCP Console |
+| Cloud Function CORS + auth (Phase 4.2) | curl / app test |
+| GitHub Actions secrets still valid | nightly sync workflow |
+
+### 7.4 Deliverable
+
+- Update `.jules/sentinel.md` with **residual risk register** (accepted vs open).
+- Short **Sentinel completion report** in issue/PR: what improved, what remains (e.g. Tailwind CDN, localStorage tokens).
+- Owner sign-off comment: *"Sentinel complete — accepted residual risks"* or list follow-ups.
+
+**Phase 7 exit criteria:** All smoke tests pass; residual risks documented; owner explicit OK.
 
 ---
 
@@ -295,9 +353,10 @@ Phase 0  →  (documentation only — this file)
 Phase 1  →  1.1 → 1.2 → 1.3 → 1.4   (4 small PRs, any order except 1.1 first)
 Phase 2  →  2.1 → 2.2 → 2.3 → 2.4a → 2.4b   (strict order; backup before 2.1)
 Phase 3  →  3.1 → (soak) → 3.2 → 3.3
-Phase 4  →  4.0 → 4.1 → 4.2 → 4.3
+Phase 4  →  4.0 → 4.1 (deploy) → 4.2 → 4.3
 Phase 5  →  owner decision
 Phase 6  →  ongoing
+Phase 7  →  after 1–6 complete (full re-audit + owner sign-off)
 ```
 
 ---
@@ -341,6 +400,7 @@ Manual smoke:
 | Backup | `src/components/SettingsModal.jsx` |
 | Error UI | `src/components/ErrorBoundary.jsx` |
 | Cloud Function | `cloud-function/main.py` |
+| Firestore rules | `firestore.rules`, `docs/FIRESTORE_RULES.md` |
 | Deploy / secrets | `.github/workflows/static.yml`, `src/firebase.js` |
 | Journal (critical learnings only) | `.jules/sentinel.md` |
 
@@ -348,6 +408,10 @@ Manual smoke:
 
 ## Next action
 
-**Approve Phase 1** to start the first implementation PR (`1.1 — central log sanitizer`). No backup required.
+**Now (Phase 4.1):** Review PR with `firestore.rules` + run `npm run test:rules`. When ready, owner deploys rules per `docs/FIRESTORE_RULES.md` (backup first).
 
-**Before Phase 2:** Owner exports Settings backup JSON and confirms go-ahead in issue/PR comment.
+**Then:** Phase 4.2 (cloud function Firebase auth) — optional if direct Intervals API is primary.
+
+**After all phases:** Phase 7 full re-audit (automated + manual smoke + residual risk register + owner sign-off).
+
+**Before Phase 5 (sessionStorage / PKCE):** Explicit owner approval — UX trade-offs.

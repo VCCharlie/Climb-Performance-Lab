@@ -12,6 +12,7 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
+    "test:rules": "firebase emulators:exec --only firestore --project climb-performance-lab-rules-test \"vitest run --config vitest.rules.config.js\"",
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
@@ -27,6 +28,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
+    "@firebase/rules-unit-testing": "^5.0.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/react": "^19.2.7",
@@ -36,6 +38,7 @@
     "eslint": "^9.39.2",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.25",
+    "firebase-tools": "^15.22.4",
     "globals": "^16.5.0",
     "jsdom": "^29.0.2",
     "sharp": "^0.35.1",
