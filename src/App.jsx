@@ -55,7 +55,7 @@ import {
     getDefaultBucketListState,
 } from './utils/sessionData';
 import SignInGate from './components/SignInGate';
-import { loginWithGoogle } from './firebase';
+import { runGoogleSignIn, isGoogleSignInInProgress, googleSignInErrorMessage } from './utils/googleSignIn';
 
 const MAIN_TAB_IDS = new Set([
     'dashboard', 'physics', 'activities', 'training', 'race', 'gearoptimizer',
@@ -289,20 +289,9 @@ const App = () => {
         if (authBusy) return;
         setAuthBusy(true);
         try {
-            await loginWithGoogle();
+            await runGoogleSignIn();
         } catch (err) {
-            const code = err?.code;
-            let msg = err?.message || 'Sign-in failed.';
-            if (code === 'auth/popup-blocked') {
-                msg = 'Pop-up was blocked. Allow pop-ups for this site and try again.';
-            } else if (code === 'auth/popup-closed-by-user') {
-                msg = 'Sign-in was cancelled.';
-            } else if (code === 'auth/network-request-failed') {
-                msg = 'Network error. Check your connection and try again.';
-            } else if (code === 'auth/unauthorized-domain') {
-                msg = 'This domain is not authorized for Google sign-in. Check Firebase Auth settings.';
-            }
-            window.alert(msg);
+            window.alert(googleSignInErrorMessage(err));
         } finally {
             setAuthBusy(false);
         }
@@ -495,6 +484,9 @@ const App = () => {
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (!firebaseUser) {
                 photoReloadAttemptedRef.current.clear();
+                if (isGoogleSignInInProgress()) {
+                    return;
+                }
                 applySignedOutSessionWipe();
                 authenticatedUserRef.current = null;
                 setUser(null);

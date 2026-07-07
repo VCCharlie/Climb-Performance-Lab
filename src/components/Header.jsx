@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Activity, Settings, LogIn, LogOut, User, Cloud, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
-import { loginWithGoogle, logout } from '../firebase';
+import { logout } from '../firebase';
+import { runGoogleSignIn, googleSignInErrorMessage } from '../utils/googleSignIn';
 import { IconButton, cn } from './ui';
 
 function initialsFromUser(user) {
@@ -56,21 +57,10 @@ const Header = ({ userSettings, onOpenSettings, user, syncStatus, lastActivityDa
             if (user) {
                 await logout();
             } else {
-                await loginWithGoogle();
+                await runGoogleSignIn();
             }
         } catch (err) {
-            const code = err?.code;
-            let msg = err?.message || 'Sign-in failed.';
-            if (code === 'auth/popup-blocked') {
-                msg = 'Pop-up was blocked. Allow pop-ups for this site and try again.';
-            } else if (code === 'auth/popup-closed-by-user') {
-                msg = 'Sign-in was cancelled.';
-            } else if (code === 'auth/network-request-failed') {
-                msg = 'Network error. Check your connection and try again.';
-            } else if (code === 'auth/unauthorized-domain') {
-                msg = 'This domain is not authorized for Google sign-in. Check Firebase Auth settings.';
-            }
-            window.alert(msg);
+            window.alert(googleSignInErrorMessage(err));
         } finally {
             setAuthBusy(false);
         }
