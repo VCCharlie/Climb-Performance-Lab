@@ -107,6 +107,11 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
         if (debounceRef.current) clearTimeout(debounceRef.current);
 
         debounceRef.current = setTimeout(async () => {
+            if (!apiKey) {
+                setShowSuggestions(false);
+                return;
+            }
+
             setIsLoadingSuggestions(true);
             try {
                 const data = await geocodeLocation(query, apiKey);
@@ -136,6 +141,11 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
 
     // Fetch weather from OpenWeatherMap API
     const fetchWeather = async () => {
+        if (!apiKey) {
+            setWeatherError('Enter an OpenWeatherMap API key in Settings (free at openweathermap.org).');
+            return;
+        }
+
         if (!locationInput.trim()) {
             setWeatherError('Enter a location');
             return;
@@ -383,8 +393,8 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                             </div>
                             <button
                                 onClick={fetchWeather}
-                                disabled={isLoadingWeather || !locationInput.trim()}
-                                className={`px-4 py-2 rounded text-sm font-bold transition-colors flex items-center gap-2 whitespace-nowrap ${isLoadingWeather || !locationInput.trim()
+                                disabled={isLoadingWeather || !apiKey || !locationInput.trim()}
+                                className={`px-4 py-2 rounded text-sm font-bold transition-colors flex items-center gap-2 whitespace-nowrap ${isLoadingWeather || !apiKey || !locationInput.trim()
                                     ? 'bg-cdborder text-cdmuted cursor-not-allowed'
                                     : 'bg-cyan-500 hover:bg-cyan-600 text-white'
                                     }`}
@@ -398,8 +408,11 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                             </button>
                         </div>
                         <p className="text-xs text-cdmuted mt-1">
-                            Weather uses the secure cloud proxy (no API key needed). Add a key in Settings only as fallback.
+                            OpenWeather API key is stored on this device only — re-enter in Settings on each browser you use.
                         </p>
+                        {!apiKey && locationInput.length >= 3 && (
+                            <p className="text-xs text-yellow-500 mt-1">Enter an API key in Settings for location suggestions.</p>
+                        )}
                     </div>
                 </div>
 

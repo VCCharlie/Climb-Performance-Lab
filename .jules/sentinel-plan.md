@@ -1,7 +1,8 @@
 # 🛡️ Sentinel Security Roadmap — Climb Performance Lab
 
 **Status:** Living document — master plan for phased security hardening  
-**Last audit:** 2026-07-04  
+**Last audit:** 2026-07-07  
+**Progress:** Phase 0–2 ✅ merged · Phase 3.1 in progress · OpenWeather GCP proxy **skipped** (per-device API key) · Phase 4+ pending owner review  
 **Scope:** Client SPA (`src/`), PWA (`index.html`, Workbox), Cloud Function (`cloud-function/`), CI (`.github/workflows/`)  
 **Constraint (owner):** No changes that risk locking the owner out of Firebase/Google OAuth or existing cloud data without an explicit backup + rollback plan.
 
