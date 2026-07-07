@@ -42,7 +42,7 @@ import useStravaAuth from './hooks/useStravaAuth';
 import { applyTheme } from './theme/applyTheme';
 import { SPORT_TYPES } from './config';
 import { consumeNavRestore } from './utils/sessionNavRestore';
-import { mergeVolumeGoals } from './utils/volumeGoals';
+import { mergeVolumeGoals, mergeVolumeGoalsPreservingNonZero } from './utils/volumeGoals';
 import {
     mergeActivitiesPreservingEnrichment,
     prepareProtectedActivityUpsertsFromCurrent,
@@ -271,6 +271,7 @@ const App = () => {
     const [user, setUser] = useState(null);
     const [authReady, setAuthReady] = useState(false);
     const [authBusy, setAuthBusy] = useState(false);
+    const [cloudSettingsHydrated, setCloudSettingsHydrated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
     const applySignedOutSessionWipe = useCallback(() => {
@@ -396,14 +397,16 @@ const App = () => {
     const volumeGoalsCloudTimerRef = useRef(null);
     const lastVolumeGoalsSyncedJsonRef = useRef('');
     useEffect(() => {
-        if (!db || !user) return;
+        if (!db || !user || !cloudSettingsHydrated) return;
         const merged = mergeVolumeGoals(userSettings.volumeGoals);
         const serialized = JSON.stringify(merged);
         if (serialized === lastVolumeGoalsSyncedJsonRef.current) return;
         if (volumeGoalsCloudTimerRef.current) clearTimeout(volumeGoalsCloudTimerRef.current);
+        const uid = user.uid;
         volumeGoalsCloudTimerRef.current = setTimeout(() => {
             volumeGoalsCloudTimerRef.current = null;
-            const settingsId = `user_${user.uid}`;
+            if (!auth?.currentUser || auth.currentUser.uid !== uid) return;
+            const settingsId = `user_${uid}`;
             setDoc(doc(db, 'settings', settingsId), { body: { volumeGoals: merged } }, { merge: true })
                 .then(() => {
                     lastVolumeGoalsSyncedJsonRef.current = serialized;
@@ -415,7 +418,7 @@ const App = () => {
         return () => {
             if (volumeGoalsCloudTimerRef.current) clearTimeout(volumeGoalsCloudTimerRef.current);
         };
-    }, [user, userSettings.volumeGoals]);
+    }, [user, userSettings.volumeGoals, cloudSettingsHydrated]);
 
     /** Real-time merge of training volume goals from Firestore (other devices / tabs). */
     useEffect(() => {
@@ -430,12 +433,11 @@ const App = () => {
                 const data = snap.data();
                 const vg = data.body?.volumeGoals;
                 if (vg == null) return;
-                const merged = mergeVolumeGoals(vg);
-                const serialized = JSON.stringify(merged);
-                lastVolumeGoalsSyncedJsonRef.current = serialized;
                 setUserSettings((prev) => {
-                    const prevSerialized = JSON.stringify(mergeVolumeGoals(prev.volumeGoals));
-                    if (prevSerialized === serialized) return prev;
+                    const merged = mergeVolumeGoalsPreservingNonZero(prev.volumeGoals, vg);
+                    const serialized = JSON.stringify(merged);
+                    if (serialized === JSON.stringify(mergeVolumeGoals(prev.volumeGoals))) return prev;
+                    lastVolumeGoalsSyncedJsonRef.current = serialized;
                     return { ...prev, volumeGoals: merged };
                 });
             },
@@ -484,6 +486,12 @@ const App = () => {
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (!firebaseUser) {
                 photoReloadAttemptedRef.current.clear();
+                if (volumeGoalsCloudTimerRef.current) {
+                    clearTimeout(volumeGoalsCloudTimerRef.current);
+                    volumeGoalsCloudTimerRef.current = null;
+                }
+                lastVolumeGoalsSyncedJsonRef.current = '';
+                setCloudSettingsHydrated(false);
                 if (isGoogleSignInInProgress()) {
                     return;
                 }
@@ -528,12 +536,20 @@ const App = () => {
 
     // 1. Settings Laden (One-time fetch) — signed-in only
     useEffect(() => {
+        if (!user) {
+            setCloudSettingsHydrated(false);
+            return;
+        }
+
+        let cancelled = false;
+        setCloudSettingsHydrated(false);
+
         const loadSettings = async () => {
             if (!db || !user) return;
             if (activities.length === 0) setIsLoading(true);
 
             try {
-                const settingsId = user ? `user_${user.uid}` : "user_prefs";
+                const settingsId = `user_${user.uid}`;
                 const docRef = doc(db, "settings", settingsId);
                 const docSnap = await getDoc(docRef);
 
@@ -545,7 +561,11 @@ const App = () => {
                     if (data.body) {
                         setUserSettings((prev) => {
                             const merged = mergeUserSettingsFromCloud(data.body, prev);
-                            merged.volumeGoals = mergeVolumeGoals(merged.volumeGoals);
+                            merged.volumeGoals = mergeVolumeGoalsPreservingNonZero(
+                                prev.volumeGoals,
+                                data.body.volumeGoals,
+                            );
+                            lastVolumeGoalsSyncedJsonRef.current = JSON.stringify(merged.volumeGoals);
                             return merged;
                         });
                     }
@@ -572,10 +592,15 @@ const App = () => {
             } catch (e) {
                 console.error("Error loading settings", e);
             } finally {
-                // We don't set loading false here because we wait for activities
+                if (!cancelled) {
+                    setCloudSettingsHydrated(true);
+                }
             }
         };
         loadSettings();
+        return () => {
+            cancelled = true;
+        };
     }, [user, activities.length]);
 
     // 2. Real-time Activities Sync (onSnapshot) — signed-in only

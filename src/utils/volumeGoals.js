@@ -39,6 +39,26 @@ export function mergeVolumeGoals(v) {
 }
 
 /**
+ * Merge cloud + local volume goals without letting empty cloud values wipe local targets.
+ * Used after login / Firestore hydration (guards against zero-write races on sign-in).
+ * @param {unknown} local
+ * @param {unknown} cloud
+ */
+export function mergeVolumeGoalsPreservingNonZero(local, cloud) {
+    const l = mergeVolumeGoals(local);
+    const c = mergeVolumeGoals(cloud);
+    const out = defaultVolumeGoals();
+    for (const key of ['weekly', 'monthly', 'yearly']) {
+        out[key] = {
+            distanceKm: c[key].distanceKm > 0 ? c[key].distanceKm : l[key].distanceKm,
+            movingTimeHours: c[key].movingTimeHours > 0 ? c[key].movingTimeHours : l[key].movingTimeHours,
+            elevationM: c[key].elevationM > 0 ? c[key].elevationM : l[key].elevationM,
+        };
+    }
+    return out;
+}
+
+/**
  * @param {string | undefined} type
  */
 function isTrackedActivity(type) {

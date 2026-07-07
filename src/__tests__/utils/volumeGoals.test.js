@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
     defaultVolumeGoals,
     mergeVolumeGoals,
+    mergeVolumeGoalsPreservingNonZero,
     currentWeekRange,
     currentMonthRange,
     currentYearRange,
@@ -30,6 +31,23 @@ describe('volumeGoals', () => {
         expect(m.monthly.movingTimeHours).toBe(0);
         expect(m.monthly.elevationM).toBe(2000);
         expect(m.yearly.distanceKm).toBe(0);
+    });
+
+    it('mergeVolumeGoalsPreservingNonZero keeps local targets when cloud is empty', () => {
+        const local = mergeVolumeGoals({
+            monthly: { distanceKm: 400, movingTimeHours: 12, elevationM: 5000 },
+        });
+        const cloud = defaultVolumeGoals();
+        const m = mergeVolumeGoalsPreservingNonZero(local, cloud);
+        expect(m.monthly.distanceKm).toBe(400);
+        expect(m.monthly.elevationM).toBe(5000);
+    });
+
+    it('mergeVolumeGoalsPreservingNonZero prefers non-zero cloud over local', () => {
+        const local = mergeVolumeGoals({ yearly: { distanceKm: 1000 } });
+        const cloud = mergeVolumeGoals({ yearly: { distanceKm: 8000 } });
+        const m = mergeVolumeGoalsPreservingNonZero(local, cloud);
+        expect(m.yearly.distanceKm).toBe(8000);
     });
 
     it('currentYearRange covers full calendar year', () => {

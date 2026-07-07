@@ -211,6 +211,8 @@ Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' https
 | `SignInGate` — “Sign in to view your data” when signed out | `src/components/SignInGate.jsx` |
 | Hide weight/FTP chips in header when signed out | `src/components/Header.jsx` |
 | Persist sensitive keys to `localStorage` only when signed in | `src/App.jsx` |
+| Defer `volumeGoals` Firestore sync until cloud settings hydrated | `src/App.jsx` |
+| `mergeVolumeGoalsPreservingNonZero` — avoid zero cloud wipe on login | `src/utils/volumeGoals.js` |
 
 **Preserved on logout:** `theme`, PWA install dismiss flag.
 
