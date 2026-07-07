@@ -241,7 +241,7 @@ activities/{id}   →  authenticated read/write (single-owner shared log today)
 | `firebase.json` + emulator config | ✅ |
 | Rules unit tests (`npm run test:rules`) | ✅ |
 | Deploy guide `docs/FIRESTORE_RULES.md` | ✅ |
-| **Owner deploy** to Firebase Console | ⏳ pending sign-off |
+| **Owner deploy** to Firebase Console | ⏳ via GitHub Actions or Firebase Console (no local CLI) |
 
 - **PR:** `🛡️ Sentinel Phase 4.1: Firestore rules + tests`
 - **Deploy:** Owner only — see `docs/FIRESTORE_RULES.md` (backup + rollback steps)
