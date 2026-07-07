@@ -221,19 +221,17 @@ const SettingsModal = ({
                                 <div className="pt-2 border-t border-cdborder/30 mt-2">
                                     <label className={`block text-xs font-semibold mb-1 text-cdmuted`}>
                                         OpenWeatherMap API Key
-                                        <span className="text-cdmuted font-normal ml-1 normal-case">(optional fallback)</span>
                                     </label>
                                     <input
                                         type="password"
                                         maxLength={100}
-                                        placeholder="Only needed if cloud weather proxy is unavailable"
+                                        placeholder="Your OpenWeather API key"
                                         value={userSettings.openweatherApiKey || ''}
                                         onChange={e => updateUserSettings('openweatherApiKey', e.target.value)}
                                         className={fieldClass}
                                     />
                                     <p className="text-xs text-cdmuted mt-1">
-                                        Weather tab uses the secure cloud proxy by default (same pattern as Intervals sync).
-                                        Add a personal key here only as a fallback when the proxy is not deployed yet.
+                                        Stored on this device only (not synced to the cloud). Enter once per browser.
                                     </p>
                                     <p className="text-xs text-cdmuted mt-1">
                                         Free key at{' '}
@@ -243,8 +241,7 @@ const SettingsModal = ({
                                             className="text-blue-400 hover:underline"
                                         >
                                             openweathermap.org
-                                        </a>
-                                        — store as GCP secret <code className="bg-cdborder px-1 rounded">OPENWEATHER_API_KEY</code> for the proxy.
+                                        </a>.
                                     </p>
                                 </div>
                             </div>

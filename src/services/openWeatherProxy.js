@@ -1,6 +1,5 @@
 /**
- * OpenWeatherMap proxy — API key stays on the server (cloud function secret).
- * Falls back to a local Settings key when the proxy is unavailable.
+ * OpenWeatherMap — prefer local Settings API key; optional cloud proxy fallback.
  */
 
 import { fetchWithTimeout } from '../utils/fetchWithTimeout';
@@ -56,33 +55,24 @@ async function fetchWeatherDirect(location, localApiKey) {
 }
 
 /**
- * Geocode via cloud proxy, optional direct API fallback with local key.
- * @param {string} query
- * @param {string} [localApiKey]
- * @param {number} [limit=5]
+ * Local API key first (per-device), cloud proxy when no key is configured.
  */
 export async function geocodeLocation(query, localApiKey, limit = 5) {
-    try {
-        const data = await callOpenWeatherProxy('geocode', { query, limit });
-        return Array.isArray(data) ? data : [];
-    } catch (proxyErr) {
-        if (!hasLocalOpenWeatherKey(localApiKey)) throw proxyErr;
+    if (hasLocalOpenWeatherKey(localApiKey)) {
         return geocodeDirect(query, localApiKey, limit);
     }
+    const data = await callOpenWeatherProxy('geocode', { query, limit });
+    return Array.isArray(data) ? data : [];
 }
 
 /**
- * Current weather via cloud proxy, optional direct API fallback.
- * @param {{ lat?: number, lon?: number, q?: string }} location
- * @param {string} [localApiKey]
+ * Local API key first, cloud proxy fallback.
  */
 export async function fetchCurrentWeather(location, localApiKey) {
-    try {
-        return await callOpenWeatherProxy('weather', location);
-    } catch (proxyErr) {
-        if (!hasLocalOpenWeatherKey(localApiKey)) throw proxyErr;
+    if (hasLocalOpenWeatherKey(localApiKey)) {
         return fetchWeatherDirect(location, localApiKey);
     }
+    return callOpenWeatherProxy('weather', location);
 }
 
 /** @param {string | undefined | null} localKey */
