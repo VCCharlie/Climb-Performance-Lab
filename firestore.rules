@@ -1,0 +1,31 @@
+rules_version = '2';
+
+// Sentinel Phase 4.1 — Firestore security rules (single-owner app).
+// Deploy only after owner review: see docs/FIRESTORE_RULES.md
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwnSettingsDoc(docId) {
+      return isSignedIn() && docId == 'user_' + request.auth.uid;
+    }
+
+    // Per-user settings (intervals metadata, body, theme, bucket list, strava public fields).
+    match /settings/{docId} {
+      allow read, write: if isOwnSettingsDoc(docId);
+    }
+
+    // Shared activity log — authenticated users only (single-owner deployment today).
+    // Future multi-tenant: add ownerId field + match request.auth.uid.
+    match /activities/{activityId} {
+      allow read, write: if isSignedIn();
+    }
+
+    // Deny everything else by default.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
