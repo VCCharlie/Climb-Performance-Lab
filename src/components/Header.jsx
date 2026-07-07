@@ -124,17 +124,19 @@ const Header = ({ userSettings, onOpenSettings, user, syncStatus, lastActivityDa
                         </div>
                     )}
 
-                    <div className="hidden md:flex items-center gap-2 rounded-cdmd bg-cdsurfacelow px-2.5 py-1.5 mr-1">
-                        <div className="text-right">
-                            <span className="block text-cdmuted text-[10px] font-medium uppercase tracking-wide">Weight</span>
-                            <span className="text-cdtext text-xs font-semibold tabular-nums">{displayWeight}</span>
+                    {user && (
+                        <div className="hidden md:flex items-center gap-2 rounded-cdmd bg-cdsurfacelow px-2.5 py-1.5 mr-1">
+                            <div className="text-right">
+                                <span className="block text-cdmuted text-[10px] font-medium uppercase tracking-wide">Weight</span>
+                                <span className="text-cdtext text-xs font-semibold tabular-nums">{displayWeight}</span>
+                            </div>
+                            <div className="w-px h-8 bg-cdborder/60" aria-hidden />
+                            <div className="text-right">
+                                <span className="block text-cdmuted text-[10px] font-medium uppercase tracking-wide">FTP</span>
+                                <span className="text-cdprimary text-xs font-semibold tabular-nums">{displayFtp}</span>
+                            </div>
                         </div>
-                        <div className="w-px h-8 bg-cdborder/60" aria-hidden />
-                        <div className="text-right">
-                            <span className="block text-cdmuted text-[10px] font-medium uppercase tracking-wide">FTP</span>
-                            <span className="text-cdprimary text-xs font-semibold tabular-nums">{displayFtp}</span>
-                        </div>
-                    </div>
+                    )}
 
                     <IconButton
                         variant="text"

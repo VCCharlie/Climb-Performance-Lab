@@ -166,7 +166,7 @@ When `data.strava` arrives from cloud:
 
 **Risk to data access:** Low — CSP misconfiguration can break Tailwind CDN or Google Fonts; test in preview deploy first.
 
-### 3.1 CSP meta tag (report-only first)
+### 3.1 CSP meta tag (report-only first) ✅
 
 Add to `index.html` (report-only mode):
 
@@ -175,12 +175,13 @@ Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' https
 ```
 
 - Monitor console for violations for one release cycle.
-- **PR:** `🛡️ Sentinel Phase 3.1: CSP report-only`
+- **PR:** `🛡️ Sentinel Phase 3.1: CSP report-only` — merged; owner soak confirmed (no CSP violations in console).
 
-### 3.2 Enforce CSP
+### 3.2 Enforce CSP ✅
 
 - Switch to enforcing `Content-Security-Policy` after violations resolved.
-- Add `X-Frame-Options: DENY` via GitHub Pages custom headers if available, or meta equivalent.
+- `frame-ancestors 'none'` in CSP covers clickjacking protection (meta `X-Frame-Options` not available on GitHub Pages).
+- **PR:** `🛡️ Sentinel Phase 3.2: enforce CSP`
 
 ### 3.3 Subresource Integrity (interim)
 
@@ -193,7 +194,31 @@ Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' https
 
 ## Phase 4 — Firebase & backend authorization (⚠️ owner review required)
 
-**Do not merge without:** Firestore rules copy in repo, rules simulator tests, and owner sign-off.
+**Do not merge Phase 4.1+ without:** Firestore rules copy in repo, rules simulator tests, and owner sign-off.
+
+### 4.0 Logout session wipe (client) ✅
+
+**Problem:** `signOut()` only cleared Firebase Auth; activities, settings, and Strava/Intervals data remained visible from React state + `localStorage`, and Firestore `onSnapshot` ran while signed out.
+
+**Fix:**
+
+| Change | File(s) |
+|--------|---------|
+| `clearSensitiveLocalStorage()` + default state factories | `src/utils/sessionData.js` |
+| On auth `null`: wipe local storage + reset React state | `src/App.jsx` |
+| Firestore settings/activities listeners only when `user` | `src/App.jsx` |
+| `SignInGate` — “Sign in to view your data” when signed out | `src/components/SignInGate.jsx` |
+| Hide weight/FTP chips in header when signed out | `src/components/Header.jsx` |
+| Persist sensitive keys to `localStorage` only when signed in | `src/App.jsx` |
+
+**Preserved on logout:** `theme`, PWA install dismiss flag.
+
+**Cloud data:** untouched — sign-in reloads from Firestore.
+
+**Risk to data access:** Low — local wipe only; no cloud deletes.
+
+- **PR:** `🛡️ Sentinel Phase 4.0: logout session wipe + sign-in gate`
+- **Tests:** `src/__tests__/utils/sessionData.test.js`
 
 ### 4.1 Firestore security rules audit
 
@@ -267,7 +292,7 @@ Phase 0  →  (documentation only — this file)
 Phase 1  →  1.1 → 1.2 → 1.3 → 1.4   (4 small PRs, any order except 1.1 first)
 Phase 2  →  2.1 → 2.2 → 2.3 → 2.4a → 2.4b   (strict order; backup before 2.1)
 Phase 3  →  3.1 → (soak) → 3.2 → 3.3
-Phase 4  →  4.1 → 4.2 → 4.3
+Phase 4  →  4.0 → 4.1 → 4.2 → 4.3
 Phase 5  →  owner decision
 Phase 6  →  ongoing
 ```

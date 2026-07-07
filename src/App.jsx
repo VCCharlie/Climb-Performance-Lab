@@ -47,6 +47,15 @@ import {
     mergeActivitiesPreservingEnrichment,
     prepareProtectedActivityUpsertsFromCurrent,
 } from './utils/activityUpsert';
+import {
+    clearSensitiveLocalStorage,
+    getDefaultUserSettings,
+    getDefaultIntervalsConfig,
+    getDefaultStravaConfig,
+    getDefaultBucketListState,
+} from './utils/sessionData';
+import SignInGate from './components/SignInGate';
+import { loginWithGoogle } from './firebase';
 
 const MAIN_TAB_IDS = new Set([
     'dashboard', 'physics', 'activities', 'training', 'race', 'gearoptimizer',
@@ -88,19 +97,7 @@ const App = () => {
 
     const [userSettings, setUserSettings] = useState(() => {
         const saved = localStorage.getItem('userSettings');
-        const defaults = {
-            weight: 70.0,
-            bikeWeight: 7.5,
-            ftp: 280,
-            maxHr: 190,
-            privacyMode: false,
-            goals: { yearlyKm: 10000, targetFtp: 300, targetWeight: 68 },
-            volumeGoals: mergeVolumeGoals(null),
-            notifications: { highLoad: 150, lowPower: 150, minWeight: 67, restDay: 3 },
-            powerZones: [],
-            githubPat: '', // Legacy — nightly sync uses GitHub Actions secrets, not in-app PAT
-            openweatherApiKey: '' // OpenWeather API Key
-        };
+        const defaults = getDefaultUserSettings();
         if (saved) {
             try {
                 const parsed = JSON.parse(saved);
@@ -115,14 +112,14 @@ const App = () => {
     const [intervalsConfig, setIntervalsConfig] = useState(() => {
         const saved = localStorage.getItem('intervalsConfig');
         if (saved) { try { return JSON.parse(saved); } catch { /* */ } }
-        return { apiKey: '', athleteId: '' };
+        return getDefaultIntervalsConfig();
     });
 
     // Strava config: opgeslagen in localStorage + Firestore (cross-device)
     const [stravaConfig, setStravaConfig] = useState(() => {
         const saved = localStorage.getItem('stravaConfig');
         if (saved) { try { return JSON.parse(saved); } catch { /* */ } }
-        return { client_id: '', client_secret: '' };
+        return getDefaultStravaConfig();
     });
 
     const updateStravaConfig = (key, value) => {
@@ -272,7 +269,44 @@ const App = () => {
     }, [setActivitiesState]); // db is een module-level constante, geen reactive state
 
     const [user, setUser] = useState(null);
+    const [authReady, setAuthReady] = useState(false);
+    const [authBusy, setAuthBusy] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+
+    const applySignedOutSessionWipe = useCallback(() => {
+        clearSensitiveLocalStorage();
+        setActivitiesState([]);
+        setUserSettings(getDefaultUserSettings());
+        setIntervalsConfig(getDefaultIntervalsConfig());
+        setStravaConfig(getDefaultStravaConfig());
+        setStravaProfileData(null);
+        setStravaEnrichResults(null);
+        setBucketListState(getDefaultBucketListState());
+        setSyncStatus('idle');
+    }, [setActivitiesState]);
+
+    const handleSignIn = useCallback(async () => {
+        if (authBusy) return;
+        setAuthBusy(true);
+        try {
+            await loginWithGoogle();
+        } catch (err) {
+            const code = err?.code;
+            let msg = err?.message || 'Sign-in failed.';
+            if (code === 'auth/popup-blocked') {
+                msg = 'Pop-up was blocked. Allow pop-ups for this site and try again.';
+            } else if (code === 'auth/popup-closed-by-user') {
+                msg = 'Sign-in was cancelled.';
+            } else if (code === 'auth/network-request-failed') {
+                msg = 'Network error. Check your connection and try again.';
+            } else if (code === 'auth/unauthorized-domain') {
+                msg = 'This domain is not authorized for Google sign-in. Check Firebase Auth settings.';
+            }
+            window.alert(msg);
+        } finally {
+            setAuthBusy(false);
+        }
+    }, [authBusy]);
 
     /** Strava profile: update UI + localStorage + Firestore (must be after `user` — avoids TDZ if placed above). */
     const handleStravaProfileData = useCallback((next) => {
@@ -285,12 +319,14 @@ const App = () => {
             : null;
         if (forPersistence) {
             try {
-                localStorage.setItem('stravaProfileData', JSON.stringify(forPersistence));
+                if (user) {
+                    localStorage.setItem('stravaProfileData', JSON.stringify(forPersistence));
+                }
             } catch { /* quota */ }
         } else {
             localStorage.removeItem('stravaProfileData');
         }
-        if (!db) return;
+        if (!db || !user) return;
         const settingsId = user ? `user_${user.uid}` : 'user_prefs';
         setDoc(doc(db, 'settings', settingsId), { stravaProfile: forPersistence }, { merge: true }).catch((e) => {
             console.warn('[Strava profile] Could not sync to Firestore:', e);
@@ -361,10 +397,11 @@ const App = () => {
 
 
 
-    // Auto-save userSettings naar localStorage
+    // Auto-save userSettings naar localStorage (signed-in only)
     useEffect(() => {
+        if (!user) return;
         localStorage.setItem('userSettings', JSON.stringify(userSettings));
-    }, [userSettings]);
+    }, [user, userSettings]);
 
     /** Debounced Firestore sync for dashboard training volume goals (avoids wiping other `body` fields). */
     const volumeGoalsCloudTimerRef = useRef(null);
@@ -418,10 +455,11 @@ const App = () => {
         return () => unsub();
     }, [user]);
 
-    // Auto-save intervalsConfig naar localStorage
+    // Auto-save intervalsConfig naar localStorage (signed-in only)
     useEffect(() => {
+        if (!user) return;
         localStorage.setItem('intervalsConfig', JSON.stringify(intervalsConfig));
-    }, [intervalsConfig]);
+    }, [user, intervalsConfig]);
 
     const [weatherClimbState, setWeatherClimbState] = useState({
         selectedClimb: CLIMB_DATABASE[0],
@@ -445,14 +483,23 @@ const App = () => {
     const [raceSubTab, setRaceSubTab] = useState('fueling');       // 'fueling' | 'racepacing'
 
     const photoReloadAttemptedRef = useRef(new Set());
+    const authenticatedUserRef = useRef(null);
 
     // Auth Listener — one optional reload if Google did not attach a photo URL yet.
     useEffect(() => {
-        if (!auth) return;
+        if (!auth) {
+            setAuthReady(true);
+            setIsLoading(false);
+            return;
+        }
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (!firebaseUser) {
                 photoReloadAttemptedRef.current.clear();
+                applySignedOutSessionWipe();
+                authenticatedUserRef.current = null;
                 setUser(null);
+                setAuthReady(true);
+                setIsLoading(false);
                 return;
             }
             if (!firebaseUser.photoURL) {
@@ -467,9 +514,11 @@ const App = () => {
                 }
             }
             setUser(auth.currentUser);
+            authenticatedUserRef.current = auth.currentUser;
+            setAuthReady(true);
         });
         return () => unsubscribe();
-    }, []);
+    }, [applySignedOutSessionWipe]);
 
     // Strava OAuth callback: verwerk ?code= parameter bij terugkeer van Strava
     useEffect(() => {
@@ -485,11 +534,10 @@ const App = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // 1. Settings Laden (One-time fetch)
+    // 1. Settings Laden (One-time fetch) — signed-in only
     useEffect(() => {
         const loadSettings = async () => {
-            if (!db) return;
-            // Only set loading true initially
+            if (!db || !user) return;
             if (activities.length === 0) setIsLoading(true);
 
             try {
@@ -538,10 +586,12 @@ const App = () => {
         loadSettings();
     }, [user, activities.length]);
 
-    // 2. Real-time Activities Sync (onSnapshot)
+    // 2. Real-time Activities Sync (onSnapshot) — signed-in only
     useEffect(() => {
-        if (!db) {
-            setIsLoading(false);
+        if (!db || !user) {
+            if (authReady && !user) {
+                setIsLoading(false);
+            }
             return;
         }
 
@@ -584,7 +634,7 @@ const App = () => {
         });
 
         return () => unsubscribe();
-    }, [user, setActivitiesState]); // Re-subscribe if user changes (security rules might change)
+    }, [user, authReady, setActivitiesState]);
 
     // Update Power Zones
     useEffect(() => {
@@ -594,7 +644,7 @@ const App = () => {
     }, [userSettings.ftp, userSettings.powerZones]);
 
     const saveSettingsToCloud = async () => {
-        if (!db) return;
+        if (!db || !user) return;
         try {
             const settingsId = user ? `user_${user.uid}` : "user_prefs";
 
@@ -696,8 +746,10 @@ const App = () => {
                     onMobileMenuOpenChange={setIsMobileMenuOpen}
                 />
 
-                {isLoading ? (
+                {!authReady || (isLoading && user) ? (
                     <LoadingPanel />
+                ) : !user ? (
+                    <SignInGate onSignIn={handleSignIn} authBusy={authBusy} />
                 ) : (
                     <div className="cd-enter">
                         {activeTab === 'dashboard' && (
@@ -897,39 +949,39 @@ const App = () => {
                                 onStateChange={setWeatherClimbState}
                             />
                         )}
-
-                        {isSettingsOpen && (
-                            <SettingsModal
-                                onClose={() => setIsSettingsOpen(false)}
-                                intervalsConfig={intervalsConfig}
-                                updateIntervalsConfig={(k, v) => setIntervalsConfig(p => ({ ...p, [k]: v }))}
-                                userSettings={userSettings}
-                                updateUserSettings={(k, v) => setUserSettings(p => ({ ...p, [k]: v }))}
-                                onSaveToCloud={saveSettingsToCloud}
-                                theme={theme}
-                                setTheme={(newTheme) => {
-                                    setTheme(newTheme);
-                                    localStorage.setItem('theme', newTheme);
-                                }}
-                                fullData={{
-                                    activities,
-                                    settings: userSettings,
-                                    intervals: intervalsConfig,
-                                    bucketList: bucketListState,
-                                    strava: stravaConfig,
-                                    stravaProfile: stravaProfileData,
-                                    theme,
-                                }}
-                                onImportBackup={handleImportBackup}
-                                onCleanupCloudTokens={cleanupCloudTokens}
-                                syncState={{ syncDates, setSyncDates, sportFilters, setSportFilters, isSyncing, syncProgress, syncIntervals }}
-                                onSyncComplete={handleSettingsSyncComplete}
-                                stravaConfig={stravaConfig}
-                                updateStravaConfig={updateStravaConfig}
-                                stravaAuth={stravaAuth}
-                            />
-                        )}
                     </div>
+                )}
+
+                {isSettingsOpen && (
+                    <SettingsModal
+                        onClose={() => setIsSettingsOpen(false)}
+                        intervalsConfig={intervalsConfig}
+                        updateIntervalsConfig={(k, v) => setIntervalsConfig(p => ({ ...p, [k]: v }))}
+                        userSettings={userSettings}
+                        updateUserSettings={(k, v) => setUserSettings(p => ({ ...p, [k]: v }))}
+                        onSaveToCloud={saveSettingsToCloud}
+                        theme={theme}
+                        setTheme={(newTheme) => {
+                            setTheme(newTheme);
+                            localStorage.setItem('theme', newTheme);
+                        }}
+                        fullData={{
+                            activities,
+                            settings: userSettings,
+                            intervals: intervalsConfig,
+                            bucketList: bucketListState,
+                            strava: stravaConfig,
+                            stravaProfile: stravaProfileData,
+                            theme,
+                        }}
+                        onImportBackup={handleImportBackup}
+                        onCleanupCloudTokens={cleanupCloudTokens}
+                        syncState={{ syncDates, setSyncDates, sportFilters, setSportFilters, isSyncing, syncProgress, syncIntervals }}
+                        onSyncComplete={handleSettingsSyncComplete}
+                        stravaConfig={stravaConfig}
+                        updateStravaConfig={updateStravaConfig}
+                        stravaAuth={stravaAuth}
+                    />
                 )}
             </main>
 

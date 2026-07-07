@@ -1,0 +1,84 @@
+/**
+ * Sentinel Phase 4.0 — local session wipe on logout.
+ * Clears sensitive localStorage keys and provides default state factories.
+ * Cloud data is untouched; signing back in reloads from Firestore.
+ */
+
+import { mergeVolumeGoals } from './volumeGoals.js';
+import { ACTIVITY_COLUMN_STORAGE_KEY } from './activityColumnVisibility.js';
+
+/** Keys removed on logout. Theme and PWA UI prefs are preserved. */
+export const SENSITIVE_LOCAL_STORAGE_KEYS = [
+    'userSettings',
+    'intervalsConfig',
+    'stravaConfig',
+    'stravaProfileData',
+    'bucketListState',
+    'stravaBikesMap',
+    'app_last_sync_time',
+    'dashboard_timeRange',
+    ACTIVITY_COLUMN_STORAGE_KEY,
+];
+
+const PREFIX_KEYS_TO_CLEAR = ['intervals_data_', 'stravaVsLogScan_v'];
+
+export function getDefaultUserSettings() {
+    return {
+        weight: 70.0,
+        bikeWeight: 7.5,
+        ftp: 280,
+        maxHr: 190,
+        privacyMode: false,
+        goals: { yearlyKm: 10000, targetFtp: 300, targetWeight: 68 },
+        volumeGoals: mergeVolumeGoals(null),
+        notifications: { highLoad: 150, lowPower: 150, minWeight: 67, restDay: 3 },
+        powerZones: [],
+        githubPat: '',
+        openweatherApiKey: '',
+    };
+}
+
+export function getDefaultIntervalsConfig() {
+    return { apiKey: '', athleteId: '' };
+}
+
+export function getDefaultStravaConfig() {
+    return { client_id: '', client_secret: '' };
+}
+
+export function getDefaultBucketListState() {
+    return { climbStatus: {} };
+}
+
+/**
+ * Remove sensitive keys from localStorage (plus prefixed cache entries).
+ * Safe to call multiple times.
+ */
+export function clearSensitiveLocalStorage() {
+    if (typeof localStorage === 'undefined') return;
+
+    for (const key of SENSITIVE_LOCAL_STORAGE_KEYS) {
+        try {
+            localStorage.removeItem(key);
+        } catch {
+            /* quota / private mode */
+        }
+    }
+
+    const prefixRemovals = [];
+    for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+        if (!key) continue;
+        if (PREFIX_KEYS_TO_CLEAR.some((prefix) => key.startsWith(prefix))) {
+            prefixRemovals.push(key);
+        }
+    }
+
+    for (const key of prefixRemovals) {
+        try {
+            localStorage.removeItem(key);
+        } catch {
+            /* ignore */
+        }
+    }
+}
