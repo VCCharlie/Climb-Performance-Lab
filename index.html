@@ -22,9 +22,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Climb Lab" />
-    <!-- Sentinel Phase 3.1: report-only CSP — monitor DevTools console before enforcing -->
+    <!-- Sentinel Phase 3.2: enforcing CSP (report-only soak passed — no console violations) -->
     <meta
-      http-equiv="Content-Security-Policy-Report-Only"
+      http-equiv="Content-Security-Policy"
       content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.googleapis.com https://*.google.com https://*.firebaseio.com https://intervals.icu https://www.strava.com https://api.openweathermap.org https://api.open-meteo.com https://geocoding-api.open-meteo.com https://europe-west1-climb-performance-lab.cloudfunctions.net https://*.europe-west1.run.app https://overpass-api.de; frame-src https://accounts.google.com https://climb-performance-lab.firebaseapp.com; worker-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
     />
     <script>
