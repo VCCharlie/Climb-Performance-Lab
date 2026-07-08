@@ -2,7 +2,7 @@
 
 **Status:** Living document — master plan for phased security hardening  
 **Last audit:** 2026-07-07  
-**Progress:** Phase 0–3.2 ✅ · Phase 4.0 ✅ · Phase 4.1 rules **in repo** (deploy pending owner sign-off) · Phase 4.2–6 + final audit pending  
+**Progress:** Phase 0–4.1 ✅ · Phase 4.2 in repo (Cloud Run redeploy pending) · Phase 4.3–7 pending  
 **Scope:** Client SPA (`src/`), PWA (`index.html`, Workbox), Cloud Function (`cloud-function/`), CI (`.github/workflows/`)  
 **Constraint (owner):** No changes that risk locking the owner out of Firebase/Google OAuth or existing cloud data without an explicit backup + rollback plan.
 
@@ -241,24 +241,29 @@ activities/{id}   →  authenticated read/write (single-owner shared log today)
 | `firebase.json` + emulator config | ✅ |
 | Rules unit tests (`npm run test:rules`) | ✅ |
 | Deploy guide `docs/FIRESTORE_RULES.md` | ✅ |
-| **Owner deploy** to Firebase Console | ⏳ via GitHub Actions or Firebase Console (no local CLI) |
+| **Owner deploy** to Firebase Console | ✅ owner (manual paste) |
 
 - **PR:** `🛡️ Sentinel Phase 4.1: Firestore rules + tests`
 - **Deploy:** Owner only — see `docs/FIRESTORE_RULES.md` (backup + rollback steps)
 
 ### 4.2 Cloud Function authentication
 
-`cloud-function/main.py` is deployed `--allow-unauthenticated` and accepts `api_key` in POST body.
+`cloud-function/main.py` was deployed `--allow-unauthenticated` and accepted `api_key` in POST body.
 
-Options (pick one):
+**Implemented (Option A + automation secret):**
 
-| Option | Pros | Cons |
-|--------|------|------|
-| A. Require Firebase ID token in `Authorization` header | Ties to app users | Requires client change |
-| B. API key in header + rate limit per IP | Simple | Still abusable if key leaks |
-| C. Deprecate body credentials; secrets-only via Secret Manager | Best | Breaks multi-user body override |
+| Caller | Auth |
+|--------|------|
+| Browser | Firebase ID token in `Authorization` header |
+| Nightly sync | `X-Automation-Secret` + GitHub secret `AUTOMATION_SHARED_SECRET` |
 
-Recommended: **Option A** for `sync-intervals-v2` endpoint used by `intervalsService.js`; keep direct Intervals API as primary path.
+| Deliverable | Status |
+|-------------|--------|
+| `cloud-function/auth_gate.py` | ✅ |
+| Client `intervalsCloudApi.js` sends ID token | ✅ |
+| `nightlySync.js` + workflow secret | ✅ |
+| `docs/CLOUD_FUNCTION_AUTH.md` | ✅ |
+| **Owner redeploy** Cloud Run `sync-intervals` | ⏳ pending |
 
 - **PR:** `🛡️ Sentinel Phase 4.2: authenticate cloud function requests`
 
@@ -408,9 +413,9 @@ Manual smoke:
 
 ## Next action
 
-**Now (Phase 4.1):** Review PR with `firestore.rules` + run `npm run test:rules`. When ready, owner deploys rules per `docs/FIRESTORE_RULES.md` (backup first).
+**Now (Phase 4.2):** Merge PR → `docs/CLOUD_FUNCTION_AUTH.md` (GitHub secret `AUTOMATION_SHARED_SECRET` + Cloud Run redeploy). No local CLI on work PC.
 
-**Then:** Phase 4.2 (cloud function Firebase auth) — optional if direct Intervals API is primary.
+**Then:** Phase 4.3 App Check (optional) or Phase 6 maintenance.
 
 **After all phases:** Phase 7 full re-audit (automated + manual smoke + residual risk register + owner sign-off).
 

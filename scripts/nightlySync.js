@@ -95,7 +95,10 @@ async function fetchFromIntervalsAPI({ athleteId, apiKey, startDate, endDate }) 
     const response = await fetch(url, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            ...(process.env.AUTOMATION_SHARED_SECRET
+                ? { 'X-Automation-Secret': process.env.AUTOMATION_SHARED_SECRET }
+                : {}),
         },
         body: JSON.stringify({
             athlete_id: athleteId,

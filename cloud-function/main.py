@@ -24,6 +24,8 @@ from datetime import datetime
 import base64
 import os
 
+from auth_gate import authorize_sync_request, is_automation_request, resolve_intervals_credentials
+
 
 DEFAULT_ALLOWED_CORS_ORIGINS = "http://localhost:5173,https://vccharlie.github.io"
 
@@ -48,13 +50,9 @@ def build_cors_headers(cors_origin, content_type="application/json"):
 
 
 def get_credentials_from_secrets():
-    """
-    Retrieve credentials from Google Cloud Secret Manager via environment variables.
-    Returns (athlete_id, api_key) or (None, None) if not configured.
-    """
-    athlete_id = os.environ.get("INTERVALS_ATHLETE_ID")
-    api_key = os.environ.get("INTERVALS_API_KEY")
-    return athlete_id, api_key
+    """Retrieve credentials from Secret Manager env vars."""
+    from auth_gate import _get_credentials_from_secrets
+    return _get_credentials_from_secrets()
 
 
 def get_intervals_activities(athlete_id: str, api_key: str, start_date: str, end_date: str) -> list:
@@ -431,7 +429,7 @@ def sync_intervals(request):
     if request.method == "OPTIONS":
         headers = {
             "Access-Control-Allow-Methods": "POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Automation-Secret",
             "Access-Control-Max-Age": "3600",
         }
         if cors_origin:
@@ -442,16 +440,19 @@ def sync_intervals(request):
     # CORS headers for actual request
     cors_headers = build_cors_headers(cors_origin)
 
+    authorized, err_body, err_status = authorize_sync_request(request)
+    if not authorized:
+        return (jsonify(err_body), err_status, cors_headers)
+
     try:
         # Parse request
         request_json = request.get_json(silent=True) or {}
         debug_mode = request_json.get("debug", False)
 
-        # Get credentials: prefer secrets, fallback to request body
-        secret_athlete_id, secret_api_key = get_credentials_from_secrets()
-
-        athlete_id = secret_athlete_id or request_json.get("athlete_id")
-        api_key = secret_api_key or request_json.get("api_key")
+        allow_body_credentials = is_automation_request(request)
+        athlete_id, api_key = resolve_intervals_credentials(
+            request_json, request, allow_body_credentials=allow_body_credentials,
+        )
 
         # Get date range from request
         start_date = request_json.get("start_date")
@@ -465,8 +466,8 @@ def sync_intervals(request):
         # Validate required fields
         if not athlete_id or not api_key:
             return (jsonify({
-                "error": "Missing credentials. Configure secrets in Google Cloud or provide athlete_id/api_key in request.",
-                "hint": "Set INTERVALS_ATHLETE_ID and INTERVALS_API_KEY secrets in Cloud Run"
+                "error": "Missing credentials. Configure INTERVALS_ATHLETE_ID and INTERVALS_API_KEY secrets in Cloud Run.",
+                "hint": "Browser clients must use server-side secrets; nightly automation may pass athlete_id/api_key in body."
             }), 400, cors_headers)
 
         if not start_date or not end_date:

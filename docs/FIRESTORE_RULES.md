@@ -22,28 +22,42 @@ This matches the client after Phase 4.0: Firestore listeners run only when `user
 
 ---
 
-## Option A — GitHub Actions (recommended, no local install)
+## Option B — Firebase Console in the browser (fastest, no IAM changes)
 
-Uses the existing repo secret `FIREBASE_SERVICE_ACCOUNT` (same as nightly sync).
-
-1. Open [GitHub Actions → Deploy Firestore Rules](https://github.com/VCCharlie/Climb-Performance-Lab/actions/workflows/deploy-firestore-rules.yml).
-2. Click **Run workflow**.
-3. In the **confirm** field, type exactly: `DEPLOY`
-4. Run on branch `main` (after the rules PR is merged).
-5. Wait for green ✅ (runs rules tests, then deploys).
-
-**Rollback:** paste your saved rules in Firebase Console → Rules → **Publish** (see below).
-
----
-
-## Option B — Firebase Console in the browser (no CLI, no Actions)
+**Use this if GitHub Actions returns 403** — uses your Google owner login, not the service account.
 
 1. Open [Firestore Rules](https://console.firebase.google.com/project/climb-performance-lab/firestore/rules).
-2. Open `firestore.rules` in this repo on GitHub (raw file).
+2. Open [`firestore.rules` on GitHub](https://github.com/VCCharlie/Climb-Performance-Lab/blob/main/firestore.rules) (Raw).
 3. Copy the full contents into the Rules editor.
 4. Click **Publish**.
 
 **Rollback:** paste your saved copy from “Before you deploy” step 3.
+
+---
+
+## Option A — GitHub Actions (no local install)
+
+Uses repo secret `FIREBASE_SERVICE_ACCOUNT` (same key as nightly sync, but **extra IAM role** required — see below).
+
+1. Open [GitHub Actions → Deploy Firestore Rules](https://github.com/VCCharlie/Climb-Performance-Lab/actions/workflows/deploy-firestore-rules.yml).
+2. Click **Run workflow**.
+3. In the **confirm** field, type exactly: `DEPLOY`
+4. Run on branch `main`.
+5. Wait for green ✅ (rules tests + deploy via Firebase Rules API).
+
+**Rollback:** paste saved rules in Firebase Console → Rules → **Publish**.
+
+### Fix 403 on deploy (one-time, in browser)
+
+Nightly sync only needs **Firestore data** access. Rules deploy needs **Firebase Rules Admin** on the same service account.
+
+1. Open [GCP IAM](https://console.cloud.google.com/iam-admin/iam?project=climb-performance-lab) (browser).
+2. Find the service account email — in GitHub → Settings → Secrets → `FIREBASE_SERVICE_ACCOUNT`, the JSON field `client_email` (e.g. `…@climb-performance-lab.iam.gserviceaccount.com`).
+3. Click **Edit** (pencil) on that principal → **Add another role**:
+   - **Firebase Rules Admin** (`roles/firebaserules.admin`)
+4. Save → re-run the **Deploy Firestore Rules** workflow.
+
+No CLI on your PC; only the GCP website.
 
 ---
 
@@ -67,7 +81,7 @@ npm install
 npm run test:rules
 ```
 
-Uses `@firebase/rules-unit-testing` with the Firestore emulator.
+Requires **JDK 21+** locally. GitHub Actions installs Temurin 21 automatically.
 
 ---
 
