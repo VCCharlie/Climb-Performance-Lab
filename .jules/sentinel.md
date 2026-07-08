@@ -80,7 +80,7 @@ Full audit: `docs/SENTINEL_PHASE_7_AUDIT.md`
 | R4 | Shared `activities` collection (single-owner) | Low | **Accepted** |
 | R5 | Firebase App Check not enabled | Low | **Open** — Phase 4.3 |
 | R6 | Strava PKCE / backend token exchange | Medium | **Open** — Phase 5 |
-| R7 | npm audit dev-dependency CVEs | Low | **Open** — Phase 6 |
+| R7 | npm audit dev-dependency CVEs | Low | **Partial** — non-breaking `npm audit fix` (Phase 6 PR); 5 moderate remain in `firebase-tools` chain |
 | R8 | Session expiry without sign-out keeps local keys | Low | **Accepted** — Phase 4.0.1 |
 | R9 | Cloud Run edge `allow-unauthenticated` | Low | **Accepted** — app-layer auth |
 | R10 | Backup JSON may contain plaintext secrets | Medium | **Accepted** — user file |
