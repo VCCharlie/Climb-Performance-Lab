@@ -1,11 +1,9 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { Search, Loader2, AlertTriangle, Trash, Split, RefreshCw, ExternalLink, GitBranch, Zap, ChevronDown, ChevronRight, Link2, Download, GitMerge, Wrench, Edit2 } from 'lucide-react';
+import { Search, Loader2, AlertTriangle, Trash, Split, RefreshCw, ExternalLink, GitBranch, Zap, ChevronDown, ChevronRight, Link2, Download, GitMerge, Edit2 } from 'lucide-react';
 import { doc, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from '../firebase';
 import { findDuplicatesInList, runInBatches } from '../utils';
-import { matchStravaToSite, STRAVA_BIKE_TYPES } from '../utils/stravaMatch';
 import { protectEnrichedFieldsOnMerge } from '../utils/firestoreActivityMerge';
-import { stravaHttpErrorMessage } from '../utils/stravaHttp';
 import { activitiesToCsv } from '../utils/activityCsvExport';
 import {
     mergeActivitiesIntervalsPrimary,
@@ -15,8 +13,8 @@ import {
 } from '../utils/mergeActivities';
 import { buildImportReplacementPlan } from '../utils/importDuplicateMatch';
 import { persistImportedActivitiesReplacingDuplicates } from '../utils/importPersistence';
-import { enrichActivityGearFromStrava, buildStravaDetailEnrichmentUpdates } from '../utils/stravaGearEnrich';
-import { buildStravaKomSummaryFromActivityDetail } from '../utils/stravaSegmentKomSummary';
+import { enrichActivityGearFromStrava } from '../utils/stravaGearEnrich';
+import { enrichSelectedActivitiesFromStrava } from '../utils/stravaSelectedEnrich';
 import { resolveStravaGearDisplay } from '../utils/stravaBikesLocalMap';
 import { buildClimbMatchIndex, findBestClimbUsingIndex } from '../utils/activityClimbMatch';
 import { activityIntensityFactor } from '../utils/activityFilterMetrics';
@@ -109,8 +107,8 @@ const DataHub = ({
     const [showMergeModal, setShowMergeModal] = useState(false);
     const [mergeError, setMergeError] = useState(null);
     const [isMerging, setIsMerging] = useState(false);
-    const [isGearBackfilling, setIsGearBackfilling] = useState(false);
-    const [gearBackfillMsg, setGearBackfillMsg] = useState(null);
+    const [isStravaEnriching, setIsStravaEnriching] = useState(false);
+    const [stravaEnrichMsg, setStravaEnrichMsg] = useState(null);
     const [showBulkEditModal, setShowBulkEditModal] = useState(false);
     const [isBulkSaving, setIsBulkSaving] = useState(false);
 
@@ -126,7 +124,7 @@ const DataHub = ({
     const useCardLayout = useActivityCardLayout();
     const [logMobileFiltersOpen, setLogMobileFiltersOpen] = useState(false);
 
-    // State for single-day Strava search (Tools → Strava enrichment panel)
+    // State for single-day Strava search (per-activity Find on Strava panel)
     const [stravaDateOverride, setStravaDateOverride] = useState(null);
     const [enrichmentTarget, setEnrichmentTarget] = useState(null);
 
@@ -447,78 +445,92 @@ const DataHub = ({
         }
     };
 
-    const runGearBackfillFromStrava = async (subset) => {
+    const persistStravaEnrichUpdates = useCallback(async (updates, sourceList) => {
+        if (!updates?.length) return;
+        const sourceMap = new Map((sourceList || []).map((a) => [String(a.id), a]));
+        const activitiesMap = new Map((activities || []).map((a) => [String(a.id), a]));
+        const CHUNK = 25;
+        for (let i = 0; i < updates.length; i += CHUNK) {
+            const slice = updates.slice(i, i + CHUNK);
+            if (db) {
+                await Promise.all(
+                    slice.map(({ id, data }) => {
+                        const prev = sourceMap.get(String(id)) || activitiesMap.get(String(id)) || {};
+                        return setDoc(
+                            doc(db, 'activities', String(id)),
+                            protectEnrichedFieldsOnMerge(data, prev),
+                            { merge: true },
+                        );
+                    }),
+                );
+            }
+            const mergedObjs = slice.map(({ id, data }) => {
+                const prev = sourceMap.get(String(id)) || activitiesMap.get(String(id)) || {};
+                return protectEnrichedFieldsOnMerge({ ...prev, ...data }, prev);
+            });
+            onImport(mergedObjs);
+        }
+    }, [activities, onImport]);
+
+    const runStravaEnrichSelected = async (subset) => {
         const list = subset && subset.length > 0 ? subset : [];
         if (!stravaGetToken) return;
         if (list.length === 0) {
-            setGearBackfillMsg('Select one or more activities that have a Strava link.');
-            return;
-        }
-        const withStrava = list.filter((a) => a?.strava_id);
-        if (withStrava.length === 0) {
-            setGearBackfillMsg('Selected rows need a Strava activity id (link the ride first).');
+            setStravaEnrichMsg('Select one or more activities (row checkboxes), then run Strava enrich.');
             return;
         }
         setShowUtilMenu(false);
-        setIsGearBackfilling(true);
-        setGearBackfillMsg('Starting…');
+        setIsStravaEnriching(true);
+        setStravaEnrichMsg('Starting…');
         try {
             const token = await stravaGetToken();
             if (!token) {
-                setGearBackfillMsg('Could not get Strava token.');
+                setStravaEnrichMsg('Could not get Strava token.');
                 return;
             }
             const {
                 updates,
+                linkedCount,
+                detailUpdatedCount,
                 ridesProcessed,
                 unchanged,
                 failed,
-            } = await buildStravaDetailEnrichmentUpdates(withStrava, token, {
+            } = await enrichSelectedActivitiesFromStrava(list, token, {
                 concurrency: 3,
-                onProgress: (m) => setGearBackfillMsg(m),
+                forceStravaDetail: true,
+                onProgress: (m) => setStravaEnrichMsg(m),
             });
             if (updates.length === 0) {
                 if (failed > 0) {
-                    setGearBackfillMsg(
-                        `No fields updated (${formatNlNumber(failed)} detail request(s) failed — check connection or Strava rate limits). ${formatNlNumber(unchanged)} already matched Strava.`
+                    setStravaEnrichMsg(
+                        `No fields updated (${formatNlNumber(failed)} Strava request(s) failed — check connection or rate limits). ${formatNlNumber(unchanged)} ride(s) already matched Strava.`,
+                    );
+                } else if (ridesProcessed === 0 && linkedCount === 0) {
+                    setStravaEnrichMsg(
+                        'No matching Strava bike activities found for the selected date span. Try linking manually via Find on Strava on a single row.',
                     );
                 } else {
-                    setGearBackfillMsg(
-                        `Nothing new from Strava for ${formatNlNumber(unchanged)} selected ride(s) — gear, route, and id already match the API (or Strava returned no bike / map).`
+                    setStravaEnrichMsg(
+                        `Nothing new from Strava for ${formatNlNumber(unchanged || list.length)} selected ride(s) — link, gear, route, HR, RPE, and segments already match.`,
                     );
                 }
                 return;
             }
-            setGearBackfillMsg(`Writing ${updates.length} activities…`);
-
-            // ⚡ Bolt Optimization: Use Map for O(1) lookups instead of O(N) array.find inside loops
-            const withStravaMap = new Map((withStrava || []).map(a => [String(a.id), a]));
-            const activitiesMap = new Map((activities || []).map(a => [String(a.id), a]));
-
-            const CHUNK = 25;
-            for (let i = 0; i < updates.length; i += CHUNK) {
-                const slice = updates.slice(i, i + CHUNK);
-                if (db) {
-                    await Promise.all(
-                        slice.map(({ id, data }) =>
-                            setDoc(doc(db, 'activities', String(id)), data, { merge: true })
-                        )
-                    );
-                }
-                const mergedObjs = slice.map(({ id, data }) => {
-                    const prev = withStravaMap.get(String(id)) || activitiesMap.get(String(id));
-                    return { ...(prev || {}), ...data };
-                });
-                onImport(mergedObjs);
-            }
-            setGearBackfillMsg(
-                `Done: updated ${formatNlNumber(updates.length)} of ${formatNlNumber(ridesProcessed)} selected ride(s) from Strava (gear, bike name, route for Climb Profiler when the API returns them).`
+            setStravaEnrichMsg(`Writing ${updates.length} activities…`);
+            await persistStravaEnrichUpdates(updates, list);
+            const parts = [];
+            if (linkedCount > 0) parts.push(`${formatNlNumber(linkedCount)} newly linked`);
+            if (detailUpdatedCount > 0) parts.push(`${formatNlNumber(detailUpdatedCount)} detail refresh`);
+            setStravaEnrichMsg(
+                `Done: updated ${formatNlNumber(updates.length)} selected ride(s) from Strava`
+                + (parts.length ? ` (${parts.join(', ')})` : '')
+                + ' — gear, route, HR, RPE, and segment badges when Strava returns them.',
             );
         } catch (e) {
-            console.error('[Gear backfill]', e);
-            setGearBackfillMsg(`Error: ${e.message || e}`);
+            console.error('[Strava enrich]', e);
+            setStravaEnrichMsg(`Error: ${e.message || e}`);
         } finally {
-            setIsGearBackfilling(false);
+            setIsStravaEnriching(false);
         }
     };
 
@@ -590,7 +602,6 @@ const DataHub = ({
         }
     }, [selectedActivitiesForBulk, activities, onImport, stravaGetToken]);
 
-    // --- 1. STANDALONE STRAVA ENRICHMENT FUNCTIE ---
     const performSilentStravaEnrichment = async (actsToEnrich, customStart, customEnd) => {
         if (!stravaGetToken) return 0;
         try {
@@ -599,167 +610,36 @@ const DataHub = ({
 
             const start = customStart || startDate;
             const end = customEnd || endDate;
-
-            const afterTs = Math.floor(new Date(start).getTime() / 1000);
-            const beforeTs = Math.floor(new Date(end).getTime() / 1000) + 86400;
-
-            // 1. Haal Strava activiteiten op (List view)
-            let page = 1;
-            let allActivities = [];
-            let bikeSoFar = 0;
-            try {
-                setStravaListProgress({ page: 1, bikeCount: 0 });
-                while (true) {
-                    const resp = await fetch(
-                        `https://www.strava.com/api/v3/athlete/activities?after=${afterTs}&before=${beforeTs}&per_page=200&page=${page}`,
-                        { headers: { Authorization: `Bearer ${token}` } }
-                    );
-                    if (!resp.ok) {
-                        if (resp.status === 429) {
-                            throw new Error(stravaHttpErrorMessage(resp, 'Strava'));
-                        }
-                        break;
-                    }
-                    const data = await resp.json();
-                    if (!Array.isArray(data) || data.length === 0) break;
-                    allActivities = allActivities.concat(data);
-                    // ⚡ Bolt Optimization: Avoid O(N²) scaling by filtering only the new data page
-                    // instead of re-filtering the growing accumulated array every loop iteration.
-                    bikeSoFar += data.filter((a) => STRAVA_BIKE_TYPES.has(a.sport_type || a.type)).length;
-                    setStravaListProgress({ page, bikeCount: bikeSoFar });
-                    if (data.length < 200) break;
-                    page++;
-                }
-            } finally {
-                setStravaListProgress(null);
-            }
-
-            const bikeActivities = allActivities.filter(a => {
-                if (!STRAVA_BIKE_TYPES.has(a.sport_type || a.type)) return false;
-                const noPower = !a.average_watts || a.average_watts === 0;
-                const isShort = !a.distance || (a.distance / 1000) < 5;
-                if (noPower && isShort) return false;
-                return true;
+            const inRange = (actsToEnrich || []).filter((act) => {
+                const actDate = act.date?.split('T')[0];
+                return actDate && actDate >= start && actDate <= end;
             });
+            if (inRange.length === 0) return 0;
 
-            if (bikeActivities.length === 0) return 0;
-
-            // 2. Haal Fietsnamen (Gear) op
-            const bikesMap = {};
-            try {
-                const athleteResp = await fetch('https://www.strava.com/api/v3/athlete', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                if (athleteResp.ok) {
-                    const athleteData = await athleteResp.json();
-                    (athleteData.bikes || []).forEach(b => {
-                        bikesMap[b.id] = b.name || 'Bike';
-                    });
-                }
-
-                // ⚡ Bolt Optimization: Use single-pass reduce instead of chained map/filter
-                const uniqueGearIds = [...new Set(bikeActivities.reduce((acc, a) => {
-                    if (a.gear_id && !bikesMap[a.gear_id]) acc.push(a.gear_id);
-                    return acc;
-                }, []))];
-                if (uniqueGearIds.length > 0) {
-                    // Bolt: Batch API calls to Strava to prevent rate limits and connection exhaustion
-                    await runInBatches(uniqueGearIds, 5, async gid => {
-                        try {
-                            const r = await fetch(`https://www.strava.com/api/v3/gear/${gid}`, {
-                                headers: { Authorization: `Bearer ${token}` }
-                            });
-                            if (r.ok) {
-                                const g = await r.json();
-                                bikesMap[gid] = g.name || [g.brand_name, g.model_name].filter(Boolean).join(' ') || 'Bike';
-                            }
-                        } catch { /* ignore */ }
-                    });
-                }
-                if (Object.keys(bikesMap).length > 0) {
-                    localStorage.setItem('stravaBikesMap', JSON.stringify(bikesMap));
-                }
-            } catch (err) { console.warn("[Silent Enrichment] Gear fetch failed", err); }
-
-            // 3. Match
-            const result = matchStravaToSite(bikeActivities, actsToEnrich);
-            const candidates = [];
-
-            // Case A: Nieuw gematched (fuzzy)
-            if (result?.matched?.length > 0) {
-                candidates.push(...result.matched.filter(m => m.confidence !== 'low'));
-            }
-            // Case B: Al gekoppeld maar misschien data-update nodig
-            if (result?.alreadyLinked?.length > 0) {
-                candidates.push(...result.alreadyLinked);
-            }
-
-            if (candidates.length === 0) return 0;
-
-            // 4. CRITIEK: RPE + HR zitten niet in de lijst-API.
-            // We halen voor alle kandidaten de DETAILS op als er data ontbreekt.
-            const toEnrichFinal = [];
-
-            await runInBatches(candidates, 5, async (m) => {
-                const siteNeedsRpe = !m.site.rpe || m.site.rpe === 0;
-                const siteNeedsHr = !m.site.avg_hr || m.site.avg_hr === 0;
-                const siteNeedsGear = !m.site.gear_id && !!m.strava.gear_id;
-                const stravaListTitle = (m.strava.name || '').trim();
-                const titleDiffersFromStrava =
-                    !!stravaListTitle && m.site.title !== stravaListTitle;
-
-                // Overslaan alleen als data compleet is én titel al gelijk is aan Strava (Strava-titel is leidend)
-                if (m.site.strava_id && !siteNeedsRpe && !siteNeedsGear && !siteNeedsHr && !titleDiffersFromStrava) return;
-
-                // Haal details op van Strava (voor RPE + volledige HR)
-                let stravaDetailed = m.strava;
-                try {
-                    const detResp = await fetch(
-                        `https://www.strava.com/api/v3/activities/${m.strava.id}?include_all_efforts=true`,
-                        { headers: { Authorization: `Bearer ${token}` } },
-                    );
-                    if (detResp.ok) {
-                        stravaDetailed = await detResp.json();
+            setStravaListProgress({ page: 1, bikeCount: 0 });
+            const result = await enrichSelectedActivitiesFromStrava(inRange, token, {
+                skipShortNoPowerRides: true,
+                forceStravaDetail: false,
+                concurrency: 3,
+                onProgress: (m) => {
+                    if (String(m).includes('page')) {
+                        setStravaListProgress((prev) => ({ page: prev?.page || 1, bikeCount: prev?.bikeCount || 0 }));
                     }
-                } catch { console.warn("Detail fetch failed for Strava", m.strava.id); }
-
-                const gearId = stravaDetailed.gear_id || null;
-                const gearName = gearId ? (bikesMap[gearId] || 'Strava bike') : null;
-
-                const stravaTitle = (stravaDetailed.name || '').trim();
-                const komSummary = buildStravaKomSummaryFromActivityDetail(stravaDetailed);
-                const updateData = {
-                    strava_id: String(stravaDetailed.id),
-                    strava_map: stravaDetailed.map?.summary_polyline || m.site.strava_map || null,
-                    type: stravaDetailed.sport_type || stravaDetailed.type || m.site.type,
-                    ...(gearId && { gear_id: gearId, gear_name: gearName }),
-                    ...(stravaTitle && { title: stravaTitle }),
-                    // RPE alleen invullen als site deze nog niet heeft én Strava heeft 'm wél
-                    ...(siteNeedsRpe && stravaDetailed.perceived_exertion && { rpe: stravaDetailed.perceived_exertion }),
-                    // HR alleen invullen als site deze nog niet heeft én Strava heeft 'm wél
-                    ...(siteNeedsHr && stravaDetailed.average_heartrate && { avg_hr: Math.round(stravaDetailed.average_heartrate) }),
-                    ...((!m.site.max_hr || m.site.max_hr === 0) && stravaDetailed.max_heartrate && { max_hr: Math.round(stravaDetailed.max_heartrate) }),
-                    ...(Object.prototype.hasOwnProperty.call(stravaDetailed, 'segment_efforts')
-                        ? { strava_kom_summary: komSummary || null }
-                        : {}),
-                };
-
-                // Filter out if no actual changes
-                const hasChanges = Object.keys(updateData).some(k => updateData[k] !== m.site[k]);
-                if (hasChanges) {
-                    Object.assign(m.site, updateData);
-                    toEnrichFinal.push({ id: m.site.id, data: updateData });
-                }
+                },
             });
+            setStravaListProgress(null);
 
-            if (toEnrichFinal.length > 0 && db) {
-                await Promise.all(toEnrichFinal.map(({ id, data }) =>
-                    setDoc(doc(db, 'activities', String(id)), data, { merge: true })
-                ));
-                return toEnrichFinal.length;
+            if (result.updates.length > 0 && db) {
+                await Promise.all(
+                    result.updates.map(({ id, data }) =>
+                        setDoc(doc(db, 'activities', String(id)), data, { merge: true }),
+                    ),
+                );
+                return result.updates.length;
             }
         } catch (err) {
-            console.error("[Silent Enrichment] Failed:", err);
+            console.error('[Silent Enrichment] Failed:', err);
+            setStravaListProgress(null);
             if (err?.message && /rate limit|429/i.test(err.message)) throw err;
         }
         return 0;
@@ -894,42 +774,37 @@ const DataHub = ({
                 onImport(mergedNews);
             }
 
-            const enrichedLinkCount = await performSilentStravaEnrichment(working, syncStart, syncEnd);
-
+            let enrichedLinkCount = 0;
             let segmentRefreshCount = 0;
             let detailFailed = 0;
             if (stravaGetToken) {
                 try {
                     const token = await stravaGetToken();
                     if (token) {
-                        const withStrava = working.filter((a) => a?.strava_id);
-                        const { updates, failed } = await buildStravaDetailEnrichmentUpdates(
-                            withStrava,
-                            token,
-                            {
-                                forceStravaDetail: true,
-                                concurrency: 3,
-                                onProgress: (m) => setSyncErrorDetail(String(m)),
-                            },
-                        );
-                        detailFailed = failed;
-                        if (updates.length > 0 && db) {
-                            // ⚡ Bolt Optimization: Use Map for O(1) lookups instead of O(N) array.find inside loops
-                            const activitiesMap = new Map((activities || []).map((a) => [String(a.id), a]));
+                        const enrichResult = await enrichSelectedActivitiesFromStrava(working, token, {
+                            forceStravaDetail: true,
+                            concurrency: 3,
+                            onProgress: (m) => setSyncErrorDetail(String(m)),
+                        });
+                        enrichedLinkCount = enrichResult.linkedCount;
+                        segmentRefreshCount = enrichResult.detailUpdatedCount;
+                        detailFailed = enrichResult.failed;
+                        if (enrichResult.updates.length > 0) {
                             const workingMap = new Map((working || []).map((a) => [String(a.id), a]));
-
-                            await Promise.all(
-                                updates.map(({ id, data }) => {
-                                    const strId = String(id);
-                                    const existingRow = workingMap.get(strId) || activitiesMap.get(strId) || {};
-                                    return setDoc(
-                                        doc(db, 'activities', String(id)),
-                                        protectEnrichedFieldsOnMerge(data, existingRow),
-                                        { merge: true },
-                                    );
-                                }),
-                            );
-                            const updatesMap = new Map(updates.map(u => [String(u.id), u]));
+                            if (db) {
+                                await Promise.all(
+                                    enrichResult.updates.map(({ id, data }) => {
+                                        const strId = String(id);
+                                        const existingRow = workingMap.get(strId) || activitiesMap.get(strId) || {};
+                                        return setDoc(
+                                            doc(db, 'activities', String(id)),
+                                            protectEnrichedFieldsOnMerge(data, existingRow),
+                                            { merge: true },
+                                        );
+                                    }),
+                                );
+                            }
+                            const updatesMap = new Map(enrichResult.updates.map((u) => [String(u.id), u]));
                             for (let i = 0; i < working.length; i++) {
                                 const strId = String(working[i].id);
                                 const update = updatesMap.get(strId);
@@ -939,15 +814,14 @@ const DataHub = ({
                                     workingMap.set(strId, updated);
                                 }
                             }
-                            onImport(updates.map(({ id, data }) => {
+                            onImport(enrichResult.updates.map(({ id, data }) => {
                                 const prev = workingMap.get(String(id)) || {};
                                 return protectEnrichedFieldsOnMerge({ ...prev, ...data }, prev);
                             }));
                         }
-                        segmentRefreshCount = updates.length;
                     }
                 } catch (e) {
-                    console.warn('[Sync] Strava detail / segment refresh failed:', e);
+                    console.warn('[Sync] Strava enrich failed:', e);
                 }
             }
 
@@ -1042,43 +916,34 @@ const DataHub = ({
             let detailFailed = 0;
             if (stravaGetToken && merged.length > 0) {
                 setSyncStatus('enriching');
-                setSyncErrorDetail('Strava: matching HR/gear/KOM (same as Sync Now)…');
-                try {
-                    enrichCount = await performSilentStravaEnrichment(merged, syncStart, syncEnd);
-                } catch (e) {
-                    console.warn('[Fetch new] Silent Strava enrichment failed:', e);
-                }
+                setSyncErrorDetail('Strava: auto-link + gear/HR/RPE/KOM for fetched rides…');
                 try {
                     const token = await stravaGetToken();
                     if (token) {
-                        const withStrava = merged.filter((a) => a?.strava_id);
-                        const { updates, failed } = await buildStravaDetailEnrichmentUpdates(
-                            withStrava,
-                            token,
-                            {
-                                forceStravaDetail: true,
-                                concurrency: 3,
-                                onProgress: (m) => setSyncErrorDetail(String(m)),
-                            },
-                        );
-                        detailFailed = failed;
-                        if (updates.length > 0 && db) {
-                            // ⚡ Bolt Optimization: Use Map for O(1) lookups instead of O(N) array.find inside loops
-                            const activitiesMap = new Map((activities || []).map((a) => [String(a.id), a]));
+                        const enrichResult = await enrichSelectedActivitiesFromStrava(merged, token, {
+                            forceStravaDetail: true,
+                            concurrency: 3,
+                            onProgress: (m) => setSyncErrorDetail(String(m)),
+                        });
+                        enrichCount = enrichResult.updates.length;
+                        segmentRefreshCount = enrichResult.detailUpdatedCount;
+                        detailFailed = enrichResult.failed;
+                        if (enrichResult.updates.length > 0) {
                             const mergedMap = new Map((merged || []).map((a) => [String(a.id), a]));
-                            const updatesMap = new Map(updates.map(u => [String(u.id), u]));
-
-                            await Promise.all(
-                                updates.map(({ id, data }) => {
-                                    const strId = String(id);
-                                    const existingRow = mergedMap.get(strId) || activitiesMap.get(strId) || {};
-                                    return setDoc(
-                                        doc(db, 'activities', String(id)),
-                                        protectEnrichedFieldsOnMerge(data, existingRow),
-                                        { merge: true },
-                                    );
-                                }),
-                            );
+                            if (db) {
+                                await Promise.all(
+                                    enrichResult.updates.map(({ id, data }) => {
+                                        const strId = String(id);
+                                        const existingRow = mergedMap.get(strId) || activitiesMap.get(strId) || {};
+                                        return setDoc(
+                                            doc(db, 'activities', String(id)),
+                                            protectEnrichedFieldsOnMerge(data, existingRow),
+                                            { merge: true },
+                                        );
+                                    }),
+                                );
+                            }
+                            const updatesMap = new Map(enrichResult.updates.map((u) => [String(u.id), u]));
                             for (let i = 0; i < merged.length; i++) {
                                 const strId = String(merged[i].id);
                                 const update = updatesMap.get(strId);
@@ -1088,15 +953,14 @@ const DataHub = ({
                                     mergedMap.set(strId, updatedData);
                                 }
                             }
-                            onImport(updates.map(({ id, data }) => {
+                            onImport(enrichResult.updates.map(({ id, data }) => {
                                 const prev = mergedMap.get(String(id)) || {};
                                 return protectEnrichedFieldsOnMerge({ ...prev, ...data }, prev);
                             }));
                         }
-                        segmentRefreshCount = updates.length;
                     }
                 } catch (e) {
-                    console.warn('[Fetch new] Strava detail refresh failed:', e);
+                    console.warn('[Fetch new] Strava enrich failed:', e);
                 }
                 onImport(merged);
             }
@@ -1573,17 +1437,17 @@ const DataHub = ({
                                 )}
                             </div>
                         )}
-                        {(isGearBackfilling || gearBackfillMsg) && (
-                            <div className={`flex flex-col gap-1 text-xs px-3 py-2 rounded-lg mb-3 border ${isGearBackfilling ? 'bg-amber-500/10 border-amber-500/30 text-amber-200' : 'bg-cdbg/80 border-cdborder text-cdmuted'}`}>
+                        {(isStravaEnriching || stravaEnrichMsg) && (
+                            <div className={`flex flex-col gap-1 text-xs px-3 py-2 rounded-lg mb-3 border ${isStravaEnriching ? 'bg-amber-500/10 border-amber-500/30 text-amber-200' : 'bg-cdbg/80 border-cdborder text-cdmuted'}`}>
                                 <span className="flex items-center gap-2 font-bold text-cdtext">
-                                    {isGearBackfilling && <Loader2 size={14} className="animate-spin text-amber-400" />}
-                                    Strava gear backfill
+                                    {isStravaEnriching && <Loader2 size={14} className="animate-spin text-amber-400" />}
+                                    Strava enrich
                                 </span>
-                                <span className="text-[11px] leading-snug">{gearBackfillMsg}</span>
-                                {!isGearBackfilling && gearBackfillMsg && (
+                                <span className="text-[11px] leading-snug">{stravaEnrichMsg}</span>
+                                {!isStravaEnriching && stravaEnrichMsg && (
                                     <button
                                         type="button"
-                                        onClick={() => setGearBackfillMsg(null)}
+                                        onClick={() => setStravaEnrichMsg(null)}
                                         className="self-end text-[10px] text-cdmuted hover:text-cdtext underline"
                                     >
                                         Dismiss
@@ -1719,15 +1583,6 @@ const DataHub = ({
                                                     <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} aria-hidden="true" />
                                                     {isSyncing ? 'Working...' : 'Sync Now'}
                                                 </button>
-                                            {stravaGetToken && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => { setShowStravaEnrichPanel(true); setShowUtilMenu(false); }}
-                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-orange-400 hover:bg-cdborder focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
-                                                >
-                                                    <Link2 size={14} aria-hidden="true" /> Strava enrichment
-                                                </button>
-                                            )}
                                                 <button
                                                     onClick={() => { findDuplicates(); setShowUtilMenu(false); }}
                                                     disabled={!activities || activities.length === 0}
@@ -2047,13 +1902,13 @@ const DataHub = ({
                                 {stravaGetToken && (
                                     <button
                                         type="button"
-                                        onClick={() => runGearBackfillFromStrava(selectedActivitiesForBulk)}
-                                        disabled={isGearBackfilling || bulkSelectedIds.size === 0}
-                                        title="Same as merge / Find-link: Strava activity details → gear, bike name, route (Climb Profiler)"
-                                        className="inline-flex items-center gap-1 px-2 py-1 rounded border border-amber-500/40 text-amber-400 hover:bg-amber-500/10 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                                        onClick={() => runStravaEnrichSelected(selectedActivitiesForBulk)}
+                                        disabled={isStravaEnriching || bulkSelectedIds.size === 0}
+                                        title="Auto-link selected rides to Strava, then enrich gear, route, HR, RPE, and segment badges (no manual Strava URL needed)"
+                                        className="inline-flex items-center gap-1 px-2 py-1 rounded border border-orange-500/40 text-orange-400 hover:bg-orange-500/10 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
                                     >
-                                        {isGearBackfilling ? <Loader2 size={12} className="animate-spin" aria-hidden="true" /> : <Wrench size={12} aria-hidden="true" />}
-                                        Strava gear
+                                        {isStravaEnriching ? <Loader2 size={12} className="animate-spin" aria-hidden="true" /> : <Link2 size={12} aria-hidden="true" />}
+                                        Strava enrich
                                     </button>
                                 )}
                                 <button
@@ -2254,8 +2109,8 @@ const DataHub = ({
                             <div className="flex items-center gap-2 min-w-0">
                                 <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" className="text-orange-400 shrink-0"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" /></svg>
                                 <div className="min-w-0">
-                                    <h2 className="text-sm font-bold text-cdtext truncate">Strava enrichment</h2>
-                                    <p className="text-[10px] text-cdmuted truncate">Match Strava rides, link IDs, import missing activities</p>
+                                    <h2 className="text-sm font-bold text-cdtext truncate">Link to Strava</h2>
+                                    <p className="text-[10px] text-cdmuted truncate">Manual link for one activity · bulk auto-link: select rows → Strava enrich</p>
                                 </div>
                             </div>
                             <button
@@ -2296,6 +2151,9 @@ const DataHub = ({
                     onDelete={confirmBulkDeleteSelected}
                     isDeleting={isDeleting}
                     isBulkSaving={isBulkSaving}
+                    stravaGetToken={stravaGetToken}
+                    onStravaEnrich={() => runStravaEnrichSelected(selectedActivitiesForBulk)}
+                    isStravaEnriching={isStravaEnriching}
                 />
             )}
         </div>
