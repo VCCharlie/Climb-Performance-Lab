@@ -13,6 +13,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:rules": "firebase emulators:exec --only firestore --project climb-performance-lab-rules-test \"vitest run --config vitest.rules.config.js\"",
+    "deploy:firestore-rules": "node scripts/deployFirestoreRules.js",
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
@@ -40,6 +41,7 @@
     "eslint-plugin-react-refresh": "^0.4.25",
     "firebase-tools": "^15.22.4",
     "globals": "^16.5.0",
+    "google-auth-library": "^10.9.0",
     "jsdom": "^29.0.2",
     "sharp": "^0.35.1",
     "vite": "^7.2.7",

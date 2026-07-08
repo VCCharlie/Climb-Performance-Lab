@@ -44,8 +44,8 @@ jobs:
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
 
-      - name: Deploy Firestore rules
-        run: npx firebase-tools@latest deploy --only firestore:rules --project climb-performance-lab --non-interactive
+      - name: Deploy Firestore rules (Rules API)
+        run: node scripts/deployFirestoreRules.js
 
   confirm-guard:
     if: github.event.inputs.confirm != 'DEPLOY'
