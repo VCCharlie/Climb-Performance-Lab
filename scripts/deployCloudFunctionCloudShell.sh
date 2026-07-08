@@ -31,18 +31,15 @@ fi
 cd "${REPO_DIR}/cloud-function"
 
 echo "==> Deploying new revision to Cloud Run service: ${SERVICE_NAME}"
-echo "    (Service already exists — use 'run deploy', not 'functions deploy'.)"
-echo "    Existing env vars (e.g. AUTOMATION_SHARED_SECRET) are preserved."
+echo "    Existing env vars and secrets (Intervals keys, AUTOMATION_SHARED_SECRET) are kept."
+echo "    Do NOT pass --set-secrets on redeploy — type mismatch error if already configured."
 
-# sync-intervals already lives on Cloud Run. `gcloud functions deploy` can return 409
-# "service already exists". `gcloud run deploy --source` updates the existing service.
 gcloud run deploy "${SERVICE_NAME}" \
   --source . \
   --function "${ENTRY_POINT}" \
   --region "${REGION}" \
   --project "${PROJECT_ID}" \
-  --allow-unauthenticated \
-  --set-secrets "INTERVALS_ATHLETE_ID=intervals-athlete-id:latest,INTERVALS_API_KEY=intervals-api-key:latest"
+  --allow-unauthenticated
 
 URI="$(gcloud run services describe "${SERVICE_NAME}" \
   --region "${REGION}" \

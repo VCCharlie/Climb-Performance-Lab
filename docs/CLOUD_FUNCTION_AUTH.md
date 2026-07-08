@@ -53,8 +53,7 @@ gcloud run deploy sync-intervals \
   --source . \
   --function sync_intervals \
   --region europe-west1 \
-  --allow-unauthenticated \
-  --set-secrets "INTERVALS_ATHLETE_ID=intervals-athlete-id:latest,INTERVALS_API_KEY=intervals-api-key:latest"
+  --allow-unauthenticated
 ```
 
 3. Wait for `✅ Deploy complete` / `Done.` (2–5 minutes).
@@ -62,9 +61,11 @@ gcloud run deploy sync-intervals \
 > **Why `run deploy`?** The service **sync-intervals** already exists on Cloud Run.  
 > `gcloud functions deploy` without `--source` / `--entry-point` returns **409 service already exists**.
 
+> **Do not use `--set-secrets` on redeploy.** Intervals credentials are already on the service (as env vars or secrets). Changing type causes: *Cannot update environment variable to the given type*.
+
 > **"Regional Access Boundary" warnings** in Cloud Shell are often harmless noise — ignore them if the deploy finishes OK.
 
-`AUTOMATION_SHARED_SECRET` you set in the Console is **kept** — this command does not remove it.
+All existing variables (`INTERVALS_ATHLETE_ID`, `INTERVALS_API_KEY`, `AUTOMATION_SHARED_SECRET`) are **kept**.
 
 ---
 
