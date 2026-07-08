@@ -30,4 +30,5 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           INTERVALS_ATHLETE_ID: ${{ secrets.INTERVALS_ATHLETE_ID }}
           INTERVALS_API_KEY: ${{ secrets.INTERVALS_API_KEY }}
+          AUTOMATION_SHARED_SECRET: ${{ secrets.AUTOMATION_SHARED_SECRET }}
         run: node scripts/nightlySync.js

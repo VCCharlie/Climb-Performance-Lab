@@ -88,6 +88,8 @@ const useIntervalsSync = (intervalsConfig) => {
 
             if (err.name === 'AbortError') {
                 errMsg = 'Sync timed out. Please try a shorter date range.';
+            } else if (!useDirect && (errMsg.includes('401') || errMsg.includes('Unauthorized'))) {
+                errMsg = 'Cloud sync requires Google sign-in. Sign in via the header, or add your Intervals.icu API key in Settings.';
             } else if (!useDirect && errMsg.includes('Missing credentials')) {
                 errMsg = 'Cloud sync is not configured. Add your Intervals.icu API key in Settings, or check GitHub/GCP secrets for the cloud function.';
             } else if (errMsg.includes('401') || errMsg.includes('Invalid API credentials')) {
