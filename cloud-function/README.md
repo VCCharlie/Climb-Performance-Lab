@@ -2,6 +2,17 @@
 
 Python Cloud Function to fetch activities from Intervals.icu and transform them for Climb Performance Lab.
 
+## Quick deploy (no local CLI)
+
+**Sentinel Phase 4.2** adds Firebase / automation auth. After merging to `main`:
+
+1. Set `AUTOMATION_SHARED_SECRET` in [Cloud Run](https://console.cloud.google.com/run/detail/europe-west1/sync-intervals/variables?project=climb-performance-lab) **and** [GitHub Actions secrets](https://github.com/VCCharlie/Climb-Performance-Lab/settings/secrets/actions) (same value).
+2. Run [Deploy Cloud Function](https://github.com/VCCharlie/Climb-Performance-Lab/actions/workflows/deploy-cloud-function.yml) → type `DEPLOY`.
+
+Full checklist: [docs/CLOUD_FUNCTION_AUTH.md](../docs/CLOUD_FUNCTION_AUTH.md).
+
+The sections below are for **optional** local `gcloud` use.
+
 ## Features
 
 - Fetches activities from Intervals.icu API

@@ -2,7 +2,7 @@
 
 **Status:** Living document — master plan for phased security hardening  
 **Last audit:** 2026-07-07  
-**Progress:** Phase 0–4.1 ✅ · Phase 4.2 in repo (Cloud Run redeploy pending) · Phase 4.3–7 pending  
+**Progress:** Phase 0–4.1 ✅ · Phase 4.2 in repo (merge + GHA deploy pending) · Phase 4.3–7 pending  
 **Scope:** Client SPA (`src/`), PWA (`index.html`, Workbox), Cloud Function (`cloud-function/`), CI (`.github/workflows/`)  
 **Constraint (owner):** No changes that risk locking the owner out of Firebase/Google OAuth or existing cloud data without an explicit backup + rollback plan.
 

@@ -1,0 +1,76 @@
+# Sentinel Phase 4.2 — deploy sync-intervals without local gcloud CLI.
+# Owner: GitHub → Actions → "Deploy Cloud Function" → Run workflow → type DEPLOY.
+name: Deploy Cloud Function
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type DEPLOY to publish cloud-function/ to Cloud Run (sync-intervals)'
+        required: true
+        type: string
+
+env:
+  GCP_PROJECT: climb-performance-lab
+  GCP_REGION: europe-west1
+  FUNCTION_NAME: sync-intervals
+
+jobs:
+  deploy:
+    if: github.event.inputs.confirm == 'DEPLOY'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT }}
+
+      - name: Deploy sync-intervals (Gen2 / Cloud Run)
+        env:
+          AUTOMATION_SHARED_SECRET: ${{ secrets.AUTOMATION_SHARED_SECRET }}
+        run: |
+          if [ -z "$AUTOMATION_SHARED_SECRET" ]; then
+            echo "::error::GitHub secret AUTOMATION_SHARED_SECRET is missing."
+            echo "Add it under Settings → Secrets → Actions (same value as Cloud Run)."
+            exit 1
+          fi
+
+          gcloud functions deploy "${{ env.FUNCTION_NAME }}" \
+            --gen2 \
+            --runtime python312 \
+            --trigger-http \
+            --allow-unauthenticated \
+            --region "${{ env.GCP_REGION }}" \
+            --project "${{ env.GCP_PROJECT }}" \
+            --entry-point sync_intervals \
+            --source cloud-function \
+            --set-secrets "INTERVALS_ATHLETE_ID=intervals-athlete-id:latest,INTERVALS_API_KEY=intervals-api-key:latest" \
+            --update-env-vars "ALLOWED_CORS_ORIGINS=http://localhost:5173,https://vccharlie.github.io,AUTOMATION_SHARED_SECRET=${AUTOMATION_SHARED_SECRET}"
+
+      - name: Print service URL
+        run: |
+          gcloud functions describe "${{ env.FUNCTION_NAME }}" \
+            --gen2 \
+            --region "${{ env.GCP_REGION }}" \
+            --project "${{ env.GCP_PROJECT }}" \
+            --format='value(serviceConfig.uri)'
+
+  confirm-guard:
+    if: github.event.inputs.confirm != 'DEPLOY'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Abort — confirmation required
+        run: |
+          echo "Workflow aborted: you must type DEPLOY in the confirm field."
+          exit 1

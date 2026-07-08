@@ -3,10 +3,11 @@
  * Sentinel Phase 4.2: requires Firebase ID token (signed-in user).
  */
 import { auth } from '../firebase';
+import { CLOUD_SYNC_URL } from '../config';
 import { fetchWithTimeout } from '../utils/fetchWithTimeout';
 
-export const INTERVALS_CLOUD_SYNC_URL =
-    'https://europe-west1-climb-performance-lab.cloudfunctions.net/sync-intervals-v2';
+/** Same Cloud Run service as nightly sync — see src/config.js */
+export const INTERVALS_CLOUD_SYNC_URL = CLOUD_SYNC_URL;
 
 /**
  * @returns {Promise<string>}

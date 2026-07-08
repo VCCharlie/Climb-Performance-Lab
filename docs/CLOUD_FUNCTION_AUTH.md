@@ -1,6 +1,6 @@
 # Cloud Function authentication — Sentinel Phase 4.2
 
-**Status:** Code in repo. **Redeploy** `sync-intervals` on Cloud Run after merge.
+**No local `gcloud` CLI needed.** Everything below is browser + GitHub.
 
 ## What changes
 
@@ -10,50 +10,63 @@
 | **GitHub Actions** (nightly sync) | `X-Automation-Secret` header + same value in Cloud Run env |
 | **Random internet** | `401 Unauthorized` — no more open proxy |
 
-Intervals API keys stay in **GCP secrets** for browser clients (not in POST body).
+Intervals API keys stay in **GCP Secret Manager** for browser clients (not in POST body).
 
-## One-time setup (browser, no local CLI)
+---
 
-### 1. Generate automation secret
+## Your checklist (3 steps)
 
-Use a long random string (e.g. 32+ chars). Save in a password manager.
+### ✅ Step 1 — Cloud Run secret (you did this)
 
-### 2. GitHub secret
+[Cloud Run → sync-intervals](https://console.cloud.google.com/run/detail/europe-west1/sync-intervals/variables?project=climb-performance-lab) → variable `AUTOMATION_SHARED_SECRET` → Deploy.
 
-Repo → Settings → Secrets → Actions → **New repository secret**
+### Step 2 — GitHub secret (same string)
 
-| Name | Value |
-|------|--------|
-| `AUTOMATION_SHARED_SECRET` | your random string |
+1. Open [GitHub → Settings → Secrets → Actions](https://github.com/VCCharlie/Climb-Performance-Lab/settings/secrets/actions).
+2. **New repository secret**
+   - Name: `AUTOMATION_SHARED_SECRET`
+   - Value: **exactly the same** string as in Cloud Run
 
-(Nightly workflow already passes this to `scripts/nightlySync.js`.)
+### Step 3 — Deploy the new Python code (auth logic)
 
-### 3. Cloud Run environment variable
+Phase 4.2 code must be on `main` first (merge [PR #273](https://github.com/VCCharlie/Climb-Performance-Lab/pull/273) if it is still open).
 
-[Google Cloud Console](https://console.cloud.google.com/run?project=climb-performance-lab) → service **sync-intervals** → Edit & deploy new revision → Variables:
+Then:
 
-| Name | Value |
-|------|--------|
-| `AUTOMATION_SHARED_SECRET` | same string as GitHub |
+1. Open [GitHub Actions → Deploy Cloud Function](https://github.com/VCCharlie/Climb-Performance-Lab/actions/workflows/deploy-cloud-function.yml).
+2. **Run workflow** on branch `main`.
+3. In **confirm**, type exactly: `DEPLOY`
+4. Wait for green ✅
 
-Keep existing `INTERVALS_ATHLETE_ID` / `INTERVALS_API_KEY` secrets.
+> **Note:** Redeploying only the env var in the GCP Console does **not** install `auth_gate.py`. You need this workflow (or a one-time `gcloud` deploy) once.
 
-### 4. Redeploy function code
+### If the workflow fails with 403
 
-From a machine with `gcloud` **or** via your usual deploy path — deploy `cloud-function/main.py` + `auth_gate.py` + updated `requirements.txt`.
+The GitHub service account needs extra IAM roles (one-time, in browser):
 
-See [cloud-function/README.md](../cloud-function/README.md) for deploy command.
+1. [GCP IAM](https://console.cloud.google.com/iam-admin/iam?project=climb-performance-lab)
+2. Find the email from secret `FIREBASE_SERVICE_ACCOUNT` → field `client_email`
+3. **Edit** → add roles:
+   - **Cloud Functions Developer**
+   - **Cloud Run Admin**
+   - **Service Account User**
+   - **Secret Manager Secret Accessor**
+4. Re-run the workflow
 
-### 5. Smoke test
+---
 
-**App (signed in, no local Intervals key):** Settings → Sync Intervals → activities import.
+## Smoke test
 
-**Nightly:** Actions → Nightly Intervals Sync → Run workflow.
+| Test | Expected |
+|------|----------|
+| App, **signed in**, no local Intervals key → Sync | Activities import |
+| App, **signed out** → Sync | Error / sign-in prompt |
+| Actions → **Nightly Intervals Sync** → Run workflow | Green (after step 2) |
+
+---
 
 ## Rollback
 
-Redeploy previous Cloud Run revision **or** temporarily remove auth check (revert PR). Nightly sync fails closed if secret mismatch — fix secret alignment first.
+Cloud Run → **sync-intervals** → **Revisions** → route traffic to the previous revision.
 
-## Not deployed yet
-
-Until step 4 completes, production still accepts unauthenticated calls. Phase 4.2 is **not live** until you redeploy.
+Nightly sync fails closed if GitHub and Cloud Run secrets differ — align them first.
