@@ -102,7 +102,7 @@ async function buildStravaLinkPhaseUpdates(siteActivities, bikeActivities, bikes
         return { updates: [], linkedCount: 0 };
     }
 
-    const updates = [];
+    const linkPatches = [];
     let linkedCount = 0;
 
     await runInBatches(candidates, 5, async (m) => {
@@ -153,13 +153,13 @@ async function buildStravaLinkPhaseUpdates(siteActivities, bikeActivities, bikes
         const hasChanges = Object.keys(updateData).some((k) => updateData[k] !== m.site[k]);
         if (!hasChanges) return;
 
-        updates.push({ id: m.site.id, data: updateData });
+        linkPatches.push({ id: m.site.id, data: updateData });
         if (!hadStravaId && updateData.strava_id) {
             linkedCount += 1;
         }
     });
 
-    return { updates, linkedCount };
+    return { updates: linkPatches, linkedCount };
 }
 
 function mergeUpdatePatches(...patchLists) {
@@ -242,12 +242,14 @@ export async function enrichSelectedActivitiesFromStrava(selectedActivities, tok
     const bikesMap = await loadBikesMap(token, bikeActivities);
 
     opts.onProgress?.('Matching & linking selected activities…');
-    const { updates, linkedCount } = await buildStravaLinkPhaseUpdates(
+    const linkPhase = await buildStravaLinkPhaseUpdates(
         list,
         bikeActivities,
         bikesMap,
         token,
     );
+    const linkUpdates = linkPhase.updates;
+    const linkedCount = linkPhase.linkedCount;
 
     const mergedSelected = applyUpdatesToActivities(list, linkUpdates);
     const withStrava = mergedSelected.filter((a) => a?.strava_id);
@@ -272,10 +274,10 @@ export async function enrichSelectedActivitiesFromStrava(selectedActivities, tok
         failed = detailResult.failed;
     }
 
-    const updates = mergeUpdatePatches(linkUpdates, detailUpdates);
+    const mergedUpdates = mergeUpdatePatches(linkUpdates, detailUpdates);
 
     return {
-        updates,
+        updates: mergedUpdates,
         linkedCount,
         detailUpdatedCount,
         ridesProcessed,
