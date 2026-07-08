@@ -226,6 +226,23 @@ Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' https
 - **PR:** `🛡️ Sentinel Phase 4.0: logout session wipe + sign-in gate`
 - **Tests:** `src/__tests__/utils/sessionData.test.js`
 
+### 4.0.1 Refine local wipe trigger (bugfix — does not weaken cloud security)
+
+**Problem:** Phase 4.0 wiped `localStorage` on *every* Firebase `onAuthStateChanged(null)` — including the initial page load before auth restores, and when the user was never signed in. That deleted API keys on every hard refresh (regression).
+
+**Refinement (PR #277):**
+
+| Behaviour | Phase 4.0 (original) | Phase 4.0.1 |
+|-----------|----------------------|-------------|
+| Wipe local secrets | Any auth `null` | **Explicit Sign out only** (`markExplicitSignOut` → `logout()`) |
+| Persist keys to `localStorage` | Only when signed in | **Always** (keys never written to Firestore anyway) |
+| SignInGate / Firestore listeners | Signed-in only | **Unchanged** |
+| Secrets in Firestore | Stripped (Phase 2) | **Unchanged** |
+
+**Accepted trade-off:** If a session expires *without* clicking Sign out, local API keys may remain in `localStorage` on that browser. Mitigations: SignInGate still hides activities; Firestore rules block cloud reads; explicit Sign out still wipes. Phase 5 (sessionStorage) remains optional.
+
+**Still NOT undone:** OAuth tokens in cloud, CSP, Cloud Function auth, backup validation, console redaction.
+
 ### 4.1 Firestore security rules audit
 
 Expected model:
