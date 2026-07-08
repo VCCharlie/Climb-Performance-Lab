@@ -750,19 +750,21 @@ const App = () => {
                 lastActivityDate={lastActivityDate}
             />
 
-            <main className={`mx-auto p-3 space-y-4 transition-all duration-300 ${activeTab === 'activities' ? 'max-w-[95%]' : 'max-w-7xl'}`}>
-                <MainNav
-                    activeTab={activeTab}
-                    onTabChange={setActiveTab}
-                    timeRange={timeRange}
-                    onTimeRangeChange={setTimeRange}
-                    customStart={customStart}
-                    customEnd={customEnd}
-                    onCustomStart={setCustomStart}
-                    onCustomEnd={setCustomEnd}
-                    isMobileMenuOpen={isMobileMenuOpen}
-                    onMobileMenuOpenChange={setIsMobileMenuOpen}
-                />
+            <main className={`mx-auto p-3 space-y-4 transition-all duration-300 ${activeTab === 'activities' && user ? 'max-w-[95%]' : 'max-w-7xl'}`}>
+                {user && (
+                    <MainNav
+                        activeTab={activeTab}
+                        onTabChange={setActiveTab}
+                        timeRange={timeRange}
+                        onTimeRangeChange={setTimeRange}
+                        customStart={customStart}
+                        customEnd={customEnd}
+                        onCustomStart={setCustomStart}
+                        onCustomEnd={setCustomEnd}
+                        isMobileMenuOpen={isMobileMenuOpen}
+                        onMobileMenuOpenChange={setIsMobileMenuOpen}
+                    />
+                )}
 
                 {!authReady || (isLoading && user) ? (
                     <LoadingPanel />
@@ -1002,8 +1004,7 @@ const App = () => {
                     />
                 )}
             </main>
-
-            <PwaInstallBanner />
+            {user && <PwaInstallBanner />}
             <PwaUpdateBanner />
         </div>
     );

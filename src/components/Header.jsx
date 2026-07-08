@@ -76,6 +76,7 @@ const Header = ({ userSettings, onOpenSettings, user, syncStatus, lastActivityDa
     const syncLabel = isSynced ? 'Synced' : isSyncing ? 'Syncing' : syncStatus === 'error' ? 'Offline' : 'Idle';
 
     const showGooglePhoto = Boolean(user?.photoURL) && !avatarImgFailed;
+    const showAppChrome = Boolean(user);
 
     return (
         <header className="sticky top-0 z-40 border-b border-cdborder/50 bg-cdsurface/85 backdrop-blur-md supports-[backdrop-filter]:bg-cdsurface/75">
@@ -88,25 +89,29 @@ const Header = ({ userSettings, onOpenSettings, user, syncStatus, lastActivityDa
                         <h1 className="text-lg md:text-xl font-head font-bold tracking-tight text-cdtext truncate">
                             Climb<span className="text-cdbrand">Lab</span>
                         </h1>
-                        <p className="hidden sm:block text-xs text-cdmuted">Performance Analytics</p>
+                        {showAppChrome && (
+                            <p className="hidden sm:block text-xs text-cdmuted">Performance Analytics</p>
+                        )}
                     </div>
                 </div>
 
                 <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
-                    <div
-                        className="hidden sm:flex items-center gap-1.5 rounded-full bg-cdsurfacelow px-2.5 py-1.5"
-                        title={`Sync status: ${syncStatus || 'idle'}`}
-                    >
-                        {isSynced && <CheckCircle size={14} className="text-cdgreen shrink-0" aria-hidden />}
-                        {isSyncing && <RefreshCw size={14} className="text-cdbrand animate-spin shrink-0" aria-hidden />}
-                        {syncStatus === 'error' && <AlertCircle size={14} className="text-cdred shrink-0" aria-hidden />}
-                        {(syncStatus === 'idle' || !syncStatus) && <Cloud size={14} className="text-cdmuted shrink-0" aria-hidden />}
-                        <span className="text-[10px] font-semibold uppercase tracking-wide text-cdmuted hidden md:inline">
-                            {syncLabel}
-                        </span>
-                    </div>
+                    {showAppChrome && (
+                        <div
+                            className="hidden sm:flex items-center gap-1.5 rounded-full bg-cdsurfacelow px-2.5 py-1.5"
+                            title={`Sync status: ${syncStatus || 'idle'}`}
+                        >
+                            {isSynced && <CheckCircle size={14} className="text-cdgreen shrink-0" aria-hidden />}
+                            {isSyncing && <RefreshCw size={14} className="text-cdbrand animate-spin shrink-0" aria-hidden />}
+                            {syncStatus === 'error' && <AlertCircle size={14} className="text-cdred shrink-0" aria-hidden />}
+                            {(syncStatus === 'idle' || !syncStatus) && <Cloud size={14} className="text-cdmuted shrink-0" aria-hidden />}
+                            <span className="text-[10px] font-semibold uppercase tracking-wide text-cdmuted hidden md:inline">
+                                {syncLabel}
+                            </span>
+                        </div>
+                    )}
 
-                    {formattedDate && (
+                    {showAppChrome && formattedDate && (
                         <div className="hidden lg:flex flex-col justify-center rounded-cdmd bg-cdsurfacelow px-2.5 py-1.5 mr-1">
                             <span className="text-[10px] font-medium text-cdmuted whitespace-nowrap tabular-nums">
                                 Updated {formattedDate}
@@ -114,7 +119,7 @@ const Header = ({ userSettings, onOpenSettings, user, syncStatus, lastActivityDa
                         </div>
                     )}
 
-                    {user && (
+                    {showAppChrome && (
                         <div className="hidden md:flex items-center gap-2 rounded-cdmd bg-cdsurfacelow px-2.5 py-1.5 mr-1">
                             <div className="text-right">
                                 <span className="block text-cdmuted text-[10px] font-medium uppercase tracking-wide">Weight</span>
@@ -166,14 +171,16 @@ const Header = ({ userSettings, onOpenSettings, user, syncStatus, lastActivityDa
                         )}
                     </IconButton>
 
-                    <IconButton
-                        variant="outlined"
-                        onClick={onOpenSettings}
-                        aria-label="Settings"
-                        title="Settings"
-                    >
-                        <Settings size={20} aria-hidden />
-                    </IconButton>
+                    {showAppChrome && (
+                        <IconButton
+                            variant="outlined"
+                            onClick={onOpenSettings}
+                            aria-label="Settings"
+                            title="Settings"
+                        >
+                            <Settings size={20} aria-hidden />
+                        </IconButton>
+                    )}
                 </div>
             </div>
         </header>
