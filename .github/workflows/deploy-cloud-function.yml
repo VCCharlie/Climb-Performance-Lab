@@ -1,5 +1,5 @@
-# Sentinel Phase 4.2 — deploy sync-intervals without local gcloud CLI.
-# Owner: GitHub → Actions → "Deploy Cloud Function" → Run workflow → type DEPLOY.
+# Sentinel Phase 4.2 — deploy sync-intervals (optional; Cloud Shell is easier).
+# If this fails with 403, use Google Cloud Shell — see docs/CLOUD_FUNCTION_AUTH.md Option A.
 name: Deploy Cloud Function
 
 on:
@@ -48,7 +48,7 @@ jobs:
 
           # Only set AUTOMATION_SHARED_SECRET here — gcloud treats commas in
           # --update-env-vars as delimiters. CORS defaults live in main.py.
-          gcloud functions deploy "${{ env.FUNCTION_NAME }}" \
+          if ! gcloud functions deploy "${{ env.FUNCTION_NAME }}" \
             --gen2 \
             --runtime python312 \
             --trigger-http \
@@ -58,7 +58,15 @@ jobs:
             --entry-point sync_intervals \
             --source cloud-function \
             --set-secrets "INTERVALS_ATHLETE_ID=intervals-athlete-id:latest,INTERVALS_API_KEY=intervals-api-key:latest" \
-            --update-env-vars "AUTOMATION_SHARED_SECRET=${AUTOMATION_SHARED_SECRET}"
+            --update-env-vars "AUTOMATION_SHARED_SECRET=${AUTOMATION_SHARED_SECRET}"; then
+            echo ""
+            echo "::error::Deploy failed (often 403 = missing IAM on FIREBASE_SERVICE_ACCOUNT)."
+            echo "Easier fix — Google Cloud Shell (browser, your Google login):"
+            echo "  https://shell.cloud.google.com/?project=climb-performance-lab"
+            echo "  curl -fsSL https://raw.githubusercontent.com/VCCharlie/Climb-Performance-Lab/main/scripts/deployCloudFunctionCloudShell.sh | bash"
+            echo "Full guide: docs/CLOUD_FUNCTION_AUTH.md"
+            exit 1
+          fi
 
       - name: Print service URL
         run: |

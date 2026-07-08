@@ -1,6 +1,6 @@
 # Cloud Function authentication — Sentinel Phase 4.2
 
-**No local `gcloud` CLI needed.** Everything below is browser + GitHub.
+**No local `gcloud` on your PC.** Use the browser only.
 
 ## What changes
 
@@ -10,48 +10,66 @@
 | **GitHub Actions** (nightly sync) | `X-Automation-Secret` header + same value in Cloud Run env |
 | **Random internet** | `401 Unauthorized` — no more open proxy |
 
-Intervals API keys stay in **GCP Secret Manager** for browser clients (not in POST body).
-
 ---
 
-## Your checklist (3 steps)
+## Checklist
 
 ### ✅ Step 1 — Cloud Run secret (you did this)
 
-[Cloud Run → sync-intervals](https://console.cloud.google.com/run/detail/europe-west1/sync-intervals/variables?project=climb-performance-lab) → variable `AUTOMATION_SHARED_SECRET` → Deploy.
+[Cloud Run → sync-intervals → Variables](https://console.cloud.google.com/run/detail/europe-west1/sync-intervals/variables?project=climb-performance-lab) → `AUTOMATION_SHARED_SECRET` → Deploy.
 
 ### Step 2 — GitHub secret (same string)
 
-1. Open [GitHub → Settings → Secrets → Actions](https://github.com/VCCharlie/Climb-Performance-Lab/settings/secrets/actions).
-2. **New repository secret**
-   - Name: `AUTOMATION_SHARED_SECRET`
-   - Value: **exactly the same** string as in Cloud Run
+[GitHub → Secrets → Actions](https://github.com/VCCharlie/Climb-Performance-Lab/settings/secrets/actions) → **New repository secret**
+
+| Name | Value |
+|------|--------|
+| `AUTOMATION_SHARED_SECRET` | same string as Cloud Run |
 
 ### Step 3 — Deploy the new Python code (auth logic)
 
-Phase 4.2 code must be on `main` first (merge [PR #273](https://github.com/VCCharlie/Climb-Performance-Lab/pull/273) if it is still open).
+Pick **one** option below. **Option A is easiest** if GitHub Actions returns 403.
 
-Then:
+---
 
-1. Open [GitHub Actions → Deploy Cloud Function](https://github.com/VCCharlie/Climb-Performance-Lab/actions/workflows/deploy-cloud-function.yml).
-2. **Run workflow** on branch `main`.
-3. In **confirm**, type exactly: `DEPLOY`
-4. Wait for green ✅
+## Option A — Google Cloud Shell (recommended, ~2 min)
 
-> **Note:** Redeploying only the env var in the GCP Console does **not** install `auth_gate.py`. You need this workflow (or a one-time `gcloud` deploy) once.
+Uses **your** Google account in the browser. No IAM changes to the GitHub service account.
 
-### If the workflow fails with 403
+1. Open **[Google Cloud Shell](https://shell.cloud.google.com/?project=climb-performance-lab)** (terminal in the browser).
+2. Paste this **one line** and press Enter:
 
-The GitHub service account needs extra IAM roles (one-time, in browser):
+```bash
+curl -fsSL https://raw.githubusercontent.com/VCCharlie/Climb-Performance-Lab/main/scripts/deployCloudFunctionCloudShell.sh | bash
+```
 
-1. [GCP IAM](https://console.cloud.google.com/iam-admin/iam?project=climb-performance-lab)
-2. Find the email from secret `FIREBASE_SERVICE_ACCOUNT` → field `client_email`
-3. **Edit** → add roles:
-   - **Cloud Functions Developer**
-   - **Cloud Run Admin**
-   - **Service Account User**
-   - **Secret Manager Secret Accessor**
-4. Re-run the workflow
+3. Wait until you see `✅ Deploy complete.` (about 2–4 minutes).
+
+`AUTOMATION_SHARED_SECRET` you set in Cloud Run is **kept** — the script does not overwrite it.
+
+---
+
+## Option B — GitHub Actions (optional)
+
+Only if you prefer CI deploy **and** the service account has IAM roles (see below).
+
+1. [Actions → Deploy Cloud Function](https://github.com/VCCharlie/Climb-Performance-Lab/actions/workflows/deploy-cloud-function.yml)
+2. **Run workflow** on `main` → confirm: `DEPLOY`
+
+### If Option B fails with 403
+
+The `FIREBASE_SERVICE_ACCOUNT` key is for Firestore/nightly sync — it does **not** have Cloud Functions deploy rights by default.
+
+**Easiest fix:** use **Option A (Cloud Shell)** instead.
+
+**Or** add roles once in [GCP IAM](https://console.cloud.google.com/iam-admin/iam?project=climb-performance-lab) for the `client_email` from `FIREBASE_SERVICE_ACCOUNT`:
+
+- Cloud Functions Developer
+- Cloud Run Admin
+- Service Account User
+- Secret Manager Secret Accessor
+
+Then re-run the workflow.
 
 ---
 
@@ -67,6 +85,4 @@ The GitHub service account needs extra IAM roles (one-time, in browser):
 
 ## Rollback
 
-Cloud Run → **sync-intervals** → **Revisions** → route traffic to the previous revision.
-
-Nightly sync fails closed if GitHub and Cloud Run secrets differ — align them first.
+[Cloud Run → sync-intervals → Revisions](https://console.cloud.google.com/run/detail/europe-west1/sync-intervals/revisions?project=climb-performance-lab) → route traffic to the previous revision.

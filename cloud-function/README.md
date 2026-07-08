@@ -4,14 +4,19 @@ Python Cloud Function to fetch activities from Intervals.icu and transform them 
 
 ## Quick deploy (no local CLI)
 
-**Sentinel Phase 4.2** adds Firebase / automation auth. After merging to `main`:
+**Sentinel Phase 4.2** adds Firebase / automation auth.
 
-1. Set `AUTOMATION_SHARED_SECRET` in [Cloud Run](https://console.cloud.google.com/run/detail/europe-west1/sync-intervals/variables?project=climb-performance-lab) **and** [GitHub Actions secrets](https://github.com/VCCharlie/Climb-Performance-Lab/settings/secrets/actions) (same value).
-2. Run [Deploy Cloud Function](https://github.com/VCCharlie/Climb-Performance-Lab/actions/workflows/deploy-cloud-function.yml) → type `DEPLOY`.
+**Easiest (browser):** [Google Cloud Shell](https://shell.cloud.google.com/?project=climb-performance-lab) → paste:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/VCCharlie/Climb-Performance-Lab/main/scripts/deployCloudFunctionCloudShell.sh | bash
+```
+
+Also set `AUTOMATION_SHARED_SECRET` in [Cloud Run](https://console.cloud.google.com/run/detail/europe-west1/sync-intervals/variables?project=climb-performance-lab) **and** [GitHub Actions secrets](https://github.com/VCCharlie/Climb-Performance-Lab/settings/secrets/actions) (same value).
 
 Full checklist: [docs/CLOUD_FUNCTION_AUTH.md](../docs/CLOUD_FUNCTION_AUTH.md).
 
-The sections below are for **optional** local `gcloud` use.
+GitHub Actions deploy is optional (needs extra IAM on the service account). The sections below are for **optional** local `gcloud` use.
 
 ## Features
 
