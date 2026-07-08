@@ -46,6 +46,8 @@ jobs:
             exit 1
           fi
 
+          # Only set AUTOMATION_SHARED_SECRET here — gcloud treats commas in
+          # --update-env-vars as delimiters. CORS defaults live in main.py.
           gcloud functions deploy "${{ env.FUNCTION_NAME }}" \
             --gen2 \
             --runtime python312 \
@@ -56,7 +58,7 @@ jobs:
             --entry-point sync_intervals \
             --source cloud-function \
             --set-secrets "INTERVALS_ATHLETE_ID=intervals-athlete-id:latest,INTERVALS_API_KEY=intervals-api-key:latest" \
-            --update-env-vars "ALLOWED_CORS_ORIGINS=http://localhost:5173,https://vccharlie.github.io,AUTOMATION_SHARED_SECRET=${AUTOMATION_SHARED_SECRET}"
+            --update-env-vars "AUTOMATION_SHARED_SECRET=${AUTOMATION_SHARED_SECRET}"
 
       - name: Print service URL
         run: |
