@@ -314,12 +314,12 @@ activities/{id}   →  authenticated read/write (single-owner shared log today)
 
 ## Phase 6 — Dependencies & maintenance
 
-| Task | Command / action |
-|------|------------------|
-| npm audit fix (non-breaking) | `npm audit fix` |
-| Pin Tailwind to bundled build | Remove CDN; use PostCSS — large diff, separate initiative |
-| Dependabot / Renovate | Enable on repo |
-| Quarterly Sentinel re-scan | Re-run Phase 7 checklist |
+| Task | Command / action | Status |
+|------|------------------|--------|
+| npm audit fix (non-breaking) | `npm audit fix` | ✅ PR #284 — 19 → 5 moderate (remaining need `--force` / firebase-tools bump) |
+| Pin Tailwind to bundled build | Remove CDN; use PostCSS — large diff, separate initiative | ⏳ deferred |
+| Dependabot / Renovate | Enable on repo | ⏳ optional (repo settings) |
+| Quarterly Sentinel re-scan | Re-run Phase 7 checklist | ongoing |
 
 ---
 
