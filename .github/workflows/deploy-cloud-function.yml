@@ -36,25 +36,16 @@ jobs:
         with:
           project_id: ${{ env.GCP_PROJECT }}
 
-      - name: Deploy sync-intervals (Gen2 / Cloud Run)
-        env:
-          AUTOMATION_SHARED_SECRET: ${{ secrets.AUTOMATION_SHARED_SECRET }}
+      - name: Deploy sync-intervals (Cloud Run — code only)
         run: |
-          if [ -z "$AUTOMATION_SHARED_SECRET" ]; then
-            echo "::error::GitHub secret AUTOMATION_SHARED_SECRET is missing."
-            echo "Add it under Settings → Secrets → Actions (same value as Cloud Run)."
-            exit 1
-          fi
-
-          # Service already exists on Cloud Run — use run deploy (functions deploy → 409).
+          # Redeploy source only. Do not pass --set-secrets or --update-env-vars —
+          # existing Intervals credentials and AUTOMATION_SHARED_SECRET stay as configured.
           if ! gcloud run deploy "${{ env.FUNCTION_NAME }}" \
             --source cloud-function \
             --function sync_intervals \
             --region "${{ env.GCP_REGION }}" \
             --project "${{ env.GCP_PROJECT }}" \
-            --allow-unauthenticated \
-            --set-secrets "INTERVALS_ATHLETE_ID=intervals-athlete-id:latest,INTERVALS_API_KEY=intervals-api-key:latest" \
-            --update-env-vars "AUTOMATION_SHARED_SECRET=${AUTOMATION_SHARED_SECRET}"; then
+            --allow-unauthenticated; then
             echo ""
             echo "::error::Deploy failed. Easier fix — Google Cloud Shell:"
             echo "  https://shell.cloud.google.com/?project=climb-performance-lab"

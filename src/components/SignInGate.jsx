@@ -7,7 +7,7 @@ import { Button, Card } from './ui';
  */
 export default function SignInGate({ onSignIn, authBusy = false }) {
     return (
-        <div className="flex items-center justify-center min-h-[50vh] px-4 py-8">
+        <div className="flex items-center justify-center min-h-[calc(100dvh-5.5rem)] px-4 py-8">
             <Card variant="outlined" padding="lg" className="max-w-md w-full text-center">
                 <Cloud className="w-12 h-12 mx-auto text-cdmuted mb-4" aria-hidden />
                 <h2 className="text-xl font-head font-bold text-cdtext mb-2">

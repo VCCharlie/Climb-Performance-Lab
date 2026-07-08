@@ -9,9 +9,10 @@ Python Cloud Function to fetch activities from Intervals.icu and transform them 
 ```bash
 cd ~/Climb-Performance-Lab 2>/dev/null || git clone https://github.com/VCCharlie/Climb-Performance-Lab.git ~/Climb-Performance-Lab
 cd ~/Climb-Performance-Lab && git pull origin main && cd cloud-function
-gcloud run deploy sync-intervals --source . --function sync_intervals --region europe-west1 --allow-unauthenticated \
-  --set-secrets "INTERVALS_ATHLETE_ID=intervals-athlete-id:latest,INTERVALS_API_KEY=intervals-api-key:latest"
+gcloud run deploy sync-intervals --source . --function sync_intervals --region europe-west1 --allow-unauthenticated
 ```
+
+Do **not** add `--set-secrets` when redeploying — credentials are already on the service.
 
 Also set `AUTOMATION_SHARED_SECRET` in [Cloud Run](https://console.cloud.google.com/run/detail/europe-west1/sync-intervals/variables?project=climb-performance-lab) and [GitHub Actions secrets](https://github.com/VCCharlie/Climb-Performance-Lab/settings/secrets/actions).
 
