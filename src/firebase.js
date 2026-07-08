@@ -5,6 +5,7 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
+import { markExplicitSignOut } from "./utils/sessionData.js";
 
 // Firebase Web API keys are public client identifiers (not secrets). Restrict abuse in
 // Google Cloud Console (API key HTTP referrer / bundle id). Optional env override for
@@ -54,6 +55,7 @@ export const loginWithGoogle = async () => {
 export const logout = async () => {
     if (!auth) return;
     try {
+        markExplicitSignOut();
         await signOut(auth);
     } catch (error) {
         console.error("Logout failed:", error);

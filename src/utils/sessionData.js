@@ -22,6 +22,32 @@ export const SENSITIVE_LOCAL_STORAGE_KEYS = [
 
 const PREFIX_KEYS_TO_CLEAR = ['intervals_data_', 'stravaVsLogScan_v'];
 
+/** Set before Firebase signOut so auth listener knows to wipe local secrets. */
+export const EXPLICIT_SIGN_OUT_SESSION_KEY = 'cpl_explicit_sign_out';
+
+export function markExplicitSignOut() {
+    if (typeof sessionStorage === 'undefined') return;
+    try {
+        sessionStorage.setItem(EXPLICIT_SIGN_OUT_SESSION_KEY, '1');
+    } catch {
+        /* private mode */
+    }
+}
+
+/** @returns {boolean} true when user clicked Sign out (consume one-shot flag). */
+export function consumeExplicitSignOut() {
+    if (typeof sessionStorage === 'undefined') return false;
+    try {
+        if (sessionStorage.getItem(EXPLICIT_SIGN_OUT_SESSION_KEY) === '1') {
+            sessionStorage.removeItem(EXPLICIT_SIGN_OUT_SESSION_KEY);
+            return true;
+        }
+    } catch {
+        /* ignore */
+    }
+    return false;
+}
+
 export function getDefaultUserSettings() {
     return {
         weight: 70.0,
