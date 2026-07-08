@@ -242,7 +242,7 @@ export async function enrichSelectedActivitiesFromStrava(selectedActivities, tok
     const bikesMap = await loadBikesMap(token, bikeActivities);
 
     opts.onProgress?.('Matching & linking selected activities…');
-    const { updates, linkedCount } = await buildStravaLinkPhaseUpdates(
+    const { updates: linkUpdates, linkedCount } = await buildStravaLinkPhaseUpdates(
         list,
         bikeActivities,
         bikesMap,
