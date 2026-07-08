@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit2, Download, Trash2, X, Loader2 } from 'lucide-react';
+import { Edit2, Download, Trash2, X, Loader2, Link2 } from 'lucide-react';
 import { formatNlNumber } from '../../utils/formatters';
 
 /**
@@ -11,8 +11,11 @@ const ActivityLogBulkBar = ({
     onExport,
     onClearSelection,
     onDelete,
+    onStravaEnrich,
+    stravaGetToken,
     isDeleting = false,
     isBulkSaving = false,
+    isStravaEnriching = false,
 }) => {
     if (!count || count <= 0) return null;
 
@@ -27,6 +30,18 @@ const ActivityLogBulkBar = ({
                     {formatNlNumber(count)} sel.
                 </span>
                 <div className="flex-1 flex items-center justify-end gap-1.5 min-w-0">
+                    {stravaGetToken && (
+                        <button
+                            type="button"
+                            onClick={onStravaEnrich}
+                            disabled={isStravaEnriching}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-orange-500/40 text-orange-400 text-[11px] font-bold disabled:opacity-40 cd-focus-ring"
+                            title="Auto-link and enrich selected rides from Strava"
+                        >
+                            {isStravaEnriching ? <Loader2 size={13} className="animate-spin" aria-hidden /> : <Link2 size={13} aria-hidden />}
+                            Strava
+                        </button>
+                    )}
                     <button
                         type="button"
                         onClick={onBulkEdit}
