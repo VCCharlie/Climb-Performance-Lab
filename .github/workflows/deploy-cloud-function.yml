@@ -46,27 +46,28 @@ jobs:
             exit 1
           fi
 
-          # Only set AUTOMATION_SHARED_SECRET here — gcloud treats commas in
-          # --update-env-vars as delimiters. CORS defaults live in main.py.
-          gcloud functions deploy "${{ env.FUNCTION_NAME }}" \
-            --gen2 \
-            --runtime python312 \
-            --trigger-http \
-            --allow-unauthenticated \
+          # Service already exists on Cloud Run — use run deploy (functions deploy → 409).
+          if ! gcloud run deploy "${{ env.FUNCTION_NAME }}" \
+            --source cloud-function \
+            --function sync_intervals \
             --region "${{ env.GCP_REGION }}" \
             --project "${{ env.GCP_PROJECT }}" \
-            --entry-point sync_intervals \
-            --source cloud-function \
+            --allow-unauthenticated \
             --set-secrets "INTERVALS_ATHLETE_ID=intervals-athlete-id:latest,INTERVALS_API_KEY=intervals-api-key:latest" \
-            --update-env-vars "AUTOMATION_SHARED_SECRET=${AUTOMATION_SHARED_SECRET}"
+            --update-env-vars "AUTOMATION_SHARED_SECRET=${AUTOMATION_SHARED_SECRET}"; then
+            echo ""
+            echo "::error::Deploy failed. Easier fix — Google Cloud Shell:"
+            echo "  https://shell.cloud.google.com/?project=climb-performance-lab"
+            echo "  See docs/CLOUD_FUNCTION_AUTH.md Option A"
+            exit 1
+          fi
 
       - name: Print service URL
         run: |
-          gcloud functions describe "${{ env.FUNCTION_NAME }}" \
-            --gen2 \
+          gcloud run services describe "${{ env.FUNCTION_NAME }}" \
             --region "${{ env.GCP_REGION }}" \
             --project "${{ env.GCP_PROJECT }}" \
-            --format='value(serviceConfig.uri)'
+            --format='value(status.url)'
 
   confirm-guard:
     if: github.event.inputs.confirm != 'DEPLOY'
