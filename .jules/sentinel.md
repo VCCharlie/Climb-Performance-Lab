@@ -65,3 +65,24 @@
 **Vulnerability:** Similar to previous config leaks, the application was logging the full `userSettings` object to the browser console when saving settings to the cloud (`src/App.jsx`). This included sensitive information such as the `githubPat` and `openweatherApiKey`.
 **Learning:** When adding new sensitive configurations to an existing settings object, it's easy to forget to update the corresponding console log sanitization steps, especially if they are logged in bulk (e.g. `body: userSettings`).
 **Prevention:** Apply strict property picking for logs instead of logging the full object, or explicitly redact newly added secrets within the logging payload.
+
+---
+
+## Residual risk register (Phase 7 — 2026-07-08)
+
+Full audit: `docs/SENTINEL_PHASE_7_AUDIT.md`
+
+| ID | Risk | Severity | Disposition |
+|----|------|----------|-------------|
+| R1 | Tailwind CDN + CSP `unsafe-inline` | Medium | **Accepted** |
+| R2 | OAuth tokens / API keys in `localStorage` (XSS) | High | **Accepted** — Phase 5 optional |
+| R3 | Firebase Web API key fallback in `firebase.js` | Low | **Accepted** — GCP referrer lock |
+| R4 | Shared `activities` collection (single-owner) | Low | **Accepted** |
+| R5 | Firebase App Check not enabled | Low | **Open** — Phase 4.3 |
+| R6 | Strava PKCE / backend token exchange | Medium | **Open** — Phase 5 |
+| R7 | npm audit dev-dependency CVEs | Low | **Open** — Phase 6 |
+| R8 | Session expiry without sign-out keeps local keys | Low | **Accepted** — Phase 4.0.1 |
+| R9 | Cloud Run edge `allow-unauthenticated` | Low | **Accepted** — app-layer auth |
+| R10 | Backup JSON may contain plaintext secrets | Medium | **Accepted** — user file |
+
+**Owner sign-off:** pending manual smoke in `docs/SENTINEL_PHASE_7_AUDIT.md` §7.2–7.3.

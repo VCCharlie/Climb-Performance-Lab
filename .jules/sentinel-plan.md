@@ -1,8 +1,8 @@
 # 🛡️ Sentinel Security Roadmap — Climb Performance Lab
 
 **Status:** Living document — master plan for phased security hardening  
-**Last audit:** 2026-07-07  
-**Progress:** Phase 0–4.1 ✅ · Phase 4.2 in repo (merge + GHA deploy pending) · Phase 4.3–7 pending  
+**Last audit:** 2026-07-08 (Phase 7)  
+**Progress:** Phase 1–4.2 ✅ deployed · Phase 4.3 / 5 deferred · Phase 6 ongoing · **Phase 7 audit doc ready — owner sign-off pending**  
 **Scope:** Client SPA (`src/`), PWA (`index.html`, Workbox), Cloud Function (`cloud-function/`), CI (`.github/workflows/`)  
 **Constraint (owner):** No changes that risk locking the owner out of Firebase/Google OAuth or existing cloud data without an explicit backup + rollback plan.
 
@@ -280,7 +280,10 @@ activities/{id}   →  authenticated read/write (single-owner shared log today)
 | Client `intervalsCloudApi.js` sends ID token | ✅ |
 | `nightlySync.js` + workflow secret | ✅ |
 | `docs/CLOUD_FUNCTION_AUTH.md` | ✅ |
-| **Owner redeploy** Cloud Run `sync-intervals` | ⏳ pending |
+| `.github/workflows/deploy-cloud-function.yml` | ✅ |
+| Cloud Shell redeploy guide | ✅ |
+| **Owner redeploy** Cloud Run `sync-intervals` | ✅ revision 00017+ (2026-07-08) |
+| Bare signed-out shell (no nav/time range) | ✅ PR #282 |
 
 - **PR:** `🛡️ Sentinel Phase 4.2: authenticate cloud function requests`
 
@@ -322,7 +325,11 @@ activities/{id}   →  authenticated read/write (single-owner shared log today)
 
 ## Phase 7 — Post-completion full audit (final gate)
 
-**When:** After Phases 1–6 are merged/deployed and owner confirms normal daily use for one release cycle.
+**Status:** Automated audit complete 2026-07-08. **Owner manual smoke + sign-off pending.**
+
+**Deliverable:** [`docs/SENTINEL_PHASE_7_AUDIT.md`](../docs/SENTINEL_PHASE_7_AUDIT.md)
+
+**When:** After Phases 1–4.2 merged/deployed (done).
 
 **Goal:** Confirm nothing regressed; capture residual risks; decide if further hardening is worth the UX cost.
 
@@ -360,9 +367,9 @@ npm audit
 
 ### 7.4 Deliverable
 
-- Update `.jules/sentinel.md` with **residual risk register** (accepted vs open).
-- Short **Sentinel completion report** in issue/PR: what improved, what remains (e.g. Tailwind CDN, localStorage tokens).
-- Owner sign-off comment: *"Sentinel complete — accepted residual risks"* or list follow-ups.
+- ✅ [`docs/SENTINEL_PHASE_7_AUDIT.md`](../docs/SENTINEL_PHASE_7_AUDIT.md) — automated results + owner checklists
+- ✅ `.jules/sentinel.md` residual risk register (R1–R10)
+- ⏳ Owner sign-off comment: *"Sentinel complete — accepted residual risks"* or list follow-ups
 
 **Phase 7 exit criteria:** All smoke tests pass; residual risks documented; owner explicit OK.
 
@@ -430,10 +437,8 @@ Manual smoke:
 
 ## Next action
 
-**Now (Phase 4.2):** Merge PR → `docs/CLOUD_FUNCTION_AUTH.md` (GitHub secret `AUTOMATION_SHARED_SECRET` + Cloud Run redeploy). No local CLI on work PC.
+**Now (Phase 7):** Owner completes manual smoke + config checklist in [`docs/SENTINEL_PHASE_7_AUDIT.md`](docs/SENTINEL_PHASE_7_AUDIT.md) §7.2–7.3, then sign-off on PR.
 
-**Then:** Phase 4.3 App Check (optional) or Phase 6 maintenance.
-
-**After all phases:** Phase 7 full re-audit (automated + manual smoke + residual risk register + owner sign-off).
+**Optional later:** Phase 4.3 App Check · Phase 6 `npm audit fix` · Phase 5 sessionStorage/PKCE (explicit owner approval).
 
 **Before Phase 5 (sessionStorage / PKCE):** Explicit owner approval — UX trade-offs.
