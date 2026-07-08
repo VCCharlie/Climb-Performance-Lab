@@ -49,6 +49,7 @@ import {
 } from './utils/activityUpsert';
 import {
     clearSensitiveLocalStorage,
+    consumeExplicitSignOut,
     getDefaultUserSettings,
     getDefaultIntervalsConfig,
     getDefaultStravaConfig,
@@ -387,11 +388,10 @@ const App = () => {
 
 
 
-    // Auto-save userSettings naar localStorage (signed-in only)
+    // Persist userSettings to localStorage (secrets stay local — never in Firestore).
     useEffect(() => {
-        if (!user) return;
         localStorage.setItem('userSettings', JSON.stringify(userSettings));
-    }, [user, userSettings]);
+    }, [userSettings]);
 
     /** Debounced Firestore sync for dashboard training volume goals (avoids wiping other `body` fields). */
     const volumeGoalsCloudTimerRef = useRef(null);
@@ -446,11 +446,10 @@ const App = () => {
         return () => unsub();
     }, [user]);
 
-    // Auto-save intervalsConfig naar localStorage (signed-in only)
+    // Persist intervalsConfig to localStorage (API key stays local — never in Firestore).
     useEffect(() => {
-        if (!user) return;
         localStorage.setItem('intervalsConfig', JSON.stringify(intervalsConfig));
-    }, [user, intervalsConfig]);
+    }, [intervalsConfig]);
 
     const [weatherClimbState, setWeatherClimbState] = useState({
         selectedClimb: CLIMB_DATABASE[0],
@@ -495,7 +494,9 @@ const App = () => {
                 if (isGoogleSignInInProgress()) {
                     return;
                 }
-                applySignedOutSessionWipe();
+                if (consumeExplicitSignOut()) {
+                    applySignedOutSessionWipe();
+                }
                 authenticatedUserRef.current = null;
                 setUser(null);
                 setAuthReady(true);

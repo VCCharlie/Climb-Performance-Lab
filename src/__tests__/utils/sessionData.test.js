@@ -5,6 +5,9 @@ import {
     getDefaultUserSettings,
     getDefaultIntervalsConfig,
     getDefaultStravaConfig,
+    markExplicitSignOut,
+    consumeExplicitSignOut,
+    EXPLICIT_SIGN_OUT_SESSION_KEY,
 } from '../../utils/sessionData.js';
 
 describe('sessionData', () => {
@@ -36,5 +39,14 @@ describe('sessionData', () => {
         expect(getDefaultUserSettings().openweatherApiKey).toBe('');
         expect(getDefaultIntervalsConfig()).toEqual({ apiKey: '', athleteId: '' });
         expect(getDefaultStravaConfig()).toEqual({ client_id: '', client_secret: '' });
+    });
+
+    it('explicit sign-out flag is one-shot', () => {
+        expect(consumeExplicitSignOut()).toBe(false);
+        markExplicitSignOut();
+        expect(sessionStorage.getItem(EXPLICIT_SIGN_OUT_SESSION_KEY)).toBe('1');
+        expect(consumeExplicitSignOut()).toBe(true);
+        expect(consumeExplicitSignOut()).toBe(false);
+        expect(sessionStorage.getItem(EXPLICIT_SIGN_OUT_SESSION_KEY)).toBeNull();
     });
 });
