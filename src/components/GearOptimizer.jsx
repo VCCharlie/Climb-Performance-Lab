@@ -1,6 +1,6 @@
 ﻿import React, { useState, useMemo } from 'react';
 import { Settings, TrendingUp, AlertCircle, CheckCircle, Bike } from 'lucide-react';
-import { CLIMB_DATABASE } from '../climbs';
+import { getDefaultClimb } from '../services/climbDatabase';
 import ClimbSelector from './shared/ClimbSelector';
 
 const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
@@ -11,7 +11,7 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
     const [tyreMm, setTyreMm] = useState(initialState?.tyreMm || 25);
 
     // Climb selection
-    const [selectedClimb, setSelectedClimb] = useState(initialState?.selectedClimb || CLIMB_DATABASE[0]);
+    const [selectedClimb, setSelectedClimb] = useState(initialState?.selectedClimb || getDefaultClimb());
     const [targetPower, setTargetPower] = useState(userSettings.ftp * 0.85);
     const [targetCadence, setTargetCadence] = useState(initialState?.targetCadence || 80);
 

@@ -3,7 +3,8 @@ import { Utensils, Brain, Route, Heart, Flag } from 'lucide-react';
 import { doc, setDoc, getDoc, collection, onSnapshot, getDocsFromServer, waitForPendingWrites } from "firebase/firestore";
 import { onAuthStateChanged, reload } from "firebase/auth";
 import { db, auth } from './firebase';
-import { CLIMB_DATABASE } from './climbs';
+import { getDefaultClimb } from './services/climbDatabase';
+import { useClimbDatabase } from './hooks/useClimbDatabase';
 import { calculatePowerZones } from './utils';
 import { devLog, redactSecrets } from './utils/safeLog';
 import {
@@ -59,6 +60,10 @@ import { safeLocalStorageSet } from './utils/safeStorage.js';
 import SignInGate from './components/SignInGate';
 import { runGoogleSignIn, isGoogleSignInInProgress, googleSignInErrorMessage } from './utils/googleSignIn';
 
+const CLIMB_HEAVY_TABS = new Set([
+    'profiler', 'bucketlist', 'climbmap', 'weather', 'gearoptimizer', 'physics', 'activities',
+]);
+
 const MAIN_TAB_IDS = new Set([
     'dashboard', 'physics', 'activities', 'training', 'race', 'gearoptimizer',
     'profiler', 'bucketlist', 'climbmap', 'weather',
@@ -113,7 +118,14 @@ const App = () => {
         return defaults;
     });
 
-    const [selectedClimb, setSelectedClimb] = useState(CLIMB_DATABASE?.[0] || { id: 'dummy', name: 'Loading', lengthKm: 0, elevation: 0, avgGrade: 0 });
+    const [selectedClimb, setSelectedClimb] = useState(getDefaultClimb);
+    const { climbs: climbDatabase, loadFull: loadFullClimbDatabase } = useClimbDatabase();
+
+    useEffect(() => {
+        if (CLIMB_HEAVY_TABS.has(activeTab)) {
+            loadFullClimbDatabase();
+        }
+    }, [activeTab, loadFullClimbDatabase]);
 
     const [intervalsConfig, setIntervalsConfig] = useState(() => {
         const saved = localStorage.getItem('intervalsConfig');
@@ -339,7 +351,7 @@ const App = () => {
         targetIntensity: 0.85
     });
     const [gearOptimizerState, setGearOptimizerState] = useState({
-        selectedClimb: CLIMB_DATABASE[0],
+        selectedClimb: getDefaultClimb(),
         chainrings: [50, 34],
         cassette: [11, 12, 13, 14, 15, 16, 17, 19, 21, 24, 28],
         wheelDiameter: 700,
@@ -347,13 +359,13 @@ const App = () => {
         targetCadence: 80
     });
     const [climbProfilerState, setClimbProfilerState] = useState({
-        selectedClimb: CLIMB_DATABASE[0],
+        selectedClimb: getDefaultClimb(),
         showPowerZones: true,
         targetIntensity: 0.85
     });
 
     const handleOpenProfilerFromActivity = useCallback((_activity, climb) => {
-        const target = climb && climb.id ? climb : CLIMB_DATABASE[0];
+        const target = climb && climb.id ? climb : getDefaultClimb();
         setClimbProfilerState((prev) => ({
             ...prev,
             selectedClimb: target,
@@ -460,7 +472,7 @@ const App = () => {
     }, [intervalsConfig]);
 
     const [weatherClimbState, setWeatherClimbState] = useState({
-        selectedClimb: CLIMB_DATABASE[0],
+        selectedClimb: getDefaultClimb(),
         targetPower: 280 * 0.85,
         temperature: 20,
         windSpeed: 0,
@@ -831,7 +843,7 @@ const App = () => {
                                 logDateRangeFilter={logDateRangeFilter}
                                 onClearLogDateRange={clearActivityLogFilters}
                                 onOpenProfilerFromActivity={handleOpenProfilerFromActivity}
-                                climbDatabaseForMatch={CLIMB_DATABASE}
+                                climbDatabaseForMatch={climbDatabase}
                                 activityLogRangesExpanded={activityLogRangesExpanded}
                                 onActivityLogRangesExpandedChange={setActivityLogRangesExpanded}
                                 initialInternalTab={dataHubInternalTabFromRestore()}

@@ -9,7 +9,8 @@ import {
     Activity,
     Info
 } from 'lucide-react';
-import { CLIMB_DATABASE, COGGAN_ZONES } from '../climbs';
+import { COGGAN_ZONES } from '../cogganZones';
+import { getDefaultClimb } from '../services/climbDatabase';
 import ClimbSelector from './shared/ClimbSelector';
 import ProfilerCharts from './profiler/ProfilerCharts';
 import ProfilerInsights from './profiler/ProfilerInsights';
@@ -40,7 +41,7 @@ function formatClimbDuration(minutes) {
 }
 
 const ClimbProfiler = ({ userSettings, initialState, onStateChange, theme = 'light' }) => {
-    const [selectedClimb, setSelectedClimb] = useState(initialState?.selectedClimb || CLIMB_DATABASE[0]);
+    const [selectedClimb, setSelectedClimb] = useState(initialState?.selectedClimb || getDefaultClimb());
     const [showPowerZones, setShowPowerZones] = useState(
         initialState?.showPowerZones !== undefined ? initialState.showPowerZones : true
     );
