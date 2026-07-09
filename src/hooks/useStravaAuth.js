@@ -4,6 +4,7 @@
  * Tokens zijn opgeslagen in localStorage (enkelvoudige gebruiker).
  */
 import { useCallback } from 'react';
+import { safeLocalStorageSet, safeSessionStorageSet } from '../utils/safeStorage.js';
 
 const STRAVA_TOKEN_URL = 'https://www.strava.com/oauth/token';
 const STRAVA_AUTH_BASE = 'https://www.strava.com/oauth/authorize';
@@ -44,7 +45,7 @@ const useStravaAuth = (stravaConfig, setStravaConfig) => {
             expires_at: data.expires_at
         };
         setStravaConfig(updated);
-        localStorage.setItem('stravaConfig', JSON.stringify(updated));
+        safeLocalStorageSet('stravaConfig', JSON.stringify(updated));
         return data.access_token;
     }, [stravaConfig, setStravaConfig]);
 
@@ -61,7 +62,7 @@ const useStravaAuth = (stravaConfig, setStravaConfig) => {
         const array = new Uint32Array(4);
         window.crypto.getRandomValues(array);
         const state = Array.from(array, dec => ('0' + dec.toString(16)).substr(-8)).join('');
-        sessionStorage.setItem('strava_oauth_state', state);
+        safeSessionStorageSet('strava_oauth_state', state);
 
         const url = `${STRAVA_AUTH_BASE}?client_id=${stravaConfig.client_id}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=activity:read_all&approval_prompt=auto&state=${encodeURIComponent(state)}`;
         window.location.href = url;
@@ -104,7 +105,7 @@ const useStravaAuth = (stravaConfig, setStravaConfig) => {
             athlete_name: data.athlete ? `${data.athlete.firstname} ${data.athlete.lastname}` : null
         };
         setStravaConfig(updated);
-        localStorage.setItem('stravaConfig', JSON.stringify(updated));
+        safeLocalStorageSet('stravaConfig', JSON.stringify(updated));
 
         // Verwijder ?code= uit de URL
         const url = new URL(window.location.href);
@@ -121,7 +122,7 @@ const useStravaAuth = (stravaConfig, setStravaConfig) => {
             client_secret: stravaConfig?.client_secret || ''
         };
         setStravaConfig(reset);
-        localStorage.setItem('stravaConfig', JSON.stringify(reset));
+        safeLocalStorageSet('stravaConfig', JSON.stringify(reset));
     }, [stravaConfig, setStravaConfig]);
 
     return { isConnected, connectStrava, disconnectStrava, handleOAuthCallback, getValidToken };

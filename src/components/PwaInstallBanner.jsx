@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Download, Smartphone, X } from 'lucide-react';
 import { isLikelyMobileDevice, isStandaloneDisplayMode } from '../utils/pwa';
+import { safeLocalStorageSet } from '../utils/safeStorage.js';
 
 const DISMISS_KEY = 'pwa_install_banner_dismissed';
 
@@ -36,7 +37,7 @@ export default function PwaInstallBanner() {
   }, []);
 
   const dismiss = useCallback(() => {
-    localStorage.setItem(DISMISS_KEY, '1');
+    safeLocalStorageSet(DISMISS_KEY, '1');
     setVisible(false);
   }, []);
 

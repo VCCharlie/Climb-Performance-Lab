@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Activity, Settings, LogIn, LogOut, User, Cloud, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import { safeLocalStorageSet } from '../utils/safeStorage.js';
 import { logout } from '../firebase';
 import { runGoogleSignIn, googleSignInErrorMessage } from '../utils/googleSignIn';
 import { IconButton, cn } from './ui';
@@ -42,7 +43,7 @@ const Header = ({ userSettings, onOpenSettings, user, syncStatus, lastActivityDa
         if (syncStatus === 'synced' || syncStatus === 'success' || syncStatus === 'done') {
             const now = new Date().toISOString();
             setLastSyncTime(now);
-            localStorage.setItem('app_last_sync_time', now);
+            safeLocalStorageSet('app_last_sync_time', now);
         }
     }, [syncStatus]);
 

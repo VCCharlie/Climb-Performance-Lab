@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
+import { safeLocalStorageSet } from '../utils/safeStorage.js';
 import {
     getDefaultVisibleKeys,
     parseStoredColumnKeys,
@@ -22,11 +23,7 @@ export default function useActivityColumnVisibility() {
     const [visibleKeys, setVisibleKeys] = useState(loadInitialKeys);
 
     useEffect(() => {
-        try {
-            localStorage.setItem(ACTIVITY_COLUMN_STORAGE_KEY, JSON.stringify(visibleKeys));
-        } catch {
-            // Quota or private mode — ignore
-        }
+        safeLocalStorageSet(ACTIVITY_COLUMN_STORAGE_KEY, JSON.stringify(visibleKeys));
     }, [visibleKeys]);
 
     const visibleColumns = useMemo(() => columnsForVisibleKeys(visibleKeys), [visibleKeys]);

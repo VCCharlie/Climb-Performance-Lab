@@ -1,4 +1,5 @@
 ﻿import React, { useState, useMemo, useEffect } from 'react';
+import { safeSessionStorageSet } from '../../utils/safeStorage.js';
 import { calculateBassettCorrection } from '../utils';
 import { normalizeDate } from '../utils/formatters';
 import {
@@ -78,7 +79,7 @@ const Dashboard = ({
 
     useEffect(() => {
         if (typeof sessionStorage === 'undefined') return;
-        sessionStorage.setItem(DASH_SUBTAB_STORAGE_KEY, dashboardTab);
+        safeSessionStorageSet(DASH_SUBTAB_STORAGE_KEY, dashboardTab);
     }, [dashboardTab]);
 
     // Alle historische data zit in Firestore via de deep sync — GCF niet meer nodig.
