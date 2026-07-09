@@ -6,68 +6,11 @@ import {
 import { formatDateDDMMYYYY } from '../../utils';
 import { ChartTooltip } from '../ui';
 import { getChartTheme, chartCardClassLg } from '../../utils/chartTheme';
+import { calculateFitnessMetrics } from '../../utils/formTabMetrics';
 
 /**
  * FormTab: Shows CTL, ATL and TSB (fitness / fatigue / form) progression over time.
- * Calculates rolling CTL/ATL/TSB from activities using simplified fitness model.
- *  - CTL (Fitness): 42-day exponential weighted average of daily TSS
- *  - ATL (Fatigue): 7-day exponential weighted average of daily TSS
- *  - TSB (Form):    CTL - ATL (positive = fresh, negative = fatigued)
  */
-
-const CTL_DAYS = 42;
-const ATL_DAYS = 7;
-
-// ⚡ Bolt Optimization: Use array lookup instead of Date.toLocaleString() in loops
-const EN_SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-const calculateFitnessMetrics = (activities) => {
-    if (!activities || activities.length === 0) return [];
-
-    // Build daily TSS map (sorted by date asc)
-    const tssMap = {};
-    activities.forEach(a => {
-        if (a.date && a.load > 0) {
-            if (!tssMap[a.date]) tssMap[a.date] = 0;
-            tssMap[a.date] += a.load;
-        }
-    });
-
-    const sortedDates = Object.keys(tssMap).sort();
-    if (sortedDates.length === 0) return [];
-
-    const start = new Date(sortedDates[0]);
-    const end = new Date(sortedDates[sortedDates.length - 1]);
-
-    const ctlFactor = 1 - Math.exp(-1 / CTL_DAYS);
-    const atlFactor = 1 - Math.exp(-1 / ATL_DAYS);
-
-    let ctl = 0;
-    let atl = 0;
-    const result = [];
-
-    const current = new Date(start);
-    while (current <= end) {
-        const key = current.toISOString().slice(0, 10);
-        const tss = tssMap[key] || 0;
-
-        ctl = ctl + ctlFactor * (tss - ctl);
-        atl = atl + atlFactor * (tss - atl);
-        const tsb = ctl - atl;
-
-        result.push({
-            date: key,
-            dateNum: current.getTime(),
-            ctl: Math.round(ctl * 10) / 10,
-            atl: Math.round(atl * 10) / 10,
-            tsb: Math.round(tsb * 10) / 10,
-        });
-
-        current.setDate(current.getDate() + 1);
-    }
-
-    return result;
-};
 
 const StatBadge = ({ label, value, color }) => (
     <div className="bg-cdsurface border border-cdborder rounded-lg p-4 text-center">
@@ -84,7 +27,12 @@ const FormTab = ({
 
     const axisTicks = useMemo(() => {
         if (!customTicks) return undefined;
-        return customTicks.map(t => new Date(t).getTime());
+        return customTicks.map((t) => {
+            const formatted = formatDateDDMMYYYY(t);
+            if (formatted === '-') return new Date(t).getTime();
+            const [dd, mm, yyyy] = formatted.split('-').map(Number);
+            return new Date(yyyy, mm - 1, dd).getTime();
+        });
     }, [customTicks]);
 
     const latest = fitnessData.length ? fitnessData[fitnessData.length - 1] : null;
@@ -126,10 +74,7 @@ const FormTab = ({
                                         minTickGap={50}
                                         stroke={theme.axis}
                                         tick={{ fill: theme.axis, fontSize: 11 }}
-                                        tickFormatter={(ts) => {
-                                            const d = new Date(ts);
-                                            return `${d.getDate()} ${EN_SHORT_MONTHS[d.getMonth()]}`;
-                                        }}
+                                        tickFormatter={(ts) => formatDateDDMMYYYY(new Date(ts))}
                                     />
                                     <YAxis stroke={theme.axis} tick={{ fill: theme.axis, fontSize: 11 }} />
                                     <Tooltip
