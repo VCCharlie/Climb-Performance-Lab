@@ -1,4 +1,7 @@
-## 2026-04-24 - Speed up sorting of ISO dates
+## 2026-07-09 - localStorage QuotaExceededError crashes app boot
+**Learning:** `QuotaExceededError` occurs when browser localStorage (~5MB) fills up — mainly from `stravaVsLogScan_v*` (full Strava ride lists) and stale `intervals_data_*` caches. Uncaught `localStorage.setItem` can surface via ErrorBoundary and block the entire app.
+**Action:** Route all persistence through `safeLocalStorageSet` (prune caches + retry); call `maintainBrowserStorageOnBoot()` in `main.jsx`; show quota-specific recovery copy on ErrorBoundary with cache-clear button.
+
 **Learning:** Comparing ISO date strings natively (`a.date < b.date`) instead of parsing them first via `new Date(a.date).getTime()` is extremely fast (around ~20x faster in Node.js/V8) and removes unnecessary overhead from the garbage collector during sorting, particularly when rendering tables or dashboards that sort large activity datasets multiple times on changes.
 **Action:** When working with ISO formatted string dates, especially in frequently executed `.sort()` logic, use string comparison directly: `(a, b) => a < b ? -1 : (a > b ? 1 : 0)`.
 

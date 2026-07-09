@@ -4,6 +4,8 @@
  * Not synced to Firestore (payload size); survives tab refresh on the same device.
  */
 
+import { safeLocalStorageSet, pruneLocalStorageCaches } from './safeStorage.js';
+
 export const STRAVA_VS_LOG_SCAN_CACHE_VERSION = 1;
 
 const STORAGE_PREFIX = 'stravaVsLogScan_v';
@@ -65,15 +67,9 @@ export function writeStravaVsLogScanCache(athleteId, activities, historyComplete
         return { ok: false, reason: 'serialize' };
     }
 
-    const attempt = (payload) => {
-        try {
-            localStorage.setItem(key, payload);
-            return true;
-        } catch (e) {
-            if (e && (e.name === 'QuotaExceededError' || e.code === 22)) return false;
-            return false;
-        }
-    };
+    pruneLocalStorageCaches({ aggressive: false });
+
+    const attempt = (payload) => safeLocalStorageSet(key, payload);
 
     if (attempt(json)) return { ok: true, fetchedAt };
 

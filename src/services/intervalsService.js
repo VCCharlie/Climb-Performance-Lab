@@ -2,6 +2,7 @@
 
 import { devLog } from '../utils/safeLog';
 import { fetchIntervalsActivitiesViaCloud } from './intervalsCloudApi';
+import { safeLocalStorageSet, pruneLocalStorageCaches } from '../utils/safeStorage.js';
 
 const CACHE_DURATION = 60 * 60 * 1000; // 1 hour in ms
 
@@ -30,14 +31,11 @@ export async function fetchIntervalsData(startDate, endDate) {
 
     const data = await fetchIntervalsActivitiesViaCloud({ startDate, endDate });
 
-    try {
-      localStorage.setItem(cacheKey, JSON.stringify({
-        timestamp: Date.now(),
-        data: data
-      }));
-    } catch (e) {
-      console.warn('[IntervalsService] Failed to cache data (storage full?)', e);
-    }
+    pruneLocalStorageCaches({ aggressive: false });
+    safeLocalStorageSet(cacheKey, JSON.stringify({
+      timestamp: Date.now(),
+      data: data
+    }));
 
     return data;
 

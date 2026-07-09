@@ -4,6 +4,8 @@
  * 2. Full detail enrich: gear, map, KOM, HR, RPE, distance/time fixes
  */
 
+import { safeLocalStorageSet } from './safeStorage.js';
+
 import { runInBatches } from './async';
 import { matchStravaToSite, STRAVA_BIKE_TYPES } from './stravaMatch';
 import { fetchStravaActivitiesInRange } from './stravaLinkIntervalsFetch';
@@ -72,7 +74,7 @@ async function loadBikesMap(token, bikeActivities) {
         }
         if (Object.keys(bikesMap).length > 0) {
             try {
-                localStorage.setItem('stravaBikesMap', JSON.stringify(bikesMap));
+                safeLocalStorageSet('stravaBikesMap', JSON.stringify(bikesMap));
             } catch {
                 /* quota */
             }

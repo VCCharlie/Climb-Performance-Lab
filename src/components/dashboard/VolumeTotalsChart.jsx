@@ -12,6 +12,7 @@ import {
     Cell,
 } from 'recharts';
 import { formatNlNumber } from '../../utils/formatters';
+import { safeSessionStorageSet } from '../../utils/safeStorage.js';
 import { ChartTooltip } from '../ui';
 import { getChartTheme, chartCardClass } from '../../utils/chartTheme';
 import {
@@ -88,7 +89,7 @@ const VolumeTotalsChart = ({
 
     useEffect(() => {
         if (typeof sessionStorage === 'undefined') return;
-        sessionStorage.setItem(
+        safeSessionStorageSet(
             VOL_CHART_STORAGE_KEY,
             JSON.stringify({ cadence, metricId, selectedKey, compareMode }),
         );

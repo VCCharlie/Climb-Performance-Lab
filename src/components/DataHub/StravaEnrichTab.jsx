@@ -9,6 +9,7 @@ import {
     applyStravaDetailFieldsToAlreadyLinkedMatch,
     buildAlreadyLinkedStravaUpdate,
 } from '../../utils/stravaGearEnrich';
+import { safeLocalStorageSet } from '../../utils/safeStorage.js';
 
 // Strava logo SVG
 const StravaIcon = ({ size = 14 }) => (
@@ -117,7 +118,7 @@ const StravaEnrichTab = ({
                 if (r.ok) {
                     const g = await r.json();
                     bikesMap[detailedStrava.gear_id] = g.name || [g.brand_name, g.model_name].filter(Boolean).join(' ') || 'Bike';
-                    localStorage.setItem('stravaBikesMap', JSON.stringify(bikesMap));
+                    safeLocalStorageSet('stravaBikesMap', JSON.stringify(bikesMap));
                 }
             }
 
@@ -250,7 +251,7 @@ const StravaEnrichTab = ({
             }
 
             // Cache bikesMap in localStorage voor gebruik in EditActivityModal
-            try { localStorage.setItem('stravaBikesMap', JSON.stringify(bikesMap)); } catch { /* quota */ }
+            safeLocalStorageSet('stravaBikesMap', JSON.stringify(bikesMap));
 
             const result = matchStravaToSite(bikeActivities, activities);
             result.bikesMap = bikesMap;

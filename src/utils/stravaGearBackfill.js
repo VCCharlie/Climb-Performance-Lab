@@ -4,6 +4,8 @@
  * per page, not one detail call per ride. Then GET /gear/{id} only for unique bike ids.
  */
 
+import { safeLocalStorageSet } from './safeStorage.js';
+
 import { runInBatches } from './async';
 import { normalizeStravaActivityId } from './strava';
 import { fetchStravaGearName, fetchGearIdFromStravaActivityDetail } from './stravaGearEnrich';
@@ -225,7 +227,7 @@ export async function buildGearBackfillUpdates(siteActivities, token, opts = {})
     });
 
     try {
-        localStorage.setItem('stravaBikesMap', JSON.stringify(bikesMap));
+        safeLocalStorageSet('stravaBikesMap', JSON.stringify(bikesMap));
     } catch {
         /* quota */
     }

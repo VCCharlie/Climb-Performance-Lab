@@ -55,6 +55,7 @@ import {
     getDefaultStravaConfig,
     getDefaultBucketListState,
 } from './utils/sessionData';
+import { safeLocalStorageSet } from './utils/safeStorage.js';
 import SignInGate from './components/SignInGate';
 import { runGoogleSignIn, isGoogleSignInInProgress, googleSignInErrorMessage } from './utils/googleSignIn';
 
@@ -130,7 +131,7 @@ const App = () => {
     const updateStravaConfig = (key, value) => {
         setStravaConfig(prev => {
             const updated = { ...prev, [key]: value };
-            localStorage.setItem('stravaConfig', JSON.stringify(updated));
+            safeLocalStorageSet('stravaConfig', JSON.stringify(updated));
             return updated;
         });
     };
@@ -153,7 +154,7 @@ const App = () => {
     const [customEnd, setCustomEnd] = useState('');
 
     useEffect(() => {
-        localStorage.setItem('dashboard_timeRange', timeRange);
+        safeLocalStorageSet('dashboard_timeRange', timeRange);
     }, [timeRange]);
 
     // Berekende start/end strings (voor StravaEnrichTab e.a.)
@@ -318,7 +319,7 @@ const App = () => {
         if (forPersistence) {
             try {
                 if (user) {
-                    localStorage.setItem('stravaProfileData', JSON.stringify(forPersistence));
+                    safeLocalStorageSet('stravaProfileData', JSON.stringify(forPersistence));
                 }
             } catch { /* quota */ }
         } else {
@@ -397,7 +398,7 @@ const App = () => {
 
     // Persist userSettings to localStorage (secrets stay local — never in Firestore).
     useEffect(() => {
-        localStorage.setItem('userSettings', JSON.stringify(userSettings));
+        safeLocalStorageSet('userSettings', JSON.stringify(userSettings));
     }, [userSettings]);
 
     /** Debounced Firestore sync for dashboard training volume goals (avoids wiping other `body` fields). */
@@ -455,7 +456,7 @@ const App = () => {
 
     // Persist intervalsConfig to localStorage (API key stays local — never in Firestore).
     useEffect(() => {
-        localStorage.setItem('intervalsConfig', JSON.stringify(intervalsConfig));
+        safeLocalStorageSet('intervalsConfig', JSON.stringify(intervalsConfig));
     }, [intervalsConfig]);
 
     const [weatherClimbState, setWeatherClimbState] = useState({
@@ -579,22 +580,22 @@ const App = () => {
                     }
                     if (data.theme) {
                         setTheme(data.theme);
-                        localStorage.setItem('theme', data.theme);
+                        safeLocalStorageSet('theme', data.theme);
                     }
                     if (data.bucketList) {
                         setBucketListState(data.bucketList);
-                        localStorage.setItem('bucketListState', JSON.stringify(data.bucketList));
+                        safeLocalStorageSet('bucketListState', JSON.stringify(data.bucketList));
                     }
                     if (data.strava) {
                         setStravaConfig((prev) => {
                             const merged = mergeStravaConfigFromCloud(data.strava, prev);
-                            localStorage.setItem('stravaConfig', JSON.stringify(merged));
+                            safeLocalStorageSet('stravaConfig', JSON.stringify(merged));
                             return merged;
                         });
                     }
                     if (data.stravaProfile) {
                         setStravaProfileData(data.stravaProfile);
-                        localStorage.setItem('stravaProfileData', JSON.stringify(data.stravaProfile));
+                        safeLocalStorageSet('stravaProfileData', JSON.stringify(data.stravaProfile));
                     }
                 }
             } catch (e) {
@@ -725,17 +726,17 @@ const App = () => {
         if (backupData.strava) {
             setStravaConfig((prev) => {
                 const merged = { ...prev, ...backupData.strava };
-                localStorage.setItem('stravaConfig', JSON.stringify(merged));
+                safeLocalStorageSet('stravaConfig', JSON.stringify(merged));
                 return merged;
             });
         }
         if (backupData.stravaProfile) {
             setStravaProfileData(backupData.stravaProfile);
-            localStorage.setItem('stravaProfileData', JSON.stringify(backupData.stravaProfile));
+            safeLocalStorageSet('stravaProfileData', JSON.stringify(backupData.stravaProfile));
         }
         if (backupData.theme) {
             setTheme(backupData.theme);
-            localStorage.setItem('theme', backupData.theme);
+            safeLocalStorageSet('theme', backupData.theme);
         }
         alert('Backup restored successfully!');
     };
@@ -990,7 +991,7 @@ const App = () => {
                         theme={theme}
                         setTheme={(newTheme) => {
                             setTheme(newTheme);
-                            localStorage.setItem('theme', newTheme);
+                            safeLocalStorageSet('theme', newTheme);
                         }}
                         fullData={{
                             activities,

@@ -8,6 +8,7 @@ import { runInBatches } from './async';
 import { parseDurationToSeconds } from './formatters';
 import { activityDistanceKm } from './activityFilterMetrics';
 import { buildStravaKomSummaryFromActivityDetail } from './stravaSegmentKomSummary';
+import { safeLocalStorageSet } from './safeStorage.js';
 
 function storedMovingTimeSec(act) {
     const t = act?.moving_time;
@@ -218,7 +219,7 @@ export async function enrichActivityGearFromStrava(merged, stravaSide, token, op
             try {
                 const bikesMap = JSON.parse(localStorage.getItem('stravaBikesMap') || '{}');
                 bikesMap[gearId] = gearName;
-                localStorage.setItem('stravaBikesMap', JSON.stringify(bikesMap));
+                safeLocalStorageSet('stravaBikesMap', JSON.stringify(bikesMap));
             } catch {
                 /* quota */
             }

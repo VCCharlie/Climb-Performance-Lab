@@ -5,8 +5,10 @@ import './utils/leaflet-setup'
 import App from './App.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import { applyTheme, readStoredTheme } from './theme/applyTheme'
+import { maintainBrowserStorageOnBoot } from './utils/safeStorage.js'
 
 applyTheme(readStoredTheme())
+maintainBrowserStorageOnBoot()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

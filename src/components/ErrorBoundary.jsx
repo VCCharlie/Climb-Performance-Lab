@@ -1,9 +1,13 @@
 import React from 'react';
+import { pruneLocalStorageCaches, isQuotaExceededError } from '../utils/safeStorage.js';
+import { clearSensitiveLocalStorage } from '../utils/sessionData.js';
 
 const IS_PROD = import.meta.env.PROD;
 
 async function clearSiteCacheAndReload() {
     try {
+        pruneLocalStorageCaches({ aggressive: true });
+        clearSensitiveLocalStorage();
         if ('serviceWorker' in navigator) {
             const registrations = await navigator.serviceWorker.getRegistrations();
             await Promise.all(registrations.map((r) => r.unregister()));
@@ -39,6 +43,7 @@ class ErrorBoundary extends React.Component {
 
     render() {
         if (this.state.hasError) {
+            const quotaError = isQuotaExceededError(this.state.error);
             return (
                 <div style={{
                     minHeight: '100vh',
@@ -62,9 +67,11 @@ class ErrorBoundary extends React.Component {
                             Application could not load
                         </h1>
                         <p style={{ color: '#64748b', fontSize: '0.875rem', marginBottom: '1rem' }}>
-                            {IS_PROD
-                                ? 'An unexpected error occurred. Try reloading, or clear cached app data if this started after an update.'
-                                : 'An unexpected error occurred while rendering. See details below.'}
+                            {quotaError
+                                ? 'Browser storage is full (local cache). Use “Clear cache and reload” below — your activities stay in the cloud after sign-in.'
+                                : IS_PROD
+                                    ? 'An unexpected error occurred. Try reloading, or clear cached app data if this started after an update.'
+                                    : 'An unexpected error occurred while rendering. See details below.'}
                         </p>
 
                         <details open={!IS_PROD} style={{ marginBottom: '1rem' }}>
