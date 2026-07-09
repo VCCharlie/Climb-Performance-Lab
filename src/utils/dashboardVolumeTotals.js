@@ -3,7 +3,7 @@
  * Buckets use local calendar; weeks start on Monday.
  */
 
-import { normalizeDate } from './formatters';
+import { normalizeDate, formatDateDDMMYYYY } from './formatters';
 import { activityDistanceKm, activityMovingTimeSec } from './activityFilterMetrics';
 
 function pad2(n) {
@@ -66,11 +66,10 @@ export function formatDurationHoursMinutes(totalSeconds) {
  * @param {string} sundayYmd
  */
 export function formatWeekRangeLabelEn(mondayYmd, sundayYmd) {
-    const a = parseYmdLocal(mondayYmd);
-    const b = parseYmdLocal(sundayYmd);
-    if (!a || !b) return mondayYmd || '—';
-    const opts = { day: 'numeric', month: 'short', year: 'numeric' };
-    return `${a.toLocaleDateString('en-GB', opts)} – ${b.toLocaleDateString('en-GB', opts)}`;
+    const a = formatDateDDMMYYYY(mondayYmd);
+    const b = formatDateDDMMYYYY(sundayYmd);
+    if (a === '-' || b === '-') return mondayYmd || '—';
+    return `${a} – ${b}`;
 }
 
 /**
@@ -78,11 +77,14 @@ export function formatWeekRangeLabelEn(mondayYmd, sundayYmd) {
  */
 export function formatMonthLabelEn(monthKey) {
     if (!monthKey || monthKey.length < 7) return '—';
-    const y = Number(monthKey.slice(0, 4));
-    const mo = Number(monthKey.slice(5, 7));
-    if (!Number.isFinite(y) || !Number.isFinite(mo)) return monthKey;
-    const d = new Date(y, mo - 1, 1);
-    return d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+    const label = formatDateDDMMYYYY(`${monthKey}-01`);
+    if (label === '-') return monthKey;
+    const parts = label.split('-');
+    if (parts.length !== 3) return monthKey;
+    const monthNum = Number(parts[1]);
+    const year = parts[2];
+    const monthName = new Date(Number(year), monthNum - 1, 1).toLocaleDateString('nl-NL', { month: 'long' });
+    return `${monthName} ${year}`;
 }
 
 function emptyBucket() {
@@ -175,9 +177,8 @@ export function orderVolumeRowsChronological(rows) {
  * @param {string} mondayYmd
  */
 export function formatWeekChartTickEn(mondayYmd) {
-    const dt = parseYmdLocal(mondayYmd);
-    if (!dt) return mondayYmd || '';
-    return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    const label = formatDateDDMMYYYY(mondayYmd);
+    return label === '-' ? (mondayYmd || '') : label;
 }
 
 /**
@@ -186,11 +187,8 @@ export function formatWeekChartTickEn(mondayYmd) {
  */
 export function formatMonthChartTickEn(monthKey) {
     if (!monthKey || monthKey.length < 7) return monthKey || '';
-    const y = Number(monthKey.slice(0, 4));
-    const mo = Number(monthKey.slice(5, 7));
-    if (!Number.isFinite(y) || !Number.isFinite(mo)) return monthKey;
-    const d = new Date(y, mo - 1, 1);
-    return d.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
+    const label = formatDateDDMMYYYY(`${monthKey}-01`);
+    return label === '-' ? monthKey : label;
 }
 
 /**

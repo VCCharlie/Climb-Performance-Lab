@@ -1490,7 +1490,7 @@ const DataHub = ({
                                             value={fetchIntervalsDates.start}
                                             onChange={(v) => setFetchIntervalsDates((s) => ({ ...s, start: v }))}
                                             className="w-full bg-cdbg border border-cdborder rounded px-2 py-1.5 text-cdtext text-xs"
-                                            aria-label="Fetch new activities from (dd/mm/yyyy)"
+                                            aria-label="Fetch new activities from (dd-mm-jjjj)"
                                         />
                                     </div>
                                     <div>
@@ -1499,7 +1499,7 @@ const DataHub = ({
                                             value={fetchIntervalsDates.end}
                                             onChange={(v) => setFetchIntervalsDates((s) => ({ ...s, end: v }))}
                                             className="w-full bg-cdbg border border-cdborder rounded px-2 py-1.5 text-cdtext text-xs"
-                                            aria-label="Fetch new activities to (dd/mm/yyyy)"
+                                            aria-label="Fetch new activities to (dd-mm-jjjj)"
                                         />
                                     </div>
                                 </div>

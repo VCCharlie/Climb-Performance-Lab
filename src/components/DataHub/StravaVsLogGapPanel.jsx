@@ -236,7 +236,7 @@ const StravaVsLogGapPanel = ({
                             schedulePersistUi({ startYmd: v, endYmd, includeEbikeRide, useFuzzyMatch });
                         }}
                         className="bg-cdbg border border-cdborder rounded px-2 py-1.5 text-xs text-cdtext font-mono"
-                        aria-label="From date (dd/mm/yyyy)"
+                        aria-label="From date (dd-mm-jjjj)"
                     />
                 </label>
                 <label className="flex flex-col gap-0.5 text-[10px] text-cdmuted font-bold uppercase">
@@ -248,7 +248,7 @@ const StravaVsLogGapPanel = ({
                             schedulePersistUi({ startYmd, endYmd: v, includeEbikeRide, useFuzzyMatch });
                         }}
                         className="bg-cdbg border border-cdborder rounded px-2 py-1.5 text-xs text-cdtext font-mono"
-                        aria-label="To date (dd/mm/yyyy)"
+                        aria-label="To date (dd-mm-jjjj)"
                     />
                 </label>
                 <button

@@ -1,6 +1,7 @@
 ﻿import React, { useMemo } from 'react';
 import { Activity, TrendingUp, TrendingDown, Calendar, AlertTriangle, CheckCircle, Zap, Info, Lightbulb } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts';
+import { formatDateDDMMYYYY } from '../utils/formatters';
 
 // ⚡ Bolt Optimization: Use array lookup instead of Date.toLocaleString() in loops
 const NL_SHORT_MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
@@ -11,7 +12,7 @@ const CustomTooltip = ({ active, payload }) => {
         const data = payload[0].payload;
         return (
             <div className="bg-cdsurface border border-cdborder p-3 rounded shadow-lg">
-                <p className="text-cdtext text-sm font-bold mb-2">{new Date(data.date).toLocaleDateString('nl-NL')}</p>
+                <p className="text-cdtext text-sm font-bold mb-2">{formatDateDDMMYYYY(data.date)}</p>
                 <p className="text-blue-400 text-xs">CTL (Fitness): {data.ctl}</p>
                 <p className="text-red-400 text-xs">ATL (Fatigue): {data.atl}</p>
                 <p className="text-yellow-400 text-xs">TSB (Form): {data.tsb}</p>
@@ -87,9 +88,8 @@ const RecoveryAdvisor = ({ activities, startDate, endDate }) => {
         }
 
         // Label for chart heading
-        const fmtOpts = { day: 'numeric', month: 'short', year: 'numeric' };
         const rangeLabel = startDate || endDate
-            ? `${startD.toLocaleDateString('nl-NL', fmtOpts)} – ${endD.toLocaleDateString('nl-NL', fmtOpts)}`
+            ? `${formatDateDDMMYYYY(startD)} – ${formatDateDDMMYYYY(endD)}`
             : 'Last 90 days';
 
         // Current metrics (last data point in display range)

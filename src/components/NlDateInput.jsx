@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { formatIsoToNlDmy, parseNlDmyToIso } from '../utils/formatters';
 
 /**
- * Text input showing dd/mm/jjjj while storing ISO YYYY-MM-DD in parent state.
+ * Text input showing dd-mm-jjjj while storing ISO YYYY-MM-DD in parent state.
  */
 export default function NlDateInput({
     value,
@@ -11,7 +11,7 @@ export default function NlDateInput({
     id,
     name,
     disabled,
-    placeholder = 'dd/mm/jjjj',
+    placeholder = 'dd-mm-jjjj',
     'aria-label': ariaLabel,
 }) {
     const iso = value && String(value).length >= 10 ? String(value).slice(0, 10) : '';

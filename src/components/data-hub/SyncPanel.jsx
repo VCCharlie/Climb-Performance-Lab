@@ -30,7 +30,7 @@ const SyncPanel = ({
                         value={syncDates.start}
                         onChange={(v) => setSyncDates((s) => ({ ...s, start: v }))}
                         className={inputBaseClass}
-                        aria-label="Sync from (dd/mm/yyyy)"
+                        aria-label="Sync from (dd-mm-jjjj)"
                     />
                 </div>
                 <div>
@@ -39,7 +39,7 @@ const SyncPanel = ({
                         value={syncDates.end}
                         onChange={(v) => setSyncDates((s) => ({ ...s, end: v }))}
                         className={inputBaseClass}
-                        aria-label="Sync to (dd/mm/yyyy)"
+                        aria-label="Sync to (dd-mm-jjjj)"
                     />
                 </div>
             </div>

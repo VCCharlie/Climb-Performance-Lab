@@ -30,10 +30,9 @@ describe('addDaysToYmd', () => {
 });
 
 describe('formatWeekRangeLabelEn', () => {
-    it('formats a range', () => {
+    it('formats a range in DD-MM-YYYY', () => {
         const s = formatWeekRangeLabelEn('2026-01-05', '2026-01-11');
-        expect(s).toContain('2026');
-        expect(s).toContain('–');
+        expect(s).toBe('05-01-2026 – 11-01-2026');
     });
 });
 
@@ -97,9 +96,8 @@ describe('trailingMovingAverage', () => {
 });
 
 describe('formatMonthChartTickEn', () => {
-    it('returns a short month tick', () => {
-        const s = formatMonthChartTickEn('2026-03');
-        expect(s.toLowerCase()).toContain('mar');
+    it('returns first-of-month in DD-MM-YYYY', () => {
+        expect(formatMonthChartTickEn('2026-03')).toBe('01-03-2026');
     });
 });
 

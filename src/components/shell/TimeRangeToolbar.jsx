@@ -55,14 +55,14 @@ export default function TimeRangeToolbar({
               value={customStart}
               onChange={onCustomStart}
               className={`${inputBaseClass} text-[10px] py-1.5 flex-1`}
-              aria-label="Start date (dd/mm/yyyy)"
+              aria-label="Start date (dd-mm-jjjj)"
             />
             <span className="text-cdmuted text-[10px]">–</span>
             <NlDateInput
               value={customEnd}
               onChange={onCustomEnd}
               className={`${inputBaseClass} text-[10px] py-1.5 flex-1`}
-              aria-label="End date (dd/mm/yyyy)"
+              aria-label="End date (dd-mm-jjjj)"
             />
           </div>
         )}
@@ -86,14 +86,14 @@ export default function TimeRangeToolbar({
               value={customStart}
               onChange={onCustomStart}
               className={`${inputBaseClass} text-[10px] py-1`}
-              aria-label="Start date (dd/mm/yyyy)"
+              aria-label="Start date (dd-mm-jjjj)"
             />
             <span className="text-cdmuted text-[10px]">–</span>
             <NlDateInput
               value={customEnd}
               onChange={onCustomEnd}
               className={`${inputBaseClass} text-[10px] py-1`}
-              aria-label="End date (dd/mm/yyyy)"
+              aria-label="End date (dd-mm-jjjj)"
             />
           </div>
         </div>

@@ -45,7 +45,7 @@ const PowerTopTenCustomRanges = ({
                             value={customPrimaryStart}
                             onChange={setCustomPrimaryStart}
                             className="bg-cdborder/30 border border-cdborder rounded px-2 py-1.5 text-cdtext text-xs"
-                            aria-label="Column 1 from (dd/mm/yyyy)"
+                            aria-label="Column 1 from (dd-mm-jjjj)"
                         />
                     </label>
                     <label className="flex flex-col gap-0.5 text-[10px] text-cdmuted">
@@ -54,7 +54,7 @@ const PowerTopTenCustomRanges = ({
                             value={customPrimaryEnd}
                             onChange={setCustomPrimaryEnd}
                             className="bg-cdborder/30 border border-cdborder rounded px-2 py-1.5 text-cdtext text-xs"
-                            aria-label="Column 1 to (dd/mm/yyyy)"
+                            aria-label="Column 1 to (dd-mm-jjjj)"
                         />
                     </label>
                 </div>
@@ -90,7 +90,7 @@ const PowerTopTenCustomRanges = ({
                             value={customCompareStart}
                             onChange={setCustomCompareStart}
                             className="bg-cdborder/30 border border-cdborder rounded px-2 py-1.5 text-cdtext text-xs"
-                            aria-label="Column 2 from (dd/mm/yyyy)"
+                            aria-label="Column 2 from (dd-mm-jjjj)"
                         />
                     </label>
                     <label className="flex flex-col gap-0.5 text-[10px] text-cdmuted">
@@ -99,7 +99,7 @@ const PowerTopTenCustomRanges = ({
                             value={customCompareEnd}
                             onChange={setCustomCompareEnd}
                             className="bg-cdborder/30 border border-cdborder rounded px-2 py-1.5 text-cdtext text-xs"
-                            aria-label="Column 2 to (dd/mm/yyyy)"
+                            aria-label="Column 2 to (dd-mm-jjjj)"
                         />
                     </label>
                 </div>

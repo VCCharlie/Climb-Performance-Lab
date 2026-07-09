@@ -3,6 +3,8 @@
  * (2) het deel van het rollende jaar vóór de huidige periode (bv. laatste maand vs ~11 maanden ervoor).
  */
 
+import { formatDateDDMMYYYY } from './formatters';
+
 const MS_DAY = 86400000;
 
 function movingTimeToSeconds(val) {
@@ -19,8 +21,8 @@ function movingTimeToSeconds(val) {
     return 0;
 }
 
-function formatRangeNl(start, end, fmtOpts) {
-    return `${start.toLocaleDateString('nl-NL', fmtOpts)} – ${end.toLocaleDateString('nl-NL', fmtOpts)}`;
+function formatRangeNl(start, end) {
+    return `${formatDateDDMMYYYY(start)} – ${formatDateDDMMYYYY(end)}`;
 }
 
 /**
@@ -62,12 +64,10 @@ export function summarizeActivityWindow(activities, rangeStart, rangeEnd, ftp) {
     const avgWeeklyLoad = totalLoad / weeksInPeriod;
     const ridesPerWeek = list.length / weeksInPeriod;
 
-    const fmtOpts = { day: 'numeric', month: 'short', year: 'numeric' };
-
     return {
         rangeStart,
         rangeEnd,
-        periodLabel: formatRangeNl(rangeStart, rangeEnd, fmtOpts),
+        periodLabel: formatRangeNl(rangeStart, rangeEnd),
         periodDays,
         weeksInPeriod,
         rideCount: list.length,
