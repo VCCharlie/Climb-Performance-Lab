@@ -1,19 +1,19 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import L from 'leaflet';
 import { Maximize2, Minimize2 } from 'lucide-react';
+import { useLeaflet } from '../../hooks/useLeaflet';
 import { decodePolyline } from '../../utils/strava';
 
 /**
  * Leaflet kaart die een Strava route-polyline toont op OpenStreetMap tiles.
- * Vereist 'leaflet/dist/leaflet.css' import in main.jsx.
  */
 const StravaMap = ({ polyline }) => {
+    const L = useLeaflet();
     const containerRef = useRef(null);
     const mapRef = useRef(null);
     const [expanded, setExpanded] = useState(false);
 
     const initMap = useCallback(() => {
-        if (!polyline || !containerRef.current) return;
+        if (!L || !polyline || !containerRef.current) return;
 
         if (mapRef.current) {
             mapRef.current.remove();
@@ -36,7 +36,7 @@ const StravaMap = ({ polyline }) => {
         const line = L.polyline(coords, { color: '#f97316', weight: 3, opacity: 0.85 });
         line.addTo(map);
         map.fitBounds(line.getBounds(), { padding: [16, 16] });
-    }, [polyline]);
+    }, [L, polyline]);
 
     useEffect(() => {
         initMap();
@@ -62,7 +62,14 @@ const StravaMap = ({ polyline }) => {
 
     return (
         <div className="relative">
-            <div ref={containerRef} style={{ height }} className="rounded-lg overflow-hidden border border-cdborder/50 transition-all duration-300" />
+            <div
+                ref={containerRef}
+                style={{ height }}
+                className={`rounded-lg overflow-hidden border border-cdborder/50 transition-all duration-300 ${L ? '' : 'cd-skeleton'}`}
+                role={L ? undefined : 'status'}
+                aria-busy={L ? undefined : true}
+                aria-label={L ? undefined : 'Loading map…'}
+            />
             <button
                 type="button"
                 onClick={() => setExpanded(e => !e)}

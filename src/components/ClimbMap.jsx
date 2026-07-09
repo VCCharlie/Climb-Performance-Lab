@@ -5,9 +5,9 @@
  */
 
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
-import L from 'leaflet';
 import { MapPin, LocateFixed, Filter, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { useClimbDatabase } from '../hooks/useClimbDatabase';
+import { useLeaflet } from '../hooks/useLeaflet';
 import { haversineDistance, calculateClimbCategory } from '../utils/calculations';
 import FlagIcon from './FlagIcon';
 
@@ -19,7 +19,7 @@ const CAT_COLORS = {
     '4': '#22c55e',
 };
 
-const createClimbIcon = (cat) => {
+const createClimbIcon = (L, cat) => {
     const color = CAT_COLORS[cat] || '#94a3b8';
     return L.divIcon({
         className: '',
@@ -35,7 +35,7 @@ const createClimbIcon = (cat) => {
     });
 };
 
-const createUserIcon = () => L.divIcon({
+const createUserIcon = (L) => L.divIcon({
     className: '',
     html: `<div style="
         width: 14px; height: 14px;
@@ -103,6 +103,7 @@ const fetchClimbTrack = async (lat, lon, lengthKm) => {
 const RADIUS_OPTIONS = [50, 100, 200, 500];
 
 const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
+    const L = useLeaflet();
     const { climbs, loadFull } = useClimbDatabase();
     const realClimbs = useMemo(
         () => climbs.filter((c) => c.lat != null && c.lon != null),
@@ -157,7 +158,7 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
 
     // Init Leaflet kaart
     useEffect(() => {
-        if (!mapRef.current || mapInstanceRef.current) return;
+        if (!L || !mapRef.current || mapInstanceRef.current) return;
 
         const map = L.map(mapRef.current, {
             center: [46.5, 8.5],
@@ -177,11 +178,11 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
             map.remove();
             mapInstanceRef.current = null;
         };
-    }, []);
+    }, [L]);
 
     // Herplaats markers bij filterwijziging
     useEffect(() => {
-        if (!markersLayerRef.current) return;
+        if (!L || !markersLayerRef.current) return;
         markersLayerRef.current.clearLayers();
         // Verwijder track van vorige selectie
         if (trackLayerRef.current) {
@@ -193,7 +194,7 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
         filteredClimbs.forEach(climb => {
             const cat = calculateClimbCategory(climb.lengthKm, climb.avgGrade);
             const marker = L.marker([climb.lat, climb.lon], {
-                icon: createClimbIcon(cat.label),
+                icon: createClimbIcon(L, cat.label),
                 title: climb.name,
             });
 
@@ -249,7 +250,7 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
         });
 
         setTotalShown(filteredClimbs.length);
-    }, [filteredClimbs, bucketDone, bucketPlanned, bucketWant]);
+    }, [L, filteredClimbs, bucketDone, bucketPlanned, bucketWant]);
 
     // Globale bucket list actie handler (vanuit Leaflet popup)
     useEffect(() => {
@@ -262,21 +263,21 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
 
     // Toon gebruikerslocatie op kaart
     useEffect(() => {
-        if (!mapInstanceRef.current) return;
+        if (!L || !mapInstanceRef.current) return;
         if (userMarkerRef.current) {
             userMarkerRef.current.remove();
             userMarkerRef.current = null;
         }
         if (userPos) {
             userMarkerRef.current = L.marker([userPos.lat, userPos.lng], {
-                icon: createUserIcon(),
+                icon: createUserIcon(L),
                 zIndexOffset: 1000,
                 title: 'Your location',
             })
                 .addTo(mapInstanceRef.current)
                 .bindPopup('<strong>📍 Your location</strong>');
         }
-    }, [userPos]);
+    }, [L, userPos]);
 
     const locateMe = useCallback(() => {
         if (!navigator.geolocation) {
@@ -437,6 +438,10 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
                 <div
                     ref={mapRef}
                     style={{ height: '600px', width: '100%' }}
+                    className={L ? '' : 'cd-skeleton'}
+                    role={L ? undefined : 'status'}
+                    aria-busy={L ? undefined : true}
+                    aria-label={L ? undefined : 'Loading map…'}
                 />
             </div>
         </div>

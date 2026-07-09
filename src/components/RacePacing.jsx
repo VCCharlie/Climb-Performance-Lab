@@ -1,8 +1,9 @@
-﻿import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { Mountain, Plus, Trash2, AlertTriangle, TrendingDown, Battery, Zap, Clock, Utensils, Info, Lightbulb, Map as MapIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import ClimbSelector from './shared/ClimbSelector';
 import FlagIcon from './FlagIcon';
-import RacePacingMap from './RacePacingMap';
+
+const RacePacingMap = lazy(() => import('./RacePacingMap'));
 
 const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueling }) => {
     const [selectedClimbs, setSelectedClimbs] = useState(initialState?.selectedClimbs || []);
@@ -280,7 +281,20 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
                                 </span>
                                 {showMap ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                             </button>
-                            {showMap && <RacePacingMap climbs={selectedClimbs} />}
+                            {showMap && (
+                                <Suspense
+                                    fallback={(
+                                        <div
+                                            className="h-80 cd-skeleton rounded-b-lg"
+                                            role="status"
+                                            aria-busy="true"
+                                            aria-label="Loading map…"
+                                        />
+                                    )}
+                                >
+                                    <RacePacingMap climbs={selectedClimbs} />
+                                </Suspense>
+                            )}
                         </div>
                     )}
                 </div>
