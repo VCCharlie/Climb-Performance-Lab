@@ -2,9 +2,25 @@ import React from 'react';
 
 const IS_PROD = import.meta.env.PROD;
 
+async function clearSiteCacheAndReload() {
+    try {
+        if ('serviceWorker' in navigator) {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(registrations.map((r) => r.unregister()));
+        }
+        if ('caches' in window) {
+            const keys = await caches.keys();
+            await Promise.all(keys.map((k) => caches.delete(k)));
+        }
+    } catch (err) {
+        console.warn('[ErrorBoundary] Cache clear failed:', err);
+    }
+    window.location.reload();
+}
+
 /**
  * Catches uncaught render errors and shows a readable fallback instead of a blank screen.
- * In production, internal details (component stack) are hidden from the UI.
+ * Shows the error message in production so users can report it; component stack stays dev-only.
  */
 class ErrorBoundary extends React.Component {
     constructor(props) {
@@ -47,29 +63,27 @@ class ErrorBoundary extends React.Component {
                         </h1>
                         <p style={{ color: '#64748b', fontSize: '0.875rem', marginBottom: '1rem' }}>
                             {IS_PROD
-                                ? 'An unexpected error occurred. Reload the page to try again.'
+                                ? 'An unexpected error occurred. Try reloading, or clear cached app data if this started after an update.'
                                 : 'An unexpected error occurred while rendering. See details below.'}
                         </p>
 
-                        {!IS_PROD && (
-                            <details open style={{ marginBottom: '1rem' }}>
-                                <summary style={{ cursor: 'pointer', fontWeight: 600, color: '#1e2330', marginBottom: '0.5rem' }}>
-                                    Error message
-                                </summary>
-                                <pre style={{
-                                    background: '#f8fafc',
-                                    border: '1px solid #e2e8f0',
-                                    borderRadius: '6px',
-                                    padding: '0.75rem',
-                                    fontSize: '0.75rem',
-                                    overflowX: 'auto',
-                                    whiteSpace: 'pre-wrap',
-                                    color: '#dc2626'
-                                }}>
-                                    {this.state.error?.toString()}
-                                </pre>
-                            </details>
-                        )}
+                        <details open={!IS_PROD} style={{ marginBottom: '1rem' }}>
+                            <summary style={{ cursor: 'pointer', fontWeight: 600, color: '#1e2330', marginBottom: '0.5rem' }}>
+                                Error message
+                            </summary>
+                            <pre style={{
+                                background: '#f8fafc',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '6px',
+                                padding: '0.75rem',
+                                fontSize: '0.75rem',
+                                overflowX: 'auto',
+                                whiteSpace: 'pre-wrap',
+                                color: '#dc2626'
+                            }}>
+                                {this.state.error?.toString()}
+                            </pre>
+                        </details>
 
                         {!IS_PROD && this.state.info?.componentStack && (
                             <details style={{ marginBottom: '1rem' }}>
@@ -91,6 +105,7 @@ class ErrorBoundary extends React.Component {
                             </details>
                         )}
 
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                         <button
                             onClick={() => window.location.reload()}
                             style={{
@@ -106,6 +121,23 @@ class ErrorBoundary extends React.Component {
                         >
                             Reload page
                         </button>
+                        <button
+                            type="button"
+                            onClick={() => { clearSiteCacheAndReload(); }}
+                            style={{
+                                background: '#fff',
+                                color: '#1e2330',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '6px',
+                                padding: '0.5rem 1rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                fontSize: '0.875rem'
+                            }}
+                        >
+                            Clear cache and reload
+                        </button>
+                        </div>
                     </div>
                 </div>
             );
