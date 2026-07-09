@@ -1,9 +1,14 @@
-﻿import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo, useEffect } from 'react';
 import { Mountain, Check, Clock, Star, Trophy, Filter, Search } from 'lucide-react';
-import { CLIMB_DATABASE } from '../climbs';
+import { useClimbDatabase } from '../hooks/useClimbDatabase';
 import FlagIcon from './FlagIcon';
 
 const BucketList = ({ initialState, onStateChange }) => {
+    const { climbs: climbDatabase, loadFull } = useClimbDatabase();
+
+    useEffect(() => {
+        loadFull();
+    }, [loadFull]);
     // State: climb status (done, planned, want)
     const [climbStatus, setClimbStatus] = useState(initialState?.climbStatus || {});
     const [filterStatus, setFilterStatus] = useState('all'); // all, done, planned, want, todo
@@ -28,7 +33,7 @@ const BucketList = ({ initialState, onStateChange }) => {
     // Calculate achievements
     const achievements = useMemo(() => {
         const doneClimbs = [];
-        for (const climb of CLIMB_DATABASE) {
+        for (const climb of climbDatabase) {
             if (climbStatus[climb.id] === 'done') {
                 doneClimbs.push(climb);
             }
@@ -132,22 +137,22 @@ const BucketList = ({ initialState, onStateChange }) => {
                 hardestClimb
             }
         };
-    }, [climbStatus]);
+    }, [climbStatus, climbDatabase]);
 
     // Pre-calculate status counts for the filter dropdown in a single pass (O(N) vs 4 * O(N))
     const statusCounts = useMemo(() => {
-        let done = 0, planned = 0, want = 0, todo = CLIMB_DATABASE.length;
+        let done = 0, planned = 0, want = 0, todo = climbDatabase.length;
         for (const status of Object.values(climbStatus)) {
             if (status === 'done') { done++; todo--; }
             else if (status === 'planned') { planned++; todo--; }
             else if (status === 'want') { want++; todo--; }
         }
         return { done, planned, want, todo };
-    }, [climbStatus]);
+    }, [climbStatus, climbDatabase.length]);
 
     // Filter and sort climbs
     const filteredClimbs = useMemo(() => {
-        let filtered = CLIMB_DATABASE;
+        let filtered = climbDatabase;
 
         // Filter by search
         if (searchTerm) {
@@ -184,7 +189,7 @@ const BucketList = ({ initialState, onStateChange }) => {
         });
 
         return filtered;
-    }, [searchTerm, filterStatus, sortBy, climbStatus]);
+    }, [searchTerm, filterStatus, sortBy, climbStatus, climbDatabase]);
 
     return (
         <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl space-y-6">
@@ -194,7 +199,7 @@ const BucketList = ({ initialState, onStateChange }) => {
                     Climb Bucket List
                 </h2>
                 <div className="text-xs text-cdmuted bg-cdbg px-3 py-1 rounded-full border border-cdborder">
-                    {achievements.stats.totalDone} / {CLIMB_DATABASE.length} completed
+                    {achievements.stats.totalDone} / {climbDatabase.length} completed
                 </div>
             </div>
 
@@ -268,7 +273,7 @@ const BucketList = ({ initialState, onStateChange }) => {
                         onChange={(e) => setFilterStatus(e.target.value)}
                         className="w-full px-3 py-2 bg-cdborder border border-cdborder rounded text-cdtext text-sm focus:border-yellow-400 outline-none"
                     >
-                        <option value="all">All ({CLIMB_DATABASE.length})</option>
+                        <option value="all">All ({climbDatabase.length})</option>
                         <option value="done">Completed ({statusCounts.done})</option>
                         <option value="planned">Planned ({statusCounts.planned})</option>
                         <option value="want">Want to do ({statusCounts.want})</option>

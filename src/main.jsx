@@ -4,6 +4,7 @@ import './index.css'
 import './utils/leaflet-setup'
 import App from './App.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
+import { ClimbDatabaseProvider } from './context/ClimbDatabaseContext.jsx'
 import { applyTheme, readStoredTheme } from './theme/applyTheme'
 import { maintainBrowserStorageOnBoot } from './utils/safeStorage.js'
 
@@ -13,7 +14,9 @@ maintainBrowserStorageOnBoot()
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ErrorBoundary>
-      <App />
+      <ClimbDatabaseProvider>
+        <App />
+      </ClimbDatabaseProvider>
     </ErrorBoundary>
   </StrictMode>,
 )

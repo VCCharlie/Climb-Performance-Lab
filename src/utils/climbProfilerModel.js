@@ -3,7 +3,7 @@
  * Geen GPS-segmentdata: variatie is een benadering op basis van gemiddelde helling.
  */
 
-import { COGGAN_ZONES } from '../climbs';
+import { COGGAN_ZONES } from '../cogganZones';
 
 export function buildSyntheticProfile(selectedClimb, points = 50) {
     const totalDistance = selectedClimb.lengthKm;

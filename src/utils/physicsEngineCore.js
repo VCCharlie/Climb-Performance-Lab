@@ -1,7 +1,7 @@
 /**
  * Pure climb physics for PhysicsEngine (Newton-Raphson + steady power model).
  */
-import { COGGAN_ZONES } from '../climbs';
+import { COGGAN_ZONES } from '../cogganZones';
 import { parseDurationToSeconds } from './formatters';
 import { calculateFerrariWatts } from './calculations';
 

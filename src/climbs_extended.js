@@ -1,19 +1,11 @@
 /**
- * src/climbs.js
- * Database voor Climb Performance Lab
+ * src/climbs_extended.js
+ * Large real-world climb database — loaded via dynamic import (Bolt Phase 3a).
  */
 
+import { COGGAN_ZONES } from './cogganZones.js';
 
-
-export const COGGAN_ZONES = [
-  { name: 'Z1 Recovery', min: 0, max: 0.55, color: '#9ca3af' },
-  { name: 'Z2 Endurance', min: 0.56, max: 0.75, color: '#3b82f6' },
-  { name: 'Z3 Tempo', min: 0.76, max: 0.90, color: '#22c55e' },
-  { name: 'Z4 Threshold', min: 0.91, max: 1.05, color: '#eab308' },
-  { name: 'Z5 VO2 Max', min: 1.06, max: 1.20, color: '#f97316' },
-  { name: 'Z6 Anaerobic', min: 1.21, max: 1.50, color: '#ef4444' },
-  { name: 'Z7 Neuro', min: 1.51, max: 10.0, color: '#a855f7' }
-];
+export { COGGAN_ZONES };
 
 // De volledige lijst (afgekapt in chat-weergave, maar hier compleet maken in je bestand)
 const RAW_CLIMBS = [

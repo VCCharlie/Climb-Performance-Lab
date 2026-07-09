@@ -27,7 +27,7 @@ import {
 } from '../utils/stravaLinkIntervalsFetch';
 
 import { SPORT_TYPES, MONTH_ORDER } from '../config';
-import { CLIMB_DATABASE } from '../climbs';
+import { getCoreClimbDatabase } from '../services/climbDatabase';
 
 // Sub-components
 import EditActivityModal from './data-hub/EditActivityModal';
@@ -75,7 +75,7 @@ const DataHub = ({
     logDateRangeFilter = null,
     onClearLogDateRange,
     onOpenProfilerFromActivity,
-    climbDatabaseForMatch = CLIMB_DATABASE,
+    climbDatabaseForMatch = getCoreClimbDatabase(),
     activityLogRangesExpanded = false,
     onActivityLogRangesExpandedChange,
     initialInternalTab = 'log',

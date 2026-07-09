@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Search, Globe, SortAsc, SortDesc, ChevronDown, ChevronUp, Minus, Plus, LocateFixed, X } from 'lucide-react';
-import { CLIMB_DATABASE } from '../../climbs';
+import { useClimbDatabase } from '../../hooks/useClimbDatabase';
 import { calculateClimbCategory, haversineDistance } from '../../utils/calculations';
 import FlagIcon from '../FlagIcon';
 
@@ -132,6 +132,12 @@ const ClimbSelector = ({
   showNearbyFilter = false,
   className = '',
 }) => {
+  const { climbs: climbDatabase, loadFull } = useClimbDatabase();
+
+  useEffect(() => {
+    loadFull();
+  }, [loadFull]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [countryFilter, setCountryFilter] = useState('All');
   const [regionFilter, setRegionFilter] = useState('All');
@@ -147,8 +153,14 @@ const ClimbSelector = ({
 
   // Range filters — initialized to cover full range
   // ⚡ Bolt Optimization: Use single-pass reduce instead of Math.max(...array.map())
-  const dataMaxScore = useMemo(() => CLIMB_DATABASE.reduce((max, c) => Math.max(max, c.score || 0), 0), []);
-  const dataMaxFiets = useMemo(() => CLIMB_DATABASE.reduce((max, c) => Math.max(max, c.fiets || 0), 0), []);
+  const dataMaxScore = useMemo(
+    () => climbDatabase.reduce((max, c) => Math.max(max, c.score || 0), 0),
+    [climbDatabase],
+  );
+  const dataMaxFiets = useMemo(
+    () => climbDatabase.reduce((max, c) => Math.max(max, c.fiets || 0), 0),
+    [climbDatabase],
+  );
 
   const [minKm, setMinKm] = useState(0);
   const [maxKm, setMaxKm] = useState(200);
@@ -170,21 +182,21 @@ const ClimbSelector = ({
   const excludeSet = useMemo(() => new Set(excludeIds), [excludeIds]);
 
   const uniqueCountries = useMemo(() => {
-    const countries = [...new Set(CLIMB_DATABASE.map(c => c.country))].sort();
+    const countries = [...new Set(climbDatabase.map(c => c.country))].sort();
     return ['All', ...countries];
-  }, []);
+  }, [climbDatabase]);
 
   const uniqueRegions = useMemo(() => {
     if (countryFilter === 'All') return [];
-    const regions = CLIMB_DATABASE
+    const regions = climbDatabase
       .filter(c => c.country === countryFilter)
       .map(c => c.region)
       .filter(Boolean);
     return ['All', ...new Set(regions)].sort();
-  }, [countryFilter]);
+  }, [countryFilter, climbDatabase]);
 
   const filteredClimbs = useMemo(() => {
-    let climbs = CLIMB_DATABASE;
+    let climbs = climbDatabase;
 
     if (excludeSet.size > 0) climbs = climbs.filter(c => !excludeSet.has(c.id));
 
@@ -226,7 +238,7 @@ const ClimbSelector = ({
       if (typeof valA === 'string') return sortDir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
       return sortDir === 'asc' ? valA - valB : valB - valA;
     });
-  }, [searchTerm, countryFilter, regionFilter, catFilter, minKm, maxKm, minGrade, maxGrade, minScore, maxScore, minFiets, maxFiets, sortBy, sortDir, excludeSet, nearbyActive, userPos, nearbyRadius]);
+  }, [searchTerm, countryFilter, regionFilter, catFilter, minKm, maxKm, minGrade, maxGrade, minScore, maxScore, minFiets, maxFiets, sortBy, sortDir, excludeSet, nearbyActive, userPos, nearbyRadius, climbDatabase]);
 
   // Auto-select on unique match (single mode only)
   useEffect(() => {
@@ -453,7 +465,7 @@ const ClimbSelector = ({
             className="w-full bg-cdsurface text-cdtext rounded p-3 text-sm border border-cdborder outline-none focus:border-yellow-400"
             value={mode === 'single' ? (selected?.id || '') : ''}
             onChange={e => {
-              const climb = CLIMB_DATABASE.find(c => c.id === e.target.value);
+              const climb = climbDatabase.find(c => c.id === e.target.value);
               if (climb) {
                 onSelect(climb);
                 if (mode === 'single') e.target.blur();

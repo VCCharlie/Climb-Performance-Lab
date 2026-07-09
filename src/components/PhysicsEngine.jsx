@@ -13,7 +13,7 @@ import {
   Flame,
   Ruler
 } from 'lucide-react';
-import { COGGAN_ZONES } from '../climbs';
+import { COGGAN_ZONES } from '../cogganZones';
 import { summarizeClimbPhysics } from '../utils';
 import ClimbSelector from './shared/ClimbSelector';
 import {

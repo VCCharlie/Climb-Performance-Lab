@@ -7,12 +7,9 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import L from 'leaflet';
 import { MapPin, LocateFixed, Filter, ChevronDown, ChevronUp, X } from 'lucide-react';
-import { CLIMB_DATABASE } from '../climbs';
+import { useClimbDatabase } from '../hooks/useClimbDatabase';
 import { haversineDistance, calculateClimbCategory } from '../utils/calculations';
 import FlagIcon from './FlagIcon';
-
-// Klimmen met GPS (echte klimmen, geen Zwift)
-const REAL_CLIMBS = CLIMB_DATABASE.filter(c => c.lat != null && c.lon != null);
 
 const CAT_COLORS = {
     HC: '#ffffff',
@@ -106,6 +103,16 @@ const fetchClimbTrack = async (lat, lon, lengthKm) => {
 const RADIUS_OPTIONS = [50, 100, 200, 500];
 
 const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
+    const { climbs, loadFull } = useClimbDatabase();
+    const realClimbs = useMemo(
+        () => climbs.filter((c) => c.lat != null && c.lon != null),
+        [climbs],
+    );
+
+    useEffect(() => {
+        loadFull();
+    }, [loadFull]);
+
     const mapRef = useRef(null);
     const mapInstanceRef = useRef(null);
     const markersLayerRef = useRef(null);
@@ -131,13 +138,13 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
     const bucketWant = useMemo(() => new Set(bucketListState?.want || []), [bucketListState]);
 
     const uniqueCountries = useMemo(() => {
-        const countries = [...new Set(REAL_CLIMBS.map(c => c.country))].sort();
+        const countries = [...new Set(realClimbs.map(c => c.country))].sort();
         return ['All', ...countries];
-    }, []);
+    }, [realClimbs]);
 
     // Filter de klimmen op basis van actieve filters
     const filteredClimbs = useMemo(() => {
-        let climbs = REAL_CLIMBS;
+        let climbs = realClimbs;
         if (countryFilter !== 'All') climbs = climbs.filter(c => c.country === countryFilter);
         climbs = climbs.filter(c => c.avgGrade >= minGrade && c.avgGrade <= maxGrade);
         if (nearbyRadius && userPos) {
@@ -146,7 +153,7 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
             );
         }
         return climbs;
-    }, [countryFilter, catFilter, minGrade, maxGrade, nearbyRadius, userPos]);
+    }, [countryFilter, catFilter, minGrade, maxGrade, nearbyRadius, userPos, realClimbs]);
 
     // Init Leaflet kaart
     useEffect(() => {
@@ -311,7 +318,7 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
                             Climbs Map
                         </h2>
                         <p className="text-xs text-cdmuted mt-0.5">
-                            {totalShown.toLocaleString('nl-NL')} of {REAL_CLIMBS.length.toLocaleString('nl-NL')} climbs visible
+                            {totalShown.toLocaleString('nl-NL')} of {realClimbs.length.toLocaleString('nl-NL')} climbs visible
                             {trackLoading && <span className="ml-2 text-yellow-400 animate-pulse">· loading track...</span>}
                             {selectedClimb && !trackLoading && (
                                 <span className="ml-2 text-yellow-400">· {selectedClimb.name}</span>

@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Mountain, CalendarDays, ChevronRight, Heart } from 'lucide-react';
-import { CLIMB_DATABASE } from '../climbs';
+import { useClimbDatabase } from '../hooks/useClimbDatabase';
 import { computeTrainingGoalPlan } from '../utils/trainingGoalPlan';
 import { calculatePowerZones } from '../utils/calculations';
 import NlDateInput from './NlDateInput';
@@ -12,6 +12,12 @@ const defaultGoalDate = () => {
 };
 
 const TrainingGoalPlanner = ({ activities, userSettings, startDate, endDate, onOpenRecovery }) => {
+    const { climbs: climbDatabase, loadFull } = useClimbDatabase();
+
+    useEffect(() => {
+        loadFull();
+    }, [loadFull]);
+
     const ftp = Number(userSettings?.ftp) || 0;
     const zones = useMemo(() => (ftp > 0 ? calculatePowerZones(ftp) : []), [ftp]);
 
@@ -26,13 +32,13 @@ const TrainingGoalPlanner = ({ activities, userSettings, startDate, endDate, onO
 
     const filteredClimbs = useMemo(() => {
         const q = climbSearch.trim().toLowerCase();
-        if (!q) return CLIMB_DATABASE.slice(0, 40);
-        return CLIMB_DATABASE.filter(
+        if (!q) return climbDatabase.slice(0, 40);
+        return climbDatabase.filter(
             (c) =>
                 c.name.toLowerCase().includes(q) ||
                 String(c.country || '').toLowerCase().includes(q)
         ).slice(0, 50);
-    }, [climbSearch]);
+    }, [climbSearch, climbDatabase]);
 
     const applyClimb = (c) => {
         setEventName(c.name);

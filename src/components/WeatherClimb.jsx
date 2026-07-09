@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Cloud, Wind, Thermometer, Droplets, Sun, AlertTriangle, Search, RefreshCw, Lightbulb } from 'lucide-react';
-import { CLIMB_DATABASE } from '../climbs';
+import { useClimbDatabase } from '../hooks/useClimbDatabase';
+import { getDefaultClimb } from '../services/climbDatabase';
 import WeatherForecastStrip from './WeatherForecastStrip';
 import FlagIcon from './FlagIcon';
 import { geocodeLocation, fetchCurrentWeather } from '../services/openWeatherProxy';
@@ -25,7 +26,13 @@ const CLIMB_LOCATIONS = {
 };
 
 const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
-    const [selectedClimb, setSelectedClimb] = useState(initialState?.selectedClimb || CLIMB_DATABASE[0]);
+    const { climbs: climbDatabase, loadFull } = useClimbDatabase();
+
+    useEffect(() => {
+        loadFull();
+    }, [loadFull]);
+
+    const [selectedClimb, setSelectedClimb] = useState(initialState?.selectedClimb || getDefaultClimb());
     const [targetPower, setTargetPower] = useState(initialState?.targetPower || userSettings.ftp * 0.85);
 
     // Weather conditions
@@ -452,13 +459,13 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                             <label className="text-xs text-cdmuted uppercase">Climb</label>
                             <select
                                 onChange={(e) => {
-                                    const climb = CLIMB_DATABASE.find(c => c.id === e.target.value);
+                                    const climb = climbDatabase.find(c => c.id === e.target.value);
                                     if (climb) setSelectedClimb(climb);
                                 }}
                                 value={selectedClimb.id}
                                 className="w-full bg-cdborder border border-cdborder rounded px-3 py-2 text-cdtext text-sm mt-1"
                             >
-                                {CLIMB_DATABASE.map(climb => (
+                                {climbDatabase.map(climb => (
                                     <option key={climb.id} value={climb.id}>
                                         {climb.country} - {climb.name} ({climb.lengthKm}km @ {climb.avgGrade}%)
                                     </option>
