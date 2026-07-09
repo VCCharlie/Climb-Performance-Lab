@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+﻿import React, { useState, useEffect, useCallback, useMemo, useRef, Suspense, lazy } from 'react';
 import { Utensils, Brain, Route, Heart, Flag } from 'lucide-react';
 import { doc, setDoc, getDoc, collection, onSnapshot, getDocsFromServer, waitForPendingWrites } from "firebase/firestore";
 import { onAuthStateChanged, reload } from "firebase/auth";
@@ -16,27 +16,30 @@ import {
     mergeUserSettingsFromCloud,
 } from './utils/settingsCloudMerge';
 
-// Components
+// Shell components (eager — needed for first paint and navigation)
 import Header from './components/Header';
-import PhysicsEngine from './components/PhysicsEngine';
-import DataHub from './components/DataHub';
-import FuelingStrategy from './components/FuelingStrategy';
-import AICoach from './components/AICoach';
-import TrainingGoalPlanner from './components/TrainingGoalPlanner';
-import ClimbProfileCard from './components/ClimbProfileCard';
 import Dashboard from './components/Dashboard';
 import SettingsModal from './components/SettingsModal';
-import RacePacing from './components/RacePacing';
-import GearOptimizer from './components/GearOptimizer';
-import ClimbProfiler from './components/ClimbProfiler';
-import RecoveryAdvisor from './components/RecoveryAdvisor';
-import BucketList from './components/BucketList';
-import WeatherClimb from './components/WeatherClimb';
-import ClimbMap from './components/ClimbMap';
 import PwaInstallBanner from './components/PwaInstallBanner';
 import PwaUpdateBanner from './components/PwaUpdateBanner';
 import { LoadingPanel, SegmentedControl } from './components/ui';
 import { MainNav } from './components/shell';
+import SignInGate from './components/SignInGate';
+
+// Main tabs (lazy — loaded on first visit; Dashboard stays eager as default tab)
+const PhysicsEngine = lazy(() => import('./components/PhysicsEngine'));
+const DataHub = lazy(() => import('./components/DataHub'));
+const FuelingStrategy = lazy(() => import('./components/FuelingStrategy'));
+const AICoach = lazy(() => import('./components/AICoach'));
+const TrainingGoalPlanner = lazy(() => import('./components/TrainingGoalPlanner'));
+const ClimbProfileCard = lazy(() => import('./components/ClimbProfileCard'));
+const RacePacing = lazy(() => import('./components/RacePacing'));
+const GearOptimizer = lazy(() => import('./components/GearOptimizer'));
+const ClimbProfiler = lazy(() => import('./components/ClimbProfiler'));
+const RecoveryAdvisor = lazy(() => import('./components/RecoveryAdvisor'));
+const BucketList = lazy(() => import('./components/BucketList'));
+const WeatherClimb = lazy(() => import('./components/WeatherClimb'));
+const ClimbMap = lazy(() => import('./components/ClimbMap'));
 
 import useIntervalsSync from './hooks/useIntervalsSync';
 import useStravaAuth from './hooks/useStravaAuth';
@@ -57,7 +60,6 @@ import {
     getDefaultBucketListState,
 } from './utils/sessionData';
 import { safeLocalStorageSet } from './utils/safeStorage.js';
-import SignInGate from './components/SignInGate';
 import { runGoogleSignIn, isGoogleSignInInProgress, googleSignInErrorMessage } from './utils/googleSignIn';
 
 const CLIMB_HEAVY_TABS = new Set([
@@ -816,178 +818,182 @@ const App = () => {
                             />
                         )}
 
-                        {activeTab === 'physics' && (
-                            <PhysicsEngine userSettings={userSettings} setUserSettings={setUserSettings} selectedClimb={selectedClimb} onUpdateClimb={setSelectedClimb} />
-                        )}
+                        {activeTab !== 'dashboard' && (
+                            <Suspense fallback={<LoadingPanel message="Loading tab…" />}>
+                                {activeTab === 'physics' && (
+                                    <PhysicsEngine userSettings={userSettings} setUserSettings={setUserSettings} selectedClimb={selectedClimb} onUpdateClimb={setSelectedClimb} />
+                                )}
 
-                        {activeTab === 'activities' && (
-                            <DataHub
-                                activities={activities}
-                                onImport={handleImportActivities}
-                                onDelete={handleDeleteActivity}
-                                onClear={handleClearActivities}
-                                intervalsConfig={intervalsConfig}
-                                stravaGetToken={stravaAuth.isConnected ? stravaAuth.getValidToken : null}
-                                startDate={globalStartDate}
-                                endDate={globalEndDate}
-                                stravaEnrichResults={stravaEnrichResults}
-                                onStravaEnrichResults={setStravaEnrichResults}
-                                stravaAthleteId={stravaConfig?.athlete_id}
-                                stravaProfileData={stravaProfileData}
-                                onStravaProfileData={handleStravaProfileData}
-                                onRefresh={forceRefreshActivities}
-                                focusActivityId={activityFocusId}
-                                onFocusActivityCleared={() => setActivityFocusId(null)}
-                                isolateActivityId={logIsolateActivityId}
-                                onClearLogIsolate={clearActivityLogFilters}
-                                logDateRangeFilter={logDateRangeFilter}
-                                onClearLogDateRange={clearActivityLogFilters}
-                                onOpenProfilerFromActivity={handleOpenProfilerFromActivity}
-                                climbDatabaseForMatch={climbDatabase}
-                                activityLogRangesExpanded={activityLogRangesExpanded}
-                                onActivityLogRangesExpandedChange={setActivityLogRangesExpanded}
-                                initialInternalTab={dataHubInternalTabFromRestore()}
-                                profileFtp={userSettings?.ftp}
-                            />
-                        )}
-
-                        {/* Training: AI Coach + Recovery Advisor (sub-tabs) */}
-                        {activeTab === 'training' && (
-                            <div>
-                                <SegmentedControl
-                                    className="mb-4"
-                                    size="lg"
-                                    caps={false}
-                                    value={trainingSubTab}
-                                    onChange={setTrainingSubTab}
-                                    aria-label="Training section"
-                                    options={[
-                                        { value: 'coach', label: 'AI Coach', icon: Brain },
-                                        { value: 'goal', label: 'Goals & Planning', icon: Flag },
-                                        { value: 'recovery', label: 'Recovery', icon: Heart },
-                                    ]}
-                                />
-                                {trainingSubTab === 'coach' && (
-                                    <AICoach
+                                {activeTab === 'activities' && (
+                                    <DataHub
                                         activities={activities}
-                                        userSettings={userSettings}
+                                        onImport={handleImportActivities}
+                                        onDelete={handleDeleteActivity}
+                                        onClear={handleClearActivities}
+                                        intervalsConfig={intervalsConfig}
+                                        stravaGetToken={stravaAuth.isConnected ? stravaAuth.getValidToken : null}
                                         startDate={globalStartDate}
                                         endDate={globalEndDate}
+                                        stravaEnrichResults={stravaEnrichResults}
+                                        onStravaEnrichResults={setStravaEnrichResults}
+                                        stravaAthleteId={stravaConfig?.athlete_id}
+                                        stravaProfileData={stravaProfileData}
+                                        onStravaProfileData={handleStravaProfileData}
+                                        onRefresh={forceRefreshActivities}
+                                        focusActivityId={activityFocusId}
+                                        onFocusActivityCleared={() => setActivityFocusId(null)}
+                                        isolateActivityId={logIsolateActivityId}
+                                        onClearLogIsolate={clearActivityLogFilters}
+                                        logDateRangeFilter={logDateRangeFilter}
+                                        onClearLogDateRange={clearActivityLogFilters}
+                                        onOpenProfilerFromActivity={handleOpenProfilerFromActivity}
+                                        climbDatabaseForMatch={climbDatabase}
+                                        activityLogRangesExpanded={activityLogRangesExpanded}
+                                        onActivityLogRangesExpandedChange={setActivityLogRangesExpanded}
+                                        initialInternalTab={dataHubInternalTabFromRestore()}
+                                        profileFtp={userSettings?.ftp}
                                     />
                                 )}
-                                {trainingSubTab === 'goal' && (
-                                    <TrainingGoalPlanner
-                                        activities={activities}
-                                        userSettings={userSettings}
-                                        startDate={globalStartDate}
-                                        endDate={globalEndDate}
-                                        onOpenRecovery={() => setTrainingSubTab('recovery')}
-                                    />
-                                )}
-                                {trainingSubTab === 'recovery' && (
-                                    <RecoveryAdvisor
-                                        activities={activities}
-                                        startDate={globalStartDate}
-                                        endDate={globalEndDate}
-                                    />
-                                )}
-                            </div>
-                        )}
 
-                        {/* Race: Fueling + Race Pacing (sub-tabs) */}
-                        {activeTab === 'race' && (
-                            <div>
-                                <SegmentedControl
-                                    className="mb-4"
-                                    size="lg"
-                                    caps={false}
-                                    value={raceSubTab}
-                                    onChange={setRaceSubTab}
-                                    aria-label="Race section"
-                                    options={[
-                                        { value: 'fueling', label: 'Fueling', icon: Utensils },
-                                        { value: 'racepacing', label: 'Race Pacing', icon: Route },
-                                    ]}
-                                />
-                                {raceSubTab === 'fueling' && (
-                                    <FuelingStrategy
-                                        initialDuration={fuelingState.duration}
-                                        initialIntensity={fuelingState.intensity}
+                                {/* Training: AI Coach + Recovery Advisor (sub-tabs) */}
+                                {activeTab === 'training' && (
+                                    <div>
+                                        <SegmentedControl
+                                            className="mb-4"
+                                            size="lg"
+                                            caps={false}
+                                            value={trainingSubTab}
+                                            onChange={setTrainingSubTab}
+                                            aria-label="Training section"
+                                            options={[
+                                                { value: 'coach', label: 'AI Coach', icon: Brain },
+                                                { value: 'goal', label: 'Goals & Planning', icon: Flag },
+                                                { value: 'recovery', label: 'Recovery', icon: Heart },
+                                            ]}
+                                        />
+                                        {trainingSubTab === 'coach' && (
+                                            <AICoach
+                                                activities={activities}
+                                                userSettings={userSettings}
+                                                startDate={globalStartDate}
+                                                endDate={globalEndDate}
+                                            />
+                                        )}
+                                        {trainingSubTab === 'goal' && (
+                                            <TrainingGoalPlanner
+                                                activities={activities}
+                                                userSettings={userSettings}
+                                                startDate={globalStartDate}
+                                                endDate={globalEndDate}
+                                                onOpenRecovery={() => setTrainingSubTab('recovery')}
+                                            />
+                                        )}
+                                        {trainingSubTab === 'recovery' && (
+                                            <RecoveryAdvisor
+                                                activities={activities}
+                                                startDate={globalStartDate}
+                                                endDate={globalEndDate}
+                                            />
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Race: Fueling + Race Pacing (sub-tabs) */}
+                                {activeTab === 'race' && (
+                                    <div>
+                                        <SegmentedControl
+                                            className="mb-4"
+                                            size="lg"
+                                            caps={false}
+                                            value={raceSubTab}
+                                            onChange={setRaceSubTab}
+                                            aria-label="Race section"
+                                            options={[
+                                                { value: 'fueling', label: 'Fueling', icon: Utensils },
+                                                { value: 'racepacing', label: 'Race Pacing', icon: Route },
+                                            ]}
+                                        />
+                                        {raceSubTab === 'fueling' && (
+                                            <FuelingStrategy
+                                                initialDuration={fuelingState.duration}
+                                                initialIntensity={fuelingState.intensity}
+                                            />
+                                        )}
+                                        {raceSubTab === 'racepacing' && (
+                                            <RacePacing
+                                                userSettings={userSettings}
+                                                initialState={racePacingState}
+                                                onStateChange={setRacePacingState}
+                                                onExportToFueling={(duration, intensity) => {
+                                                    setFuelingState({ duration, intensity });
+                                                    setRaceSubTab('fueling');
+                                                }}
+                                            />
+                                        )}
+                                    </div>
+                                )}
+
+                                {activeTab === 'gearoptimizer' && (
+                                    <GearOptimizer
+                                        userSettings={userSettings}
+                                        initialState={gearOptimizerState}
+                                        onStateChange={setGearOptimizerState}
                                     />
                                 )}
-                                {raceSubTab === 'racepacing' && (
-                                    <RacePacing
-                                        userSettings={userSettings}
-                                        initialState={racePacingState}
-                                        onStateChange={setRacePacingState}
-                                        onExportToFueling={(duration, intensity) => {
-                                            setFuelingState({ duration, intensity });
-                                            setRaceSubTab('fueling');
+
+                                {/* Profiler: ClimbProfiler + ClimbProfileCard side by side */}
+                                {activeTab === 'profiler' && (
+                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                        <div className="lg:col-span-2">
+                                            <ClimbProfiler
+                                                userSettings={userSettings}
+                                                theme={theme}
+                                                initialState={climbProfilerState}
+                                                onStateChange={setClimbProfilerState}
+                                            />
+                                        </div>
+                                        <div className="lg:col-span-1">
+                                            <ClimbProfileCard climb={climbProfilerState.selectedClimb} />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {activeTab === 'bucketlist' && (
+                                    <BucketList
+                                        initialState={bucketListState}
+                                        onStateChange={setBucketListState}
+                                    />
+                                )}
+
+                                {activeTab === 'climbmap' && (
+                                    <ClimbMap
+                                        bucketListState={bucketListState}
+                                        onUpdateBucketList={(action, climbId) => {
+                                            setBucketListState(prev => {
+                                                const next = {
+                                                    done: [...(prev.done || [])],
+                                                    planned: [...(prev.planned || [])],
+                                                    want: [...(prev.want || [])],
+                                                };
+                                                // Verwijder uit alle lijsten eerst
+                                                ['done', 'planned', 'want'].forEach(k => {
+                                                    next[k] = next[k].filter(id => id !== climbId);
+                                                });
+                                                next[action] = [...next[action], climbId];
+                                                return next;
+                                            });
                                         }}
                                     />
                                 )}
-                            </div>
-                        )}
 
-                        {activeTab === 'gearoptimizer' && (
-                            <GearOptimizer
-                                userSettings={userSettings}
-                                initialState={gearOptimizerState}
-                                onStateChange={setGearOptimizerState}
-                            />
-                        )}
-
-                        {/* Profiler: ClimbProfiler + ClimbProfileCard side by side */}
-                        {activeTab === 'profiler' && (
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                                <div className="lg:col-span-2">
-                                    <ClimbProfiler
+                                {activeTab === 'weather' && (
+                                    <WeatherClimb
                                         userSettings={userSettings}
-                                        theme={theme}
-                                        initialState={climbProfilerState}
-                                        onStateChange={setClimbProfilerState}
+                                        initialState={weatherClimbState}
+                                        onStateChange={setWeatherClimbState}
                                     />
-                                </div>
-                                <div className="lg:col-span-1">
-                                    <ClimbProfileCard climb={climbProfilerState.selectedClimb} />
-                                </div>
-                            </div>
-                        )}
-
-                        {activeTab === 'bucketlist' && (
-                            <BucketList
-                                initialState={bucketListState}
-                                onStateChange={setBucketListState}
-                            />
-                        )}
-
-                        {activeTab === 'climbmap' && (
-                            <ClimbMap
-                                bucketListState={bucketListState}
-                                onUpdateBucketList={(action, climbId) => {
-                                    setBucketListState(prev => {
-                                        const next = {
-                                            done: [...(prev.done || [])],
-                                            planned: [...(prev.planned || [])],
-                                            want: [...(prev.want || [])],
-                                        };
-                                        // Verwijder uit alle lijsten eerst
-                                        ['done', 'planned', 'want'].forEach(k => {
-                                            next[k] = next[k].filter(id => id !== climbId);
-                                        });
-                                        next[action] = [...next[action], climbId];
-                                        return next;
-                                    });
-                                }}
-                            />
-                        )}
-
-                        {activeTab === 'weather' && (
-                            <WeatherClimb
-                                userSettings={userSettings}
-                                initialState={weatherClimbState}
-                                onStateChange={setWeatherClimbState}
-                            />
+                                )}
+                            </Suspense>
                         )}
                     </div>
                 )}
