@@ -7,7 +7,7 @@ import {
     filterActivitiesInBounds,
     filterActivitiesByDashboardTimeRange,
 } from '../utils/dashboardActivityWindow';
-import OverviewTab from './dashboard/OverviewTab';
+import { useActivitiesList } from '../hooks/useActivities';
 import { SkeletonChartCard } from './ui/Skeleton';
 
 const FormTab = lazy(() => import('./dashboard/FormTab'));
@@ -65,7 +65,7 @@ const enhanceActivity = (d, userFtp) => {
 
 const Dashboard = ({
     manualFtp,
-    activities: firestoreActivities = [],
+    activities: activitiesProp,
     timeRange = '1Y',
     customStart = '',
     customEnd = '',
@@ -77,6 +77,9 @@ const Dashboard = ({
     cloudVolumeGoalsSynced = false,
     onOpenActivityLogDateRange,
 }) => {
+    const activitiesFromContext = useActivitiesList();
+    const firestoreActivities = activitiesProp ?? activitiesFromContext;
+
     const [dashboardTab, setDashboardTab] = useState(readDashboardSubTab);
 
     useEffect(() => {

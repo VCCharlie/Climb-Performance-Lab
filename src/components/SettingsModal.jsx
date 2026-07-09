@@ -5,6 +5,7 @@ import SyncPanel from './data-hub/SyncPanel';
 import { buildBackupExport, validateBackupPayload, describeBackupImport, BACKUP_MAX_BYTES } from '../utils/backupSchema';
 import { Button, IconButton, inputBaseClass, modalScrimClass, modalPanelClass, modalHeaderClass, modalFooterClass } from './ui';
 import ModalPortal from './ui/ModalPortal';
+import { useActivities } from '../hooks/useActivities';
 
 // Strava logo SVG
 const StravaIcon = ({ size = 16 }) => (
@@ -18,10 +19,11 @@ const SettingsModal = ({
     intervalsConfig, updateIntervalsConfig,
     userSettings, updateUserSettings,
     onSaveToCloud, theme, setTheme,
-    fullData, onImportBackup, onCleanupCloudTokens,
-    syncState, onSyncComplete,
+    backupExtras, onImportBackup, onCleanupCloudTokens,
+    syncState,
     stravaConfig, updateStravaConfig, stravaAuth
 }) => {
+    const { activities, syncFromIntervals, restoreFromBackup } = useActivities();
     const [isSaving, setIsSaving] = useState(false);
 
     // -- Sync Wrapper --
@@ -43,8 +45,8 @@ const SettingsModal = ({
         try {
             const newRides = await syncIntervals(syncDates.start, syncDates.end, selectedTypes);
             if (newRides && newRides.length > 0) {
-                if (onSyncComplete) await onSyncComplete(newRides);
-                alert(`Sync successful! Handled ${newRides.length} activities.`);
+                const count = await syncFromIntervals(newRides);
+                alert(`Sync successful! Handled ${count} activities.`);
             } else if (newRides) {
                 alert("No activities found in range.");
             }
@@ -66,7 +68,7 @@ const SettingsModal = ({
 
     // 1. BACKUP & EXPORT FUNCTIE
     const handleExport = () => {
-        const dataStr = JSON.stringify(buildBackupExport(fullData), null, 2);
+        const dataStr = JSON.stringify(buildBackupExport({ activities, ...backupExtras }), null, 2);
         const blob = new Blob([dataStr], { type: "application/json" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
@@ -98,6 +100,7 @@ const SettingsModal = ({
                     ? `Import backup?\n\nThis will overwrite:\n• ${sections.join('\n• ')}`
                     : 'Import backup?';
                 if (!window.confirm(message)) return;
+                if (data.activities) restoreFromBackup(data.activities);
                 if (onImportBackup) onImportBackup(data);
             } catch (err) {
                 alert('Error reading file: ' + err.message);

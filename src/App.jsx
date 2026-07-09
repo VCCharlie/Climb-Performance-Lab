@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect, useCallback, useMemo, useRef, Suspense, lazy } from 'react';
 import { Utensils, Brain, Route, Heart, Flag } from 'lucide-react';
-import { doc, setDoc, getDoc, collection, onSnapshot, getDocsFromServer, waitForPendingWrites } from "firebase/firestore";
+import { doc, setDoc, getDoc, onSnapshot } from "firebase/firestore";
 import { onAuthStateChanged, reload } from "firebase/auth";
 import { db, auth } from './firebase';
 import { getDefaultClimb } from './services/climbDatabase';
@@ -48,10 +48,6 @@ import { SPORT_TYPES } from './config';
 import { consumeNavRestore } from './utils/sessionNavRestore';
 import { mergeVolumeGoals, mergeVolumeGoalsPreservingNonZero } from './utils/volumeGoals';
 import {
-    mergeActivitiesPreservingEnrichment,
-    prepareProtectedActivityUpsertsFromCurrent,
-} from './utils/activityUpsert';
-import {
     clearSensitiveLocalStorage,
     consumeExplicitSignOut,
     getDefaultUserSettings,
@@ -61,6 +57,30 @@ import {
 } from './utils/sessionData';
 import { safeLocalStorageSet } from './utils/safeStorage.js';
 import { runGoogleSignIn, isGoogleSignInInProgress, googleSignInErrorMessage } from './utils/googleSignIn';
+import { ActivitiesProvider, useActivitiesState } from './context/ActivitiesContext';
+import { ActivityLogNavigationProvider, useActivityLogNavigation } from './context/ActivityLogNavigationContext';
+
+function AppLoadingGate({ authReady, user, authBusy, onSignIn, children }) {
+    const { isLoading: activitiesLoading } = useActivitiesState();
+    if (!authReady || (activitiesLoading && user)) {
+        return <LoadingPanel />;
+    }
+    if (!user) {
+        return <SignInGate onSignIn={onSignIn} authBusy={authBusy} />;
+    }
+    return children;
+}
+
+function DashboardWithNavigation(props) {
+    const { openActivityInLog, openActivityLogDateRange } = useActivityLogNavigation();
+    return (
+        <Dashboard
+            {...props}
+            onOpenActivityInLog={openActivityInLog}
+            onOpenActivityLogDateRange={openActivityLogDateRange}
+        />
+    );
+}
 
 const CLIMB_HEAVY_TABS = new Set([
     'profiler', 'bucketlist', 'climbmap', 'weather', 'gearoptimizer', 'physics', 'activities',
@@ -99,7 +119,6 @@ const App = () => {
     }, [theme]);
 
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-    const [syncStatus, setSyncStatus] = useState('idle'); // 'idle', 'syncing', 'synced', 'error'
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
 
@@ -200,114 +219,23 @@ const App = () => {
         SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: true }), {})
     );
 
-    const [activities, setActivities] = useState([]);
-    const activitiesRef = useRef([]);
-    const setActivitiesState = useCallback((nextActivities) => {
-        if (typeof nextActivities !== 'function') {
-            activitiesRef.current = nextActivities;
-            setActivities(nextActivities);
-            return;
-        }
-
-        setActivities((prev) => {
-            const resolvedActivities = nextActivities(prev);
-            activitiesRef.current = resolvedActivities;
-            return resolvedActivities;
-        });
-    }, []);
-
-    useEffect(() => {
-        activitiesRef.current = activities;
-    }, [activities]);
-
-    // Meest recente activiteitsdatum voor de "Bijgewerkt" indicator in de header
-    const lastActivityDate = useMemo(() => {
-        if (!activities || activities.length === 0) return null;
-        // activities zijn al gesorteerd op datum (nieuwste eerst) door de Firebase listener
-        return activities[0]?.date || null;
-    }, [activities]);
-
-    // Stable DataHub Handlers
-    const handleImportActivities = useCallback((n) => {
-        setActivitiesState((prev) => mergeActivitiesPreservingEnrichment(prev, n));
-    }, [setActivitiesState]);
-
-    // ⚡ Bolt: Stable ref so memo(Header) can skip re-renders when only unrelated state changes.
-    const handleOpenSettings = useCallback(() => setIsSettingsOpen(true), []);
-
-    const handleSettingsSyncComplete = useCallback(async (newActs) => {
-        if (!newActs || newActs.length === 0) return 0;
-
-        const mergedActivities = prepareProtectedActivityUpsertsFromCurrent(
-            () => activitiesRef.current,
-            newActs,
-        );
-
-        if (db) {
-            await Promise.all(
-                mergedActivities
-                    .filter((act) => act?.id != null)
-                    .map((act) => setDoc(doc(db, 'activities', String(act.id)), act, { merge: true })),
-            );
-        }
-
-        handleImportActivities(mergedActivities);
-        return mergedActivities.length;
-    }, [handleImportActivities]);
-
-    const handleDeleteActivity = useCallback((id) => {
-        // Optimistic local update: verwijder direct uit state zodat de UI meteen reageert.
-        // De Firebase onSnapshot listener (regel ~317) bevestigt de delete daarna vanuit de server.
-        setActivitiesState(prev => prev.filter(a => String(a.id) !== String(id)));
-    }, [setActivitiesState]);
-
-    const handleClearActivities = useCallback(() => {
-        setActivitiesState([]);
-    }, [setActivitiesState]);
-
-    // Manual refresh: wacht op lokale writes, haal daarna bewust van de server (niet van cache).
-    const forceRefreshActivities = useCallback(async () => {
-        if (!db) return;
-        try {
-            try {
-                await waitForPendingWrites(db);
-            } catch {
-                // Offline of geen pending writes: toch verversen proberen
-            }
-            const actCol = collection(db, "activities");
-            const snapshot = await getDocsFromServer(actCol);
-            const loadedActs = snapshot.docs.map(d => d.data());
-
-            if (loadedActs.length > 0) {
-                // Optimization: use string comparison for ISO dates to speed up sort
-                loadedActs.sort((a, b) => a.date < b.date ? 1 : (a.date > b.date ? -1 : 0));
-                setActivitiesState(loadedActs);
-                devLog(`[Refresh] Server-fetch of ${loadedActs.length} activities.`);
-            } else {
-                setActivitiesState([]);
-            }
-        } catch (e) {
-            console.error("Fout tijdens handmatig vernieuwen:", e);
-        }
-    }, [setActivitiesState]); // db is een module-level constante, geen reactive state
-
     const [user, setUser] = useState(null);
     const [authReady, setAuthReady] = useState(false);
     const [authBusy, setAuthBusy] = useState(false);
     const [cloudSettingsHydrated, setCloudSettingsHydrated] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
+
+    // ⚡ Bolt: Stable ref so memo(Header) can skip re-renders when only unrelated state changes.
+    const handleOpenSettings = useCallback(() => setIsSettingsOpen(true), []);
 
     const applySignedOutSessionWipe = useCallback(() => {
         clearSensitiveLocalStorage();
-        setActivitiesState([]);
         setUserSettings(getDefaultUserSettings());
         setIntervalsConfig(getDefaultIntervalsConfig());
         setStravaConfig(getDefaultStravaConfig());
         setStravaProfileData(null);
         setStravaEnrichResults(null);
         setBucketListState(getDefaultBucketListState());
-        setSyncStatus('idle');
-    }, [setActivitiesState]);
+    }, []);
 
     const handleSignIn = useCallback(async () => {
         if (authBusy) return;
@@ -375,19 +303,6 @@ const App = () => {
         setActiveTab('profiler');
     }, []);
 
-    const clearActivityLogFilters = useCallback(() => {
-        setLogIsolateActivityId(null);
-        setLogDateRangeFilter(null);
-        setActivityFocusId(null);
-    }, []);
-
-    const openActivityLogDateRange = useCallback((range) => {
-        if (!range?.startYmd || !range?.endYmd) return;
-        setLogDateRangeFilter({ startYmd: range.startYmd, endYmd: range.endYmd });
-        setLogIsolateActivityId(null);
-        setActivityFocusId(null);
-        setActiveTab('activities');
-    }, []);
     const [fuelingState, setFuelingState] = useState({
         duration: 180,
         intensity: 0.85
@@ -485,13 +400,7 @@ const App = () => {
     // Sub-tab states for merged tabs
     const [trainingSubTab, setTrainingSubTab] = useState('coach'); // 'coach' | 'goal' | 'recovery'
 
-    /** Vanuit Dashboard: focus één activiteit in DataHub log; optioneel alleen die rit tonen (Peak eFTP). */
-    const [activityFocusId, setActivityFocusId] = useState(null);
-    const [logIsolateActivityId, setLogIsolateActivityId] = useState(null);
-    /** Activity Log: show only activities between these YYYY-MM-DD dates (from Dashboard Volume). */
-    const [logDateRangeFilter, setLogDateRangeFilter] = useState(null);
-    /** Activity Log → Ranges panel: dicht na refresh; blijft open/dicht bij tab-wissel */
-    const [activityLogRangesExpanded, setActivityLogRangesExpanded] = useState(false);
+    /** Vanuit Dashboard: focus één activiteit in DataHub log; handled via ActivityLogNavigationContext. */
     const [raceSubTab, setRaceSubTab] = useState('fueling');       // 'fueling' | 'racepacing'
 
     const photoReloadAttemptedRef = useRef(new Set());
@@ -501,7 +410,6 @@ const App = () => {
     useEffect(() => {
         if (!auth) {
             setAuthReady(true);
-            setIsLoading(false);
             return;
         }
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -522,7 +430,6 @@ const App = () => {
                 authenticatedUserRef.current = null;
                 setUser(null);
                 setAuthReady(true);
-                setIsLoading(false);
                 return;
             }
             if (!firebaseUser.photoURL) {
@@ -569,7 +476,6 @@ const App = () => {
 
         const loadSettings = async () => {
             if (!db || !user) return;
-            if (activities.length === 0) setIsLoading(true);
 
             try {
                 const settingsId = `user_${user.uid}`;
@@ -624,57 +530,7 @@ const App = () => {
         return () => {
             cancelled = true;
         };
-    }, [user, activities.length]);
-
-    // 2. Real-time Activities Sync (onSnapshot) — signed-in only
-    useEffect(() => {
-        if (!db || !user) {
-            if (authReady && !user) {
-                setIsLoading(false);
-            }
-            return;
-        }
-
-        const actCol = collection(db, "activities");
-
-        // This listener handles both initial load AND real-time updates
-        const unsubscribe = onSnapshot(actCol, (snapshot) => {
-            const byNormId = new Map();
-            snapshot.docs.forEach((d) => {
-                const data = d.data();
-                const act = { ...data, id: data.id ?? d.id };
-                if (act.id == null) return;
-                const k = String(act.id);
-                const cur = byNormId.get(k);
-                byNormId.set(k, cur ? { ...cur, ...act } : act);
-            });
-            const loadedActs = Array.from(byNormId.values());
-
-            if (loadedActs.length > 0) {
-                // Optimization: use string comparison for ISO dates to speed up sort
-                loadedActs.sort((a, b) => a.date < b.date ? 1 : (a.date > b.date ? -1 : 0));
-                React.startTransition(() => {
-                    setActivitiesState(loadedActs);
-                });
-            } else {
-                React.startTransition(() => {
-                    setActivitiesState([]);
-                });
-            }
-
-            // Check if changes are local (latency compensation) or synced
-            const hasPendingWrites = snapshot.metadata.hasPendingWrites;
-            setSyncStatus(hasPendingWrites ? 'syncing' : 'synced');
-
-            setIsLoading(false);
-        }, (error) => {
-            console.error("Real-time sync error:", error);
-            setSyncStatus('error');
-            setIsLoading(false);
-        });
-
-        return () => unsubscribe();
-    }, [user, authReady, setActivitiesState]);
+    }, [user]);
 
     // Update Power Zones
     useEffect(() => {
@@ -735,7 +591,6 @@ const App = () => {
         if (backupData.intervals) {
             setIntervalsConfig((prev) => ({ ...prev, ...backupData.intervals }));
         }
-        if (backupData.activities) setActivitiesState(backupData.activities);
         if (backupData.bucketList) setBucketListState(backupData.bucketList);
         if (backupData.strava) {
             setStravaConfig((prev) => {
@@ -758,148 +613,119 @@ const App = () => {
     // Chart Data logic moved to Dashboard.jsx
 
 
+    const navigateToActivities = useCallback(() => setActiveTab('activities'), []);
+
     const isDark = theme === 'dark';
     const mainClass = isDark ? 'bg-cdbg text-cdtext' : 'bg-cdbg text-cdtext';
 
     return (
-        <div className={`min-h-screen font-sans pb-20 transition-colors duration-300 ${mainClass}`}>
+        <ActivitiesProvider key={user?.uid ?? 'signed-out'} user={user}>
+            <ActivityLogNavigationProvider onNavigateToActivities={navigateToActivities}>
+                <div className={`min-h-screen font-sans pb-20 transition-colors duration-300 ${mainClass}`}>
 
-            <Header
-                userSettings={userSettings}
-                onOpenSettings={handleOpenSettings}
-                user={user}
-                syncStatus={syncStatus}
-                lastActivityDate={lastActivityDate}
-            />
-
-            <main className={`mx-auto p-3 space-y-4 transition-all duration-300 ${activeTab === 'activities' && user ? 'max-w-[95%]' : 'max-w-7xl'}`}>
-                {user && (
-                    <MainNav
-                        activeTab={activeTab}
-                        onTabChange={setActiveTab}
-                        timeRange={timeRange}
-                        onTimeRangeChange={setTimeRange}
-                        customStart={customStart}
-                        customEnd={customEnd}
-                        onCustomStart={setCustomStart}
-                        onCustomEnd={setCustomEnd}
-                        isMobileMenuOpen={isMobileMenuOpen}
-                        onMobileMenuOpenChange={setIsMobileMenuOpen}
+                    <Header
+                        userSettings={userSettings}
+                        onOpenSettings={handleOpenSettings}
+                        user={user}
                     />
-                )}
 
-                {!authReady || (isLoading && user) ? (
-                    <LoadingPanel />
-                ) : !user ? (
-                    <SignInGate onSignIn={handleSignIn} authBusy={authBusy} />
-                ) : (
-                    <div className="cd-enter">
-                        {activeTab === 'dashboard' && (
-                            <Dashboard
-                                theme={theme}
-                                manualFtp={userSettings.ftp}
-                                activities={activities}
+                    <main className={`mx-auto p-3 space-y-4 transition-all duration-300 ${activeTab === 'activities' && user ? 'max-w-[95%]' : 'max-w-7xl'}`}>
+                        {user && (
+                            <MainNav
+                                activeTab={activeTab}
+                                onTabChange={setActiveTab}
                                 timeRange={timeRange}
+                                onTimeRangeChange={setTimeRange}
                                 customStart={customStart}
                                 customEnd={customEnd}
-                                userWeightKg={userSettings.weight}
-                                referenceEndDate={globalEndDate}
-                                userSettings={userSettings}
-                                updateUserSettings={(k, v) => setUserSettings((p) => ({ ...p, [k]: v }))}
-                                cloudVolumeGoalsSynced={!!user}
-                                onOpenActivityInLog={(id, opts) => {
-                                    if (id == null) return;
-                                    setActivityFocusId(String(id));
-                                    setLogIsolateActivityId(opts?.isolate ? String(id) : null);
-                                    setLogDateRangeFilter(null);
-                                    setActiveTab('activities');
-                                }}
-                                onOpenActivityLogDateRange={openActivityLogDateRange}
+                                onCustomStart={setCustomStart}
+                                onCustomEnd={setCustomEnd}
+                                isMobileMenuOpen={isMobileMenuOpen}
+                                onMobileMenuOpenChange={setIsMobileMenuOpen}
                             />
                         )}
 
-                        {activeTab !== 'dashboard' && (
-                            <Suspense fallback={<LoadingPanel message="Loading tab…" />}>
-                                {activeTab === 'physics' && (
-                                    <PhysicsEngine userSettings={userSettings} setUserSettings={setUserSettings} selectedClimb={selectedClimb} onUpdateClimb={setSelectedClimb} />
-                                )}
-
-                                {activeTab === 'activities' && (
-                                    <DataHub
-                                        activities={activities}
-                                        onImport={handleImportActivities}
-                                        onDelete={handleDeleteActivity}
-                                        onClear={handleClearActivities}
-                                        intervalsConfig={intervalsConfig}
-                                        stravaGetToken={stravaAuth.isConnected ? stravaAuth.getValidToken : null}
-                                        startDate={globalStartDate}
-                                        endDate={globalEndDate}
-                                        stravaEnrichResults={stravaEnrichResults}
-                                        onStravaEnrichResults={setStravaEnrichResults}
-                                        stravaAthleteId={stravaConfig?.athlete_id}
-                                        stravaProfileData={stravaProfileData}
-                                        onStravaProfileData={handleStravaProfileData}
-                                        onRefresh={forceRefreshActivities}
-                                        focusActivityId={activityFocusId}
-                                        onFocusActivityCleared={() => setActivityFocusId(null)}
-                                        isolateActivityId={logIsolateActivityId}
-                                        onClearLogIsolate={clearActivityLogFilters}
-                                        logDateRangeFilter={logDateRangeFilter}
-                                        onClearLogDateRange={clearActivityLogFilters}
-                                        onOpenProfilerFromActivity={handleOpenProfilerFromActivity}
-                                        climbDatabaseForMatch={climbDatabase}
-                                        activityLogRangesExpanded={activityLogRangesExpanded}
-                                        onActivityLogRangesExpandedChange={setActivityLogRangesExpanded}
-                                        initialInternalTab={dataHubInternalTabFromRestore()}
-                                        profileFtp={userSettings?.ftp}
+                        <AppLoadingGate authReady={authReady} user={user} authBusy={authBusy} onSignIn={handleSignIn}>
+                            <div className="cd-enter">
+                                {activeTab === 'dashboard' && (
+                                    <DashboardWithNavigation
+                                        theme={theme}
+                                        manualFtp={userSettings.ftp}
+                                        timeRange={timeRange}
+                                        customStart={customStart}
+                                        customEnd={customEnd}
+                                        userWeightKg={userSettings.weight}
+                                        referenceEndDate={globalEndDate}
+                                        userSettings={userSettings}
+                                        updateUserSettings={(k, v) => setUserSettings((p) => ({ ...p, [k]: v }))}
+                                        cloudVolumeGoalsSynced={!!user}
                                     />
                                 )}
 
-                                {/* Training: AI Coach + Recovery Advisor (sub-tabs) */}
-                                {activeTab === 'training' && (
-                                    <div>
-                                        <SegmentedControl
-                                            className="mb-4"
-                                            size="lg"
-                                            caps={false}
-                                            value={trainingSubTab}
-                                            onChange={setTrainingSubTab}
-                                            aria-label="Training section"
-                                            options={[
-                                                { value: 'coach', label: 'AI Coach', icon: Brain },
-                                                { value: 'goal', label: 'Goals & Planning', icon: Flag },
-                                                { value: 'recovery', label: 'Recovery', icon: Heart },
-                                            ]}
-                                        />
-                                        {trainingSubTab === 'coach' && (
-                                            <AICoach
-                                                activities={activities}
-                                                userSettings={userSettings}
-                                                startDate={globalStartDate}
-                                                endDate={globalEndDate}
-                                            />
+                                {activeTab !== 'dashboard' && (
+                                    <Suspense fallback={<LoadingPanel message="Loading tab…" />}>
+                                        {activeTab === 'physics' && (
+                                            <PhysicsEngine userSettings={userSettings} setUserSettings={setUserSettings} selectedClimb={selectedClimb} onUpdateClimb={setSelectedClimb} />
                                         )}
-                                        {trainingSubTab === 'goal' && (
-                                            <TrainingGoalPlanner
-                                                activities={activities}
-                                                userSettings={userSettings}
-                                                startDate={globalStartDate}
-                                                endDate={globalEndDate}
-                                                onOpenRecovery={() => setTrainingSubTab('recovery')}
-                                            />
-                                        )}
-                                        {trainingSubTab === 'recovery' && (
-                                            <RecoveryAdvisor
-                                                activities={activities}
-                                                startDate={globalStartDate}
-                                                endDate={globalEndDate}
-                                            />
-                                        )}
-                                    </div>
-                                )}
 
-                                {/* Race: Fueling + Race Pacing (sub-tabs) */}
-                                {activeTab === 'race' && (
+                                        {activeTab === 'activities' && (
+                                            <DataHub
+                                                intervalsConfig={intervalsConfig}
+                                                stravaGetToken={stravaAuth.isConnected ? stravaAuth.getValidToken : null}
+                                                startDate={globalStartDate}
+                                                endDate={globalEndDate}
+                                                stravaEnrichResults={stravaEnrichResults}
+                                                onStravaEnrichResults={setStravaEnrichResults}
+                                                stravaAthleteId={stravaConfig?.athlete_id}
+                                                stravaProfileData={stravaProfileData}
+                                                onStravaProfileData={handleStravaProfileData}
+                                                onOpenProfilerFromActivity={handleOpenProfilerFromActivity}
+                                                climbDatabaseForMatch={climbDatabase}
+                                                initialInternalTab={dataHubInternalTabFromRestore()}
+                                                profileFtp={userSettings?.ftp}
+                                            />
+                                        )}
+
+                                        {activeTab === 'training' && (
+                                            <div>
+                                                <SegmentedControl
+                                                    className="mb-4"
+                                                    size="lg"
+                                                    caps={false}
+                                                    value={trainingSubTab}
+                                                    onChange={setTrainingSubTab}
+                                                    aria-label="Training section"
+                                                    options={[
+                                                        { value: 'coach', label: 'AI Coach', icon: Brain },
+                                                        { value: 'goal', label: 'Goals & Planning', icon: Flag },
+                                                        { value: 'recovery', label: 'Recovery', icon: Heart },
+                                                    ]}
+                                                />
+                                                {trainingSubTab === 'coach' && (
+                                                    <AICoach
+                                                        userSettings={userSettings}
+                                                        startDate={globalStartDate}
+                                                        endDate={globalEndDate}
+                                                    />
+                                                )}
+                                                {trainingSubTab === 'goal' && (
+                                                    <TrainingGoalPlanner
+                                                        userSettings={userSettings}
+                                                        startDate={globalStartDate}
+                                                        endDate={globalEndDate}
+                                                        onOpenRecovery={() => setTrainingSubTab('recovery')}
+                                                    />
+                                                )}
+                                                {trainingSubTab === 'recovery' && (
+                                                    <RecoveryAdvisor
+                                                        startDate={globalStartDate}
+                                                        endDate={globalEndDate}
+                                                    />
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {activeTab === 'race' && (
                                     <div>
                                         <SegmentedControl
                                             className="mb-4"
@@ -995,44 +821,44 @@ const App = () => {
                                 )}
                             </Suspense>
                         )}
-                    </div>
-                )}
+                            </div>
+                        </AppLoadingGate>
 
-                {isSettingsOpen && (
-                    <SettingsModal
-                        onClose={() => setIsSettingsOpen(false)}
-                        intervalsConfig={intervalsConfig}
-                        updateIntervalsConfig={(k, v) => setIntervalsConfig(p => ({ ...p, [k]: v }))}
-                        userSettings={userSettings}
-                        updateUserSettings={(k, v) => setUserSettings(p => ({ ...p, [k]: v }))}
-                        onSaveToCloud={saveSettingsToCloud}
-                        theme={theme}
-                        setTheme={(newTheme) => {
-                            setTheme(newTheme);
-                            safeLocalStorageSet('theme', newTheme);
-                        }}
-                        fullData={{
-                            activities,
-                            settings: userSettings,
-                            intervals: intervalsConfig,
-                            bucketList: bucketListState,
-                            strava: stravaConfig,
-                            stravaProfile: stravaProfileData,
-                            theme,
-                        }}
-                        onImportBackup={handleImportBackup}
-                        onCleanupCloudTokens={cleanupCloudTokens}
-                        syncState={{ syncDates, setSyncDates, sportFilters, setSportFilters, isSyncing, syncProgress, syncIntervals }}
-                        onSyncComplete={handleSettingsSyncComplete}
-                        stravaConfig={stravaConfig}
-                        updateStravaConfig={updateStravaConfig}
-                        stravaAuth={stravaAuth}
-                    />
-                )}
-            </main>
-            {user && <PwaInstallBanner />}
-            <PwaUpdateBanner />
-        </div>
+                        {isSettingsOpen && (
+                            <SettingsModal
+                                onClose={() => setIsSettingsOpen(false)}
+                                intervalsConfig={intervalsConfig}
+                                updateIntervalsConfig={(k, v) => setIntervalsConfig(p => ({ ...p, [k]: v }))}
+                                userSettings={userSettings}
+                                updateUserSettings={(k, v) => setUserSettings(p => ({ ...p, [k]: v }))}
+                                onSaveToCloud={saveSettingsToCloud}
+                                theme={theme}
+                                setTheme={(newTheme) => {
+                                    setTheme(newTheme);
+                                    safeLocalStorageSet('theme', newTheme);
+                                }}
+                                backupExtras={{
+                                    settings: userSettings,
+                                    intervals: intervalsConfig,
+                                    bucketList: bucketListState,
+                                    strava: stravaConfig,
+                                    stravaProfile: stravaProfileData,
+                                    theme,
+                                }}
+                                onImportBackup={handleImportBackup}
+                                onCleanupCloudTokens={cleanupCloudTokens}
+                                syncState={{ syncDates, setSyncDates, sportFilters, setSportFilters, isSyncing, syncProgress, syncIntervals }}
+                                stravaConfig={stravaConfig}
+                                updateStravaConfig={updateStravaConfig}
+                                stravaAuth={stravaAuth}
+                            />
+                        )}
+                    </main>
+                    {user && <PwaInstallBanner />}
+                    <PwaUpdateBanner />
+                </div>
+            </ActivityLogNavigationProvider>
+        </ActivitiesProvider>
     );
 };
 
