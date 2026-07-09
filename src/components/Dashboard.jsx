@@ -1,11 +1,11 @@
 ﻿import React, { useState, useMemo, useEffect } from 'react';
 import { safeSessionStorageSet } from '../utils/safeStorage.js';
 import { calculateBassettCorrection } from '../utils';
-import { normalizeDate } from '../utils/formatters';
 import {
     getDashboardWindowBounds,
     previousWindowBounds,
     filterActivitiesInBounds,
+    filterActivitiesByDashboardTimeRange,
 } from '../utils/dashboardActivityWindow';
 import OverviewTab from './dashboard/OverviewTab';
 import FormTab from './dashboard/FormTab';
@@ -82,88 +82,45 @@ const Dashboard = ({
         safeSessionStorageSet(DASH_SUBTAB_STORAGE_KEY, dashboardTab);
     }, [dashboardTab]);
 
-    // Alle historische data zit in Firestore via de deep sync — GCF niet meer nodig.
+    const needsFullChartData = dashboardTab === 'power' || dashboardTab === 'distance';
+
+    // Full enriched history — only when Power or Distance sub-tabs need multi-window curves.
     const chartData = useMemo(() => {
+        if (!needsFullChartData || !firestoreActivities?.length) return [];
         return firestoreActivities
-            .map(a => enhanceActivity(a, manualFtp))
-            // Optimization: use string comparison for ISO dates to speed up sort
-            .sort((a, b) => a.date < b.date ? -1 : (a.date > b.date ? 1 : 0));
-    }, [firestoreActivities, manualFtp]);
+            .map((a) => enhanceActivity(a, manualFtp))
+            .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+    }, [firestoreActivities, manualFtp, needsFullChartData]);
 
-    // --- Filter Logic ---
+    // Filter raw activities first, then enrich only the visible window.
     const filteredData = useMemo(() => {
-        if (!chartData.length) return [];
-
-        let cutoffDate = new Date();
-        // Reset tijd naar middernacht voor eerlijke vergelijking
-        cutoffDate.setHours(0, 0, 0, 0);
-
-        if (timeRange === 'Custom') {
-            if (!customStart) return chartData;
-
-            // Format start date safely
-            const startStr = normalizeDate(customStart);
-
-            // Format end date to today if not provided, safely extracting YYYY-MM-DD
-            let endStr;
-            if (customEnd) {
-                endStr = normalizeDate(customEnd);
-            } else {
-                const today = new Date();
-                const yy = today.getFullYear();
-                const mm = String(today.getMonth() + 1).padStart(2, '0');
-                const dd = String(today.getDate()).padStart(2, '0');
-                endStr = `${yy}-${mm}-${dd}`;
-            }
-
-            return chartData.filter(d => {
-                if (!d.date) return false;
-                // Optimization: string comparison is significantly faster than new Date()
-                // Safely convert to string using normalizeDate to handle timestamps/objects properly
-                const dStr = normalizeDate(d.date);
-                return dStr >= startStr && dStr <= endStr;
-            });
-        }
-
-        if (timeRange === '1M') cutoffDate.setMonth(cutoffDate.getMonth() - 1);
-        else if (timeRange === '3M') cutoffDate.setMonth(cutoffDate.getMonth() - 3);
-        else if (timeRange === '6M') cutoffDate.setMonth(cutoffDate.getMonth() - 6);
-        else if (timeRange === '1Y') cutoffDate.setFullYear(cutoffDate.getFullYear() - 1);
-        else if (timeRange === '3Y') cutoffDate.setFullYear(cutoffDate.getFullYear() - 3);
-        else if (timeRange === '6Y') cutoffDate.setFullYear(cutoffDate.getFullYear() - 6);
-        else if (timeRange === 'ALL') cutoffDate = new Date('2000-01-01');
-
-        // Note: ISO string formatting automatically handles local timezone shift to UTC properly if we just want YYYY-MM-DD
-        // However, to perfectly mirror the previous behavior which relied on local date boundaries (`new Date().setHours(0,0,0,0)`),
-        // we manually construct local 'YYYY-MM-DD'
-        const yy = cutoffDate.getFullYear();
-        const mm = String(cutoffDate.getMonth() + 1).padStart(2, '0');
-        const dd = String(cutoffDate.getDate()).padStart(2, '0');
-        const cutoffStr = `${yy}-${mm}-${dd}`;
-
-        return chartData.filter(d => {
-            if (!d.date) return false;
-            // Safely convert to string using normalizeDate
-            const dStr = normalizeDate(d.date);
-            return dStr >= cutoffStr;
-        });
-    }, [chartData, timeRange, customStart, customEnd]);
+        const inRange = filterActivitiesByDashboardTimeRange(
+            firestoreActivities,
+            timeRange,
+            customStart,
+            customEnd,
+        );
+        if (!inRange.length) return [];
+        return inRange
+            .map((a) => enhanceActivity(a, manualFtp))
+            .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+    }, [firestoreActivities, manualFtp, timeRange, customStart, customEnd]);
 
     const volumeComparePrevPeriodActivities = useMemo(() => {
         const b = getDashboardWindowBounds(timeRange, customStart, customEnd, referenceEndDate);
-        if (!b || !chartData.length) return [];
+        if (!b || !firestoreActivities?.length) return [];
         const prev = previousWindowBounds(b);
         if (!prev) return [];
-        return filterActivitiesInBounds(chartData, prev);
-    }, [chartData, timeRange, customStart, customEnd, referenceEndDate]);
+        return filterActivitiesInBounds(firestoreActivities, prev);
+    }, [firestoreActivities, timeRange, customStart, customEnd, referenceEndDate]);
 
     const volumeComparePrevYearActivities = useMemo(() => {
         const b = getDashboardWindowBounds(timeRange, customStart, customEnd, referenceEndDate);
-        if (!b || !chartData.length) return [];
+        if (!b || !firestoreActivities?.length) return [];
         const shifted = shiftDashboardBoundsByYears(b, -1);
         if (!shifted) return [];
-        return filterActivitiesInBounds(chartData, shifted);
-    }, [chartData, timeRange, customStart, customEnd, referenceEndDate]);
+        return filterActivitiesInBounds(firestoreActivities, shifted);
+    }, [firestoreActivities, timeRange, customStart, customEnd, referenceEndDate]);
 
     // --- SMART TICKS CALCULATOR ---
     // Dit lost het probleem van de "volle x-as" op.
@@ -247,7 +204,7 @@ const Dashboard = ({
                 <div role="tabpanel" id="tabpanel-overview" aria-labelledby="tab-overview">
                     <OverviewTab
                         data={filteredData}
-                        chartData={chartData}
+                        allActivities={firestoreActivities}
                         manualFtp={manualFtp}
                         customTicks={customTicks}
                         onOpenActivityInLog={onOpenActivityInLog}

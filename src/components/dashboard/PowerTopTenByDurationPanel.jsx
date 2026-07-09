@@ -4,6 +4,7 @@ import { formatNlNumber } from '../../utils';
 import {
     dashboardFilterLabel,
     topNInterpolatedAtSec,
+    buildAnchorsCache,
 } from '../../utils/powerDurationTable';
 import {
     getDashboardWindowBounds,
@@ -99,10 +100,11 @@ const PowerTopTenByDurationPanel = ({
     const periodLabel = dashboardFilterLabel(timeRange);
 
     const tablesByDuration = useMemo(() => {
+        const anchorsCache = buildAnchorsCache(chartData, manualFtp);
         return DURATION_TARGETS.map(({ sec, label }) => {
             const opts = sec === 7200 ? { requireAnchorBeyondSec: 7200 } : {};
-            const primary = topNInterpolatedAtSec(currentActs, manualFtp, sec, 10, opts);
-            const secondary = compareBounds ? topNInterpolatedAtSec(compareActs, manualFtp, sec, 10, opts) : null;
+            const primary = topNInterpolatedAtSec(currentActs, manualFtp, sec, 10, opts, anchorsCache);
+            const secondary = compareBounds ? topNInterpolatedAtSec(compareActs, manualFtp, sec, 10, opts, anchorsCache) : null;
             return {
                 sec,
                 label,
@@ -113,7 +115,7 @@ const PowerTopTenByDurationPanel = ({
                     : null,
             };
         });
-    }, [currentActs, compareActs, compareBounds, manualFtp]);
+    }, [currentActs, compareActs, compareBounds, manualFtp, chartData]);
 
     if (!chartData?.length || !dashboardBounds) return null;
 
