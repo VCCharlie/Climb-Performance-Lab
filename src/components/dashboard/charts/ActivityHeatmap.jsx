@@ -45,7 +45,8 @@ const ActivityHeatmap = ({ data }) => {
             byDay[a.date] = (byDay[a.date] || 0) + (Number(a.distance) || 0);
         });
 
-        const maxKm = Math.max(0, ...Object.values(byDay));
+        // ⚡ Bolt: Single-pass max instead of Math.max(...spread) — avoids spread allocation on ~365 keys.
+        const maxKm = Object.values(byDay).reduce((max, km) => Math.max(max, km), 0);
 
         // Calculate grid start: Monday 52 weeks ago
         const today = new Date();

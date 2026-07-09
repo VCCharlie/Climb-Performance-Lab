@@ -128,14 +128,14 @@ const DataHub = ({
     const [stravaDateOverride, setStravaDateOverride] = useState(null);
     const [enrichmentTarget, setEnrichmentTarget] = useState(null);
 
-    const handleFindOnStrava = (activity) => {
+    const handleFindOnStrava = useCallback((activity) => {
         if (!activity || !activity.date) return;
         const activityDate = activity.date.split('T')[0];
         setEnrichmentTarget(activity);
         setStravaDateOverride(activityDate);
         setEditingActivity(null);
         setShowStravaEnrichPanel(true);
-    };
+    }, []);
 
     useEffect(() => {
         if (!showStravaEnrichPanel) {
@@ -318,8 +318,11 @@ const DataHub = ({
         }, []);
     }, [processedActivities, groupedActivities, isGroupedView, sortConfig.direction, isYearExpanded, isMonthExpanded]);
 
-    const allVisibleSelected = visibleActivityIdsFlat.length > 0
-        && visibleActivityIdsFlat.every((id) => bulkSelectedIds.has(id));
+    const allVisibleSelected = useMemo(
+        () => visibleActivityIdsFlat.length > 0
+            && visibleActivityIdsFlat.every((id) => bulkSelectedIds.has(id)),
+        [visibleActivityIdsFlat, bulkSelectedIds],
+    );
 
     const toggleBulkSelectOne = useCallback((id) => {
         const k = String(id);

@@ -222,8 +222,17 @@ const PerformanceModule = ({
 }) => {
     const filteredData = data || [];
 
-    // --- SMART AXIS LOGIC ---
-    const axisTicks = customTicks ? customTicks.map(t => new Date(t).getTime()) : undefined;
+    // ⚡ Bolt: Memoize chart axis ticks — avoids N× Date allocations on every parent re-render.
+    const axisTicks = React.useMemo(
+        () => (customTicks ? customTicks.map((t) => new Date(t).getTime()) : undefined),
+        [customTicks],
+    );
+
+    // ⚡ Bolt: Memoize chart series with dateNum — inline .map() in JSX ran on every render (200+ points).
+    const chartSeries = React.useMemo(
+        () => filteredData.map((d) => ({ ...d, dateNum: new Date(d.date).getTime() })),
+        [filteredData],
+    );
 
     // Check of we jaartallen moeten tonen
     // Criterium: Als de dataset start in een ander jaar dan hij eindigt, OF als de range > 360 dagen is
@@ -267,9 +276,18 @@ const PerformanceModule = ({
     const totalActivities = filteredData.length;
     const showDots = totalActivities < 60;
 
-    // --- SPLIT CALCULATIONS ---
-    const indoorRides = filteredData.filter(d => d.type === 'VirtualRide');
-    const outdoorRides = filteredData.filter(d => d.type !== 'VirtualRide');
+    // ⚡ Bolt: Single-pass indoor/outdoor split — was two full .filter() passes per render.
+    const rideSplit = React.useMemo(() => {
+        const indoor = [];
+        const outdoor = [];
+        for (const d of filteredData) {
+            if (d.type === 'VirtualRide') indoor.push(d);
+            else outdoor.push(d);
+        }
+        return { indoor, outdoor };
+    }, [filteredData]);
+
+    const { indoor: indoorRides, outdoor: outdoorRides } = rideSplit;
 
     // 1. Est FTP Split (Max eFTP per environment)
     // ⚡ Bolt Optimization: Use single-pass reduce instead of Math.max(...array.map())
@@ -465,7 +483,7 @@ const PerformanceModule = ({
 
                     <div className="min-h-[300px] h-[50vh] max-h-[500px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <ComposedChart data={filteredData.map(d => ({ ...d, dateNum: new Date(d.date).getTime() }))} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                            <ComposedChart data={chartSeries} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                                 <defs>
                                     <linearGradient id="colorLoad" x1="0" y1="0" x2="0" y2="1">
                                         <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />

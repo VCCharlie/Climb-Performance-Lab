@@ -213,6 +213,9 @@ const App = () => {
         setActivitiesState((prev) => mergeActivitiesPreservingEnrichment(prev, n));
     }, [setActivitiesState]);
 
+    // ⚡ Bolt: Stable ref so memo(Header) can skip re-renders when only unrelated state changes.
+    const handleOpenSettings = useCallback(() => setIsSettingsOpen(true), []);
+
     const handleSettingsSyncComplete = useCallback(async (newActs) => {
         if (!newActs || newActs.length === 0) return 0;
 
@@ -744,7 +747,7 @@ const App = () => {
 
             <Header
                 userSettings={userSettings}
-                onOpenSettings={() => setIsSettingsOpen(true)}
+                onOpenSettings={handleOpenSettings}
                 user={user}
                 syncStatus={syncStatus}
                 lastActivityDate={lastActivityDate}

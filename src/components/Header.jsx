@@ -33,7 +33,7 @@ function formatUpdatedAt(dateToDisplay) {
     });
 }
 
-const Header = ({ userSettings, onOpenSettings, user, syncStatus, lastActivityDate }) => {
+const Header = React.memo(({ userSettings, onOpenSettings, user, syncStatus, lastActivityDate }) => {
     const [lastSyncTime, setLastSyncTime] = useState(() => localStorage.getItem('app_last_sync_time'));
     const [authBusy, setAuthBusy] = useState(false);
     const [avatarImgFailed, setAvatarImgFailed] = useState(false);
@@ -185,6 +185,8 @@ const Header = ({ userSettings, onOpenSettings, user, syncStatus, lastActivityDa
             </div>
         </header>
     );
-};
+});
+
+Header.displayName = 'Header';
 
 export default Header;

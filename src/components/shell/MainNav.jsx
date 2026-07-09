@@ -7,8 +7,9 @@ import { MAIN_NAV_TABS } from '../../config/navTabs';
 
 /**
  * App shell navigation — mobile menu + desktop primary nav bar with time-range toolbar.
+ * ⚡ Bolt: React.memo skips re-render when tab/time-range props are unchanged (e.g. Firestore activity sync).
  */
-export default function MainNav({
+function MainNav({
   activeTab,
   onTabChange,
   timeRange,
@@ -138,3 +139,5 @@ export default function MainNav({
     </div>
   );
 }
+
+export default React.memo(MainNav);
