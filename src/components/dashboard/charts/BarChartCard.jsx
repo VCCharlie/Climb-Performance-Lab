@@ -5,95 +5,27 @@ import {
 } from 'recharts';
 import { ChartTooltip } from '../../ui';
 import { getChartTheme, chartCardClass } from '../../../utils/chartTheme';
+import { seriesFromBarChartIndex } from '../../../utils/dashboardBarChartBuckets';
+import { formatNlNumber } from '../../../utils/formatters';
 
 /**
  * BarChartCard — Reusable bar chart for a single metric (distance, tss or elevation).
  * Each card has its own independent Week / Month toggle.
  *
- * @param {object[]} data     - Normalized activity array (from Dashboard)
- * @param {'distance'|'tss'|'elevation'} metric
+ * @param {ReturnType<import('../../../utils/dashboardBarChartBuckets').buildOverviewBarChartIndex>} barChartIndex
+ * @param {'distance'|'tss'|'elevation'|'moving_time'} metric
  * @param {string}   title    - Card header label
  * @param {string}   unit     - Unit suffix shown in tooltip & axis
  * @param {string}   color    - Hex / CSS color for the bars
  */
-
-// Returns "YYYY-Www" (ISO week) for a given date string
-const getWeekKey = (dateStr) => {
-    const d = new Date(dateStr);
-    const day = d.getDay() || 7; // Mon = 1 … Sun = 7
-    d.setDate(d.getDate() + 1 - day); // set to Mon of this week
-    return d.toISOString().slice(0, 10); // "YYYY-MM-DD" of Monday
-};
-
-const getMonthKey = (dateStr) => dateStr.slice(0, 7); // "YYYY-MM"
-const getYearKey = (dateStr) => dateStr.slice(0, 4); // "YYYY"
-
-const EN_MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-const formatMonthLabel = (key) => {
-    const [y, m] = key.split('-');
-    // Optimization: avoid slow toLocaleString
-    return `${EN_MONTHS_SHORT[parseInt(m, 10) - 1]} ${y.slice(-2)}`;
-};
-
-const formatWeekLabel = (key) => {
-    const d = new Date(key);
-    // Optimization: avoid slow toLocaleString
-    return `${d.getDate()} ${EN_MONTHS_SHORT[d.getMonth()]}`;
-};
-
-const METRIC_FIELD = {
-    distance: (a) => Number(a.distance) || 0,
-    tss: (a) => Number(a.load) || 0, // 'load' = TSS after normalization
-    elevation: (a) => Number(a.climbing) || 0,
-    moving_time: (a) => Number(a.moving_time) || 0,
-};
-
-const BarChartCard = ({ data, metric, title, unit, color }) => {
+const BarChartCard = ({ barChartIndex, metric, title, unit, color }) => {
     const [groupBy, setGroupBy] = useState('week');
-    const [rideType, setRideType] = useState('all'); // 'all', 'indoor', 'outdoor'
+    const [rideType, setRideType] = useState('all');
 
-    const chartData = useMemo(() => {
-        if (!data || data.length === 0) return [];
-
-        const isTime = metric === 'moving_time';
-
-        const filtered = data.filter(a => {
-            if (rideType === 'all') return true;
-            const isIndoor = ['VirtualRide', 'VirtualRun'].includes(a.type);
-            return rideType === 'indoor' ? isIndoor : !isIndoor;
-        });
-
-        const getValue = METRIC_FIELD[metric];
-        const map = {};
-
-        filtered.forEach(a => {
-            if (!a.date) return;
-            let key;
-            if (groupBy === 'week') key = getWeekKey(a.date);
-            else if (groupBy === 'month') key = getMonthKey(a.date);
-            else key = getYearKey(a.date);
-            map[key] = (map[key] || 0) + getValue(a);
-        });
-
-        return Object.keys(map)
-            .sort()
-            .map(key => {
-                let label;
-                if (groupBy === 'week') label = formatWeekLabel(key);
-                else if (groupBy === 'month') label = formatMonthLabel(key);
-                else label = key; // Year is just the key itself
-
-                let value = map[key];
-                if (isTime) {
-                    value = Math.round((value / 3600) * 10) / 10; // hours, 1 decimal
-                } else {
-                    value = Math.round(value);
-                }
-
-                return { label, value };
-            });
-    }, [data, metric, groupBy, rideType]);
+    const chartData = useMemo(
+        () => seriesFromBarChartIndex(barChartIndex, groupBy, rideType, metric),
+        [barChartIndex, groupBy, rideType, metric],
+    );
 
     const isTime = metric === 'moving_time';
     const theme = getChartTheme();
@@ -156,7 +88,7 @@ const BarChartCard = ({ data, metric, title, unit, color }) => {
                                     <ChartTooltip
                                         {...props}
                                         hideLabel
-                                        formatter={(val) => [`${Number(val).toLocaleString('en-GB')} ${isTime ? 'h' : unit}`, title]}
+                                        formatter={(val) => [`${formatNlNumber(val)} ${isTime ? 'h' : unit}`, title]}
                                     />
                                 )}
                                 cursor={theme.cursor}

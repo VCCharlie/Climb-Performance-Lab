@@ -77,14 +77,11 @@ export function formatWeekRangeLabelEn(mondayYmd, sundayYmd) {
  */
 export function formatMonthLabelEn(monthKey) {
     if (!monthKey || monthKey.length < 7) return '—';
-    const label = formatDateDDMMYYYY(`${monthKey}-01`);
-    if (label === '-') return monthKey;
-    const parts = label.split('-');
-    if (parts.length !== 3) return monthKey;
-    const monthNum = Number(parts[1]);
-    const year = parts[2];
-    const monthName = new Date(Number(year), monthNum - 1, 1).toLocaleDateString('nl-NL', { month: 'long' });
-    return `${monthName} ${year}`;
+    const y = Number(monthKey.slice(0, 4));
+    const mo = Number(monthKey.slice(5, 7));
+    if (!Number.isFinite(y) || !Number.isFinite(mo)) return monthKey;
+    const monthName = new Date(y, mo - 1, 1).toLocaleDateString('nl-NL', { month: 'long' });
+    return `${monthName} ${y}`;
 }
 
 function emptyBucket() {

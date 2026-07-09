@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import PerformanceModule from '../PerformanceModule';
 import BarChartCard from './charts/BarChartCard';
 import ActivityHeatmap from './charts/ActivityHeatmap';
 import VolumeGoalsPanel from './VolumeGoalsPanel';
+import { buildOverviewBarChartIndex } from '../../utils/dashboardBarChartBuckets';
 
 /**
  * OverviewTab: Main Dashboard overview.
@@ -20,6 +21,8 @@ const OverviewTab = ({
     updateUserSettings,
     cloudVolumeGoalsSynced = false,
 }) => {
+    const barChartIndex = useMemo(() => buildOverviewBarChartIndex(data), [data]);
+
     if (!data || data.length === 0) {
         return (
             <div className="flex items-center justify-center h-40 text-cdmuted">
@@ -50,28 +53,28 @@ const OverviewTab = ({
             {/* Bar charts: 4 columns, each with their own week/month/year & rideType toggle */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <BarChartCard
-                    data={data}
+                    barChartIndex={barChartIndex}
                     metric="distance"
                     title="Distance"
                     unit="km"
                     color="rgba(59,130,246,0.75)"
                 />
                 <BarChartCard
-                    data={data}
+                    barChartIndex={barChartIndex}
                     metric="moving_time"
                     title="Time"
                     unit="hour"
                     color="rgba(168,85,247,0.75)"
                 />
                 <BarChartCard
-                    data={data}
+                    barChartIndex={barChartIndex}
                     metric="tss"
                     title="TSS"
                     unit="TSS"
                     color="rgba(249,115,22,0.75)"
                 />
                 <BarChartCard
-                    data={data}
+                    barChartIndex={barChartIndex}
                     metric="elevation"
                     title="Elevation"
                     unit="m"

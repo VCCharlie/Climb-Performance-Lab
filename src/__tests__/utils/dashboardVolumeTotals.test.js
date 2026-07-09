@@ -51,6 +51,11 @@ describe('buildMonthlyVolumeTotals', () => {
         expect(jan.elevationM).toBe(800);
         expect(jan.load).toBe(120);
     });
+
+    it('uses Dutch month name for month row labels', () => {
+        const m = buildMonthlyVolumeTotals([{ date: '2026-03-10', distance: 10, climbing: 0, moving_time: 0, load: 0 }]);
+        expect(m[0].label).toMatch(/maart 2026/i);
+    });
 });
 
 describe('orderVolumeRowsChronological', () => {
