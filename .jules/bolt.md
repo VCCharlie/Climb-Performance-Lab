@@ -76,7 +76,7 @@
 **Learning:** In React components (like `BucketList.jsx`), executing multiple `.filter(...).length` statements sequentially inside a `useMemo` block creates unnecessary intermediate array allocations and causes O(N * M) time complexity where N is the data length and M is the number of filters.
 **Action:** Replace sequential `.filter(...).length` calls with a single `for...of` loop to calculate multiple metrics simultaneously in one pass over the data, which reduces it to O(N) complexity and completely avoids intermediate array instantiations.
 
-## 2024-05-18 - Single-pass reduce over chained array methods
+## 2026-06-25 - Single-pass reduce over chained array methods
 **Learning:** Using chained array methods like `.filter().map()` or `.map().filter()` creates intermediate array allocations. For potentially large arrays, this can affect performance and increase memory usage.
 **Action:** Replace chained array iteration methods with a single-pass `Array.prototype.reduce()` to track the desired output and avoid intermediate array allocations.
 
@@ -84,11 +84,11 @@
 **Learning:** Using `Math.max(0, ...data.map(...))` on potentially large arrays can result in 'RangeError: Maximum call stack size exceeded' and causes unnecessary memory allocations due to intermediate array creation.
 **Action:** Replace `Math.max(...array.map(...))` with a single-pass `reduce` call (e.g. `array.reduce((max, item) => Math.max(max, item.value), 0)`). This provides an O(n) calculation without the overhead of intermediate object creation.
 
-## 2024-05-18 - Single-pass for...of loop over multiple filter().length
+## 2026-06-25 - Single-pass for...of loop over multiple filter().length
 **Learning:** Using multiple `.filter().length` calls consecutively on the same array to calculate distinct counters causes redundant full iterations over the dataset and creates unnecessary intermediate array allocations, resulting in O(N * M) performance overhead and increased memory churn.
 **Action:** Replace consecutive `.filter().length` statements with a single `for...of` loop or `.reduce()` to iterate the dataset exactly once, incrementing multiple counters simultaneously (O(N)).
 
-## 2024-05-18 - Avoid nested O(N*M) array.find for time-threshold matching
+## 2026-06-25 - Avoid nested O(N*M) array.find for time-threshold matching
 **Learning:** Using `array.find()` inside a loop to match items based on a time threshold (e.g., `Math.abs(actTime - sTime) < 900000`) creates an O(N*M) time complexity, which can severely block the main thread for large datasets. Direct `Map` lookups aren't possible because the match is a range, not an exact key.
 **Action:** Use a time-bucketed Map strategy. Pre-compute a Map where keys are bucket indices (e.g., `Math.floor(time / 900000)`). Inside the loop, calculate the target bucket and search only within `bucket - 1`, `bucket`, and `bucket + 1`. This reduces the search space to a constant number, lowering overall time complexity to O(N + M).
 ## 2026-06-25 - Avoid O(N*M) chained array methods inside mapping operations
@@ -98,3 +98,6 @@
 ## 2026-06-25 - Use single pass to avoid O(N) intermediate array iterations
 **Learning:** In utility functions computing summary metrics (like `summarizeActivityWindow`), chaining or consecutive calls of `.reduce()` and `.filter()` result in unnecessary complete O(N) array iterations for every single metric and trigger repeated unneeded intermediate iterations.
 **Action:** Replace multiple separate array passes with a single `for...of` loop to aggregate multiple metrics at once in an O(N) complexity overall, reducing memory footprint and main thread blocking.
+## 2026-06-25 - Avoid O(N*M) lookups inside nested loops during bulk duplication matching
+**Learning:** Calling `array.find` on an entire array of existing activities inside an iteration over incoming activities creates an O(N * M) time complexity overhead, noticeably slowing down data imports as datasets grow.
+**Action:** Always pre-group or index candidate match sets using a `Map` (keyed by a robust common identifier like `strava_id`) outside the inner loop to achieve O(1) candidate lookup, reducing complexity to O(N + M).

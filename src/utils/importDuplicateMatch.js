@@ -66,8 +66,15 @@ function canMergeIntoExistingCanonical(existing, incoming) {
     );
 }
 
-function findCanonicalImportDuplicate(existingActivities = [], incomingActivity) {
-    return existingActivities.find((existing) =>
+// ⚡ Bolt Optimization: Accept a Map of candidates grouped by dateKey for O(1) lookups instead of O(N*M) array.find
+function findCanonicalImportDuplicate(existingCandidatesByDate = new Map(), incomingActivity) {
+    const dKey = dateKey(incomingActivity);
+    if (!dKey) return null;
+
+    const existingCandidates = existingCandidatesByDate.get(dKey);
+    if (!existingCandidates || existingCandidates.length === 0) return null;
+
+    return existingCandidates.find((existing) =>
         canReplaceWithIncomingCanonical(existing, incomingActivity)
         || canMergeIntoExistingCanonical(existing, incomingActivity)
     ) || null;
@@ -85,6 +92,22 @@ export function buildImportReplacementPlan(existingActivities = [], incomingActi
             .filter((activity) => activity?.id != null)
             .map((activity) => [String(activity.id), activity])
     );
+
+    // ⚡ Bolt Optimization: Group existing activities by dateKey to avoid O(N*M) lookups inside the loop
+    const existingCandidatesByDate = new Map();
+    (existingActivities || []).forEach((existing) => {
+        if (!existing) return;
+        const dKey = dateKey(existing);
+        if (dKey) {
+            let list = existingCandidatesByDate.get(dKey);
+            if (!list) {
+                list = [];
+                existingCandidatesByDate.set(dKey, list);
+            }
+            list.push(existing);
+        }
+    });
+
     const idsToDelete = [];
     const idsMarkedForDelete = new Set();
     const activitiesToImport = [];
@@ -99,7 +122,7 @@ export function buildImportReplacementPlan(existingActivities = [], incomingActi
     };
 
     (incomingActivities || []).forEach((incoming) => {
-        const duplicate = findCanonicalImportDuplicate(existingActivities, incoming);
+        const duplicate = findCanonicalImportDuplicate(existingCandidatesByDate, incoming);
 
         if (duplicate && canReplaceWithIncomingCanonical(duplicate, incoming)) {
             activitiesToImport.push(mergeActivitiesIntervalsPrimary(incoming, duplicate));
