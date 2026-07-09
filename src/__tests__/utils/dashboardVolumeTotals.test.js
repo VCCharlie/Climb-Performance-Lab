@@ -52,9 +52,9 @@ describe('buildMonthlyVolumeTotals', () => {
         expect(jan.load).toBe(120);
     });
 
-    it('uses DD-MM-YYYY for month row labels', () => {
+    it('uses Dutch month name for month row labels', () => {
         const m = buildMonthlyVolumeTotals([{ date: '2026-03-10', distance: 10, climbing: 0, moving_time: 0, load: 0 }]);
-        expect(m[0].label).toBe('01-03-2026');
+        expect(m[0].label).toMatch(/maart 2026/i);
     });
 });
 
