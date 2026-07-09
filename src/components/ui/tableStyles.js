@@ -11,7 +11,7 @@ export const tableShellClass =
 export const tableClass = 'w-full text-left text-sm leading-snug whitespace-nowrap';
 
 export const tableHeadClass =
-  'bg-cdsurfacelow text-cdmuted sticky top-0 z-10 text-xs font-semibold tracking-wide';
+  'bg-cdsurfacelow text-cdmuted sticky top-0 z-20 text-xs font-semibold tracking-wide';
 
 export const tableHeadCellClass =
   'px-3 py-2.5 cursor-pointer hover:bg-cdsurfacehigh cd-transition select-none';

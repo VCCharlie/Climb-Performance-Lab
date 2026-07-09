@@ -10,6 +10,18 @@ const COLUMN_STICKY_WIDTH_PX = {
 const BULK_SELECT_STICKY_WIDTH_PX = 32;
 const ACTIONS_STICKY_WIDTH_PX = 96;
 
+/** Body sticky cells stay below the sticky thead (z-20) when scrolling vertically. */
+const BODY_STICKY_Z = {
+    bulk: 3,
+    date: 2,
+    type: 2,
+    title: 3,
+    actions: 4,
+};
+
+/** Header sticky corners must sit above body stickies during horizontal scroll. */
+const HEADER_STICKY_Z_OFFSET = 20;
+
 export const STICKY_ACTIONS_KEY = '__actions__';
 
 /**
@@ -22,7 +34,7 @@ export function buildStickyColumnMeta(visibleColumns, showBulkSelect = false, pi
     let left = 0;
 
     if (showBulkSelect) {
-        meta.set('__bulk__', { left: 0, zIndex: 13 });
+        meta.set('__bulk__', { left: 0, zIndex: BODY_STICKY_Z.bulk });
         left += BULK_SELECT_STICKY_WIDTH_PX;
     }
 
@@ -31,14 +43,14 @@ export function buildStickyColumnMeta(visibleColumns, showBulkSelect = false, pi
         const width = COLUMN_STICKY_WIDTH_PX[col.key] ?? 72;
         meta.set(col.key, {
             left,
-            zIndex: col.key === 'title' ? 12 : 11,
+            zIndex: col.key === 'title' ? BODY_STICKY_Z.title : BODY_STICKY_Z.date,
             width,
         });
         left += width;
     }
 
     if (pinActions) {
-        meta.set(STICKY_ACTIONS_KEY, { right: 0, zIndex: 14, width: ACTIONS_STICKY_WIDTH_PX });
+        meta.set(STICKY_ACTIONS_KEY, { right: 0, zIndex: BODY_STICKY_Z.actions, width: ACTIONS_STICKY_WIDTH_PX });
     }
 
     return meta;
@@ -66,7 +78,10 @@ export function stickyTableCellProps(key, meta, { isHeader = false, isSelected =
 
     return {
         className: classes.join(' '),
-        style: { left: sticky.left, zIndex: sticky.zIndex },
+        style: {
+            left: sticky.left,
+            zIndex: isHeader ? sticky.zIndex + HEADER_STICKY_Z_OFFSET : sticky.zIndex,
+        },
     };
 }
 
@@ -90,7 +105,10 @@ export function stickyActionsCellProps(meta, { isHeader = false, isSelected = fa
 
     return {
         className: classes.join(' '),
-        style: { right: sticky.right, zIndex: sticky.zIndex },
+        style: {
+            right: sticky.right,
+            zIndex: isHeader ? sticky.zIndex + HEADER_STICKY_Z_OFFSET : sticky.zIndex,
+        },
     };
 }
 

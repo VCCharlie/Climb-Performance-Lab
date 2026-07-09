@@ -17,14 +17,14 @@ const essentialCols = [
 describe('activityTableSticky', () => {
     it('pins date, type, title with cumulative left offsets', () => {
         const meta = buildStickyColumnMeta(essentialCols, false);
-        expect(meta.get('date')).toEqual({ left: 0, zIndex: 11, width: 68 });
-        expect(meta.get('type')).toEqual({ left: 68, zIndex: 11, width: 36 });
-        expect(meta.get('title')).toEqual({ left: 104, zIndex: 12, width: 240 });
+        expect(meta.get('date')).toEqual({ left: 0, zIndex: 2, width: 68 });
+        expect(meta.get('type')).toEqual({ left: 68, zIndex: 2, width: 36 });
+        expect(meta.get('title')).toEqual({ left: 104, zIndex: 3, width: 240 });
     });
 
     it('offsets pinned columns when bulk select is shown', () => {
         const meta = buildStickyColumnMeta(essentialCols, true);
-        expect(meta.get('__bulk__')).toEqual({ left: 0, zIndex: 13 });
+        expect(meta.get('__bulk__')).toEqual({ left: 0, zIndex: 3 });
         expect(meta.get('date')?.left).toBe(32);
     });
 
@@ -40,6 +40,7 @@ describe('activityTableSticky', () => {
         const head = stickyTableCellProps('title', meta, { isHeader: true });
         expect(head.className).toContain('activity-table-sticky-head');
         expect(head.style?.left).toBe(136);
+        expect(head.style?.zIndex).toBe(23);
 
         const selected = stickyTableCellProps('date', meta, { isSelected: true, showBulkSelect: true });
         expect(selected.className).toContain('activity-table-sticky-selected');
@@ -53,10 +54,11 @@ describe('activityTableSticky', () => {
 
     it('pins actions column on the right when pinActions is true', () => {
         const meta = buildStickyColumnMeta(essentialCols, true, true);
-        expect(meta.get('__actions__')).toEqual({ right: 0, zIndex: 14, width: 96 });
+        expect(meta.get('__actions__')).toEqual({ right: 0, zIndex: 4, width: 96 });
         const props = stickyActionsCellProps(meta, { isHeader: true });
         expect(props.className).toContain('activity-table-sticky-right');
         expect(props.style?.right).toBe(0);
+        expect(props.style?.zIndex).toBe(24);
     });
 
     it('exports expected pinned keys', () => {
