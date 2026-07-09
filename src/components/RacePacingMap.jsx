@@ -3,8 +3,8 @@
  * Mini-kaart voor Race Pacing: toont geselecteerde klimmen + OSRM fietsroute ertussen.
  */
 
-import React, { useEffect, useRef, useCallback } from 'react';
-import L from 'leaflet';
+import React, { useEffect, useRef } from 'react';
+import { useLeaflet } from '../hooks/useLeaflet';
 
 // OSRM public cycling endpoint (geen API key nodig)
 const OSRM_BASE = 'https://router.project-osrm.org/route/v1/cycling';
@@ -17,7 +17,7 @@ const CAT_COLORS = {
     '4': '#22c55e',
 };
 
-const numberIcon = (n, catColor) => L.divIcon({
+const numberIcon = (L, n, catColor) => L.divIcon({
     className: '',
     html: `<div style="
         width: 26px; height: 26px;
@@ -53,6 +53,7 @@ const fetchOsrmRoute = async (from, to) => {
 };
 
 const RacePacingMap = ({ climbs }) => {
+    const L = useLeaflet();
     const mapRef = useRef(null);
     const mapInstanceRef = useRef(null);
     const layersRef = useRef([]);
@@ -60,7 +61,7 @@ const RacePacingMap = ({ climbs }) => {
 
     // Init kaart
     useEffect(() => {
-        if (!mapRef.current || mapInstanceRef.current) return;
+        if (!L || !mapRef.current || mapInstanceRef.current) return;
 
         const map = L.map(mapRef.current, {
             zoomControl: true,
@@ -77,12 +78,12 @@ const RacePacingMap = ({ climbs }) => {
             map.remove();
             mapInstanceRef.current = null;
         };
-    }, []);
+    }, [L]);
 
     // Herbouw markers + routes bij klimwijziging
     useEffect(() => {
         const map = mapInstanceRef.current;
-        if (!map) return;
+        if (!L || !map) return;
 
         abortRef.current = false;
 
@@ -105,7 +106,7 @@ const RacePacingMap = ({ climbs }) => {
             })();
 
             const marker = L.marker([climb.lat, climb.lon], {
-                icon: numberIcon(idx + 1, CAT_COLORS[label] || '#94a3b8'),
+                icon: numberIcon(L, idx + 1, CAT_COLORS[label] || '#94a3b8'),
                 zIndexOffset: 500,
             })
                 .bindPopup(
@@ -159,13 +160,16 @@ const RacePacingMap = ({ climbs }) => {
         drawRoutes();
 
         return () => { abortRef.current = true; };
-    }, [climbs]);
+    }, [L, climbs]);
 
     return (
         <div
             ref={mapRef}
             style={{ height: '320px', width: '100%' }}
-            className="rounded-b-lg"
+            className={`rounded-b-lg ${L ? '' : 'cd-skeleton'}`}
+            role={L ? undefined : 'status'}
+            aria-busy={L ? undefined : true}
+            aria-label={L ? undefined : 'Loading map…'}
         />
     );
 };

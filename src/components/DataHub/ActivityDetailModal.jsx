@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { X, Calendar, Clock, MapPin, Zap, ExternalLink, Mountain, TrendingUp, Loader2, AlertCircle, Star, Bike, Trophy, Crown } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
 import { activityIntensityFactor } from '../../utils/activityFilterMetrics';
-import StravaMap from './StravaMap';
 import { formatSegmentTime } from '../../utils/strava';
 import ModalPortal from '../ui/ModalPortal';
+
+const StravaMap = lazy(() => import('./StravaMap'));
 
 // Strava logo SVG
 const StravaIcon = ({ size = 14 }) => (
@@ -228,7 +229,18 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp }) 
                                     {polyline && (
                                         <div>
                                             <div className="text-[10px] text-cdmuted uppercase font-bold mb-2">Route</div>
-                                            <StravaMap polyline={polyline} />
+                                            <Suspense
+                                                fallback={(
+                                                    <div
+                                                        className="h-[200px] cd-skeleton rounded-lg"
+                                                        role="status"
+                                                        aria-busy="true"
+                                                        aria-label="Loading map…"
+                                                    />
+                                                )}
+                                            >
+                                                <StravaMap polyline={polyline} />
+                                            </Suspense>
                                         </div>
                                     )}
 
