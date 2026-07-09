@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useEffect } from 'react';
+﻿import React, { useState, useMemo, useEffect, Suspense, lazy } from 'react';
 import { safeSessionStorageSet } from '../utils/safeStorage.js';
 import { calculateBassettCorrection } from '../utils';
 import {
@@ -8,10 +8,12 @@ import {
     filterActivitiesByDashboardTimeRange,
 } from '../utils/dashboardActivityWindow';
 import OverviewTab from './dashboard/OverviewTab';
-import FormTab from './dashboard/FormTab';
-import PowerTab from './dashboard/PowerTab';
-import DistanceTab from './dashboard/DistanceTab';
-import VolumeTotalsTab from './dashboard/VolumeTotalsTab';
+import { SkeletonChartCard } from './ui/Skeleton';
+
+const FormTab = lazy(() => import('./dashboard/FormTab'));
+const PowerTab = lazy(() => import('./dashboard/PowerTab'));
+const DistanceTab = lazy(() => import('./dashboard/DistanceTab'));
+const VolumeTotalsTab = lazy(() => import('./dashboard/VolumeTotalsTab'));
 
 const DASH_SUBTAB_STORAGE_KEY = 'cpl.dashboard.subTab.v1';
 
@@ -215,54 +217,58 @@ const Dashboard = ({
                 </div>
             )}
 
-            {dashboardTab === 'form' && (
-                <div role="tabpanel" id="tabpanel-form" aria-labelledby="tab-form">
-                    <FormTab
-                        data={filteredData}
-                        customTicks={customTicks}
-                    />
-                </div>
-            )}
+            {dashboardTab !== 'overview' && (
+                <Suspense fallback={<SkeletonChartCard className="mt-2" />}>
+                    {dashboardTab === 'form' && (
+                        <div role="tabpanel" id="tabpanel-form" aria-labelledby="tab-form">
+                            <FormTab
+                                data={filteredData}
+                                customTicks={customTicks}
+                            />
+                        </div>
+                    )}
 
-            {dashboardTab === 'power' && (
-                <div role="tabpanel" id="tabpanel-power" aria-labelledby="tab-power">
-                    <PowerTab
-                        data={filteredData}
-                        customTicks={customTicks}
-                        chartData={chartData}
-                        manualFtp={manualFtp}
-                        timeRange={timeRange}
-                        customStart={customStart}
-                        customEnd={customEnd}
-                        referenceEndDate={referenceEndDate}
-                        weightKg={userWeightKg}
-                        onOpenActivityInLog={onOpenActivityInLog}
-                    />
-                </div>
-            )}
+                    {dashboardTab === 'power' && (
+                        <div role="tabpanel" id="tabpanel-power" aria-labelledby="tab-power">
+                            <PowerTab
+                                data={filteredData}
+                                customTicks={customTicks}
+                                chartData={chartData}
+                                manualFtp={manualFtp}
+                                timeRange={timeRange}
+                                customStart={customStart}
+                                customEnd={customEnd}
+                                referenceEndDate={referenceEndDate}
+                                weightKg={userWeightKg}
+                                onOpenActivityInLog={onOpenActivityInLog}
+                            />
+                        </div>
+                    )}
 
-            {dashboardTab === 'distance' && (
-                <div role="tabpanel" id="tabpanel-distance" aria-labelledby="tab-distance">
-                    <DistanceTab
-                        chartData={chartData}
-                        timeRange={timeRange}
-                        customStart={customStart}
-                        customEnd={customEnd}
-                        referenceEndDate={referenceEndDate}
-                        onOpenActivityInLog={onOpenActivityInLog}
-                    />
-                </div>
-            )}
+                    {dashboardTab === 'distance' && (
+                        <div role="tabpanel" id="tabpanel-distance" aria-labelledby="tab-distance">
+                            <DistanceTab
+                                chartData={chartData}
+                                timeRange={timeRange}
+                                customStart={customStart}
+                                customEnd={customEnd}
+                                referenceEndDate={referenceEndDate}
+                                onOpenActivityInLog={onOpenActivityInLog}
+                            />
+                        </div>
+                    )}
 
-            {dashboardTab === 'volume' && (
-                <div role="tabpanel" id="tabpanel-volume" aria-labelledby="tab-volume">
-                    <VolumeTotalsTab
-                        data={filteredData}
-                        comparePrevPeriodActivities={volumeComparePrevPeriodActivities}
-                        comparePrevYearActivities={volumeComparePrevYearActivities}
-                        onOpenActivityLogDateRange={onOpenActivityLogDateRange}
-                    />
-                </div>
+                    {dashboardTab === 'volume' && (
+                        <div role="tabpanel" id="tabpanel-volume" aria-labelledby="tab-volume">
+                            <VolumeTotalsTab
+                                data={filteredData}
+                                comparePrevPeriodActivities={volumeComparePrevPeriodActivities}
+                                comparePrevYearActivities={volumeComparePrevYearActivities}
+                                onOpenActivityLogDateRange={onOpenActivityLogDateRange}
+                            />
+                        </div>
+                    )}
+                </Suspense>
             )}
         </div>
     );
