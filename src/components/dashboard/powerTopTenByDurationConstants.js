@@ -1,3 +1,5 @@
+import { formatDateDDMMYYYY } from '../../utils/formatters';
+
 export const DURATION_TARGETS = [
     { sec: 60, label: '1 min' },
     { sec: 300, label: '5 min' },
@@ -16,8 +18,8 @@ export const COMPARE_OPTIONS = [
 
 export function formatLongRange(bounds) {
     if (!bounds) return '';
-    const opts = { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' };
-    const a = bounds.start.toLocaleDateString('en-GB', opts);
-    const b = bounds.end.toLocaleDateString('en-GB', opts);
+    const a = formatDateDDMMYYYY(bounds.start);
+    const b = formatDateDDMMYYYY(bounds.end);
+    if (a === '-' || b === '-') return '';
     return `${a} — ${b}`;
 }

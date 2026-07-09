@@ -88,7 +88,7 @@ const TrainingGoalPlanner = ({ activities, userSettings, startDate, endDate, onO
                         value={goalDate}
                         onChange={(v) => v && setGoalDate(v)}
                         className="w-full bg-cdborder border border-cdborder rounded-lg px-3 py-2 text-cdtext"
-                        aria-label="Target date (dd/mm/yyyy)"
+                        aria-label="Target date (dd-mm-jjjj)"
                     />
 
                     <div className="flex gap-2">

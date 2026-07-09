@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Activity, Settings, LogIn, LogOut, User, Cloud, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { safeLocalStorageSet } from '../utils/safeStorage.js';
+import { formatDateTimeNl } from '../utils/formatters';
 import { logout } from '../firebase';
 import { runGoogleSignIn, googleSignInErrorMessage } from '../utils/googleSignIn';
 import { IconButton, cn } from './ui';
@@ -18,20 +19,17 @@ function initialsFromUser(user) {
 function formatUpdatedAt(dateToDisplay) {
     if (!dateToDisplay) return null;
     const d = new Date(dateToDisplay);
+    if (Number.isNaN(d.getTime())) return null;
     const today = new Date();
     const isToday = d.getDate() === today.getDate()
         && d.getMonth() === today.getMonth()
         && d.getFullYear() === today.getFullYear();
 
     if (isToday) {
-        return `Today, ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
+        const timePart = d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+        return `Today, ${timePart}`;
     }
-    return d.toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
+    return formatDateTimeNl(d);
 }
 
 const Header = ({ userSettings, onOpenSettings, user, syncStatus, lastActivityDate }) => {

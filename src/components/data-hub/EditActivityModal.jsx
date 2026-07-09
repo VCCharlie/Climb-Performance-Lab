@@ -106,7 +106,7 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                                 value={formData.date ? new Date(formData.date).toISOString().split('T')[0] : ''}
                                 onChange={(v) => v && setFormData((prev) => ({ ...prev, date: v }))}
                                 className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none"
-                                aria-label="Activity date (dd/mm/yyyy)"
+                                aria-label="Activity date (dd-mm-jjjj)"
                             />
                         </div>
 

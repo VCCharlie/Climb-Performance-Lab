@@ -133,8 +133,8 @@ const SyncTab = ({ intervalsConfig, existingActivities, onSyncResults, getStrava
             </h3>
 
             <div className="grid grid-cols-2 gap-4">
-                <div><span className="text-xs text-cdmuted block mb-1">From</span><NlDateInput value={syncDates.start} onChange={(v) => setSyncDates((s) => ({ ...s, start: v }))} className="w-full bg-cdsurface border border-cdborder rounded p-2 text-cdtext text-sm" aria-label="Sync from (dd/mm/yyyy)" /></div>
-                <div><span className="text-xs text-cdmuted block mb-1">To</span><NlDateInput value={syncDates.end} onChange={(v) => setSyncDates((s) => ({ ...s, end: v }))} className="w-full bg-cdsurface border border-cdborder rounded p-2 text-cdtext text-sm" aria-label="Sync to (dd/mm/yyyy)" /></div>
+                <div><span className="text-xs text-cdmuted block mb-1">From</span><NlDateInput value={syncDates.start} onChange={(v) => setSyncDates((s) => ({ ...s, start: v }))} className="w-full bg-cdsurface border border-cdborder rounded p-2 text-cdtext text-sm" aria-label="Sync from (dd-mm-jjjj)" /></div>
+                <div><span className="text-xs text-cdmuted block mb-1">To</span><NlDateInput value={syncDates.end} onChange={(v) => setSyncDates((s) => ({ ...s, end: v }))} className="w-full bg-cdsurface border border-cdborder rounded p-2 text-cdtext text-sm" aria-label="Sync to (dd-mm-jjjj)" /></div>
             </div>
 
             <div>

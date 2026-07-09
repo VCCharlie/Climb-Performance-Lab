@@ -2,7 +2,7 @@
 import { Brain, TrendingUp, AlertTriangle, Calendar, CheckCircle, Activity, Battery, Download, Target, ListChecks, GitCompareArrows } from 'lucide-react';
 import { buildCoachPlan, COACH_GOAL_OPTIONS, COACH_WORKOUT_LIBRARY } from '../utils/swotCoachPlan';
 import { buildPeriodComparison } from '../utils/swotPeriodCompare';
-import { normalizeDate } from '../utils/formatters';
+import { normalizeDate, formatDateDDMMYYYY } from '../utils/formatters';
 
 /** moving_time: seconden (number) of "H:MM:SS" uit CSV */
 function movingTimeToSeconds(val) {
@@ -63,9 +63,8 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
         const intensityHigh   = Math.round(8  * periodDays / 30);  // te veel intensiteit
         const intensityLow    = Math.round(2  * periodDays / 30);  // te weinig intensiteit
 
-        const fmtOpts = { day: 'numeric', month: 'short', year: 'numeric' };
         const periodLabel = (startDate || endDate)
-            ? `${startD.toLocaleDateString('nl-NL', fmtOpts)} – ${endD.toLocaleDateString('nl-NL', fmtOpts)}`
+            ? `${formatDateDDMMYYYY(startD)} – ${formatDateDDMMYYYY(endD)}`
             : 'last 30 days';
 
         const periodScope =

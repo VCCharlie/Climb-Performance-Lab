@@ -54,31 +54,56 @@ export const normalizeDate = (dateStr) => {
 
 export const formatDateDDMMYYYY = (isoString) => {
     if (!isoString) return '-';
+    if (isoString instanceof Date) {
+        if (Number.isNaN(isoString.getTime())) return '-';
+        const y = isoString.getFullYear();
+        const m = String(isoString.getMonth() + 1).padStart(2, '0');
+        const d = String(isoString.getDate()).padStart(2, '0');
+        return `${d}-${m}-${y}`;
+    }
+    const str = String(isoString);
+    const ymd = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (ymd) {
+        return `${ymd[3]}-${ymd[2]}-${ymd[1]}`;
+    }
     try {
         const d = new Date(isoString);
-        // Forceer nl-NL: "09-02-2026"
+        if (Number.isNaN(d.getTime())) return str;
         return d.toLocaleDateString(NL_LOCALE, {
             day: '2-digit',
             month: '2-digit',
-            year: 'numeric'
+            year: 'numeric',
         });
     } catch {
-        return isoString;
+        return str;
     }
 };
 
 /**
- * ISO date (YYYY-MM-DD) → display for text inputs: dd/mm/jjjj
+ * ISO date (YYYY-MM-DD) → Dutch display dd-mm-jjjj (same as formatDateDDMMYYYY).
  * @param {string | null | undefined} isoYmd
  * @returns {string}
  */
 export function formatIsoToNlDmy(isoYmd) {
     if (!isoYmd || typeof isoYmd !== 'string' || isoYmd.length < 10) return '';
-    const y = isoYmd.slice(0, 4);
-    const m = isoYmd.slice(5, 7);
-    const d = isoYmd.slice(8, 10);
-    if (!/^\d{4}$/.test(y) || !/^\d{2}$/.test(m) || !/^\d{2}$/.test(d)) return '';
-    return `${d}/${m}/${y}`;
+    const formatted = formatDateDDMMYYYY(isoYmd.slice(0, 10));
+    return formatted === '-' ? '' : formatted;
+}
+
+/**
+ * Date + time for UI labels (Dutch calendar order).
+ * @param {string | Date | number} value
+ * @returns {string}
+ */
+export function formatDateTimeNl(value) {
+    if (!value) return '—';
+    const d = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(d.getTime())) return '—';
+    const datePart = formatDateDDMMYYYY(
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
+    );
+    const timePart = d.toLocaleTimeString(NL_LOCALE, { hour: '2-digit', minute: '2-digit' });
+    return `${datePart}, ${timePart}`;
 }
 
 /**
