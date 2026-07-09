@@ -5,6 +5,7 @@ import {
     filterActivitiesByDaysBeforeEnd,
     filterActivitiesCalendarYear,
     dashboardFilterLabel,
+    buildAnchorsCache,
 } from '../../utils/powerDurationTable';
 import { formatDateDDMMYYYY } from '../../utils';
 import { activityExternalLinks } from '../../utils/dashboardActivityPeaks';
@@ -74,6 +75,7 @@ const PowerDurationTable = ({
         const allActs = chartData || [];
         const seasonActs = filterActivitiesCalendarYear(chartData, y);
         const lastSeasonActs = filterActivitiesCalendarYear(chartData, prevY);
+        const anchorsCache = buildAnchorsCache(chartData, manualFtp);
 
         return COL_STYLES.map((c) => {
             let acts = [];
@@ -92,7 +94,7 @@ const PowerDurationTable = ({
                 label = `Season ${prevY}`;
             } else acts = allActs;
 
-            const curveWithSrc = powerCurveWithSources(acts, manualFtp);
+            const curveWithSrc = powerCurveWithSources(acts, manualFtp, anchorsCache);
             return { ...c, displayLabel: label, curveWithSrc, actCount: acts.length };
         });
     }, [chartData, filteredData, manualFtp, timeRange, refEnd]);

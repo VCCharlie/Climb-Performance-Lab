@@ -110,17 +110,40 @@ export function buildAnchorsForActivity(activity, manualFtp) {
 }
 
 /**
+ * Pre-compute anchors per activity id — avoids rebuilding anchors inside nested duration loops.
+ * @returns {Map<string, Array<{ sec: number, w: number }>>}
+ */
+export function buildAnchorsCache(activities, manualFtp) {
+    const cache = new Map();
+    for (const a of activities || []) {
+        const id = a?.id != null ? String(a.id) : null;
+        if (!id) continue;
+        cache.set(id, buildAnchorsForActivity(a, manualFtp));
+    }
+    return cache;
+}
+
+function anchorsForActivity(a, manualFtp, anchorsCache) {
+    if (anchorsCache) {
+        const id = a?.id != null ? String(a.id) : null;
+        if (id && anchorsCache.has(id)) return anchorsCache.get(id);
+    }
+    return buildAnchorsForActivity(a, manualFtp);
+}
+
+/**
  * @returns {Record<string, { watts: number|null, activity: object|null }>}
  * Per duur: sterkste rit (max over ritten van geïnterpoleerd vermogen) + bronactiviteit.
+ * @param {Map<string, Array<{ sec: number, w: number }>>} [anchorsCache] optional pre-built cache from buildAnchorsCache
  */
-export function powerCurveWithSources(activities, manualFtp) {
+export function powerCurveWithSources(activities, manualFtp, anchorsCache = null) {
     const list = activities || [];
     const out = {};
     for (const row of POWER_DURATION_ROWS) {
         let bestW = null;
         let bestAct = null;
         for (const a of list) {
-            const anchors = buildAnchorsForActivity(a, manualFtp);
+            const anchors = anchorsForActivity(a, manualFtp, anchorsCache);
             if (row.sec > maxAnchorSec(anchors)) continue;
             const w = interpolatePowerAt(anchors, row.sec);
             if (w == null) continue;
@@ -176,8 +199,8 @@ export function filterActivitiesCalendarYear(activities, year) {
 /**
  * @returns {Record<string, number|null>} map row label -> watts
  */
-export function powerCurveForWindow(activities, manualFtp) {
-    const src = powerCurveWithSources(activities, manualFtp);
+export function powerCurveForWindow(activities, manualFtp, anchorsCache = null) {
+    const src = powerCurveWithSources(activities, manualFtp, anchorsCache);
     const out = {};
     for (const row of POWER_DURATION_ROWS) {
         out[row.label] = src[row.label]?.watts ?? null;
@@ -202,12 +225,12 @@ export function dashboardFilterLabel(timeRange) {
 /**
  * Top-N strongest interpolated power moments (same anchors as power-duration matrix).
  */
-export function computeTopPowerMoments(activities, manualFtp, limit = 10) {
+export function computeTopPowerMoments(activities, manualFtp, limit = 10, anchorsCache = null) {
     if (!activities?.length || limit <= 0) return [];
 
     const candidates = [];
     for (const a of activities) {
-        const anchors = buildAnchorsForActivity(a, manualFtp);
+        const anchors = anchorsForActivity(a, manualFtp, anchorsCache);
         if (anchors.length === 0) continue;
         for (const row of POWER_DURATION_ROWS) {
             if (row.sec > maxAnchorSec(anchors)) continue;
@@ -245,14 +268,14 @@ export function computeTopPowerMoments(activities, manualFtp, limit = 10) {
  * @param {{ requireAnchorBeyondSec?: number }} [opts] — alleen ritten waarvan de langste anker ≥ deze sec (bijv. 7200 voor 120 min).
  * @returns {Array<{ activity: object, watts: number }>}
  */
-export function topNInterpolatedAtSec(activities, manualFtp, sec, limit = 10, opts = {}) {
+export function topNInterpolatedAtSec(activities, manualFtp, sec, limit = 10, opts = {}, anchorsCache = null) {
     if (!activities?.length || limit <= 0 || sec <= 0) return [];
     const needAnchor = opts.requireAnchorBeyondSec != null && opts.requireAnchorBeyondSec > 0
         ? opts.requireAnchorBeyondSec
         : null;
     const list = [];
     for (const a of activities) {
-        const anchors = buildAnchorsForActivity(a, manualFtp);
+        const anchors = anchorsForActivity(a, manualFtp, anchorsCache);
         if (needAnchor != null && maxAnchorSec(anchors) < needAnchor) continue;
         const w = interpolatePowerAt(anchors, sec);
         if (w == null || w <= 0) continue;

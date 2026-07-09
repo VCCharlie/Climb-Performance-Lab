@@ -7,6 +7,7 @@ import {
     computeTopPowerMoments,
     topNInterpolatedAtSec,
     buildAnchorsForActivity,
+    buildAnchorsCache,
 } from '../../utils/powerDurationTable';
 
 describe('interpolatePowerAt', () => {
@@ -130,6 +131,28 @@ describe('topNInterpolatedAtSec', () => {
         const long = { ...short, id: 'long', moving_time: 8000, avg_power: 200, norm_power: 210 };
         const top = topNInterpolatedAtSec([short, long], 250, 7200, 10, { requireAnchorBeyondSec: 7200 });
         expect(top.every((r) => r.activity.id === 'long')).toBe(true);
+    });
+});
+
+describe('buildAnchorsCache', () => {
+    it('reuses cached anchors in powerCurveWithSources', () => {
+        const acts = [
+            {
+                id: 'a',
+                date: '2026-01-01',
+                max_power: 800,
+                best_1min: 450,
+                best_5min: 350,
+                best_10min: 320,
+                best_20min: 300,
+                best_60min: 270,
+            },
+        ];
+        const cache = buildAnchorsCache(acts, 250);
+        const fromCache = powerCurveWithSources(acts, 250, cache);
+        const fresh = powerCurveWithSources(acts, 250);
+        expect(fromCache['5m'].watts).toBe(fresh['5m'].watts);
+        expect(fromCache['5m'].activity.id).toBe('a');
     });
 });
 

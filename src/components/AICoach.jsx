@@ -2,6 +2,7 @@
 import { Brain, TrendingUp, AlertTriangle, Calendar, CheckCircle, Activity, Battery, Download, Target, ListChecks, GitCompareArrows } from 'lucide-react';
 import { buildCoachPlan, COACH_GOAL_OPTIONS, COACH_WORKOUT_LIBRARY } from '../utils/swotCoachPlan';
 import { buildPeriodComparison } from '../utils/swotPeriodCompare';
+import { normalizeDate } from '../utils/formatters';
 
 /** moving_time: seconden (number) of "H:MM:SS" uit CSV */
 function movingTimeToSeconds(val) {
@@ -37,9 +38,19 @@ const AICoach = ({ activities, userSettings, startDate, endDate }) => {
             return d;
         })();
 
-        const periodActivities = activities.filter(a => {
-            const d = new Date(a.date);
-            return d >= startD && d <= endD;
+        const toLocalYmd = (d) => {
+            const yy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            return `${yy}-${mm}-${dd}`;
+        };
+        const startYmd = startDate ? normalizeDate(startDate) : toLocalYmd(startD);
+        const endYmd = endDate ? normalizeDate(endDate) : toLocalYmd(endD);
+
+        const periodActivities = activities.filter((a) => {
+            const dStr = normalizeDate(a.date);
+            if (!dStr || dStr.length < 10) return false;
+            return dStr >= startYmd && dStr <= endYmd;
         });
 
         const periodDays = Math.max(1, (endD - startD) / (1000 * 60 * 60 * 24));

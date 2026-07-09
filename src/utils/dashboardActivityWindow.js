@@ -3,11 +3,74 @@
  * Eindigt op referenceEndDate (EOD); start = zelfde rolling/cutoff als site-preset.
  */
 
+import { normalizeDate } from './formatters';
 import {
     activityDistanceKm,
     activityAvgSpeedKmh,
     activityMovingTimeSec,
 } from './activityFilterMetrics';
+
+function toLocalYmd(d) {
+    const x = new Date(d);
+    if (Number.isNaN(x.getTime())) return '';
+    const m = `${x.getMonth() + 1}`.padStart(2, '0');
+    const day = `${x.getDate()}`.padStart(2, '0');
+    return `${x.getFullYear()}-${m}-${day}`;
+}
+
+/**
+ * YMD bounds for the Dashboard time-range preset (string comparison, no per-row Date allocation).
+ * @returns {{ mode: 'range', startYmd: string, endYmd: string } | { mode: 'since', startYmd: string } | null}
+ *   null = custom range with no start → include all activities
+ */
+export function getDashboardFilterBoundsYmd(timeRange, customStart, customEnd) {
+    if (timeRange === 'Custom') {
+        if (!customStart) return null;
+        const startYmd = normalizeDate(customStart);
+        let endYmd;
+        if (customEnd) {
+            endYmd = normalizeDate(customEnd);
+        } else {
+            endYmd = toLocalYmd(new Date());
+        }
+        return { mode: 'range', startYmd, endYmd };
+    }
+
+    const cutoffDate = new Date();
+    cutoffDate.setHours(0, 0, 0, 0);
+
+    if (timeRange === '1M') cutoffDate.setMonth(cutoffDate.getMonth() - 1);
+    else if (timeRange === '3M') cutoffDate.setMonth(cutoffDate.getMonth() - 3);
+    else if (timeRange === '6M') cutoffDate.setMonth(cutoffDate.getMonth() - 6);
+    else if (timeRange === '1Y') cutoffDate.setFullYear(cutoffDate.getFullYear() - 1);
+    else if (timeRange === '3Y') cutoffDate.setFullYear(cutoffDate.getFullYear() - 3);
+    else if (timeRange === '6Y') cutoffDate.setFullYear(cutoffDate.getFullYear() - 6);
+    else if (timeRange === 'ALL') return { mode: 'since', startYmd: '2000-01-01' };
+    else cutoffDate.setMonth(cutoffDate.getMonth() - 12);
+
+    return { mode: 'since', startYmd: toLocalYmd(cutoffDate) };
+}
+
+/**
+ * Filter raw activities to the Dashboard time-range before expensive enrich passes.
+ */
+export function filterActivitiesByDashboardTimeRange(activities, timeRange, customStart, customEnd) {
+    const list = activities || [];
+    if (!list.length) return [];
+
+    const bounds = getDashboardFilterBoundsYmd(timeRange, customStart, customEnd);
+    if (!bounds) return list;
+
+    return list.filter((a) => {
+        if (!a?.date) return false;
+        const dStr = normalizeDate(a.date);
+        if (!dStr || dStr.length < 10) return false;
+        if (bounds.mode === 'range') {
+            return dStr >= bounds.startYmd && dStr <= bounds.endYmd;
+        }
+        return dStr >= bounds.startYmd;
+    });
+}
 
 /**
  * @returns {{ start: Date, end: Date } | null}

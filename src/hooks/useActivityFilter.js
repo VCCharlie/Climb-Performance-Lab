@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 
 import { MONTH_ORDER } from '../config';
+import { normalizeDate } from '../utils/formatters';
 import {
     activityDistanceKm,
     activityMovingTimeSec,
@@ -33,14 +34,12 @@ function startOfToday() {
     return d;
 }
 
-function parseActivityDate(a) {
-    if (!a?.date) return null;
-    try {
-        const d = new Date(a.date);
-        return Number.isNaN(d.getTime()) ? null : d;
-    } catch {
-        return null;
-    }
+function toLocalYmd(d) {
+    const x = new Date(d);
+    if (Number.isNaN(x.getTime())) return '';
+    const m = `${x.getMonth() + 1}`.padStart(2, '0');
+    const day = `${x.getDate()}`.padStart(2, '0');
+    return `${x.getFullYear()}-${m}-${day}`;
 }
 
 const useActivityFilter = (activities, profileFtp) => {
@@ -179,13 +178,17 @@ const useActivityFilter = (activities, profileFtp) => {
             if (effectiveIndoor === 'outdoor' && ['VirtualRide', 'VirtualRun'].includes(a.type)) return false;
 
             if (thisWeekOnly && weekRange) {
-                const ad = parseActivityDate(a);
-                if (!ad || ad < weekRange.start || ad > weekRange.end) return false;
+                const dStr = normalizeDate(a.date);
+                if (!dStr || dStr.length < 10) return false;
+                const weekStartYmd = toLocalYmd(weekRange.start);
+                const weekEndYmd = toLocalYmd(weekRange.end);
+                if (dStr < weekStartYmd || dStr > weekEndYmd) return false;
             }
 
             if (rollingStart) {
-                const ad = parseActivityDate(a);
-                if (!ad || ad < rollingStart) return false;
+                const dStr = normalizeDate(a.date);
+                if (!dStr || dStr.length < 10) return false;
+                if (dStr < toLocalYmd(rollingStart)) return false;
             }
 
             if (stravaLinkedOnly && !a.strava_id) return false;

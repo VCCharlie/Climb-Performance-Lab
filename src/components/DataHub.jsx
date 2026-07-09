@@ -284,13 +284,13 @@ const DataHub = ({
 
     const profilerClimbByActivityId = useMemo(() => {
         const map = new Map();
-        for (const a of activities || []) {
+        for (const a of processedActivities || []) {
             if (!a?.id || !a.title) continue;
             const c = findBestClimbUsingIndex(a.title, climbMatchIndex);
             if (c) map.set(String(a.id), c);
         }
         return map;
-    }, [activities, climbMatchIndex]);
+    }, [processedActivities, climbMatchIndex]);
 
     const visibleActivityIdsFlat = useMemo(() => {
         if (!processedActivities?.length) return [];

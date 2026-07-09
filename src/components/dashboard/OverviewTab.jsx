@@ -12,7 +12,7 @@ import VolumeGoalsPanel from './VolumeGoalsPanel';
  */
 const OverviewTab = ({
     data,
-    chartData,
+    allActivities,
     manualFtp,
     customTicks,
     onOpenActivityInLog,
@@ -32,7 +32,7 @@ const OverviewTab = ({
         <div className="space-y-6 animate-in fade-in duration-300">
             {userSettings && updateUserSettings && (
                 <VolumeGoalsPanel
-                    chartData={chartData || data}
+                    chartData={allActivities || data}
                     userSettings={userSettings}
                     updateUserSettings={updateUserSettings}
                     cloudVolumeGoalsSynced={cloudVolumeGoalsSynced}
