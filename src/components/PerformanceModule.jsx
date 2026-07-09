@@ -229,8 +229,12 @@ const PerformanceModule = ({
     );
 
     // ⚡ Bolt: Memoize chart series with dateNum — inline .map() in JSX ran on every render (200+ points).
+    // Guard invalid/missing dates so Recharts never receives NaN axis values (production crash hardening).
     const chartSeries = React.useMemo(
-        () => filteredData.map((d) => ({ ...d, dateNum: new Date(d.date).getTime() })),
+        () => filteredData.map((d) => {
+            const ts = d?.date ? new Date(d.date).getTime() : Number.NaN;
+            return { ...d, dateNum: Number.isFinite(ts) ? ts : null };
+        }),
         [filteredData],
     );
 

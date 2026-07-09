@@ -102,6 +102,10 @@ const App = () => {
         if (saved) {
             try {
                 const parsed = JSON.parse(saved);
+                // Corrupt localStorage (non-object JSON) must not crash the app on spread.
+                if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+                    return defaults;
+                }
                 return { ...defaults, ...parsed, volumeGoals: mergeVolumeGoals(parsed.volumeGoals) };
             } catch { /* */ }
         }
