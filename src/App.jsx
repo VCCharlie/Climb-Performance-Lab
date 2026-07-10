@@ -15,6 +15,11 @@ import {
     userSettingsForCloud,
     mergeUserSettingsFromCloud,
 } from './utils/settingsCloudMerge';
+import {
+    hasStravaOAuthReturnInUrl,
+    hasPendingStravaOAuthState,
+    stripStravaOAuthParamsFromUrl,
+} from './utils/stravaOAuthUrl.js';
 
 // Shell components (eager — needed for first paint and navigation)
 import Header from './components/Header';
@@ -451,6 +456,13 @@ const App = () => {
         return () => unsubscribe();
     }, [applySignedOutSessionWipe]);
 
+    // Drop stale Strava ?code= params (e.g. after logout) so Google sign-in is not blocked.
+    useEffect(() => {
+        if (!hasStravaOAuthReturnInUrl()) return;
+        if (hasPendingStravaOAuthState()) return;
+        stripStravaOAuthParamsFromUrl();
+    }, []);
+
     // Strava OAuth callback: wait for Firebase session after redirect from Strava
     const stravaOAuthHandledRef = useRef(false);
     useEffect(() => {
@@ -462,10 +474,16 @@ const App = () => {
         if (!code) return;
 
         stravaOAuthHandledRef.current = true;
-        stravaAuth.handleOAuthCallback(code, state).catch((e) => {
-            console.error('Strava OAuth error:', e);
-            alert('Strava connection failed: ' + e.message);
-        });
+        stravaAuth.handleOAuthCallback(code, state)
+            .then((result) => {
+                if (result?.stale) {
+                    console.info('[Strava] Ignored stale OAuth redirect params in URL.');
+                }
+            })
+            .catch((e) => {
+                console.error('Strava OAuth error:', e);
+                alert('Strava connection failed: ' + e.message);
+            });
     }, [authReady, user, stravaAuth]);
 
     // 1. Settings Laden (One-time fetch) — signed-in only
