@@ -178,15 +178,7 @@ export function calendarElapsedRatio(range, ref = new Date()) {
     const endExclusive = new Date(ey, em - 1, ed + 1, 0, 0, 0, 0);
     const span = endExclusive.getTime() - start.getTime();
     if (span <= 0) return 1;
-    const now = new Date(
-        ref.getFullYear(),
-        ref.getMonth(),
-        ref.getDate(),
-        ref.getHours(),
-        ref.getMinutes(),
-        ref.getSeconds(),
-        ref.getMilliseconds(),
-    );
+    const now = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate(), 0, 0, 0, 0);
     const t = now.getTime() - start.getTime();
     return Math.min(1, Math.max(0, t / span));
 }
