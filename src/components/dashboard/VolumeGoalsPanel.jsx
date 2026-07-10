@@ -13,7 +13,11 @@ import { chartCardClass } from '../../utils/chartTheme';
 
 const PREVIEW_SCALE_MIN = 50;
 const PREVIEW_SCALE_MAX = 150;
-const PREVIEW_SCALE_STEP = 5;
+const PREVIEW_SCALE_STEP = 1;
+
+function clampPreviewScale(value) {
+    return Math.min(PREVIEW_SCALE_MAX, Math.max(PREVIEW_SCALE_MIN, Math.round(Number(value) || 100)));
+}
 
 /**
  * Compact preview scale control — inline in header (desktop) or slim row (mobile).
@@ -26,13 +30,17 @@ const PREVIEW_SCALE_STEP = 5;
  */
 function GoalPreviewScale({ id, value, onChange, previewActive, variant = 'header' }) {
     const isMobile = variant === 'mobile';
+    const nudge = (delta) => onChange(clampPreviewScale(value + delta));
+
+    const stepBtnClass =
+        'shrink-0 w-5 h-5 flex items-center justify-center rounded border border-cdborder/70 text-cdmuted hover:bg-cdborder/40 hover:text-cdtext text-[11px] font-bold leading-none cd-focus-ring';
 
     return (
         <div
             className={
                 isMobile
-                    ? 'flex items-center gap-2 w-full rounded-md border border-cdborder/60 bg-cdbg/40 px-2 py-1.5'
-                    : 'flex items-center gap-1.5 shrink-0 rounded-md border border-cdborder/60 bg-cdbg/40 px-2 py-1'
+                    ? 'flex items-center gap-1.5 w-full rounded-md border border-cdborder/60 bg-cdbg/40 px-2 py-1.5'
+                    : 'flex items-center gap-1 shrink-0 rounded-md border border-cdborder/60 bg-cdbg/40 px-1.5 py-1'
             }
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
@@ -41,11 +49,19 @@ function GoalPreviewScale({ id, value, onChange, previewActive, variant = 'heade
         >
             <span
                 className={`font-bold uppercase tracking-wide text-cdmuted whitespace-nowrap ${
-                    isMobile ? 'text-[9px] w-12' : 'text-[8px] hidden md:inline'
+                    isMobile ? 'text-[9px] w-11' : 'text-[8px] hidden md:inline'
                 }`}
             >
                 Preview
             </span>
+            <button
+                type="button"
+                className={stepBtnClass}
+                onClick={() => nudge(-1)}
+                aria-label="Decrease preview scale by 1 percent"
+            >
+                −
+            </button>
             <input
                 id={id}
                 type="range"
@@ -53,15 +69,23 @@ function GoalPreviewScale({ id, value, onChange, previewActive, variant = 'heade
                 max={PREVIEW_SCALE_MAX}
                 step={PREVIEW_SCALE_STEP}
                 value={value}
-                onChange={(e) => onChange(Number(e.target.value))}
+                onChange={(e) => onChange(clampPreviewScale(e.target.value))}
                 className={`accent-cdaccent cursor-pointer ${
-                    isMobile ? 'flex-1 min-w-0 h-1' : 'w-16 lg:w-20 h-1'
+                    isMobile ? 'flex-1 min-w-0 h-1.5' : 'w-20 lg:w-24 h-1.5'
                 }`}
                 aria-valuemin={PREVIEW_SCALE_MIN}
                 aria-valuemax={PREVIEW_SCALE_MAX}
                 aria-valuenow={value}
                 aria-label="Temporary goal preview scale; does not change saved settings"
             />
+            <button
+                type="button"
+                className={stepBtnClass}
+                onClick={() => nudge(1)}
+                aria-label="Increase preview scale by 1 percent"
+            >
+                +
+            </button>
             <span
                 className={`font-mono tabular-nums text-cdtext text-right shrink-0 ${
                     isMobile ? 'text-[10px] w-9' : 'text-[10px] w-8'
@@ -70,14 +94,16 @@ function GoalPreviewScale({ id, value, onChange, previewActive, variant = 'heade
                 {value}%
             </span>
             {previewActive ? (
-                <span
-                    className={`font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400 shrink-0 ${
+                <button
+                    type="button"
+                    className={`font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400 shrink-0 hover:underline cd-focus-ring ${
                         isMobile ? 'text-[8px]' : 'text-[7px] hidden xl:inline'
                     }`}
-                    title="Preview only — resets on refresh"
+                    title="Reset preview to 100%"
+                    onClick={() => onChange(100)}
                 >
-                    {isMobile ? 'Temp' : 'Session'}
-                </span>
+                    {isMobile ? 'Reset' : 'Reset'}
+                </button>
             ) : null}
         </div>
     );
