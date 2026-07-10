@@ -3,7 +3,10 @@
  * Strava OAuth via server-side token exchange (client secret stays on Cloud Run / GitHub Secrets).
  */
 import { useCallback } from 'react';
+import { doc, setDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase.js';
 import { safeLocalStorageSet, safeSessionStorageSet } from '../utils/safeStorage.js';
+import { stravaConfigForCloud } from '../utils/settingsCloudMerge.js';
 import {
     resolveStravaClientId,
     exchangeStravaCodeViaCloud,
@@ -12,6 +15,16 @@ import {
 } from '../services/stravaCloudApi.js';
 
 const STRAVA_AUTH_BASE = 'https://www.strava.com/oauth/authorize';
+
+async function syncStravaMetadataToCloud(stravaConfig) {
+    if (!auth?.currentUser || !db) return;
+    const settingsId = `user_${auth.currentUser.uid}`;
+    await setDoc(
+        doc(db, 'settings', settingsId),
+        { strava: stravaConfigForCloud(stravaConfig) },
+        { merge: true },
+    );
+}
 
 const useStravaAuth = (stravaConfig, setStravaConfig) => {
     const isConnected = !!(stravaConfig?.athlete_id);
@@ -60,6 +73,7 @@ const useStravaAuth = (stravaConfig, setStravaConfig) => {
         };
         setStravaConfig(updated);
         safeLocalStorageSet('stravaConfig', JSON.stringify(updated));
+        await syncStravaMetadataToCloud(updated);
 
         const url = new URL(window.location.href);
         url.searchParams.delete('code');
@@ -77,6 +91,7 @@ const useStravaAuth = (stravaConfig, setStravaConfig) => {
         const reset = {};
         setStravaConfig(reset);
         safeLocalStorageSet('stravaConfig', JSON.stringify(reset));
+        await syncStravaMetadataToCloud(reset);
     }, [setStravaConfig]);
 
     return { isConnected, connectStrava, disconnectStrava, handleOAuthCallback, getValidToken };
