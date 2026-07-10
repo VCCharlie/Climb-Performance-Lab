@@ -524,3 +524,8 @@ def sync_intervals(request):
 
     except Exception as e:
         return (jsonify({"error": f"Server error: {str(e)}"}), 500, cors_headers)
+
+
+# Cloud Run entry point for the strava-oauth service (--function strava_oauth).
+# functions-framework resolves FUNCTION_TARGET from main.py by default.
+from strava_oauth import strava_oauth  # noqa: F401
