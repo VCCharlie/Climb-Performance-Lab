@@ -8,6 +8,11 @@ import { auth, db } from '../firebase.js';
 import { safeLocalStorageSet, safeSessionStorageSet } from '../utils/safeStorage.js';
 import { stravaConfigForCloud } from '../utils/settingsCloudMerge.js';
 import {
+    STRAVA_OAUTH_STATE_KEY,
+    stripStravaOAuthParamsFromUrl,
+    clearPendingStravaOAuthState,
+} from '../utils/stravaOAuthUrl.js';
+import {
     resolveStravaClientId,
     exchangeStravaCodeViaCloud,
     fetchStravaAccessTokenViaCloud,
@@ -50,16 +55,24 @@ const useStravaAuth = (stravaConfig, setStravaConfig) => {
         const array = new Uint32Array(4);
         window.crypto.getRandomValues(array);
         const state = Array.from(array, (dec) => ('0' + dec.toString(16)).substr(-8)).join('');
-        safeSessionStorageSet('strava_oauth_state', state);
+        safeSessionStorageSet(STRAVA_OAUTH_STATE_KEY, state);
 
         const url = `${STRAVA_AUTH_BASE}?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=activity:read_all&approval_prompt=auto&state=${encodeURIComponent(state)}`;
         window.location.href = url;
     }, []);
 
     const handleOAuthCallback = useCallback(async (code, state) => {
-        const savedState = sessionStorage.getItem('strava_oauth_state');
-        sessionStorage.removeItem('strava_oauth_state');
+        const savedState = sessionStorage.getItem(STRAVA_OAUTH_STATE_KEY);
+        clearPendingStravaOAuthState();
+
+        if (!savedState) {
+            // Logout or new tab cleared sessionStorage — stale ?code= in URL after redirect.
+            stripStravaOAuthParamsFromUrl();
+            return { ok: false, stale: true };
+        }
+
         if (!state || state !== savedState) {
+            stripStravaOAuthParamsFromUrl();
             throw new Error('Invalid state parameter. Possible CSRF attack.');
         }
 
@@ -75,11 +88,8 @@ const useStravaAuth = (stravaConfig, setStravaConfig) => {
         safeLocalStorageSet('stravaConfig', JSON.stringify(updated));
         await syncStravaMetadataToCloud(updated);
 
-        const url = new URL(window.location.href);
-        url.searchParams.delete('code');
-        url.searchParams.delete('scope');
-        url.searchParams.delete('state');
-        window.history.replaceState({}, '', url.toString());
+        stripStravaOAuthParamsFromUrl();
+        return { ok: true, stale: false };
     }, [setStravaConfig]);
 
     const disconnectStrava = useCallback(async () => {
