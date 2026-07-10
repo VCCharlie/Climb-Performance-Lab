@@ -66,13 +66,13 @@ import { runGoogleSignIn, isGoogleSignInInProgress, googleSignInErrorMessage } f
 import { ActivitiesProvider, useActivitiesState } from './context/ActivitiesContext';
 import { ActivityLogNavigationProvider, useActivityLogNavigation } from './context/ActivityLogNavigationContext';
 
-function AppLoadingGate({ authReady, user, authBusy, onSignIn, children }) {
+function AppLoadingGate({ authReady, user, authBusy, authError, onSignIn, children }) {
     const { isLoading: activitiesLoading } = useActivitiesState();
     if (!authReady || (activitiesLoading && user)) {
         return <LoadingPanel />;
     }
     if (!user) {
-        return <SignInGate onSignIn={onSignIn} authBusy={authBusy} />;
+        return <SignInGate onSignIn={onSignIn} authBusy={authBusy} authError={authError} />;
     }
     return children;
 }
@@ -228,6 +228,7 @@ const App = () => {
     const [user, setUser] = useState(null);
     const [authReady, setAuthReady] = useState(false);
     const [authBusy, setAuthBusy] = useState(false);
+    const [authError, setAuthError] = useState(null);
     const [cloudSettingsHydrated, setCloudSettingsHydrated] = useState(false);
 
     // ⚡ Bolt: Stable ref so memo(Header) can skip re-renders when only unrelated state changes.
@@ -245,11 +246,17 @@ const App = () => {
 
     const handleSignIn = useCallback(async () => {
         if (authBusy) return;
+        if (hasStravaOAuthReturnInUrl() && !hasPendingStravaOAuthState()) {
+            stripStravaOAuthParamsFromUrl();
+        }
+        setAuthError(null);
         setAuthBusy(true);
         try {
             await runGoogleSignIn();
         } catch (err) {
-            window.alert(googleSignInErrorMessage(err));
+            const message = googleSignInErrorMessage(err);
+            setAuthError(message);
+            window.alert(message);
         } finally {
             setAuthBusy(false);
         }
@@ -428,6 +435,8 @@ const App = () => {
                 lastVolumeGoalsSyncedJsonRef.current = '';
                 setCloudSettingsHydrated(false);
                 if (isGoogleSignInInProgress()) {
+                    // Popup open — keep SignInGate visible; do not wipe session mid sign-in.
+                    setAuthReady(true);
                     return;
                 }
                 if (consumeExplicitSignOut()) {
@@ -473,6 +482,11 @@ const App = () => {
         const state = params.get('state');
         if (!code) return;
 
+        if (!hasPendingStravaOAuthState()) {
+            stripStravaOAuthParamsFromUrl();
+            return;
+        }
+
         stravaOAuthHandledRef.current = true;
         stravaAuth.handleOAuthCallback(code, state)
             .then((result) => {
@@ -485,6 +499,10 @@ const App = () => {
                 alert('Strava connection failed: ' + e.message);
             });
     }, [authReady, user, stravaAuth]);
+
+    useEffect(() => {
+        if (user) setAuthError(null);
+    }, [user]);
 
     // 1. Settings Laden (One-time fetch) — signed-in only
     useEffect(() => {
@@ -667,7 +685,7 @@ const App = () => {
                             />
                         )}
 
-                        <AppLoadingGate authReady={authReady} user={user} authBusy={authBusy} onSignIn={handleSignIn}>
+                        <AppLoadingGate authReady={authReady} user={user} authBusy={authBusy} authError={authError} onSignIn={handleSignIn}>
                             <div className="cd-enter">
                                 {activeTab === 'dashboard' && (
                                     <DashboardWithNavigation

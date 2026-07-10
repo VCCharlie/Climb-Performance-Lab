@@ -5,7 +5,7 @@ import { Button, Card } from './ui';
 /**
  * Shown when the user is signed out — replaces dashboard / activity content.
  */
-export default function SignInGate({ onSignIn, authBusy = false }) {
+export default function SignInGate({ onSignIn, authBusy = false, authError = null }) {
     return (
         <div className="flex items-center justify-center min-h-[calc(100dvh-5.5rem)] px-4 py-8">
             <Card variant="outlined" padding="lg" className="max-w-md w-full text-center">
@@ -17,6 +17,11 @@ export default function SignInGate({ onSignIn, authBusy = false }) {
                     Your activities, training settings, and sync data are tied to your Google account.
                     Sign in to load your dashboard and activity log.
                 </p>
+                {authError && (
+                    <p className="text-sm text-cdred mb-4 leading-relaxed" role="alert">
+                        {authError}
+                    </p>
+                )}
                 <Button
                     type="button"
                     fullWidth
