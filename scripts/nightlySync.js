@@ -17,11 +17,14 @@
  * Required environment variables:
  * FIREBASE_SERVICE_ACCOUNT  — Full JSON content of the Firebase service account key
  * INTERVALS_ATHLETE_ID      — e.g. "i34047"
- * INTERVALS_API_KEY         — Your Intervals.icu API key
+ * INTERVALS_API_KEY           — Your Intervals.icu API key
+ * STRAVA_CLIENT_ID            — Strava app client id (GitHub Secret)
+ * STRAVA_CLIENT_SECRET        — Strava app client secret (GitHub Secret)
  */
 
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { getValidStravaAccessToken } from './stravaTokenManager.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -34,7 +37,6 @@ const ACCEPTED_TYPES = ['Ride', 'VirtualRide', 'Workout', 'IndoorCycling'];
 // Firestore limits batch writes to 500 documents at a time.
 const FIRESTORE_BATCH_LIMIT = 500;
 
-const STRAVA_TOKEN_URL = 'https://www.strava.com/oauth/token';
 const STRAVA_API_BASE = 'https://www.strava.com/api/v3';
 const STRAVA_BIKE_TYPES = new Set(['Ride', 'VirtualRide', 'GravelRide', 'MountainBikeRide', 'Cycling']);
 
@@ -253,60 +255,6 @@ async function upsertToFirestore(db, newActivities, isDryRun) {
 
 // ─── Strava Enrichment ────────────────────────────────────────────────────────
 
-async function loadStravaConfig(db) {
-    const settingsSnap = await db.collection('settings').get();
-    for (const doc of settingsSnap.docs) {
-        const data = doc.data();
-        if (data.strava?.refresh_token && data.strava?.client_id && data.strava?.client_secret) {
-            return { settingsDocId: doc.id, strava: data.strava };
-        }
-    }
-    return null;
-}
-
-async function getStravaToken(db, stravaSettings) {
-    const { settingsDocId, strava } = stravaSettings;
-    const now = Math.floor(Date.now() / 1000);
-
-    if (strava.access_token && strava.expires_at > now + 60) {
-        return strava.access_token;
-    }
-
-    console.log('[STRAVA] Token verlopen, vernieuwen...');
-    const resp = await fetch(STRAVA_TOKEN_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            client_id: strava.client_id,
-            client_secret: strava.client_secret,
-            refresh_token: strava.refresh_token,
-            grant_type: 'refresh_token'
-        })
-    });
-
-    if (!resp.ok) {
-        const errText = await resp.text().catch(() => '');
-        throw new Error(`Strava token refresh mislukt (${resp.status}): ${errText}`);
-    }
-
-    const data = await resp.json();
-    const updated = {
-        ...strava,
-        access_token: data.access_token,
-        refresh_token: data.refresh_token,
-        expires_at: data.expires_at
-    };
-
-    await db.collection('settings').doc(settingsDocId).set(
-        { strava: updated },
-        { merge: true }
-    );
-    console.log('[STRAVA] Token vernieuwd en opgeslagen in Firestore.');
-
-    stravaSettings.strava = updated;
-    return data.access_token;
-}
-
 async function fetchStravaActivities(token, startDate, endDate) {
     const afterTs = Math.floor(new Date(startDate).getTime() / 1000);
     const beforeTs = Math.floor(new Date(endDate).getTime() / 1000) + 86400;
@@ -319,7 +267,7 @@ async function fetchStravaActivities(token, startDate, endDate) {
             { headers: { Authorization: `Bearer ${token}` } }
         );
         if (!resp.ok) {
-            console.warn(`[STRAVA] API fout bij ophalen pagina ${page}: ${resp.status}`);
+            console.warn(`[STRAVA] API error fetching page ${page}: ${resp.status}`);
             break;
         }
         const data = await resp.json();
@@ -448,30 +396,24 @@ function matchStravaToFirestore(stravaActivities, firestoreActivities) {
 }
 
 async function enrichWithStrava(db, firestoreActivities, startDate, endDate, isDryRun) {
-    console.log('[STRAVA] === Strava Verrijking ===');
-
-    const stravaSettings = await loadStravaConfig(db);
-    if (!stravaSettings) {
-        console.log('[STRAVA] Geen Strava-configuratie gevonden in Firestore. Overslaan.');
-        return 0;
-    }
+    console.log('[STRAVA] === Strava enrichment (server-side credentials) ===');
 
     let token;
     try {
-        token = await getStravaToken(db, stravaSettings);
+        token = await getValidStravaAccessToken(db);
     } catch (err) {
-        console.warn('[STRAVA] Kon geen geldige token verkrijgen:', err.message);
+        console.warn('[STRAVA] Could not obtain a valid token:', err.message);
         return 0;
     }
 
-    console.log(`[STRAVA] Ophalen Strava activiteiten van ${startDate} tot ${endDate}...`);
+    console.log(`[STRAVA] Fetching Strava activities from ${startDate} to ${endDate}...`);
     const stravaActivities = await fetchStravaActivities(token, startDate, endDate);
-    console.log(`[STRAVA] ${stravaActivities.length} fietsactiviteiten gevonden op Strava.`);
+    console.log(`[STRAVA] ${stravaActivities.length} cycling activities found on Strava.`);
 
     if (stravaActivities.length === 0) return 0;
 
     const matches = matchStravaToFirestore(stravaActivities, firestoreActivities);
-    console.log(`[STRAVA] ${matches.length} matches gevonden (gekoppeld + fuzzy).`);
+    console.log(`[STRAVA] ${matches.length} matches found (linked + fuzzy).`);
 
     if (matches.length === 0) return 0;
 
@@ -552,7 +494,7 @@ async function enrichWithStrava(db, firestoreActivities, startDate, endDate, isD
         enrichedCount++;
     }
 
-    console.log(`[STRAVA] ✅ ${enrichedCount} activiteiten verrijkt met Strava data.`);
+    console.log(`[STRAVA] ✅ ${enrichedCount} activities enriched with Strava data.`);
     return enrichedCount;
 }
 

@@ -32,6 +32,8 @@ jobs:
       - name: Build
         env:
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_STRAVA_CLIENT_ID: ${{ secrets.STRAVA_CLIENT_ID }}
+          VITE_STRAVA_OAUTH_URL: ${{ secrets.VITE_STRAVA_OAUTH_URL }}
         run: npm run build
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

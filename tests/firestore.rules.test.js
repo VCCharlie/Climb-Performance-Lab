@@ -65,6 +65,12 @@ describe('firestore.rules', () => {
         await assertSucceeds(ref.get());
     });
 
+    it('denies client access to strava_tokens (Admin SDK only)', async () => {
+        const ctx = testEnv.authenticatedContext('user-a', { email: 'a@example.com' });
+        await assertFails(ctx.firestore().doc('strava_tokens/automation').get());
+        await assertFails(ctx.firestore().doc('strava_tokens/automation').set({ refresh_token: 'x' }));
+    });
+
     it('denies writes to unknown collections', async () => {
         const ctx = testEnv.authenticatedContext('user-a', { email: 'a@example.com' });
         await assertFails(ctx.firestore().doc('secrets/api-keys').set({ key: 'x' }));

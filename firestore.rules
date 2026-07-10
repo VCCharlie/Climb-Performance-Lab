@@ -17,6 +17,11 @@ service cloud.firestore {
       allow read, write: if isOwnSettingsDoc(docId);
     }
 
+    // Strava OAuth refresh tokens — Admin SDK only (nightly sync + Cloud Run strava-oauth).
+    match /strava_tokens/{docId} {
+      allow read, write: if false;
+    }
+
     // Shared activity log — authenticated users only (single-owner deployment today).
     // Future multi-tenant: add ownerId field + match request.auth.uid.
     match /activities/{activityId} {

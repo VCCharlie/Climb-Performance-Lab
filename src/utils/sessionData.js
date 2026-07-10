@@ -69,7 +69,7 @@ export function getDefaultIntervalsConfig() {
 }
 
 export function getDefaultStravaConfig() {
-    return { client_id: '', client_secret: '' };
+    return { athlete_id: null, athlete_name: null };
 }
 
 export function getDefaultBucketListState() {

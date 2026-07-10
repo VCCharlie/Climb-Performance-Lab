@@ -21,7 +21,7 @@ const SettingsModal = ({
     onSaveToCloud, theme, setTheme,
     backupExtras, onImportBackup, onCleanupCloudTokens,
     syncState,
-    stravaConfig, updateStravaConfig, stravaAuth
+    stravaConfig, stravaAuth
 }) => {
     const { activities, syncFromIntervals, restoreFromBackup } = useActivities();
     const [isSaving, setIsSaving] = useState(false);
@@ -278,36 +278,18 @@ const SettingsModal = ({
                                     )}
                                 </div>
                                 <div className="space-y-3">
-                                    <div>
-                                        <label className={`block text-xs font-semibold mb-1 text-cdmuted`}>Client ID</label>
-                                        <input
-                                            type="text"
-                                            maxLength={30}
-                                            placeholder="12345"
-                                            value={stravaConfig?.client_id || ''}
-                                            onChange={e => updateStravaConfig('client_id', e.target.value)}
-                                            className={fieldClass}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className={`block text-xs font-semibold mb-1 text-cdmuted`}>Client Secret</label>
-                                        <input
-                                            type="password"
-                                            maxLength={100}
-                                            placeholder="••••••••••••••••"
-                                            value={stravaConfig?.client_secret || ''}
-                                            onChange={e => updateStravaConfig('client_secret', e.target.value)}
-                                            className={fieldClass}
-                                        />
-                                        <p className="text-xs text-cdmuted mt-1">
-                                            Get your credentials at{' '}
-                                            <a href="https://www.strava.com/settings/api" target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:underline">
-                                                strava.com/settings/api
-                                            </a>
-                                            . Set redirect URI to:{' '}
-                                            <code className="bg-cdborder px-1 rounded text-[10px]">{window.location.origin + window.location.pathname}</code>
-                                        </p>
-                                    </div>
+                                    <p className="text-xs text-cdmuted">
+                                        Strava credentials are managed on the server (GitHub Secrets / Cloud Run).
+                                        Connect once — nightly sync and enrichment use a secure refresh token automatically.
+                                    </p>
+                                    <p className="text-xs text-cdmuted">
+                                        In your{' '}
+                                        <a href="https://www.strava.com/settings/api" target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:underline">
+                                            Strava API settings
+                                        </a>
+                                        , set the Authorization Callback Domain to your app host and redirect URI to:{' '}
+                                        <code className="bg-cdborder px-1 rounded text-[10px]">{window.location.origin + window.location.pathname}</code>
+                                    </p>
                                     <div className="flex gap-2 pt-1">
                                         {stravaAuth.isConnected ? (
                                             <>

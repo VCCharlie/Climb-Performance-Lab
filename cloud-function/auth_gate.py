@@ -11,6 +11,26 @@ import firebase_admin
 from firebase_admin import auth as firebase_auth
 
 AUTOMATION_HEADER = "X-Automation-Secret"
+DEFAULT_ALLOWED_CORS_ORIGINS = "http://localhost:5173,https://vccharlie.github.io"
+
+
+def resolve_cors_origin(origin):
+    """Return the CORS origin to emit for this request."""
+    allowed_origins_env = os.environ.get("ALLOWED_CORS_ORIGINS", DEFAULT_ALLOWED_CORS_ORIGINS)
+    allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
+
+    if origin in allowed_origins and origin != "*":
+        return origin
+    return None
+
+
+def build_cors_headers(cors_origin, content_type="application/json"):
+    """Response headers for CORS-enabled JSON responses."""
+    headers = {"Content-Type": content_type}
+    if cors_origin:
+        headers["Access-Control-Allow-Origin"] = cors_origin
+        headers["Vary"] = "Origin"
+    return headers
 
 
 def _init_firebase():
