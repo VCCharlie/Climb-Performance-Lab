@@ -4,13 +4,15 @@ import { cn } from '../ui';
 /**
  * MD3 primary navigation tab with bottom pill indicator.
  */
-export default function NavTab({ icon, label, isActive, onClick }) {
+export default function NavTab({ icon, label, isActive, onClick, onPrefetch }) {
   return (
     <button
       type="button"
       role="tab"
       aria-selected={isActive}
       onClick={onClick}
+      onMouseEnter={onPrefetch}
+      onFocus={onPrefetch}
       className={cn(
         'relative flex items-center gap-1.5 px-3 py-2.5 text-xs font-semibold whitespace-nowrap',
         'rounded-t-cdmd cd-transition cd-focus-ring',
