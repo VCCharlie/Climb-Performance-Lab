@@ -44,19 +44,20 @@ import ActivityDetailModal from './DataHub/ActivityDetailModal';
 import StravaEnrichTab from './DataHub/StravaEnrichTab';
 import StravaProfileTab from './DataHub/StravaProfileTab';
 import NlDateInput from './NlDateInput';
+import NoPowerModal from './data-hub/NoPowerModal';
+import MergePairModal from './data-hub/MergePairModal';
+import ActivityLogSyncBanners from './data-hub/ActivityLogSyncBanners';
+import FetchIntervalsPanel from './data-hub/FetchIntervalsPanel';
 
 // Hooks
 import useActivityFilter from '../hooks/useActivityFilter';
 import useIntervalsSync from '../hooks/useIntervalsSync';
 import useActivityColumnVisibility from '../hooks/useActivityColumnVisibility';
 import { useActivityCardLayout } from '../hooks/useMediaQuery';
+import { useActivities } from '../hooks/useActivities';
+import { useActivityLogNavigation } from '../context/ActivityLogNavigationContext';
 
 const DataHub = ({
-    activities,
-    onImport,
-    onDelete,
-    onClear,
-    onRefresh,
     intervalsConfig,
     stravaGetToken,
     startDate,
@@ -66,22 +67,29 @@ const DataHub = ({
     stravaAthleteId,
     stravaProfileData,
     onStravaProfileData,
-    focusActivityId = null,
-    onFocusActivityCleared,
-    /** When set, Activity Log shows only this activity (from Dashboard Peak eFTP deep link). */
-    isolateActivityId = null,
-    onClearLogIsolate,
-    /** When set, Activity Log lists only activities with date in [startYmd, endYmd] (from Dashboard Volume). */
-    logDateRangeFilter = null,
-    onClearLogDateRange,
     onOpenProfilerFromActivity,
     climbDatabaseForMatch = getCoreClimbDatabase(),
-    activityLogRangesExpanded = false,
-    onActivityLogRangesExpandedChange,
     initialInternalTab = 'log',
     /** Profile FTP (Settings) — used for intensity factor NP÷FTP in activity detail modal */
     profileFtp,
 }) => {
+    const {
+        activities,
+        importActivities: onImport,
+        deleteActivity: onDelete,
+        clearActivities: onClear,
+        refreshFromServer: onRefresh,
+    } = useActivities();
+
+    const {
+        activityFocusId: focusActivityId,
+        logIsolateActivityId: isolateActivityId,
+        logDateRangeFilter,
+        activityLogRangesExpanded,
+        setActivityLogRangesExpanded: onActivityLogRangesExpandedChange,
+        clearActivityLogFilters,
+        onFocusActivityCleared,
+    } = useActivityLogNavigation();
     // UI State
     const [internalTab, setInternalTab] = useState(() => (
         ['log', 'strava-profile', 'import'].includes(initialInternalTab) ? initialInternalTab : 'log'
@@ -1275,135 +1283,32 @@ const DataHub = ({
                 />
             )}
 
-            {/* No Power Modal */}
-            {showNoPowerModal && (() => {
-                const noPowerList = (activities || []).filter(a => !(Number(a.avg_power) > 0));
-                const allSelected = noPowerList.every(a => noPowerSelected.includes(a.id));
-                const toggleAll = () => setNoPowerSelected(allSelected ? [] : noPowerList.map(a => a.id));
-                const toggleOne = (id) => setNoPowerSelected(prev =>
-                    prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-                );
-                return (
-                    <div className="fixed inset-0 bg-cdbg/95 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
-                        <div className="bg-cdsurface border border-cdborder rounded-xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[85vh]">
-                            <div className="flex justify-between items-center p-4 border-b border-cdborder">
-                                <div>
-                                    <h3 className="text-cdtext font-bold flex items-center gap-2">
-                                        <Zap size={16} className="text-yellow-400" />
-                                        Activities without power ({noPowerList.length})
-                                    </h3>
-                                    <p className="text-xs text-cdmuted mt-0.5">Select which ones to remove.</p>
-                                </div>
-                                <button type="button" aria-label="Close modal" onClick={() => setShowNoPowerModal(false)} className="text-cdmuted hover:text-cdtext text-lg font-bold px-2 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded">✕</button>
-                            </div>
-                            <div className="flex items-center gap-3 px-4 py-2 border-b border-cdborder bg-cdbg/40">
-                                <input type="checkbox" checked={allSelected} onChange={toggleAll} className="accent-yellow-400 w-4 h-4" />
-                                <span className="text-xs text-cdmuted font-bold uppercase">Select all</span>
-                                <span className="ml-auto text-xs text-cdmuted">{noPowerSelected.length} selected</span>
-                            </div>
-                            <div className="overflow-y-auto flex-1 custom-scrollbar">
-                                {noPowerList.map(a => (
-                                    <div key={a.id} className="flex items-center gap-3 px-4 py-2.5 border-b border-cdborder/40 hover:bg-cdborder/20">
-                                        <input
-                                            type="checkbox"
-                                            checked={noPowerSelected.includes(a.id)}
-                                            onChange={() => toggleOne(a.id)}
-                                            className="accent-yellow-400 w-4 h-4 shrink-0"
-                                        />
-                                        <span className="text-xs text-cdmuted w-24 shrink-0">{a.date}</span>
-                                        <span className="text-sm text-cdtext flex-1 truncate">{a.title || 'Untitled'}</span>
-                                        <span className="text-xs text-cdmuted w-16 text-right shrink-0">{a.distance ? `${a.distance} km` : '-'}</span>
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="flex justify-end gap-3 p-4 border-t border-cdborder">
-                                <button type="button" onClick={() => setShowNoPowerModal(false)} className="px-4 py-2 text-cdmuted hover:text-cdtext font-bold text-sm">Close</button>
-                                <button
-                                    onClick={deleteNoPowerSelected}
-                                    disabled={isDeleting || noPowerSelected.length === 0}
-                                    className="px-5 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded text-sm flex items-center gap-2 disabled:opacity-50"
-                                >
-                                    {isDeleting ? <Loader2 className="animate-spin" size={14} /> : <Trash size={14} />}
-                                    Delete {noPowerSelected.length} activities
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                );
-            })()}
+            <NoPowerModal
+                open={showNoPowerModal}
+                activities={activities}
+                selectedIds={noPowerSelected}
+                onToggleAll={() => {
+                    const noPowerList = (activities || []).filter((a) => !(Number(a.avg_power) > 0));
+                    const allSelected = noPowerList.every((a) => noPowerSelected.includes(a.id));
+                    setNoPowerSelected(allSelected ? [] : noPowerList.map((a) => a.id));
+                }}
+                onToggleOne={(id) => setNoPowerSelected((prev) =>
+                    prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+                )}
+                onClose={() => setShowNoPowerModal(false)}
+                onDeleteSelected={deleteNoPowerSelected}
+                isDeleting={isDeleting}
+            />
 
-            {showMergeModal && (
-                <div className="fixed inset-0 bg-cdbg/95 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div className="bg-cdsurface border border-cdborder rounded-xl shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh]">
-                        <div className="flex justify-between items-center p-4 border-b border-cdborder">
-                            <h3 className="text-cdtext font-bold flex items-center gap-2 text-sm">
-                                <GitMerge size={18} className="text-orange-400 shrink-0" />
-                                Merge two activities
-                            </h3>
-                            <button
-                                type="button"
-                                aria-label="Close modal"
-                                onClick={() => { setShowMergeModal(false); setMergeError(null); }}
-                                className="text-cdmuted hover:text-cdtext text-lg font-bold px-2 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded"
-                            >
-                                ✕
-                            </button>
-                        </div>
-                        <div className="p-4 space-y-3 text-xs text-cdmuted overflow-y-auto custom-scrollbar">
-                            <p>
-                                Keeps the <strong className="text-cdtext">Intervals.icu</strong> activity id and power/load metrics.
-                                Pulls in <strong className="text-cdtext">Strava</strong> link, map polyline, gear, and a better title when the Intervals title is generic.
-                                After merge, if you are signed in to Strava, we fetch activity details to fill <strong className="text-cdtext">gear</strong> and route polyline when missing.
-                                The duplicate Strava-only row is <strong className="text-red-400">deleted</strong> from the database.
-                            </p>
-                            {mergePairPreview?.error && (
-                                <div className="rounded-lg border border-red-500/40 bg-red-500/10 text-red-400 px-3 py-2">{mergePairPreview.error}</div>
-                            )}
-                            {mergePairPreview && !mergePairPreview.error && (
-                                <>
-                                    <div className="rounded-lg border border-cdborder bg-cdbg/40 p-2 space-y-1">
-                                        <div className="text-[10px] font-bold text-cdaccent uppercase">Keep (Intervals)</div>
-                                        <div className="text-cdtext font-mono text-[11px]">id {mergePairPreview.intervals.id}</div>
-                                        <div className="text-cdtext truncate">{mergePairPreview.intervals.title || '—'}</div>
-                                    </div>
-                                    <div className="rounded-lg border border-cdborder bg-cdbg/40 p-2 space-y-1">
-                                        <div className="text-[10px] font-bold text-orange-400 uppercase">Remove after merge (Strava import)</div>
-                                        <div className="text-cdtext font-mono text-[11px]">id {mergePairPreview.stravaSide.id}</div>
-                                        <div className="text-cdtext truncate">{mergePairPreview.stravaSide.title || '—'}</div>
-                                        {mergePairPreview.stravaSide.strava_id && (
-                                            <div className="text-[10px]">strava_id {mergePairPreview.stravaSide.strava_id}</div>
-                                        )}
-                                    </div>
-                                </>
-                            )}
-                            {mergeError && (
-                                <div className="rounded-lg border border-red-500/40 bg-red-500/10 text-red-400 px-3 py-2">{mergeError}</div>
-                            )}
-                        </div>
-                        <div className="flex justify-end gap-2 p-4 border-t border-cdborder">
-                            <button
-                                type="button"
-                                onClick={() => { setShowMergeModal(false); setMergeError(null); }}
-                                className="px-4 py-2 text-cdmuted hover:text-cdtext font-bold text-sm"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="button"
-                                disabled={!mergePairPreview || !!mergePairPreview.error || isMerging || !db}
-                                onClick={confirmMergePair}
-                                className="px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm disabled:opacity-40 flex items-center gap-2"
-                            >
-                                {isMerging ? <Loader2 size={14} className="animate-spin" /> : <GitMerge size={14} />}
-                                Merge &amp; delete duplicate
-                            </button>
-                        </div>
-                        {!db && (
-                            <p className="px-4 pb-3 text-[10px] text-yellow-500">Sign in and sync is required to write merges to the database.</p>
-                        )}
-                    </div>
-                </div>
-            )}
+            <MergePairModal
+                open={showMergeModal}
+                mergePairPreview={mergePairPreview}
+                mergeError={mergeError}
+                isMerging={isMerging}
+                hasDb={!!db}
+                onClose={() => { setShowMergeModal(false); setMergeError(null); }}
+                onConfirm={confirmMergePair}
+            />
 
             {/* TABS */}
             <div className="flex border-b border-cdborder" role="tablist" aria-label="Data Hub Tabs">
@@ -1420,104 +1325,26 @@ const DataHub = ({
             <div className="flex-1 overflow-hidden flex flex-col">
                 {internalTab === 'log' && (
                     <div role="tabpanel" id="tabpanel-log" aria-labelledby="tab-log" className="p-4 flex-1 min-h-0 overflow-hidden flex flex-col">
-                        {/* DYNAMISCHE SYNC STATUS BANNER */}
-                        {syncStatus && (
-                            <div className={`flex flex-col gap-1 text-xs font-bold px-3 py-2 rounded-lg mb-3 ${syncStatus === 'success' || syncStatus === 'done' || syncStatus === 'enriching' || syncStatus === 'started'
-                                ? 'bg-blue-500/10 border border-blue-500/30 text-blue-400'
-                                : 'bg-red-500/10 border border-red-500/30 text-red-400'
-                                }`}
-                            >
-                                <span className="flex items-center gap-2">
-                                    {(syncStatus === 'started' || syncStatus === 'enriching' || isSyncing) && <Loader2 size={14} className="animate-spin" />}
-                                    {syncStatus === 'done' && '✅ '}
-                                    {syncStatus === 'error' && '❌ '}
-                                    {isSyncing ? (syncProgress || 'Syncing...') : syncErrorDetail}
-                                </span>
-                                {stravaListProgress && (
-                                    <span className="text-[10px] font-normal text-cdmuted">
-                                        Strava list: page {stravaListProgress.page} · ~{formatNlNumber(stravaListProgress.bikeCount)} bike activities loaded so far…
-                                    </span>
-                                )}
-                            </div>
-                        )}
-                        {(isStravaEnriching || stravaEnrichMsg) && (
-                            <div className={`flex flex-col gap-1 text-xs px-3 py-2 rounded-lg mb-3 border ${isStravaEnriching ? 'bg-amber-500/10 border-amber-500/30 text-amber-200' : 'bg-cdbg/80 border-cdborder text-cdmuted'}`}>
-                                <span className="flex items-center gap-2 font-bold text-cdtext">
-                                    {isStravaEnriching && <Loader2 size={14} className="animate-spin text-amber-400" />}
-                                    Strava enrich
-                                </span>
-                                <span className="text-[11px] leading-snug">{stravaEnrichMsg}</span>
-                                {!isStravaEnriching && stravaEnrichMsg && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setStravaEnrichMsg(null)}
-                                        className="self-end text-[10px] text-cdmuted hover:text-cdtext underline"
-                                    >
-                                        Dismiss
-                                    </button>
-                                )}
-                            </div>
-                        )}
+                        <ActivityLogSyncBanners
+                            syncStatus={syncStatus}
+                            syncErrorDetail={syncErrorDetail}
+                            isSyncing={isSyncing}
+                            syncProgress={syncProgress}
+                            stravaListProgress={stravaListProgress}
+                            isStravaEnriching={isStravaEnriching}
+                            stravaEnrichMsg={stravaEnrichMsg}
+                            onDismissStravaEnrichMsg={() => setStravaEnrichMsg(null)}
+                        />
 
-                        <div className="hidden lg:block rounded-lg border border-cdborder bg-cdsurface/80 p-3 space-y-2 mb-3 shrink-0">
-                            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                                <div className="min-w-0">
-                                    <h4 className="text-xs font-bold text-cdtext uppercase tracking-wide">Fetch new from Intervals.icu</h4>
-                                    <p className="text-[10px] text-cdmuted leading-snug mt-0.5">
-                                        Pull activities for the date range below and add or update them in your log.
-                                        {stravaGetToken
-                                            ? ' With Strava connected: time-window link, same-day fuzzy match (distance/duration), then HR/gear/KOM enrichment and Strava detail refresh — same pipeline as Sync Now for selected rows.'
-                                            : ' Connect Strava in Settings to auto-link and enrich new rides.'}
-                                    </p>
-                                    <p className="text-[10px] text-cdmuted mt-1">
-                                        <span className="text-cdaccent font-bold">Tools → Sync Now</span> is different: it only updates{' '}
-                                        <span className="font-semibold text-cdtext">selected</span> rows (checkboxes) and refreshes Strava details for that selection.
-                                    </p>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={() => setInternalTab('import')}
-                                    className="shrink-0 text-[10px] font-bold px-2 py-1 rounded border border-cdborder text-cdaccent hover:bg-cdborder/40 self-start sm:self-auto"
-                                >
-                                    Import tab (CSV / URL)
-                                </button>
-                            </div>
-                            <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
-                                <div className="grid grid-cols-2 gap-2 flex-1 min-w-0">
-                                    <div>
-                                        <span className="text-[10px] text-cdmuted block mb-0.5">From</span>
-                                        <NlDateInput
-                                            value={fetchIntervalsDates.start}
-                                            onChange={(v) => setFetchIntervalsDates((s) => ({ ...s, start: v }))}
-                                            className="w-full bg-cdbg border border-cdborder rounded px-2 py-1.5 text-cdtext text-xs"
-                                            aria-label="Fetch new activities from (dd-mm-jjjj)"
-                                        />
-                                    </div>
-                                    <div>
-                                        <span className="text-[10px] text-cdmuted block mb-0.5">To</span>
-                                        <NlDateInput
-                                            value={fetchIntervalsDates.end}
-                                            onChange={(v) => setFetchIntervalsDates((s) => ({ ...s, end: v }))}
-                                            className="w-full bg-cdbg border border-cdborder rounded px-2 py-1.5 text-cdtext text-xs"
-                                            aria-label="Fetch new activities to (dd-mm-jjjj)"
-                                        />
-                                    </div>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={handleFetchNewFromIntervals}
-                                    disabled={isFetchingNewIntervals || isSyncing}
-                                    className="w-full sm:w-auto shrink-0 px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
-                                >
-                                    {isFetchingNewIntervals || isSyncing ? (
-                                        <Loader2 size={14} className="animate-spin" aria-hidden="true" />
-                                    ) : (
-                                        <Download size={14} aria-hidden="true" />
-                                    )}
-                                    {isFetchingNewIntervals ? 'Fetching…' : 'Fetch & merge'}
-                                </button>
-                            </div>
-                        </div>
+                        <FetchIntervalsPanel
+                            fetchIntervalsDates={fetchIntervalsDates}
+                            onFetchIntervalsDatesChange={setFetchIntervalsDates}
+                            onFetch={handleFetchNewFromIntervals}
+                            isFetching={isFetchingNewIntervals}
+                            isSyncing={isSyncing}
+                            stravaConnected={!!stravaGetToken}
+                            onOpenImportTab={() => setInternalTab('import')}
+                        />
 
                         <div className={`shrink-0 space-y-3 mb-3 lg:mb-4 max-h-[38vh] lg:max-h-none custom-scrollbar pr-0.5 ${showUtilMenu ? 'overflow-visible' : 'overflow-y-auto'} lg:overflow-visible`}>
                             <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
@@ -1979,10 +1806,10 @@ const DataHub = ({
                                 <span>
                                     Showing <strong className="text-cdtext">one activity</strong> linked from the Dashboard (Peak eFTP source).
                                 </span>
-                                {typeof onClearLogIsolate === 'function' && (
+                                {typeof clearActivityLogFilters === 'function' && (
                                     <button
                                         type="button"
-                                        onClick={() => onClearLogIsolate()}
+                                        onClick={() => clearActivityLogFilters()}
                                         className="shrink-0 px-3 py-1.5 rounded-md border border-cdborder bg-cdsurface text-xs font-bold text-cdaccent hover:bg-cdborder/40"
                                     >
                                         Show full log
@@ -2001,10 +1828,10 @@ const DataHub = ({
                                     </strong>{' '}
                                     (from Dashboard Volume).
                                 </span>
-                                {typeof onClearLogDateRange === 'function' && (
+                                {typeof clearActivityLogFilters === 'function' && (
                                     <button
                                         type="button"
-                                        onClick={() => onClearLogDateRange()}
+                                        onClick={() => clearActivityLogFilters()}
                                         className="shrink-0 px-3 py-1.5 rounded-md border border-cdborder bg-cdsurface text-xs font-bold text-cdaccent hover:bg-cdborder/40"
                                     >
                                         Show full log
@@ -2019,10 +1846,10 @@ const DataHub = ({
                             <div className="flex-1 flex flex-col items-center justify-center text-cdmuted gap-3 border border-dashed border-cdborder rounded-lg p-6">
                                 <AlertTriangle size={32} className="text-amber-500/90" />
                                 <p className="text-sm text-cdtext text-center">That activity is not in your log (it may have been removed).</p>
-                                {typeof onClearLogIsolate === 'function' && (
+                                {typeof clearActivityLogFilters === 'function' && (
                                     <button
                                         type="button"
-                                        onClick={() => onClearLogIsolate()}
+                                        onClick={() => clearActivityLogFilters()}
                                         className="px-4 py-2 rounded-lg border border-cdborder bg-cdsurface text-sm font-bold text-cdaccent hover:bg-cdborder/30"
                                     >
                                         Show full log
@@ -2033,10 +1860,10 @@ const DataHub = ({
                             <div className="flex-1 flex flex-col items-center justify-center text-cdmuted gap-3 border border-dashed border-cdborder rounded-lg p-6">
                                 <AlertTriangle size={32} className="text-amber-500/90" />
                                 <p className="text-sm text-cdtext text-center">No activities in this date range in your log.</p>
-                                {typeof onClearLogDateRange === 'function' && (
+                                {typeof clearActivityLogFilters === 'function' && (
                                     <button
                                         type="button"
-                                        onClick={() => onClearLogDateRange()}
+                                        onClick={() => clearActivityLogFilters()}
                                         className="px-4 py-2 rounded-lg border border-cdborder bg-cdsurface text-sm font-bold text-cdaccent hover:bg-cdborder/30"
                                     >
                                         Show full log

@@ -4,6 +4,7 @@ import { safeLocalStorageSet } from '../utils/safeStorage.js';
 import { formatDateTimeNl } from '../utils/formatters';
 import { logout } from '../firebase';
 import { runGoogleSignIn, googleSignInErrorMessage } from '../utils/googleSignIn';
+import { useActivitiesSync } from '../hooks/useActivities';
 import { IconButton, cn } from './ui';
 
 function initialsFromUser(user) {
@@ -32,7 +33,8 @@ function formatUpdatedAt(dateToDisplay) {
     return formatDateTimeNl(d);
 }
 
-const Header = ({ userSettings, onOpenSettings, user, syncStatus, lastActivityDate }) => {
+const Header = ({ userSettings, onOpenSettings, user }) => {
+    const { syncStatus, lastActivityDate } = useActivitiesSync();
     const [lastSyncTime, setLastSyncTime] = useState(() => localStorage.getItem('app_last_sync_time'));
     const [authBusy, setAuthBusy] = useState(false);
     const [avatarImgFailed, setAvatarImgFailed] = useState(false);

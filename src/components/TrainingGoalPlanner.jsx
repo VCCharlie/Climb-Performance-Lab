@@ -3,6 +3,7 @@ import { Mountain, CalendarDays, ChevronRight, Heart } from 'lucide-react';
 import { useClimbDatabase } from '../hooks/useClimbDatabase';
 import { computeTrainingGoalPlan } from '../utils/trainingGoalPlan';
 import { calculatePowerZones } from '../utils/calculations';
+import { useActivitiesList } from '../hooks/useActivities';
 import NlDateInput from './NlDateInput';
 
 const defaultGoalDate = () => {
@@ -11,7 +12,9 @@ const defaultGoalDate = () => {
     return d.toISOString().split('T')[0];
 };
 
-const TrainingGoalPlanner = ({ activities, userSettings, startDate, endDate, onOpenRecovery }) => {
+const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDate, endDate, onOpenRecovery }) => {
+    const activitiesFromContext = useActivitiesList();
+    const activities = activitiesProp ?? activitiesFromContext;
     const { climbs: climbDatabase, loadFull } = useClimbDatabase();
 
     useEffect(() => {

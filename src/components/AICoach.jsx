@@ -3,6 +3,7 @@ import { Brain, TrendingUp, AlertTriangle, Calendar, CheckCircle, Activity, Batt
 import { buildCoachPlan, COACH_GOAL_OPTIONS, COACH_WORKOUT_LIBRARY } from '../utils/swotCoachPlan';
 import { buildPeriodComparison } from '../utils/swotPeriodCompare';
 import { normalizeDate, formatDateDDMMYYYY } from '../utils/formatters';
+import { useActivitiesList } from '../hooks/useActivities';
 
 /** moving_time: seconden (number) of "H:MM:SS" uit CSV */
 function movingTimeToSeconds(val) {
@@ -25,7 +26,9 @@ function formatVsPrimaryPct(pct) {
     return `${sign}${Math.round(pct)}% vs. selected period`;
 }
 
-const AICoach = ({ activities, userSettings, startDate, endDate }) => {
+const AICoach = ({ activities: activitiesProp, userSettings, startDate, endDate }) => {
+    const activitiesFromContext = useActivitiesList();
+    const activities = activitiesProp ?? activitiesFromContext;
 
     const [coachGoalId, setCoachGoalId] = useState('auto');
 

@@ -2,6 +2,7 @@
 import { Activity, TrendingUp, TrendingDown, Calendar, AlertTriangle, CheckCircle, Zap, Info, Lightbulb } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts';
 import { formatDateDDMMYYYY } from '../utils/formatters';
+import { useActivitiesList } from '../hooks/useActivities';
 
 // ⚡ Bolt Optimization: Use array lookup instead of Date.toLocaleString() in loops
 const NL_SHORT_MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
@@ -23,7 +24,9 @@ const CustomTooltip = ({ active, payload }) => {
     return null;
 };
 
-const RecoveryAdvisor = ({ activities, startDate, endDate }) => {
+const RecoveryAdvisor = ({ activities: activitiesProp, startDate, endDate }) => {
+    const activitiesFromContext = useActivitiesList();
+    const activities = activitiesProp ?? activitiesFromContext;
     // Calculate Training Load metrics (CTL, ATL, TSB)
     const trainingMetrics = useMemo(() => {
         if (!activities || activities.length === 0) {

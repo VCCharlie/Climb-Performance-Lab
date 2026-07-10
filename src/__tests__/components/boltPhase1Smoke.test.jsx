@@ -4,6 +4,7 @@ import React from 'react';
 import PerformanceModule from '../../components/PerformanceModule.jsx';
 import Header from '../../components/Header.jsx';
 import MainNav from '../../components/shell/MainNav.jsx';
+import { ActivitiesProvider } from '../../context/ActivitiesContext.jsx';
 
 vi.mock('recharts', () => ({
   LineChart: ({ children }) => <div data-testid="line-chart">{children}</div>,
@@ -68,13 +69,13 @@ describe('Bolt Phase 1 smoke renders', () => {
     const userSettings = { privacyMode: false, weight: 75, ftp: 250 };
     expect(() =>
       render(
-        <Header
-          userSettings={userSettings}
-          onOpenSettings={() => {}}
-          user={null}
-          syncStatus="idle"
-          lastActivityDate={null}
-        />,
+        <ActivitiesProvider user={null}>
+          <Header
+            userSettings={userSettings}
+            onOpenSettings={() => {}}
+            user={null}
+          />
+        </ActivitiesProvider>,
       ),
     ).not.toThrow();
     expect(screen.getByText(/Climb/)).toBeInTheDocument();
