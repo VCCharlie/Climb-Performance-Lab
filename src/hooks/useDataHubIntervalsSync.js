@@ -1,0 +1,354 @@
+import { useState, useCallback } from 'react';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+import { SPORT_TYPES } from '../config';
+import { protectEnrichedFieldsOnMerge } from '../utils/firestoreActivityMerge';
+import { stripUndefinedFields } from '../utils/mergeActivities';
+import { enrichSelectedActivitiesFromStrava } from '../utils/stravaSelectedEnrich';
+import {
+    fetchStravaActivitiesInRange,
+    linkIntervalsActivitiesToStravaList,
+    applyStravaFuzzyMatchesToIntervals,
+} from '../utils/stravaLinkIntervalsFetch';
+import useIntervalsSync from './useIntervalsSync';
+
+/**
+ * Intervals.icu sync + fetch-new flows for DataHub (selected-row sync and date-range fetch).
+ */
+export function useDataHubIntervalsSync({
+    intervalsConfig,
+    activities,
+    onImport,
+    stravaGetToken,
+    bulkSelectedIds,
+    selectedActivitiesForBulk,
+}) {
+    const { syncIntervals, isSyncing, syncProgress } = useIntervalsSync(intervalsConfig);
+    const [syncStatus, setSyncStatus] = useState(null);
+    const [syncErrorDetail, setSyncErrorDetail] = useState(null);
+    const [fetchIntervalsDates, setFetchIntervalsDates] = useState(() => ({
+        start: new Date(new Date().setDate(new Date().getDate() - 14)).toISOString().split('T')[0],
+        end: new Date().toISOString().split('T')[0],
+    }));
+    const [isFetchingNewIntervals, setIsFetchingNewIntervals] = useState(false);
+
+    const handleSync = useCallback(async () => {
+        if (bulkSelectedIds.size === 0) {
+            setSyncStatus('error');
+            setSyncErrorDetail('Select one or more activities (checkboxes in the Activity Log), then Sync Now.');
+            setTimeout(() => setSyncStatus(null), 7000);
+            return;
+        }
+
+        const selectedActs = selectedActivitiesForBulk;
+        const dateParts = selectedActs
+            .reduce((acc, a) => {
+                const dp = (a?.date && String(a.date).split('T')[0]) || '';
+                if (dp) acc.push(dp);
+                return acc;
+            }, [])
+            .sort();
+        if (dateParts.length === 0) {
+            setSyncStatus('error');
+            setSyncErrorDetail('Selected activities have no valid date; cannot determine Intervals.icu range.');
+            setTimeout(() => setSyncStatus(null), 7000);
+            return;
+        }
+
+        const syncStart = dateParts[0];
+        const syncEnd = dateParts[dateParts.length - 1];
+        const selectedIdSet = new Set([...bulkSelectedIds].map(String));
+
+        let working = selectedActs.map((a) => ({ ...a }));
+
+        setSyncStatus('started');
+        setSyncErrorDetail(`Step 1/2: Intervals.icu ${syncStart} → ${syncEnd} (${bulkSelectedIds.size} selected)…`);
+
+        try {
+            const sportFilters = SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: true }), {});
+            const selectedTypes = Object.keys(sportFilters).filter((k) => sportFilters[k]);
+
+            const newActivitiesRaw = await syncIntervals(syncStart, syncEnd, selectedTypes);
+            const newActivities = newActivitiesRaw.filter((a) => selectedIdSet.has(String(a.id)));
+
+            const activitiesMap = new Map((activities || []).map((a) => [String(a.id), a]));
+
+            const mergeNewInto = (act) => {
+                const existing = activitiesMap.get(String(act.id));
+                return existing ? protectEnrichedFieldsOnMerge(act, existing) : act;
+            };
+            const mergedNews = newActivities.map(mergeNewInto);
+
+            const workingIndexMap = new Map();
+            for (let i = 0; i < working.length; i++) {
+                workingIndexMap.set(String(working[i].id), i);
+            }
+
+            for (const n of mergedNews) {
+                const i = workingIndexMap.get(String(n.id));
+                if (i !== undefined) {
+                    working[i] = protectEnrichedFieldsOnMerge({ ...working[i], ...n }, working[i]);
+                }
+            }
+
+            setSyncErrorDetail(
+                mergedNews.length < newActivitiesRaw.length
+                    ? `Step 2/2: ${mergedNews.length} of ${newActivitiesRaw.length} fetched id(s) match selection. Strava…`
+                    : `Step 2/2: Strava link + segment refresh for ${bulkSelectedIds.size} selected ride(s)…`,
+            );
+            setSyncStatus('enriching');
+
+            if (db && mergedNews.length > 0) {
+                await Promise.all(
+                    mergedNews.map((act) => {
+                        const existing = activitiesMap.get(String(act.id));
+                        const payload = protectEnrichedFieldsOnMerge(act, existing);
+                        return setDoc(doc(db, 'activities', String(act.id)), payload, { merge: true });
+                    }),
+                );
+            }
+            if (mergedNews.length > 0) {
+                onImport(mergedNews);
+            }
+
+            let enrichedLinkCount = 0;
+            let segmentRefreshCount = 0;
+            let detailFailed = 0;
+            if (stravaGetToken) {
+                try {
+                    const token = await stravaGetToken();
+                    if (token) {
+                        const enrichResult = await enrichSelectedActivitiesFromStrava(working, token, {
+                            forceStravaDetail: true,
+                            concurrency: 3,
+                            onProgress: (m) => setSyncErrorDetail(String(m)),
+                        });
+                        enrichedLinkCount = enrichResult.linkedCount;
+                        segmentRefreshCount = enrichResult.detailUpdatedCount;
+                        detailFailed = enrichResult.failed;
+                        if (enrichResult.updates.length > 0) {
+                            const workingMap = new Map((working || []).map((a) => [String(a.id), a]));
+                            if (db) {
+                                await Promise.all(
+                                    enrichResult.updates.map(({ id, data }) => {
+                                        const strId = String(id);
+                                        const existingRow = workingMap.get(strId) || activitiesMap.get(strId) || {};
+                                        return setDoc(
+                                            doc(db, 'activities', String(id)),
+                                            protectEnrichedFieldsOnMerge(data, existingRow),
+                                            { merge: true },
+                                        );
+                                    }),
+                                );
+                            }
+                            const updatesMap = new Map(enrichResult.updates.map((u) => [String(u.id), u]));
+                            for (let i = 0; i < working.length; i++) {
+                                const strId = String(working[i].id);
+                                const update = updatesMap.get(strId);
+                                if (update) {
+                                    const updated = stripUndefinedFields({ ...working[i], ...update.data });
+                                    working[i] = updated;
+                                    workingMap.set(strId, updated);
+                                }
+                            }
+                            onImport(enrichResult.updates.map(({ id, data }) => {
+                                const prev = workingMap.get(String(id)) || {};
+                                return protectEnrichedFieldsOnMerge({ ...prev, ...data }, prev);
+                            }));
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[Sync] Strava enrich failed:', e);
+                }
+            }
+
+            onImport(working);
+
+            setSyncStatus('done');
+            const parts = [];
+            if (mergedNews.length > 0) parts.push(`${mergedNews.length} Intervals row(s) saved`);
+            if (newActivitiesRaw.length > mergedNews.length) {
+                parts.push(`${newActivitiesRaw.length - mergedNews.length} fetched id(s) not in selection`);
+            }
+            if (enrichedLinkCount > 0) parts.push(`${enrichedLinkCount} Strava link update(s)`);
+            if (segmentRefreshCount > 0) parts.push(`${segmentRefreshCount} Strava detail + segment refresh`);
+            if (detailFailed > 0) parts.push(`${detailFailed} detail error(s)`);
+            setSyncErrorDetail(
+                parts.length > 0
+                    ? `✅ Sync complete. ${parts.join(' · ')}.`
+                    : '✅ Sync complete. No Intervals changes for selected ids; Strava refresh attempted.',
+            );
+            setTimeout(() => setSyncStatus(null), 9000);
+        } catch (e) {
+            console.error('Sync failed:', e);
+            setSyncStatus('error');
+            setSyncErrorDetail(`❌ Error: ${e.message}`);
+        }
+    }, [
+        bulkSelectedIds,
+        selectedActivitiesForBulk,
+        activities,
+        syncIntervals,
+        stravaGetToken,
+        onImport,
+    ]);
+
+    const handleFetchNewFromIntervals = useCallback(async () => {
+        const syncStart = fetchIntervalsDates.start;
+        const syncEnd = fetchIntervalsDates.end;
+        if (!syncStart || !syncEnd) {
+            setSyncStatus('error');
+            setSyncErrorDetail('Choose a valid From and To date for fetching new activities.');
+            setTimeout(() => setSyncStatus(null), 7000);
+            return;
+        }
+        if (syncStart > syncEnd) {
+            setSyncStatus('error');
+            setSyncErrorDetail('From date must be on or before To date.');
+            setTimeout(() => setSyncStatus(null), 7000);
+            return;
+        }
+
+        setIsFetchingNewIntervals(true);
+        setSyncStatus('started');
+        setSyncErrorDetail(`Fetching Intervals.icu ${syncStart} → ${syncEnd}…`);
+
+        try {
+            const sportFiltersAll = SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: true }), {});
+            const selectedTypes = Object.keys(sportFiltersAll).filter((k) => sportFiltersAll[k]);
+            const newActivitiesRaw = await syncIntervals(syncStart, syncEnd, selectedTypes);
+
+            const activitiesMap = new Map((activities || []).map((a) => [String(a.id), a]));
+
+            const mergeNewInto = (act) => {
+                const existing = activitiesMap.get(String(act.id));
+                return existing ? protectEnrichedFieldsOnMerge(act, existing) : act;
+            };
+            let merged = (newActivitiesRaw || []).map(mergeNewInto);
+
+            if (stravaGetToken && merged.length > 0) {
+                setSyncErrorDetail(`Linking Strava for ${syncStart} → ${syncEnd}…`);
+                try {
+                    const token = await stravaGetToken();
+                    if (token) {
+                        const stravaList = await fetchStravaActivitiesInRange(token, syncStart, syncEnd);
+                        merged = linkIntervalsActivitiesToStravaList(merged, stravaList);
+                        applyStravaFuzzyMatchesToIntervals(merged, stravaList);
+                    }
+                } catch (err) {
+                    console.warn('[Fetch new] Strava list / link failed:', err);
+                }
+            }
+
+            if (merged.length > 0 && db) {
+                await Promise.all(
+                    merged.map((act) => {
+                        const existing = activitiesMap.get(String(act.id));
+                        const payload = protectEnrichedFieldsOnMerge(act, existing);
+                        return setDoc(doc(db, 'activities', String(act.id)), payload, { merge: true });
+                    }),
+                );
+            }
+            if (merged.length > 0) {
+                onImport(merged);
+            }
+
+            let enrichCount = 0;
+            let segmentRefreshCount = 0;
+            let detailFailed = 0;
+            if (stravaGetToken && merged.length > 0) {
+                setSyncStatus('enriching');
+                setSyncErrorDetail('Strava: auto-link + gear/HR/RPE/KOM for fetched rides…');
+                try {
+                    const token = await stravaGetToken();
+                    if (token) {
+                        const enrichResult = await enrichSelectedActivitiesFromStrava(merged, token, {
+                            forceStravaDetail: true,
+                            concurrency: 3,
+                            onProgress: (m) => setSyncErrorDetail(String(m)),
+                        });
+                        enrichCount = enrichResult.updates.length;
+                        segmentRefreshCount = enrichResult.detailUpdatedCount;
+                        detailFailed = enrichResult.failed;
+                        if (enrichResult.updates.length > 0) {
+                            const mergedMap = new Map((merged || []).map((a) => [String(a.id), a]));
+                            if (db) {
+                                await Promise.all(
+                                    enrichResult.updates.map(({ id, data }) => {
+                                        const strId = String(id);
+                                        const existingRow = mergedMap.get(strId) || activitiesMap.get(strId) || {};
+                                        return setDoc(
+                                            doc(db, 'activities', String(id)),
+                                            protectEnrichedFieldsOnMerge(data, existingRow),
+                                            { merge: true },
+                                        );
+                                    }),
+                                );
+                            }
+                            const updatesMap = new Map(enrichResult.updates.map((u) => [String(u.id), u]));
+                            for (let i = 0; i < merged.length; i++) {
+                                const strId = String(merged[i].id);
+                                const update = updatesMap.get(strId);
+                                if (update) {
+                                    const updatedData = stripUndefinedFields({ ...merged[i], ...update.data });
+                                    merged[i] = updatedData;
+                                    mergedMap.set(strId, updatedData);
+                                }
+                            }
+                            onImport(enrichResult.updates.map(({ id, data }) => {
+                                const prev = mergedMap.get(String(id)) || {};
+                                return protectEnrichedFieldsOnMerge({ ...prev, ...data }, prev);
+                            }));
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[Fetch new] Strava enrich failed:', e);
+                }
+                onImport(merged);
+            }
+
+            setSyncStatus('done');
+            const parts = [];
+            if (merged.length > 0) parts.push(`${merged.length} from Intervals.icu`);
+            if (stravaGetToken && merged.length > 0) {
+                parts.push('Strava link + enrich');
+                if (enrichCount > 0) parts.push(`${enrichCount} field update(s) from Strava`);
+                if (segmentRefreshCount > 0) parts.push(`${segmentRefreshCount} detail/KOM refresh`);
+                if (detailFailed > 0) parts.push(`${detailFailed} detail error(s)`);
+            } else if (merged.length > 0) {
+                parts.push('connect Strava in Settings for auto-link + details');
+            }
+            setSyncErrorDetail(
+                merged.length > 0
+                    ? `✅ ${parts.join(' · ')}.`
+                    : 'No new activities returned from Intervals.icu for this range (or all filtered out).',
+            );
+            setTimeout(() => setSyncStatus(null), 9000);
+        } catch (e) {
+            console.error('Fetch new from Intervals failed:', e);
+            setSyncStatus('error');
+            setSyncErrorDetail(`❌ ${e.message || e}`);
+            setTimeout(() => setSyncStatus(null), 10000);
+        } finally {
+            setIsFetchingNewIntervals(false);
+        }
+    }, [
+        fetchIntervalsDates,
+        syncIntervals,
+        activities,
+        stravaGetToken,
+        onImport,
+    ]);
+
+    return {
+        syncStatus,
+        syncErrorDetail,
+        fetchIntervalsDates,
+        setFetchIntervalsDates,
+        isFetchingNewIntervals,
+        handleSync,
+        handleFetchNewFromIntervals,
+        isSyncing,
+        syncProgress,
+    };
+}

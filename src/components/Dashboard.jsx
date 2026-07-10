@@ -1,5 +1,6 @@
-﻿import React, { useState, useMemo, useEffect, Suspense, lazy } from 'react';
+﻿import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import { safeSessionStorageSet } from '../utils/safeStorage.js';
+import { lazyWithRetry } from '../utils/lazyWithRetry.js';
 import {
     getDashboardWindowBounds,
     previousWindowBounds,
@@ -10,11 +11,12 @@ import { enhanceAndSortActivities } from '../utils/enhanceActivity';
 import { prefetchDashboardSubTabChunk } from '../utils/prefetchTabChunks';
 import { useActivitiesList } from '../hooks/useActivities';
 import { SkeletonChartCard } from './ui/Skeleton';
+import OverviewTab from './dashboard/OverviewTab';
 
-const FormTab = lazy(() => import('./dashboard/FormTab'));
-const PowerTab = lazy(() => import('./dashboard/PowerTab'));
-const DistanceTab = lazy(() => import('./dashboard/DistanceTab'));
-const VolumeTotalsTab = lazy(() => import('./dashboard/VolumeTotalsTab'));
+const FormTab = lazyWithRetry(() => import('./dashboard/FormTab'), 'FormTab');
+const PowerTab = lazyWithRetry(() => import('./dashboard/PowerTab'), 'PowerTab');
+const DistanceTab = lazyWithRetry(() => import('./dashboard/DistanceTab'), 'DistanceTab');
+const VolumeTotalsTab = lazyWithRetry(() => import('./dashboard/VolumeTotalsTab'), 'VolumeTotalsTab');
 
 const DASH_SUBTAB_STORAGE_KEY = 'cpl.dashboard.subTab.v1';
 

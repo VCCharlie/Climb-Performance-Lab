@@ -1,31 +1,20 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { Search, Loader2, AlertTriangle, Trash, Split, RefreshCw, ExternalLink, GitBranch, Zap, ChevronDown, ChevronRight, Link2, Download, GitMerge, Edit2 } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 import { doc, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from '../firebase';
-import { findDuplicatesInList, runInBatches } from '../utils';
+import { findDuplicatesInList } from '../utils';
 import { protectEnrichedFieldsOnMerge } from '../utils/firestoreActivityMerge';
-import { activitiesToCsv } from '../utils/activityCsvExport';
-import {
-    mergeActivitiesIntervalsPrimary,
-    isStravaOnlyActivityId,
-    isLikelyIntervalsActivityId,
-    stripUndefinedFields,
-} from '../utils/mergeActivities';
+import { stripUndefinedFields } from '../utils/mergeActivities';
 import { buildImportReplacementPlan } from '../utils/importDuplicateMatch';
 import { persistImportedActivitiesReplacingDuplicates } from '../utils/importPersistence';
 import { enrichActivityGearFromStrava } from '../utils/stravaGearEnrich';
 import { enrichSelectedActivitiesFromStrava } from '../utils/stravaSelectedEnrich';
 import { resolveStravaGearDisplay } from '../utils/stravaBikesLocalMap';
 import { activityIntensityFactor } from '../utils/activityFilterMetrics';
-import { formatNlNumber, normalizeDate, formatDateDDMMYYYY } from '../utils/formatters';
+import { normalizeDate, formatDateDDMMYYYY } from '../utils/formatters';
 import { devLog } from '../utils/safeLog';
-import {
-    fetchStravaActivitiesInRange,
-    linkIntervalsActivitiesToStravaList,
-    applyStravaFuzzyMatchesToIntervals,
-} from '../utils/stravaLinkIntervalsFetch';
 
-import { SPORT_TYPES, MONTH_ORDER } from '../config';
+import { MONTH_ORDER } from '../config';
 import { getCoreClimbDatabase } from '../services/climbDatabase';
 
 // Sub-components
@@ -33,11 +22,10 @@ import EditActivityModal from './data-hub/EditActivityModal';
 import BulkEditActivitiesModal from './data-hub/BulkEditActivitiesModal';
 import ActivityLogView from './data-hub/ActivityLogView';
 import ActivityLogBulkBar from './data-hub/ActivityLogBulkBar';
-import ActivityColumnPicker from './data-hub/ActivityColumnPicker';
+import ActivityLogFilterBar from './data-hub/ActivityLogFilterBar';
 import ImportModal from './data-hub/ImportModal';
 import DuplicateResolver from './data-hub/DuplicateResolver';
 import QuickNav from './data-hub/QuickNav';
-import AnchoredDropdownPortal from './ui/AnchoredDropdownPortal';
 import ImportSection from './data-hub/ImportSection';
 import ActivityDetailModal from './DataHub/ActivityDetailModal';
 import StravaEnrichTab from './DataHub/StravaEnrichTab';
@@ -50,8 +38,9 @@ import FetchIntervalsPanel from './data-hub/FetchIntervalsPanel';
 
 // Hooks
 import useActivityFilter from '../hooks/useActivityFilter';
-import useIntervalsSync from '../hooks/useIntervalsSync';
 import useActivityColumnVisibility from '../hooks/useActivityColumnVisibility';
+import { useDataHubBulkActions } from '../hooks/useDataHubBulkActions';
+import { useDataHubIntervalsSync } from '../hooks/useDataHubIntervalsSync';
 import { useActivityCardLayout } from '../hooks/useMediaQuery';
 import { useActivities } from '../hooks/useActivities';
 import { useActivityLogNavigation } from '../context/ActivityLogNavigationContext';
@@ -105,20 +94,7 @@ const DataHub = ({
     const utilMenuRef = useRef(null);
     const utilMenuButtonRef = useRef(null);
     const [showStravaEnrichPanel, setShowStravaEnrichPanel] = useState(false);
-    const [fetchIntervalsDates, setFetchIntervalsDates] = useState(() => ({
-        start: new Date(new Date().setDate(new Date().getDate() - 14)).toISOString().split('T')[0],
-        end: new Date().toISOString().split('T')[0],
-    }));
-    const [isFetchingNewIntervals, setIsFetchingNewIntervals] = useState(false);
-    const [bulkSelectedIds, setBulkSelectedIds] = useState(() => new Set());
     const [stravaListProgress, setStravaListProgress] = useState(null);
-    const [showMergeModal, setShowMergeModal] = useState(false);
-    const [mergeError, setMergeError] = useState(null);
-    const [isMerging, setIsMerging] = useState(false);
-    const [isStravaEnriching, setIsStravaEnriching] = useState(false);
-    const [stravaEnrichMsg, setStravaEnrichMsg] = useState(null);
-    const [showBulkEditModal, setShowBulkEditModal] = useState(false);
-    const [isBulkSaving, setIsBulkSaving] = useState(false);
 
     const {
         visibleColumns,
@@ -165,10 +141,6 @@ const DataHub = ({
     const [showModal, setShowModal] = useState(false);
     const [rawData, setRawData] = useState(null);
 
-    // NEW DIRECT SYNC STATE
-    const { syncIntervals, isSyncing, syncProgress } = useIntervalsSync(intervalsConfig);
-    const [syncStatus, setSyncStatus] = useState(null);
-    const [syncErrorDetail, setSyncErrorDetail] = useState(null);
     const [isManualRefreshing, setIsManualRefreshing] = useState(false);
 
     const {
@@ -316,292 +288,23 @@ const DataHub = ({
         }, []);
     }, [processedActivities, groupedActivities, isGroupedView, sortConfig.direction, isYearExpanded, isMonthExpanded]);
 
-    const allVisibleSelected = useMemo(
-        () => visibleActivityIdsFlat.length > 0
-            && visibleActivityIdsFlat.every((id) => bulkSelectedIds.has(id)),
-        [visibleActivityIdsFlat, bulkSelectedIds],
-    );
+    const bulk = useDataHubBulkActions({
+        activities,
+        onDelete,
+        onImport,
+        stravaGetToken,
+        visibleActivityIdsFlat,
+        setIsDeleting,
+    });
 
-    const toggleBulkSelectOne = useCallback((id) => {
-        const k = String(id);
-        setBulkSelectedIds((prev) => {
-            const next = new Set(prev);
-            if (next.has(k)) next.delete(k);
-            else next.add(k);
-            return next;
-        });
-    }, []);
-
-    const toggleSelectAllVisible = useCallback(() => {
-        setBulkSelectedIds((prev) => {
-            if (visibleActivityIdsFlat.length === 0) return new Set();
-            const allOn = visibleActivityIdsFlat.every((id) => prev.has(id));
-            if (allOn) {
-                const next = new Set(prev);
-                visibleActivityIdsFlat.forEach((id) => next.delete(id));
-                return next;
-            }
-            const next = new Set(prev);
-            visibleActivityIdsFlat.forEach((id) => next.add(id));
-            return next;
-        });
-    }, [visibleActivityIdsFlat]);
-
-    const selectedActivitiesForBulk = useMemo(
-        () => (activities || []).filter((a) => bulkSelectedIds.has(String(a.id))),
-        [activities, bulkSelectedIds]
-    );
-
-    const exportBulkCsv = useCallback(() => {
-        if (selectedActivitiesForBulk.length === 0) return;
-        const csv = activitiesToCsv(selectedActivitiesForBulk);
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `activities-export-${new Date().toISOString().slice(0, 10)}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
-    }, [selectedActivitiesForBulk]);
-
-    const confirmBulkDeleteSelected = useCallback(async () => {
-        const ids = [...bulkSelectedIds];
-        if (ids.length === 0) return;
-        const n = ids.length;
-        if (!window.confirm(`Delete ${n} activit${n === 1 ? 'y' : 'ies'}? This cannot be undone.`)) return;
-        setIsDeleting(true);
-        try {
-            ids.forEach((id) => onDelete(id));
-            if (db) {
-                await Promise.all(ids.map((id) => deleteDoc(doc(db, 'activities', String(id)))));
-            }
-            setBulkSelectedIds(new Set());
-        } catch (e) {
-            alert(`Could not delete: ${e.message || e}`);
-        } finally {
-            setIsDeleting(false);
-        }
-    }, [bulkSelectedIds, onDelete]);
-
-    const mergePairPreview = useMemo(() => {
-        if (selectedActivitiesForBulk.length !== 2) return null;
-        const [x, y] = selectedActivitiesForBulk;
-        let intervals = null;
-        let stravaSide = null;
-        if (isLikelyIntervalsActivityId(x.id) && isStravaOnlyActivityId(y.id)) {
-            intervals = x;
-            stravaSide = y;
-        } else if (isLikelyIntervalsActivityId(y.id) && isStravaOnlyActivityId(x.id)) {
-            intervals = y;
-            stravaSide = x;
-        } else if (!String(x.id).startsWith('strava_') && String(y.id).startsWith('strava_')) {
-            intervals = x;
-            stravaSide = y;
-        } else if (!String(y.id).startsWith('strava_') && String(x.id).startsWith('strava_')) {
-            intervals = y;
-            stravaSide = x;
-        } else {
-            return { error: 'Select one Intervals activity and one Strava-import row (id strava_…), or pick one non-strava_ id and one strava_ id.' };
-        }
-        if (String(intervals.id) === String(stravaSide.id)) {
-            return { error: 'Cannot merge an activity with itself.' };
-        }
-        try {
-            const merged = mergeActivitiesIntervalsPrimary(intervals, stravaSide);
-            return { intervals, stravaSide, merged };
-        } catch (e) {
-            return { error: e.message || 'Merge failed' };
-        }
-    }, [selectedActivitiesForBulk]);
-
-    const confirmMergePair = async () => {
-        if (!mergePairPreview || mergePairPreview.error || !mergePairPreview.merged) return;
-        const { intervals, stravaSide, merged } = mergePairPreview;
-        setIsMerging(true);
-        setMergeError(null);
-        try {
-            let finalMerged = merged;
-            if (stravaGetToken && merged.strava_id) {
-                try {
-                    const token = await stravaGetToken();
-                    if (token) {
-                        finalMerged = await enrichActivityGearFromStrava(merged, stravaSide, token);
-                    }
-                } catch (gearErr) {
-                    console.warn('[Merge] Strava gear / detail enrich failed:', gearErr);
-                }
-            }
-            if (db) {
-                await setDoc(doc(db, 'activities', String(intervals.id)), finalMerged, { merge: true });
-                await deleteDoc(doc(db, 'activities', String(stravaSide.id)));
-            }
-            onImport([finalMerged]);
-            onDelete(stravaSide.id);
-            setBulkSelectedIds(new Set());
-            setShowMergeModal(false);
-        } catch (e) {
-            setMergeError(e.message || 'Merge failed');
-        } finally {
-            setIsMerging(false);
-        }
-    };
-
-    const persistStravaEnrichUpdates = useCallback(async (updates, sourceList) => {
-        if (!updates?.length) return;
-        const sourceMap = new Map((sourceList || []).map((a) => [String(a.id), a]));
-        const activitiesMap = new Map((activities || []).map((a) => [String(a.id), a]));
-        const CHUNK = 25;
-        for (let i = 0; i < updates.length; i += CHUNK) {
-            const slice = updates.slice(i, i + CHUNK);
-            if (db) {
-                await Promise.all(
-                    slice.map(({ id, data }) => {
-                        const prev = sourceMap.get(String(id)) || activitiesMap.get(String(id)) || {};
-                        return setDoc(
-                            doc(db, 'activities', String(id)),
-                            protectEnrichedFieldsOnMerge(data, prev),
-                            { merge: true },
-                        );
-                    }),
-                );
-            }
-            const mergedObjs = slice.map(({ id, data }) => {
-                const prev = sourceMap.get(String(id)) || activitiesMap.get(String(id)) || {};
-                return protectEnrichedFieldsOnMerge({ ...prev, ...data }, prev);
-            });
-            onImport(mergedObjs);
-        }
-    }, [activities, onImport]);
-
-    const runStravaEnrichSelected = async (subset) => {
-        const list = subset && subset.length > 0 ? subset : [];
-        if (!stravaGetToken) return;
-        if (list.length === 0) {
-            setStravaEnrichMsg('Select one or more activities (row checkboxes), then run Strava enrich.');
-            return;
-        }
-        setShowUtilMenu(false);
-        setIsStravaEnriching(true);
-        setStravaEnrichMsg('Starting…');
-        try {
-            const token = await stravaGetToken();
-            if (!token) {
-                setStravaEnrichMsg('Could not get Strava token.');
-                return;
-            }
-            const {
-                updates,
-                linkedCount,
-                detailUpdatedCount,
-                ridesProcessed,
-                unchanged,
-                failed,
-            } = await enrichSelectedActivitiesFromStrava(list, token, {
-                concurrency: 3,
-                forceStravaDetail: true,
-                onProgress: (m) => setStravaEnrichMsg(m),
-            });
-            if (updates.length === 0) {
-                if (failed > 0) {
-                    setStravaEnrichMsg(
-                        `No fields updated (${formatNlNumber(failed)} Strava request(s) failed — check connection or rate limits). ${formatNlNumber(unchanged)} ride(s) already matched Strava.`,
-                    );
-                } else if (ridesProcessed === 0 && linkedCount === 0) {
-                    setStravaEnrichMsg(
-                        'No matching Strava bike activities found for the selected date span. Try linking manually via Find on Strava on a single row.',
-                    );
-                } else {
-                    setStravaEnrichMsg(
-                        `Nothing new from Strava for ${formatNlNumber(unchanged || list.length)} selected ride(s) — link, gear, route, HR, RPE, and segments already match.`,
-                    );
-                }
-                return;
-            }
-            setStravaEnrichMsg(`Writing ${updates.length} activities…`);
-            await persistStravaEnrichUpdates(updates, list);
-            const parts = [];
-            if (linkedCount > 0) parts.push(`${formatNlNumber(linkedCount)} newly linked`);
-            if (detailUpdatedCount > 0) parts.push(`${formatNlNumber(detailUpdatedCount)} detail refresh`);
-            setStravaEnrichMsg(
-                `Done: updated ${formatNlNumber(updates.length)} selected ride(s) from Strava`
-                + (parts.length ? ` (${parts.join(', ')})` : '')
-                + ' — gear, route, HR, RPE, and segment badges when Strava returns them.',
-            );
-        } catch (e) {
-            console.error('[Strava enrich]', e);
-            setStravaEnrichMsg(`Error: ${e.message || e}`);
-        } finally {
-            setIsStravaEnriching(false);
-        }
-    };
-
-    const markBulkRecovery = useCallback(async () => {
-        if (selectedActivitiesForBulk.length === 0) return;
-        const LOW_TSS = 35;
-        try {
-            if (db) {
-                await Promise.all(
-                    selectedActivitiesForBulk.map((act) =>
-                        setDoc(doc(db, 'activities', String(act.id)), { load: LOW_TSS }, { merge: true })
-                    )
-                );
-            }
-            onImport(
-                selectedActivitiesForBulk.map((a) => ({
-                    ...a,
-                    load: LOW_TSS,
-                }))
-            );
-            setBulkSelectedIds(new Set());
-        } catch (e) {
-            alert('Could not update activities: ' + e.message);
-        }
-    }, [selectedActivitiesForBulk, onImport]);
-
-    const handleBulkApplyPatch = useCallback(async (patch) => {
-        const list = selectedActivitiesForBulk;
-        if (!list.length || !patch || typeof patch !== 'object') return;
-
-        setIsBulkSaving(true);
-        try {
-            let token = null;
-            const mayEnrichGear = 'gear_id' in patch || 'gear_name' in patch;
-            if (stravaGetToken && mayEnrichGear && list.some((a) => a?.strava_id)) {
-                try {
-                    token = await stravaGetToken();
-                } catch {
-                    token = null;
-                }
-            }
-
-            // ⚡ Bolt Optimization: Use Map for O(1) lookups instead of O(N) array.find inside loops
-            const activitiesMap = new Map((activities || []).map((a) => [String(a.id), a]));
-
-            const results = await runInBatches(list, 15, async (act) => {
-                const prev = activitiesMap.get(String(act.id)) || act;
-                let toSave = stripUndefinedFields({ ...prev, ...patch });
-                if (token && toSave.strava_id) {
-                    try {
-                        toSave = await enrichActivityGearFromStrava(toSave, null, token);
-                    } catch (gearErr) {
-                        console.warn('[Bulk edit] Strava enrich failed:', gearErr);
-                    }
-                }
-                if (db) {
-                    await setDoc(doc(db, 'activities', String(toSave.id)), toSave, { merge: true });
-                }
-                return toSave;
-            });
-
-            onImport(results);
-            setBulkSelectedIds(new Set());
-            setShowBulkEditModal(false);
-        } catch (e) {
-            alert(`Could not apply bulk edit: ${e.message || e}`);
-        } finally {
-            setIsBulkSaving(false);
-        }
-    }, [selectedActivitiesForBulk, activities, onImport, stravaGetToken]);
+    const intervalsSync = useDataHubIntervalsSync({
+        intervalsConfig,
+        activities,
+        onImport,
+        stravaGetToken,
+        bulkSelectedIds: bulk.bulkSelectedIds,
+        selectedActivitiesForBulk: bulk.selectedActivitiesForBulk,
+    });
 
     const performSilentStravaEnrichment = async (actsToEnrich, customStart, customEnd) => {
         if (!stravaGetToken) return 0;
@@ -688,310 +391,6 @@ const DataHub = ({
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [stravaGetToken, activities]);
-
-    // --- Sync Now: Intervals for date span of *selected* rows; Strava link + forced detail (segments/KOM) ---
-    const handleSync = async () => {
-        setShowUtilMenu(false);
-
-        if (bulkSelectedIds.size === 0) {
-            setSyncStatus('error');
-            setSyncErrorDetail('Select one or more activities (checkboxes in the Activity Log), then Sync Now.');
-            setTimeout(() => setSyncStatus(null), 7000);
-            return;
-        }
-
-        const selectedActs = selectedActivitiesForBulk;
-        // ⚡ Bolt Optimization: Use single-pass reduce instead of chained map/filter
-        const dateParts = selectedActs
-            .reduce((acc, a) => {
-                const dp = (a?.date && String(a.date).split('T')[0]) || '';
-                if (dp) acc.push(dp);
-                return acc;
-            }, [])
-            .sort();
-        if (dateParts.length === 0) {
-            setSyncStatus('error');
-            setSyncErrorDetail('Selected activities have no valid date; cannot determine Intervals.icu range.');
-            setTimeout(() => setSyncStatus(null), 7000);
-            return;
-        }
-
-        const syncStart = dateParts[0];
-        const syncEnd = dateParts[dateParts.length - 1];
-        const selectedIdSet = new Set([...bulkSelectedIds].map(String));
-
-        /** Mutable copies so enrichment does not mutate stale `activities` refs */
-        let working = selectedActs.map((a) => ({ ...a }));
-
-        setSyncStatus('started');
-        setSyncErrorDetail(`Step 1/2: Intervals.icu ${syncStart} → ${syncEnd} (${bulkSelectedIds.size} selected)…`);
-
-        try {
-            const sportFilters = SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: true }), {});
-            const selectedTypes = Object.keys(sportFilters).filter((k) => sportFilters[k]);
-
-            const newActivitiesRaw = await syncIntervals(syncStart, syncEnd, selectedTypes);
-            const newActivities = newActivitiesRaw.filter((a) => selectedIdSet.has(String(a.id)));
-
-            // ⚡ Bolt Optimization: Use Map for O(1) lookups instead of O(N) array.find inside loops
-            const activitiesMap = new Map((activities || []).map((a) => [String(a.id), a]));
-
-            const mergeNewInto = (act) => {
-                const existing = activitiesMap.get(String(act.id));
-                return existing ? protectEnrichedFieldsOnMerge(act, existing) : act;
-            };
-            const mergedNews = newActivities.map(mergeNewInto);
-
-            // ⚡ Bolt Optimization: Use a Map for index lookup instead of nested findIndex
-            const workingIndexMap = new Map();
-            for (let i = 0; i < working.length; i++) {
-                workingIndexMap.set(String(working[i].id), i);
-            }
-
-            for (const n of mergedNews) {
-                const i = workingIndexMap.get(String(n.id));
-                if (i !== undefined) {
-                    working[i] = protectEnrichedFieldsOnMerge({ ...working[i], ...n }, working[i]);
-                }
-            }
-
-            setSyncErrorDetail(
-                mergedNews.length < newActivitiesRaw.length
-                    ? `Step 2/2: ${mergedNews.length} of ${newActivitiesRaw.length} fetched id(s) match selection. Strava…`
-                    : `Step 2/2: Strava link + segment refresh for ${bulkSelectedIds.size} selected ride(s)…`,
-            );
-            setSyncStatus('enriching');
-
-            if (db && mergedNews.length > 0) {
-                await Promise.all(
-                    mergedNews.map((act) => {
-                        const existing = activitiesMap.get(String(act.id));
-                        const payload = protectEnrichedFieldsOnMerge(act, existing);
-                        return setDoc(doc(db, 'activities', String(act.id)), payload, { merge: true });
-                    }),
-                );
-            }
-            if (mergedNews.length > 0) {
-                onImport(mergedNews);
-            }
-
-            let enrichedLinkCount = 0;
-            let segmentRefreshCount = 0;
-            let detailFailed = 0;
-            if (stravaGetToken) {
-                try {
-                    const token = await stravaGetToken();
-                    if (token) {
-                        const enrichResult = await enrichSelectedActivitiesFromStrava(working, token, {
-                            forceStravaDetail: true,
-                            concurrency: 3,
-                            onProgress: (m) => setSyncErrorDetail(String(m)),
-                        });
-                        enrichedLinkCount = enrichResult.linkedCount;
-                        segmentRefreshCount = enrichResult.detailUpdatedCount;
-                        detailFailed = enrichResult.failed;
-                        if (enrichResult.updates.length > 0) {
-                            const workingMap = new Map((working || []).map((a) => [String(a.id), a]));
-                            if (db) {
-                                await Promise.all(
-                                    enrichResult.updates.map(({ id, data }) => {
-                                        const strId = String(id);
-                                        const existingRow = workingMap.get(strId) || activitiesMap.get(strId) || {};
-                                        return setDoc(
-                                            doc(db, 'activities', String(id)),
-                                            protectEnrichedFieldsOnMerge(data, existingRow),
-                                            { merge: true },
-                                        );
-                                    }),
-                                );
-                            }
-                            const updatesMap = new Map(enrichResult.updates.map((u) => [String(u.id), u]));
-                            for (let i = 0; i < working.length; i++) {
-                                const strId = String(working[i].id);
-                                const update = updatesMap.get(strId);
-                                if (update) {
-                                    const updated = stripUndefinedFields({ ...working[i], ...update.data });
-                                    working[i] = updated;
-                                    workingMap.set(strId, updated);
-                                }
-                            }
-                            onImport(enrichResult.updates.map(({ id, data }) => {
-                                const prev = workingMap.get(String(id)) || {};
-                                return protectEnrichedFieldsOnMerge({ ...prev, ...data }, prev);
-                            }));
-                        }
-                    }
-                } catch (e) {
-                    console.warn('[Sync] Strava enrich failed:', e);
-                }
-            }
-
-            onImport(working);
-
-            setSyncStatus('done');
-            const parts = [];
-            if (mergedNews.length > 0) parts.push(`${mergedNews.length} Intervals row(s) saved`);
-            if (newActivitiesRaw.length > mergedNews.length) {
-                parts.push(`${newActivitiesRaw.length - mergedNews.length} fetched id(s) not in selection`);
-            }
-            if (enrichedLinkCount > 0) parts.push(`${enrichedLinkCount} Strava link update(s)`);
-            if (segmentRefreshCount > 0) parts.push(`${segmentRefreshCount} Strava detail + segment refresh`);
-            if (detailFailed > 0) parts.push(`${detailFailed} detail error(s)`);
-            setSyncErrorDetail(
-                parts.length > 0
-                    ? `✅ Sync complete. ${parts.join(' · ')}.`
-                    : '✅ Sync complete. No Intervals changes for selected ids; Strava refresh attempted.',
-            );
-            setTimeout(() => setSyncStatus(null), 9000);
-        } catch (e) {
-            console.error('Sync failed:', e);
-            setSyncStatus('error');
-            setSyncErrorDetail(`❌ Error: ${e.message}`);
-        }
-    };
-
-    /** Fetch Intervals.icu for a date range, merge into the log, optionally auto-link Strava (same window). */
-    const handleFetchNewFromIntervals = async () => {
-        const syncStart = fetchIntervalsDates.start;
-        const syncEnd = fetchIntervalsDates.end;
-        if (!syncStart || !syncEnd) {
-            setSyncStatus('error');
-            setSyncErrorDetail('Choose a valid From and To date for fetching new activities.');
-            setTimeout(() => setSyncStatus(null), 7000);
-            return;
-        }
-        if (syncStart > syncEnd) {
-            setSyncStatus('error');
-            setSyncErrorDetail('From date must be on or before To date.');
-            setTimeout(() => setSyncStatus(null), 7000);
-            return;
-        }
-
-        setIsFetchingNewIntervals(true);
-        setSyncStatus('started');
-        setSyncErrorDetail(`Fetching Intervals.icu ${syncStart} → ${syncEnd}…`);
-
-        try {
-            const sportFiltersAll = SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: true }), {});
-            const selectedTypes = Object.keys(sportFiltersAll).filter((k) => sportFiltersAll[k]);
-            const newActivitiesRaw = await syncIntervals(syncStart, syncEnd, selectedTypes);
-
-            // ⚡ Bolt Optimization: Use Map for O(1) lookups instead of O(N) array.find inside loops
-            const activitiesMap = new Map((activities || []).map((a) => [String(a.id), a]));
-
-            const mergeNewInto = (act) => {
-                const existing = activitiesMap.get(String(act.id));
-                return existing ? protectEnrichedFieldsOnMerge(act, existing) : act;
-            };
-            let merged = (newActivitiesRaw || []).map(mergeNewInto);
-
-            if (stravaGetToken && merged.length > 0) {
-                setSyncErrorDetail(`Linking Strava for ${syncStart} → ${syncEnd}…`);
-                try {
-                    const token = await stravaGetToken();
-                    if (token) {
-                        const stravaList = await fetchStravaActivitiesInRange(token, syncStart, syncEnd);
-                        merged = linkIntervalsActivitiesToStravaList(merged, stravaList);
-                        applyStravaFuzzyMatchesToIntervals(merged, stravaList);
-                    }
-                } catch (err) {
-                    console.warn('[Fetch new] Strava list / link failed:', err);
-                }
-            }
-
-            if (merged.length > 0 && db) {
-                await Promise.all(
-                    merged.map((act) => {
-                        const existing = activitiesMap.get(String(act.id));
-                        const payload = protectEnrichedFieldsOnMerge(act, existing);
-                        return setDoc(doc(db, 'activities', String(act.id)), payload, { merge: true });
-                    }),
-                );
-            }
-            if (merged.length > 0) {
-                onImport(merged);
-            }
-
-            let enrichCount = 0;
-            let segmentRefreshCount = 0;
-            let detailFailed = 0;
-            if (stravaGetToken && merged.length > 0) {
-                setSyncStatus('enriching');
-                setSyncErrorDetail('Strava: auto-link + gear/HR/RPE/KOM for fetched rides…');
-                try {
-                    const token = await stravaGetToken();
-                    if (token) {
-                        const enrichResult = await enrichSelectedActivitiesFromStrava(merged, token, {
-                            forceStravaDetail: true,
-                            concurrency: 3,
-                            onProgress: (m) => setSyncErrorDetail(String(m)),
-                        });
-                        enrichCount = enrichResult.updates.length;
-                        segmentRefreshCount = enrichResult.detailUpdatedCount;
-                        detailFailed = enrichResult.failed;
-                        if (enrichResult.updates.length > 0) {
-                            const mergedMap = new Map((merged || []).map((a) => [String(a.id), a]));
-                            if (db) {
-                                await Promise.all(
-                                    enrichResult.updates.map(({ id, data }) => {
-                                        const strId = String(id);
-                                        const existingRow = mergedMap.get(strId) || activitiesMap.get(strId) || {};
-                                        return setDoc(
-                                            doc(db, 'activities', String(id)),
-                                            protectEnrichedFieldsOnMerge(data, existingRow),
-                                            { merge: true },
-                                        );
-                                    }),
-                                );
-                            }
-                            const updatesMap = new Map(enrichResult.updates.map((u) => [String(u.id), u]));
-                            for (let i = 0; i < merged.length; i++) {
-                                const strId = String(merged[i].id);
-                                const update = updatesMap.get(strId);
-                                if (update) {
-                                    const updatedData = stripUndefinedFields({ ...merged[i], ...update.data });
-                                    merged[i] = updatedData;
-                                    mergedMap.set(strId, updatedData);
-                                }
-                            }
-                            onImport(enrichResult.updates.map(({ id, data }) => {
-                                const prev = mergedMap.get(String(id)) || {};
-                                return protectEnrichedFieldsOnMerge({ ...prev, ...data }, prev);
-                            }));
-                        }
-                    }
-                } catch (e) {
-                    console.warn('[Fetch new] Strava enrich failed:', e);
-                }
-                onImport(merged);
-            }
-
-            setSyncStatus('done');
-            const parts = [];
-            if (merged.length > 0) parts.push(`${merged.length} from Intervals.icu`);
-            if (stravaGetToken && merged.length > 0) {
-                parts.push('Strava link + enrich');
-                if (enrichCount > 0) parts.push(`${enrichCount} field update(s) from Strava`);
-                if (segmentRefreshCount > 0) parts.push(`${segmentRefreshCount} detail/KOM refresh`);
-                if (detailFailed > 0) parts.push(`${detailFailed} detail error(s)`);
-            } else if (merged.length > 0) {
-                parts.push('connect Strava in Settings for auto-link + details');
-            }
-            setSyncErrorDetail(
-                merged.length > 0
-                    ? `✅ ${parts.join(' · ')}.`
-                    : 'No new activities returned from Intervals.icu for this range (or all filtered out).',
-            );
-            setTimeout(() => setSyncStatus(null), 9000);
-        } catch (e) {
-            console.error('Fetch new from Intervals failed:', e);
-            setSyncStatus('error');
-            setSyncErrorDetail(`❌ ${e.message || e}`);
-            setTimeout(() => setSyncStatus(null), 10000);
-        } finally {
-            setIsFetchingNewIntervals(false);
-        }
-    };
 
 
     // --- OVERIGE BESTAANDE ACTIONS (Ongewijzigd) ---
@@ -1243,12 +642,12 @@ const DataHub = ({
                     onFindOnStrava={handleFindOnStrava}
                 />
             )}
-            {showBulkEditModal && (
+            {bulk.showBulkEditModal && (
                 <BulkEditActivitiesModal
-                    count={bulkSelectedIds.size}
+                    count={bulk.bulkSelectedIds.size}
                     allActivities={activities}
-                    onClose={() => setShowBulkEditModal(false)}
-                    onApply={handleBulkApplyPatch}
+                    onClose={() => bulk.setShowBulkEditModal(false)}
+                    onApply={bulk.handleBulkApplyPatch}
                 />
             )}
             <ImportModal
@@ -1291,13 +690,13 @@ const DataHub = ({
             />
 
             <MergePairModal
-                open={showMergeModal}
-                mergePairPreview={mergePairPreview}
-                mergeError={mergeError}
-                isMerging={isMerging}
+                open={bulk.showMergeModal}
+                mergePairPreview={bulk.mergePairPreview}
+                mergeError={bulk.mergeError}
+                isMerging={bulk.isMerging}
                 hasDb={!!db}
-                onClose={() => { setShowMergeModal(false); setMergeError(null); }}
-                onConfirm={confirmMergePair}
+                onClose={bulk.closeMergeModal}
+                onConfirm={bulk.confirmMergePair}
             />
 
             {/* TABS */}
@@ -1316,452 +715,127 @@ const DataHub = ({
                 {internalTab === 'log' && (
                     <div role="tabpanel" id="tabpanel-log" aria-labelledby="tab-log" className="p-4 flex-1 min-h-0 overflow-hidden flex flex-col">
                         <ActivityLogSyncBanners
-                            syncStatus={syncStatus}
-                            syncErrorDetail={syncErrorDetail}
-                            isSyncing={isSyncing}
-                            syncProgress={syncProgress}
+                            syncStatus={intervalsSync.syncStatus}
+                            syncErrorDetail={intervalsSync.syncErrorDetail}
+                            isSyncing={intervalsSync.isSyncing}
+                            syncProgress={intervalsSync.syncProgress}
                             stravaListProgress={stravaListProgress}
-                            isStravaEnriching={isStravaEnriching}
-                            stravaEnrichMsg={stravaEnrichMsg}
-                            onDismissStravaEnrichMsg={() => setStravaEnrichMsg(null)}
+                            isStravaEnriching={bulk.isStravaEnriching}
+                            stravaEnrichMsg={bulk.stravaEnrichMsg}
+                            onDismissStravaEnrichMsg={() => bulk.setStravaEnrichMsg(null)}
                         />
 
                         <FetchIntervalsPanel
-                            fetchIntervalsDates={fetchIntervalsDates}
-                            onFetchIntervalsDatesChange={setFetchIntervalsDates}
-                            onFetch={handleFetchNewFromIntervals}
-                            isFetching={isFetchingNewIntervals}
-                            isSyncing={isSyncing}
+                            fetchIntervalsDates={intervalsSync.fetchIntervalsDates}
+                            onFetchIntervalsDatesChange={intervalsSync.setFetchIntervalsDates}
+                            onFetch={intervalsSync.handleFetchNewFromIntervals}
+                            isFetching={intervalsSync.isFetchingNewIntervals}
+                            isSyncing={intervalsSync.isSyncing}
                             stravaConnected={!!stravaGetToken}
                             onOpenImportTab={() => setInternalTab('import')}
                         />
 
-                        <div className={`shrink-0 space-y-3 mb-3 lg:mb-4 max-h-[38vh] lg:max-h-none custom-scrollbar pr-0.5 ${showUtilMenu ? 'overflow-visible' : 'overflow-y-auto'} lg:overflow-visible`}>
-                            <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
-                                <div className="flex gap-2 w-full md:w-auto flex-1 min-w-0">
-                                    <div className="relative flex-1 min-w-0">
-                                        <Search className="absolute left-3 top-2.5 w-4 h-4 text-cdmuted" />
-                                        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search (name or 4-2-2024)..." className="w-full bg-cdbg border border-cdborder rounded pl-10 pr-4 py-2 text-sm text-cdtext outline-none focus:border-yellow-400" />
-                                    </div>
-                                    <div className="flex bg-cdbg rounded border border-cdborder p-1 shrink-0">
-                                        <button type="button" aria-pressed={indoorFilter === 'all'} onClick={() => { setIndoorFilter('all'); setVirtualRideChip(false); }} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'all' ? 'bg-cdborder text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}>All</button>
-                                        <button type="button" aria-pressed={indoorFilter === 'outdoor'} onClick={() => { setIndoorFilter('outdoor'); setVirtualRideChip(false); }} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'outdoor' ? 'bg-green-600 text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}>Out</button>
-                                        <button type="button" aria-pressed={indoorFilter === 'indoor'} onClick={() => { setIndoorFilter('indoor'); setVirtualRideChip(false); }} className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'indoor' ? 'bg-orange-600 text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}>In</button>
-                                    </div>
-                                    <ActivityColumnPicker
-                                        visibleKeys={visibleKeys}
-                                        activePreset={activePreset}
-                                        applyPreset={applyPreset}
-                                        toggleColumn={toggleColumn}
-                                        isColumnVisible={isColumnVisible}
-                                        className="hidden lg:flex"
-                                    />
-                                </div>
-                                <div className="flex gap-2 shrink-0 w-full md:w-auto justify-end">
-                                    {onRefresh && (
-                                        <button
-                                            onClick={async () => {
-                                                setIsManualRefreshing(true);
-                                                try { await onRefresh(); } catch (e) { console.error(e); }
-                                                finally { setIsManualRefreshing(false); }
-                                            }}
-                                            disabled={isManualRefreshing}
-                                            className="flex items-center justify-center w-9 h-9 rounded border bg-cdsurface border-cdborder text-cdmuted hover:text-green-400 hover:border-green-500/50 transition-colors group disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
-                                            title="Refresh data"
-                                            aria-label="Refresh data"
-                                        >
-                                            <RefreshCw size={14} className={isManualRefreshing ? 'animate-spin' : 'group-active:animate-spin'} aria-hidden="true" />
-                                        </button>
-                                    )}
-                                    <div className={`relative flex-1 min-w-0 md:flex-none md:w-auto max-w-full ${showUtilMenu ? 'z-[60]' : ''}`} ref={utilMenuRef}>
-                                        <button
-                                            ref={utilMenuButtonRef}
-                                            type="button"
-                                            onClick={() => setShowUtilMenu(v => !v)}
-                                            aria-expanded={showUtilMenu}
-                                            aria-haspopup="menu"
-                                            className="flex items-center justify-center gap-1.5 px-3 h-9 w-full md:w-auto rounded text-sm font-bold border bg-cdsurface border-cdborder text-cdtext hover:border-yellow-400 transition-all focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
-                                        >
-                                            Tools <ChevronDown size={14} className={showUtilMenu ? 'rotate-180 transition-transform' : 'transition-transform'} aria-hidden="true" />
-                                        </button>
-                                        <AnchoredDropdownPortal
-                                            open={showUtilMenu}
-                                            anchorRef={utilMenuButtonRef}
-                                            onClose={() => setShowUtilMenu(false)}
-                                            minWidth={224}
-                                        >
-                                                <button
-                                                    onClick={handleSync}
-                                                    disabled={isSyncing || bulkSelectedIds.size === 0}
-                                                    title={
-                                                        bulkSelectedIds.size === 0
-                                                            ? 'Select activities in the log (checkboxes). Sync uses the date range from those rows for Intervals.icu, then refreshes Strava link, gear, and segment / KOM badges for the same selection.'
-                                                            : 'Re-fetch Intervals.icu for the date span of selected rows, match Strava in that window, then force-refresh Strava activity details (segments / KOM) for every selected ride that has strava_id.'
-                                                    }
-                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-blue-400 hover:bg-cdborder disabled:opacity-40 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
-                                                >
-                                                    <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} aria-hidden="true" />
-                                                    {isSyncing ? 'Working...' : 'Sync Now'}
-                                                </button>
-                                                <button
-                                                    onClick={() => { findDuplicates(); setShowUtilMenu(false); }}
-                                                    disabled={!activities || activities.length === 0}
-                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-orange-400 hover:bg-cdborder disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
-                                                >
-                                                    <Split size={14} aria-hidden="true" /> Duplicates
-                                                </button>
-                                                <button
-                                                    onClick={openNoPowerFilter}
-                                                    disabled={!activities || activities.length === 0}
-                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-yellow-400 hover:bg-cdborder disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
-                                                >
-                                                    <Zap size={14} aria-hidden="true" /> No Power
-                                                </button>
-                                                <div className="border-t border-cdborder" />
-                                                <button
-                                                    onClick={() => { handleClearDatabase(); setShowUtilMenu(false); }}
-                                                    disabled={isDeleting || !activities || activities.length === 0}
-                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-cdborder disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
-                                                >
-                                                    {isDeleting ? <Loader2 className="animate-spin" size={14} aria-hidden="true" /> : <Trash size={14} aria-hidden="true" />}
-                                                    Clear DB
-                                                </button>
-                                        </AnchoredDropdownPortal>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {useCardLayout && (
-                                <button
-                                    type="button"
-                                    onClick={() => setLogMobileFiltersOpen((v) => !v)}
-                                    className="lg:hidden w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-cdborder bg-cdsurface text-xs font-bold text-cdtext cd-transition focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
-                                    aria-expanded={logMobileFiltersOpen}
-                                >
-                                    <span>{logMobileFiltersOpen ? 'Hide filters & bulk' : 'Filters & bulk actions'}</span>
-                                    <ChevronDown size={14} className={`text-cdmuted cd-transition ${logMobileFiltersOpen ? 'rotate-180' : ''}`} aria-hidden />
-                                </button>
-                            )}
-
-                            <div className={`space-y-3 ${useCardLayout && !logMobileFiltersOpen ? 'hidden' : ''} lg:block`}>
-                            <div className="flex flex-wrap items-center gap-2">
-                                <span className="text-[10px] font-bold text-cdmuted uppercase shrink-0">Quick</span>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setThisWeekOnly((v) => !v);
-                                        setRollingDays(null);
-                                    }}
-                                    className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-colors ${thisWeekOnly ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400' : 'border-cdborder text-cdmuted hover:text-cdtext'}`}
-                                >
-                                    This week
-                                </button>
-                                {[7, 14, 30].map((d) => (
-                                    <button
-                                        key={d}
-                                        type="button"
-                                        onClick={() => {
-                                            setRollingDays((cur) => (cur === d ? null : d));
-                                            setThisWeekOnly(false);
-                                        }}
-                                        className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-colors ${rollingDays === d ? 'bg-amber-500/20 border-amber-500/50 text-amber-400' : 'border-cdborder text-cdmuted hover:text-cdtext'}`}
-                                    >
-                                        Last {d}d
-                                    </button>
-                                ))}
-                                <button
-                                    type="button"
-                                    onClick={() => setStravaLinkedOnly((v) => !v)}
-                                    disabled={!stravaGetToken}
-                                    className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-colors ${stravaLinkedOnly ? 'bg-orange-500/20 border-orange-500/50 text-orange-400' : 'border-cdborder text-cdmuted hover:text-cdtext'} disabled:opacity-40`}
-                                >
-                                    Strava link
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setNoPowerOnly((v) => {
-                                            const next = !v;
-                                            if (next) setWithPowerOnly(false);
-                                            return next;
-                                        });
-                                    }}
-                                    className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-colors ${noPowerOnly ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'border-cdborder text-cdmuted hover:text-cdtext'}`}
-                                >
-                                    No power
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setWithPowerOnly((v) => {
-                                            const next = !v;
-                                            if (next) setNoPowerOnly(false);
-                                            return next;
-                                        });
-                                    }}
-                                    className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-colors ${withPowerOnly ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' : 'border-cdborder text-cdmuted hover:text-cdtext'}`}
-                                >
-                                    With power
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setHighLoadOnly((v) => !v)}
-                                    title="Load (TSS) &gt; 120"
-                                    className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-colors ${highLoadOnly ? 'bg-purple-500/20 border-purple-500/50 text-purple-400' : 'border-cdborder text-cdmuted hover:text-cdtext'}`}
-                                >
-                                    High load
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setLongRideOnly((v) => !v)}
-                                    title="Distance &gt; 100 km"
-                                    className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-colors ${longRideOnly ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400' : 'border-cdborder text-cdmuted hover:text-cdtext'}`}
-                                >
-                                    Long ride
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setMissingHrOnly((v) => !v)}
-                                    title="Avg HR missing or zero"
-                                    className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-colors ${missingHrOnly ? 'bg-rose-500/20 border-rose-500/50 text-rose-400' : 'border-cdborder text-cdmuted hover:text-cdtext'}`}
-                                >
-                                    No HR
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        if (virtualRideChip) {
-                                            setVirtualRideChip(false);
-                                            setIndoorFilter('all');
-                                        } else {
-                                            setVirtualRideChip(true);
-                                            setIndoorFilter('indoor');
-                                        }
-                                    }}
-                                    className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-colors ${virtualRideChip ? 'bg-orange-600/25 border-orange-500/50 text-orange-300' : 'border-cdborder text-cdmuted hover:text-cdtext'}`}
-                                >
-                                    Virtual only
-                                </button>
-                                <label className="flex items-center gap-1.5 text-[10px] text-cdmuted">
-                                    <span className="font-bold uppercase shrink-0">TSS &gt;</span>
-                                    <input
-                                        type="number"
-                                        min={0}
-                                        step={1}
-                                        placeholder="—"
-                                        value={minTss}
-                                        onChange={(e) => setMinTss(e.target.value)}
-                                        className="w-14 bg-cdbg border border-cdborder rounded px-1.5 py-0.5 text-cdtext text-[10px]"
-                                    />
-                                </label>
-                            </div>
-                            <div className="flex flex-wrap items-center gap-2 text-[10px]">
-                                <label className="flex items-center gap-2 text-cdmuted min-w-0 flex-1 sm:flex-none sm:max-w-md">
-                                    <span className="font-bold uppercase text-[9px] shrink-0">Gear</span>
-                                    <select
-                                        value={filterGearId}
-                                        onChange={(e) => setFilterGearId(e.target.value)}
-                                        className="min-w-0 flex-1 bg-cdbg border border-cdborder rounded px-2 py-1 text-cdtext text-[10px]"
-                                        title="Filter by Strava bike (gear_id)"
-                                    >
-                                        <option value="">All bikes</option>
-                                        {gearFilterOptions.map(({ id, label }) => (
-                                            <option key={id} value={id}>{label}</option>
-                                        ))}
-                                    </select>
-                                </label>
-                                {filterGearId && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setFilterGearId('')}
-                                        className="text-[9px] text-orange-400 hover:text-orange-300 underline shrink-0"
-                                    >
-                                        Clear gear
-                                    </button>
-                                )}
-                            </div>
-                            <div className="flex flex-col gap-2 border border-cdborder/60 rounded-lg p-2 bg-cdbg/20">
-                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                                    <button
-                                        type="button"
-                                        onClick={() => onActivityLogRangesExpandedChange?.(!activityLogRangesExpanded)}
-                                        className="flex items-center gap-1.5 text-left shrink-0 text-[10px] font-bold text-cdtext uppercase hover:text-cdaccent"
-                                        aria-expanded={activityLogRangesExpanded}
-                                    >
-                                        {activityLogRangesExpanded ? <ChevronDown size={14} className="text-cdmuted" /> : <ChevronRight size={14} className="text-cdmuted" />}
-                                        Ranges
-                                    </button>
-                                    <span className="text-[9px] text-cdmuted hidden sm:inline">Dist · Spd · Pwr · Dur · Elev · kJ</span>
-                                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 ml-auto">
-                                        <button
-                                            type="button"
-                                            onClick={() => onActivityLogRangesExpandedChange?.(true)}
-                                            className="text-[9px] font-bold text-cdmuted hover:text-cdtext underline focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm"
-                                        >
-                                            Expand
-                                        </button>
-                                        <span className="text-cdborder">|</span>
-                                        <button
-                                            type="button"
-                                            onClick={() => onActivityLogRangesExpandedChange?.(false)}
-                                            className="text-[9px] font-bold text-cdmuted hover:text-cdtext underline focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm"
-                                        >
-                                            Collapse
-                                        </button>
-                                        {metricRangeActive && (
-                                            <button
-                                                type="button"
-                                                onClick={clearMetricFilters}
-                                                className="text-[9px] text-orange-400 hover:text-orange-300 underline focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm"
-                                            >
-                                                Clear ranges
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                                {activityLogRangesExpanded && (
-                                <>
-                                <div className="flex flex-wrap items-end gap-x-3 gap-y-2 text-[10px] text-cdmuted">
-                                    <label className="flex flex-col gap-0.5">
-                                        <span className="font-bold uppercase text-[9px]">Dist</span>
-                                        <span className="flex items-center gap-1">
-                                            <input type="number" min={0} step={0.1} placeholder="min" value={filterDistMin} onChange={(e) => setFilterDistMin(e.target.value)} className="w-12 bg-cdbg border border-cdborder rounded px-1 py-0.5 text-cdtext" />
-                                            <span>–</span>
-                                            <input type="number" min={0} step={0.1} placeholder="max" value={filterDistMax} onChange={(e) => setFilterDistMax(e.target.value)} className="w-12 bg-cdbg border border-cdborder rounded px-1 py-0.5 text-cdtext" />
-                                        </span>
-                                    </label>
-                                    <label className="flex flex-col gap-0.5">
-                                        <span className="font-bold uppercase text-[9px]">Speed</span>
-                                        <span className="flex items-center gap-1">
-                                            <input type="number" min={0} step={0.1} placeholder="min" value={filterSpeedMin} onChange={(e) => setFilterSpeedMin(e.target.value)} className="w-12 bg-cdbg border border-cdborder rounded px-1 py-0.5 text-cdtext" />
-                                            <span>–</span>
-                                            <input type="number" min={0} step={0.1} placeholder="max" value={filterSpeedMax} onChange={(e) => setFilterSpeedMax(e.target.value)} className="w-12 bg-cdbg border border-cdborder rounded px-1 py-0.5 text-cdtext" />
-                                        </span>
-                                    </label>
-                                    <label className="flex flex-col gap-0.5">
-                                        <span className="font-bold uppercase text-[9px]">Power</span>
-                                        <span className="flex items-center gap-1">
-                                            <input type="number" min={0} step={1} placeholder="min" value={filterPowerMin} onChange={(e) => setFilterPowerMin(e.target.value)} className="w-12 bg-cdbg border border-cdborder rounded px-1 py-0.5 text-cdtext" />
-                                            <span>–</span>
-                                            <input type="number" min={0} step={1} placeholder="max" value={filterPowerMax} onChange={(e) => setFilterPowerMax(e.target.value)} className="w-12 bg-cdbg border border-cdborder rounded px-1 py-0.5 text-cdtext" />
-                                        </span>
-                                    </label>
-                                    <label className="flex flex-col gap-0.5">
-                                        <span className="font-bold uppercase text-[9px]">Duration</span>
-                                        <span className="flex items-center gap-1">
-                                            <input type="number" min={0} step={1} placeholder="min" value={filterDurMinMin} onChange={(e) => setFilterDurMinMin(e.target.value)} className="w-12 bg-cdbg border border-cdborder rounded px-1 py-0.5 text-cdtext" />
-                                            <span>–</span>
-                                            <input type="number" min={0} step={1} placeholder="max" value={filterDurMaxMin} onChange={(e) => setFilterDurMaxMin(e.target.value)} className="w-12 bg-cdbg border border-cdborder rounded px-1 py-0.5 text-cdtext" />
-                                        </span>
-                                    </label>
-                                    <label className="flex flex-col gap-0.5">
-                                        <span className="font-bold uppercase text-[9px]">Elev</span>
-                                        <span className="flex items-center gap-1">
-                                            <input type="number" min={0} step={1} placeholder="min" value={filterElevMin} onChange={(e) => setFilterElevMin(e.target.value)} className="w-12 bg-cdbg border border-cdborder rounded px-1 py-0.5 text-cdtext" />
-                                            <span>–</span>
-                                            <input type="number" min={0} step={1} placeholder="max" value={filterElevMax} onChange={(e) => setFilterElevMax(e.target.value)} className="w-12 bg-cdbg border border-cdborder rounded px-1 py-0.5 text-cdtext" />
-                                        </span>
-                                    </label>
-                                    <label className="flex flex-col gap-0.5">
-                                        <span className="font-bold uppercase text-[9px]">kJ</span>
-                                        <span className="flex items-center gap-1">
-                                            <input type="number" min={0} step={1} placeholder="min" value={filterKjMin} onChange={(e) => setFilterKjMin(e.target.value)} className="w-12 bg-cdbg border border-cdborder rounded px-1 py-0.5 text-cdtext" />
-                                            <span>–</span>
-                                            <input type="number" min={0} step={1} placeholder="max" value={filterKjMax} onChange={(e) => setFilterKjMax(e.target.value)} className="w-12 bg-cdbg border border-cdborder rounded px-1 py-0.5 text-cdtext" />
-                                        </span>
-                                    </label>
-                                </div>
-                                <div className="flex flex-wrap gap-1.5 items-center">
-                                    <span className="text-[9px] font-bold text-cdmuted uppercase shrink-0 mr-1">Presets</span>
-                                    <button type="button" onClick={() => applyMetricPreset(() => { setFilterDurMaxMin('60'); })} className="px-2 py-0.5 rounded border border-cdborder text-[9px] text-cdmuted hover:text-cdtext">Short &lt;1h</button>
-                                    <button type="button" onClick={() => applyMetricPreset(() => { setFilterDurMinMin('240'); })} className="px-2 py-0.5 rounded border border-cdborder text-[9px] text-cdmuted hover:text-cdtext">Long ≥4h</button>
-                                    <button type="button" onClick={() => applyMetricPreset(() => { setFilterDistMin('50'); })} className="px-2 py-0.5 rounded border border-cdborder text-[9px] text-cdmuted hover:text-cdtext">≥50 km</button>
-                                    <button type="button" onClick={() => applyMetricPreset(() => { setFilterDistMax('30'); })} className="px-2 py-0.5 rounded border border-cdborder text-[9px] text-cdmuted hover:text-cdtext">≤30 km</button>
-                                    <button type="button" onClick={() => applyMetricPreset(() => { setFilterSpeedMin('32'); })} className="px-2 py-0.5 rounded border border-cdborder text-[9px] text-cdmuted hover:text-cdtext">Fast ≥32 km/h</button>
-                                    <button type="button" onClick={() => applyMetricPreset(() => { setFilterSpeedMax('26'); })} className="px-2 py-0.5 rounded border border-cdborder text-[9px] text-cdmuted hover:text-cdtext">Easy ≤26 km/h</button>
-                                    <button type="button" onClick={() => applyMetricPreset(() => { setFilterPowerMin('200'); })} className="px-2 py-0.5 rounded border border-cdborder text-[9px] text-cdmuted hover:text-cdtext">Pwr ≥200 W</button>
-                                    <button type="button" onClick={() => applyMetricPreset(() => { setFilterElevMin('1000'); })} className="px-2 py-0.5 rounded border border-cdborder text-[9px] text-cdmuted hover:text-cdtext">Climb ≥1000 m</button>
-                                    <button type="button" onClick={() => applyMetricPreset(() => { setFilterKjMin('1500'); })} className="px-2 py-0.5 rounded border border-cdborder text-[9px] text-cdmuted hover:text-cdtext">Work ≥1500 kJ</button>
-                                </div>
-                                </>
-                                )}
-                            </div>
-                            <div className="flex flex-wrap items-center gap-2 text-[10px]">
-                                <span className="text-cdmuted font-bold uppercase shrink-0">Bulk</span>
-                                <span className="text-cdmuted">{formatNlNumber(bulkSelectedIds.size)} selected</span>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setEditingActivity(null);
-                                        setShowBulkEditModal(true);
-                                    }}
-                                    disabled={bulkSelectedIds.size === 0 || isBulkSaving}
-                                    title="Apply type, gear, load, RPE, or FTP to all selected rows"
-                                    className="inline-flex items-center gap-1 px-2 py-1 rounded border border-cdaccent/50 text-cdaccent hover:bg-cdaccent/10 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
-                                >
-                                    {isBulkSaving ? <Loader2 size={12} className="animate-spin" aria-hidden="true" /> : <Edit2 size={12} aria-hidden="true" />}
-                                    Bulk edit
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={exportBulkCsv}
-                                    disabled={bulkSelectedIds.size === 0}
-                                    className="inline-flex items-center gap-1 px-2 py-1 rounded border border-cdborder text-cdtext hover:border-green-500/50 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
-                                >
-                                    <Download size={12} aria-hidden="true" /> Export CSV
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={markBulkRecovery}
-                                    disabled={bulkSelectedIds.size === 0}
-                                    title="Sets load (TSS) to 35 for selected rows"
-                                    className="px-2 py-1 rounded border border-cdborder text-cdmuted hover:text-cdaccent hover:border-cdaccent/40 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
-                                >
-                                    Mark recovery (TSS 35)
-                                </button>
-                                {stravaGetToken && (
-                                    <button
-                                        type="button"
-                                        onClick={() => runStravaEnrichSelected(selectedActivitiesForBulk)}
-                                        disabled={isStravaEnriching || bulkSelectedIds.size === 0}
-                                        title="Auto-link selected rides to Strava, then enrich gear, route, HR, RPE, and segment badges (no manual Strava URL needed)"
-                                        className="inline-flex items-center gap-1 px-2 py-1 rounded border border-orange-500/40 text-orange-400 hover:bg-orange-500/10 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
-                                    >
-                                        {isStravaEnriching ? <Loader2 size={12} className="animate-spin" aria-hidden="true" /> : <Link2 size={12} aria-hidden="true" />}
-                                        Strava enrich
-                                    </button>
-                                )}
-                                <button
-                                    type="button"
-                                    onClick={() => { setMergeError(null); setShowMergeModal(true); }}
-                                    disabled={bulkSelectedIds.size !== 2}
-                                    title="Select exactly two rows: Intervals + Strava import (strava_… id)"
-                                    className="inline-flex items-center gap-1 px-2 py-1 rounded border border-orange-500/40 text-orange-400 hover:bg-orange-500/10 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
-                                >
-                                    <GitMerge size={12} aria-hidden="true" /> Merge pair
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={confirmBulkDeleteSelected}
-                                    disabled={bulkSelectedIds.size === 0 || isDeleting}
-                                    title="Remove selected activities from the log and cloud"
-                                    className="inline-flex items-center gap-1 px-2 py-1 rounded border border-red-500/40 text-red-400 hover:bg-red-500/10 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
-                                >
-                                    {isDeleting ? <Loader2 size={12} className="animate-spin" aria-hidden="true" /> : <Trash size={12} aria-hidden="true" />}
-                                    Delete selected
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setBulkSelectedIds(new Set())}
-                                    disabled={bulkSelectedIds.size === 0}
-                                    className="text-cdmuted hover:text-cdtext underline disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
-                                >
-                                    Clear selection
-                                </button>
-                                <span className="text-cdmuted hidden sm:inline">Row checkboxes · header selects visible</span>
-                            </div>
-                            </div>
-                        </div>
+                        <ActivityLogFilterBar
+                            search={search}
+                            onSearchChange={setSearch}
+                            indoorFilter={indoorFilter}
+                            onIndoorFilterChange={setIndoorFilter}
+                            virtualRideChip={virtualRideChip}
+                            onVirtualRideChipChange={setVirtualRideChip}
+                            useCardLayout={useCardLayout}
+                            logMobileFiltersOpen={logMobileFiltersOpen}
+                            onLogMobileFiltersOpenChange={setLogMobileFiltersOpen}
+                            showUtilMenu={showUtilMenu}
+                            onShowUtilMenuChange={setShowUtilMenu}
+                            utilMenuRef={utilMenuRef}
+                            utilMenuButtonRef={utilMenuButtonRef}
+                            visibleKeys={visibleKeys}
+                            activePreset={activePreset}
+                            applyPreset={applyPreset}
+                            toggleColumn={toggleColumn}
+                            isColumnVisible={isColumnVisible}
+                            onRefresh={onRefresh}
+                            isManualRefreshing={isManualRefreshing}
+                            onManualRefresh={async () => {
+                                setIsManualRefreshing(true);
+                                try { await onRefresh(); } catch (e) { console.error(e); }
+                                finally { setIsManualRefreshing(false); }
+                            }}
+                            onSync={() => {
+                                setShowUtilMenu(false);
+                                intervalsSync.handleSync();
+                            }}
+                            isSyncing={intervalsSync.isSyncing}
+                            bulkSelectedCount={bulk.bulkSelectedIds.size}
+                            onFindDuplicates={() => { findDuplicates(); setShowUtilMenu(false); }}
+                            onOpenNoPower={openNoPowerFilter}
+                            onClearDatabase={() => { handleClearDatabase(); setShowUtilMenu(false); }}
+                            activitiesCount={activities?.length ?? 0}
+                            isDeleting={isDeleting}
+                            thisWeekOnly={thisWeekOnly}
+                            onThisWeekOnlyChange={setThisWeekOnly}
+                            rollingDays={rollingDays}
+                            onRollingDaysChange={setRollingDays}
+                            stravaGetToken={stravaGetToken}
+                            stravaLinkedOnly={stravaLinkedOnly}
+                            onStravaLinkedOnlyChange={setStravaLinkedOnly}
+                            noPowerOnly={noPowerOnly}
+                            onNoPowerOnlyChange={setNoPowerOnly}
+                            withPowerOnly={withPowerOnly}
+                            onWithPowerOnlyChange={setWithPowerOnly}
+                            highLoadOnly={highLoadOnly}
+                            onHighLoadOnlyChange={setHighLoadOnly}
+                            longRideOnly={longRideOnly}
+                            onLongRideOnlyChange={setLongRideOnly}
+                            missingHrOnly={missingHrOnly}
+                            onMissingHrOnlyChange={setMissingHrOnly}
+                            minTss={minTss}
+                            onMinTssChange={setMinTss}
+                            gearFilterOptions={gearFilterOptions}
+                            filterGearId={filterGearId}
+                            onFilterGearIdChange={setFilterGearId}
+                            activityLogRangesExpanded={activityLogRangesExpanded}
+                            onActivityLogRangesExpandedChange={onActivityLogRangesExpandedChange}
+                            metricRangeActive={metricRangeActive}
+                            clearMetricFilters={clearMetricFilters}
+                            applyMetricPreset={applyMetricPreset}
+                            filterDistMin={filterDistMin}
+                            onFilterDistMinChange={setFilterDistMin}
+                            filterDistMax={filterDistMax}
+                            onFilterDistMaxChange={setFilterDistMax}
+                            filterSpeedMin={filterSpeedMin}
+                            onFilterSpeedMinChange={setFilterSpeedMin}
+                            filterSpeedMax={filterSpeedMax}
+                            onFilterSpeedMaxChange={setFilterSpeedMax}
+                            filterPowerMin={filterPowerMin}
+                            onFilterPowerMinChange={setFilterPowerMin}
+                            filterPowerMax={filterPowerMax}
+                            onFilterPowerMaxChange={setFilterPowerMax}
+                            filterDurMinMin={filterDurMinMin}
+                            onFilterDurMinMinChange={setFilterDurMinMin}
+                            filterDurMaxMin={filterDurMaxMin}
+                            onFilterDurMaxMinChange={setFilterDurMaxMin}
+                            filterElevMin={filterElevMin}
+                            onFilterElevMinChange={setFilterElevMin}
+                            filterElevMax={filterElevMax}
+                            onFilterElevMaxChange={setFilterElevMax}
+                            filterKjMin={filterKjMin}
+                            onFilterKjMinChange={setFilterKjMin}
+                            filterKjMax={filterKjMax}
+                            onFilterKjMaxChange={setFilterKjMax}
+                            onBulkEdit={() => {
+                                setEditingActivity(null);
+                                bulk.setShowBulkEditModal(true);
+                            }}
+                            onExportCsv={bulk.exportBulkCsv}
+                            onMarkRecovery={bulk.markBulkRecovery}
+                            onStravaEnrich={() => bulk.runStravaEnrichSelected(bulk.selectedActivitiesForBulk)}
+                            onMergePair={bulk.openMergeModal}
+                            onDeleteSelected={bulk.confirmBulkDeleteSelected}
+                            onClearSelection={() => bulk.setBulkSelectedIds(new Set())}
+                            isBulkSaving={bulk.isBulkSaving}
+                            isStravaEnriching={bulk.isStravaEnriching}
+                        />
 
                         {isGroupedView && !isolateActivityId && !(logDateRangeFilter?.startYmd && logDateRangeFilter?.endYmd) && (
                             <div className="flex flex-col gap-2 shrink-0 mb-2 lg:mb-0">
@@ -1877,10 +951,10 @@ const DataHub = ({
                                 isMonthExpanded={isMonthExpanded}
                                 onToggleMonth={toggleMonth}
                                 showBulkSelect
-                                selectedActivityIds={bulkSelectedIds}
-                                onToggleSelectRow={toggleBulkSelectOne}
-                                allVisibleSelected={allVisibleSelected}
-                                onToggleSelectAllVisible={toggleSelectAllVisible}
+                                selectedActivityIds={bulk.bulkSelectedIds}
+                                onToggleSelectRow={bulk.toggleBulkSelectOne}
+                                allVisibleSelected={bulk.allVisibleSelected}
+                                onToggleSelectAllVisible={bulk.toggleSelectAllVisible}
                                 onOpenProfiler={onOpenProfilerFromActivity}
                                 profilerClimbByActivityId={profilerClimbByActivityId}
                                 profileFtp={profileFtp}
@@ -1961,19 +1035,19 @@ const DataHub = ({
 
             {internalTab === 'log' && (
                 <ActivityLogBulkBar
-                    count={bulkSelectedIds.size}
+                    count={bulk.bulkSelectedIds.size}
                     onBulkEdit={() => {
                         setEditingActivity(null);
-                        setShowBulkEditModal(true);
+                        bulk.setShowBulkEditModal(true);
                     }}
-                    onExport={exportBulkCsv}
-                    onClearSelection={() => setBulkSelectedIds(new Set())}
-                    onDelete={confirmBulkDeleteSelected}
+                    onExport={bulk.exportBulkCsv}
+                    onClearSelection={() => bulk.setBulkSelectedIds(new Set())}
+                    onDelete={bulk.confirmBulkDeleteSelected}
                     isDeleting={isDeleting}
-                    isBulkSaving={isBulkSaving}
+                    isBulkSaving={bulk.isBulkSaving}
                     stravaGetToken={stravaGetToken}
-                    onStravaEnrich={() => runStravaEnrichSelected(selectedActivitiesForBulk)}
-                    isStravaEnriching={isStravaEnriching}
+                    onStravaEnrich={() => bulk.runStravaEnrichSelected(bulk.selectedActivitiesForBulk)}
+                    isStravaEnriching={bulk.isStravaEnriching}
                 />
             )}
         </div>

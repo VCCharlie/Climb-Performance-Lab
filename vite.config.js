@@ -16,11 +16,26 @@ try {
 const versionString = `v${packageJson.version}-${commitHash}`;
 
 const appBase = '/Climb-Performance-Lab/';
+const buildTimestamp = new Date().toISOString();
+
+function injectBuildMetadata() {
+  return {
+    name: 'inject-build-metadata',
+    transformIndexHtml(html) {
+      const metaBlock = [
+        `<meta name="app-build-id" content="${versionString}" />`,
+        `<meta name="app-build-timestamp" content="${buildTimestamp}" />`,
+      ].join('\n    ');
+      return html.replace('<head>', `<head>\n    ${metaBlock}`);
+    },
+  };
+}
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
+    injectBuildMetadata(),
     VitePWA({
       registerType: 'autoUpdate',
       // SW registers via inline script at the top of index.html (earliest possible).
@@ -67,10 +82,23 @@ export default defineConfig({
         skipWaiting: true,
         clientsClaim: true,
         navigateFallback: `${appBase}index.html`,
+        // Keep the HTML shell network-first so deploys are picked up immediately.
+        // Hashed JS/CSS chunks remain safe to precache (content-addressed filenames).
+        globPatterns: ['**/*.{js,css,ico,png,svg,woff2,webmanifest}'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,webmanifest}'],
-        // Tailwind CDN and Google Fonts stay network-only (not precached).
         runtimeCaching: [
+          {
+            urlPattern: ({ request, url }) => {
+              if (request.mode === 'navigate') return true;
+              return url.pathname.endsWith('index.html');
+            },
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'cpl-html-shell',
+              networkTimeoutSeconds: 4,
+              expiration: { maxEntries: 4, maxAgeSeconds: 60 * 60 },
+            },
+          },
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',
@@ -104,8 +132,9 @@ export default defineConfig({
   ],
   base: appBase,
   define: {
-    // Dit maakt de variabele globaal beschikbaar in je hele React app
+    // Globally available build identity for deploy recovery + header badge
     '__APP_VERSION__': JSON.stringify(versionString),
+    '__APP_BUILD_TIMESTAMP__': JSON.stringify(buildTimestamp),
   },
   build: {
     rollupOptions: {
