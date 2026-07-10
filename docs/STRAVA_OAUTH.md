@@ -26,33 +26,36 @@ Nightly workflow (`nightly-sync.yml`) passes these to `scripts/nightlySync.js`.
 
 ### Step 2 — Deploy Cloud Run `strava-oauth`
 
-**Google Cloud Shell** (recommended):
+> **Private repository:** `curl https://raw.githubusercontent.com/VCCharlie/Climb-Performance-Lab/...` returns **404** even after merge. GitHub does not serve raw files for private repos without authentication. Use **git clone** in Cloud Shell instead (you are already logged into GitHub there).
 
-> **Note:** Until PR #303 is merged to `main`, use the **feature-branch** URL below (the `main` raw URL returns 404).
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/VCCharlie/Climb-Performance-Lab/cursor/strava-oauth-server-side-8810/scripts/deployStravaOAuthCloudShell.sh | bash
-```
-
-After merge to `main`:
+**Google Cloud Shell** — paste this block:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/VCCharlie/Climb-Performance-Lab/main/scripts/deployStravaOAuthCloudShell.sh | bash
-```
-
-**Manual fallback** (paste in Cloud Shell if curl still fails):
-
-```bash
-cd ~/Climb-Performance-Lab 2>/dev/null || git clone -b cursor/strava-oauth-server-side-8810 https://github.com/VCCharlie/Climb-Performance-Lab.git ~/Climb-Performance-Lab
-cd ~/Climb-Performance-Lab && git fetch origin cursor/strava-oauth-server-side-8810 && git checkout cursor/strava-oauth-server-side-8810 && git pull origin cursor/strava-oauth-server-side-8810
-cd cloud-function
 gcloud config set project climb-performance-lab
+
+cd ~/Climb-Performance-Lab 2>/dev/null || git clone https://github.com/VCCharlie/Climb-Performance-Lab.git ~/Climb-Performance-Lab
+cd ~/Climb-Performance-Lab
+git fetch origin main
+git checkout main
+git pull origin main
+
+cd cloud-function
 gcloud run deploy strava-oauth \
   --source . \
   --function strava_oauth \
   --region europe-west1 \
   --allow-unauthenticated
 ```
+
+Or run the script from your clone (not via curl):
+
+```bash
+cd ~/Climb-Performance-Lab
+git checkout main && git pull origin main
+bash scripts/deployStravaOAuthCloudShell.sh
+```
+
+If `git clone` asks for credentials, run `gh auth login` once in Cloud Shell, then retry.
 
 Set on the service (Variables or Secret Manager):
 

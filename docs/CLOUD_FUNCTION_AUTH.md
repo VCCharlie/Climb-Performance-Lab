@@ -36,13 +36,15 @@
 
 1. Open **[Google Cloud Shell](https://shell.cloud.google.com/?project=climb-performance-lab)**.
 
-2. Paste **one line** (after this PR is on `main`):
+2. **Private repo:** do **not** use `curl raw.githubusercontent.com/...` — it returns 404. Use git:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/VCCharlie/Climb-Performance-Lab/main/scripts/deployCloudFunctionCloudShell.sh | bash
+cd ~/Climb-Performance-Lab 2>/dev/null || git clone https://github.com/VCCharlie/Climb-Performance-Lab.git ~/Climb-Performance-Lab
+cd ~/Climb-Performance-Lab && git pull origin main
+bash scripts/deployCloudFunctionCloudShell.sh
 ```
 
-**Or paste these lines manually** (works right now):
+**Or paste these lines manually** (works without the script):
 
 ```bash
 cd ~/Climb-Performance-Lab 2>/dev/null || git clone https://github.com/VCCharlie/Climb-Performance-Lab.git ~/Climb-Performance-Lab
