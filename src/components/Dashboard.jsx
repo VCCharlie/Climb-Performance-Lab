@@ -1,13 +1,14 @@
 ﻿import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import { safeSessionStorageSet } from '../utils/safeStorage.js';
 import { lazyWithRetry } from '../utils/lazyWithRetry.js';
-import { calculateBassettCorrection } from '../utils';
 import {
     getDashboardWindowBounds,
     previousWindowBounds,
     filterActivitiesInBounds,
     filterActivitiesByDashboardTimeRange,
 } from '../utils/dashboardActivityWindow';
+import { enhanceAndSortActivities } from '../utils/enhanceActivity';
+import { prefetchDashboardSubTabChunk } from '../utils/prefetchTabChunks';
 import { useActivitiesList } from '../hooks/useActivities';
 import { SkeletonChartCard } from './ui/Skeleton';
 import OverviewTab from './dashboard/OverviewTab';
@@ -39,32 +40,6 @@ function shiftDashboardBoundsByYears(bounds, deltaYears) {
     return { start: s, end: e };
 }
 
-/**
- * Enriches a single activity record with dashboard-specific derived fields:
- *  - eFTP:   Best 20-min power × 0.95 (classic threshold estimate)
- *  - eFTP60: Best 60-min power (direct threshold equivalent)
- *  - seaLevelPower: altitude-corrected avg power via Bassett model
- * Does NOT re-normalize — expects the record to already have correct field names.
- */
-const enhanceActivity = (d, userFtp) => {
-    let eFTP = d.best_20min ? Math.round(d.best_20min * 0.95) : null;
-    let eFTP60 = d.best_60min ? Math.round(d.best_60min) : null;
-
-    // Sanity filter — real FTP above 600W is extremely unusual
-    if (eFTP > 600) eFTP = null;
-    if (eFTP60 > 600) eFTP60 = null;
-
-    const seaLevelPower = d.avg_altitude ? calculateBassettCorrection(d.avg_power, d.avg_altitude) : null;
-
-    return {
-        ...d,
-        eFTP,
-        eFTP60,
-        ftp: d.ftp || userFtp,
-        seaLevelPower,
-    };
-};
-
 const Dashboard = ({
     manualFtp,
     activities: activitiesProp,
@@ -84,6 +59,10 @@ const Dashboard = ({
 
     const [dashboardTab, setDashboardTab] = useState(readDashboardSubTab);
 
+    const handleDashboardSubTabIntent = (tabId) => {
+        prefetchDashboardSubTabChunk(tabId);
+    };
+
     useEffect(() => {
         if (typeof sessionStorage === 'undefined') return;
         safeSessionStorageSet(DASH_SUBTAB_STORAGE_KEY, dashboardTab);
@@ -94,9 +73,7 @@ const Dashboard = ({
     // Full enriched history — only when Power or Distance sub-tabs need multi-window curves.
     const chartData = useMemo(() => {
         if (!needsFullChartData || !firestoreActivities?.length) return [];
-        return firestoreActivities
-            .map((a) => enhanceActivity(a, manualFtp))
-            .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+        return enhanceAndSortActivities(firestoreActivities, manualFtp);
     }, [firestoreActivities, manualFtp, needsFullChartData]);
 
     // Filter raw activities first, then enrich only the visible window.
@@ -108,9 +85,7 @@ const Dashboard = ({
             customEnd,
         );
         if (!inRange.length) return [];
-        return inRange
-            .map((a) => enhanceActivity(a, manualFtp))
-            .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+        return enhanceAndSortActivities(inRange, manualFtp);
     }, [firestoreActivities, manualFtp, timeRange, customStart, customEnd]);
 
     const volumeComparePrevPeriodActivities = useMemo(() => {
@@ -175,6 +150,8 @@ const Dashboard = ({
                     aria-selected={dashboardTab === 'form'}
                     aria-controls="tabpanel-form"
                     onClick={() => setDashboardTab('form')}
+                    onMouseEnter={() => handleDashboardSubTabIntent('form')}
+                    onFocus={() => handleDashboardSubTabIntent('form')}
                     className={`flex-1 min-w-[5.5rem] py-3 text-sm font-bold ${dashboardTab === 'form' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
                 >Form</button>
                 <button
@@ -184,6 +161,8 @@ const Dashboard = ({
                     aria-selected={dashboardTab === 'power'}
                     aria-controls="tabpanel-power"
                     onClick={() => setDashboardTab('power')}
+                    onMouseEnter={() => handleDashboardSubTabIntent('power')}
+                    onFocus={() => handleDashboardSubTabIntent('power')}
                     className={`flex-1 min-w-[5.5rem] py-3 text-sm font-bold ${dashboardTab === 'power' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
                 >Power</button>
                 <button
@@ -193,6 +172,8 @@ const Dashboard = ({
                     aria-selected={dashboardTab === 'distance'}
                     aria-controls="tabpanel-distance"
                     onClick={() => setDashboardTab('distance')}
+                    onMouseEnter={() => handleDashboardSubTabIntent('distance')}
+                    onFocus={() => handleDashboardSubTabIntent('distance')}
                     className={`flex-1 min-w-[5.5rem] py-3 text-sm font-bold ${dashboardTab === 'distance' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
                 >Distance</button>
                 <button
@@ -202,6 +183,8 @@ const Dashboard = ({
                     aria-selected={dashboardTab === 'volume'}
                     aria-controls="tabpanel-volume"
                     onClick={() => setDashboardTab('volume')}
+                    onMouseEnter={() => handleDashboardSubTabIntent('volume')}
+                    onFocus={() => handleDashboardSubTabIntent('volume')}
                     className={`flex-1 min-w-[5.5rem] py-3 text-sm font-bold ${dashboardTab === 'volume' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
                 >Volume</button>
             </div>

@@ -4,6 +4,7 @@ import { Button, cn } from '../ui';
 import NavTab from './NavTab';
 import TimeRangeToolbar from './TimeRangeToolbar';
 import { MAIN_NAV_TABS } from '../../config/navTabs';
+import { prefetchMainTabChunk } from '../../utils/prefetchTabChunks';
 
 /**
  * App shell navigation — mobile menu + desktop primary nav bar with time-range toolbar.
@@ -86,6 +87,8 @@ export default function MainNav({
                   key={item.id}
                   type="button"
                   onClick={() => selectTab(item.id)}
+                  onMouseEnter={() => prefetchMainTabChunk(item.id)}
+                  onFocus={() => prefetchMainTabChunk(item.id)}
                   className={cn(
                     'flex w-full items-center gap-3 px-4 py-3 text-sm font-medium cd-transition cd-focus-ring',
                     isActive
@@ -120,6 +123,7 @@ export default function MainNav({
                 label={item.label}
                 isActive={activeTab === item.id}
                 onClick={() => onTabChange(item.id)}
+                onPrefetch={() => prefetchMainTabChunk(item.id)}
               />
             ))}
           </nav>

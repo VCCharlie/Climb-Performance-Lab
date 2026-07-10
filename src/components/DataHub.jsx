@@ -10,7 +10,6 @@ import { persistImportedActivitiesReplacingDuplicates } from '../utils/importPer
 import { enrichActivityGearFromStrava } from '../utils/stravaGearEnrich';
 import { enrichSelectedActivitiesFromStrava } from '../utils/stravaSelectedEnrich';
 import { resolveStravaGearDisplay } from '../utils/stravaBikesLocalMap';
-import { buildClimbMatchIndex, findBestClimbUsingIndex } from '../utils/activityClimbMatch';
 import { activityIntensityFactor } from '../utils/activityFilterMetrics';
 import { normalizeDate, formatDateDDMMYYYY } from '../utils/formatters';
 import { devLog } from '../utils/safeLog';
@@ -45,6 +44,7 @@ import { useDataHubIntervalsSync } from '../hooks/useDataHubIntervalsSync';
 import { useActivityCardLayout } from '../hooks/useMediaQuery';
 import { useActivities } from '../hooks/useActivities';
 import { useActivityLogNavigation } from '../context/ActivityLogNavigationContext';
+import { useProfilerClimbMatches } from '../hooks/useProfilerClimbMatches';
 
 const DataHub = ({
     intervalsConfig,
@@ -257,20 +257,10 @@ const DataHub = ({
         apply();
     };
 
-    const climbMatchIndex = useMemo(
-        () => buildClimbMatchIndex(climbDatabaseForMatch || []),
-        [climbDatabaseForMatch]
+    const profilerClimbByActivityId = useProfilerClimbMatches(
+        processedActivities,
+        climbDatabaseForMatch || [],
     );
-
-    const profilerClimbByActivityId = useMemo(() => {
-        const map = new Map();
-        for (const a of processedActivities || []) {
-            if (!a?.id || !a.title) continue;
-            const c = findBestClimbUsingIndex(a.title, climbMatchIndex);
-            if (c) map.set(String(a.id), c);
-        }
-        return map;
-    }, [processedActivities, climbMatchIndex]);
 
     const visibleActivityIdsFlat = useMemo(() => {
         if (!processedActivities?.length) return [];
