@@ -2,15 +2,46 @@
  * src/services/stravaCloudApi.js
  * Strava OAuth via server-side Cloud Run (client secret never in the browser).
  */
+import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../firebase';
 import { STRAVA_OAUTH_URL } from '../config';
 import { fetchWithTimeout } from '../utils/fetchWithTimeout';
 
+const AUTH_WAIT_MS = 15000;
+
+/**
+ * After a Strava redirect the page reloads before Firebase restores the session.
+ * Wait briefly for onAuthStateChanged instead of failing immediately.
+ */
+function waitForFirebaseUser(timeoutMs = AUTH_WAIT_MS) {
+    return new Promise((resolve, reject) => {
+        if (!auth) {
+            reject(new Error('Sign in with Google to connect Strava.'));
+            return;
+        }
+        if (auth.currentUser) {
+            resolve(auth.currentUser);
+            return;
+        }
+
+        let unsub = () => {};
+        const timer = setTimeout(() => {
+            unsub();
+            reject(new Error('Sign in with Google to connect Strava.'));
+        }, timeoutMs);
+
+        unsub = onAuthStateChanged(auth, (user) => {
+            if (!user) return;
+            clearTimeout(timer);
+            unsub();
+            resolve(user);
+        });
+    });
+}
+
 async function getFirebaseIdToken() {
-    if (!auth?.currentUser) {
-        throw new Error('Sign in with Google to connect Strava.');
-    }
-    return auth.currentUser.getIdToken();
+    const user = await waitForFirebaseUser();
+    return user.getIdToken();
 }
 
 function stravaOAuthUrl(route = '') {

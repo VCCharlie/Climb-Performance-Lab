@@ -451,19 +451,22 @@ const App = () => {
         return () => unsubscribe();
     }, [applySignedOutSessionWipe]);
 
-    // Strava OAuth callback: process ?code= after redirect from Strava
+    // Strava OAuth callback: wait for Firebase session after redirect from Strava
+    const stravaOAuthHandledRef = useRef(false);
     useEffect(() => {
+        if (!authReady || !user || stravaOAuthHandledRef.current) return;
+
         const params = new URLSearchParams(window.location.search);
         const code = params.get('code');
         const state = params.get('state');
-        if (code) {
-            stravaAuth.handleOAuthCallback(code, state).catch(e => {
-                console.error('Strava OAuth error:', e);
-                alert('Strava connection failed: ' + e.message);
-            });
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+        if (!code) return;
+
+        stravaOAuthHandledRef.current = true;
+        stravaAuth.handleOAuthCallback(code, state).catch((e) => {
+            console.error('Strava OAuth error:', e);
+            alert('Strava connection failed: ' + e.message);
+        });
+    }, [authReady, user, stravaAuth]);
 
     // 1. Settings Laden (One-time fetch) — signed-in only
     useEffect(() => {
