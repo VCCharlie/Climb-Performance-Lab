@@ -16,6 +16,74 @@ const PREVIEW_SCALE_MAX = 150;
 const PREVIEW_SCALE_STEP = 5;
 
 /**
+ * Compact preview scale control — inline in header (desktop) or slim row (mobile).
+ * @param {object} props
+ * @param {string} props.id
+ * @param {number} props.value
+ * @param {(n: number) => void} props.onChange
+ * @param {boolean} props.previewActive
+ * @param {'header' | 'mobile'} [props.variant]
+ */
+function GoalPreviewScale({ id, value, onChange, previewActive, variant = 'header' }) {
+    const isMobile = variant === 'mobile';
+
+    return (
+        <div
+            className={
+                isMobile
+                    ? 'flex items-center gap-2 w-full rounded-md border border-cdborder/60 bg-cdbg/40 px-2 py-1.5'
+                    : 'flex items-center gap-1.5 shrink-0 rounded-md border border-cdborder/60 bg-cdbg/40 px-2 py-1'
+            }
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            role="group"
+            aria-label="Goal preview scale"
+        >
+            <span
+                className={`font-bold uppercase tracking-wide text-cdmuted whitespace-nowrap ${
+                    isMobile ? 'text-[9px] w-12' : 'text-[8px] hidden md:inline'
+                }`}
+            >
+                Preview
+            </span>
+            <input
+                id={id}
+                type="range"
+                min={PREVIEW_SCALE_MIN}
+                max={PREVIEW_SCALE_MAX}
+                step={PREVIEW_SCALE_STEP}
+                value={value}
+                onChange={(e) => onChange(Number(e.target.value))}
+                className={`accent-cdaccent cursor-pointer ${
+                    isMobile ? 'flex-1 min-w-0 h-1' : 'w-16 lg:w-20 h-1'
+                }`}
+                aria-valuemin={PREVIEW_SCALE_MIN}
+                aria-valuemax={PREVIEW_SCALE_MAX}
+                aria-valuenow={value}
+                aria-label="Temporary goal preview scale; does not change saved settings"
+            />
+            <span
+                className={`font-mono tabular-nums text-cdtext text-right shrink-0 ${
+                    isMobile ? 'text-[10px] w-9' : 'text-[10px] w-8'
+                }`}
+            >
+                {value}%
+            </span>
+            {previewActive ? (
+                <span
+                    className={`font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400 shrink-0 ${
+                        isMobile ? 'text-[8px]' : 'text-[7px] hidden xl:inline'
+                    }`}
+                    title="Preview only — resets on refresh"
+                >
+                    {isMobile ? 'Temp' : 'Session'}
+                </span>
+            ) : null}
+        </div>
+    );
+}
+
+/**
  * @param {object} props
  * @param {object[]} props.chartData
  * @param {object} props.userSettings
@@ -62,24 +130,56 @@ const VolumeGoalsPanel = ({ chartData = [], userSettings, onOpenSettings }) => {
 
     return (
         <div className={chartCardClass}>
-            <button
-                type="button"
-                onClick={() => setCollapsed((c) => !c)}
-                className="flex w-full items-center justify-between gap-2 text-left mb-1"
-            >
-                <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-start gap-2 mb-1">
+                <button
+                    type="button"
+                    onClick={() => setCollapsed((c) => !c)}
+                    className="flex flex-1 min-w-0 items-center gap-2 text-left"
+                >
                     <Target className="w-5 h-5 text-cdaccent shrink-0" aria-hidden />
                     <div className="min-w-0">
                         <h3 className="text-sm font-bold text-cdtext uppercase tracking-wider">Training goals</h3>
-                        <p className="text-[11px] text-cdmuted truncate">
+                        <p className="text-[11px] text-cdmuted line-clamp-2 sm:truncate">
                             Weekly, monthly, and yearly volume — distance, moving time, elevation. Pace vs calendar time.
                         </p>
                     </div>
-                </div>
-                {collapsed ? <ChevronDown className="w-5 h-5 text-cdmuted shrink-0" /> : <ChevronUp className="w-5 h-5 text-cdmuted shrink-0" />}
-            </button>
+                </button>
 
-            <p className="text-[11px] text-cdmuted leading-snug mt-2">
+                {!collapsed ? (
+                    <div className="hidden sm:block pt-0.5">
+                        <GoalPreviewScale
+                            id="volume-goal-preview-scale"
+                            value={previewScalePct}
+                            onChange={setPreviewScalePct}
+                            previewActive={previewActive}
+                            variant="header"
+                        />
+                    </div>
+                ) : null}
+
+                <button
+                    type="button"
+                    onClick={() => setCollapsed((c) => !c)}
+                    className="shrink-0 p-1 rounded-md text-cdmuted hover:bg-cdborder/30 cd-focus-ring"
+                    aria-label={collapsed ? 'Expand training goals' : 'Collapse training goals'}
+                >
+                    {collapsed ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
+                </button>
+            </div>
+
+            {!collapsed ? (
+                <div className="sm:hidden mb-2">
+                    <GoalPreviewScale
+                        id="volume-goal-preview-scale-mobile"
+                        value={previewScalePct}
+                        onChange={setPreviewScalePct}
+                        previewActive={previewActive}
+                        variant="mobile"
+                    />
+                </div>
+            ) : null}
+
+            <p className="text-[11px] text-cdmuted leading-snug">
                 Yearly targets live in Settings → Performance &amp; Goals. Weekly and monthly bars are calculated automatically (÷52 and ÷12).
                 {onOpenSettings ? (
                     <>
@@ -96,56 +196,19 @@ const VolumeGoalsPanel = ({ chartData = [], userSettings, onOpenSettings }) => {
             </p>
 
             {!collapsed && (
-                <>
-                    <div className="mt-4 rounded-lg border border-cdborder/70 bg-cdbg/30 p-3 space-y-2">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                            <label htmlFor="volume-goal-preview-scale" className="text-[10px] font-bold text-cdmuted uppercase tracking-wide">
-                                Goal preview scale
-                            </label>
-                            <div className="flex items-center gap-2">
-                                {previewActive ? (
-                                    <span className="text-[9px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400 bg-amber-500/15 px-2 py-0.5 rounded">
-                                        Preview only — resets on refresh
-                                    </span>
-                                ) : null}
-                                <span className="text-xs font-mono tabular-nums text-cdtext min-w-[3ch] text-right">{previewScalePct}%</span>
-                            </div>
-                        </div>
-                        <input
-                            id="volume-goal-preview-scale"
-                            type="range"
-                            min={PREVIEW_SCALE_MIN}
-                            max={PREVIEW_SCALE_MAX}
-                            step={PREVIEW_SCALE_STEP}
-                            value={previewScalePct}
-                            onChange={(e) => setPreviewScalePct(Number(e.target.value))}
-                            className="w-full accent-cdaccent"
-                            aria-valuemin={PREVIEW_SCALE_MIN}
-                            aria-valuemax={PREVIEW_SCALE_MAX}
-                            aria-valuenow={previewScalePct}
-                            aria-label="Temporary goal preview scale; does not change saved settings"
+                <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    {sections.map(({ id, title, subtitle, range, g, s }) => (
+                        <VolumeGoalPeriodCard
+                            key={id}
+                            title={title}
+                            subtitle={subtitle}
+                            range={range}
+                            g={g}
+                            s={s}
+                            nowRef={nowRef}
                         />
-                        <div className="flex justify-between text-[9px] text-cdmuted font-mono tabular-nums">
-                            <span>{PREVIEW_SCALE_MIN}%</span>
-                            <span>100%</span>
-                            <span>{PREVIEW_SCALE_MAX}%</span>
-                        </div>
-                    </div>
-
-                    <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
-                        {sections.map(({ id, title, subtitle, range, g, s }) => (
-                            <VolumeGoalPeriodCard
-                                key={id}
-                                title={title}
-                                subtitle={subtitle}
-                                range={range}
-                                g={g}
-                                s={s}
-                                nowRef={nowRef}
-                            />
-                        ))}
-                    </div>
-                </>
+                    ))}
+                </div>
             )}
         </div>
     );
