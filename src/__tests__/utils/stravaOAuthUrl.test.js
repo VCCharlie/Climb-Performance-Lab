@@ -19,12 +19,12 @@ describe('stravaOAuthUrl', () => {
     });
 
     it('detects Strava OAuth return params in URL', () => {
-        window.history.replaceState({}, '', 'https://example.com/app?code=abc&state=xyz');
+        window.history.replaceState({}, '', `${window.location.origin}/app?code=abc&state=xyz`);
         expect(hasStravaOAuthReturnInUrl()).toBe(true);
     });
 
     it('strips OAuth params from URL', () => {
-        window.history.replaceState({}, '', 'https://example.com/app?code=abc&state=xyz&scope=read');
+        window.history.replaceState({}, '', `${window.location.origin}/app?code=abc&state=xyz&scope=read`);
         expect(stripStravaOAuthParamsFromUrl()).toBe(true);
         expect(window.location.search).toBe('');
     });
