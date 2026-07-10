@@ -359,8 +359,9 @@ describe('haversineDistance', () => {
   it('handles crossing the International Date Line', () => {
     // Fiji: -17.7765, 177.4150
     // Tonga: -21.1394, -175.2049
+    // Short arc across ±180° is ~7.38° longitude, not the long way (~352°).
     const dist = haversineDistance(-17.7765, 177.4150, -21.1394, -175.2049);
-    expect(dist).toBeCloseTo(759, 0);
+    expect(dist).toBeCloseTo(859, 0);
   });
 
   it('is symmetric', () => {

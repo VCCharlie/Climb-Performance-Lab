@@ -175,7 +175,7 @@ export async function enrichActivityGearFromStrava(merged, stravaSide, token, op
         );
 
     let detail = null;
-    if (needsDetail || needsKomSummary) {
+    if (needsDetail || (forceDetail && needsKomSummary)) {
         try {
             const resp = await fetch(
                 `https://www.strava.com/api/v3/activities/${encodeURIComponent(stravaActId)}?include_all_efforts=true`,
