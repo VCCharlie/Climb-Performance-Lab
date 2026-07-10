@@ -6,11 +6,14 @@ import ErrorBoundary from './components/ErrorBoundary.jsx'
 import { ClimbDatabaseProvider } from './context/ClimbDatabaseContext.jsx'
 import { applyTheme, readStoredTheme } from './theme/applyTheme'
 import { maintainBrowserStorageOnBoot } from './utils/safeStorage.js'
+import { bootstrapDeployRecovery, persistCurrentBuildId } from './utils/deployRecovery.js'
 
 applyTheme(readStoredTheme())
 maintainBrowserStorageOnBoot()
+bootstrapDeployRecovery()
 
-createRoot(document.getElementById('root')).render(
+const root = createRoot(document.getElementById('root'))
+root.render(
   <StrictMode>
     <ErrorBoundary>
       <ClimbDatabaseProvider>
@@ -19,3 +22,4 @@ createRoot(document.getElementById('root')).render(
     </ErrorBoundary>
   </StrictMode>,
 )
+persistCurrentBuildId()

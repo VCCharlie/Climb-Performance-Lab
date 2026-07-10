@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback, useMemo, useRef, Suspense, lazy } from 'react';
+﻿import React, { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react';
 import { Utensils, Brain, Route, Heart, Flag } from 'lucide-react';
 import { doc, setDoc, getDoc, onSnapshot } from "firebase/firestore";
 import { onAuthStateChanged, reload } from "firebase/auth";
@@ -25,21 +25,22 @@ import PwaUpdateBanner from './components/PwaUpdateBanner';
 import { LoadingPanel, SegmentedControl } from './components/ui';
 import { MainNav } from './components/shell';
 import SignInGate from './components/SignInGate';
+import { lazyWithRetry } from './utils/lazyWithRetry.js';
 
 // Main tabs (lazy — loaded on first visit; Dashboard stays eager as default tab)
-const PhysicsEngine = lazy(() => import('./components/PhysicsEngine'));
-const DataHub = lazy(() => import('./components/DataHub'));
-const FuelingStrategy = lazy(() => import('./components/FuelingStrategy'));
-const AICoach = lazy(() => import('./components/AICoach'));
-const TrainingGoalPlanner = lazy(() => import('./components/TrainingGoalPlanner'));
-const ClimbProfileCard = lazy(() => import('./components/ClimbProfileCard'));
-const RacePacing = lazy(() => import('./components/RacePacing'));
-const GearOptimizer = lazy(() => import('./components/GearOptimizer'));
-const ClimbProfiler = lazy(() => import('./components/ClimbProfiler'));
-const RecoveryAdvisor = lazy(() => import('./components/RecoveryAdvisor'));
-const BucketList = lazy(() => import('./components/BucketList'));
-const WeatherClimb = lazy(() => import('./components/WeatherClimb'));
-const ClimbMap = lazy(() => import('./components/ClimbMap'));
+const PhysicsEngine = lazyWithRetry(() => import('./components/PhysicsEngine'), 'PhysicsEngine');
+const DataHub = lazyWithRetry(() => import('./components/DataHub'), 'DataHub');
+const FuelingStrategy = lazyWithRetry(() => import('./components/FuelingStrategy'), 'FuelingStrategy');
+const AICoach = lazyWithRetry(() => import('./components/AICoach'), 'AICoach');
+const TrainingGoalPlanner = lazyWithRetry(() => import('./components/TrainingGoalPlanner'), 'TrainingGoalPlanner');
+const ClimbProfileCard = lazyWithRetry(() => import('./components/ClimbProfileCard'), 'ClimbProfileCard');
+const RacePacing = lazyWithRetry(() => import('./components/RacePacing'), 'RacePacing');
+const GearOptimizer = lazyWithRetry(() => import('./components/GearOptimizer'), 'GearOptimizer');
+const ClimbProfiler = lazyWithRetry(() => import('./components/ClimbProfiler'), 'ClimbProfiler');
+const RecoveryAdvisor = lazyWithRetry(() => import('./components/RecoveryAdvisor'), 'RecoveryAdvisor');
+const BucketList = lazyWithRetry(() => import('./components/BucketList'), 'BucketList');
+const WeatherClimb = lazyWithRetry(() => import('./components/WeatherClimb'), 'WeatherClimb');
+const ClimbMap = lazyWithRetry(() => import('./components/ClimbMap'), 'ClimbMap');
 
 import useIntervalsSync from './hooks/useIntervalsSync';
 import useStravaAuth from './hooks/useStravaAuth';
