@@ -10,6 +10,11 @@ export function isGoogleSignInInProgress() {
     return signInInProgress;
 }
 
+/** Reset stuck in-progress flag (e.g. after a crashed popup flow). */
+export function resetGoogleSignInProgress() {
+    signInInProgress = false;
+}
+
 /** @returns {Promise<import('firebase/auth').User | null>} */
 export async function runGoogleSignIn() {
     if (signInInProgress) return null;
