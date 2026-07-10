@@ -8,7 +8,6 @@ const STRAVA_SECRET_KEYS = ['client_secret', 'access_token', 'refresh_token'];
 /** Shape safe to persist in Firestore — never OAuth secrets or tokens. */
 export function stravaConfigForCloud(stravaConfig = {}) {
     const out = {
-        client_id: stravaConfig.client_id || '',
         athlete_id: stravaConfig.athlete_id ?? null,
         athlete_name: stravaConfig.athlete_name ?? null,
     };

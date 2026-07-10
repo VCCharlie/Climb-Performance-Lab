@@ -20,7 +20,6 @@ describe('stravaConfigForCloud', () => {
             expires_at: 999,
         });
         expect(out).toEqual({
-            client_id: '1',
             athlete_id: 42,
             athlete_name: 'Test Rider',
             expires_at: 999,
@@ -36,11 +35,11 @@ describe('mergeStravaConfigFromCloud', () => {
             access_token: 'local-at',
             refresh_token: 'local-rt',
         };
-        const cloud = { client_id: '1', athlete_id: 99, athlete_name: 'Cloud Name' };
+        const cloud = { athlete_id: 99, athlete_name: 'Cloud Name' };
         expect(mergeStravaConfigFromCloud(cloud, local)).toEqual({
-            client_id: '1',
             athlete_id: 99,
             athlete_name: 'Cloud Name',
+            client_id: '1',
             client_secret: 'local-secret',
             access_token: 'local-at',
             refresh_token: 'local-rt',

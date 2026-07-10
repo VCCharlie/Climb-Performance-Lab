@@ -38,7 +38,7 @@ describe('sessionData', () => {
     it('default factories return empty sensitive fields', () => {
         expect(getDefaultUserSettings().openweatherApiKey).toBe('');
         expect(getDefaultIntervalsConfig()).toEqual({ apiKey: '', athleteId: '' });
-        expect(getDefaultStravaConfig()).toEqual({ client_id: '', client_secret: '' });
+        expect(getDefaultStravaConfig()).toEqual({ athlete_id: null, athlete_name: null });
     });
 
     it('explicit sign-out flag is one-shot', () => {

@@ -85,6 +85,12 @@ export const MONTH_ORDER = [
 
 // 4. API Endpoints
 export const CLOUD_SYNC_URL = "https://sync-intervals-97555677694.europe-west1.run.app";
+/** Server-side Strava OAuth — deploy cloud-function/strava_oauth.py as Cloud Run service strava-oauth */
+export const STRAVA_OAUTH_URL =
+    import.meta.env.VITE_STRAVA_OAUTH_URL
+    || 'https://strava-oauth-97555677694.europe-west1.run.app';
+/** Public Strava app id — baked at build from GitHub secret STRAVA_CLIENT_ID (optional fallback: cloud ?route=config) */
+export const STRAVA_CLIENT_ID = import.meta.env.VITE_STRAVA_CLIENT_ID || '';
 export const OPENWEATHER_PROXY_URL =
     import.meta.env.VITE_OPENWEATHER_PROXY_URL
     || 'https://europe-west1-climb-performance-lab.cloudfunctions.net/openweather-proxy';

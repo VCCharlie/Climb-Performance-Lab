@@ -154,7 +154,7 @@ const App = () => {
         return getDefaultIntervalsConfig();
     });
 
-    // Strava config: opgeslagen in localStorage + Firestore (cross-device)
+    // Strava config: connection metadata in localStorage + Firestore (tokens server-side only)
     const [stravaConfig, setStravaConfig] = useState(() => {
         const saved = localStorage.getItem('stravaConfig');
         if (saved) { try { return JSON.parse(saved); } catch { /* */ } }
@@ -450,15 +450,15 @@ const App = () => {
         return () => unsubscribe();
     }, [applySignedOutSessionWipe]);
 
-    // Strava OAuth callback: verwerk ?code= parameter bij terugkeer van Strava
+    // Strava OAuth callback: process ?code= after redirect from Strava
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const code = params.get('code');
         const state = params.get('state');
-        if (code && stravaConfig?.client_id && stravaConfig?.client_secret) {
+        if (code) {
             stravaAuth.handleOAuthCallback(code, state).catch(e => {
-                console.error('Strava OAuth fout:', e);
-                alert('Strava koppeling mislukt: ' + e.message);
+                console.error('Strava OAuth error:', e);
+                alert('Strava connection failed: ' + e.message);
             });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
