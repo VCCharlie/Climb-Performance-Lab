@@ -398,21 +398,74 @@ const SettingsModal = ({
                                     </div>
                                 </div>
                             </div>
-                            <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-cdborder/30">
+                            <div className="mt-4 pt-4 border-t border-cdborder/30 space-y-3">
                                 <div>
-                                    <label className={`block text-[10px] font-semibold mb-1 text-cdmuted`}>Yearly KM</label>
-                                    <input type="number" value={userSettings.goals?.yearlyKm || ''} onChange={e => updateUserSettings('goals', { ...userSettings.goals, yearlyKm: Number(e.target.value) })} className={fieldClass} />
-                                </div>
-                                <div>
-                                    <label className={`block text-[10px] font-semibold mb-1 text-cdmuted`}>Target FTP</label>
-                                    <div className="flex gap-1">
-                                        <input type="number" value={userSettings.goals?.targetFtp || ''} onChange={e => updateUserSettings('goals', { ...userSettings.goals, targetFtp: Number(e.target.value) })} className={fieldClass} />
+                                    <p className="text-[11px] font-semibold text-cdtext mb-1">Training volume (yearly)</p>
+                                    <p className="text-[10px] text-cdmuted leading-snug mb-3">
+                                        Dashboard training goals use these yearly targets. Weekly goals are yearly ÷ 52; monthly goals are yearly ÷ 12.
+                                    </p>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                        <div>
+                                            <label className={`block text-[10px] font-semibold mb-1 text-cdmuted`}>Yearly distance (km)</label>
+                                            <input
+                                                type="number"
+                                                min={0}
+                                                value={userSettings.goals?.yearlyKm ?? ''}
+                                                onChange={(e) =>
+                                                    updateUserSettings('goals', {
+                                                        ...userSettings.goals,
+                                                        yearlyKm: Number(e.target.value),
+                                                    })
+                                                }
+                                                className={fieldClass}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className={`block text-[10px] font-semibold mb-1 text-cdmuted`}>Yearly moving time (h)</label>
+                                            <input
+                                                type="number"
+                                                min={0}
+                                                step={0.5}
+                                                value={userSettings.goals?.yearlyMovingTimeHours ?? ''}
+                                                onChange={(e) =>
+                                                    updateUserSettings('goals', {
+                                                        ...userSettings.goals,
+                                                        yearlyMovingTimeHours: Number(e.target.value),
+                                                    })
+                                                }
+                                                className={fieldClass}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className={`block text-[10px] font-semibold mb-1 text-cdmuted`}>Yearly elevation (m)</label>
+                                            <input
+                                                type="number"
+                                                min={0}
+                                                step={100}
+                                                value={userSettings.goals?.yearlyElevationM ?? ''}
+                                                onChange={(e) =>
+                                                    updateUserSettings('goals', {
+                                                        ...userSettings.goals,
+                                                        yearlyElevationM: Number(e.target.value),
+                                                    })
+                                                }
+                                                className={fieldClass}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
-                                <div>
-                                    <label className={`block text-[10px] font-semibold mb-1 text-cdmuted`}>Target Kg</label>
-                                    <div className="flex gap-1">
-                                        <input type="number" value={userSettings.goals?.targetWeight || ''} onChange={e => updateUserSettings('goals', { ...userSettings.goals, targetWeight: Number(e.target.value) })} className={fieldClass} />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className={`block text-[10px] font-semibold mb-1 text-cdmuted`}>Target FTP</label>
+                                        <div className="flex gap-1">
+                                            <input type="number" value={userSettings.goals?.targetFtp || ''} onChange={e => updateUserSettings('goals', { ...userSettings.goals, targetFtp: Number(e.target.value) })} className={fieldClass} />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className={`block text-[10px] font-semibold mb-1 text-cdmuted`}>Target weight (kg)</label>
+                                        <div className="flex gap-1">
+                                            <input type="number" value={userSettings.goals?.targetWeight || ''} onChange={e => updateUserSettings('goals', { ...userSettings.goals, targetWeight: Number(e.target.value) })} className={fieldClass} />
+                                        </div>
                                     </div>
                                 </div>
                             </div>

@@ -50,8 +50,7 @@ const Dashboard = ({
     userWeightKg = 0,
     referenceEndDate,
     userSettings,
-    updateUserSettings,
-    cloudVolumeGoalsSynced = false,
+    onOpenSettings,
     onOpenActivityLogDateRange,
 }) => {
     const activitiesFromContext = useActivitiesList();
@@ -199,8 +198,7 @@ const Dashboard = ({
                         customTicks={customTicks}
                         onOpenActivityInLog={onOpenActivityInLog}
                         userSettings={userSettings}
-                        updateUserSettings={updateUserSettings}
-                        cloudVolumeGoalsSynced={cloudVolumeGoalsSynced}
+                        onOpenSettings={onOpenSettings}
                     />
                 </div>
             )}

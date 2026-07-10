@@ -18,8 +18,7 @@ const OverviewTab = ({
     customTicks,
     onOpenActivityInLog,
     userSettings,
-    updateUserSettings,
-    cloudVolumeGoalsSynced = false,
+    onOpenSettings,
 }) => {
     const barChartIndex = useMemo(() => buildOverviewBarChartIndex(data), [data]);
 
@@ -33,12 +32,11 @@ const OverviewTab = ({
 
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
-            {userSettings && updateUserSettings && (
+            {userSettings && (
                 <VolumeGoalsPanel
                     chartData={allActivities || data}
                     userSettings={userSettings}
-                    updateUserSettings={updateUserSettings}
-                    cloudVolumeGoalsSynced={cloudVolumeGoalsSynced}
+                    onOpenSettings={onOpenSettings}
                 />
             )}
 

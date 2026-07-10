@@ -10,6 +10,10 @@ import { activityDistanceKm, activityMovingTimeSec } from './activityFilterMetri
 
 const TRACKED_SPORTS = new Set(SPORT_TYPES);
 
+/** Calendar splits used when deriving weekly/monthly targets from yearly settings. */
+export const WEEKS_PER_YEAR = 52;
+export const MONTHS_PER_YEAR = 12;
+
 /** @typedef {{ distanceKm: number, movingTimeHours: number, elevationM: number }} VolumeGoalTriple */
 /** @typedef {{ weekly: VolumeGoalTriple, monthly: VolumeGoalTriple, yearly: VolumeGoalTriple }} VolumeGoalsShape */
 
@@ -53,6 +57,94 @@ export function mergeVolumeGoalsPreservingNonZero(local, cloud) {
             distanceKm: c[key].distanceKm > 0 ? c[key].distanceKm : l[key].distanceKm,
             movingTimeHours: c[key].movingTimeHours > 0 ? c[key].movingTimeHours : l[key].movingTimeHours,
             elevationM: c[key].elevationM > 0 ? c[key].elevationM : l[key].elevationM,
+        };
+    }
+    return out;
+}
+
+function roundTo(value, decimals) {
+    const factor = 10 ** decimals;
+    return Math.round(value * factor) / factor;
+}
+
+/**
+ * Yearly volume targets stored in Settings → Performance & Goals.
+ * @param {unknown} goals
+ * @returns {{ yearlyKm: number, yearlyMovingTimeHours: number, yearlyElevationM: number }}
+ */
+export function normalizeYearlyVolumeGoals(goals) {
+    const g = goals && typeof goals === 'object' ? goals : {};
+    return {
+        yearlyKm: Math.max(0, Number(g.yearlyKm) || 0),
+        yearlyMovingTimeHours: Math.max(0, Number(g.yearlyMovingTimeHours) || 0),
+        yearlyElevationM: Math.max(0, Number(g.yearlyElevationM) || 0),
+    };
+}
+
+/**
+ * Copy legacy dashboard `volumeGoals.yearly` into Settings goals when yearly fields are empty.
+ * @param {unknown} goals
+ * @param {unknown} volumeGoals
+ */
+export function hydrateYearlyGoalsFromLegacy(goals, volumeGoals) {
+    const g = goals && typeof goals === 'object' ? { ...goals } : {};
+    const yearly = mergeVolumeGoals(volumeGoals).yearly;
+
+    if (!(Number(g.yearlyKm) > 0) && yearly.distanceKm > 0) {
+        g.yearlyKm = yearly.distanceKm;
+    }
+    if (!(Number(g.yearlyMovingTimeHours) > 0) && yearly.movingTimeHours > 0) {
+        g.yearlyMovingTimeHours = yearly.movingTimeHours;
+    }
+    if (!(Number(g.yearlyElevationM) > 0) && yearly.elevationM > 0) {
+        g.yearlyElevationM = yearly.elevationM;
+    }
+    return g;
+}
+
+/**
+ * Derive weekly (÷52) and monthly (÷12) targets from yearly settings goals.
+ * @param {unknown} goals `userSettings.goals`
+ * @returns {VolumeGoalsShape}
+ */
+export function deriveVolumeGoalsFromYearlyGoals(goals) {
+    const y = normalizeYearlyVolumeGoals(goals);
+    return {
+        weekly: {
+            distanceKm: roundTo(y.yearlyKm / WEEKS_PER_YEAR, 1),
+            movingTimeHours: roundTo(y.yearlyMovingTimeHours / WEEKS_PER_YEAR, 2),
+            elevationM: Math.round(y.yearlyElevationM / WEEKS_PER_YEAR),
+        },
+        monthly: {
+            distanceKm: roundTo(y.yearlyKm / MONTHS_PER_YEAR, 1),
+            movingTimeHours: roundTo(y.yearlyMovingTimeHours / MONTHS_PER_YEAR, 2),
+            elevationM: Math.round(y.yearlyElevationM / MONTHS_PER_YEAR),
+        },
+        yearly: {
+            distanceKm: y.yearlyKm,
+            movingTimeHours: y.yearlyMovingTimeHours,
+            elevationM: y.yearlyElevationM,
+        },
+    };
+}
+
+/**
+ * Session-only multiplier for dashboard goal preview (settings values stay authoritative).
+ * @param {VolumeGoalsShape} goals
+ * @param {number} factor 0.5–1.5 typical
+ * @returns {VolumeGoalsShape}
+ */
+export function scaleVolumeGoals(goals, factor) {
+    const base = mergeVolumeGoals(goals);
+    const f = Number(factor);
+    if (!f || f === 1) return base;
+
+    const out = defaultVolumeGoals();
+    for (const key of ['weekly', 'monthly', 'yearly']) {
+        out[key] = {
+            distanceKm: roundTo(base[key].distanceKm * f, 1),
+            movingTimeHours: roundTo(base[key].movingTimeHours * f, 2),
+            elevationM: Math.round(base[key].elevationM * f),
         };
     }
     return out;
