@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
     isQuotaExceededError,
+    isLocalStorageQuotaFull,
     pruneLocalStorageCaches,
+    repairLocalStorageQuota,
     safeLocalStorageSet,
     maintainBrowserStorageOnBoot,
 } from '../../utils/safeStorage.js';
@@ -52,5 +54,48 @@ describe('safeStorage', () => {
 
     it('maintainBrowserStorageOnBoot does not throw', () => {
         expect(() => maintainBrowserStorageOnBoot()).not.toThrow();
+    });
+
+    it('isLocalStorageQuotaFull returns false when probe write succeeds', () => {
+        expect(isLocalStorageQuotaFull()).toBe(false);
+    });
+
+    it('repairLocalStorageQuota clears caches and sensitive keys', () => {
+        localStorage.setItem('intervals_data_2024-01-01_2024-12-31', '{}');
+        localStorage.setItem('stravaVsLogScan_v1_99', '{}');
+        localStorage.setItem('userSettings', '{"ftp":250}');
+        localStorage.setItem('theme', 'dark');
+
+        const result = repairLocalStorageQuota();
+
+        expect(result.removed).toBeGreaterThan(0);
+        expect(localStorage.getItem('userSettings')).toBeNull();
+        expect(localStorage.getItem('theme')).toBe('dark');
+        expect(isLocalStorageQuotaFull()).toBe(false);
+    });
+
+    it('repairLocalStorageQuota clears non-preserved keys when quota stays full', () => {
+        localStorage.setItem('theme', 'dark');
+        localStorage.setItem('orphan_key', 'leftover');
+
+        const setItem = Storage.prototype.setItem;
+        vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function mockSetItem(key, value) {
+            if (key === '__cpl_quota_probe__') {
+                throw new DOMException('quota', 'QuotaExceededError');
+            }
+            return setItem.call(this, key, value);
+        });
+
+        try {
+            expect(isLocalStorageQuotaFull()).toBe(true);
+
+            const result = repairLocalStorageQuota();
+
+            expect(result.clearedAllNonPreserved).toBe(true);
+            expect(localStorage.getItem('orphan_key')).toBeNull();
+            expect(localStorage.getItem('theme')).toBe('dark');
+        } finally {
+            Storage.prototype.setItem = setItem;
+        }
     });
 });

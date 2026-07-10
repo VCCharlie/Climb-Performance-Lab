@@ -34,6 +34,16 @@ export function markExplicitSignOut() {
     }
 }
 
+/** Remove stuck sign-out flag without wiping local data (e.g. before a fresh sign-in). */
+export function clearExplicitSignOutFlag() {
+    if (typeof sessionStorage === 'undefined') return;
+    try {
+        sessionStorage.removeItem(EXPLICIT_SIGN_OUT_SESSION_KEY);
+    } catch {
+        /* ignore */
+    }
+}
+
 /** @returns {boolean} true when user clicked Sign out (consume one-shot flag). */
 export function consumeExplicitSignOut() {
     if (typeof sessionStorage === 'undefined') return false;

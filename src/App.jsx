@@ -56,6 +56,7 @@ import { mergeVolumeGoals, mergeVolumeGoalsPreservingNonZero } from './utils/vol
 import {
     clearSensitiveLocalStorage,
     consumeExplicitSignOut,
+    clearExplicitSignOutFlag,
     getDefaultUserSettings,
     getDefaultIntervalsConfig,
     getDefaultStravaConfig,
@@ -458,6 +459,7 @@ const App = () => {
                     }
                 }
             }
+            clearExplicitSignOutFlag();
             setUser(auth.currentUser);
             authenticatedUserRef.current = auth.currentUser;
             setAuthReady(true);
