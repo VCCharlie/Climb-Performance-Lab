@@ -9,19 +9,20 @@ SERVICE_NAME="${SERVICE_NAME:-strava-oauth}"
 ENTRY_POINT="${ENTRY_POINT:-strava_oauth}"
 REPO_URL="${REPO_URL:-https://github.com/VCCharlie/Climb-Performance-Lab.git}"
 REPO_DIR="${REPO_DIR:-${HOME}/Climb-Performance-Lab}"
+# Use main after PR merge; until then deploy from the Strava OAuth feature branch.
+DEPLOY_BRANCH="${DEPLOY_BRANCH:-cursor/strava-oauth-server-side-8810}"
 
 echo "==> Project: ${PROJECT_ID}"
 gcloud config set project "${PROJECT_ID}"
 
 if [ -d "${REPO_DIR}/.git" ]; then
-  echo "==> Updating existing repo at ${REPO_DIR}"
-  git -C "${REPO_DIR}" fetch origin main
-  git -C "${REPO_DIR}" checkout main
-  git -C "${REPO_DIR}" pull origin main
+  echo "==> Updating existing repo at ${REPO_DIR} (branch: ${DEPLOY_BRANCH})"
+  git -C "${REPO_DIR}" fetch origin "${DEPLOY_BRANCH}"
+  git -C "${REPO_DIR}" checkout "${DEPLOY_BRANCH}"
+  git -C "${REPO_DIR}" pull origin "${DEPLOY_BRANCH}"
 else
-  echo "==> Cloning repo to ${REPO_DIR}"
-  git clone "${REPO_URL}" "${REPO_DIR}"
-  git -C "${REPO_DIR}" checkout main
+  echo "==> Cloning repo to ${REPO_DIR} (branch: ${DEPLOY_BRANCH})"
+  git clone --branch "${DEPLOY_BRANCH}" "${REPO_URL}" "${REPO_DIR}"
 fi
 
 cd "${REPO_DIR}/cloud-function"

@@ -28,14 +28,25 @@ Nightly workflow (`nightly-sync.yml`) passes these to `scripts/nightlySync.js`.
 
 **Google Cloud Shell** (recommended):
 
+> **Note:** Until PR #303 is merged to `main`, use the **feature-branch** URL below (the `main` raw URL returns 404).
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/VCCharlie/Climb-Performance-Lab/cursor/strava-oauth-server-side-8810/scripts/deployStravaOAuthCloudShell.sh | bash
+```
+
+After merge to `main`:
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/VCCharlie/Climb-Performance-Lab/main/scripts/deployStravaOAuthCloudShell.sh | bash
 ```
 
-Or manually:
+**Manual fallback** (paste in Cloud Shell if curl still fails):
 
 ```bash
+cd ~/Climb-Performance-Lab 2>/dev/null || git clone -b cursor/strava-oauth-server-side-8810 https://github.com/VCCharlie/Climb-Performance-Lab.git ~/Climb-Performance-Lab
+cd ~/Climb-Performance-Lab && git fetch origin cursor/strava-oauth-server-side-8810 && git checkout cursor/strava-oauth-server-side-8810 && git pull origin cursor/strava-oauth-server-side-8810
 cd cloud-function
+gcloud config set project climb-performance-lab
 gcloud run deploy strava-oauth \
   --source . \
   --function strava_oauth \
