@@ -3,6 +3,10 @@ import {
     defaultVolumeGoals,
     mergeVolumeGoals,
     mergeVolumeGoalsPreservingNonZero,
+    normalizeYearlyVolumeGoals,
+    deriveVolumeGoalsFromYearlyGoals,
+    hydrateYearlyGoalsFromLegacy,
+    scaleVolumeGoals,
     currentWeekRange,
     currentMonthRange,
     currentYearRange,
@@ -48,6 +52,42 @@ describe('volumeGoals', () => {
         const cloud = mergeVolumeGoals({ yearly: { distanceKm: 8000 } });
         const m = mergeVolumeGoalsPreservingNonZero(local, cloud);
         expect(m.yearly.distanceKm).toBe(8000);
+    });
+
+    it('deriveVolumeGoalsFromYearlyGoals splits yearly targets by 52 and 12', () => {
+        const derived = deriveVolumeGoalsFromYearlyGoals({
+            yearlyKm: 5200,
+            yearlyMovingTimeHours: 520,
+            yearlyElevationM: 52000,
+        });
+        expect(derived.yearly.distanceKm).toBe(5200);
+        expect(derived.weekly.distanceKm).toBe(100);
+        expect(derived.monthly.distanceKm).toBeCloseTo(433.3, 1);
+        expect(derived.weekly.movingTimeHours).toBe(10);
+        expect(derived.monthly.movingTimeHours).toBeCloseTo(43.33, 1);
+        expect(derived.weekly.elevationM).toBe(1000);
+        expect(derived.monthly.elevationM).toBe(4333);
+    });
+
+    it('hydrateYearlyGoalsFromLegacy copies yearly volumeGoals when settings goals are empty', () => {
+        const goals = hydrateYearlyGoalsFromLegacy(
+            { yearlyKm: 0, yearlyMovingTimeHours: 0, yearlyElevationM: 0 },
+            { yearly: { distanceKm: 8000, movingTimeHours: 400, elevationM: 90000 } },
+        );
+        expect(goals.yearlyKm).toBe(8000);
+        expect(goals.yearlyMovingTimeHours).toBe(400);
+        expect(goals.yearlyElevationM).toBe(90000);
+    });
+
+    it('scaleVolumeGoals applies preview multiplier without mutating base', () => {
+        const base = deriveVolumeGoalsFromYearlyGoals({ yearlyKm: 5200 });
+        const scaled = scaleVolumeGoals(base, 1.1);
+        expect(scaled.yearly.distanceKm).toBe(5720);
+        expect(base.yearly.distanceKm).toBe(5200);
+    });
+
+    it('normalizeYearlyVolumeGoals clamps negatives', () => {
+        expect(normalizeYearlyVolumeGoals({ yearlyKm: -10 }).yearlyKm).toBe(0);
     });
 
     it('currentYearRange covers full calendar year', () => {

@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react';
 import { Utensils, Brain, Route, Heart, Flag } from 'lucide-react';
-import { doc, setDoc, getDoc, onSnapshot } from "firebase/firestore";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged, reload } from "firebase/auth";
 import { db, auth } from './firebase';
 import { getDefaultClimb } from './services/climbDatabase';
@@ -52,7 +52,7 @@ import useStravaAuth from './hooks/useStravaAuth';
 import { applyTheme } from './theme/applyTheme';
 import { SPORT_TYPES } from './config';
 import { consumeNavRestore } from './utils/sessionNavRestore';
-import { mergeVolumeGoals, mergeVolumeGoalsPreservingNonZero } from './utils/volumeGoals';
+import { mergeVolumeGoals, hydrateYearlyGoalsFromLegacy } from './utils/volumeGoals';
 import {
     clearSensitiveLocalStorage,
     consumeExplicitSignOut,
@@ -140,7 +140,15 @@ const App = () => {
                 if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
                     return defaults;
                 }
-                return { ...defaults, ...parsed, volumeGoals: mergeVolumeGoals(parsed.volumeGoals) };
+                return {
+                    ...defaults,
+                    ...parsed,
+                    volumeGoals: mergeVolumeGoals(parsed.volumeGoals),
+                    goals: hydrateYearlyGoalsFromLegacy(
+                        { ...defaults.goals, ...parsed.goals },
+                        parsed.volumeGoals,
+                    ),
+                };
             } catch { /* */ }
         }
         return defaults;
@@ -230,7 +238,6 @@ const App = () => {
     const [authReady, setAuthReady] = useState(false);
     const [authBusy, setAuthBusy] = useState(false);
     const [authError, setAuthError] = useState(null);
-    const [cloudSettingsHydrated, setCloudSettingsHydrated] = useState(false);
 
     // ⚡ Bolt: Stable ref so memo(Header) can skip re-renders when only unrelated state changes.
     const handleOpenSettings = useCallback(() => setIsSettingsOpen(true), []);
@@ -344,59 +351,6 @@ const App = () => {
         safeLocalStorageSet('userSettings', JSON.stringify(userSettings));
     }, [userSettings]);
 
-    /** Debounced Firestore sync for dashboard training volume goals (avoids wiping other `body` fields). */
-    const volumeGoalsCloudTimerRef = useRef(null);
-    const lastVolumeGoalsSyncedJsonRef = useRef('');
-    useEffect(() => {
-        if (!db || !user || !cloudSettingsHydrated) return;
-        const merged = mergeVolumeGoals(userSettings.volumeGoals);
-        const serialized = JSON.stringify(merged);
-        if (serialized === lastVolumeGoalsSyncedJsonRef.current) return;
-        if (volumeGoalsCloudTimerRef.current) clearTimeout(volumeGoalsCloudTimerRef.current);
-        const uid = user.uid;
-        volumeGoalsCloudTimerRef.current = setTimeout(() => {
-            volumeGoalsCloudTimerRef.current = null;
-            if (!auth?.currentUser || auth.currentUser.uid !== uid) return;
-            const settingsId = `user_${uid}`;
-            setDoc(doc(db, 'settings', settingsId), { body: { volumeGoals: merged } }, { merge: true })
-                .then(() => {
-                    lastVolumeGoalsSyncedJsonRef.current = serialized;
-                })
-                .catch((e) => {
-                    console.warn('[volumeGoals] Firestore sync failed:', e);
-                });
-        }, 800);
-        return () => {
-            if (volumeGoalsCloudTimerRef.current) clearTimeout(volumeGoalsCloudTimerRef.current);
-        };
-    }, [user, userSettings.volumeGoals, cloudSettingsHydrated]);
-
-    /** Real-time merge of training volume goals from Firestore (other devices / tabs). */
-    useEffect(() => {
-        if (!db || !user) return;
-        const settingsId = `user_${user.uid}`;
-        const docRef = doc(db, 'settings', settingsId);
-        const unsub = onSnapshot(
-            docRef,
-            (snap) => {
-                if (!snap.exists()) return;
-                if (snap.metadata.hasPendingWrites) return;
-                const data = snap.data();
-                const vg = data.body?.volumeGoals;
-                if (vg == null) return;
-                setUserSettings((prev) => {
-                    const merged = mergeVolumeGoalsPreservingNonZero(prev.volumeGoals, vg);
-                    const serialized = JSON.stringify(merged);
-                    if (serialized === JSON.stringify(mergeVolumeGoals(prev.volumeGoals))) return prev;
-                    lastVolumeGoalsSyncedJsonRef.current = serialized;
-                    return { ...prev, volumeGoals: merged };
-                });
-            },
-            (e) => console.warn('[volumeGoals] Firestore listener error:', e)
-        );
-        return () => unsub();
-    }, [user]);
-
     // Persist intervalsConfig to localStorage (API key stays local — never in Firestore).
     useEffect(() => {
         safeLocalStorageSet('intervalsConfig', JSON.stringify(intervalsConfig));
@@ -429,12 +383,6 @@ const App = () => {
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (!firebaseUser) {
                 photoReloadAttemptedRef.current.clear();
-                if (volumeGoalsCloudTimerRef.current) {
-                    clearTimeout(volumeGoalsCloudTimerRef.current);
-                    volumeGoalsCloudTimerRef.current = null;
-                }
-                lastVolumeGoalsSyncedJsonRef.current = '';
-                setCloudSettingsHydrated(false);
                 if (isGoogleSignInInProgress()) {
                     // Popup open — keep SignInGate visible; do not wipe session mid sign-in.
                     setAuthReady(true);
@@ -509,12 +457,10 @@ const App = () => {
     // 1. Settings Laden (One-time fetch) — signed-in only
     useEffect(() => {
         if (!user) {
-            setCloudSettingsHydrated(false);
             return;
         }
 
         let cancelled = false;
-        setCloudSettingsHydrated(false);
 
         const loadSettings = async () => {
             if (!db || !user) return;
@@ -523,6 +469,7 @@ const App = () => {
                 const settingsId = `user_${user.uid}`;
                 const docRef = doc(db, "settings", settingsId);
                 const docSnap = await getDoc(docRef);
+                if (cancelled) return;
 
                 if (docSnap.exists()) {
                     const data = docSnap.data();
@@ -532,11 +479,8 @@ const App = () => {
                     if (data.body) {
                         setUserSettings((prev) => {
                             const merged = mergeUserSettingsFromCloud(data.body, prev);
-                            merged.volumeGoals = mergeVolumeGoalsPreservingNonZero(
-                                prev.volumeGoals,
-                                data.body.volumeGoals,
-                            );
-                            lastVolumeGoalsSyncedJsonRef.current = JSON.stringify(merged.volumeGoals);
+                            merged.volumeGoals = mergeVolumeGoals(data.body.volumeGoals ?? prev.volumeGoals);
+                            merged.goals = hydrateYearlyGoalsFromLegacy(merged.goals, merged.volumeGoals);
                             return merged;
                         });
                     }
@@ -562,10 +506,6 @@ const App = () => {
                 }
             } catch (e) {
                 console.error("Error loading settings", e);
-            } finally {
-                if (!cancelled) {
-                    setCloudSettingsHydrated(true);
-                }
             }
         };
         loadSettings();
@@ -699,8 +639,7 @@ const App = () => {
                                         userWeightKg={userSettings.weight}
                                         referenceEndDate={globalEndDate}
                                         userSettings={userSettings}
-                                        updateUserSettings={(k, v) => setUserSettings((p) => ({ ...p, [k]: v }))}
-                                        cloudVolumeGoalsSynced={!!user}
+                                        onOpenSettings={handleOpenSettings}
                                     />
                                 )}
 

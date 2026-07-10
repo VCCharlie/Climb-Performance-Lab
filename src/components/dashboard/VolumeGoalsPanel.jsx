@@ -1,7 +1,8 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ChevronDown, ChevronUp, Target } from 'lucide-react';
 import {
-    mergeVolumeGoals,
+    deriveVolumeGoalsFromYearlyGoals,
+    scaleVolumeGoals,
     currentWeekRange,
     currentMonthRange,
     currentYearRange,
@@ -10,23 +11,31 @@ import {
 import { VolumeGoalPeriodCard } from './VolumeGoalPeriodCard';
 import { chartCardClass } from '../../utils/chartTheme';
 
-/** @typedef {'weekly'|'monthly'|'yearly'} PeriodId */
+const PREVIEW_SCALE_MIN = 50;
+const PREVIEW_SCALE_MAX = 150;
+const PREVIEW_SCALE_STEP = 5;
 
 /**
  * @param {object} props
  * @param {object[]} props.chartData
  * @param {object} props.userSettings
- * @param {(key: string, value: unknown) => void} props.updateUserSettings
- * @param {boolean} [props.cloudVolumeGoalsSynced] when false, goals stay on this device only until you sign in
+ * @param {() => void} [props.onOpenSettings]
  */
-const VolumeGoalsPanel = ({ chartData = [], userSettings, updateUserSettings, cloudVolumeGoalsSynced = false }) => {
+const VolumeGoalsPanel = ({ chartData = [], userSettings, onOpenSettings }) => {
     const [collapsed, setCollapsed] = useState(false);
-    /** @type {Record<PeriodId, boolean>} */
-    const [editing, setEditing] = useState({ weekly: false, monthly: false, yearly: false });
-    /** @type {Record<PeriodId, { distanceKm: string, movingTimeHours: string, elevationM: string } | null>} */
-    const [drafts, setDrafts] = useState({ weekly: null, monthly: null, yearly: null });
+    const [previewScalePct, setPreviewScalePct] = useState(100);
 
-    const goals = useMemo(() => mergeVolumeGoals(userSettings?.volumeGoals), [userSettings?.volumeGoals]);
+    const baseGoals = useMemo(
+        () => deriveVolumeGoalsFromYearlyGoals(userSettings?.goals),
+        [userSettings?.goals],
+    );
+
+    const goals = useMemo(() => {
+        const factor = previewScalePct / 100;
+        return scaleVolumeGoals(baseGoals, factor);
+    }, [baseGoals, previewScalePct]);
+
+    const previewActive = previewScalePct !== 100;
 
     const nowRef = useMemo(() => new Date(), []);
 
@@ -44,57 +53,6 @@ const VolumeGoalsPanel = ({ chartData = [], userSettings, updateUserSettings, cl
             year: { ...y, movingTimeH: y.movingTimeSec / 3600 },
         };
     }, [chartData, week.startYmd, week.endYmd, month.startYmd, month.endYmd, year.startYmd, year.endYmd]);
-
-    const commitGoals = useCallback(
-        (nextMerged) => {
-            updateUserSettings('volumeGoals', nextMerged);
-        },
-        [updateUserSettings],
-    );
-
-    const startEdit = (id) => {
-        const g = goals[id];
-        setDrafts((d) => ({
-            ...d,
-            [id]: {
-                distanceKm: g.distanceKm ? String(g.distanceKm) : '',
-                movingTimeHours: g.movingTimeHours ? String(g.movingTimeHours) : '',
-                elevationM: g.elevationM ? String(g.elevationM) : '',
-            },
-        }));
-        setEditing((e) => ({ ...e, [id]: true }));
-    };
-
-    const cancelEdit = (id) => {
-        setDrafts((d) => ({ ...d, [id]: null }));
-        setEditing((e) => ({ ...e, [id]: false }));
-    };
-
-    const applyEdit = (id) => {
-        const dr = drafts[id];
-        if (!dr) return;
-        const next = mergeVolumeGoals(goals);
-        next[id] = {
-            distanceKm: Math.max(0, Number(dr.distanceKm) || 0),
-            movingTimeHours: Math.max(0, Number(dr.movingTimeHours) || 0),
-            elevationM: Math.max(0, Number(dr.elevationM) || 0),
-        };
-        commitGoals(next);
-        setDrafts((d) => ({ ...d, [id]: null }));
-        setEditing((e) => ({ ...e, [id]: false }));
-    };
-
-    const bumpDraft = (id, field, delta) => {
-        setDrafts((d) => {
-            const cur = d[id];
-            if (!cur) return d;
-            const prev = Number(cur[field]) || 0;
-            const nextVal = Math.max(0, prev + delta);
-            const decimals = field === 'movingTimeHours' ? 1 : 0;
-            const str = decimals ? String(Math.round(nextVal * 10) / 10) : String(Math.round(nextVal));
-            return { ...d, [id]: { ...cur, [field]: str } };
-        });
-    };
 
     const sections = [
         { id: 'weekly', title: 'This week', subtitle: week.label, range: week, g: goals.weekly, s: sums.week },
@@ -121,39 +79,73 @@ const VolumeGoalsPanel = ({ chartData = [], userSettings, updateUserSettings, cl
                 {collapsed ? <ChevronDown className="w-5 h-5 text-cdmuted shrink-0" /> : <ChevronUp className="w-5 h-5 text-cdmuted shrink-0" />}
             </button>
 
-            {!cloudVolumeGoalsSynced && (
-                <p className="text-[11px] text-yellow-600 dark:text-yellow-400/95 bg-yellow-500/10 border border-yellow-500/25 rounded-lg px-3 py-2 mb-3">
-                    Sign in with Google (header) to sync these goals across your devices. While signed out, changes stay in this browser only.
-                </p>
-            )}
+            <p className="text-[11px] text-cdmuted leading-snug mt-2">
+                Yearly targets live in Settings → Performance &amp; Goals. Weekly and monthly bars are calculated automatically (÷52 and ÷12).
+                {onOpenSettings ? (
+                    <>
+                        {' '}
+                        <button
+                            type="button"
+                            onClick={onOpenSettings}
+                            className="text-cdaccent font-semibold hover:underline"
+                        >
+                            Open settings
+                        </button>
+                    </>
+                ) : null}
+            </p>
 
             {!collapsed && (
-                <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    {sections.map(({ id, title, subtitle, range, g, s }) => (
-                        <VolumeGoalPeriodCard
-                            key={id}
-                            title={title}
-                            subtitle={subtitle}
-                            range={range}
-                            g={g}
-                            s={s}
-                            nowRef={nowRef}
-                            isEd={editing[id]}
-                            dr={drafts[id]}
-                            onStartEdit={() => startEdit(id)}
-                            onCancelEdit={() => cancelEdit(id)}
-                            onApplyEdit={() => applyEdit(id)}
-                            onBumpDraft={(field, delta) => bumpDraft(id, field, delta)}
-                            onDraftChange={(field, value) => {
-                                setDrafts((d) => {
-                                    const cur = d[id];
-                                    if (!cur) return d;
-                                    return { ...d, [id]: { ...cur, [field]: value } };
-                                });
-                            }}
+                <>
+                    <div className="mt-4 rounded-lg border border-cdborder/70 bg-cdbg/30 p-3 space-y-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <label htmlFor="volume-goal-preview-scale" className="text-[10px] font-bold text-cdmuted uppercase tracking-wide">
+                                Goal preview scale
+                            </label>
+                            <div className="flex items-center gap-2">
+                                {previewActive ? (
+                                    <span className="text-[9px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400 bg-amber-500/15 px-2 py-0.5 rounded">
+                                        Preview only — resets on refresh
+                                    </span>
+                                ) : null}
+                                <span className="text-xs font-mono tabular-nums text-cdtext min-w-[3ch] text-right">{previewScalePct}%</span>
+                            </div>
+                        </div>
+                        <input
+                            id="volume-goal-preview-scale"
+                            type="range"
+                            min={PREVIEW_SCALE_MIN}
+                            max={PREVIEW_SCALE_MAX}
+                            step={PREVIEW_SCALE_STEP}
+                            value={previewScalePct}
+                            onChange={(e) => setPreviewScalePct(Number(e.target.value))}
+                            className="w-full accent-cdaccent"
+                            aria-valuemin={PREVIEW_SCALE_MIN}
+                            aria-valuemax={PREVIEW_SCALE_MAX}
+                            aria-valuenow={previewScalePct}
+                            aria-label="Temporary goal preview scale; does not change saved settings"
                         />
-                    ))}
-                </div>
+                        <div className="flex justify-between text-[9px] text-cdmuted font-mono tabular-nums">
+                            <span>{PREVIEW_SCALE_MIN}%</span>
+                            <span>100%</span>
+                            <span>{PREVIEW_SCALE_MAX}%</span>
+                        </div>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        {sections.map(({ id, title, subtitle, range, g, s }) => (
+                            <VolumeGoalPeriodCard
+                                key={id}
+                                title={title}
+                                subtitle={subtitle}
+                                range={range}
+                                g={g}
+                                s={s}
+                                nowRef={nowRef}
+                            />
+                        ))}
+                    </div>
+                </>
             )}
         </div>
     );
