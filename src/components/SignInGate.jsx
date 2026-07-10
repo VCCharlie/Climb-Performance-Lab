@@ -12,7 +12,7 @@ export default function SignInGate({ onSignIn, authBusy = false, authError = nul
     const handleRepair = async () => {
         if (repairBusy || authBusy) return;
         const confirmed = window.confirm(
-            'Clear cached app data and reset sign-in for this browser?\n\n'
+            'Clear cached app data (including full local storage if needed) and reset sign-in for this browser?\n\n'
             + 'Your cloud data is safe. This fixes sign-in when incognito works but this browser does not.',
         );
         if (!confirmed) return;

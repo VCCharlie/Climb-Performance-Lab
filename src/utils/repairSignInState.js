@@ -11,6 +11,7 @@ import {
     clearPendingStravaOAuthState,
 } from './stravaOAuthUrl.js';
 import { clearExplicitSignOutFlag } from './sessionData.js';
+import { repairLocalStorageQuota } from './safeStorage.js';
 
 async function deleteFirebaseAuthIndexedDb() {
     if (typeof indexedDB === 'undefined') return;
@@ -78,6 +79,12 @@ export async function repairSignInBrowserState() {
         } catch {
             /* ignore */
         }
+    }
+
+    try {
+        repairLocalStorageQuota();
+    } catch (err) {
+        console.warn('[repairSignIn] localStorage quota repair failed:', err);
     }
 
     await unregisterServiceWorkersAndCaches();
