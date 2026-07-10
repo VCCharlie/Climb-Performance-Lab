@@ -1,0 +1,205 @@
+import React from 'react';
+import { Loader2, AlertTriangle } from 'lucide-react';
+import ActivityLogView from './ActivityLogView';
+import ActivityLogFilterBar from './ActivityLogFilterBar';
+import ActivityLogSyncBanners from './ActivityLogSyncBanners';
+import FetchIntervalsPanel from './FetchIntervalsPanel';
+import QuickNav from './QuickNav';
+import { formatDateDDMMYYYY } from '../../utils/formatters';
+
+/**
+ * Activity Log tab shell: sync banners, filters, grouped nav, and table/cards (Bolt 3d-bis follow-up).
+ */
+export default function ActivityLogTabPanel({
+    intervalsSync,
+    stravaListProgress,
+    bulk,
+    onOpenImportTab,
+    filterBarProps,
+    isGroupedView,
+    isolateActivityId,
+    logDateRangeFilter,
+    expandAllGrouped,
+    collapseAllGrouped,
+    groupedActivities,
+    isYearExpanded,
+    toggleYear,
+    clearActivityLogFilters,
+    isolatedActivity,
+    rangeFilteredActivities,
+    activities,
+    processedActivities,
+    logTableActivities,
+    logTableGrouped,
+    sortConfig,
+    requestSort,
+    handleDeleteSingle,
+    setEditingActivity,
+    setDetailActivity,
+    isMonthExpanded,
+    toggleMonth,
+    onOpenProfilerFromActivity,
+    profilerClimbByActivityId,
+    profileFtp,
+    visibleColumns,
+}) {
+    return (
+        <div role="tabpanel" id="tabpanel-log" aria-labelledby="tab-log" className="p-4 flex-1 min-h-0 overflow-hidden flex flex-col">
+            <ActivityLogSyncBanners
+                syncStatus={intervalsSync.syncStatus}
+                syncErrorDetail={intervalsSync.syncErrorDetail}
+                isSyncing={intervalsSync.isSyncing}
+                syncProgress={intervalsSync.syncProgress}
+                stravaListProgress={stravaListProgress}
+                isStravaEnriching={bulk.isStravaEnriching}
+                stravaEnrichMsg={bulk.stravaEnrichMsg}
+                onDismissStravaEnrichMsg={() => bulk.setStravaEnrichMsg(null)}
+            />
+
+            <FetchIntervalsPanel
+                fetchIntervalsDates={intervalsSync.fetchIntervalsDates}
+                onFetchIntervalsDatesChange={intervalsSync.setFetchIntervalsDates}
+                onFetch={intervalsSync.handleFetchNewFromIntervals}
+                isFetching={intervalsSync.isFetchingNewIntervals}
+                isSyncing={intervalsSync.isSyncing}
+                stravaConnected={filterBarProps.stravaGetToken != null}
+                onOpenImportTab={onOpenImportTab}
+            />
+
+            <ActivityLogFilterBar {...filterBarProps} />
+
+            {isGroupedView && !isolateActivityId && !(logDateRangeFilter?.startYmd && logDateRangeFilter?.endYmd) && (
+                <div className="flex flex-col gap-2 shrink-0 mb-2 lg:mb-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={expandAllGrouped}
+                            className="text-[10px] font-bold px-2 py-1 rounded border border-cdborder text-cdmuted hover:text-cdaccent hover:border-cdaccent/50 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                        >
+                            Expand all
+                        </button>
+                        <button
+                            type="button"
+                            onClick={collapseAllGrouped}
+                            className="text-[10px] font-bold px-2 py-1 rounded border border-cdborder text-cdmuted hover:text-cdtext focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                        >
+                            Collapse all
+                        </button>
+                        <span className="text-[9px] text-cdmuted hidden sm:inline">
+                            Bulk select only includes visible rows — expand groups or use Expand all first.
+                        </span>
+                    </div>
+                    <div className="hidden lg:block">
+                        <QuickNav groupedActivities={groupedActivities} isYearExpanded={isYearExpanded} onToggleYear={toggleYear} />
+                    </div>
+                </div>
+            )}
+
+            <div className="flex-1 min-h-0 flex flex-col gap-2">
+                {isolateActivityId && (
+                    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-cdaccent/40 bg-cdaccent/10 px-3 py-2 text-sm text-cdtext">
+                        <span>
+                            Showing <strong className="text-cdtext">one activity</strong> linked from the Dashboard (Peak eFTP source).
+                        </span>
+                        {typeof clearActivityLogFilters === 'function' && (
+                            <button
+                                type="button"
+                                onClick={() => clearActivityLogFilters()}
+                                className="shrink-0 px-3 py-1.5 rounded-md border border-cdborder bg-cdsurface text-xs font-bold text-cdaccent hover:bg-cdborder/40"
+                            >
+                                Show full log
+                            </button>
+                        )}
+                    </div>
+                )}
+
+                {logDateRangeFilter?.startYmd && logDateRangeFilter?.endYmd && (
+                    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-blue-500/35 bg-blue-500/[0.08] px-3 py-2 text-sm text-cdtext">
+                        <span>
+                            Showing activities from{' '}
+                            <strong className="text-cdtext">
+                                {formatDateDDMMYYYY(`${logDateRangeFilter.startYmd}T12:00:00`)} –{' '}
+                                {formatDateDDMMYYYY(`${logDateRangeFilter.endYmd}T12:00:00`)}
+                            </strong>{' '}
+                            (from Dashboard Volume).
+                        </span>
+                        {typeof clearActivityLogFilters === 'function' && (
+                            <button
+                                type="button"
+                                onClick={() => clearActivityLogFilters()}
+                                className="shrink-0 px-3 py-1.5 rounded-md border border-cdborder bg-cdsurface text-xs font-bold text-cdaccent hover:bg-cdborder/40"
+                            >
+                                Show full log
+                            </button>
+                        )}
+                    </div>
+                )}
+
+                {!activities ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-cdmuted gap-4">
+                        <Loader2 className="animate-spin text-yellow-400" size={32} />
+                        <p>Loading Activities...</p>
+                    </div>
+                ) : isolateActivityId && !isolatedActivity ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-cdmuted gap-3 border border-dashed border-cdborder rounded-lg p-6">
+                        <AlertTriangle size={32} className="text-amber-500/90" />
+                        <p className="text-sm text-cdtext text-center">That activity is not in your log (it may have been removed).</p>
+                        {typeof clearActivityLogFilters === 'function' && (
+                            <button
+                                type="button"
+                                onClick={() => clearActivityLogFilters()}
+                                className="px-4 py-2 rounded-lg border border-cdborder bg-cdsurface text-sm font-bold text-cdaccent hover:bg-cdborder/30"
+                            >
+                                Show full log
+                            </button>
+                        )}
+                    </div>
+                ) : logDateRangeFilter?.startYmd && logDateRangeFilter?.endYmd && rangeFilteredActivities?.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-cdmuted gap-3 border border-dashed border-cdborder rounded-lg p-6">
+                        <AlertTriangle size={32} className="text-amber-500/90" />
+                        <p className="text-sm text-cdtext text-center">No activities in this date range in your log.</p>
+                        {typeof clearActivityLogFilters === 'function' && (
+                            <button
+                                type="button"
+                                onClick={() => clearActivityLogFilters()}
+                                className="px-4 py-2 rounded-lg border border-cdborder bg-cdsurface text-sm font-bold text-cdaccent hover:bg-cdborder/30"
+                            >
+                                Show full log
+                            </button>
+                        )}
+                    </div>
+                ) : !isolateActivityId && !(logDateRangeFilter?.startYmd && logDateRangeFilter?.endYmd) && processedActivities.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-cdmuted gap-2 border border-dashed border-cdborder rounded-lg">
+                        <AlertTriangle size={32} className="text-slate-600" />
+                        <p>No activities found. Start with an Import!</p>
+                    </div>
+                ) : (
+                    <div className="flex-1 min-h-0 flex flex-col">
+                        <ActivityLogView
+                            activities={logTableActivities}
+                            sortConfig={sortConfig}
+                            onSort={requestSort}
+                            onDelete={handleDeleteSingle}
+                            onEdit={setEditingActivity}
+                            onViewDetail={setDetailActivity}
+                            isGroupedView={logTableGrouped}
+                            isYearExpanded={isYearExpanded}
+                            onToggleYear={toggleYear}
+                            isMonthExpanded={isMonthExpanded}
+                            onToggleMonth={toggleMonth}
+                            showBulkSelect
+                            selectedActivityIds={bulk.bulkSelectedIds}
+                            onToggleSelectRow={bulk.toggleBulkSelectOne}
+                            allVisibleSelected={bulk.allVisibleSelected}
+                            onToggleSelectAllVisible={bulk.toggleSelectAllVisible}
+                            onOpenProfiler={onOpenProfilerFromActivity}
+                            profilerClimbByActivityId={profilerClimbByActivityId}
+                            profileFtp={profileFtp}
+                            visibleColumns={visibleColumns}
+                        />
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
