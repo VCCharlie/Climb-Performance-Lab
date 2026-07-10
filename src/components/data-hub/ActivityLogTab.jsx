@@ -8,9 +8,9 @@ import QuickNav from './QuickNav';
 import { formatDateDDMMYYYY } from '../../utils/formatters';
 
 /**
- * Activity Log tab shell: sync banners, filters, grouped nav, and table/cards (Bolt 3d-bis follow-up).
+ * Activity Log tab: sync banners, filters, grouped nav, and table/cards (Bolt fase 3e).
  */
-export default function ActivityLogTabPanel({
+export default function ActivityLogTab({
     intervalsSync,
     stravaListProgress,
     bulk,
