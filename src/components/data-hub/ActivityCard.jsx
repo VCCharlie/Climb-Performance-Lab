@@ -5,6 +5,7 @@ import {
 import { formatDateDDMMYYYY } from '../../utils';
 import { getActivityCardMetrics } from '../../utils/activityCardMetrics';
 import { cn } from '../ui/cn';
+import AnchoredDropdownPortal from '../ui/AnchoredDropdownPortal';
 import ActivityTypeIcon from './ActivityTypeIcon';
 
 const StravaIcon = () => (
@@ -56,12 +57,14 @@ const ActivityCard = React.memo(({
 }) => {
     const [menuOpen, setMenuOpen] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(false);
-    const menuRef = useRef(null);
+    const menuButtonRef = useRef(null);
 
     useEffect(() => {
         if (!menuOpen) return undefined;
         const onDoc = (e) => {
-            if (menuRef.current && !menuRef.current.contains(e.target)) {
+            const inButton = menuButtonRef.current?.contains(e.target);
+            const inMenu = e.target.closest('[data-anchored-dropdown]');
+            if (!inButton && !inMenu) {
                 setMenuOpen(false);
                 setConfirmDelete(false);
             }
@@ -142,8 +145,9 @@ const ActivityCard = React.memo(({
                     )}
                 </button>
 
-                <div className="relative shrink-0" ref={menuRef}>
+                <div className="relative shrink-0">
                     <button
+                        ref={menuButtonRef}
                         type="button"
                         onClick={() => setMenuOpen((v) => !v)}
                         className="p-2 rounded-md text-cdmuted hover:text-cdtext hover:bg-cdborder/40 cd-transition cd-focus-ring"
@@ -154,80 +158,81 @@ const ActivityCard = React.memo(({
                         <MoreVertical size={16} aria-hidden />
                     </button>
 
-                    {menuOpen && (
-                        <div
-                            role="menu"
-                            className="absolute right-0 top-full mt-1 z-20 min-w-[11rem] rounded-lg border border-cdborder bg-cdsurface shadow-xl overflow-hidden"
-                        >
-                            {confirmDelete ? (
-                                <div className="p-2 space-y-1">
-                                    <p className="text-xs text-cdmuted px-2 py-1">Delete this activity?</p>
-                                    <button
-                                        type="button"
-                                        role="menuitem"
-                                        className="w-full px-3 py-2 text-sm font-bold text-red-400 hover:bg-red-500/10 rounded cd-transition"
-                                        onClick={() => { onDelete?.(act.id); closeMenu(); }}
-                                    >
-                                        Confirm delete
-                                    </button>
-                                    <button
-                                        type="button"
-                                        role="menuitem"
-                                        className="w-full px-3 py-2 text-sm text-cdmuted hover:bg-cdborder/40 rounded cd-transition"
-                                        onClick={() => setConfirmDelete(false)}
-                                    >
-                                        Cancel
-                                    </button>
-                                </div>
-                            ) : (
-                                <>
+                    <AnchoredDropdownPortal
+                        open={menuOpen}
+                        anchorRef={menuButtonRef}
+                        onClose={closeMenu}
+                        minWidth={176}
+                        className="min-w-[11rem]"
+                    >
+                        {confirmDelete ? (
+                            <div className="p-2 space-y-1">
+                                <p className="text-xs text-cdmuted px-2 py-1">Delete this activity?</p>
+                                <button
+                                    type="button"
+                                    role="menuitem"
+                                    className="w-full px-3 py-2 text-sm font-bold text-red-400 hover:bg-red-500/10 rounded cd-transition"
+                                    onClick={() => { onDelete?.(act.id); closeMenu(); }}
+                                >
+                                    Confirm delete
+                                </button>
+                                <button
+                                    type="button"
+                                    role="menuitem"
+                                    className="w-full px-3 py-2 text-sm text-cdmuted hover:bg-cdborder/40 rounded cd-transition"
+                                    onClick={() => setConfirmDelete(false)}
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        ) : (
+                            <>
+                                <MenuItem
+                                    onClick={() => { onViewDetail?.(act); closeMenu(); }}
+                                >
+                                    <Eye size={14} aria-hidden /> Details
+                                </MenuItem>
+                                <MenuItem onClick={() => { onEdit?.(act); closeMenu(); }}>
+                                    <Edit2 size={14} aria-hidden /> Edit
+                                </MenuItem>
+                                {onOpenProfiler && (
                                     <MenuItem
-                                        onClick={() => { onViewDetail?.(act); closeMenu(); }}
+                                        onClick={() => {
+                                            onOpenProfiler(act, climbMatch);
+                                            closeMenu();
+                                        }}
                                     >
-                                        <Eye size={14} aria-hidden /> Details
+                                        <Route size={14} aria-hidden /> Climb Profiler
                                     </MenuItem>
-                                    <MenuItem onClick={() => { onEdit?.(act); closeMenu(); }}>
-                                        <Edit2 size={14} aria-hidden /> Edit
-                                    </MenuItem>
-                                    {onOpenProfiler && (
-                                        <MenuItem
-                                            onClick={() => {
-                                                onOpenProfiler(act, climbMatch);
-                                                closeMenu();
-                                            }}
-                                        >
-                                            <Route size={14} aria-hidden /> Climb Profiler
-                                        </MenuItem>
-                                    )}
-                                    {!String(act.id).startsWith('csv_') && (
-                                        <MenuItem
-                                            href={`https://intervals.icu/activities/${act.id}`}
-                                            external
-                                            onClick={closeMenu}
-                                        >
-                                            <ExternalLink size={14} aria-hidden /> Intervals.icu
-                                        </MenuItem>
-                                    )}
-                                    {act.strava_id && (
-                                        <MenuItem
-                                            href={`https://www.strava.com/activities/${act.strava_id}`}
-                                            external
-                                            onClick={closeMenu}
-                                        >
-                                            <StravaIcon /> Strava
-                                        </MenuItem>
-                                    )}
-                                    <div className="border-t border-cdborder/60" />
+                                )}
+                                {!String(act.id).startsWith('csv_') && (
                                     <MenuItem
-                                        onClick={() => setConfirmDelete(true)}
-                                        className="text-red-400"
+                                        href={`https://intervals.icu/activities/${act.id}`}
+                                        external
+                                        onClick={closeMenu}
                                     >
-                                        <Trash2 size={14} aria-hidden /> Delete
+                                        <ExternalLink size={14} aria-hidden /> Intervals.icu
                                     </MenuItem>
-                                </>
-                            )}
-                        </div>
-                    )}
+                                )}
+                                {act.strava_id && (
+                                    <MenuItem
+                                        href={`https://www.strava.com/activities/${act.strava_id}`}
+                                        external
+                                        onClick={closeMenu}
+                                    >
+                                        <StravaIcon /> Strava
+                                    </MenuItem>
+                                )}
+                                <div className="border-t border-cdborder/60" />
+                                <MenuItem
+                                    onClick={() => setConfirmDelete(true)}
+                                    className="text-red-400"
+                                >
+                                    <Trash2 size={14} aria-hidden /> Delete
+                                </MenuItem>
+                            </>
+                        )}
+                    </AnchoredDropdownPortal>
                 </div>
             </div>
         </article>
