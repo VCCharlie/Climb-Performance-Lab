@@ -298,6 +298,26 @@ export function calendarProgressLabel(range, ref = new Date()) {
 }
 
 /**
+ * Goal line height for Overview bar charts (week/month/year toggle).
+ * TSS has no volume goal — returns 0.
+ * @param {'distance'|'tss'|'elevation'|'moving_time'} metric
+ * @param {'week'|'month'|'year'} groupBy
+ * @param {unknown} userSettings
+ * @returns {number}
+ */
+export function barChartGoalLineValue(metric, groupBy, userSettings) {
+    if (metric === 'tss') return 0;
+    const goals = deriveVolumeGoalsFromYearlyGoals(userSettings?.goals);
+    const period = groupBy === 'week' ? 'weekly' : groupBy === 'month' ? 'monthly' : 'yearly';
+    const g = goals[period];
+    if (!g) return 0;
+    if (metric === 'distance') return g.distanceKm > 0 ? g.distanceKm : 0;
+    if (metric === 'moving_time') return g.movingTimeHours > 0 ? g.movingTimeHours : 0;
+    if (metric === 'elevation') return g.elevationM > 0 ? g.elevationM : 0;
+    return 0;
+}
+
+/**
  * Pace vs linear calendar expectation (Strava-style "on track").
  * @param {number} current
  * @param {number} target

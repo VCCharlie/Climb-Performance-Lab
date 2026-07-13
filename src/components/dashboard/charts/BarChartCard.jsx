@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-    ResponsiveContainer
+    ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 import { ChartTooltip } from '../../ui';
 import { getChartTheme, chartCardClass } from '../../../utils/chartTheme';
 import { seriesFromBarChartIndex } from '../../../utils/dashboardBarChartBuckets';
+import { barChartGoalLineValue } from '../../../utils/volumeGoals';
 import { formatNlNumber } from '../../../utils/formatters';
 
 /**
@@ -18,13 +19,18 @@ import { formatNlNumber } from '../../../utils/formatters';
  * @param {string}   unit     - Unit suffix shown in tooltip & axis
  * @param {string}   color    - Hex / CSS color for the bars
  */
-const BarChartCard = ({ barChartIndex, metric, title, unit, color }) => {
+const BarChartCard = ({ barChartIndex, metric, title, unit, color, userSettings }) => {
     const [groupBy, setGroupBy] = useState('week');
     const [rideType, setRideType] = useState('all');
 
     const chartData = useMemo(
         () => seriesFromBarChartIndex(barChartIndex, groupBy, rideType, metric),
         [barChartIndex, groupBy, rideType, metric],
+    );
+
+    const goalLineValue = useMemo(
+        () => barChartGoalLineValue(metric, groupBy, userSettings),
+        [metric, groupBy, userSettings],
     );
 
     const isTime = metric === 'moving_time';
@@ -93,6 +99,15 @@ const BarChartCard = ({ barChartIndex, metric, title, unit, color }) => {
                                 )}
                                 cursor={theme.cursor}
                             />
+                            {goalLineValue > 0 ? (
+                                <ReferenceLine
+                                    y={goalLineValue}
+                                    stroke={theme.axis}
+                                    strokeDasharray="4 4"
+                                    strokeOpacity={0.55}
+                                    ifOverflow="extendDomain"
+                                />
+                            ) : null}
                             <Bar dataKey="value" name={title} fill={color} radius={[3, 3, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>

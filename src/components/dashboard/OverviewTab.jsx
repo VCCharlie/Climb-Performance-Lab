@@ -56,6 +56,7 @@ const OverviewTab = ({
                     title="Distance"
                     unit="km"
                     color="rgba(59,130,246,0.75)"
+                    userSettings={userSettings}
                 />
                 <BarChartCard
                     barChartIndex={barChartIndex}
@@ -63,6 +64,7 @@ const OverviewTab = ({
                     title="Time"
                     unit="hour"
                     color="rgba(168,85,247,0.75)"
+                    userSettings={userSettings}
                 />
                 <BarChartCard
                     barChartIndex={barChartIndex}
@@ -70,6 +72,7 @@ const OverviewTab = ({
                     title="TSS"
                     unit="TSS"
                     color="rgba(249,115,22,0.75)"
+                    userSettings={userSettings}
                 />
                 <BarChartCard
                     barChartIndex={barChartIndex}
@@ -77,6 +80,7 @@ const OverviewTab = ({
                     title="Elevation"
                     unit="m"
                     color="rgba(34,197,94,0.75)"
+                    userSettings={userSettings}
                 />
             </div>
 
