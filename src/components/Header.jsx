@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Activity, Settings, LogIn, LogOut, User, Cloud, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Activity, Settings, LogIn, User, Cloud, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { safeLocalStorageSet } from '../utils/safeStorage.js';
 import { formatDateTimeNl } from '../utils/formatters';
 import { logout } from '../firebase';
 import { runGoogleSignIn, googleSignInErrorMessage } from '../utils/googleSignIn';
 import { useActivitiesSync } from '../hooks/useActivities';
 import { IconButton, cn } from './ui';
+import UserAccountMenu from './shell/UserAccountMenu';
 
 function initialsFromUser(user) {
     const n = user?.displayName?.trim() || user?.email?.trim() || '';
@@ -33,11 +34,13 @@ function formatUpdatedAt(dateToDisplay) {
     return formatDateTimeNl(d);
 }
 
-const Header = ({ userSettings, onOpenSettings, user }) => {
+const Header = ({ userSettings, onOpenSettings, user, theme, setTheme }) => {
     const { syncStatus, lastActivityDate } = useActivitiesSync();
     const [lastSyncTime, setLastSyncTime] = useState(() => localStorage.getItem('app_last_sync_time'));
     const [authBusy, setAuthBusy] = useState(false);
     const [avatarImgFailed, setAvatarImgFailed] = useState(false);
+    const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+    const accountButtonRef = useRef(null);
 
     useEffect(() => {
         if (syncStatus === 'synced' || syncStatus === 'success' || syncStatus === 'done') {
@@ -51,21 +54,29 @@ const Header = ({ userSettings, onOpenSettings, user }) => {
         setAvatarImgFailed(false);
     }, [user?.uid, user?.photoURL]);
 
-    const handleAuth = useCallback(async () => {
+    const handleSignIn = useCallback(async () => {
         if (authBusy) return;
         setAuthBusy(true);
         try {
-            if (user) {
-                await logout();
-            } else {
-                await runGoogleSignIn();
-            }
+            await runGoogleSignIn();
         } catch (err) {
             window.alert(googleSignInErrorMessage(err));
         } finally {
             setAuthBusy(false);
         }
-    }, [user, authBusy]);
+    }, [authBusy]);
+
+    const handleSignOut = useCallback(async () => {
+        if (authBusy) return;
+        setAuthBusy(true);
+        try {
+            await logout();
+        } catch (err) {
+            window.alert(err?.message || 'Sign-out failed.');
+        } finally {
+            setAuthBusy(false);
+        }
+    }, [authBusy]);
 
     const displayWeight = userSettings.privacyMode ? '***' : `${userSettings.weight} kg`;
     const displayFtp = userSettings.privacyMode ? '***' : `${userSettings.ftp} W`;
@@ -134,43 +145,59 @@ const Header = ({ userSettings, onOpenSettings, user }) => {
                         </div>
                     )}
 
-                    <IconButton
-                        variant="text"
-                        onClick={handleAuth}
-                        disabled={authBusy}
-                        className={cn('!w-auto !h-10 !rounded-cdmd px-1.5 gap-2', user && 'pr-2')}
-                        title={user ? `Logged in as ${user.displayName || user.email || 'account'}` : 'Sign in with Google'}
-                        aria-label={user ? `Sign out ${user.displayName || user.email || 'account'}` : 'Sign in with Google'}
-                    >
-                        {user ? (
-                            <>
-                                {showGooglePhoto ? (
-                                    <img
-                                        src={user.photoURL}
-                                        alt=""
-                                        referrerPolicy="no-referrer"
-                                        className="w-8 h-8 rounded-full border border-cdborder object-cover bg-cdsurface"
-                                        onError={() => setAvatarImgFailed(true)}
-                                    />
-                                ) : (
-                                    <div
-                                        className="w-8 h-8 rounded-full border border-cdborder bg-cdsurface flex items-center justify-center text-[11px] font-bold text-cdtext"
-                                        aria-hidden
-                                    >
-                                        {initialsFromUser(user)}
+                    <div className="relative">
+                        <IconButton
+                            ref={accountButtonRef}
+                            variant="text"
+                            onClick={() => setAccountMenuOpen((open) => !open)}
+                            disabled={authBusy}
+                            className={cn('!w-auto !h-10 !rounded-cdmd px-1.5 gap-2', user && 'pr-2')}
+                            title={user ? `Account: ${user.displayName || user.email || 'signed in'}` : 'Account menu'}
+                            aria-label={user ? `Open account menu for ${user.displayName || user.email || 'account'}` : 'Open account menu'}
+                            aria-expanded={accountMenuOpen}
+                            aria-haspopup="menu"
+                        >
+                            {user ? (
+                                <>
+                                    {showGooglePhoto ? (
+                                        <img
+                                            src={user.photoURL}
+                                            alt=""
+                                            referrerPolicy="no-referrer"
+                                            className="w-8 h-8 rounded-full border border-cdborder object-cover bg-cdsurface"
+                                            onError={() => setAvatarImgFailed(true)}
+                                        />
+                                    ) : (
+                                        <div
+                                            className="w-8 h-8 rounded-full border border-cdborder bg-cdsurface flex items-center justify-center text-[11px] font-bold text-cdtext"
+                                            aria-hidden
+                                        >
+                                            {initialsFromUser(user)}
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <>
+                                    <div className="w-8 h-8 rounded-full bg-cdsurfacelow flex items-center justify-center text-cdmuted" aria-hidden>
+                                        <User size={16} />
                                     </div>
-                                )}
-                                <LogOut size={16} className="hidden sm:block text-cdmuted" aria-hidden />
-                            </>
-                        ) : (
-                            <>
-                                <div className="w-8 h-8 rounded-full bg-cdsurfacelow flex items-center justify-center text-cdmuted" aria-hidden>
-                                    <User size={16} />
-                                </div>
-                                <LogIn size={16} className="hidden sm:block text-cdmuted" aria-hidden />
-                            </>
-                        )}
-                    </IconButton>
+                                    <LogIn size={16} className="hidden sm:block text-cdmuted" aria-hidden />
+                                </>
+                            )}
+                        </IconButton>
+
+                        <UserAccountMenu
+                            open={accountMenuOpen}
+                            anchorRef={accountButtonRef}
+                            onClose={() => setAccountMenuOpen(false)}
+                            user={user}
+                            authBusy={authBusy}
+                            onSignIn={handleSignIn}
+                            onSignOut={handleSignOut}
+                            theme={theme}
+                            setTheme={setTheme}
+                        />
+                    </div>
 
                     {showAppChrome && (
                         <IconButton

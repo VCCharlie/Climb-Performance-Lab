@@ -15,6 +15,9 @@ import { clearSensitiveLocalStorage } from './sessionData.js';
 /** @type {string|undefined} */
 const BUILD_ID = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : undefined;
 
+/** Human-readable build label for UI (header account menu, etc.). */
+export const CURRENT_APP_VERSION = BUILD_ID || '';
+
 export const RECOVERY_ATTEMPT_KEY = 'cpl.deploy.recoveryAttempted.v1';
 export const STORED_BUILD_ID_KEY = 'cpl.app.buildId.v1';
 

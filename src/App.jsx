@@ -609,6 +609,8 @@ const App = () => {
                         userSettings={userSettings}
                         onOpenSettings={handleOpenSettings}
                         user={user}
+                        theme={theme}
+                        setTheme={setTheme}
                     />
 
                     <main className={`mx-auto p-3 space-y-4 transition-all duration-300 ${activeTab === 'activities' && user ? 'max-w-[95%]' : 'max-w-7xl'}`}>

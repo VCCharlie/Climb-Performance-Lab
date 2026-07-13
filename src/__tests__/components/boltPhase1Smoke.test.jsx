@@ -74,6 +74,8 @@ describe('Bolt Phase 1 smoke renders', () => {
             userSettings={userSettings}
             onOpenSettings={() => {}}
             user={null}
+            theme="light"
+            setTheme={() => {}}
           />
         </ActivitiesProvider>,
       ),

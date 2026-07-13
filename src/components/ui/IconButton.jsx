@@ -17,16 +17,17 @@ const SIZE_CLASSES = {
 /**
  * Circular icon button — settings, auth, close actions in the shell.
  */
-export default function IconButton({
+const IconButton = React.forwardRef(function IconButton({
   variant = 'tonal',
   size = 'md',
   className,
   children,
   type = 'button',
   ...rest
-}) {
+}, ref) {
   return (
     <button
+      ref={ref}
       type={type}
       className={cn(
         'inline-flex shrink-0 items-center justify-center rounded-full',
@@ -41,4 +42,6 @@ export default function IconButton({
       {children}
     </button>
   );
-}
+});
+
+export default IconButton;
