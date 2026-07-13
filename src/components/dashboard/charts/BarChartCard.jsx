@@ -93,7 +93,7 @@ const BarChartCard = ({ barChartIndex, metric, title, unit, color, userSettings 
                                 content={(props) => (
                                     <ChartTooltip
                                         {...props}
-                                        hideLabel
+                                        label={props.payload?.[0]?.payload?.periodLabel ?? props.label}
                                         formatter={(val) => [`${formatNlNumber(val)} ${isTime ? 'h' : unit}`, title]}
                                     />
                                 )}

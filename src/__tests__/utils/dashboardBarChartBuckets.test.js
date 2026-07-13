@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
     buildOverviewBarChartIndex,
     seriesFromBarChartIndex,
+    formatBarChartPeriodLabel,
 } from '../../utils/dashboardBarChartBuckets';
 
 describe('buildOverviewBarChartIndex', () => {
@@ -25,6 +26,21 @@ describe('seriesFromBarChartIndex', () => {
         const series = seriesFromBarChartIndex(index, 'month', 'all', 'distance');
         expect(series).toHaveLength(1);
         expect(series[0].label).toBe('01-03-2026');
+        expect(series[0].periodLabel).toBe('March 2026');
         expect(series[0].value).toBe(40);
+    });
+});
+
+describe('formatBarChartPeriodLabel', () => {
+    it('formats month bucket as month name + year', () => {
+        expect(formatBarChartPeriodLabel('month', '2026-07')).toBe('July 2026');
+    });
+
+    it('formats week bucket as Monday–Sunday range', () => {
+        expect(formatBarChartPeriodLabel('week', '2026-01-05')).toBe('Week 5 Jan – 11 Jan 2026');
+    });
+
+    it('formats year bucket as year string', () => {
+        expect(formatBarChartPeriodLabel('year', '2025')).toBe('2025');
     });
 });

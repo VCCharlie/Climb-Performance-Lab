@@ -87,12 +87,42 @@ function bucketLabel(groupBy, key) {
     return key;
 }
 
+const LONG_MONTHS = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+];
+const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/**
+ * Human-readable period for bar-chart tooltips (richer than the compressed X-axis tick).
+ * @param {'week'|'month'|'year'} groupBy
+ * @param {string} key bucket key (Monday ymd, YYYY-MM, or YYYY)
+ */
+export function formatBarChartPeriodLabel(groupBy, key) {
+    if (!key) return '';
+    if (groupBy === 'year') return String(key);
+    if (groupBy === 'month') {
+        const [y, m] = key.split('-').map((x) => parseInt(x, 10));
+        if (Number.isNaN(y) || Number.isNaN(m) || m < 1 || m > 12) return key;
+        return `${LONG_MONTHS[m - 1]} ${y}`;
+    }
+    const parts = key.split('-').map((x) => parseInt(x, 10));
+    if (parts.length < 3 || parts.some((n) => Number.isNaN(n))) return key;
+    const [y, mo, d] = parts;
+    const monday = new Date(y, mo - 1, d);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    const monPart = `${monday.getDate()} ${SHORT_MONTHS[monday.getMonth()]}`;
+    const sunPart = `${sunday.getDate()} ${SHORT_MONTHS[sunday.getMonth()]} ${sunday.getFullYear()}`;
+    return `Week ${monPart} – ${sunPart}`;
+}
+
 /**
  * @param {ReturnType<typeof buildOverviewBarChartIndex>} index
  * @param {'week'|'month'|'year'} groupBy
  * @param {'all'|'indoor'|'outdoor'} rideType
  * @param {'distance'|'tss'|'elevation'|'moving_time'} metric
- * @returns {{ label: string, value: number }[]}
+ * @returns {{ label: string, periodLabel: string, value: number }[]}
  */
 export function seriesFromBarChartIndex(index, groupBy, rideType, metric) {
     const map = index?.[groupBy]?.[rideType];
@@ -109,6 +139,10 @@ export function seriesFromBarChartIndex(index, groupBy, rideType, metric) {
             } else {
                 value = Math.round(value);
             }
-            return { label: bucketLabel(groupBy, key), value };
+            return {
+                label: bucketLabel(groupBy, key),
+                periodLabel: formatBarChartPeriodLabel(groupBy, key),
+                value,
+            };
         });
 }
