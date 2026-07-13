@@ -15,6 +15,7 @@ import {
     calendarElapsedRatio,
     calendarProgressLabel,
     getVolumeScheduleStatus,
+    barChartGoalLineValue,
 } from '../../utils/volumeGoals.js';
 
 describe('volumeGoals', () => {
@@ -157,5 +158,19 @@ describe('volumeGoals', () => {
         expect(st.status).not.toBe('no_target');
         expect(st.expectedCurrent).toBeGreaterThan(500);
         expect(st.expectedCurrent).toBeLessThan(700);
+    });
+
+    it('barChartGoalLineValue maps metric and groupBy to derived goals', () => {
+        const settings = {
+            goals: { yearlyKm: 5200, yearlyMovingTimeHours: 520, yearlyElevationM: 52000 },
+        };
+        expect(barChartGoalLineValue('distance', 'week', settings)).toBe(100);
+        expect(barChartGoalLineValue('moving_time', 'month', settings)).toBeCloseTo(43.33, 2);
+        expect(barChartGoalLineValue('elevation', 'year', settings)).toBe(52000);
+        expect(barChartGoalLineValue('tss', 'week', settings)).toBe(0);
+    });
+
+    it('barChartGoalLineValue returns 0 when yearly target is unset', () => {
+        expect(barChartGoalLineValue('distance', 'week', { goals: {} })).toBe(0);
     });
 });
