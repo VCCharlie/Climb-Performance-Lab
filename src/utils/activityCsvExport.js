@@ -1,8 +1,10 @@
 /**
- * Build a simple CSV from activity objects (Intervals-style columns).
+ * Export selected activities to CSV or Excel (.xlsx).
  */
 
 import { ACTIVITY_COLUMNS } from '../config';
+
+const UTF8_BOM = '\uFEFF';
 
 function csvEscape(val) {
     if (val === null || val === undefined) return '';
@@ -11,18 +13,98 @@ function csvEscape(val) {
     return s;
 }
 
+/** @returns {{ key: string, label: string }[]} */
+export function getActivityExportColumns() {
+    return ACTIVITY_COLUMNS
+        .filter((c) => !c.hideInTable && !c.omitFromExport)
+        .map((c) => ({ key: c.key, label: c.label }));
+}
+
+/**
+ * @param {unknown} value
+ * @param {string} key
+ */
+export function formatActivityExportCell(value, key) {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'object') return '';
+    if (key === 'strava_kom_summary') return '';
+    return value;
+}
+
+/**
+ * @param {object[]} activities
+ * @returns {string[][]}
+ */
+export function activitiesToExportRows(activities) {
+    const columns = getActivityExportColumns();
+    const header = columns.map((c) => c.label);
+    const rows = (activities || []).map((activity) =>
+        columns.map((col) => formatActivityExportCell(activity[col.key], col.key)),
+    );
+    return [header, ...rows];
+}
+
 /**
  * @param {object[]} activities
  * @returns {string}
  */
 export function activitiesToCsv(activities) {
-    if (!activities?.length) return '';
-    const keys = ACTIVITY_COLUMNS
-        .filter((c) => !c.hideInTable && !c.omitFromExport)
-        .map((c) => c.key);
-    const header = keys.join(',');
-    const rows = activities.map((a) =>
-        keys.map((k) => csvEscape(a[k])).join(',')
-    );
-    return [header, ...rows].join('\r\n');
+    const rows = activitiesToExportRows(activities);
+    if (rows.length <= 1 && !(activities?.length)) return '';
+    return rows.map((row) => row.map(csvEscape).join(',')).join('\r\n');
+}
+
+/**
+ * @param {object[]} activities
+ * @returns {Blob}
+ */
+export function activitiesToCsvBlob(activities) {
+    const csv = activitiesToCsv(activities);
+    return new Blob([UTF8_BOM + csv], { type: 'text/csv;charset=utf-8;' });
+}
+
+function exportFilename(ext) {
+    return `activities-export-${new Date().toISOString().slice(0, 10)}.${ext}`;
+}
+
+function triggerDownload(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    URL.revokeObjectURL(url);
+}
+
+/**
+ * @param {object[]} activities
+ */
+export function downloadActivitiesCsv(activities) {
+    if (!activities?.length) return;
+    triggerDownload(activitiesToCsvBlob(activities), exportFilename('csv'));
+}
+
+/**
+ * @param {object[]} activities
+ * @returns {Promise<void>}
+ */
+export async function downloadActivitiesXlsx(activities) {
+    if (!activities?.length) return;
+    const XLSX = await import('xlsx');
+    const rows = activitiesToExportRows(activities);
+    const [header, ...dataRows] = rows;
+    const sheetRows = [
+        header,
+        ...dataRows.map((row) => {
+            const record = {};
+            header.forEach((label, index) => {
+                record[label] = row[index];
+            });
+            return record;
+        }),
+    ];
+    const worksheet = XLSX.utils.json_to_sheet(sheetRows, { skipHeader: true });
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Activities');
+    XLSX.writeFile(workbook, exportFilename('xlsx'));
 }

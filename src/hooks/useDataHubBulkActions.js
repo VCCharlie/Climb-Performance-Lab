@@ -3,7 +3,7 @@ import { doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { runInBatches } from '../utils';
 import { protectEnrichedFieldsOnMerge } from '../utils/firestoreActivityMerge';
-import { activitiesToCsv } from '../utils/activityCsvExport';
+import { downloadActivitiesCsv, downloadActivitiesXlsx } from '../utils/activityCsvExport';
 import {
     mergeActivitiesIntervalsPrimary,
     isStravaOnlyActivityId,
@@ -32,7 +32,7 @@ export function useDataHubBulkActions({
     const [showBulkEditModal, setShowBulkEditModal] = useState(false);
     const [isBulkSaving, setIsBulkSaving] = useState(false);
     const [isStravaEnriching, setIsStravaEnriching] = useState(false);
-    const [stravaEnrichMsg, setStravaEnrichMsg] = useState(null);
+    const [isExportingXlsx, setIsExportingXlsx] = useState(false);
 
     const allVisibleSelected = useMemo(
         () => visibleActivityIdsFlat.length > 0
@@ -72,14 +72,20 @@ export function useDataHubBulkActions({
 
     const exportBulkCsv = useCallback(() => {
         if (selectedActivitiesForBulk.length === 0) return;
-        const csv = activitiesToCsv(selectedActivitiesForBulk);
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `activities-export-${new Date().toISOString().slice(0, 10)}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
+        downloadActivitiesCsv(selectedActivitiesForBulk);
+    }, [selectedActivitiesForBulk]);
+
+    const exportBulkXlsx = useCallback(async () => {
+        if (selectedActivitiesForBulk.length === 0) return;
+        setIsExportingXlsx(true);
+        try {
+            await downloadActivitiesXlsx(selectedActivitiesForBulk);
+        } catch (e) {
+            console.error('[Activity export]', e);
+            alert(`Could not export Excel file: ${e.message || e}`);
+        } finally {
+            setIsExportingXlsx(false);
+        }
     }, [selectedActivitiesForBulk]);
 
     const confirmBulkDeleteSelected = useCallback(async () => {
@@ -337,6 +343,8 @@ export function useDataHubBulkActions({
         toggleSelectAllVisible,
         selectedActivitiesForBulk,
         exportBulkCsv,
+        exportBulkXlsx,
+        isExportingXlsx,
         confirmBulkDeleteSelected,
         mergePairPreview,
         showMergeModal,
