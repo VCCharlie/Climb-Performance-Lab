@@ -1,6 +1,7 @@
 import React from 'react';
-import { Edit2, Download, Trash2, X, Loader2, Link2 } from 'lucide-react';
+import { Edit2, Trash2, X, Loader2, Link2 } from 'lucide-react';
 import { formatNlNumber } from '../../utils/formatters';
+import ActivityLogExportButtons from './ActivityLogExportButtons';
 
 /**
  * Sticky bulk-action bar on mobile when activities are selected.
@@ -8,7 +9,9 @@ import { formatNlNumber } from '../../utils/formatters';
 const ActivityLogBulkBar = ({
     count,
     onBulkEdit,
-    onExport,
+    onExportCsv,
+    onExportXlsx,
+    isExportingXlsx = false,
     onClearSelection,
     onDelete,
     onStravaEnrich,
@@ -52,15 +55,13 @@ const ActivityLogBulkBar = ({
                         {isBulkSaving ? <Loader2 size={13} className="animate-spin" aria-hidden /> : <Edit2 size={13} aria-hidden />}
                         Edit
                     </button>
-                    <button
-                        type="button"
-                        onClick={onExport}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-cdborder text-cdtext text-[11px] font-bold cd-focus-ring"
-                        title="Export selected to CSV"
-                    >
-                        <Download size={13} aria-hidden />
-                        CSV
-                    </button>
+                    <ActivityLogExportButtons
+                        compact
+                        disabled={false}
+                        onExportCsv={onExportCsv}
+                        onExportXlsx={onExportXlsx}
+                        isExportingXlsx={isExportingXlsx}
+                    />
                     <button
                         type="button"
                         onClick={onDelete}

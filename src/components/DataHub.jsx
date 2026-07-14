@@ -338,7 +338,9 @@ const DataHub = ({
                         setEditingActivity(null);
                         bulk.setShowBulkEditModal(true);
                     }}
-                    onExport={bulk.exportBulkCsv}
+                    onExportCsv={bulk.exportBulkCsv}
+                    onExportXlsx={bulk.exportBulkXlsx}
+                    isExportingXlsx={bulk.isExportingXlsx}
                     onClearSelection={() => bulk.setBulkSelectedIds(new Set())}
                     onDelete={bulk.confirmBulkDeleteSelected}
                     isDeleting={isDeleting}

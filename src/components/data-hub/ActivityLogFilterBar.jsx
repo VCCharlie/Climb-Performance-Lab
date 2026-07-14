@@ -1,9 +1,10 @@
 import React from 'react';
 import {
     Search, Loader2, Trash, Split, RefreshCw, Zap, ChevronDown, ChevronRight,
-    Link2, Download, GitMerge, Edit2,
+    Link2, GitMerge, Edit2,
 } from 'lucide-react';
 import ActivityColumnPicker from './ActivityColumnPicker';
+import ActivityLogExportButtons from './ActivityLogExportButtons';
 import AnchoredDropdownPortal from '../ui/AnchoredDropdownPortal';
 import { formatNlNumber } from '../../utils/formatters';
 
@@ -101,6 +102,8 @@ const ActivityLogFilterBar = ({
     // Bulk actions
     onBulkEdit,
     onExportCsv,
+    onExportXlsx,
+    isExportingXlsx = false,
     onMarkRecovery,
     onStravaEnrich,
     onMergePair,
@@ -502,14 +505,12 @@ const ActivityLogFilterBar = ({
                     {isBulkSaving ? <Loader2 size={12} className="animate-spin" aria-hidden="true" /> : <Edit2 size={12} aria-hidden="true" />}
                     Bulk edit
                 </button>
-                <button
-                    type="button"
-                    onClick={onExportCsv}
+                <ActivityLogExportButtons
                     disabled={bulkSelectedCount === 0}
-                    className="inline-flex items-center gap-1 px-2 py-1 rounded border border-cdborder text-cdtext hover:border-green-500/50 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
-                >
-                    <Download size={12} aria-hidden="true" /> Export CSV
-                </button>
+                    onExportCsv={onExportCsv}
+                    onExportXlsx={onExportXlsx}
+                    isExportingXlsx={isExportingXlsx}
+                />
                 <button
                     type="button"
                     onClick={onMarkRecovery}

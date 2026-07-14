@@ -159,6 +159,8 @@ export function useDataHubFilterBar({
             bulk.setShowBulkEditModal(true);
         },
         onExportCsv: bulk.exportBulkCsv,
+        onExportXlsx: bulk.exportBulkXlsx,
+        isExportingXlsx: bulk.isExportingXlsx,
         onMarkRecovery: bulk.markBulkRecovery,
         onStravaEnrich: () => bulk.runStravaEnrichSelected(bulk.selectedActivitiesForBulk),
         onMergePair: bulk.openMergeModal,
