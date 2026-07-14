@@ -47,6 +47,7 @@ export function useDataHubFilterBar({
     filterKjMin, setFilterKjMin,
     filterKjMax, setFilterKjMax,
     setEditingActivity,
+    recoveryTss,
 }) {
     const [showUtilMenu, setShowUtilMenu] = useState(false);
     const utilMenuRef = useRef(null);
@@ -162,6 +163,7 @@ export function useDataHubFilterBar({
         onExportXlsx: bulk.exportBulkXlsx,
         isExportingXlsx: bulk.isExportingXlsx,
         onMarkRecovery: bulk.markBulkRecovery,
+        recoveryTss,
         onStravaEnrich: () => bulk.runStravaEnrichSelected(bulk.selectedActivitiesForBulk),
         onMergePair: bulk.openMergeModal,
         onDeleteSelected: bulk.confirmBulkDeleteSelected,

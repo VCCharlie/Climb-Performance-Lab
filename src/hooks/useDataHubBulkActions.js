@@ -13,6 +13,7 @@ import {
 import { enrichActivityGearFromStrava } from '../utils/stravaGearEnrich';
 import { enrichSelectedActivitiesFromStrava } from '../utils/stravaSelectedEnrich';
 import { formatNlNumber } from '../utils/formatters';
+import { buildMarkRecoveryConfirmMessage, resolveRecoveryTss } from '../utils/recoveryTss';
 
 /**
  * Bulk selection and batch operations for the Activity Log (edit, export, delete, merge, Strava enrich).
@@ -24,6 +25,7 @@ export function useDataHubBulkActions({
     stravaGetToken,
     visibleActivityIdsFlat,
     setIsDeleting,
+    recoveryTss,
 }) {
     const [bulkSelectedIds, setBulkSelectedIds] = useState(() => new Set());
     const [showMergeModal, setShowMergeModal] = useState(false);
@@ -260,26 +262,28 @@ export function useDataHubBulkActions({
 
     const markBulkRecovery = useCallback(async () => {
         if (selectedActivitiesForBulk.length === 0) return;
-        const LOW_TSS = 35;
+        const tss = resolveRecoveryTss({ recoveryTss });
+        const n = selectedActivitiesForBulk.length;
+        if (!window.confirm(buildMarkRecoveryConfirmMessage(n, tss))) return;
         try {
             if (db) {
                 await Promise.all(
                     selectedActivitiesForBulk.map((act) =>
-                        setDoc(doc(db, 'activities', String(act.id)), { load: LOW_TSS }, { merge: true })
+                        setDoc(doc(db, 'activities', String(act.id)), { load: tss }, { merge: true })
                     )
                 );
             }
             onImport(
                 selectedActivitiesForBulk.map((a) => ({
                     ...a,
-                    load: LOW_TSS,
+                    load: tss,
                 }))
             );
             setBulkSelectedIds(new Set());
         } catch (e) {
             alert('Could not update activities: ' + e.message);
         }
-    }, [selectedActivitiesForBulk, onImport]);
+    }, [selectedActivitiesForBulk, onImport, recoveryTss]);
 
     const handleBulkApplyPatch = useCallback(async (patch) => {
         const list = selectedActivitiesForBulk;

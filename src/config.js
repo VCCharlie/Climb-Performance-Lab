@@ -5,6 +5,9 @@
 
 export const APP_VERSION = "v0.9.2"; // <--- PAS DIT AAN BIJ ELKE UPDATE
 
+/** Default TSS for Activity Log → Mark recovery bulk action (overridable in Settings). */
+export const DEFAULT_RECOVERY_TSS = 35;
+
 // 1. Kolomdefinities voor Activity Log & Import Preview
 // Hiermee garandeer je dat beide tabellen exact dezelfde indeling hebben.
 export const ACTIVITY_COLUMNS = [
