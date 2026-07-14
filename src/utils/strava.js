@@ -43,6 +43,18 @@ export function normalizeStravaActivityId(stravaId) {
     return fromExt || (digits || null);
 }
 
+/** @param {string | number | null | undefined} stravaId */
+export function stravaActivityUrl(stravaId) {
+    const id = normalizeStravaActivityId(stravaId);
+    return id ? `https://www.strava.com/activities/${id}` : null;
+}
+
+/** @param {string | number | null | undefined} stravaId */
+export function stravaFlybyUrl(stravaId) {
+    const id = normalizeStravaActivityId(stravaId);
+    return id ? `https://labs.strava.com/flyby/viewer/#${id}` : null;
+}
+
 /**
  * Open Strava segment in a new tab so the app stays loaded (no full reload after
  * a refresh/sync burst — avoids immediate 429 on Strava web when same-tab navigation

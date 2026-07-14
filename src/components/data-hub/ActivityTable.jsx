@@ -3,11 +3,12 @@ import React, { useMemo, useRef } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import {
     ArrowUpDown, ChevronUp, ChevronDown, ChevronRight, Monitor, Bike, Footprints,
-    Mountain, Edit2, Trash2, ExternalLink, Route, Trophy, Crown,
+    Mountain, Edit2, Trash2, ExternalLink, Route, Trophy, Crown, Play,
 } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
 import { activityIntensityFactor } from '../../utils/activityFilterMetrics';
 import { resolveStravaGearDisplay } from '../../utils/stravaBikesLocalMap';
+import { stravaActivityUrl, stravaFlybyUrl } from '../../utils/strava';
 import { getKomBadgeCountsFromSummary, getKomBadgeDisplaySlots } from '../../utils/stravaSegmentKomSummary';
 import { buildStickyColumnMeta, stickyTableCellProps, stickyActionsCellProps } from '../../utils/activityTableSticky';
 import {
@@ -183,6 +184,9 @@ export const Row = React.memo(({
     const [isConfirmingDelete, setIsConfirmingDelete] = React.useState(false);
 
     if (!act) return null;
+
+    const stravaUrl = stravaActivityUrl(act.strava_id);
+    const flybyUrl = stravaFlybyUrl(act.strava_id);
 
     const renderCell = (col) => {
         try {
@@ -398,9 +402,9 @@ export const Row = React.memo(({
                                 <ExternalLink size={13} />
                             </a>
                         )}
-                        {act.strava_id && (
+                        {stravaUrl && (
                             <a
-                                href={`https://www.strava.com/activities/${act.strava_id}`}
+                                href={stravaUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-cdmuted hover:text-orange-400 p-0.5 flex items-center rounded hover:bg-cdborder/40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
@@ -409,6 +413,19 @@ export const Row = React.memo(({
                                 aria-label="Open in Strava"
                             >
                                 <StravaIcon />
+                            </a>
+                        )}
+                        {flybyUrl && (
+                            <a
+                                href={flybyUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-cdmuted hover:text-orange-300 p-0.5 flex items-center rounded hover:bg-cdborder/40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                                onClick={(e) => e.stopPropagation()}
+                                title="Open Strava Flyby"
+                                aria-label="Open Strava Flyby"
+                            >
+                                <Play size={13} />
                             </a>
                         )}
                         <button
