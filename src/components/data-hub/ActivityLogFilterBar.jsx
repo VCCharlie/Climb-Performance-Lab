@@ -7,6 +7,7 @@ import ActivityColumnPicker from './ActivityColumnPicker';
 import ActivityLogExportButtons from './ActivityLogExportButtons';
 import AnchoredDropdownPortal from '../ui/AnchoredDropdownPortal';
 import { formatNlNumber } from '../../utils/formatters';
+import { buildMarkRecoveryTooltip } from '../../utils/recoveryTss';
 
 /**
  * Activity Log toolbar: search, indoor filter, tools menu, quick chips, metric ranges, bulk actions.
@@ -105,6 +106,7 @@ const ActivityLogFilterBar = ({
     onExportXlsx,
     isExportingXlsx = false,
     onMarkRecovery,
+    recoveryTss = 35,
     onStravaEnrich,
     onMergePair,
     onDeleteSelected,
@@ -515,10 +517,10 @@ const ActivityLogFilterBar = ({
                     type="button"
                     onClick={onMarkRecovery}
                     disabled={bulkSelectedCount === 0}
-                    title="Sets load (TSS) to 35 for selected rows"
+                    title={buildMarkRecoveryTooltip(recoveryTss)}
                     className="px-2 py-1 rounded border border-cdborder text-cdmuted hover:text-cdaccent hover:border-cdaccent/40 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
                 >
-                    Mark recovery (TSS 35)
+                    Mark recovery (TSS {recoveryTss})
                 </button>
                 {stravaGetToken && (
                     <button

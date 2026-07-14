@@ -20,6 +20,7 @@ import { useDataHubMaintenance } from '../hooks/useDataHubMaintenance';
 import { useActivityCardLayout } from '../hooks/useMediaQuery';
 import { useActivities } from '../hooks/useActivities';
 import { useActivityLogNavigation } from '../context/ActivityLogNavigationContext';
+import { resolveRecoveryTss } from '../utils/recoveryTss';
 
 const DataHub = ({
     intervalsConfig,
@@ -35,6 +36,7 @@ const DataHub = ({
     climbDatabaseForMatch = getCoreClimbDatabase(),
     initialInternalTab = 'log',
     profileFtp,
+    userSettings,
 }) => {
     const {
         activities,
@@ -111,6 +113,7 @@ const DataHub = ({
         stravaGetToken,
         visibleActivityIdsFlat: logDerivations.visibleActivityIdsFlat,
         setIsDeleting,
+        recoveryTss: resolveRecoveryTss(userSettings),
     });
 
     const intervalsSync = useDataHubIntervalsSync({
@@ -220,6 +223,7 @@ const DataHub = ({
         filterKjMax: filter.filterKjMax,
         setFilterKjMax: filter.setFilterKjMax,
         setEditingActivity,
+        recoveryTss: resolveRecoveryTss(userSettings),
     });
 
     const onSaveEdit = useCallback(

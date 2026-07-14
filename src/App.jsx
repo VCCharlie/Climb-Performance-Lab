@@ -664,6 +664,7 @@ const App = () => {
                                                 climbDatabaseForMatch={climbDatabase}
                                                 initialInternalTab={dataHubInternalTabFromRestore()}
                                                 profileFtp={userSettings?.ftp}
+                                                userSettings={userSettings}
                                             />
                                         )}
 

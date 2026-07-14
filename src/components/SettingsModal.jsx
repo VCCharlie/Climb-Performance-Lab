@@ -1,6 +1,7 @@
 ﻿import React, { useState } from 'react';
-import { Settings, Activity, RefreshCw, Save, Moon, Sun, Shield, Target, Bell, Database, Download, Upload, Zap, X, Link, Unlink } from 'lucide-react';
+import { Settings, Activity, RefreshCw, Save, Moon, Sun, Shield, Target, Bell, Database, Download, Upload, Zap, X, Link, Unlink, List } from 'lucide-react';
 import { calculatePowerZones } from '../utils';
+import { DEFAULT_RECOVERY_TSS } from '../config';
 import SyncPanel from './data-hub/SyncPanel';
 import { buildBackupExport, validateBackupPayload, describeBackupImport, BACKUP_MAX_BYTES } from '../utils/backupSchema';
 import { Button, IconButton, inputBaseClass, modalScrimClass, modalPanelClass, modalHeaderClass, modalFooterClass } from './ui';
@@ -468,6 +469,30 @@ const SettingsModal = ({
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* ACTIVITY LOG */}
+                        <div className={sectionClass}>
+                            <div className="flex items-center gap-2 pb-2 border-b border-cdborder/50 mb-4">
+                                <List className="text-cdaccent" size={18} />
+                                <h3 className="font-bold text-cdtext">Activity Log</h3>
+                            </div>
+                            <div className="max-w-xs">
+                                <label className="block text-[10px] font-semibold mb-1 text-cdmuted">
+                                    Recovery load (TSS)
+                                </label>
+                                <p className="text-xs text-cdmuted mb-2 leading-relaxed">
+                                    Used by <strong className="text-cdtext font-medium">Mark recovery</strong> in the Activity Log bulk toolbar when you want easy rides to count as light training stress.
+                                </p>
+                                <input
+                                    type="number"
+                                    min={0}
+                                    max={999}
+                                    value={userSettings.recoveryTss ?? DEFAULT_RECOVERY_TSS}
+                                    onChange={(e) => updateUserSettings('recoveryTss', Number(e.target.value))}
+                                    className={fieldClass}
+                                />
                             </div>
                         </div>
 

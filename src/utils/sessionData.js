@@ -74,6 +74,7 @@ export function getDefaultUserSettings() {
         },
         volumeGoals: mergeVolumeGoals(null),
         notifications: { highLoad: 150, lowPower: 150, minWeight: 67, restDay: 3 },
+        recoveryTss: 35,
         powerZones: [],
         githubPat: '',
         openweatherApiKey: '',
