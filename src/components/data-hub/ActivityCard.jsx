@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-    MoreVertical, Edit2, Trash2, ExternalLink, Route, Eye,
+    MoreVertical, Edit2, Trash2, ExternalLink, Route, Eye, Play,
 } from 'lucide-react';
 import { formatDateDDMMYYYY } from '../../utils';
 import { getActivityCardMetrics } from '../../utils/activityCardMetrics';
+import { stravaActivityUrl, stravaFlybyUrl } from '../../utils/strava';
 import { cn } from '../ui/cn';
 import AnchoredDropdownPortal from '../ui/AnchoredDropdownPortal';
 import ActivityTypeIcon from './ActivityTypeIcon';
@@ -88,6 +89,8 @@ const ActivityCard = React.memo(({
     const metrics = getActivityCardMetrics(act, visibleColumns, profileFtp);
     const title = act.title || 'Untitled activity';
     const climbMatch = profilerClimbByActivityId?.get(String(act.id));
+    const stravaUrl = stravaActivityUrl(act.strava_id);
+    const flybyUrl = stravaFlybyUrl(act.strava_id);
 
     const closeMenu = () => {
         setMenuOpen(false);
@@ -214,13 +217,22 @@ const ActivityCard = React.memo(({
                                         <ExternalLink size={14} aria-hidden /> Intervals.icu
                                     </MenuItem>
                                 )}
-                                {act.strava_id && (
+                                {stravaUrl && (
                                     <MenuItem
-                                        href={`https://www.strava.com/activities/${act.strava_id}`}
+                                        href={stravaUrl}
                                         external
                                         onClick={closeMenu}
                                     >
                                         <StravaIcon /> Strava
+                                    </MenuItem>
+                                )}
+                                {flybyUrl && (
+                                    <MenuItem
+                                        href={flybyUrl}
+                                        external
+                                        onClick={closeMenu}
+                                    >
+                                        <Play size={14} aria-hidden /> Strava Flyby
                                     </MenuItem>
                                 )}
                                 <div className="border-t border-cdborder/60" />
