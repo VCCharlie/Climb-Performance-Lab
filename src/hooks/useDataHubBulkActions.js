@@ -34,6 +34,7 @@ export function useDataHubBulkActions({
     const [showBulkEditModal, setShowBulkEditModal] = useState(false);
     const [isBulkSaving, setIsBulkSaving] = useState(false);
     const [isStravaEnriching, setIsStravaEnriching] = useState(false);
+    const [stravaEnrichMsg, setStravaEnrichMsg] = useState(null);
     const [isExportingXlsx, setIsExportingXlsx] = useState(false);
 
     const allVisibleSelected = useMemo(
