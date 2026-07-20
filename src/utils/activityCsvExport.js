@@ -86,24 +86,22 @@ export function downloadActivitiesCsv(activities) {
 
 /**
  * @param {object[]} activities
+ * @param {import('xlsx').XLSX} XLSX
+ * @returns {import('xlsx').WorkSheet}
+ */
+export function activitiesToXlsxWorksheet(activities, XLSX) {
+    const rows = activitiesToExportRows(activities);
+    return XLSX.utils.aoa_to_sheet(rows);
+}
+
+/**
+ * @param {object[]} activities
  * @returns {Promise<void>}
  */
 export async function downloadActivitiesXlsx(activities) {
     if (!activities?.length) return;
     const XLSX = await import('xlsx');
-    const rows = activitiesToExportRows(activities);
-    const [header, ...dataRows] = rows;
-    const sheetRows = [
-        header,
-        ...dataRows.map((row) => {
-            const record = {};
-            header.forEach((label, index) => {
-                record[label] = row[index];
-            });
-            return record;
-        }),
-    ];
-    const worksheet = XLSX.utils.json_to_sheet(sheetRows, { skipHeader: true });
+    const worksheet = activitiesToXlsxWorksheet(activities, XLSX);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Activities');
     XLSX.writeFile(workbook, exportFilename('xlsx'));
