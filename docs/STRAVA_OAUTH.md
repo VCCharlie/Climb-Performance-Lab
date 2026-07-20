@@ -69,9 +69,13 @@ If you connected **Cloud Run → strava-oauth → Continuous deployment** to thi
 
 **Fix (pick one):**
 
-1. **Cloud Build config file (recommended)** — Cloud Run → strava-oauth → Edit continuous deployment → Build configuration → **Cloud Build configuration file** → `cloudbuild.strava-oauth.yaml` (in repo root).
+1. **Cloud Build config file (recommended)** — Cloud Build → Triggers → edit trigger → Configuration → **Cloud Build configuration file** → `/cloudbuild.strava-oauth.yaml` (repo root). That file builds `cloud-function/` with Docker (not the Vite root).
 2. **Source subdirectory** — set build context / source directory to `cloud-function` and entry point `strava_oauth` (Python buildpack).
 3. **Disable auto-deploy** — use the Cloud Shell block above only when you change Python code; frontend deploys via GitHub Pages (`Deploy Vite App` workflow), not Cloud Build.
+
+See also [CLOUD_RUN_OVERVIEW.md](./CLOUD_RUN_OVERVIEW.md) for a decision diagram (website vs Cloud Run vs nightly sync).
+
+**If the trigger runs `gcloud run deploy` but the inner step says "Building Container failed":** open the **child build** in Cloud Build → History (click the failed nested build ID). Common fix: use the Dockerfile-based `cloudbuild.strava-oauth.yaml` from `main` (avoids nested buildpack issues from CI).
 
 Set on the service (Variables or Secret Manager):
 
