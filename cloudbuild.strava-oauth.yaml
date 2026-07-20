@@ -1,24 +1,39 @@
-# Cloud Build config for continuous deployment of the Python strava-oauth service.
+# Cloud Build: deploy Python strava-oauth from cloud-function/ (not repo root).
 #
-# Do NOT build from repo root — that folder is the Vite frontend (package.json).
-# Use this file in the Cloud Build trigger, or set source directory to cloud-function/.
-#
-# Cloud Run → strava-oauth → Continuous deployment →
-#   Build configuration: Cloud Build configuration file (yaml)
-#   File: /cloudbuild.strava-oauth.yaml
+# Uses an explicit Docker build to avoid nested gcloud buildpack failures from CI.
+
+substitutions:
+  _REGION: europe-west1
+  _SERVICE: strava-oauth
+  _FUNCTION_TARGET: strava_oauth
+  _IMAGE: ${_REGION}-docker.pkg.dev/${PROJECT_ID}/cloud-run-source-deploy/${PROJECT_ID}/${_SERVICE}:${COMMIT_SHA}
 
 steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --build-arg
+      - FUNCTION_TARGET=${_FUNCTION_TARGET}
+      - -t
+      - ${_IMAGE}
+      - -f
+      - cloud-function/Dockerfile
+      - cloud-function
+
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: gcloud
     args:
       - run
       - deploy
-      - strava-oauth
-      - --source=cloud-function
-      - --function=strava_oauth
-      - --region=europe-west1
+      - ${_SERVICE}
+      - --image=${_IMAGE}
+      - --region=${_REGION}
       - --allow-unauthenticated
-      - --project=$PROJECT_ID
+      - --project=${PROJECT_ID}
+      - --quiet
+
+images:
+  - ${_IMAGE}
 
 options:
   logging: CLOUD_LOGGING_ONLY
