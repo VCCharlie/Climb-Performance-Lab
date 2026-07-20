@@ -6,10 +6,10 @@ import {
     activityDistanceKm,
     activityMovingTimeSec,
     activityAvgSpeedKmh,
-    activityIntensityFactor,
     parseNumericBound,
     inNumericRange,
 } from '../utils/activityFilterMetrics';
+import { compareActivitiesForSort } from '../utils/activitySort';
 
 // Helper inside hook or import
 const isValid = (act) => act && act.id && act.date;
@@ -303,35 +303,7 @@ const useActivityFilter = (activities, profileFtp) => {
         });
 
         if (sortConfig.key) {
-            filtered.sort((a, b) => {
-                if (sortConfig.key === 'intensity_factor') {
-                    const fa = activityIntensityFactor(a.norm_power, profileFtp);
-                    const fb = activityIntensityFactor(b.norm_power, profileFtp);
-                    const nullSentinel = sortConfig.direction === 'desc' ? -Infinity : Infinity;
-                    const aNum = fa != null ? fa : nullSentinel;
-                    const bNum = fb != null ? fb : nullSentinel;
-                    if (aNum < bNum) return sortConfig.direction === 'asc' ? -1 : 1;
-                    if (aNum > bNum) return sortConfig.direction === 'asc' ? 1 : -1;
-                    return 0;
-                }
-
-                let aVal = a[sortConfig.key];
-                let bVal = b[sortConfig.key];
-
-                // Robust comparison from useSortableData
-                if (typeof aVal === 'string' || typeof bVal === 'string') {
-                    const aStr = String(aVal || '').toLowerCase();
-                    const bStr = String(bVal || '').toLowerCase();
-                    if (aStr < bStr) return sortConfig.direction === 'asc' ? -1 : 1;
-                    if (aStr > bStr) return sortConfig.direction === 'asc' ? 1 : -1;
-                } else {
-                    const aNum = Number(aVal) || 0;
-                    const bNum = Number(bVal) || 0;
-                    if (aNum < bNum) return sortConfig.direction === 'asc' ? -1 : 1;
-                    if (aNum > bNum) return sortConfig.direction === 'asc' ? 1 : -1;
-                }
-                return 0;
-            });
+            filtered.sort((a, b) => compareActivitiesForSort(a, b, sortConfig, profileFtp));
         }
         return filtered;
     }, [activities, search, sortConfig, profileFtp, indoorFilter, virtualRideChip, thisWeekOnly, rollingDays, stravaLinkedOnly, noPowerOnly, withPowerOnly, highLoadOnly, longRideOnly, missingHrOnly, minTss, filterGearId, filterDistMin, filterDistMax, filterSpeedMin, filterSpeedMax, filterPowerMin, filterPowerMax, filterDurMinMin, filterDurMaxMin, filterElevMin, filterElevMax, filterKjMin, filterKjMax]);

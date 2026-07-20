@@ -211,8 +211,10 @@ export const smartParseCSV = (text) => {
         if (!entry.id) entry.id = 'csv_' + crypto.randomUUID();
         if (!entry.date || entry.date === 'Invalid Date') entry.date = new Date().toISOString().split('T')[0];
         entry.type = determineActivityType(entry.type, entry.title);
-        if (entry.distance > 2000) entry.distance = (entry.distance / 1000).toFixed(2);
-        if (entry.avg_speed > 0 && entry.avg_speed < 15) entry.avg_speed = (entry.avg_speed * 3.6).toFixed(1);
+        if (entry.distance > 2000) entry.distance = Math.round((entry.distance / 1000) * 100) / 100;
+        if (entry.avg_speed > 0 && entry.avg_speed < 15) {
+            entry.avg_speed = Math.round(entry.avg_speed * 3.6 * 10) / 10;
+        }
         return entry;
     }).filter(e => e.distance > 0 || e.moving_time > 0);
 };

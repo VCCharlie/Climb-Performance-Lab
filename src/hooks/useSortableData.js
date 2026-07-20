@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { compareActivitiesForSort } from '../utils/activitySort';
 
 const useSortableData = (items, config = null) => {
     const [sortConfig, setSortConfig] = useState(config);
@@ -6,24 +7,7 @@ const useSortableData = (items, config = null) => {
     const sortedItems = useMemo(() => {
         let sortableItems = [...items];
         if (sortConfig !== null) {
-            sortableItems.sort((a, b) => {
-                let aVal = a[sortConfig.key];
-                let bVal = b[sortConfig.key];
-
-                // Robust comparison handling mixed types and nulls
-                if (typeof aVal === 'string' || typeof bVal === 'string') {
-                    const aStr = String(aVal || '').toLowerCase();
-                    const bStr = String(bVal || '').toLowerCase();
-                    if (aStr < bStr) return sortConfig.direction === 'asc' ? -1 : 1;
-                    if (aStr > bStr) return sortConfig.direction === 'asc' ? 1 : -1;
-                } else {
-                    const aNum = Number(aVal) || 0;
-                    const bNum = Number(bVal) || 0;
-                    if (aNum < bNum) return sortConfig.direction === 'asc' ? -1 : 1;
-                    if (aNum > bNum) return sortConfig.direction === 'asc' ? 1 : -1;
-                }
-                return 0;
-            });
+            sortableItems.sort((a, b) => compareActivitiesForSort(a, b, sortConfig));
         }
         return sortableItems;
     }, [items, sortConfig]);
