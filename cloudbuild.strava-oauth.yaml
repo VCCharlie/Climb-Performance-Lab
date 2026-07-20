@@ -20,6 +20,12 @@ steps:
       - cloud-function/Dockerfile
       - cloud-function
 
+  # Push before deploy — the `images:` block only uploads after all steps finish.
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_IMAGE}
+
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: gcloud
     args:
