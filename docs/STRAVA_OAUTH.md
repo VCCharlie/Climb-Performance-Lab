@@ -57,25 +57,46 @@ bash scripts/deployStravaOAuthCloudShell.sh
 
 If `git clone` asks for credentials, run `gh auth login` once in Cloud Shell, then retry.
 
-### Continuous deployment from GitHub (Cloud Build trigger)
+### Continuous deployment from GitHub (optional — usually OFF)
+
+Most day-to-day work is **React only** (GitHub Pages). The Python `strava-oauth` service changes rarely, so **disabling** the Cloud Build trigger is the recommended setup after the first successful deploy.
+
+#### Disable auto-deploy (recommended)
+
+**What this does:** Stops Cloud Build from running on every push to `main`. The `strava-oauth` service **keeps running** with the last deployed revision.
+
+**Option A — Google Cloud Console**
+
+1. Open [Cloud Build → Triggers](https://console.cloud.google.com/cloud-build/triggers?project=climb-performance-lab).
+2. Find the trigger that uses `cloudbuild.strava-oauth.yaml` (or targets `strava-oauth`).
+3. Open the ⋮ menu → **Disable trigger** (or edit and uncheck **Enable trigger**).
+
+**Option B — Cloud Shell (one command)**
+
+```bash
+cd ~/Climb-Performance-Lab && git pull origin main
+bash scripts/disableStravaOAuthCloudBuildTrigger.sh
+```
+
+**When you change Python code again:** deploy manually with the Cloud Shell block in Step 2 above, or `bash scripts/deployStravaOAuthCloudShell.sh`.
+
+See [CLOUD_RUN_OVERVIEW.md](./CLOUD_RUN_OVERVIEW.md) for the full decision diagram.
+
+#### Re-enable auto-deploy (only if you change `cloud-function/` often)
 
 If you connected **Cloud Run → strava-oauth → Continuous deployment** to this repo, the trigger must **not** build from the repository root. The root is the Vite frontend (`package.json`); `strava-oauth` is Python in `cloud-function/`.
+
+**Correct setup:**
+
+- Configuration → **Cloud Build configuration file** → `/cloudbuild.strava-oauth.yaml` (repo root). That file builds `cloud-function/` with Docker (not the Vite root).
 
 **Wrong setup (fails on every merge to `main`):**
 
 - Source directory: `/` (repo root)
-- Buildpack detects Node.js + `pnpm-lock.yaml` / `package.json`
+- Buildpack detects Node.js + `package.json`
 - Error: `ERR_PNPM_OUTDATED_LOCKFILE` or a failed Node install — even after fixing the lockfile, you would still deploy the wrong app type.
 
-**Fix (pick one):**
-
-1. **Cloud Build config file (recommended)** — Cloud Build → Triggers → edit trigger → Configuration → **Cloud Build configuration file** → `/cloudbuild.strava-oauth.yaml` (repo root). That file builds `cloud-function/` with Docker (not the Vite root).
-2. **Source subdirectory** — set build context / source directory to `cloud-function` and entry point `strava_oauth` (Python buildpack).
-3. **Disable auto-deploy** — use the Cloud Shell block above only when you change Python code; frontend deploys via GitHub Pages (`Deploy Vite App` workflow), not Cloud Build.
-
-See also [CLOUD_RUN_OVERVIEW.md](./CLOUD_RUN_OVERVIEW.md) for a decision diagram (website vs Cloud Run vs nightly sync).
-
-**If the trigger runs `gcloud run deploy` but the inner step says "Building Container failed":** open the **child build** in Cloud Build → History (click the failed nested build ID). Common fix: use the Dockerfile-based `cloudbuild.strava-oauth.yaml` from `main` (avoids nested buildpack issues from CI).
+**If deploy fails with "Image not found":** ensure `cloudbuild.strava-oauth.yaml` includes an explicit `docker push` step before `gcloud run deploy` (fixed in PR #328).
 
 Set on the service (Variables or Secret Manager):
 

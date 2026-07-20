@@ -11,8 +11,8 @@ flowchart TB
 
     subgraph cloudrun["Backend (Python on Cloud Run)"]
         D[Change cloud-function/] --> E{How to deploy?}
-        E -->|Auto| F[Cloud Build trigger → cloudbuild.strava-oauth.yaml]
-        E -->|Manual| G[Cloud Shell: scripts/deployStravaOAuthCloudShell.sh]
+        E -->|Manual default| G[Cloud Shell: scripts/deployStravaOAuthCloudShell.sh]
+        E -->|Optional auto| F[Cloud Build trigger → cloudbuild.strava-oauth.yaml]
         F --> H[strava-oauth service]
         G --> H
         I[Cloud Shell: deployCloudFunctionCloudShell.sh] --> J[sync-intervals service]
@@ -50,9 +50,11 @@ flowchart TB
 
 | Choice | When |
 |--------|------|
-| **Keep Cloud Build trigger** (fixed `cloudbuild.strava-oauth.yaml`) | You change `cloud-function/` regularly |
-| **Disable trigger** | You only change React; Python backend is stable |
-| **Manual Cloud Shell deploy** | Occasional Python updates; simplest IAM |
+| **Disable Cloud Build trigger** (recommended) | You mostly change React; `strava-oauth` is already deployed and stable |
+| **Manual Cloud Shell deploy** | When you do change Python in `cloud-function/` |
+| **Keep Cloud Build trigger enabled** | You change `cloud-function/` on most merges to `main` |
+
+To turn off auto-deploy: [STRAVA_OAUTH.md — Disable auto-deploy](./STRAVA_OAUTH.md#disable-auto-deploy-recommended) or run `bash scripts/disableStravaOAuthCloudBuildTrigger.sh` in Cloud Shell.
 
 ## Common build mistakes
 
