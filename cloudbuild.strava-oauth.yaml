@@ -1,0 +1,24 @@
+# Cloud Build config for continuous deployment of the Python strava-oauth service.
+#
+# Do NOT build from repo root — that folder is the Vite frontend (package.json).
+# Use this file in the Cloud Build trigger, or set source directory to cloud-function/.
+#
+# Cloud Run → strava-oauth → Continuous deployment →
+#   Build configuration: Cloud Build configuration file (yaml)
+#   File: /cloudbuild.strava-oauth.yaml
+
+steps:
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - strava-oauth
+      - --source=cloud-function
+      - --function=strava_oauth
+      - --region=europe-west1
+      - --allow-unauthenticated
+      - --project=$PROJECT_ID
+
+options:
+  logging: CLOUD_LOGGING_ONLY

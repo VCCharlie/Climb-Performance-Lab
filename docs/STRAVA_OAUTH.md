@@ -57,6 +57,22 @@ bash scripts/deployStravaOAuthCloudShell.sh
 
 If `git clone` asks for credentials, run `gh auth login` once in Cloud Shell, then retry.
 
+### Continuous deployment from GitHub (Cloud Build trigger)
+
+If you connected **Cloud Run → strava-oauth → Continuous deployment** to this repo, the trigger must **not** build from the repository root. The root is the Vite frontend (`package.json`); `strava-oauth` is Python in `cloud-function/`.
+
+**Wrong setup (fails on every merge to `main`):**
+
+- Source directory: `/` (repo root)
+- Buildpack detects Node.js + `pnpm-lock.yaml` / `package.json`
+- Error: `ERR_PNPM_OUTDATED_LOCKFILE` or a failed Node install — even after fixing the lockfile, you would still deploy the wrong app type.
+
+**Fix (pick one):**
+
+1. **Cloud Build config file (recommended)** — Cloud Run → strava-oauth → Edit continuous deployment → Build configuration → **Cloud Build configuration file** → `cloudbuild.strava-oauth.yaml` (in repo root).
+2. **Source subdirectory** — set build context / source directory to `cloud-function` and entry point `strava_oauth` (Python buildpack).
+3. **Disable auto-deploy** — use the Cloud Shell block above only when you change Python code; frontend deploys via GitHub Pages (`Deploy Vite App` workflow), not Cloud Build.
+
 Set on the service (Variables or Secret Manager):
 
 - `STRAVA_CLIENT_ID`

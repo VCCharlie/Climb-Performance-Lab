@@ -1,0 +1,8 @@
+# Hint Google Cloud Buildpacks: Python Cloud Run function (not the Vite repo root).
+[[build.env]]
+name = "GOOGLE_RUNTIME_VERSION"
+value = "3.12"
+
+[[build.env]]
+name = "GOOGLE_FUNCTION_TARGET"
+value = "strava_oauth"
