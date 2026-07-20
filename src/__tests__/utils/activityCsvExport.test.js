@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
+import XLSX from 'xlsx';
 import {
     activitiesToCsv,
     activitiesToExportRows,
+    activitiesToXlsxWorksheet,
     formatActivityExportCell,
     getActivityExportColumns,
 } from '../../utils/activityCsvExport';
@@ -53,5 +55,19 @@ describe('activitiesToExportRows', () => {
 describe('formatActivityExportCell', () => {
     it('returns empty string for objects', () => {
         expect(formatActivityExportCell({ label: 'PR' }, 'strava_kom_summary')).toBe('');
+    });
+});
+
+describe('activitiesToXlsxWorksheet', () => {
+    it('writes data rows directly under header columns', () => {
+        const ws = activitiesToXlsxWorksheet(
+            [{ date: '2026-07-11', type: 'Ride', title: 'CD', distance: 42.5, load: 65 }],
+            XLSX,
+        );
+        expect(ws.A1?.v).toBe('Date');
+        expect(ws.C1?.v).toBe('Title');
+        expect(ws.A2?.v).toBe('2026-07-11');
+        expect(ws.B2?.v).toBe('Ride');
+        expect(ws.C2?.v).toBe('CD');
     });
 });
