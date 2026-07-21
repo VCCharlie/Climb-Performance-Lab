@@ -265,6 +265,8 @@ const DataHub = ({
                     <ActivityLogTab
                         intervalsSync={intervalsSync}
                         stravaListProgress={stravaEnrich.stravaListProgress}
+                        stravaAutoEnrichNotice={stravaEnrich.stravaAutoEnrichNotice}
+                        onDismissStravaAutoEnrichNotice={stravaEnrich.dismissStravaAutoEnrichNotice}
                         bulk={bulk}
                         onOpenImportTab={() => setInternalTab('import')}
                         filterBarProps={filterBarProps}

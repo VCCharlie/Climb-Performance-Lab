@@ -222,15 +222,19 @@ export function useDataHubBulkActions({
                 ridesProcessed,
                 unchanged,
                 failed,
+                rateLimitHits,
             } = await enrichSelectedActivitiesFromStrava(list, token, {
                 concurrency: 3,
                 forceStravaDetail: true,
                 onProgress: (m) => setStravaEnrichMsg(m),
             });
+            const rateLimitNote = rateLimitHits > 0
+                ? ' Strava rate limit hit — some details may be incomplete; try again in ~15 minutes.'
+                : '';
             if (updates.length === 0) {
-                if (failed > 0) {
+                if (failed > 0 || rateLimitHits > 0) {
                     setStravaEnrichMsg(
-                        `No fields updated (${formatNlNumber(failed)} Strava request(s) failed — check connection or rate limits). ${formatNlNumber(unchanged)} ride(s) already matched Strava.`,
+                        `No fields updated (${formatNlNumber(failed)} Strava request(s) failed — check connection or rate limits). ${formatNlNumber(unchanged)} ride(s) already matched Strava.${rateLimitNote}`,
                     );
                 } else if (ridesProcessed === 0 && linkedCount === 0) {
                     setStravaEnrichMsg(
@@ -251,7 +255,8 @@ export function useDataHubBulkActions({
             setStravaEnrichMsg(
                 `Done: updated ${formatNlNumber(updates.length)} selected ride(s) from Strava`
                 + (parts.length ? ` (${parts.join(', ')})` : '')
-                + ' — gear, route, HR, RPE, and segment badges when Strava returns them.',
+                + ' — gear, route, HR, RPE, and segment badges when Strava returns them.'
+                + rateLimitNote,
             );
         } catch (e) {
             console.error('[Strava enrich]', e);
