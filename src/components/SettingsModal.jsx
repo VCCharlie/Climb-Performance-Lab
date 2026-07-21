@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Settings, Activity, RefreshCw, Save, Moon, Sun, Shield, Target, Bell, Database, Download, Upload, Zap, X, Link, Unlink, List } from 'lucide-react';
 import { calculatePowerZones } from '../utils';
 import { DEFAULT_RECOVERY_TSS } from '../config';
@@ -7,6 +7,10 @@ import { buildBackupExport, validateBackupPayload, describeBackupImport, BACKUP_
 import { Button, IconButton, inputBaseClass, modalScrimClass, modalPanelClass, modalHeaderClass, modalFooterClass } from './ui';
 import ModalPortal from './ui/ModalPortal';
 import { useActivities } from '../hooks/useActivities';
+import {
+    formatBikeComputerProfileTitlesForInput,
+    parseBikeComputerProfileTitlesInput,
+} from '../utils/bikeComputerProfileTitles';
 
 // Strava logo SVG
 const StravaIcon = ({ size = 16 }) => (
@@ -26,6 +30,13 @@ const SettingsModal = ({
 }) => {
     const { activities, syncFromIntervals, restoreFromBackup } = useActivities();
     const [isSaving, setIsSaving] = useState(false);
+    const [profileTitlesText, setProfileTitlesText] = useState(() =>
+        formatBikeComputerProfileTitlesForInput(userSettings.bikeComputerProfileTitles),
+    );
+
+    useEffect(() => {
+        setProfileTitlesText(formatBikeComputerProfileTitlesForInput(userSettings.bikeComputerProfileTitles));
+    }, [userSettings.bikeComputerProfileTitles]);
 
     // -- Sync Wrapper --
     const { syncDates, setSyncDates, sportFilters, setSportFilters, isSyncing, syncProgress, syncIntervals } = syncState || {};
@@ -58,6 +69,10 @@ const SettingsModal = ({
 
     const handleSave = async () => {
         setIsSaving(true);
+        updateUserSettings(
+            'bikeComputerProfileTitles',
+            parseBikeComputerProfileTitlesInput(profileTitlesText),
+        );
         await onSaveToCloud();
         setIsSaving(false);
         onClose(); // Sluit modal na opslaan
@@ -317,6 +332,31 @@ const SettingsModal = ({
                                                 <StravaIcon size={16} /> Connect with Strava
                                             </button>
                                         )}
+                                    </div>
+                                    <div className="pt-3 border-t border-cdborder/40 space-y-2">
+                                        <label className="block text-xs font-bold text-cdtext" htmlFor="bike-computer-profiles">
+                                            Bike computer profile names
+                                        </label>
+                                        <p className="text-[11px] text-cdmuted leading-snug">
+                                            Comma-separated names from your head unit (Garmin/Wahoo bike profiles).
+                                            When Intervals uses one of these as the activity title, Climb Lab prefers the Strava name instead.
+                                            Update this list when you add a new bike profile on your computer.
+                                        </p>
+                                        <input
+                                            id="bike-computer-profiles"
+                                            type="text"
+                                            maxLength={200}
+                                            placeholder="e.g. SUPERIOR, AETHOS"
+                                            value={profileTitlesText}
+                                            onChange={(e) => setProfileTitlesText(e.target.value)}
+                                            onBlur={() => {
+                                                updateUserSettings(
+                                                    'bikeComputerProfileTitles',
+                                                    parseBikeComputerProfileTitlesInput(profileTitlesText),
+                                                );
+                                            }}
+                                            className={fieldClass}
+                                        />
                                     </div>
                                 </div>
                             </div>

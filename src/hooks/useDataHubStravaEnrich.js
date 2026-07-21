@@ -4,6 +4,7 @@ import { db } from '../firebase';
 import { protectEnrichedFieldsOnMerge } from '../utils/firestoreActivityMerge';
 import { enrichSelectedActivitiesFromStrava } from '../utils/stravaSelectedEnrich';
 import { activityLikelyNeedsStravaTitle } from '../utils/stravaTitleHeuristics';
+import { resolveDeviceProfileTitlesFromSettings } from '../utils/bikeComputerProfileTitles';
 import { devLog } from '../utils/safeLog';
 
 /** Background auto-enrich window (days) — keep small to avoid Strava 429s. */
@@ -22,6 +23,7 @@ export function useDataHubStravaEnrich({
     endDate,
     onImport,
     onBeforeOpenPanel,
+    userSettings,
 }) {
     const [showStravaEnrichPanel, setShowStravaEnrichPanel] = useState(false);
     const [stravaDateOverride, setStravaDateOverride] = useState(null);
@@ -54,6 +56,11 @@ export function useDataHubStravaEnrich({
         endDate: stravaDateOverride || endDate,
     }), [stravaDateOverride, startDate, endDate]);
 
+    const deviceProfileTitles = useMemo(
+        () => resolveDeviceProfileTitlesFromSettings(userSettings),
+        [userSettings],
+    );
+
     const performSilentStravaEnrichment = useCallback(async (actsToEnrich, customStart, customEnd) => {
         if (!stravaGetToken) return 0;
         try {
@@ -73,6 +80,7 @@ export function useDataHubStravaEnrich({
                 skipShortNoPowerRides: true,
                 forceStravaDetail: false,
                 concurrency: 2,
+                deviceProfileTitles,
                 onRateLimit: () => {
                     setStravaAutoEnrichNotice(RATE_LIMIT_NOTICE);
                 },
@@ -105,7 +113,7 @@ export function useDataHubStravaEnrich({
             }
         }
         return 0;
-    }, [stravaGetToken, startDate, endDate]);
+    }, [stravaGetToken, startDate, endDate, deviceProfileTitles]);
 
     useEffect(() => {
         if (autoEnrichRanRef.current) return;
@@ -121,7 +129,7 @@ export function useDataHubStravaEnrich({
             const missingHr = !act.avg_hr || act.avg_hr === 0;
             const missingRpe = !act.rpe || act.rpe === 0;
             const missingStravaId = !act.strava_id;
-            const missingStravaTitle = activityLikelyNeedsStravaTitle(act);
+            const missingStravaTitle = activityLikelyNeedsStravaTitle(act, deviceProfileTitles);
             return missingHr || missingRpe || missingStravaId || missingStravaTitle;
         });
 
@@ -143,7 +151,7 @@ export function useDataHubStravaEnrich({
         }, 0);
 
         return () => window.clearTimeout(timer);
-    }, [stravaGetToken, activities, performSilentStravaEnrichment]);
+    }, [stravaGetToken, activities, performSilentStravaEnrichment, deviceProfileTitles]);
 
     const handleImportFromStrava = useCallback(async (newActs) => {
         if (!newActs || newActs.length === 0) return;

@@ -14,6 +14,7 @@ import { enrichActivityGearFromStrava } from '../utils/stravaGearEnrich';
 import { enrichSelectedActivitiesFromStrava } from '../utils/stravaSelectedEnrich';
 import { formatNlNumber } from '../utils/formatters';
 import { buildMarkRecoveryConfirmMessage, resolveRecoveryTss } from '../utils/recoveryTss';
+import { resolveDeviceProfileTitlesFromSettings } from '../utils/bikeComputerProfileTitles';
 
 /**
  * Bulk selection and batch operations for the Activity Log (edit, export, delete, merge, Strava enrich).
@@ -26,7 +27,9 @@ export function useDataHubBulkActions({
     visibleActivityIdsFlat,
     setIsDeleting,
     recoveryTss,
+    userSettings,
 }) {
+    const deviceProfileTitles = resolveDeviceProfileTitlesFromSettings(userSettings);
     const [bulkSelectedIds, setBulkSelectedIds] = useState(() => new Set());
     const [showMergeModal, setShowMergeModal] = useState(false);
     const [mergeError, setMergeError] = useState(null);
@@ -226,6 +229,7 @@ export function useDataHubBulkActions({
             } = await enrichSelectedActivitiesFromStrava(list, token, {
                 concurrency: 3,
                 forceStravaDetail: true,
+                deviceProfileTitles,
                 onProgress: (m) => setStravaEnrichMsg(m),
             });
             const rateLimitNote = rateLimitHits > 0
@@ -264,7 +268,7 @@ export function useDataHubBulkActions({
         } finally {
             setIsStravaEnriching(false);
         }
-    }, [stravaGetToken, persistStravaEnrichUpdates]);
+    }, [stravaGetToken, persistStravaEnrichUpdates, deviceProfileTitles]);
 
     const markBulkRecovery = useCallback(async () => {
         if (selectedActivitiesForBulk.length === 0) return;

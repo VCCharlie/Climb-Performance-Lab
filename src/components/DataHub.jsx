@@ -114,6 +114,7 @@ const DataHub = ({
         visibleActivityIdsFlat: logDerivations.visibleActivityIdsFlat,
         setIsDeleting,
         recoveryTss: resolveRecoveryTss(userSettings),
+        userSettings,
     });
 
     const intervalsSync = useDataHubIntervalsSync({
@@ -123,6 +124,7 @@ const DataHub = ({
         stravaGetToken,
         bulkSelectedIds: bulk.bulkSelectedIds,
         selectedActivitiesForBulk: bulk.selectedActivitiesForBulk,
+        userSettings,
     });
 
     const stravaEnrich = useDataHubStravaEnrich({
@@ -132,6 +134,7 @@ const DataHub = ({
         endDate,
         onImport,
         onBeforeOpenPanel: () => setEditingActivity(null),
+        userSettings,
     });
 
     const dataImport = useDataHubImport({

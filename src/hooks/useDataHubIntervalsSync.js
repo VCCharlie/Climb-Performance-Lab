@@ -11,6 +11,7 @@ import {
     applyStravaFuzzyMatchesToIntervals,
 } from '../utils/stravaLinkIntervalsFetch';
 import useIntervalsSync from './useIntervalsSync';
+import { resolveDeviceProfileTitlesFromSettings } from '../utils/bikeComputerProfileTitles';
 
 /**
  * Intervals.icu sync + fetch-new flows for DataHub (selected-row sync and date-range fetch).
@@ -22,7 +23,9 @@ export function useDataHubIntervalsSync({
     stravaGetToken,
     bulkSelectedIds,
     selectedActivitiesForBulk,
+    userSettings,
 }) {
+    const deviceProfileTitles = resolveDeviceProfileTitlesFromSettings(userSettings);
     const { syncIntervals, isSyncing, syncProgress } = useIntervalsSync(intervalsConfig);
     const [syncStatus, setSyncStatus] = useState(null);
     const [syncErrorDetail, setSyncErrorDetail] = useState(null);
@@ -121,6 +124,7 @@ export function useDataHubIntervalsSync({
                         const enrichResult = await enrichSelectedActivitiesFromStrava(working, token, {
                             forceStravaDetail: true,
                             concurrency: 3,
+                            deviceProfileTitles,
                             onProgress: (m) => setSyncErrorDetail(String(m)),
                         });
                         enrichedLinkCount = enrichResult.linkedCount;
@@ -191,6 +195,7 @@ export function useDataHubIntervalsSync({
         syncIntervals,
         stravaGetToken,
         onImport,
+        deviceProfileTitles,
     ]);
 
     const handleFetchNewFromIntervals = useCallback(async () => {
@@ -265,6 +270,7 @@ export function useDataHubIntervalsSync({
                         const enrichResult = await enrichSelectedActivitiesFromStrava(merged, token, {
                             forceStravaDetail: true,
                             concurrency: 3,
+                            deviceProfileTitles,
                             onProgress: (m) => setSyncErrorDetail(String(m)),
                         });
                         enrichCount = enrichResult.updates.length;
@@ -338,6 +344,7 @@ export function useDataHubIntervalsSync({
         activities,
         stravaGetToken,
         onImport,
+        deviceProfileTitles,
     ]);
 
     return {

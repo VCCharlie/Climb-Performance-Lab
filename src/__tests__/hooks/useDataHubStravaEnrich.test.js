@@ -24,6 +24,7 @@ describe('useDataHubStravaEnrich', () => {
             startDate: '2026-01-01',
             endDate: '2026-06-30',
             onImport,
+            userSettings: { bikeComputerProfileTitles: [] },
         }));
 
         expect(result.current.stravaSearchDates).toEqual({
@@ -41,6 +42,7 @@ describe('useDataHubStravaEnrich', () => {
             endDate: '2026-06-30',
             onImport,
             onBeforeOpenPanel,
+            userSettings: { bikeComputerProfileTitles: ['AETHOS'] },
         }));
 
         act(() => {
