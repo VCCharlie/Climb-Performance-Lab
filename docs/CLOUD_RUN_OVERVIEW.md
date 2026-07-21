@@ -56,6 +56,8 @@ flowchart TB
 
 To turn off auto-deploy: [STRAVA_OAUTH.md — Disable auto-deploy](./STRAVA_OAUTH.md#disable-auto-deploy-recommended) or run `bash scripts/disableStravaOAuthCloudBuildTrigger.sh` in Cloud Shell.
 
+**Troubleshooting:** [REACT_VS_PYTHON_CHECKLIST.md](./REACT_VS_PYTHON_CHECKLIST.md) — symptom → React vs Python vs nightly sync.
+
 ## Common build mistakes
 
 | Symptom | Cause | Fix |
