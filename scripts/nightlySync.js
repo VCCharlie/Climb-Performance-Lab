@@ -25,6 +25,7 @@
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getValidStravaAccessToken } from './stravaTokenManager.js';
+import { shouldPreferStravaTitle } from '../src/utils/stravaTitleHeuristics.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -421,7 +422,7 @@ async function enrichWithStrava(db, firestoreActivities, startDate, endDate, isD
     let enrichedCount = 0;
 
     for (const { strava, site, type } of matches) {
-        const needsTitle = !site.title || site.title === 'Untitled' || isGenericTitle(site.title);
+        const needsTitle = shouldPreferStravaTitle(site.title, strava.name, { gearName: site.gear_name });
         const needsHr = !site.avg_hr || site.avg_hr === 0;
         const needsRpe = !site.rpe || site.rpe === 0;
         const needsGearId = !site.gear_id && !!strava.gear_id;
@@ -496,17 +497,6 @@ async function enrichWithStrava(db, firestoreActivities, startDate, endDate, isD
 
     console.log(`[STRAVA] ✅ ${enrichedCount} activities enriched with Strava data.`);
     return enrichedCount;
-}
-
-function isGenericTitle(title) {
-    if (!title) return true;
-    const generic = [
-        'morning ride', 'afternoon ride', 'evening ride', 'night ride',
-        'lunch ride', 'morning run', 'afternoon run', 'evening run',
-        'untitled', 'workout', 'zwift',
-        'ochtendrit', 'middagrit', 'avondrit', 'nachtrit'
-    ];
-    return generic.includes(title.toLowerCase().trim());
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────

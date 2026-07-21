@@ -12,6 +12,7 @@ import { fetchStravaActivitiesInRange } from './stravaLinkIntervalsFetch';
 import { buildStravaKomSummaryFromActivityDetail } from './stravaSegmentKomSummary';
 import { buildStravaDetailEnrichmentUpdates } from './stravaGearEnrich';
 import { stripUndefinedFields } from './mergeActivities';
+import { shouldPreferStravaTitle } from './stravaTitleHeuristics';
 
 /**
  * @param {object[]} activities
@@ -87,11 +88,12 @@ async function loadBikesMap(token, bikeActivities) {
 
 /**
  * Fuzzy-link + detail fields for rows still missing strava_id or partial Strava data.
- * @returns {Promise<{ updates: { id: string | number, data: object }[], linkedCount: number }>}
+ * @returns {Promise<{ updates: { id: string | number, data: object }[], linkedCount: number, rateLimitHits: number }>}
  */
 async function buildStravaLinkPhaseUpdates(siteActivities, bikeActivities, bikesMap, token) {
     const result = matchStravaToSite(bikeActivities, siteActivities);
     const candidates = [];
+    let rateLimitHits = 0;
 
     if (result?.matched?.length > 0) {
         candidates.push(...result.matched.filter((m) => m.confidence !== 'low'));
@@ -101,7 +103,7 @@ async function buildStravaLinkPhaseUpdates(siteActivities, bikeActivities, bikes
     }
 
     if (candidates.length === 0) {
-        return { updates: [], linkedCount: 0 };
+        return { updates: [], linkedCount: 0, rateLimitHits: 0 };
     }
 
     const linkPatches = [];
@@ -113,43 +115,61 @@ async function buildStravaLinkPhaseUpdates(siteActivities, bikeActivities, bikes
         const siteNeedsHr = !m.site.avg_hr || m.site.avg_hr === 0;
         const siteNeedsGear = !m.site.gear_id && !!m.strava.gear_id;
         const stravaListTitle = (m.strava.name || '').trim();
-        const titleDiffersFromStrava =
-            !!stravaListTitle && m.site.title !== stravaListTitle;
+        const needsTitle = shouldPreferStravaTitle(m.site.title, stravaListTitle, {
+            gearName: m.site.gear_name,
+        });
+        const needsMap = !m.site.strava_map || String(m.site.strava_map).trim() === '';
+        const needsWork = !m.site.work || Number(m.site.work) === 0;
+        const needsDetail = siteNeedsRpe || siteNeedsHr || siteNeedsGear || needsMap || needsWork;
 
-        if (m.site.strava_id && !siteNeedsRpe && !siteNeedsGear && !siteNeedsHr && !titleDiffersFromStrava) {
+        if (
+            m.site.strava_id
+            && !siteNeedsRpe
+            && !siteNeedsGear
+            && !siteNeedsHr
+            && !needsTitle
+            && !needsMap
+            && !needsWork
+        ) {
             return;
         }
 
         let stravaDetailed = m.strava;
-        try {
-            const detResp = await fetch(
-                `https://www.strava.com/api/v3/activities/${m.strava.id}?include_all_efforts=true`,
-                { headers: { Authorization: `Bearer ${token}` } },
-            );
-            if (detResp.ok) {
-                stravaDetailed = await detResp.json();
+        if (needsDetail) {
+            try {
+                const detResp = await fetch(
+                    `https://www.strava.com/api/v3/activities/${m.strava.id}?include_all_efforts=true`,
+                    { headers: { Authorization: `Bearer ${token}` } },
+                );
+                if (detResp.status === 429) {
+                    rateLimitHits += 1;
+                } else if (detResp.ok) {
+                    stravaDetailed = await detResp.json();
+                }
+            } catch {
+                /* rate limit / offline */
             }
-        } catch {
-            /* rate limit / offline */
         }
 
-        const gearId = stravaDetailed.gear_id || null;
+        const gearId = stravaDetailed.gear_id || m.strava.gear_id || null;
         const gearName = gearId ? (bikesMap[gearId] || 'Strava bike') : null;
-        const stravaTitle = (stravaDetailed.name || '').trim();
-        const komSummary = buildStravaKomSummaryFromActivityDetail(stravaDetailed);
+        const stravaTitle = (stravaDetailed.name || stravaListTitle || '').trim();
+        const komSummary = needsDetail && Object.prototype.hasOwnProperty.call(stravaDetailed, 'segment_efforts')
+            ? buildStravaKomSummaryFromActivityDetail(stravaDetailed)
+            : null;
 
         const updateData = stripUndefinedFields({
-            strava_id: String(stravaDetailed.id),
-            strava_map: stravaDetailed.map?.summary_polyline || m.site.strava_map || null,
+            strava_id: String(stravaDetailed.id || m.strava.id),
+            ...(needsMap && stravaDetailed.map?.summary_polyline
+                ? { strava_map: stravaDetailed.map.summary_polyline }
+                : {}),
             type: stravaDetailed.sport_type || stravaDetailed.type || m.site.type,
-            ...(gearId && { gear_id: gearId, gear_name: gearName }),
-            ...(stravaTitle && { title: stravaTitle }),
+            ...(needsTitle && stravaTitle ? { title: stravaTitle } : {}),
+            ...(siteNeedsGear && gearId ? { gear_id: gearId, gear_name: gearName } : {}),
             ...(siteNeedsRpe && stravaDetailed.perceived_exertion && { rpe: stravaDetailed.perceived_exertion }),
             ...(siteNeedsHr && stravaDetailed.average_heartrate && { avg_hr: Math.round(stravaDetailed.average_heartrate) }),
             ...((!m.site.max_hr || m.site.max_hr === 0) && stravaDetailed.max_heartrate && { max_hr: Math.round(stravaDetailed.max_heartrate) }),
-            ...(Object.prototype.hasOwnProperty.call(stravaDetailed, 'segment_efforts')
-                ? { strava_kom_summary: komSummary || null }
-                : {}),
+            ...(komSummary != null ? { strava_kom_summary: komSummary || null } : {}),
         });
 
         const hasChanges = Object.keys(updateData).some((k) => updateData[k] !== m.site[k]);
@@ -161,7 +181,7 @@ async function buildStravaLinkPhaseUpdates(siteActivities, bikeActivities, bikes
         }
     });
 
-    return { updates: linkPatches, linkedCount };
+    return { updates: linkPatches, linkedCount, rateLimitHits };
 }
 
 function mergeUpdatePatches(...patchLists) {
@@ -196,6 +216,7 @@ function applyUpdatesToActivities(activities, updates) {
  *   concurrency?: number,
  *   skipShortNoPowerRides?: boolean,
  *   forceStravaDetail?: boolean,
+ *   onRateLimit?: (hits: number) => void,
  * }} [opts]
  */
 export async function enrichSelectedActivitiesFromStrava(selectedActivities, token, opts = {}) {
@@ -208,6 +229,7 @@ export async function enrichSelectedActivitiesFromStrava(selectedActivities, tok
             ridesProcessed: 0,
             unchanged: 0,
             failed: 0,
+            rateLimitHits: 0,
         };
     }
 
@@ -220,6 +242,7 @@ export async function enrichSelectedActivitiesFromStrava(selectedActivities, tok
             ridesProcessed: 0,
             unchanged: 0,
             failed: 0,
+            rateLimitHits: 0,
         };
     }
 
@@ -237,6 +260,7 @@ export async function enrichSelectedActivitiesFromStrava(selectedActivities, tok
             ridesProcessed: 0,
             unchanged: 0,
             failed: 0,
+            rateLimitHits: 0,
         };
     }
 
@@ -252,6 +276,7 @@ export async function enrichSelectedActivitiesFromStrava(selectedActivities, tok
     );
     const linkUpdates = linkPhase.updates;
     const linkedCount = linkPhase.linkedCount;
+    let rateLimitHits = linkPhase.rateLimitHits || 0;
 
     const mergedSelected = applyUpdatesToActivities(list, linkUpdates);
     const withStrava = mergedSelected.filter((a) => a?.strava_id);
@@ -274,9 +299,14 @@ export async function enrichSelectedActivitiesFromStrava(selectedActivities, tok
         ridesProcessed = detailResult.ridesProcessed;
         unchanged = detailResult.unchanged;
         failed = detailResult.failed;
+        rateLimitHits += detailResult.rateLimitHits || 0;
     }
 
     const mergedUpdates = mergeUpdatePatches(linkUpdates, detailUpdates);
+
+    if (rateLimitHits > 0) {
+        opts.onRateLimit?.(rateLimitHits);
+    }
 
     return {
         updates: mergedUpdates,
@@ -285,5 +315,6 @@ export async function enrichSelectedActivitiesFromStrava(selectedActivities, tok
         ridesProcessed,
         unchanged,
         failed,
+        rateLimitHits,
     };
 }

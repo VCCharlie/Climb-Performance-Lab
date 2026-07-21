@@ -181,7 +181,11 @@ export async function enrichActivityGearFromStrava(merged, stravaSide, token, op
                 `https://www.strava.com/api/v3/activities/${encodeURIComponent(stravaActId)}?include_all_efforts=true`,
                 { headers: { Authorization: `Bearer ${token}` } },
             );
-            if (resp.ok) {
+            if (resp.status === 429) {
+                if (opts.stats && typeof opts.stats.rateLimitHits === 'number') {
+                    opts.stats.rateLimitHits += 1;
+                }
+            } else if (resp.ok) {
                 detail = await resp.json();
             }
         } catch {
@@ -270,18 +274,19 @@ export async function enrichActivityGearFromStrava(merged, stravaSide, token, op
  * @param {object[]} siteActivities
  * @param {string} token
  * @param {{ concurrency?: number, onProgress?: (msg: string) => void }} [opts]
- * @returns {Promise<{ updates: { id: string | number, data: object }[], ridesProcessed: number, unchanged: number, failed: number }>}
+ * @returns {Promise<{ updates: { id: string | number, data: object }[], ridesProcessed: number, unchanged: number, failed: number, rateLimitHits: number }>}
  */
 export async function buildStravaDetailEnrichmentUpdates(siteActivities, token, opts = {}) {
     const conc = Math.max(1, Math.min(5, opts.concurrency ?? 3));
     const list = (siteActivities || []).filter((a) => a?.id != null && a?.strava_id);
     if (!token || list.length === 0) {
-        return { updates: [], ridesProcessed: 0, unchanged: 0, failed: 0 };
+        return { updates: [], ridesProcessed: 0, unchanged: 0, failed: 0, rateLimitHits: 0 };
     }
 
     opts.onProgress?.(`Strava activity details: ${list.length} ride(s)…`);
 
     const enrichOpts = { forceStravaDetail: opts.forceStravaDetail === true };
+    const stats = { rateLimitHits: 0 };
 
     const updates = [];
     let unchanged = 0;
@@ -289,7 +294,7 @@ export async function buildStravaDetailEnrichmentUpdates(siteActivities, token, 
 
     await runInBatches(list, conc, async (act) => {
         try {
-            const enriched = await enrichActivityGearFromStrava(act, null, token, enrichOpts);
+            const enriched = await enrichActivityGearFromStrava(act, null, token, { ...enrichOpts, stats });
             const sid = enriched.strava_id || normalizeStravaActivityId(act.strava_id);
             const timeChanged =
                 storedMovingTimeSec(act) !== storedMovingTimeSec(enriched)
@@ -339,5 +344,6 @@ export async function buildStravaDetailEnrichmentUpdates(siteActivities, token, 
         ridesProcessed: list.length,
         unchanged,
         failed,
+        rateLimitHits: stats.rateLimitHits,
     };
 }

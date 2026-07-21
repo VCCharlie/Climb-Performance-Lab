@@ -13,6 +13,8 @@ import { formatDateDDMMYYYY } from '../../utils/formatters';
 export default function ActivityLogTab({
     intervalsSync,
     stravaListProgress,
+    stravaAutoEnrichNotice,
+    onDismissStravaAutoEnrichNotice,
     bulk,
     onOpenImportTab,
     filterBarProps,
@@ -54,6 +56,8 @@ export default function ActivityLogTab({
                 isStravaEnriching={bulk.isStravaEnriching}
                 stravaEnrichMsg={bulk.stravaEnrichMsg}
                 onDismissStravaEnrichMsg={() => bulk.setStravaEnrichMsg(null)}
+                stravaAutoEnrichNotice={stravaAutoEnrichNotice}
+                onDismissStravaAutoEnrichNotice={onDismissStravaAutoEnrichNotice}
             />
 
             <FetchIntervalsPanel

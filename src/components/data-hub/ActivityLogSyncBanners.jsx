@@ -11,8 +11,22 @@ const ActivityLogSyncBanners = ({
     isStravaEnriching,
     stravaEnrichMsg,
     onDismissStravaEnrichMsg,
+    stravaAutoEnrichNotice,
+    onDismissStravaAutoEnrichNotice,
 }) => (
     <>
+        {stravaAutoEnrichNotice && (
+            <div className="flex items-start justify-between gap-3 text-xs px-3 py-2 rounded-lg mb-3 border bg-amber-500/5 border-amber-500/20 text-amber-100/90">
+                <span className="leading-snug">{stravaAutoEnrichNotice}</span>
+                <button
+                    type="button"
+                    onClick={onDismissStravaAutoEnrichNotice}
+                    className="shrink-0 text-[10px] text-amber-200/70 hover:text-amber-100 underline"
+                >
+                    Dismiss
+                </button>
+            </div>
+        )}
         {syncStatus && (
             <div
                 className={`flex flex-col gap-1 text-xs font-bold px-3 py-2 rounded-lg mb-3 ${
