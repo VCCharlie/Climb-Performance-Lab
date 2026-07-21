@@ -71,7 +71,7 @@ const ActivityColumnPicker = ({
                     <div className="px-3 py-2 border-b border-cdborder/60 bg-cdsurfacelow">
                         <p className="text-xs font-semibold text-cdtext">Table columns</p>
                         <p className="text-[10px] text-cdmuted mt-0.5">
-                            {visibleKeys.length} of {ACTIVITY_TABLE_COLUMNS.length} visible
+                            Presets or pick columns individually. {visibleKeys.length} of {ACTIVITY_TABLE_COLUMNS.length} visible.
                         </p>
                     </div>
 

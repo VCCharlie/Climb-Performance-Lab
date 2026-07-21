@@ -546,7 +546,7 @@ const App = () => {
                 strava: safeStrava,
                 stravaProfile: stravaProfileData
             }, { merge: true });
-            alert("Settings saved! Bike Weight: " + (userSettings.bikeWeight || 'N/A'));
+            alert('Settings saved.');
         } catch (e) { alert("Error saving settings: " + e.message); }
     };
 

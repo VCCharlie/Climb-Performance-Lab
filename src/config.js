@@ -53,7 +53,7 @@ export const ACTIVITY_LOG_DEFAULT_VISIBLE_KEYS = ACTIVITY_TABLE_COLUMNS
  * `full` is resolved dynamically to all table column keys.
  */
 export const ACTIVITY_COLUMN_PRESETS = {
-    essential: ['date', 'type', 'title', 'moving_time', 'distance', 'climbing', 'norm_power', 'load'],
+    essential: ['date', 'type', 'title', 'moving_time', 'distance', 'avg_speed', 'climbing', 'norm_power', 'load'],
     power: [
         'date', 'type', 'title', 'moving_time', 'distance', 'climbing',
         'norm_power', 'load', 'avg_power', 'intensity_factor',

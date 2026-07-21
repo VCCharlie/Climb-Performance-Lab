@@ -25,9 +25,9 @@ export function resolvePresetKeys(presetId) {
     return keys.length > 0 ? keys : null;
 }
 
-/** Default column keys when nothing is stored (essential / non-hideByDefault). */
+/** Default column keys when nothing is stored (Essential preset). */
 export function getDefaultVisibleKeys() {
-    return [...ACTIVITY_LOG_DEFAULT_VISIBLE_KEYS];
+    return resolvePresetKeys('essential') ?? [...ACTIVITY_LOG_DEFAULT_VISIBLE_KEYS];
 }
 
 /** Parse localStorage JSON; returns key array or null to use defaults. */
