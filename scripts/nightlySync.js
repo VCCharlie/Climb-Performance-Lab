@@ -26,6 +26,7 @@ import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getValidStravaAccessToken } from './stravaTokenManager.js';
 import { shouldPreferStravaTitle } from '../src/utils/stravaTitleHeuristics.js';
+import { normalizeBikeComputerProfileTitles } from '../src/utils/bikeComputerProfileTitles.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -88,6 +89,30 @@ function chunkArray(array, size) {
         result.push(array.slice(i, i + size));
     }
     return result;
+}
+
+/**
+ * Load bike-computer profile names from Firestore settings (saved from Settings UI).
+ * Optional env FIREBASE_SETTINGS_DOC_ID = settings doc id (e.g. user_abc123).
+ */
+async function loadBikeComputerProfileTitles(db) {
+    const explicitId = (process.env.FIREBASE_SETTINGS_DOC_ID || '').trim();
+    if (explicitId) {
+        const snap = await db.doc(`settings/${explicitId}`).get();
+        if (snap.exists) {
+            return normalizeBikeComputerProfileTitles(snap.data()?.body?.bikeComputerProfileTitles);
+        }
+    }
+
+    const settingsSnaps = await db.collection('settings').limit(20).get();
+    for (const settingsDoc of settingsSnaps.docs) {
+        const titles = settingsDoc.data()?.body?.bikeComputerProfileTitles;
+        if (Array.isArray(titles) && titles.length > 0) {
+            return normalizeBikeComputerProfileTitles(titles);
+        }
+    }
+
+    return [];
 }
 
 async function fetchFromIntervalsAPI({ athleteId, apiKey, startDate, endDate }) {
@@ -396,7 +421,7 @@ function matchStravaToFirestore(stravaActivities, firestoreActivities) {
     return results;
 }
 
-async function enrichWithStrava(db, firestoreActivities, startDate, endDate, isDryRun) {
+async function enrichWithStrava(db, firestoreActivities, startDate, endDate, isDryRun, deviceProfileTitles = []) {
     console.log('[STRAVA] === Strava enrichment (server-side credentials) ===');
 
     let token;
@@ -422,7 +447,10 @@ async function enrichWithStrava(db, firestoreActivities, startDate, endDate, isD
     let enrichedCount = 0;
 
     for (const { strava, site, type } of matches) {
-        const needsTitle = shouldPreferStravaTitle(site.title, strava.name, { gearName: site.gear_name });
+        const needsTitle = shouldPreferStravaTitle(site.title, strava.name, {
+            gearName: site.gear_name,
+            deviceProfileTitles,
+        });
         const needsHr = !site.avg_hr || site.avg_hr === 0;
         const needsRpe = !site.rpe || site.rpe === 0;
         const needsGearId = !site.gear_id && !!strava.gear_id;
@@ -516,6 +544,10 @@ async function runNightlySync() {
     const db = getFirestore();
 
     const { startDate, endDate } = getDateRange(LOOKBACK_DAYS);
+    const deviceProfileTitles = await loadBikeComputerProfileTitles(db);
+    if (deviceProfileTitles.length > 0) {
+        console.log(`[STRAVA] Bike computer profile titles: ${deviceProfileTitles.join(', ')}`);
+    }
 
     try {
         const activities = await fetchFromIntervalsAPI({
@@ -544,7 +576,7 @@ async function runNightlySync() {
         });
 
         if (windowActivities.length > 0) {
-            await enrichWithStrava(db, windowActivities, startDate, endDate, config.isDryRun);
+            await enrichWithStrava(db, windowActivities, startDate, endDate, config.isDryRun, deviceProfileTitles);
         } else {
             console.log('[STRAVA] Geen activiteiten in het sync-venster om te verrijken.');
         }

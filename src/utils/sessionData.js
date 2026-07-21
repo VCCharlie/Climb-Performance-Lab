@@ -78,6 +78,8 @@ export function getDefaultUserSettings() {
         powerZones: [],
         githubPat: '',
         openweatherApiKey: '',
+        /** Garmin/Wahoo profile names used as default activity titles — prefer Strava name when matched. */
+        bikeComputerProfileTitles: [],
     };
 }
 

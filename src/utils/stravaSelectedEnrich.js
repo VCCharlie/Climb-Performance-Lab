@@ -90,7 +90,7 @@ async function loadBikesMap(token, bikeActivities) {
  * Fuzzy-link + detail fields for rows still missing strava_id or partial Strava data.
  * @returns {Promise<{ updates: { id: string | number, data: object }[], linkedCount: number, rateLimitHits: number }>}
  */
-async function buildStravaLinkPhaseUpdates(siteActivities, bikeActivities, bikesMap, token) {
+async function buildStravaLinkPhaseUpdates(siteActivities, bikeActivities, bikesMap, token, deviceProfileTitles = []) {
     const result = matchStravaToSite(bikeActivities, siteActivities);
     const candidates = [];
     let rateLimitHits = 0;
@@ -117,6 +117,7 @@ async function buildStravaLinkPhaseUpdates(siteActivities, bikeActivities, bikes
         const stravaListTitle = (m.strava.name || '').trim();
         const needsTitle = shouldPreferStravaTitle(m.site.title, stravaListTitle, {
             gearName: m.site.gear_name,
+            deviceProfileTitles,
         });
         const needsMap = !m.site.strava_map || String(m.site.strava_map).trim() === '';
         const needsWork = !m.site.work || Number(m.site.work) === 0;
@@ -273,6 +274,7 @@ export async function enrichSelectedActivitiesFromStrava(selectedActivities, tok
         bikeActivities,
         bikesMap,
         token,
+        opts.deviceProfileTitles || [],
     );
     const linkUpdates = linkPhase.updates;
     const linkedCount = linkPhase.linkedCount;
