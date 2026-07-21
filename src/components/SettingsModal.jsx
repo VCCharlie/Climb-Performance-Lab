@@ -4,7 +4,7 @@ import { calculatePowerZones } from '../utils';
 import { DEFAULT_RECOVERY_TSS } from '../config';
 import SyncPanel from './data-hub/SyncPanel';
 import { buildBackupExport, validateBackupPayload, describeBackupImport, BACKUP_MAX_BYTES } from '../utils/backupSchema';
-import { Button, IconButton, inputBaseClass, modalScrimClass, modalPanelClass, modalHeaderClass, modalFooterClass } from './ui';
+import { Button, IconButton, inputBaseClass, inputNumberClass, modalScrimClass, modalPanelClass, modalHeaderClass, modalFooterClass } from './ui';
 import ModalPortal from './ui/ModalPortal';
 import { useActivities } from '../hooks/useActivities';
 import {
@@ -417,26 +417,46 @@ const SettingsModal = ({
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
-                                    <label className={`block text-[10px] font-semibold mb-1 text-cdmuted text-blue-500`}>Current FTP (W)</label>
-                                    <div className="flex items-center gap-1">
-                                        <button type="button" onClick={() => updateUserSettings('ftp', (userSettings.ftp || 250) - 1)} className="p-2 rounded-cdmd bg-cdsurfacehigh hover:bg-cdborder cd-transition cd-focus-ring">-</button>
-                                        <input type="number" value={userSettings.ftp || ''} onChange={e => updateUserSettings('ftp', Number(e.target.value))} className={`${fieldClass} text-center font-bold`} />
-                                        <button type="button" onClick={() => updateUserSettings('ftp', (userSettings.ftp || 250) + 1)} className="p-2 rounded-cdmd bg-cdsurfacehigh hover:bg-cdborder cd-transition cd-focus-ring">+</button>
-                                    </div>
+                                    <label className="block text-[10px] font-semibold mb-1 text-cdmuted text-blue-500" htmlFor="settings-ftp">
+                                        Current FTP (W)
+                                    </label>
+                                    <input
+                                        id="settings-ftp"
+                                        type="number"
+                                        min={0}
+                                        step={1}
+                                        value={userSettings.ftp ?? ''}
+                                        onChange={(e) => updateUserSettings('ftp', Number(e.target.value))}
+                                        className={inputNumberClass}
+                                    />
                                 </div>
                                 <div>
-                                    <label className={`block text-[10px] font-semibold mb-1 text-cdmuted`}>Body Weight (kg)</label>
-                                    <div className="flex items-center gap-1">
-                                        <button type="button" onClick={() => updateUserSettings('weight', parseFloat(((userSettings.weight || 70) - 0.1).toFixed(1)))} className="p-2 rounded-cdmd bg-cdsurfacehigh hover:bg-cdborder cd-transition cd-focus-ring">-</button>
-                                        <input type="number" value={userSettings.weight || ''} onChange={e => updateUserSettings('weight', Number(e.target.value))} className={`${fieldClass} text-center`} />
-                                        <button type="button" onClick={() => updateUserSettings('weight', parseFloat(((userSettings.weight || 70) + 0.1).toFixed(1)))} className="p-2 rounded-cdmd bg-cdsurfacehigh hover:bg-cdborder cd-transition cd-focus-ring">+</button>
-                                    </div>
+                                    <label className="block text-[10px] font-semibold mb-1 text-cdmuted" htmlFor="settings-body-weight">
+                                        Body Weight (kg)
+                                    </label>
+                                    <input
+                                        id="settings-body-weight"
+                                        type="number"
+                                        min={0}
+                                        step={0.1}
+                                        value={userSettings.weight ?? ''}
+                                        onChange={(e) => updateUserSettings('weight', Number(e.target.value))}
+                                        className={inputNumberClass}
+                                    />
                                 </div>
                                 <div>
-                                    <label className={`block text-[10px] font-semibold mb-1 text-cdmuted`}>Bike Weight (kg)</label>
-                                    <div className="flex items-center gap-1">
-                                        <input type="number" step="0.1" value={userSettings.bikeWeight || ''} onChange={e => updateUserSettings('bikeWeight', Number(e.target.value))} className={`${fieldClass} text-center`} />
-                                    </div>
+                                    <label className="block text-[10px] font-semibold mb-1 text-cdmuted" htmlFor="settings-bike-weight">
+                                        Bike Weight (kg)
+                                    </label>
+                                    <input
+                                        id="settings-bike-weight"
+                                        type="number"
+                                        min={0}
+                                        step={0.1}
+                                        value={userSettings.bikeWeight ?? ''}
+                                        onChange={(e) => updateUserSettings('bikeWeight', Number(e.target.value))}
+                                        className={inputNumberClass}
+                                    />
                                 </div>
                             </div>
                             <div className="mt-4 pt-4 border-t border-cdborder/30 space-y-3">
@@ -458,7 +478,7 @@ const SettingsModal = ({
                                                         yearlyKm: Number(e.target.value),
                                                     })
                                                 }
-                                                className={fieldClass}
+                                                className={inputNumberClass}
                                             />
                                         </div>
                                         <div>
@@ -474,7 +494,7 @@ const SettingsModal = ({
                                                         yearlyMovingTimeHours: Number(e.target.value),
                                                     })
                                                 }
-                                                className={fieldClass}
+                                                className={inputNumberClass}
                                             />
                                         </div>
                                         <div>
@@ -490,7 +510,7 @@ const SettingsModal = ({
                                                         yearlyElevationM: Number(e.target.value),
                                                     })
                                                 }
-                                                className={fieldClass}
+                                                className={inputNumberClass}
                                             />
                                         </div>
                                     </div>
@@ -499,13 +519,13 @@ const SettingsModal = ({
                                     <div>
                                         <label className={`block text-[10px] font-semibold mb-1 text-cdmuted`}>Target FTP</label>
                                         <div className="flex gap-1">
-                                            <input type="number" value={userSettings.goals?.targetFtp || ''} onChange={e => updateUserSettings('goals', { ...userSettings.goals, targetFtp: Number(e.target.value) })} className={fieldClass} />
+                                            <input type="number" value={userSettings.goals?.targetFtp || ''} onChange={e => updateUserSettings('goals', { ...userSettings.goals, targetFtp: Number(e.target.value) })} className={inputNumberClass} />
                                         </div>
                                     </div>
                                     <div>
                                         <label className={`block text-[10px] font-semibold mb-1 text-cdmuted`}>Target weight (kg)</label>
                                         <div className="flex gap-1">
-                                            <input type="number" value={userSettings.goals?.targetWeight || ''} onChange={e => updateUserSettings('goals', { ...userSettings.goals, targetWeight: Number(e.target.value) })} className={fieldClass} />
+                                            <input type="number" value={userSettings.goals?.targetWeight || ''} onChange={e => updateUserSettings('goals', { ...userSettings.goals, targetWeight: Number(e.target.value) })} className={inputNumberClass} />
                                         </div>
                                     </div>
                                 </div>
@@ -531,7 +551,7 @@ const SettingsModal = ({
                                     max={999}
                                     value={userSettings.recoveryTss ?? DEFAULT_RECOVERY_TSS}
                                     onChange={(e) => updateUserSettings('recoveryTss', Number(e.target.value))}
-                                    className={fieldClass}
+                                    className={inputNumberClass}
                                 />
                             </div>
                         </div>
@@ -545,19 +565,19 @@ const SettingsModal = ({
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className={`block text-[10px] font-semibold mb-1 text-cdmuted`}>High Load (TSS) &gt;</label>
-                                    <input type="number" value={userSettings.notifications?.highLoad || ''} onChange={e => updateUserSettings('notifications', { ...userSettings.notifications, highLoad: Number(e.target.value) })} className={fieldClass} />
+                                    <input type="number" value={userSettings.notifications?.highLoad || ''} onChange={e => updateUserSettings('notifications', { ...userSettings.notifications, highLoad: Number(e.target.value) })} className={inputNumberClass} />
                                 </div>
                                 <div>
                                     <label className={`block text-[10px] font-semibold mb-1 text-cdmuted`}>Low Power (NP) &lt;</label>
-                                    <input type="number" value={userSettings.notifications?.lowPower || ''} onChange={e => updateUserSettings('notifications', { ...userSettings.notifications, lowPower: Number(e.target.value) })} className={fieldClass} />
+                                    <input type="number" value={userSettings.notifications?.lowPower || ''} onChange={e => updateUserSettings('notifications', { ...userSettings.notifications, lowPower: Number(e.target.value) })} className={inputNumberClass} />
                                 </div>
                                 <div>
                                     <label className={`block text-[10px] font-semibold mb-1 text-cdmuted`}>Min Weight &lt;</label>
-                                    <input type="number" value={userSettings.notifications?.minWeight || ''} onChange={e => updateUserSettings('notifications', { ...userSettings.notifications, minWeight: Number(e.target.value) })} className={fieldClass} />
+                                    <input type="number" value={userSettings.notifications?.minWeight || ''} onChange={e => updateUserSettings('notifications', { ...userSettings.notifications, minWeight: Number(e.target.value) })} className={inputNumberClass} />
                                 </div>
                                 <div>
                                     <label className={`block text-[10px] font-semibold mb-1 text-cdmuted`}>Rest Day (Days)</label>
-                                    <input type="number" value={userSettings.notifications?.restDay || ''} onChange={e => updateUserSettings('notifications', { ...userSettings.notifications, restDay: Number(e.target.value) })} className={fieldClass} />
+                                    <input type="number" value={userSettings.notifications?.restDay || ''} onChange={e => updateUserSettings('notifications', { ...userSettings.notifications, restDay: Number(e.target.value) })} className={inputNumberClass} />
                                 </div>
                             </div>
                         </div>

@@ -158,7 +158,7 @@ const ActivityLogFilterBar = ({
                     applyPreset={applyPreset}
                     toggleColumn={toggleColumn}
                     isColumnVisible={isColumnVisible}
-                    className="hidden lg:flex"
+                    className="flex shrink-0"
                 />
             </div>
             <div className="flex gap-2 shrink-0 w-full md:w-auto justify-end">
