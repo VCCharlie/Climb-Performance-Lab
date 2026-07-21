@@ -551,7 +551,7 @@ const SettingsModal = ({
                                     max={999}
                                     value={userSettings.recoveryTss ?? DEFAULT_RECOVERY_TSS}
                                     onChange={(e) => updateUserSettings('recoveryTss', Number(e.target.value))}
-                                    className={fieldClass}
+                                    className={inputNumberClass}
                                 />
                             </div>
                         </div>
