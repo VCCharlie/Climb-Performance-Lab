@@ -5,11 +5,13 @@ import {
     ACTIVITY_COLUMN_PRESET_LABELS,
 } from '../../config';
 import { cn } from '../ui/cn';
+import AnchoredDropdownPortal from '../ui/AnchoredDropdownPortal';
 
 const PRESET_ORDER = ['essential', 'power', 'full'];
 
 /**
  * Column visibility picker for the Activity Log table.
+ * Uses a portal so the menu is not clipped by the mobile filter bar scroll area.
  */
 const ActivityColumnPicker = ({
     visibleKeys,
@@ -20,22 +22,17 @@ const ActivityColumnPicker = ({
     className = '',
 }) => {
     const [open, setOpen] = useState(false);
-    const rootRef = useRef(null);
+    const buttonRef = useRef(null);
 
     useEffect(() => {
         if (!open) return undefined;
         const onDoc = (e) => {
-            if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false);
-        };
-        const onKey = (e) => {
-            if (e.key === 'Escape') setOpen(false);
+            if (buttonRef.current?.contains(e.target)) return;
+            if (e.target.closest?.('[data-anchored-dropdown]')) return;
+            setOpen(false);
         };
         document.addEventListener('mousedown', onDoc);
-        document.addEventListener('keydown', onKey);
-        return () => {
-            document.removeEventListener('mousedown', onDoc);
-            document.removeEventListener('keydown', onKey);
-        };
+        return () => document.removeEventListener('mousedown', onDoc);
     }, [open]);
 
     const presetLabel = activePreset === 'custom'
@@ -43,8 +40,9 @@ const ActivityColumnPicker = ({
         : (ACTIVITY_COLUMN_PRESET_LABELS[activePreset] || 'Columns');
 
     return (
-        <div className={cn('relative shrink-0', className)} ref={rootRef}>
+        <div className={cn('relative shrink-0', className)}>
             <button
+                ref={buttonRef}
                 type="button"
                 onClick={() => setOpen((v) => !v)}
                 aria-expanded={open}
@@ -62,12 +60,14 @@ const ActivityColumnPicker = ({
                 />
             </button>
 
-            {open && (
-                <div
-                    role="dialog"
-                    aria-label="Column visibility"
-                    className="absolute right-0 top-full mt-1 z-[80] w-[min(18rem,calc(100vw-2rem))] rounded-lg border border-cdborder bg-cdsurface shadow-xl overflow-hidden"
-                >
+            <AnchoredDropdownPortal
+                open={open}
+                anchorRef={buttonRef}
+                onClose={() => setOpen(false)}
+                minWidth={288}
+                className="max-w-[calc(100vw-1rem)]"
+            >
+                <div role="dialog" aria-label="Column visibility">
                     <div className="px-3 py-2 border-b border-cdborder/60 bg-cdsurfacelow">
                         <p className="text-xs font-semibold text-cdtext">Table columns</p>
                         <p className="text-[10px] text-cdmuted mt-0.5">
@@ -92,7 +92,7 @@ const ActivityColumnPicker = ({
                         ))}
                     </div>
 
-                    <div className="max-h-56 overflow-y-auto custom-scrollbar px-3 py-2 space-y-1">
+                    <div className="max-h-[min(14rem,50vh)] overflow-y-auto custom-scrollbar px-3 py-2 space-y-1">
                         {ACTIVITY_TABLE_COLUMNS.map((col) => {
                             const checked = isColumnVisible(col.key);
                             const isLastVisible = checked && visibleKeys.length === 1;
@@ -116,7 +116,7 @@ const ActivityColumnPicker = ({
                         })}
                     </div>
                 </div>
-            )}
+            </AnchoredDropdownPortal>
         </div>
     );
 };
