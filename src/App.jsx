@@ -2,7 +2,7 @@
 import { Utensils, Brain, Route, Heart, Flag } from 'lucide-react';
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged, reload } from "firebase/auth";
-import { db, auth, consumeGoogleRedirectResult } from './firebase';
+import { db, auth } from './firebase';
 import { getDefaultClimb } from './services/climbDatabase';
 import { useClimbDatabase } from './hooks/useClimbDatabase';
 import { calculatePowerZones } from './utils';
@@ -63,7 +63,7 @@ import {
     getDefaultBucketListState,
 } from './utils/sessionData';
 import { safeLocalStorageSet } from './utils/safeStorage.js';
-import { runGoogleSignIn, isGoogleSignInInProgress, googleSignInErrorMessage } from './utils/googleSignIn';
+import { runGoogleSignIn, isGoogleSignInInProgress, googleSignInErrorMessage, completeGoogleRedirectIfNeeded } from './utils/googleSignIn';
 import { ActivitiesProvider, useActivitiesState } from './context/ActivitiesContext';
 import { ActivityLogNavigationProvider, useActivityLogNavigation } from './context/ActivityLogNavigationContext';
 
@@ -254,6 +254,14 @@ const App = () => {
 
     const handleSignIn = useCallback(async () => {
         if (authBusy) return;
+        try {
+            await completeGoogleRedirectIfNeeded();
+        } catch (err) {
+            const message = googleSignInErrorMessage(err);
+            setAuthError(message);
+            window.alert(message);
+            return;
+        }
         if (hasStravaOAuthReturnInUrl() && !hasPendingStravaOAuthState()) {
             stripStravaOAuthParamsFromUrl();
         }
@@ -386,7 +394,7 @@ const App = () => {
         const finishRedirectSignIn = async () => {
             try {
                 setAuthBusy(true);
-                await consumeGoogleRedirectResult();
+                await completeGoogleRedirectIfNeeded();
             } catch (err) {
                 if (!cancelled) {
                     const message = googleSignInErrorMessage(err);
@@ -437,11 +445,23 @@ const App = () => {
         };
     }, [applySignedOutSessionWipe]);
 
-    // Drop stale Strava ?code= params (e.g. after logout) so Google sign-in is not blocked.
+    // Drop stale Strava ?code= params after Google redirect handling (shared boot guard).
     useEffect(() => {
-        if (!hasStravaOAuthReturnInUrl()) return;
-        if (hasPendingStravaOAuthState()) return;
-        stripStravaOAuthParamsFromUrl();
+        let cancelled = false;
+        (async () => {
+            try {
+                await completeGoogleRedirectIfNeeded();
+            } catch {
+                /* auth listener / SignInGate surface errors */
+            }
+            if (cancelled) return;
+            if (!hasStravaOAuthReturnInUrl()) return;
+            if (hasPendingStravaOAuthState()) return;
+            stripStravaOAuthParamsFromUrl();
+        })();
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     // Strava OAuth callback: wait for Firebase session after redirect from Strava

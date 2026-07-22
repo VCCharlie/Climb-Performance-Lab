@@ -2,9 +2,15 @@
  * Shared Google sign-in wrapper — tracks in-progress state so auth listeners
  * do not wipe local session while the sign-in popup is open.
  */
-import { loginWithGoogle, loginWithGoogleRedirect } from '../firebase';
+import {
+    loginWithGoogle,
+    loginWithGoogleRedirect,
+    consumeGoogleRedirectResult,
+} from '../firebase';
 
 let signInInProgress = false;
+/** @type {Promise<import('firebase/auth').User | null> | null} */
+let redirectCompletionPromise = null;
 
 export function isGoogleSignInInProgress() {
     return signInInProgress;
@@ -13,6 +19,26 @@ export function isGoogleSignInInProgress() {
 /** Reset stuck in-progress flag (e.g. after a crashed popup flow). */
 export function resetGoogleSignInProgress() {
     signInInProgress = false;
+}
+
+/**
+ * Finish a pending redirect sign-in once per page load.
+ * Must run before stripping ?code= from the URL (Strava cleanup uses the same param names).
+ */
+export function completeGoogleRedirectIfNeeded() {
+    if (typeof window === 'undefined') return Promise.resolve(null);
+    if (!redirectCompletionPromise) {
+        redirectCompletionPromise = consumeGoogleRedirectResult().catch((err) => {
+            redirectCompletionPromise = null;
+            throw err;
+        });
+    }
+    return redirectCompletionPromise;
+}
+
+/** @internal Vitest-only — module-level redirect promise must not leak across tests. */
+export function resetGoogleRedirectCompletionForTests() {
+    redirectCompletionPromise = null;
 }
 
 /**
