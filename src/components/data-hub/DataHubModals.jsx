@@ -16,6 +16,7 @@ export default function DataHubModals({
     onCloseDetail,
     stravaGetToken,
     profileFtp,
+    profileMaxHr,
     editingActivity,
     onCloseEdit,
     onSaveEdit,
@@ -34,6 +35,7 @@ export default function DataHubModals({
                     onClose={onCloseDetail}
                     getStravaToken={stravaGetToken}
                     profileFtp={profileFtp}
+                    profileMaxHr={profileMaxHr}
                 />
             )}
             {editingActivity && (

@@ -43,6 +43,7 @@ export default function ActivityLogTab({
     onOpenProfilerFromActivity,
     profilerClimbByActivityId,
     profileFtp,
+    profileMaxHr,
     visibleColumns,
 }) {
     return (
@@ -199,6 +200,7 @@ export default function ActivityLogTab({
                             onOpenProfiler={onOpenProfilerFromActivity}
                             profilerClimbByActivityId={profilerClimbByActivityId}
                             profileFtp={profileFtp}
+                            profileMaxHr={profileMaxHr}
                             visibleColumns={visibleColumns}
                         />
                     </div>

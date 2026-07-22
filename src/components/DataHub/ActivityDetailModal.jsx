@@ -1,9 +1,9 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { X, Calendar, Clock, MapPin, Zap, ExternalLink, Mountain, TrendingUp, Loader2, AlertCircle, Star, Bike, Trophy, Crown } from 'lucide-react';
+import { X, Calendar, Clock, MapPin, Zap, ExternalLink, Mountain, TrendingUp, Loader2, AlertCircle, Star, Bike, Trophy, Crown, Heart } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
-import { activityIntensityFactor } from '../../utils/activityFilterMetrics';
 import { formatSegmentTime } from '../../utils/strava';
 import NormPowerCell from '../data-hub/NormPowerCell';
+import ZoneMetricCell from '../data-hub/ZoneMetricCell';
 import ModalPortal from '../ui/ModalPortal';
 
 const StravaMap = lazy(() => import('./StravaMap'));
@@ -28,7 +28,7 @@ const StatBox = ({ label, value, unit, icon, color = "text-cdmuted" }) => (
     </div>
 );
 
-const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp }) => {
+const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, profileMaxHr }) => {
     const [stravaData, setStravaData] = useState(null);
     const [stravaLoading, setStravaLoading] = useState(false);
     const [stravaError, setStravaError] = useState(null);
@@ -65,10 +65,6 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp }) 
     }, [activity?.strava_id, getStravaToken]);
 
     if (!activity) return null;
-
-    /** Intensity factor IF = NP ÷ FTP (TrainingPeaks-style); uses profile FTP from Settings. */
-    const ifRaw = activityIntensityFactor(activity.norm_power, profileFtp);
-    const intensityFactor = ifRaw != null ? ifRaw.toFixed(2) : null;
 
     const polyline = stravaData?.map?.summary_polyline;
     const segments = stravaData?.segment_efforts || [];
@@ -143,7 +139,7 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp }) 
                             <div className="grid grid-cols-3 md:grid-cols-4 gap-2 mb-4">
                                 <div className="bg-cdborder/30 p-2 rounded text-center">
                                     <div className="text-xs text-cdmuted">Avg</div>
-                                    <div className="font-bold text-cdtext">{activity.avg_power}w</div>
+                                    <ZoneMetricCell metric="power" value={activity.avg_power} profileFtp={profileFtp} suffix="w" className="text-base" />
                                 </div>
                                 <div className="bg-cdborder/30 p-2 rounded text-center border-l-2 border-yellow-400">
                                     <div className="text-xs text-cdmuted">NP®</div>
@@ -158,7 +154,12 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp }) 
                                     }
                                 >
                                     <div className="text-xs text-cdmuted">IF®</div>
-                                    <div className="font-bold text-cdtext">{intensityFactor ?? '-'}</div>
+                                    <ZoneMetricCell
+                                        metric="if"
+                                        normPower={activity.norm_power}
+                                        profileFtp={profileFtp}
+                                        className="text-base"
+                                    />
                                 </div>
                                 <div className="bg-cdborder/30 p-2 rounded text-center">
                                     <div className="text-xs text-cdmuted">Work</div>
@@ -199,6 +200,28 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp }) 
                                 </div>
                                 );
                             })()}
+                        </div>
+                    )}
+
+                    {(activity.avg_hr > 0 || activity.max_hr > 0) && (
+                        <div>
+                            <h3 className="text-xs uppercase font-bold text-cdmuted mb-3 flex items-center gap-2">
+                                <Heart size={14} className="text-red-400" /> Heart Rate
+                            </h3>
+                            <div className="grid grid-cols-2 gap-2">
+                                {activity.avg_hr > 0 && (
+                                    <div className="bg-cdborder/30 p-2 rounded text-center">
+                                        <div className="text-xs text-cdmuted">Avg HR</div>
+                                        <ZoneMetricCell metric="hr" value={activity.avg_hr} profileMaxHr={profileMaxHr} suffix=" bpm" className="text-base" />
+                                    </div>
+                                )}
+                                {activity.max_hr > 0 && (
+                                    <div className="bg-cdborder/30 p-2 rounded text-center">
+                                        <div className="text-xs text-cdmuted">Max HR</div>
+                                        <ZoneMetricCell metric="hr" value={activity.max_hr} profileMaxHr={profileMaxHr} suffix=" bpm" className="text-base" />
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
 

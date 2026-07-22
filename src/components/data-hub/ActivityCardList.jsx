@@ -54,6 +54,7 @@ const ActivityCardList = React.memo(({
     allVisibleSelected = false,
     onToggleSelectAllVisible,
     profileFtp,
+    profileMaxHr,
     visibleColumns,
     bulkSelectionActive = false,
 }) => {
@@ -68,6 +69,7 @@ const ActivityCardList = React.memo(({
         showBulkSelect,
         visibleColumns,
         profileFtp,
+        profileMaxHr,
     };
 
     const flatRows = useMemo(

@@ -46,7 +46,7 @@ describe('activityCardMetrics', () => {
                 value: '210 W',
                 tone: 'zone',
                 color: '#22c55e',
-                title: '210 W — Z3 Tempo (84% FTP)',
+                title: '210 — Z3 Tempo (84% FTP)',
             },
             { key: 'load', label: 'Load', value: '95', tone: 'load' },
         ]);
@@ -57,6 +57,23 @@ describe('activityCardMetrics', () => {
         const metrics = getActivityCardMetrics(sampleAct, cols, 250);
         const ifMetric = metrics.find((m) => m.key === 'intensity_factor');
         expect(ifMetric?.value).toBe('0.84');
+        expect(ifMetric?.tone).toBe('zone');
+        expect(ifMetric?.color).toBe('#22c55e');
+    });
+
+    it('colors average power and heart rate by profile zones', () => {
+        const cols = [
+            ...essentialCols,
+            { key: 'avg_power', label: 'Avg' },
+            { key: 'avg_hr', label: 'HR' },
+        ];
+        const act = { ...sampleAct, avg_power: 240, avg_hr: 152 };
+        const metrics = getActivityCardMetrics(act, cols, 300, 190);
+        const avg = metrics.find((m) => m.key === 'avg_power');
+        const hr = metrics.find((m) => m.key === 'avg_hr');
+        expect(avg?.color).toBe('#22c55e');
+        expect(hr?.color).toBe('#22c55e');
+        expect(hr?.value).toBe('152 bpm');
     });
 
     it('omits zero or missing numeric fields', () => {

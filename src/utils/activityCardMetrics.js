@@ -1,24 +1,41 @@
 import { formatTime } from './formatters';
 import { activityIntensityFactor } from './activityFilterMetrics';
-import { getNormPowerDisplay } from './normPowerDisplay.js';
+import {
+    getNormPowerDisplay,
+    getPowerZoneDisplay,
+    getIntensityFactorZoneDisplay,
+    getHeartRateZoneDisplay,
+} from './activityMetricZoneDisplay.js';
 
 /** Columns rendered in the card header row — metrics come from the rest. */
 export const ACTIVITY_CARD_HEADER_KEYS = new Set(['date', 'type', 'title']);
 
 /**
  * Build compact metric chips for an activity card from visible column defs.
- * @returns {Array<{ key: string, label: string, value: string, tone?: 'np'|'load'|'muted' }>}
+ * @returns {Array<{ key: string, label: string, value: string, tone?: string, color?: string, title?: string }>}
  */
-export function getActivityCardMetrics(act, visibleColumns, profileFtp) {
+export function getActivityCardMetrics(act, visibleColumns, profileFtp, profileMaxHr) {
     if (!act || !visibleColumns?.length) return [];
 
     return visibleColumns
         .filter((col) => !ACTIVITY_CARD_HEADER_KEYS.has(col.key))
-        .map((col) => formatActivityCardMetric(col, act, profileFtp))
+        .map((col) => formatActivityCardMetric(col, act, profileFtp, profileMaxHr))
         .filter(Boolean);
 }
 
-function formatActivityCardMetric(col, act, profileFtp) {
+function zoneChip(key, label, display, valueSuffix = '') {
+    if (!display?.hasValue) return null;
+    return {
+        key,
+        label,
+        value: `${display.displayValue}${valueSuffix}`,
+        tone: display.color ? 'zone' : 'muted',
+        color: display.color,
+        title: display.title,
+    };
+}
+
+function formatActivityCardMetric(col, act, profileFtp, profileMaxHr) {
     const key = col.key;
     const val = act[key];
 
@@ -39,35 +56,22 @@ function formatActivityCardMetric(col, act, profileFtp) {
                 : null;
         case 'norm_power': {
             const display = getNormPowerDisplay(val, profileFtp);
-            if (!display.watts) return null;
-            return {
-                key,
-                label: col.label,
-                value: `${display.watts} W`,
-                tone: display.color ? 'zone' : 'muted',
-                color: display.color,
-                title: display.title,
-            };
+            return zoneChip(key, col.label, { ...display, hasValue: display.watts > 0, displayValue: String(display.watts) }, ' W');
         }
         case 'load':
             return val != null && Number(val) > 0
                 ? { key, label: col.label, value: String(Math.round(val)), tone: 'load' }
                 : null;
         case 'avg_power':
-            return val != null && Number(val) > 0
-                ? { key, label: col.label, value: `${Math.round(val)} W`, tone: 'muted' }
-                : null;
+            return zoneChip(key, col.label, getPowerZoneDisplay(val, profileFtp), ' W');
         case 'intensity_factor': {
             const ifVal = activityIntensityFactor(act.norm_power, profileFtp);
-            return ifVal != null
-                ? { key, label: col.label, value: ifVal.toFixed(2), tone: 'muted' }
-                : null;
+            if (ifVal == null) return null;
+            return zoneChip(key, col.label, getIntensityFactorZoneDisplay(ifVal));
         }
         case 'avg_hr':
         case 'max_hr':
-            return val != null && Number(val) > 0
-                ? { key, label: col.label, value: `${Math.round(val)} bpm`, tone: 'muted' }
-                : null;
+            return zoneChip(key, col.label, getHeartRateZoneDisplay(val, profileMaxHr), ' bpm');
         case 'work':
             return val != null && Number(val) > 0
                 ? { key, label: col.label, value: `${Math.round(val)} kJ`, tone: 'muted' }

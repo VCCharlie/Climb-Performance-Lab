@@ -6,12 +6,12 @@ import {
     Mountain, Edit2, Trash2, ExternalLink, Route, Trophy, Crown, Play,
 } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
-import { activityIntensityFactor } from '../../utils/activityFilterMetrics';
 import { resolveStravaGearDisplay } from '../../utils/stravaBikesLocalMap';
 import { stravaActivityUrl, stravaFlybyUrl } from '../../utils/strava';
 import { getKomBadgeCountsFromSummary, getKomBadgeDisplaySlots } from '../../utils/stravaSegmentKomSummary';
 import { buildStickyColumnMeta, stickyTableCellProps, stickyActionsCellProps } from '../../utils/activityTableSticky';
 import NormPowerCell from './NormPowerCell';
+import ZoneMetricCell from './ZoneMetricCell';
 import {
     flattenActivityList,
     estimateFlattenedRowSize,
@@ -179,6 +179,7 @@ export const Row = React.memo(({
     profilerClimbByActivityId,
     showBulkSelect = false,
     profileFtp,
+    profileMaxHr,
     columns = ACTIVITY_TABLE_COLUMNS,
     stickyMeta = null,
 }) => {
@@ -192,17 +193,12 @@ export const Row = React.memo(({
     const renderCell = (col) => {
         try {
             if (col.key === 'intensity_factor') {
-                const ifVal = activityIntensityFactor(act.norm_power, profileFtp);
-                if (ifVal == null) {
-                    const hint = !(Number(profileFtp) > 0)
-                        ? 'Set FTP in Settings to compute IF'
-                        : 'No normalized power for this activity';
-                    return <span className="text-cdmuted" title={hint}>—</span>;
-                }
                 return (
-                    <span className="text-cdtext tabular-nums font-medium" title="Intensity factor (NP ÷ profile FTP)">
-                        {ifVal.toFixed(2)}
-                    </span>
+                    <ZoneMetricCell
+                        metric="if"
+                        normPower={act.norm_power}
+                        profileFtp={profileFtp}
+                    />
                 );
             }
 
@@ -303,7 +299,10 @@ export const Row = React.memo(({
                     if (!w || Number.isNaN(w)) return <span className="text-cdmuted">-</span>;
                     return <span className="text-cdmuted">{Math.round(w)}</span>;
                 }
-                case 'climbing': case 'avg_power': return <span className="text-cdmuted">{Math.round(val || 0)}</span>;
+                case 'climbing': return <span className="text-cdmuted">{Math.round(val || 0)}</span>;
+                case 'avg_power': return <ZoneMetricCell metric="power" value={val} profileFtp={profileFtp} />;
+                case 'avg_hr':
+                case 'max_hr': return <ZoneMetricCell metric="hr" value={val} profileMaxHr={profileMaxHr} />;
                 case 'norm_power': return <NormPowerCell watts={val} profileFtp={profileFtp} />;
                 case 'load': return <span className="font-bold text-blue-400">{Math.round(val || 0)}</span>;
                 case 'rpe': return <span className="text-cdmuted">{val || '-'}</span>;
@@ -467,6 +466,7 @@ export const Row = React.memo(({
         prevProps.stickyMeta === nextProps.stickyMeta &&
         prevProps.profilerClimbByActivityId === nextProps.profilerClimbByActivityId &&
         prevProps.profileFtp === nextProps.profileFtp &&
+        prevProps.profileMaxHr === nextProps.profileMaxHr &&
         prevProps.onOpenProfiler === nextProps.onOpenProfiler &&
         prevProps.onViewDetail === nextProps.onViewDetail
     );
@@ -492,6 +492,7 @@ const ActivityTable = React.memo(({
     allVisibleSelected = false,
     onToggleSelectAllVisible,
     profileFtp,
+    profileMaxHr,
     visibleColumns = ACTIVITY_TABLE_COLUMNS,
 }) => {
     const columns = visibleColumns;
@@ -571,6 +572,7 @@ const ActivityTable = React.memo(({
                 onOpenProfiler={onOpenProfiler}
                 profilerClimbByActivityId={profilerClimbByActivityId}
                 profileFtp={profileFtp}
+                profileMaxHr={profileMaxHr}
                 columns={columns}
                 stickyMeta={stickyMeta}
             />
@@ -633,6 +635,7 @@ const ActivityTable = React.memo(({
                                                 onOpenProfiler={onOpenProfiler}
                                                 profilerClimbByActivityId={profilerClimbByActivityId}
                                                 profileFtp={profileFtp}
+                                                profileMaxHr={profileMaxHr}
                                                 columns={columns}
                                                 stickyMeta={stickyMeta}
                                             />
@@ -655,6 +658,7 @@ const ActivityTable = React.memo(({
                                 onOpenProfiler={onOpenProfiler}
                                 profilerClimbByActivityId={profilerClimbByActivityId}
                                 profileFtp={profileFtp}
+                                profileMaxHr={profileMaxHr}
                                 columns={columns}
                                 stickyMeta={stickyMeta}
                             />

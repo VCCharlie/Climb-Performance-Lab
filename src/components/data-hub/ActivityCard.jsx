@@ -55,6 +55,7 @@ const ActivityCard = React.memo(({
     showBulkSelect = false,
     visibleColumns,
     profileFtp,
+    profileMaxHr,
 }) => {
     const [menuOpen, setMenuOpen] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(false);
@@ -86,7 +87,7 @@ const ActivityCard = React.memo(({
 
     if (!act) return null;
 
-    const metrics = getActivityCardMetrics(act, visibleColumns, profileFtp);
+    const metrics = getActivityCardMetrics(act, visibleColumns, profileFtp, profileMaxHr);
     const title = act.title || 'Untitled activity';
     const climbMatch = profilerClimbByActivityId?.get(String(act.id));
     const stravaUrl = stravaActivityUrl(act.strava_id);
@@ -265,6 +266,7 @@ const ActivityCard = React.memo(({
     prev.showBulkSelect === next.showBulkSelect &&
     prev.visibleColumns === next.visibleColumns &&
     prev.profileFtp === next.profileFtp &&
+    prev.profileMaxHr === next.profileMaxHr &&
     prev.profilerClimbByActivityId === next.profilerClimbByActivityId
 ));
 
