@@ -30,16 +30,6 @@
       http-equiv="Content-Security-Policy"
       content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://apis.google.com https://www.gstatic.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.googleapis.com https://*.google.com https://*.google-analytics.com https://*.firebaseio.com https://intervals.icu https://www.strava.com https://api.openweathermap.org https://api.open-meteo.com https://geocoding-api.open-meteo.com https://europe-west1-climb-performance-lab.cloudfunctions.net https://*.europe-west1.run.app https://overpass-api.de; frame-src 'self' https://accounts.google.com https://www.google.com https://*.google.com https://*.firebaseapp.com; worker-src 'self'; base-uri 'self'; form-action 'self' https://accounts.google.com"
     />
-    <script>
-      (function registerClimbLabPwa() {
-        if (!('serviceWorker' in navigator)) return;
-        var scopePath = new URL('./', window.location.href).pathname;
-        if (!scopePath.endsWith('/')) scopePath += '/';
-        navigator.serviceWorker.register(scopePath + 'sw.js', { scope: scopePath }).catch(function (err) {
-          console.warn('[Climb Lab PWA] Service worker registration failed:', err);
-        });
-      })();
-    </script>
     <title>Climb Lab Pro</title>
     <!-- Google Fonts: Barlow & Barlow Condensed -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />

@@ -4,7 +4,6 @@
  */
 import {
     loginWithGoogle,
-    loginWithGoogleRedirect,
     consumeGoogleRedirectResult,
 } from '../firebase';
 
@@ -44,6 +43,7 @@ export function resetGoogleRedirectCompletionForTests() {
 /**
  * GitHub Pages and similar static hosts: browser pop-ups often close immediately
  * (third-party cookies, tracking protection) and Firebase reports popup-closed-by-user.
+ * @deprecated Prefer loginWithGoogle() popup + redirect fallback; kept for tests/host checks.
  */
 export function shouldUseGoogleRedirectSignIn() {
     if (typeof window === 'undefined') return false;
@@ -56,10 +56,6 @@ export async function runGoogleSignIn() {
     if (signInInProgress) return null;
     signInInProgress = true;
     try {
-        if (shouldUseGoogleRedirectSignIn()) {
-            await loginWithGoogleRedirect();
-            return null;
-        }
         return await loginWithGoogle();
     } finally {
         signInInProgress = false;

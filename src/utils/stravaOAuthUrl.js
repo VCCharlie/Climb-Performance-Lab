@@ -41,4 +41,21 @@ export function clearPendingStravaOAuthState() {
     sessionStorage.removeItem(STRAVA_OAUTH_STATE_KEY);
 }
 
+/**
+ * Stale Strava callback after logout — not a Google redirect (no Strava scope in URL).
+ * Google OAuth also uses ?code= but never includes activity:read_all in scope.
+ */
+export function isStaleStravaOAuthReturnInUrl() {
+    if (!hasStravaOAuthReturnInUrl()) return false;
+    if (hasPendingStravaOAuthState()) return false;
+    const scope = new URLSearchParams(window.location.search).get('scope') || '';
+    return scope.includes('activity:');
+}
+
+/** Safe cleanup after Google redirect handling — never strips bare ?code= callbacks. */
+export function stripStaleStravaOAuthParamsFromUrl() {
+    if (!isStaleStravaOAuthReturnInUrl()) return false;
+    return stripStravaOAuthParamsFromUrl();
+}
+
 export { STRAVA_OAUTH_STATE_KEY };
