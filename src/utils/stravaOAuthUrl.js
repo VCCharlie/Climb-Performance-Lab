@@ -10,7 +10,11 @@ export function hasStravaOAuthReturnInUrl() {
     return new URLSearchParams(window.location.search).has('code');
 }
 
-/** Remove Strava OAuth query params without reloading the page. */
+/**
+ * Remove Strava OAuth query params without reloading the page.
+ * Call only after `completeGoogleRedirectIfNeeded()` — Google redirect sign-in
+ * uses the same ?code=&state= shape and must consume those params first.
+ */
 export function stripStravaOAuthParamsFromUrl() {
     if (typeof window === 'undefined') return false;
     const url = new URL(window.location.href);
