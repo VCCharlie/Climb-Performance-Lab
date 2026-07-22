@@ -3,7 +3,7 @@
  * Generic titles + user-configured bike-computer profile names (Settings).
  */
 
-import { titleMatchesConfiguredProfile } from './bikeComputerProfileTitles';
+import { titleMatchesConfiguredProfile } from './bikeComputerProfileTitles.js';
 
 const GENERIC_TITLE_EXACT = new Set([
     'untitled',
