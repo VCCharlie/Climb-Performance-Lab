@@ -11,6 +11,7 @@ import { resolveStravaGearDisplay } from '../../utils/stravaBikesLocalMap';
 import { stravaActivityUrl, stravaFlybyUrl } from '../../utils/strava';
 import { getKomBadgeCountsFromSummary, getKomBadgeDisplaySlots } from '../../utils/stravaSegmentKomSummary';
 import { buildStickyColumnMeta, stickyTableCellProps, stickyActionsCellProps } from '../../utils/activityTableSticky';
+import NormPowerCell from './NormPowerCell';
 import {
     flattenActivityList,
     estimateFlattenedRowSize,
@@ -303,7 +304,7 @@ export const Row = React.memo(({
                     return <span className="text-cdmuted">{Math.round(w)}</span>;
                 }
                 case 'climbing': case 'avg_power': return <span className="text-cdmuted">{Math.round(val || 0)}</span>;
-                case 'norm_power': return <span className="font-bold text-yellow-400">{Math.round(val || 0)}</span>;
+                case 'norm_power': return <NormPowerCell watts={val} profileFtp={profileFtp} />;
                 case 'load': return <span className="font-bold text-blue-400">{Math.round(val || 0)}</span>;
                 case 'rpe': return <span className="text-cdmuted">{val || '-'}</span>;
                 default: return <span className={`text-${col.text || 'slate-500'}`}>{val ? Math.round(val) : '-'}</span>;

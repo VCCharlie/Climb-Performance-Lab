@@ -141,7 +141,17 @@ const ActivityCard = React.memo(({
                                     className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md bg-cdborder/35 border border-cdborder/50 tabular-nums"
                                 >
                                     <span className="text-cdmuted font-medium">{m.label}</span>
-                                    <span className={metricToneClass[m.tone] || metricToneClass.muted}>{m.value}</span>
+                                    <span
+                                        className={
+                                            m.color
+                                                ? 'font-semibold tabular-nums'
+                                                : (metricToneClass[m.tone] || metricToneClass.muted)
+                                        }
+                                        style={m.color ? { color: m.color } : undefined}
+                                        title={m.title}
+                                    >
+                                        {m.value}
+                                    </span>
                                 </span>
                             ))}
                         </div>

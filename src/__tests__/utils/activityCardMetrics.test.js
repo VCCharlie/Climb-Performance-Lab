@@ -40,7 +40,14 @@ describe('activityCardMetrics', () => {
             { key: 'moving_time', label: 'Time', value: '1:30:00', tone: 'muted' },
             { key: 'distance', label: 'Dist', value: '42.5 km', tone: 'muted' },
             { key: 'climbing', label: 'Elev', value: '850 m', tone: 'muted' },
-            { key: 'norm_power', label: 'NP', value: '210 W', tone: 'np' },
+            {
+                key: 'norm_power',
+                label: 'NP',
+                value: '210 W',
+                tone: 'zone',
+                color: '#22c55e',
+                title: '210 W — Z3 Tempo (84% FTP)',
+            },
             { key: 'load', label: 'Load', value: '95', tone: 'load' },
         ]);
     });
