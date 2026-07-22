@@ -19,6 +19,7 @@ import {
     hasStravaOAuthReturnInUrl,
     hasPendingStravaOAuthState,
     stripStravaOAuthParamsFromUrl,
+    stripStaleStravaOAuthParamsFromUrl,
 } from './utils/stravaOAuthUrl.js';
 
 // Shell components (eager — needed for first paint and navigation)
@@ -69,7 +70,7 @@ import { ActivityLogNavigationProvider, useActivityLogNavigation } from './conte
 
 function AppLoadingGate({ authReady, user, authBusy, authError, onSignIn, children }) {
     const { isLoading: activitiesLoading } = useActivitiesState();
-    if (!authReady || (activitiesLoading && user)) {
+    if (!authReady || authBusy || (activitiesLoading && user)) {
         return <LoadingPanel />;
     }
     if (!user) {
@@ -263,7 +264,7 @@ const App = () => {
             return;
         }
         if (hasStravaOAuthReturnInUrl() && !hasPendingStravaOAuthState()) {
-            stripStravaOAuthParamsFromUrl();
+            stripStaleStravaOAuthParamsFromUrl();
         }
         setAuthError(null);
         setAuthBusy(true);
@@ -455,9 +456,7 @@ const App = () => {
                 /* auth listener / SignInGate surface errors */
             }
             if (cancelled) return;
-            if (!hasStravaOAuthReturnInUrl()) return;
-            if (hasPendingStravaOAuthState()) return;
-            stripStravaOAuthParamsFromUrl();
+            stripStaleStravaOAuthParamsFromUrl();
         })();
         return () => {
             cancelled = true;

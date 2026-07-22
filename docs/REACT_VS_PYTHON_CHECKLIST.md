@@ -138,4 +138,11 @@ flowchart TD
 
 ---
 
+## Na elke deploy (GitHub Pages)
+
+- **Inloggen testen:** uitloggen → opnieuw **Sign in with Google** op de live site (`vccharlie.github.io`). Auth-wijzigingen zie je pas na een echte login, niet alleen door de site te openen terwijl je al ingelogd bent.
+- **Service worker reset** bij vreemd gedrag (login-loop, oude UI): DevTools → Application → Service Workers → **Unregister**, daarna hard refresh (`Ctrl+Shift+R`), of op het inlogscherm **Sign-in stuck? Reset browser cache**.
+
+---
+
 Zie ook [CLOUD_RUN_OVERVIEW.md](./CLOUD_RUN_OVERVIEW.md) voor het grote plaatje (website vs Cloud Run vs nightly).

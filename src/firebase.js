@@ -6,6 +6,9 @@ import { getFirestore } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 import {
     getAuth,
+    initializeAuth,
+    browserLocalPersistence,
+    browserPopupRedirectResolver,
     GoogleAuthProvider,
     signInWithPopup,
     signInWithRedirect,
@@ -36,10 +39,27 @@ let analytics;
 let auth;
 const googleProvider = new GoogleAuthProvider();
 
+function initFirebaseAuth(app) {
+    if (typeof window === 'undefined') {
+        return getAuth(app);
+    }
+    try {
+        return initializeAuth(app, {
+            persistence: browserLocalPersistence,
+            popupRedirectResolver: browserPopupRedirectResolver,
+        });
+    } catch (error) {
+        if (error?.code === 'auth/already-initialized') {
+            return getAuth(app);
+        }
+        throw error;
+    }
+}
+
 try {
   const app = initializeApp(firebaseConfig);
   db = getFirestore(app);
-  auth = getAuth(app);
+  auth = initFirebaseAuth(app);
   if (typeof window !== 'undefined') {
     try {
       analytics = getAnalytics(app);

@@ -226,6 +226,15 @@ export function installGlobalDeployRecoveryHandlers() {
 
 /**
  * Boot-time entry: version reconciliation + global handlers.
+ * Call before React mount; await so deploy cache clears finish before auth redirect.
+ */
+export async function bootstrapDeployRecoveryForBoot() {
+    installGlobalDeployRecoveryHandlers();
+    return reconcileBuildVersionOnBoot();
+}
+
+/**
+ * Boot-time entry: version reconciliation + global handlers.
  * Call synchronously before ReactDOM.createRoot().
  */
 export function bootstrapDeployRecovery() {

@@ -3,6 +3,8 @@ import {
     hasStravaOAuthReturnInUrl,
     hasPendingStravaOAuthState,
     stripStravaOAuthParamsFromUrl,
+    stripStaleStravaOAuthParamsFromUrl,
+    isStaleStravaOAuthReturnInUrl,
     STRAVA_OAUTH_STATE_KEY,
 } from '../../utils/stravaOAuthUrl.js';
 
@@ -32,5 +34,23 @@ describe('stravaOAuthUrl', () => {
     it('reports pending OAuth state in sessionStorage', () => {
         sessionStorage.setItem(STRAVA_OAUTH_STATE_KEY, 'pending');
         expect(hasPendingStravaOAuthState()).toBe(true);
+    });
+
+    it('does not treat Google OAuth code-only callback as stale Strava', () => {
+        window.history.replaceState({}, '', `${window.location.origin}/app?code=google&state=xyz`);
+        expect(isStaleStravaOAuthReturnInUrl()).toBe(false);
+        expect(stripStaleStravaOAuthParamsFromUrl()).toBe(false);
+        expect(window.location.search).toContain('code=google');
+    });
+
+    it('strips stale Strava callback when scope contains activity:', () => {
+        window.history.replaceState(
+            {},
+            '',
+            `${window.location.origin}/app?code=abc&state=xyz&scope=activity:read_all`,
+        );
+        expect(isStaleStravaOAuthReturnInUrl()).toBe(true);
+        expect(stripStaleStravaOAuthParamsFromUrl()).toBe(true);
+        expect(window.location.search).toBe('');
     });
 });

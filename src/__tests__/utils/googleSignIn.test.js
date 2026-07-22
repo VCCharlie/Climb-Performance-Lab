@@ -2,11 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('../../firebase.js', () => ({
     loginWithGoogle: vi.fn(),
-    loginWithGoogleRedirect: vi.fn(),
     consumeGoogleRedirectResult: vi.fn(),
 }));
 
-import { loginWithGoogle, loginWithGoogleRedirect, consumeGoogleRedirectResult } from '../../firebase.js';
+import { loginWithGoogle, consumeGoogleRedirectResult } from '../../firebase.js';
 import {
     runGoogleSignIn,
     isGoogleSignInInProgress,
@@ -20,10 +19,8 @@ describe('googleSignIn', () => {
     beforeEach(() => {
         resetGoogleRedirectCompletionForTests();
         vi.mocked(loginWithGoogle).mockReset();
-        vi.mocked(loginWithGoogleRedirect).mockReset();
         vi.mocked(consumeGoogleRedirectResult).mockReset();
         vi.mocked(loginWithGoogle).mockResolvedValue({ uid: 'u1' });
-        vi.mocked(loginWithGoogleRedirect).mockResolvedValue(undefined);
         vi.mocked(consumeGoogleRedirectResult).mockResolvedValue(null);
     });
 
@@ -44,15 +41,14 @@ describe('googleSignIn', () => {
         expect(isGoogleSignInInProgress()).toBe(false);
     });
 
-    it('uses redirect sign-in on GitHub Pages hosts', async () => {
+    it('uses popup sign-in on GitHub Pages (redirect is fallback inside loginWithGoogle)', async () => {
         vi.stubGlobal('window', {
             location: { hostname: 'vccharlie.github.io' },
         });
 
         await runGoogleSignIn();
 
-        expect(loginWithGoogleRedirect).toHaveBeenCalledTimes(1);
-        expect(loginWithGoogle).not.toHaveBeenCalled();
+        expect(loginWithGoogle).toHaveBeenCalledTimes(1);
     });
 
     it('uses popup sign-in on localhost', async () => {
@@ -63,10 +59,9 @@ describe('googleSignIn', () => {
         await runGoogleSignIn();
 
         expect(loginWithGoogle).toHaveBeenCalledTimes(1);
-        expect(loginWithGoogleRedirect).not.toHaveBeenCalled();
     });
 
-    it('detects GitHub Pages hostnames', () => {
+    it('detects GitHub Pages hostnames for redirect preference helper', () => {
         vi.stubGlobal('window', {
             location: { hostname: 'vccharlie.github.io' },
         });

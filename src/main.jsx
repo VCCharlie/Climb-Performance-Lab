@@ -6,30 +6,24 @@ import ErrorBoundary from './components/ErrorBoundary.jsx'
 import { ClimbDatabaseProvider } from './context/ClimbDatabaseContext.jsx'
 import { applyTheme, readStoredTheme } from './theme/applyTheme'
 import { maintainBrowserStorageOnBoot } from './utils/safeStorage.js'
-import { bootstrapDeployRecovery, persistCurrentBuildId } from './utils/deployRecovery.js'
+import { bootstrapDeployRecoveryForBoot, persistCurrentBuildId } from './utils/deployRecovery.js'
 import { completeGoogleRedirectIfNeeded } from './utils/googleSignIn.js'
-import {
-    hasStravaOAuthReturnInUrl,
-    hasPendingStravaOAuthState,
-    stripStravaOAuthParamsFromUrl,
-} from './utils/stravaOAuthUrl.js'
+import { stripStaleStravaOAuthParamsFromUrl } from './utils/stravaOAuthUrl.js'
+import { registerClimbLabServiceWorker } from './utils/registerServiceWorker.js'
 
 applyTheme(readStoredTheme())
 maintainBrowserStorageOnBoot()
-bootstrapDeployRecovery()
 
 async function boot() {
-    // Google redirect sign-in also returns ?code=&state= — finish Firebase auth before
-    // stripping those params (otherwise getRedirectResult never sees the callback).
+    await bootstrapDeployRecoveryForBoot()
+
     try {
         await completeGoogleRedirectIfNeeded()
     } catch (err) {
         console.warn('[auth] Could not complete Google redirect sign-in on boot:', err)
     }
 
-    if (hasStravaOAuthReturnInUrl() && !hasPendingStravaOAuthState()) {
-        stripStravaOAuthParamsFromUrl()
-    }
+    stripStaleStravaOAuthParamsFromUrl()
 
     const root = createRoot(document.getElementById('root'))
     root.render(
@@ -42,6 +36,8 @@ async function boot() {
         </StrictMode>,
     )
     persistCurrentBuildId()
+
+    await registerClimbLabServiceWorker()
 }
 
 boot()
