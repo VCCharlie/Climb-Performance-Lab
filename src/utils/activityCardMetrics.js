@@ -1,5 +1,6 @@
 import { formatTime } from './formatters';
 import { activityIntensityFactor } from './activityFilterMetrics';
+import { getNormPowerDisplay } from './normPowerDisplay.js';
 
 /** Columns rendered in the card header row — metrics come from the rest. */
 export const ACTIVITY_CARD_HEADER_KEYS = new Set(['date', 'type', 'title']);
@@ -36,10 +37,18 @@ function formatActivityCardMetric(col, act, profileFtp) {
             return val != null && !Number.isNaN(Number(val))
                 ? { key, label: col.label, value: `${Number(val).toFixed(1)} km/h`, tone: 'muted' }
                 : null;
-        case 'norm_power':
-            return val != null && Number(val) > 0
-                ? { key, label: col.label, value: `${Math.round(val)} W`, tone: 'np' }
-                : null;
+        case 'norm_power': {
+            const display = getNormPowerDisplay(val, profileFtp);
+            if (!display.watts) return null;
+            return {
+                key,
+                label: col.label,
+                value: `${display.watts} W`,
+                tone: display.color ? 'zone' : 'muted',
+                color: display.color,
+                title: display.title,
+            };
+        }
         case 'load':
             return val != null && Number(val) > 0
                 ? { key, label: col.label, value: String(Math.round(val)), tone: 'load' }

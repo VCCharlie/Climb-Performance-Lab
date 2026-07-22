@@ -3,6 +3,7 @@ import { X, Calendar, Clock, MapPin, Zap, ExternalLink, Mountain, TrendingUp, Lo
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
 import { activityIntensityFactor } from '../../utils/activityFilterMetrics';
 import { formatSegmentTime } from '../../utils/strava';
+import NormPowerCell from '../data-hub/NormPowerCell';
 import ModalPortal from '../ui/ModalPortal';
 
 const StravaMap = lazy(() => import('./StravaMap'));
@@ -146,7 +147,7 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp }) 
                                 </div>
                                 <div className="bg-cdborder/30 p-2 rounded text-center border-l-2 border-yellow-400">
                                     <div className="text-xs text-cdmuted">NP®</div>
-                                    <div className="font-bold text-yellow-400">{activity.norm_power}w</div>
+                                    <NormPowerCell watts={activity.norm_power} profileFtp={profileFtp} suffix="w" className="text-base" />
                                 </div>
                                 <div
                                     className="bg-cdborder/30 p-2 rounded text-center"
