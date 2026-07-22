@@ -82,16 +82,14 @@ export default defineConfig({
         skipWaiting: true,
         clientsClaim: true,
         navigateFallback: `${appBase}index.html`,
-        // Keep the HTML shell network-first so deploys are picked up immediately.
-        // Hashed JS/CSS chunks remain safe to precache (content-addressed filenames).
+        // Do not register a second handler for request.mode === 'navigate' — NavigationRoute
+        // already serves index.html for SPA navigations; duplicating it caused Response.clone()
+        // errors and broke Google redirect sign-in after OAuth return.
         globPatterns: ['**/*.{js,css,ico,png,svg,woff2,webmanifest}'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         runtimeCaching: [
           {
-            urlPattern: ({ request, url }) => {
-              if (request.mode === 'navigate') return true;
-              return url.pathname.endsWith('index.html');
-            },
+            urlPattern: ({ url }) => url.pathname.endsWith('index.html'),
             handler: 'NetworkFirst',
             options: {
               cacheName: 'cpl-html-shell',
