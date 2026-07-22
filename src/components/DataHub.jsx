@@ -36,6 +36,7 @@ const DataHub = ({
     climbDatabaseForMatch = getCoreClimbDatabase(),
     initialInternalTab = 'log',
     profileFtp,
+    profileMaxHr,
     userSettings,
 }) => {
     const {
@@ -241,6 +242,7 @@ const DataHub = ({
                 onCloseDetail={() => setDetailActivity(null)}
                 stravaGetToken={stravaGetToken}
                 profileFtp={profileFtp}
+                profileMaxHr={profileMaxHr}
                 editingActivity={editingActivity}
                 onCloseEdit={() => setEditingActivity(null)}
                 onSaveEdit={onSaveEdit}
@@ -298,6 +300,7 @@ const DataHub = ({
                         onOpenProfilerFromActivity={onOpenProfilerFromActivity}
                         profilerClimbByActivityId={logDerivations.profilerClimbByActivityId}
                         profileFtp={profileFtp}
+                        profileMaxHr={profileMaxHr}
                         visibleColumns={visibleColumns}
                     />
                 )}

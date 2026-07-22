@@ -1,27 +1,22 @@
 ﻿import React from 'react';
 import { Monitor, Footprints, Mountain, Bike, Trash2, ExternalLink } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
-import { activityIntensityFactor } from '../../utils/activityFilterMetrics';
 import { ACTIVITY_TABLE_COLUMNS } from '../../config';
 import NormPowerCell from '../data-hub/NormPowerCell';
+import ZoneMetricCell from '../data-hub/ZoneMetricCell';
 
-const ActivityRow = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview = false, isSelected = false, onToggleSelect, onToggleType, onViewDetail, profileFtp }) => {
+const ActivityRow = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview = false, isSelected = false, onToggleSelect, onToggleType, onViewDetail, profileFtp, profileMaxHr }) => {
     if (!act) return null;
 
     const renderCell = (col) => {
         try {
             if (col.key === 'intensity_factor') {
-                const ifVal = activityIntensityFactor(act.norm_power, profileFtp);
-                if (ifVal == null) {
-                    const hint = !(Number(profileFtp) > 0)
-                        ? 'Set FTP in Settings to compute IF'
-                        : 'No normalized power for this activity';
-                    return <span className="text-cdmuted" title={hint}>—</span>;
-                }
                 return (
-                    <span className="text-cdtext tabular-nums font-medium" title="Intensity factor (NP ÷ profile FTP)">
-                        {ifVal.toFixed(2)}
-                    </span>
+                    <ZoneMetricCell
+                        metric="if"
+                        normPower={act.norm_power}
+                        profileFtp={profileFtp}
+                    />
                 );
             }
 
@@ -93,7 +88,10 @@ const ActivityRow = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview
                 }
                 case 'moving_time': return <span className="text-cdmuted font-mono">{formatTime(val)}</span>;
                 case 'distance': case 'avg_speed': return <span className="text-cdmuted">{Number(val).toFixed(1)}</span>;
-                case 'climbing': case 'avg_power': return <span className="text-cdmuted">{Math.round(val || 0)}</span>;
+                case 'climbing': return <span className="text-cdmuted">{Math.round(val || 0)}</span>;
+                case 'avg_power': return <ZoneMetricCell metric="power" value={val} profileFtp={profileFtp} />;
+                case 'avg_hr':
+                case 'max_hr': return <ZoneMetricCell metric="hr" value={val} profileMaxHr={profileMaxHr} />;
                 case 'norm_power': return <NormPowerCell watts={val} profileFtp={profileFtp} />;
                 case 'load': return <span className="font-bold text-blue-400">{Math.round(val || 0)}</span>;
                 case 'rpe': return <span className="text-cdmuted">{val || '-'}</span>;
