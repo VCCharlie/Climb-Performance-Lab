@@ -14,4 +14,10 @@ describe('getCogganZoneForIntensityFactor', () => {
         expect(getCogganZoneForIntensityFactor(0)).toBe(null);
         expect(getCogganZoneForIntensityFactor(null)).toBe(null);
     });
+
+    it('does not fall back to Z1 in boundary gaps (e.g. 105–106% FTP)', () => {
+        expect(getCogganZoneForIntensityFactor(306 / 289)?.name).toBe('Z5 VO2 Max');
+        expect(getCogganZoneForIntensityFactor(1.058)?.name).toBe('Z5 VO2 Max');
+        expect(getCogganZoneForIntensityFactor(0.555)?.name).toBe('Z2 Endurance');
+    });
 });
