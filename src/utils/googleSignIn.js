@@ -2,7 +2,7 @@
  * Shared Google sign-in wrapper — tracks in-progress state so auth listeners
  * do not wipe local session while the sign-in popup is open.
  */
-import { loginWithGoogle } from '../firebase';
+import { loginWithGoogle, loginWithGoogleRedirect } from '../firebase';
 
 let signInInProgress = false;
 
@@ -15,11 +15,25 @@ export function resetGoogleSignInProgress() {
     signInInProgress = false;
 }
 
+/**
+ * GitHub Pages and similar static hosts: browser pop-ups often close immediately
+ * (third-party cookies, tracking protection) and Firebase reports popup-closed-by-user.
+ */
+export function shouldUseGoogleRedirectSignIn() {
+    if (typeof window === 'undefined') return false;
+    const { hostname } = window.location;
+    return hostname.endsWith('.github.io');
+}
+
 /** @returns {Promise<import('firebase/auth').User | null>} */
 export async function runGoogleSignIn() {
     if (signInInProgress) return null;
     signInInProgress = true;
     try {
+        if (shouldUseGoogleRedirectSignIn()) {
+            await loginWithGoogleRedirect();
+            return null;
+        }
         return await loginWithGoogle();
     } finally {
         signInInProgress = false;
@@ -33,13 +47,13 @@ export function googleSignInErrorMessage(err) {
         return 'Pop-up was blocked. Allow pop-ups for this site and try again.';
     }
     if (code === 'auth/popup-closed-by-user') {
-        return 'Sign-in was cancelled.';
+        return 'Sign-in was cancelled. If you did not close the window, try again — the app will use a full-page Google sign-in when pop-ups fail.';
     }
     if (code === 'auth/network-request-failed') {
         return 'Network error. Check your connection and try again.';
     }
     if (code === 'auth/unauthorized-domain') {
-        return 'This domain is not authorized for Google sign-in. Check Firebase Auth settings.';
+        return 'This domain is not authorized for Google sign-in. Add this site under Firebase Console → Authentication → Settings → Authorized domains.';
     }
     if (code === 'auth/internal-error') {
         return 'Sign-in could not complete (often blocked by browser security or Content Security Policy). Try again, allow pop-ups, or use a different browser.';

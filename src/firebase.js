@@ -4,7 +4,14 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
+import {
+    getAuth,
+    GoogleAuthProvider,
+    signInWithPopup,
+    signInWithRedirect,
+    getRedirectResult,
+    signOut,
+} from "firebase/auth";
 import { markExplicitSignOut } from "./utils/sessionData.js";
 
 // Firebase Web API keys are public client identifiers (not secrets). Restrict abuse in
@@ -40,14 +47,40 @@ try {
   console.error("Firebase init error:", error);
 }
 
-// EXPORT DEZE FUNCTIES OOK
+/** Popup sign-in; falls back to full-page redirect when the popup cannot complete. */
 export const loginWithGoogle = async () => {
     if (!auth) throw new Error("Firebase Auth not initialized");
     try {
         const result = await signInWithPopup(auth, googleProvider);
         return result.user;
     } catch (error) {
+        if (
+            error?.code === 'auth/popup-blocked'
+            || error?.code === 'auth/popup-closed-by-user'
+            || error?.code === 'auth/cancelled-popup-request'
+        ) {
+            await signInWithRedirect(auth, googleProvider);
+            return null;
+        }
         console.error("Login failed:", error);
+        throw error;
+    }
+};
+
+/** Full-page redirect sign-in (more reliable on GitHub Pages and strict browsers). */
+export const loginWithGoogleRedirect = async () => {
+    if (!auth) throw new Error("Firebase Auth not initialized");
+    await signInWithRedirect(auth, googleProvider);
+};
+
+/** Complete a pending redirect sign-in when the app loads after Google returns. */
+export const consumeGoogleRedirectResult = async () => {
+    if (!auth) return null;
+    try {
+        const result = await getRedirectResult(auth);
+        return result?.user ?? null;
+    } catch (error) {
+        console.error("Redirect sign-in failed:", error);
         throw error;
     }
 };

@@ -2,7 +2,7 @@
 import { Utensils, Brain, Route, Heart, Flag } from 'lucide-react';
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged, reload } from "firebase/auth";
-import { db, auth } from './firebase';
+import { db, auth, consumeGoogleRedirectResult } from './firebase';
 import { getDefaultClimb } from './services/climbDatabase';
 import { useClimbDatabase } from './hooks/useClimbDatabase';
 import { calculatePowerZones } from './utils';
@@ -374,12 +374,31 @@ const App = () => {
     const photoReloadAttemptedRef = useRef(new Set());
     const authenticatedUserRef = useRef(null);
 
-    // Auth Listener — one optional reload if Google did not attach a photo URL yet.
+    // Auth Listener — finish redirect sign-in first, then listen for session changes.
     useEffect(() => {
         if (!auth) {
             setAuthReady(true);
             return;
         }
+
+        let cancelled = false;
+
+        const finishRedirectSignIn = async () => {
+            try {
+                setAuthBusy(true);
+                await consumeGoogleRedirectResult();
+            } catch (err) {
+                if (!cancelled) {
+                    const message = googleSignInErrorMessage(err);
+                    setAuthError(message);
+                }
+            } finally {
+                if (!cancelled) setAuthBusy(false);
+            }
+        };
+
+        finishRedirectSignIn();
+
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (!firebaseUser) {
                 photoReloadAttemptedRef.current.clear();
@@ -412,7 +431,10 @@ const App = () => {
             authenticatedUserRef.current = auth.currentUser;
             setAuthReady(true);
         });
-        return () => unsubscribe();
+        return () => {
+            cancelled = true;
+            unsubscribe();
+        };
     }, [applySignedOutSessionWipe]);
 
     // Drop stale Strava ?code= params (e.g. after logout) so Google sign-in is not blocked.
