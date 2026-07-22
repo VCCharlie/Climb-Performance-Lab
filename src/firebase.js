@@ -41,7 +41,11 @@ try {
   db = getFirestore(app);
   auth = getAuth(app);
   if (typeof window !== 'undefined') {
-    analytics = getAnalytics(app);
+    try {
+      analytics = getAnalytics(app);
+    } catch (analyticsError) {
+      console.warn('Firebase Analytics unavailable:', analyticsError);
+    }
   }
 } catch (error) {
   console.error("Firebase init error:", error);
