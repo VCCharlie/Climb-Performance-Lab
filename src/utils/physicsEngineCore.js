@@ -1,9 +1,9 @@
 /**
  * Pure climb physics for PhysicsEngine (Newton-Raphson + steady power model).
  */
-import { COGGAN_ZONES } from '../cogganZones';
 import { parseDurationToSeconds } from './formatters';
 import { calculateFerrariWatts } from './calculations';
+import { getCogganZoneForIntensityFactor } from './cogganZoneForIntensity.js';
 
 export const EMPTY_PHYSICS_CALC = {
     watts: 0,
@@ -82,7 +82,7 @@ export function computePhysicsClimb(p) {
     const wkg = userSettings.weight > 0 ? watts / userSettings.weight : 0;
     const vam = seconds > 0 ? (elevation / seconds) * 3600 : 0;
     const ifRatio = ftp > 0 ? watts / ftp : 0;
-    const zone = COGGAN_ZONES.find(z => ifRatio >= z.min && ifRatio <= z.max) || COGGAN_ZONES[6];
+    const zone = getCogganZoneForIntensityFactor(ifRatio);
 
     const timeStr = new Date(seconds * 1000).toISOString().substr(11, 8);
 

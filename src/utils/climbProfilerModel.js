@@ -3,7 +3,7 @@
  * Geen GPS-segmentdata: variatie is een benadering op basis van gemiddelde helling.
  */
 
-import { COGGAN_ZONES } from '../cogganZones';
+import { getCogganZoneForIntensityFactor } from './cogganZoneForIntensity.js';
 
 export function buildSyntheticProfile(selectedClimb, points = 50) {
     const totalDistance = selectedClimb.lengthKm;
@@ -95,8 +95,7 @@ export function computePowerRecommendations(profileData, ftp, intensityFraction)
 
         const recommendedPower = Math.round(basePower * powerMultiplier);
         const ratio = ftp > 0 ? recommendedPower / ftp : 0;
-        let zone = COGGAN_ZONES.find(z => ratio >= z.min && ratio < z.max);
-        if (!zone) zone = COGGAN_ZONES[COGGAN_ZONES.length - 1];
+        const zone = getCogganZoneForIntensityFactor(ratio);
 
         return {
             ...point,
