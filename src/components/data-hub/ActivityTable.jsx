@@ -167,7 +167,7 @@ const StravaKomSummaryBadges = ({ summary }) => {
     );
 };
 
-export const Row = React.memo(({
+export const Row = React.memo(React.forwardRef(({
     act,
     onDelete,
     onEdit,
@@ -183,7 +183,8 @@ export const Row = React.memo(({
     profileMaxHr,
     columns = ACTIVITY_TABLE_COLUMNS,
     stickyMeta = null,
-}) => {
+    ...trProps
+}, ref) => {
     const [isConfirmingDelete, setIsConfirmingDelete] = React.useState(false);
 
     if (!act) return null;
@@ -260,14 +261,16 @@ export const Row = React.memo(({
                     return (
                         <div className="min-w-0">
                             {titleContent}
-                            {climbMatch && (
-                                <ClimbMatchBadge
-                                    climb={climbMatch}
-                                    activity={act}
-                                    onOpenProfiler={onOpenProfiler}
-                                    compact
-                                />
-                            )}
+                            <div className="min-h-[1.125rem]">
+                                {climbMatch && (
+                                    <ClimbMatchBadge
+                                        climb={climbMatch}
+                                        activity={act}
+                                        onOpenProfiler={onOpenProfiler}
+                                        compact
+                                    />
+                                )}
+                            </div>
                         </div>
                     );
                 }
@@ -328,8 +331,10 @@ export const Row = React.memo(({
 
     return (
         <tr
+            ref={ref}
             id={act.id != null ? `activity-row-${act.id}` : undefined}
             className={tableRowStateClass({ isSelected, showBulkSelect: showBulkSelect || isPreview })}
+            {...trProps}
         >
             {showBulkSelect && (() => {
                 const sticky = stickyTableCellProps('__bulk__', stickyMeta, {
@@ -482,7 +487,7 @@ export const Row = React.memo(({
         prevProps.onOpenProfiler === nextProps.onOpenProfiler &&
         prevProps.onViewDetail === nextProps.onViewDetail
     );
-});
+}));
 
 const ActivityTable = React.memo(({
     activities,
@@ -533,6 +538,7 @@ const ActivityTable = React.memo(({
         getScrollElement: () => scrollRef.current,
         estimateSize: (index) => estimateFlattenedRowSize(flatRows[index], 'table'),
         overscan: 12,
+        getItemKey: (index) => getFlattenedRowKey(flatRows[index], index),
     });
 
     const virtualItems = useVirtual ? virtualizer.getVirtualItems() : [];
@@ -615,10 +621,65 @@ const ActivityTable = React.memo(({
                             )}
                             {virtualItems.map((virtualRow) => {
                                 const row = flatRows[virtualRow.index];
+                                const rowKey = getFlattenedRowKey(row, virtualRow.index);
+                                if (row.type === 'year') {
+                                    return (
+                                        <tr
+                                            key={rowKey}
+                                            ref={virtualizer.measureElement}
+                                            data-index={virtualRow.index}
+                                            id={`year-${row.year}`}
+                                            className={tableGroupYearClass}
+                                        >
+                                            <td colSpan={colSpan} className="px-3 py-2 font-semibold text-cdtext">
+                                                <button type="button" onClick={() => onToggleYear(row.year)} className="flex items-center gap-2 w-full text-left hover:text-cdprimary transition-colors cd-focus-ring rounded-cdsm">
+                                                    {isYearExpanded(row.year) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                                    {' '}
+                                                    {row.year}
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    );
+                                }
+                                if (row.type === 'month') {
+                                    return (
+                                        <tr
+                                            key={rowKey}
+                                            ref={virtualizer.measureElement}
+                                            data-index={virtualRow.index}
+                                            id={`month-${row.year}-${row.month}`}
+                                            className={tableGroupMonthClass}
+                                        >
+                                            <td colSpan={colSpan} className="px-6 py-1.5 text-xs font-semibold text-cdmuted">
+                                                <button type="button" onClick={() => onToggleMonth(row.year, row.month)} className="flex items-center gap-1 hover:text-cdtext text-left w-full transition-colors cd-focus-ring rounded-cdsm">
+                                                    {isMonthExpanded(row.year, row.month) ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                                                    {' '}
+                                                    {row.month}
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    );
+                                }
+                                const act = row.act;
                                 return (
-                                    <React.Fragment key={getFlattenedRowKey(row, virtualRow.index)}>
-                                        {renderFlatRow(row)}
-                                    </React.Fragment>
+                                    <Row
+                                        key={rowKey}
+                                        ref={virtualizer.measureElement}
+                                        data-index={virtualRow.index}
+                                        act={act}
+                                        onDelete={onDelete}
+                                        onEdit={onEdit}
+                                        onViewDetail={onViewDetail}
+                                        onToggleSelect={onToggleSelectRow}
+                                        isSelected={selectedActivityIds?.has(String(act.id))}
+                                        showBulkSelect={showBulkSelect}
+                                        onOpenProfiler={onOpenProfiler}
+                                        profilerClimbByActivityId={profilerClimbByActivityId}
+                                        profileFtp={profileFtp}
+                                        profileMaxHr={profileMaxHr}
+                                        columns={columns}
+                                        stickyMeta={stickyMeta}
+                                    />
                                 );
                             })}
                             {paddingBottom > 0 && (

@@ -19,12 +19,19 @@ const ActivityLogSyncBanners = ({
 }) => (
     <>
         {stravaAutoEnrichNotice && (
-            <div className="flex items-start justify-between gap-3 text-xs px-3 py-2 rounded-lg mb-3 border bg-amber-500/5 border-amber-500/20 text-amber-100/90">
-                <span className="leading-snug">{stravaAutoEnrichNotice}</span>
+            <div
+                role="status"
+                className="flex items-start justify-between gap-3 text-sm px-3 py-2.5 rounded-lg mb-3 border bg-amber-500/15 border-amber-600/40 text-cdtext"
+            >
+                <p className="leading-snug min-w-0 text-cdtext">
+                    <span className="font-semibold text-amber-900 dark:text-amber-100">Strava rate limit</span>
+                    {' — '}
+                    {stravaAutoEnrichNotice}
+                </p>
                 <button
                     type="button"
                     onClick={onDismissStravaAutoEnrichNotice}
-                    className="shrink-0 text-[10px] text-amber-200/70 hover:text-amber-100 underline"
+                    className="shrink-0 text-xs font-bold text-amber-900 dark:text-amber-100 underline underline-offset-2 hover:opacity-80"
                 >
                     Dismiss
                 </button>
@@ -52,17 +59,24 @@ const ActivityLogSyncBanners = ({
             </div>
         )}
         {(isStravaEnriching || stravaEnrichMsg) && (
-            <div className={`flex flex-col gap-1 text-xs px-3 py-2 rounded-lg mb-3 border ${isStravaEnriching ? 'bg-amber-500/10 border-amber-500/30 text-amber-200' : 'bg-cdbg/80 border-cdborder text-cdmuted'}`}>
-                <span className="flex items-center gap-2 font-bold text-cdtext">
-                    {isStravaEnriching && <Loader2 size={14} className="animate-spin text-amber-400" />}
+            <div
+                role="status"
+                className={`flex flex-col gap-1.5 text-sm px-3 py-2.5 rounded-lg mb-3 border ${
+                    isStravaEnriching
+                        ? 'bg-amber-500/15 border-amber-600/40 text-cdtext'
+                        : 'bg-cdsurface border-cdborder text-cdtext'
+                }`}
+            >
+                <span className="flex items-center gap-2 font-semibold text-cdtext">
+                    {isStravaEnriching && <Loader2 size={14} className="animate-spin text-amber-600 dark:text-amber-400" />}
                     Strava enrich
                 </span>
-                <span className="text-[11px] leading-snug">{stravaEnrichMsg}</span>
+                <span className="text-sm leading-snug text-cdtext">{stravaEnrichMsg}</span>
                 {!isStravaEnriching && stravaEnrichMsg && (
                     <button
                         type="button"
                         onClick={onDismissStravaEnrichMsg}
-                        className="self-end text-[10px] text-cdmuted hover:text-cdtext underline"
+                        className="self-end text-xs font-bold text-cdaccent hover:underline underline-offset-2"
                     >
                         Dismiss
                     </button>
@@ -70,17 +84,24 @@ const ActivityLogSyncBanners = ({
             </div>
         )}
         {(isStravaDescBackfilling || stravaDescBackfillMsg) && (
-            <div className={`flex flex-col gap-1 text-xs px-3 py-2 rounded-lg mb-3 border ${isStravaDescBackfilling ? 'bg-blue-500/10 border-blue-500/30 text-blue-200' : 'bg-cdbg/80 border-cdborder text-cdmuted'}`}>
-                <span className="flex items-center gap-2 font-bold text-cdtext">
-                    {isStravaDescBackfilling && <Loader2 size={14} className="animate-spin text-blue-400" />}
+            <div
+                role="status"
+                className={`flex flex-col gap-1.5 text-sm px-3 py-2.5 rounded-lg mb-3 border ${
+                    isStravaDescBackfilling
+                        ? 'bg-blue-500/15 border-blue-600/40 text-cdtext'
+                        : 'bg-cdsurface border-cdborder text-cdtext'
+                }`}
+            >
+                <span className="flex items-center gap-2 font-semibold text-cdtext">
+                    {isStravaDescBackfilling && <Loader2 size={14} className="animate-spin text-blue-600 dark:text-blue-400" />}
                     Strava descriptions
                 </span>
-                <span className="text-[11px] leading-snug">{stravaDescBackfillMsg}</span>
+                <span className="text-sm leading-snug text-cdtext">{stravaDescBackfillMsg}</span>
                 {!isStravaDescBackfilling && stravaDescBackfillMsg && (
                     <button
                         type="button"
                         onClick={onDismissStravaDescBackfillMsg}
-                        className="self-end text-[10px] text-cdmuted hover:text-cdtext underline"
+                        className="self-end text-xs font-bold text-cdaccent hover:underline underline-offset-2"
                     >
                         Dismiss
                     </button>
