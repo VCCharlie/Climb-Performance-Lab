@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeMultiYearYtdAtSameMoment, multiYearChartSeries } from '../../utils/multiYearSameMoment';
+import { computeMultiYearCompareRows, multiYearChartSeries } from '../../utils/multiYearSameMoment';
 
 describe('multiYearSameMoment', () => {
     const ref = new Date(2026, 6, 23);
@@ -11,7 +11,7 @@ describe('multiYearSameMoment', () => {
             { type: 'Ride', date: '2025-12-01', distance: 200, climbing: 800, moving_time: 7200, load: 90 },
         ];
 
-        const rows = computeMultiYearYtdAtSameMoment(activities, ref, 3);
+        const rows = computeMultiYearCompareRows(activities, ref, 3);
         const y2026 = rows.find((r) => r.year === 2026);
         const y2025 = rows.find((r) => r.year === 2025);
         expect(y2026?.distanceKm).toBe(100);
@@ -24,5 +24,15 @@ describe('multiYearSameMoment', () => {
             'movingTimeSec',
         );
         expect(series[0].value).toBe(2);
+    });
+
+    it('filters by sport type set', () => {
+        const activities = [
+            { type: 'Ride', date: '2026-06-01', distance: 100, climbing: 500, moving_time: 3600, load: 50 },
+            { type: 'Run', date: '2026-06-01', distance: 10, climbing: 50, moving_time: 1800, load: 20 },
+        ];
+        const rows = computeMultiYearCompareRows(activities, ref, 3, new Set(['Ride']));
+        const y2026 = rows.find((r) => r.year === 2026);
+        expect(y2026?.distanceKm).toBe(100);
     });
 });

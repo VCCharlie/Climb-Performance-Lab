@@ -13,6 +13,8 @@ import { useActivitiesList } from '../hooks/useActivities';
 import { SkeletonChartCard } from './ui/Skeleton';
 import OverviewTab from './dashboard/OverviewTab';
 
+const CompareTab = lazyWithRetry(() => import('./dashboard/CompareTab'), 'CompareTab');
+
 const FormTab = lazyWithRetry(() => import('./dashboard/FormTab'), 'FormTab');
 const PowerTab = lazyWithRetry(() => import('./dashboard/PowerTab'), 'PowerTab');
 const DistanceTab = lazyWithRetry(() => import('./dashboard/DistanceTab'), 'DistanceTab');
@@ -24,7 +26,7 @@ function readDashboardSubTab() {
     if (typeof sessionStorage === 'undefined') return 'overview';
     try {
         const v = sessionStorage.getItem(DASH_SUBTAB_STORAGE_KEY);
-        if (['overview', 'form', 'power', 'distance', 'volume'].includes(v)) return v;
+        if (['overview', 'form', 'power', 'distance', 'volume', 'compare'].includes(v)) return v;
     } catch {
         /* ignore */
     }
@@ -186,6 +188,17 @@ const Dashboard = ({
                     onFocus={() => handleDashboardSubTabIntent('volume')}
                     className={`flex-1 min-w-[5.5rem] py-3 text-sm font-bold ${dashboardTab === 'volume' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
                 >Volume</button>
+                <button
+                    type="button"
+                    id="tab-compare"
+                    role="tab"
+                    aria-selected={dashboardTab === 'compare'}
+                    aria-controls="tabpanel-compare"
+                    onClick={() => setDashboardTab('compare')}
+                    onMouseEnter={() => handleDashboardSubTabIntent('compare')}
+                    onFocus={() => handleDashboardSubTabIntent('compare')}
+                    className={`flex-1 min-w-[5.5rem] py-3 text-sm font-bold ${dashboardTab === 'compare' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
+                >Compare</button>
             </div>
 
             {/* TAB CONTENT */}
@@ -205,6 +218,12 @@ const Dashboard = ({
 
             {dashboardTab !== 'overview' && (
                 <Suspense fallback={<SkeletonChartCard className="mt-2" />}>
+                    {dashboardTab === 'compare' && (
+                        <div role="tabpanel" id="tabpanel-compare" aria-labelledby="tab-compare">
+                            <CompareTab allActivities={firestoreActivities} />
+                        </div>
+                    )}
+
                     {dashboardTab === 'form' && (
                         <div role="tabpanel" id="tabpanel-form" aria-labelledby="tab-form">
                             <FormTab

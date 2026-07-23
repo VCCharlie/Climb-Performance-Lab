@@ -340,7 +340,7 @@ const BucketList = ({
             <div className="space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-xs text-cdmuted">
-                        Personal bests are matched from activity titles and Strava descriptions (same logic as Climb Profiler).
+                        Personal bests match from activity title or Strava description (MyCols, ClimbFinder).
                     </p>
                     <button
                         type="button"
@@ -370,7 +370,7 @@ const BucketList = ({
                 ) : (
                     <p className="text-[10px] text-cdmuted">
                         After scanning you will see a summary here (activities scanned, PB count, new matches).
-                        Descriptions appear after Strava gear/map backfill or a fresh Intervals import.
+                        Strava descriptions: Activities → bulk → Strava descriptions (not from Intervals).
                     </p>
                 )}
             </div>

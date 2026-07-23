@@ -13,6 +13,9 @@ const ActivityLogSyncBanners = ({
     onDismissStravaEnrichMsg,
     stravaAutoEnrichNotice,
     onDismissStravaAutoEnrichNotice,
+    isStravaDescBackfilling,
+    stravaDescBackfillMsg,
+    onDismissStravaDescBackfillMsg,
 }) => (
     <>
         {stravaAutoEnrichNotice && (
@@ -59,6 +62,24 @@ const ActivityLogSyncBanners = ({
                     <button
                         type="button"
                         onClick={onDismissStravaEnrichMsg}
+                        className="self-end text-[10px] text-cdmuted hover:text-cdtext underline"
+                    >
+                        Dismiss
+                    </button>
+                )}
+            </div>
+        )}
+        {(isStravaDescBackfilling || stravaDescBackfillMsg) && (
+            <div className={`flex flex-col gap-1 text-xs px-3 py-2 rounded-lg mb-3 border ${isStravaDescBackfilling ? 'bg-blue-500/10 border-blue-500/30 text-blue-200' : 'bg-cdbg/80 border-cdborder text-cdmuted'}`}>
+                <span className="flex items-center gap-2 font-bold text-cdtext">
+                    {isStravaDescBackfilling && <Loader2 size={14} className="animate-spin text-blue-400" />}
+                    Strava descriptions
+                </span>
+                <span className="text-[11px] leading-snug">{stravaDescBackfillMsg}</span>
+                {!isStravaDescBackfilling && stravaDescBackfillMsg && (
+                    <button
+                        type="button"
+                        onClick={onDismissStravaDescBackfillMsg}
                         className="self-end text-[10px] text-cdmuted hover:text-cdtext underline"
                     >
                         Dismiss

@@ -30,6 +30,7 @@ const DASHBOARD_SUBTAB_LOADERS = {
     power: () => import('../components/dashboard/PowerTab'),
     distance: () => import('../components/dashboard/DistanceTab'),
     volume: () => import('../components/dashboard/VolumeTotalsTab'),
+    compare: () => import('../components/dashboard/CompareTab'),
 };
 
 function runPrefetch(key, loader) {
