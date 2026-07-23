@@ -103,7 +103,9 @@ export function useProfilerClimbMatches(processedActivities, climbs) {
     return useMemo(() => {
         if (!processedActivities?.length || !climbs?.length) return new Map();
         if (!useWorker) return matchClimbsSync(processedActivities, climbs);
-        if (workerResult.cacheKey !== workerCacheKey) return new Map();
-        return workerResult.map;
+        if (workerResult.cacheKey === workerCacheKey) return workerResult.map;
+        // Keep the last match map while the worker recomputes — avoids row height flicker in the log.
+        if (workerResult.map.size > 0) return workerResult.map;
+        return matchClimbsSync(processedActivities, climbs);
     }, [processedActivities, climbs, useWorker, workerResult, workerCacheKey]);
 }

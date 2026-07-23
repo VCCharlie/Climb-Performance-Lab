@@ -19,7 +19,7 @@ export const tableHeadCellClass =
 export const tableBodyClass = 'divide-y divide-cdborder/40 bg-cdsurface';
 
 export const tableRowClass =
-  'group cd-transition hover:bg-cdsurfacelow/80 border-b border-cdborder/30';
+  'group transition-colors hover:bg-cdsurfacelow/80 border-b border-cdborder/30';
 
 export function tableRowStateClass({ isSelected = false, showBulkSelect = false } = {}) {
   return cn(

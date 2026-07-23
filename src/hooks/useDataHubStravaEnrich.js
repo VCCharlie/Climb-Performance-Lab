@@ -11,7 +11,7 @@ import { devLog } from '../utils/safeLog';
 const AUTO_ENRICH_LOOKBACK_DAYS = 7;
 
 const RATE_LIMIT_NOTICE =
-    'Strava is temporarily limiting requests. Titles and details may update later — try again in about 15 minutes.';
+    'Titles and details may update later — try again in about 15 minutes.';
 
 /**
  * Strava silent/auto enrichment and per-activity "Find on Strava" panel state (Bolt 3d-bis follow-up).

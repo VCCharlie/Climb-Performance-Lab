@@ -10,7 +10,7 @@ export const FLATTENED_ROW_ESTIMATE_PX = {
     activity: 128,
     tableYear: 40,
     tableMonth: 32,
-    tableActivity: 36,
+    tableActivity: 52,
 };
 
 /**
