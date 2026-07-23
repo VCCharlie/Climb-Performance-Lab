@@ -80,6 +80,7 @@ export function findBestClimbUsingIndex(activityTitle, index) {
 
     const titleLower = stripDiacritics(activityTitle.toLowerCase());
     const titleWords = normWords(activityTitle);
+    const titleWordSet = new Set(titleWords);
     const lookupKeys = titleWords.length > 0 ? titleWords : fallbackTokens(activityTitle);
 
     const candidates = new Set();
@@ -112,7 +113,7 @@ export function findBestClimbUsingIndex(activityTitle, index) {
         const climbWords = normWords(name);
         let score = 0;
         for (const cw of climbWords) {
-            if (titleWords.includes(cw)) score += cw.length + 2;
+            if (titleWordSet.has(cw)) score += cw.length + 2;
             else if (titleLower.includes(cw)) score += cw.length;
         }
         if (score > bestScore) {
