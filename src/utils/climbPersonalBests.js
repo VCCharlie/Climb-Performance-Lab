@@ -6,6 +6,68 @@ import { buildClimbMatchIndex, findBestClimbForActivity } from './activityClimbM
 import { activityMovingTimeSec } from './activityFilterMetrics';
 import { normalizeDate } from './formatters';
 import { stravaIdFromActivity } from './climbPbActivityLinks';
+import { yieldToMain } from './yieldToMain';
+
+/**
+ * Apply one activity to the in-progress PB map (mutates `pbs`).
+ * @param {object} act
+ * @param {ReturnType<typeof buildClimbMatchIndex>} index
+ * @param {Record<string, object>} pbs
+ */
+function applyActivityToClimbPbs(act, index, pbs) {
+    if (!act?.title && !act?.description && !act?.notes) return;
+    const { climb, source } = findBestClimbForActivity(act, index);
+    if (!climb?.id) return;
+
+    const climbId = String(climb.id);
+    const np = Number(act.norm_power) || 0;
+    const ap = Number(act.avg_power) || 0;
+    const movingSec = activityMovingTimeSec(act);
+    const prev = pbs[climbId];
+
+    const betterNp = np > 0 && (!prev?.normPower || np > prev.normPower);
+    const betterAp = ap > 0 && (!prev?.avgPower || ap > prev.avgPower);
+    const betterTime = movingSec != null && movingSec > 60
+        && (!prev?.movingTimeSec || movingSec < prev.movingTimeSec);
+
+    if (!prev) {
+        pbs[climbId] = {
+            climbId,
+            climbName: climb.name,
+            normPower: np > 0 ? np : null,
+            avgPower: ap > 0 ? ap : null,
+            movingTimeSec: movingSec > 0 ? movingSec : null,
+            activityId: act.id != null ? String(act.id) : null,
+            stravaId: stravaIdFromActivity(act),
+            date: normalizeDate(act.date) || null,
+            activityTitle: act.title || null,
+            matchSource: source,
+        };
+        return;
+    }
+
+    if (!betterNp && !betterAp && !betterTime) return;
+
+    pbs[climbId] = {
+        ...prev,
+        normPower: betterNp ? np : prev.normPower,
+        avgPower: betterAp ? ap : prev.avgPower,
+        movingTimeSec: betterTime ? movingSec : prev.movingTimeSec,
+        activityId: (betterNp || betterAp || betterTime) && act.id != null
+            ? String(act.id)
+            : prev.activityId,
+        stravaId: (betterNp || betterAp || betterTime)
+            ? (stravaIdFromActivity(act) || prev.stravaId || null)
+            : prev.stravaId,
+        date: (betterNp || betterAp || betterTime)
+            ? (normalizeDate(act.date) || prev.date)
+            : prev.date,
+        activityTitle: (betterNp || betterAp || betterTime)
+            ? (act.title || prev.activityTitle)
+            : prev.activityTitle,
+        matchSource: (betterNp || betterAp || betterTime) ? (source || prev.matchSource) : prev.matchSource,
+    };
+}
 
 /**
  * @param {object[]} activities
@@ -17,58 +79,40 @@ export function scanClimbPersonalBests(activities, climbs) {
     const pbs = {};
 
     for (const act of activities || []) {
-        if (!act?.title && !act?.description && !act?.notes) continue;
-        const { climb, source } = findBestClimbForActivity(act, index);
-        if (!climb?.id) continue;
+        applyActivityToClimbPbs(act, index, pbs);
+    }
 
-        const climbId = String(climb.id);
-        const np = Number(act.norm_power) || 0;
-        const ap = Number(act.avg_power) || 0;
-        const movingSec = activityMovingTimeSec(act);
-        const prev = pbs[climbId];
+    return pbs;
+}
 
-        const betterNp = np > 0 && (!prev?.normPower || np > prev.normPower);
-        const betterAp = ap > 0 && (!prev?.avgPower || ap > prev.avgPower);
-        const betterTime = movingSec != null && movingSec > 60
-            && (!prev?.movingTimeSec || movingSec < prev.movingTimeSec);
+/**
+ * Same result as scanClimbPersonalBests, but yields to the main thread between chunks
+ * so the UI stays responsive on large activity logs.
+ *
+ * @param {object[]} activities
+ * @param {object[]} climbs
+ * @param {{ chunkSize?: number, onProgress?: (p: { done: number, total: number }) => void }} [options]
+ * @returns {Promise<Record<string, object>>}
+ */
+export async function scanClimbPersonalBestsAsync(activities, climbs, options = {}) {
+    const chunkSize = Math.max(50, options.chunkSize ?? 250);
+    const onProgress = options.onProgress;
+    const index = buildClimbMatchIndex(climbs);
+    const pbs = {};
+    const list = activities || [];
+    const total = list.length;
 
-        if (!prev) {
-            pbs[climbId] = {
-                climbId,
-                climbName: climb.name,
-                normPower: np > 0 ? np : null,
-                avgPower: ap > 0 ? ap : null,
-                movingTimeSec: movingSec > 0 ? movingSec : null,
-                activityId: act.id != null ? String(act.id) : null,
-                stravaId: stravaIdFromActivity(act),
-                date: normalizeDate(act.date) || null,
-                activityTitle: act.title || null,
-                matchSource: source,
-            };
-            continue;
+    onProgress?.({ done: 0, total });
+
+    for (let i = 0; i < total; i++) {
+        applyActivityToClimbPbs(list[i], index, pbs);
+        const done = i + 1;
+        if (done % chunkSize === 0 || done === total) {
+            onProgress?.({ done, total });
+            if (done < total) {
+                await yieldToMain();
+            }
         }
-
-        if (!betterNp && !betterAp && !betterTime) continue;
-
-        pbs[climbId] = {
-            ...prev,
-            normPower: betterNp ? np : prev.normPower,
-            avgPower: betterAp ? ap : prev.avgPower,
-            movingTimeSec: betterTime ? movingSec : prev.movingTimeSec,
-            activityId: (betterNp || betterAp || betterTime) && act.id != null
-                ? String(act.id)
-                : prev.activityId,
-            stravaId: (betterNp || betterAp || betterTime)
-                ? (stravaIdFromActivity(act) || prev.stravaId || null)
-                : prev.stravaId,
-            date: (betterNp || betterAp || betterTime)
-                ? (normalizeDate(act.date) || prev.date)
-                : prev.date,
-            activityTitle: (betterNp || betterAp || betterTime)
-                ? (act.title || prev.activityTitle)
-                : prev.activityTitle,
-            matchSource: (betterNp || betterAp || betterTime) ? (source || prev.matchSource) : prev.matchSource,
-        };
     }
 
     return pbs;

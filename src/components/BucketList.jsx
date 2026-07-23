@@ -6,7 +6,7 @@ import FlagIcon from './FlagIcon';
 import PlannedClimbWeatherPanel from './bucket-list/PlannedClimbWeatherPanel';
 import ClimbPbActivityLinks from './bucket-list/ClimbPbActivityLinks';
 import {
-    scanClimbPersonalBests,
+    scanClimbPersonalBestsAsync,
     formatPbSummary,
     hasStoredClimbPb,
     countClimbsWithPb,
@@ -14,6 +14,7 @@ import {
     summarizePbScanResult,
     formatPbScanFeedbackMessage,
 } from '../utils/climbPersonalBests';
+import { yieldToMain } from '../utils/yieldToMain';
 
 const STATUS_FILTER_OPTIONS = [
     { id: 'all', label: 'All' },
@@ -51,6 +52,7 @@ const BucketList = ({
     const [sortBy, setSortBy] = useState('name'); // name, difficulty, status
     const [scanFeedback, setScanFeedback] = useState(null);
     const [isScanning, setIsScanning] = useState(false);
+    const [scanProgress, setScanProgress] = useState(null);
 
     // Update parent when state changes
     React.useEffect(() => {
@@ -59,7 +61,7 @@ const BucketList = ({
         }
     }, [climbStatus, climbPbs, onStateChange]);
 
-    const handleScanPbs = () => {
+    const handleScanPbs = async () => {
         if (!activities?.length) {
             setScanFeedback({
                 tone: 'warn',
@@ -69,8 +71,15 @@ const BucketList = ({
         }
 
         setIsScanning(true);
+        setScanProgress({ done: 0, total: activities.length });
+        setScanFeedback(null);
+
+        await yieldToMain();
+
         try {
-            const scanned = scanClimbPersonalBests(activities, climbDatabase);
+            const scanned = await scanClimbPersonalBestsAsync(activities, climbDatabase, {
+                onProgress: setScanProgress,
+            });
             const summary = summarizePbScanResult(climbPbs, scanned, activities);
             setClimbPbs(summary.merged);
             if (onStateChange) {
@@ -84,8 +93,15 @@ const BucketList = ({
                 message: formatPbScanFeedbackMessage(summary),
                 at: Date.now(),
             });
+        } catch (err) {
+            console.error('PB scan failed', err);
+            setScanFeedback({
+                tone: 'warn',
+                message: 'PB scan failed — try again in a moment.',
+            });
         } finally {
             setIsScanning(false);
+            setScanProgress(null);
         }
     };
 
@@ -352,7 +368,11 @@ const BucketList = ({
                         className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md border border-cdborder bg-cdsurface text-cdtext hover:border-cdaccent hover:text-cdaccent disabled:opacity-40 cd-transition"
                     >
                         <Sparkles size={14} aria-hidden className={isScanning ? 'animate-pulse' : ''} />
-                        {isScanning ? 'Scanning…' : 'Scan activities for PBs'}
+                        {isScanning
+                            ? (scanProgress?.total
+                                ? `Scanning… ${scanProgress.done.toLocaleString('en-GB')} / ${scanProgress.total.toLocaleString('en-GB')}`
+                                : 'Scanning…')
+                            : 'Scan activities for PBs'}
                     </button>
                 </div>
 

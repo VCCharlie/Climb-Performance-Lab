@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { scanClimbPersonalBests, formatPbSummary, hasStoredClimbPb, countClimbsWithPb, summarizePbScanResult, formatPbScanFeedbackMessage } from '../../utils/climbPersonalBests';
+import { scanClimbPersonalBests, scanClimbPersonalBestsAsync, formatPbSummary, hasStoredClimbPb, countClimbsWithPb, summarizePbScanResult, formatPbScanFeedbackMessage } from '../../utils/climbPersonalBests';
 
 const climbs = [
     { id: 'fr_alpe', name: "Alpe d'Huez" },
@@ -38,6 +38,32 @@ describe('scanClimbPersonalBests', () => {
 
         expect(pbs.it_stelvio?.normPower).toBe(240);
         expect(pbs.it_stelvio?.matchSource).toBe('description');
+    });
+
+    it('scanClimbPersonalBestsAsync matches sync scan results', async () => {
+        const activities = [
+            { id: '1', title: 'Morning Alpe d Huez', norm_power: 250, date: '2026-01-01', moving_time: 3600 },
+            { id: '2', title: 'Alpe d Huez PR attempt', norm_power: 265, date: '2026-02-01', moving_time: 3500 },
+            {
+                id: '3',
+                title: 'Sunday ride',
+                description: 'MyCols: Passo dello Stelvio from Prato',
+                norm_power: 240,
+                date: '2026-03-01',
+                moving_time: 4000,
+            },
+        ];
+
+        const sync = scanClimbPersonalBests(activities, climbs);
+        const progress = [];
+        const asyncResult = await scanClimbPersonalBestsAsync(activities, climbs, {
+            chunkSize: 1,
+            onProgress: (p) => progress.push(p),
+        });
+
+        expect(asyncResult).toEqual(sync);
+        expect(progress.length).toBeGreaterThan(0);
+        expect(progress[progress.length - 1]).toEqual({ done: activities.length, total: activities.length });
     });
 
     it('formatPbSummary combines power and time', () => {
