@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeMultiYearCompareRows, multiYearChartSeries } from '../../utils/multiYearSameMoment';
+import { computeMultiYearCompareRows, multiYearChartSeries, inferCompareYearCount } from '../../utils/multiYearSameMoment';
 
 describe('multiYearSameMoment', () => {
     const ref = new Date(2026, 6, 23);
@@ -34,5 +34,13 @@ describe('multiYearSameMoment', () => {
         const rows = computeMultiYearCompareRows(activities, ref, 3, new Set(['Ride']));
         const y2026 = rows.find((r) => r.year === 2026);
         expect(y2026?.distanceKm).toBe(100);
+    });
+
+    it('inferCompareYearCount spans oldest activity year', () => {
+        const activities = [
+            { type: 'Ride', date: '2011-03-01' },
+            { type: 'Ride', date: '2026-01-01' },
+        ];
+        expect(inferCompareYearCount(activities, ref)).toBe(16);
     });
 });

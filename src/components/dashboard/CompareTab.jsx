@@ -3,7 +3,7 @@ import { GitCompare } from 'lucide-react';
 import { SPORT_TYPES } from '../../config';
 import { chartCardClass } from '../../utils/chartTheme';
 import { COMPARE_PERIODS, comparePeriodSubtitle } from '../../utils/comparePeriodWindows';
-import { computeMultiYearCompareRows } from '../../utils/multiYearSameMoment';
+import { computeMultiYearCompareRows, inferCompareYearCount } from '../../utils/multiYearSameMoment';
 import { computeSportMixForComparePeriod } from '../../utils/compareSportMix';
 import YearAtMomentBars from './YearAtMomentBars';
 import CompareSportDonut from './CompareSportDonut';
@@ -31,9 +31,14 @@ const CompareTab = ({ allActivities }) => {
     const now = useMemo(() => new Date(), []);
     const currentYear = now.getFullYear();
 
+    const yearCount = useMemo(
+        () => inferCompareYearCount(allActivities, now),
+        [allActivities, now],
+    );
+
     const rows = useMemo(
-        () => computeMultiYearCompareRows(allActivities, now, 5, selectedSports, period),
-        [allActivities, now, selectedSports, period],
+        () => computeMultiYearCompareRows(allActivities, now, yearCount, selectedSports, period),
+        [allActivities, now, yearCount, selectedSports, period],
     );
 
     const sportMix = useMemo(
@@ -76,6 +81,7 @@ const CompareTab = ({ allActivities }) => {
                             </h3>
                             <p className="text-[11px] text-cdmuted">
                                 {comparePeriodSubtitle(period, now)}
+                                {yearCount > 1 ? ` · ${yearCount} years of history` : ''}
                             </p>
                         </div>
                     </div>

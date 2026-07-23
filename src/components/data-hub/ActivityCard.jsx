@@ -137,8 +137,12 @@ const ActivityCard = React.memo(({
                         {title}
                     </h3>
                     {description ? (
-                        <p className="text-[10px] text-cdmuted mt-1 line-clamp-2 leading-snug" title={description}>
+                        <p className="text-[11px] text-cdmuted mt-1 line-clamp-3 leading-snug whitespace-pre-wrap" title={description}>
                             {description}
+                        </p>
+                    ) : act.strava_id ? (
+                        <p className="text-[10px] text-cdmuted/80 mt-1 italic">
+                            No Strava description yet — run backfill in Activities.
                         </p>
                     ) : null}
                     {climbMatch && (

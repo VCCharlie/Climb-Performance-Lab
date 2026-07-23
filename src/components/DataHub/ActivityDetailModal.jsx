@@ -66,6 +66,10 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
 
     if (!activity) return null;
 
+    const storedDescription = (activity.description || activity.notes || '').trim();
+    const liveDescription = (stravaData?.description || '').trim();
+    const displayDescription = storedDescription || liveDescription;
+
     const polyline = stravaData?.map?.summary_polyline;
     const segments = stravaData?.segment_efforts || [];
 
@@ -90,6 +94,15 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
                             <span className="text-cdmuted text-xs flex items-center gap-1"><Calendar size={12} /> {formatDateDDMMYYYY(activity.date)}</span>
                         </div>
                         <h2 className="text-xl font-bold text-cdtext">{activity.title}</h2>
+                        {displayDescription ? (
+                            <p className="text-sm text-cdmuted mt-2 leading-relaxed whitespace-pre-wrap border-l-2 border-cdaccent/40 pl-3">
+                                {displayDescription}
+                            </p>
+                        ) : activity.strava_id ? (
+                            <p className="text-[11px] text-cdmuted mt-2 italic">
+                                No Strava description stored yet. Run Activities → Strava descriptions backfill, or it will appear here after Strava loads.
+                            </p>
+                        ) : null}
                         <div className="flex items-center gap-4 mt-2 flex-wrap">
                             {activity.id && !String(activity.id).startsWith('csv_') && (
                                 <a href={`https://intervals.icu/activities/${activity.id}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm px-1 py-0.5 -ml-1">

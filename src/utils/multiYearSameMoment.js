@@ -9,6 +9,28 @@ import { comparePeriodWindowForYear } from './comparePeriodWindows.js';
 
 const TRACKED_SPORTS = new Set(SPORT_TYPES);
 const DEFAULT_MAX_YEARS = 5;
+const MAX_COMPARE_YEARS_CAP = 20;
+
+/**
+ * How many year rows to show — from oldest activity year through reference year (capped).
+ * @param {object[]} activities
+ * @param {Date} [referenceDate]
+ * @param {number} [cap]
+ */
+export function inferCompareYearCount(activities, referenceDate = new Date(), cap = MAX_COMPARE_YEARS_CAP) {
+    const refYear = referenceDate.getFullYear();
+    let minYear = refYear;
+
+    for (const a of activities || []) {
+        const day = normalizeDate(a.date);
+        if (!day || day.length < 10) continue;
+        const y = parseInt(day.slice(0, 10), 10);
+        if (!Number.isNaN(y)) minYear = Math.min(minYear, y);
+    }
+
+    const span = refYear - minYear + 1;
+    return Math.min(Math.max(span, 1), cap);
+}
 
 /**
  * @param {object[]} activities

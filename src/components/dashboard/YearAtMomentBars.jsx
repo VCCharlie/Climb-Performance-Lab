@@ -1,7 +1,13 @@
 import React, { useMemo } from 'react';
 import { formatNlNumber } from '../../utils/formatters';
 
-const LOCALE = 'en-GB';
+const PAST_YEAR_BAR_COLORS = [
+    'rgba(100,116,139,0.72)',
+    'rgba(71,85,105,0.68)',
+    'rgba(59,130,246,0.55)',
+    'rgba(52,211,153,0.5)',
+    'rgba(148,163,184,0.65)',
+];
 
 function metricValue(row, metricId) {
     if (metricId === 'distanceKm') return row.distanceKm;
@@ -45,21 +51,29 @@ const YearAtMomentBars = ({ rows, metricId, currentYear }) => {
         return <p className="text-xs text-cdmuted">No data for this metric.</p>;
     }
 
+    let pastIndex = 0;
+
     return (
         <div className="space-y-2">
             {sorted.map((row) => {
                 const value = metricValue(row, metricId);
-                const pct = Math.max(2, (value / max) * 100);
+                const pct = Math.max(4, (value / max) * 100);
                 const isCurrent = row.year === currentYear;
+                let barColor = 'var(--cd-accent, #ea580c)';
+                if (!isCurrent) {
+                    barColor = PAST_YEAR_BAR_COLORS[pastIndex % PAST_YEAR_BAR_COLORS.length];
+                    pastIndex += 1;
+                }
+
                 return (
                     <div key={row.year} className="flex items-center gap-2 text-xs">
                         <span className={`w-10 shrink-0 font-mono tabular-nums ${isCurrent ? 'text-cdaccent font-bold' : 'text-cdmuted'}`}>
                             {row.year}
                         </span>
-                        <div className="flex-1 h-5 rounded bg-cdborder/30 overflow-hidden">
+                        <div className="flex-1 h-5 rounded bg-cdbg/70 border border-cdborder/40 overflow-hidden">
                             <div
-                                className={`h-full rounded transition-all duration-500 ${isCurrent ? 'bg-cdaccent' : 'bg-cdborder/80'}`}
-                                style={{ width: `${pct}%` }}
+                                className="h-full rounded-sm transition-all duration-500"
+                                style={{ width: `${pct}%`, backgroundColor: barColor }}
                                 title={`${row.year}: ${formatMetric(metricId, value)}`}
                             />
                         </div>
