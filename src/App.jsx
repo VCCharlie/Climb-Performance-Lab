@@ -65,6 +65,10 @@ import {
 } from './utils/sessionData';
 import { safeLocalStorageSet } from './utils/safeStorage.js';
 import { migrateLegacyBucketState, setClimbBucketStatus } from './utils/bucketListState';
+import {
+    syncBucketListToFirestore,
+    BUCKET_LIST_CLOUD_DEBOUNCE_MS,
+} from './utils/bucketListCloudSync';
 import { runGoogleSignIn, isGoogleSignInInProgress, googleSignInErrorMessage, completeGoogleRedirectIfNeeded } from './utils/googleSignIn';
 import { ToastProvider } from './context/ToastContext';
 import { ActivitiesProvider, useActivitiesState } from './context/ActivitiesContext';
@@ -375,6 +379,17 @@ const App = () => {
         safeLocalStorageSet('bucketListState', JSON.stringify(bucketListState));
     }, [bucketListState]);
 
+    // Auto-sync bucket list to Firestore when signed in (cross-device).
+    useEffect(() => {
+        if (!user || !db || !bucketListCloudReadyRef.current) return undefined;
+
+        const timer = setTimeout(() => {
+            syncBucketListToFirestore(db, user.uid, bucketListState);
+        }, BUCKET_LIST_CLOUD_DEBOUNCE_MS);
+
+        return () => clearTimeout(timer);
+    }, [bucketListState, user]);
+
     const [weatherClimbState, setWeatherClimbState] = useState({
         selectedClimb: getDefaultClimb(),
         targetPower: 280 * 0.85,
@@ -392,6 +407,7 @@ const App = () => {
 
     const photoReloadAttemptedRef = useRef(new Set());
     const authenticatedUserRef = useRef(null);
+    const bucketListCloudReadyRef = useRef(false);
 
     // Auth Listener — finish redirect sign-in first, then listen for session changes.
     useEffect(() => {
@@ -508,10 +524,12 @@ const App = () => {
     // 1. Settings Laden (One-time fetch) — signed-in only
     useEffect(() => {
         if (!user) {
-            return;
+            bucketListCloudReadyRef.current = false;
+            return undefined;
         }
 
         let cancelled = false;
+        bucketListCloudReadyRef.current = false;
 
         const loadSettings = async () => {
             if (!db || !user) return;
@@ -558,11 +576,16 @@ const App = () => {
                 }
             } catch (e) {
                 console.error("Error loading settings", e);
+            } finally {
+                if (!cancelled) {
+                    bucketListCloudReadyRef.current = true;
+                }
             }
         };
         loadSettings();
         return () => {
             cancelled = true;
+            bucketListCloudReadyRef.current = false;
         };
     }, [user]);
 

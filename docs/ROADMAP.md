@@ -58,6 +58,7 @@ Planmatige uitrol van verbeteringen (juli 2026). Volgorde volgt impact en afhank
 ## Technische notities
 
 - **Bucket list schema:** `{ climbStatus: { id → status }, climbPbs: { id → pb } }` — migreert legacy `{ done[], planned[], want[] }`.
+- **Bucket list sync:** localStorage (per browser) + **auto Firestore** (`settings/user_{uid}.bucketList`, debounced ~1.5s) wanneer ingelogd.
 - **Race → Fueling:** `buildFuelingHandoff()` stuurt duration, IF, carbs/h, altitude door naar Fueling tab.
 - **Training-keten:** `localStorage` key `cpl.trainingPlan.v1`.
 - **UI-taal:** Engels voor user-facing strings.
