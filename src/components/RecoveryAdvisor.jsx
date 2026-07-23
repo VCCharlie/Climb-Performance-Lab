@@ -1,8 +1,14 @@
-﻿import React, { useMemo } from 'react';
+﻿import React, { useMemo, useState, useEffect } from 'react';
 import { Activity, TrendingUp, TrendingDown, Calendar, AlertTriangle, CheckCircle, Zap, Info, Lightbulb } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts';
 import { formatDateDDMMYYYY } from '../utils/formatters';
 import { useActivitiesList } from '../hooks/useActivities';
+import {
+    buildTaperRecoveryWarning,
+    hydrateTrainingPlanSnapshot,
+    readTrainingPlanSnapshot,
+    TRAINING_PLAN_UPDATED_EVENT,
+} from '../utils/trainingPlanSnapshot';
 
 // ⚡ Bolt Optimization: Use array lookup instead of Date.toLocaleString() in loops
 const NL_SHORT_MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
@@ -27,6 +33,14 @@ const CustomTooltip = ({ active, payload }) => {
 const RecoveryAdvisor = ({ activities: activitiesProp, startDate, endDate }) => {
     const activitiesFromContext = useActivitiesList();
     const activities = activitiesProp ?? activitiesFromContext;
+    const [planRevision, setPlanRevision] = useState(0);
+
+    useEffect(() => {
+        const onPlanUpdate = () => setPlanRevision((n) => n + 1);
+        window.addEventListener(TRAINING_PLAN_UPDATED_EVENT, onPlanUpdate);
+        return () => window.removeEventListener(TRAINING_PLAN_UPDATED_EVENT, onPlanUpdate);
+    }, []);
+
     // Calculate Training Load metrics (CTL, ATL, TSB)
     const trainingMetrics = useMemo(() => {
         if (!activities || activities.length === 0) {
@@ -179,8 +193,17 @@ const RecoveryAdvisor = ({ activities: activitiesProp, startDate, endDate }) => 
             }
         }
 
-        return { chartData, current, recommendations, rangeLabel };
-    }, [activities, startDate, endDate]);
+        const trainingPlan = hydrateTrainingPlanSnapshot(readTrainingPlanSnapshot() || undefined);
+        const taperWarning = buildTaperRecoveryWarning(trainingPlan, current.tsb);
+        if (taperWarning) {
+            recommendations.unshift({
+                ...taperWarning,
+                icon: AlertTriangle,
+            });
+        }
+
+        return { chartData, current, recommendations, rangeLabel, trainingPlan };
+    }, [activities, startDate, endDate, planRevision]);
 
 
 
@@ -213,6 +236,19 @@ const RecoveryAdvisor = ({ activities: activitiesProp, startDate, endDate }) => 
             </div>
 
             {/* Methodology Info */}
+            {trainingMetrics.trainingPlan?.goalDate && (
+                <div className="bg-cdaccent/10 border border-cdaccent/30 rounded-lg p-4 text-sm text-cdtext">
+                    <p className="font-bold text-cdaccent mb-1">Goal plan linked</p>
+                    <p>
+                        {trainingMetrics.trainingPlan.eventName} on{' '}
+                        {formatDateDDMMYYYY(trainingMetrics.trainingPlan.goalDate)}
+                        {trainingMetrics.trainingPlan.isTaperPhase
+                            ? ' — you are in a taper phase.'
+                            : ` — week ${trainingMetrics.trainingPlan.currentWeekNum} target: ${trainingMetrics.trainingPlan.currentWeekTargetTss ?? '—'} TSS.`}
+                    </p>
+                </div>
+            )}
+
             <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
                 <h4 className="text-blue-400 font-bold text-sm mb-2">ℹ️ How does this work?</h4>
                 <div className="text-xs text-cdtext space-y-1">

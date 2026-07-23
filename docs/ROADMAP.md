@@ -2,28 +2,28 @@
 
 Planmatige uitrol van verbeteringen (juli 2026). Volgorde volgt impact en afhankelijkheden: eerst betrouwbare data-import, daarna gekoppelde features.
 
-## Fase 1 — Intervals-pariteit & sync-UX (huidige fase)
+## Fase 1 — Intervals-pariteit & sync-UX ✅
 
 **Doel:** Eén consistent activiteitobject, ongeacht importroute (direct API of cloud), plus één duidelijke sync-flow in de Activity Log.
 
 | # | Onderdeel | Status |
 |---|-----------|--------|
-| 1a | Cloud + direct via `normalizeIntervalsActivityFromAny()` | In uitvoering |
-| 1b | Unified `IntervalsSyncPanel` (datumbereik, sportfilters, fetch vs. refresh selected) | In uitvoering |
-| 1c | Toast-feedback i.p.v. `alert()` voor sync-resultaten | In uitvoering |
-| 1d | Contract/integration tests sync-pijplijn | In uitvoering |
+| 1a | Cloud + direct via `normalizeIntervalsActivityFromAny()` | Done |
+| 1b | Unified `IntervalsSyncPanel` (datumbereik, sportfilters, fetch vs. refresh selected) | Done |
+| 1c | Toast-feedback i.p.v. `alert()` voor sync-resultaten | Done |
+| 1d | Contract/integration tests sync-pijplijn | Done |
 
 **Risico als we dit overslaan:** Kolommen kloppen maar waarden verschillen per sync-route; gebruikers weten niet welke knop ze moeten gebruiken.
 
 ---
 
-## Fase 2 — Dashboard & training-keten
+## Fase 2 — Dashboard & training-keten (huidige fase)
 
-| # | Onderdeel |
-|---|-----------|
-| 2a | **Climbing readiness** op Dashboard (hoogtemeters, Z2, TSS, TSB → badge) |
-| 2b | **Training-keten:** `TrainingGoalPlanner` → week-TSS in AI Coach → taper-waarschuwing in Recovery Advisor |
-| 2c | **Activity → Profiler** one-click (“lijkt op Alpe d'Huez”) |
+| # | Onderdeel | Status |
+|---|-----------|--------|
+| 2a | **Climbing readiness** op Dashboard (`ClimbingReadinessCard` + `climbingReadiness.js`) | Done |
+| 2b | **Training-keten:** Goal Planner → week-TSS in AI Coach → taper-waarschuwing in Recovery (`trainingPlanSnapshot.js`) | Done |
+| 2c | **Activity → Profiler** label “Similar to [climb]” in Activity Card/Table | Done |
 
 ---
 
@@ -62,4 +62,5 @@ Planmatige uitrol van verbeteringen (juli 2026). Volgorde volgt impact en afhank
 - **Intervals routes:** A = direct API + JS normalizer; B = cloud function + JS re-normalizer; C = nightly (Python → Firestore, zelfde contract als B).
 - **UI-taal:** Engels voor alle user-facing strings.
 - **Datums in UI:** `NlDateInput` (dd/mm/jjjj).
+- **Training-keten:** `localStorage` key `cpl.trainingPlan.v1`; custom event `cpl-training-plan-updated` voor cross-tab refresh.
 - Na elke fase: `npm run lint`, `npm run test:run`, PR naar `main`.

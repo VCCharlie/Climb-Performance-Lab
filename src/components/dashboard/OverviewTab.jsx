@@ -3,6 +3,7 @@ import PerformanceModule from '../PerformanceModule';
 import BarChartCard from './charts/BarChartCard';
 import ActivityHeatmap from './charts/ActivityHeatmap';
 import VolumeGoalsPanel from './VolumeGoalsPanel';
+import ClimbingReadinessCard from './ClimbingReadinessCard';
 import { buildOverviewBarChartIndex } from '../../utils/dashboardBarChartBuckets';
 
 /**
@@ -32,6 +33,11 @@ const OverviewTab = ({
 
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
+            <ClimbingReadinessCard
+                activities={allActivities || data}
+                userSettings={userSettings}
+            />
+
             {userSettings && (
                 <VolumeGoalsPanel
                     chartData={allActivities || data}

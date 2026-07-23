@@ -1,9 +1,14 @@
-﻿import React, { useMemo, useState } from 'react';
-import { Brain, TrendingUp, AlertTriangle, Calendar, CheckCircle, Activity, Battery, Download, Target, ListChecks, GitCompareArrows } from 'lucide-react';
+﻿import React, { useMemo, useState, useEffect } from 'react';
+import { Brain, TrendingUp, AlertTriangle, Calendar, CheckCircle, Activity, Battery, Download, Target, ListChecks, GitCompareArrows, Mountain } from 'lucide-react';
 import { buildCoachPlan, COACH_GOAL_OPTIONS, COACH_WORKOUT_LIBRARY } from '../utils/swotCoachPlan';
 import { buildPeriodComparison } from '../utils/swotPeriodCompare';
 import { normalizeDate, formatDateDDMMYYYY } from '../utils/formatters';
 import { useActivitiesList } from '../hooks/useActivities';
+import {
+    hydrateTrainingPlanSnapshot,
+    readTrainingPlanSnapshot,
+    TRAINING_PLAN_UPDATED_EVENT,
+} from '../utils/trainingPlanSnapshot';
 
 /** moving_time: seconden (number) of "H:MM:SS" uit CSV */
 function movingTimeToSeconds(val) {
@@ -31,6 +36,18 @@ const AICoach = ({ activities: activitiesProp, userSettings, startDate, endDate 
     const activities = activitiesProp ?? activitiesFromContext;
 
     const [coachGoalId, setCoachGoalId] = useState('auto');
+    const [planRevision, setPlanRevision] = useState(0);
+
+    useEffect(() => {
+        const onPlanUpdate = () => setPlanRevision((n) => n + 1);
+        window.addEventListener(TRAINING_PLAN_UPDATED_EVENT, onPlanUpdate);
+        return () => window.removeEventListener(TRAINING_PLAN_UPDATED_EVENT, onPlanUpdate);
+    }, []);
+
+    const trainingPlan = useMemo(() => {
+        const raw = readTrainingPlanSnapshot();
+        return raw ? hydrateTrainingPlanSnapshot(raw) : null;
+    }, [planRevision]);
 
     // --- 1. SWOT ENGINE (Expanded Context) ---
     const swot = useMemo(() => {
@@ -581,6 +598,34 @@ ${workout.zwoSteps.map(step => {
                     <div className="text-xs text-cdmuted uppercase">Avg Weekly Load</div>
                 </div>
             </div>
+
+            {trainingPlan?.currentWeekTargetTss != null && (
+                <div className="bg-cdsurface p-4 rounded-xl border border-cdborder border-l-4 border-l-cdaccent flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <p className="text-xs font-bold uppercase tracking-wide text-cdmuted flex items-center gap-1.5">
+                            <Mountain size={14} className="text-cdaccent" aria-hidden />
+                            Linked goal plan
+                        </p>
+                        <p className="text-sm text-cdtext mt-1">
+                            <strong>{trainingPlan.eventName}</strong>
+                            {' '}on {formatDateDDMMYYYY(trainingPlan.goalDate)}
+                            {trainingPlan.weeksToEvent > 0
+                                ? ` — ${trainingPlan.weeksToEvent} week(s) out`
+                                : ''}
+                        </p>
+                        <p className="text-xs text-cdmuted mt-1">
+                            Week {trainingPlan.currentWeekNum}: {trainingPlan.currentPhaseLabel}
+                            {trainingPlan.isTaperPhase ? ' (taper)' : ''}
+                        </p>
+                    </div>
+                    <div className="text-right">
+                        <div className="text-2xl font-bold text-cdaccent tabular-nums">
+                            {trainingPlan.currentWeekTargetTss}
+                        </div>
+                        <div className="text-[10px] text-cdmuted uppercase">Target TSS this week</div>
+                    </div>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 

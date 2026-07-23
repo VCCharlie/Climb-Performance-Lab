@@ -12,6 +12,7 @@ import { getKomBadgeCountsFromSummary, getKomBadgeDisplaySlots } from '../../uti
 import { buildStickyColumnMeta, stickyTableCellProps, stickyActionsCellProps } from '../../utils/activityTableSticky';
 import NormPowerCell from './NormPowerCell';
 import ZoneMetricCell from './ZoneMetricCell';
+import ClimbMatchBadge from './ClimbMatchBadge';
 import {
     flattenActivityList,
     estimateFlattenedRowSize,
@@ -189,6 +190,7 @@ export const Row = React.memo(({
 
     const stravaUrl = stravaActivityUrl(act.strava_id);
     const flybyUrl = stravaFlybyUrl(act.strava_id);
+    const climbMatch = profilerClimbByActivityId?.get(String(act.id));
 
     const renderCell = (col) => {
         try {
@@ -237,26 +239,36 @@ export const Row = React.memo(({
                     );
                 }
                 case 'title': {
-                    if (!isPreview && onViewDetail && val) {
-                        return (
-                            <button
-                                type="button"
-                                className="font-medium text-cdtext block truncate text-left w-full hover:text-cdaccent hover:underline"
-                                title={`${val} — click for details`}
-                                style={{ maxWidth: 'none' }}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onViewDetail(act);
-                                }}
-                            >
-                                {val}
-                            </button>
-                        );
-                    }
-                    return (
+                    const titleContent = !isPreview && onViewDetail && val ? (
+                        <button
+                            type="button"
+                            className="font-medium text-cdtext block truncate text-left w-full hover:text-cdaccent hover:underline"
+                            title={`${val} — click for details`}
+                            style={{ maxWidth: 'none' }}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onViewDetail(act);
+                            }}
+                        >
+                            {val}
+                        </button>
+                    ) : (
                         <span className="font-medium text-cdtext block truncate" title={val} style={{ maxWidth: 'none' }}>
                             {val}
                         </span>
+                    );
+                    return (
+                        <div className="min-w-0">
+                            {titleContent}
+                            {climbMatch && (
+                                <ClimbMatchBadge
+                                    climb={climbMatch}
+                                    activity={act}
+                                    onOpenProfiler={onOpenProfiler}
+                                    compact
+                                />
+                            )}
+                        </div>
                     );
                 }
                 case 'strava_kom_summary': {
