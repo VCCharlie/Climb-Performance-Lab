@@ -399,7 +399,7 @@ export function useDataHubIntervalsSync({
         getSelectedSportTypes,
         showToast,
         stravaEnrichEnabled,
-    });
+    ]);
 
     const handleRunSync = useCallback(() => {
         if (syncMode === 'refresh-selected') {
