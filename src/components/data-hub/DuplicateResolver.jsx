@@ -4,6 +4,7 @@ import {
     CopyPlus
 } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
+import { duplicateResolutionSummary } from '../../utils/duplicateResolutions';
 
 const DuplicateResolver = ({ duplicates, onResolve, onClose }) => {
     return (
@@ -20,8 +21,15 @@ const DuplicateResolver = ({ duplicates, onResolve, onClose }) => {
                 <div className="overflow-auto flex-1 p-4 space-y-4 bg-cdbg/50">
                     {duplicates.map((dup, idx) => (
                         <div key={idx} className="bg-cdsurface border border-cdborder rounded-lg p-4 flex flex-col gap-3">
-                            <div className="text-xs font-mono text-orange-300 bg-orange-900/20 px-2 py-1 rounded w-fit">
-                                {dup.reason}
+                            <div className="flex flex-wrap items-center gap-2">
+                                <div className="text-xs font-mono text-orange-300 bg-orange-900/20 px-2 py-1 rounded w-fit">
+                                    {dup.reason}
+                                </div>
+                                {dup.savedResolution && (
+                                    <div className="text-[10px] font-bold text-cdaccent bg-cdaccent/10 border border-cdaccent/30 px-2 py-1 rounded">
+                                        {duplicateResolutionSummary(dup.savedResolution)}
+                                    </div>
+                                )}
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 {/* OPTIE A */}

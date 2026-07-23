@@ -6,6 +6,10 @@ import { protectEnrichedFieldsOnMerge } from '../utils/firestoreActivityMerge';
 import { buildImportReplacementPlan } from '../utils/importDuplicateMatch';
 import { persistImportedActivitiesReplacingDuplicates } from '../utils/importPersistence';
 import { activityIntensityFactor } from '../utils/activityFilterMetrics';
+import {
+    filterStoredDuplicatePairs,
+    recordDuplicatePairResolution,
+} from '../utils/duplicateResolutions';
 
 /**
  * CSV import preview, confirm flow, and duplicate resolution (Bolt 3d-bis follow-up).
@@ -126,17 +130,19 @@ export function useDataHubImport({
 
     const findDuplicates = useCallback(() => {
         if (!activities || activities.length === 0) return;
-        const foundDups = findDuplicatesInList(activities);
+        const foundDups = filterStoredDuplicatePairs(findDuplicatesInList(activities));
         if (foundDups.length > 0) {
             setDuplicates(foundDups);
             setShowDuplicateModal(true);
         } else {
-            alert('No duplicates found. Your activity list is clean.');
+            alert('No duplicates found. Your activity list is clean (or earlier "keep both" choices are remembered).');
         }
     }, [activities]);
 
     const resolveDuplicate = useCallback(async (action, dup) => {
         const { a, b } = dup;
+        recordDuplicatePairResolution(a, b, action);
+
         let idsToDelete = [];
         if (action === 'keepA') idsToDelete.push(b.id);
         if (action === 'keepB') idsToDelete.push(a.id);
