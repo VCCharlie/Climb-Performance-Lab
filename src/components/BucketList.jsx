@@ -1,16 +1,27 @@
 ﻿import React, { useState, useMemo, useEffect } from 'react';
-import { Mountain, Check, Clock, Star, Trophy, Filter, Search } from 'lucide-react';
+import { Mountain, Check, Clock, Star, Trophy, Filter, Search, Sparkles } from 'lucide-react';
 import { useClimbDatabase } from '../hooks/useClimbDatabase';
+import { useActivitiesList } from '../hooks/useActivities';
 import FlagIcon from './FlagIcon';
+import PlannedClimbWeatherPanel from './bucket-list/PlannedClimbWeatherPanel';
+import { mergeClimbPbs } from '../utils/bucketListState';
+import { scanClimbPersonalBests, formatPbSummary } from '../utils/climbPersonalBests';
 
-const BucketList = ({ initialState, onStateChange }) => {
+const BucketList = ({
+    initialState,
+    onStateChange,
+    onOpenWeatherForClimb,
+    onOpenMapTab,
+}) => {
     const { climbs: climbDatabase, loadFull } = useClimbDatabase();
+    const activities = useActivitiesList();
 
     useEffect(() => {
         loadFull();
     }, [loadFull]);
-    // State: climb status (done, planned, want)
+    // State: climb status (done, planned, want) + optional PBs
     const [climbStatus, setClimbStatus] = useState(initialState?.climbStatus || {});
+    const [climbPbs, setClimbPbs] = useState(initialState?.climbPbs || {});
     const [filterStatus, setFilterStatus] = useState('all'); // all, done, planned, want, todo
     const [searchTerm, setSearchTerm] = useState('');
     const [sortBy, setSortBy] = useState('name'); // name, difficulty, status
@@ -18,9 +29,17 @@ const BucketList = ({ initialState, onStateChange }) => {
     // Update parent when state changes
     React.useEffect(() => {
         if (onStateChange) {
-            onStateChange({ climbStatus });
+            onStateChange({ climbStatus, climbPbs });
         }
-    }, [climbStatus, onStateChange]);
+    }, [climbStatus, climbPbs, onStateChange]);
+
+    const handleScanPbs = () => {
+        const scanned = scanClimbPersonalBests(activities, climbDatabase);
+        setClimbPbs((prev) => ({ ...prev, ...scanned }));
+        if (onStateChange) {
+            onStateChange(mergeClimbPbs({ climbStatus, climbPbs }, scanned));
+        }
+    };
 
     // Toggle climb status
     const toggleClimbStatus = (climbId, status) => {
@@ -252,6 +271,28 @@ const BucketList = ({ initialState, onStateChange }) => {
                 </div>
             </div>
 
+            <PlannedClimbWeatherPanel
+                bucketState={{ climbStatus, climbPbs }}
+                climbs={climbDatabase}
+                onOpenWeatherForClimb={onOpenWeatherForClimb}
+                onOpenMapTab={onOpenMapTab}
+            />
+
+            <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs text-cdmuted">
+                    Personal bests are matched from activity titles (same logic as Climb Profiler).
+                </p>
+                <button
+                    type="button"
+                    onClick={handleScanPbs}
+                    disabled={!activities?.length}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md border border-cdborder bg-cdsurface text-cdtext hover:border-cdaccent hover:text-cdaccent disabled:opacity-40 cd-transition"
+                >
+                    <Sparkles size={14} aria-hidden />
+                    Scan activities for PBs
+                </button>
+            </div>
+
             {/* Filters */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Search */}
@@ -303,6 +344,8 @@ const BucketList = ({ initialState, onStateChange }) => {
                 <div className="space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
                     {filteredClimbs.map(climb => {
                         const status = climbStatus[climb.id];
+                        const pb = climbPbs[climb.id];
+                        const pbLabel = formatPbSummary(pb);
                         return (
                             <div
                                 key={climb.id}
@@ -325,6 +368,11 @@ const BucketList = ({ initialState, onStateChange }) => {
                                         <p className="text-cdmuted text-xs mt-1">
                                             {climb.lengthKm}km • {climb.elevation}m • {climb.avgGrade}% avg
                                         </p>
+                                        {pbLabel && (status === 'done' || status === 'planned') && (
+                                            <p className="text-[10px] text-cdaccent mt-1 font-medium" title={pb?.activityTitle || ''}>
+                                                PB: {pbLabel}
+                                            </p>
+                                        )}
                                     </div>
 
                                     {/* Status buttons */}

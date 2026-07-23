@@ -1,16 +1,20 @@
 ﻿import React, { useState, useMemo } from 'react';
-import { Utensils, Zap, Droplets, Battery, CheckCircle, Thermometer, CloudRain, Mountain, Clock } from 'lucide-react';
+import { Utensils, Zap, Droplets, Battery, CheckCircle, Thermometer, CloudRain, Mountain, Clock, Route } from 'lucide-react';
 
-const FuelingStrategy = ({ initialDuration, initialIntensity }) => {
+const FuelingStrategy = ({
+    initialDuration,
+    initialIntensity,
+    initialCarbsPerHour,
+    initialTotalCarbs,
+    initialAltitude,
+    fromRacePacing = false,
+}) => {
     // --- BASIC INPUTS ---
     const [duration, setDuration] = useState(initialDuration || 180); // minutes
     const [intensity, setIntensity] = useState(initialIntensity || 0.85); // IF
-
-    // Update when props change (from RacePacing export)
-    React.useEffect(() => {
-        if (initialDuration) setDuration(initialDuration);
-        if (initialIntensity) setIntensity(initialIntensity);
-    }, [initialDuration, initialIntensity]);
+    const [useRaceCarbs, setUseRaceCarbs] = useState(
+        fromRacePacing && initialCarbsPerHour != null && initialCarbsPerHour > 0,
+    );
 
     // --- EQUIPMENT ---
     const [bidonSize, setBidonSize] = useState(750); // ml
@@ -18,7 +22,17 @@ const FuelingStrategy = ({ initialDuration, initialIntensity }) => {
     // --- ENVIRONMENTAL FACTORS ---
     const [temp, setTemp] = useState(20); // Celsius
     const [humidity, setHumidity] = useState('medium'); // low, medium, high
-    const [altitude, setAltitude] = useState(0); // meters
+    const [altitude, setAltitude] = useState(initialAltitude > 0 ? initialAltitude : 0);
+
+    // Update when props change (from RacePacing export)
+    React.useEffect(() => {
+        if (initialDuration) setDuration(initialDuration);
+        if (initialIntensity) setIntensity(initialIntensity);
+        if (fromRacePacing && initialCarbsPerHour != null && initialCarbsPerHour > 0) {
+            setUseRaceCarbs(true);
+        }
+        if (initialAltitude != null && initialAltitude > 0) setAltitude(initialAltitude);
+    }, [initialDuration, initialIntensity, initialCarbsPerHour, initialAltitude, fromRacePacing]);
 
     // --- NUTRITION PRODUCT CONFIG ---
     const [productConfig, setProductConfig] = useState({
@@ -34,13 +48,15 @@ const FuelingStrategy = ({ initialDuration, initialIntensity }) => {
         // 2-3h: 60-75g/hr
         // > 3h: 90g/hr (if gut trained)
         let recommendedCarbsPerHour = 60;
-        if (duration <= 60) recommendedCarbsPerHour = 30;
+        if (useRaceCarbs && initialCarbsPerHour != null && initialCarbsPerHour > 0) {
+            recommendedCarbsPerHour = initialCarbsPerHour;
+        } else if (duration <= 60) recommendedCarbsPerHour = 30;
         else if (duration <= 120) recommendedCarbsPerHour = 60;
         else if (duration <= 180) recommendedCarbsPerHour = 75;
         else recommendedCarbsPerHour = 90;
 
         // Adjust for intensity (Higher intensity = emphasis on liquid/gels, less bars)
-        if (intensity > 0.9) recommendedCarbsPerHour = 90;
+        if (!useRaceCarbs && intensity > 0.9) recommendedCarbsPerHour = 90;
 
         // 2. Calculate Fluid Needs (Sweat Rate Estimation)
         // Base: 500ml/hr
@@ -102,7 +118,7 @@ const FuelingStrategy = ({ initialDuration, initialIntensity }) => {
                 barName: `${productConfig.barCarbs}g Bar`
             }
         };
-    }, [duration, intensity, bidonSize, temp, humidity, altitude, productConfig]);
+    }, [duration, intensity, bidonSize, temp, humidity, altitude, productConfig, useRaceCarbs, initialCarbsPerHour]);
 
     // Timeline Generation
     const timeline = useMemo(() => {
@@ -141,6 +157,32 @@ const FuelingStrategy = ({ initialDuration, initialIntensity }) => {
                 <h2 className="text-xl font-bold text-cdtext flex items-center gap-2"><Utensils className="text-green-400" /> Elite Fueling Strategy</h2>
                 <div className="text-xs text-cdmuted bg-cdbg px-3 py-1 rounded-full border border-cdborder">Scientific Guidelines</div>
             </div>
+
+            {fromRacePacing && (
+                <div className="rounded-lg border border-cdaccent/40 bg-cdaccent/10 px-4 py-3 text-sm text-cdtext flex flex-wrap items-start justify-between gap-3">
+                    <div className="flex items-start gap-2">
+                        <Route className="text-cdaccent shrink-0 mt-0.5" size={16} aria-hidden />
+                        <div>
+                            <p className="font-bold text-cdaccent">Imported from Race Pacing</p>
+                            <p className="text-xs text-cdmuted mt-0.5">
+                                Duration and intensity match your multi-climb plan
+                                {initialTotalCarbs ? ` (~${initialTotalCarbs} g carbs estimated on climbs).` : '.'}
+                            </p>
+                        </div>
+                    </div>
+                    {initialCarbsPerHour != null && initialCarbsPerHour > 0 && (
+                        <label className="flex items-center gap-2 text-xs text-cdtext cursor-pointer">
+                            <input
+                                type="checkbox"
+                                className="accent-cdaccent"
+                                checked={useRaceCarbs}
+                                onChange={(e) => setUseRaceCarbs(e.target.checked)}
+                            />
+                            Use race carbs/h ({initialCarbsPerHour} g/h)
+                        </label>
+                    )}
+                </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* --- INPUTS --- */}

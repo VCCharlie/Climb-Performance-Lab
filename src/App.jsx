@@ -64,6 +64,7 @@ import {
     getDefaultBucketListState,
 } from './utils/sessionData';
 import { safeLocalStorageSet } from './utils/safeStorage.js';
+import { migrateLegacyBucketState, setClimbBucketStatus } from './utils/bucketListState';
 import { runGoogleSignIn, isGoogleSignInInProgress, googleSignInErrorMessage, completeGoogleRedirectIfNeeded } from './utils/googleSignIn';
 import { ToastProvider } from './context/ToastContext';
 import { ActivitiesProvider, useActivitiesState } from './context/ActivitiesContext';
@@ -336,18 +337,22 @@ const App = () => {
 
     const [fuelingState, setFuelingState] = useState({
         duration: 180,
-        intensity: 0.85
+        intensity: 0.85,
+        carbsPerHour: null,
+        totalCarbs: null,
+        altitude: 0,
+        fromRacePacing: false,
     });
     const [bucketListState, setBucketListState] = useState(() => {
         const saved = localStorage.getItem('bucketListState');
         if (saved) {
             try {
-                return JSON.parse(saved);
+                return migrateLegacyBucketState(JSON.parse(saved));
             } catch (e) {
                 console.error("Failed to parse bucketListState from localStorage", e);
             }
         }
-        return { climbStatus: {} };
+        return getDefaultBucketListState();
     });
 
 
@@ -365,6 +370,10 @@ const App = () => {
     useEffect(() => {
         safeLocalStorageSet('intervalsConfig', JSON.stringify(intervalsConfig));
     }, [intervalsConfig]);
+
+    useEffect(() => {
+        safeLocalStorageSet('bucketListState', JSON.stringify(bucketListState));
+    }, [bucketListState]);
 
     const [weatherClimbState, setWeatherClimbState] = useState({
         selectedClimb: getDefaultClimb(),
@@ -531,8 +540,9 @@ const App = () => {
                         safeLocalStorageSet('theme', data.theme);
                     }
                     if (data.bucketList) {
-                        setBucketListState(data.bucketList);
-                        safeLocalStorageSet('bucketListState', JSON.stringify(data.bucketList));
+                        const migrated = migrateLegacyBucketState(data.bucketList);
+                        setBucketListState(migrated);
+                        safeLocalStorageSet('bucketListState', JSON.stringify(migrated));
                     }
                     if (data.strava) {
                         setStravaConfig((prev) => {
@@ -615,7 +625,7 @@ const App = () => {
         if (backupData.intervals) {
             setIntervalsConfig((prev) => ({ ...prev, ...backupData.intervals }));
         }
-        if (backupData.bucketList) setBucketListState(backupData.bucketList);
+        if (backupData.bucketList) setBucketListState(migrateLegacyBucketState(backupData.bucketList));
         if (backupData.strava) {
             setStravaConfig((prev) => {
                 const merged = { ...prev, ...backupData.strava };
@@ -769,6 +779,10 @@ const App = () => {
                                             <FuelingStrategy
                                                 initialDuration={fuelingState.duration}
                                                 initialIntensity={fuelingState.intensity}
+                                                initialCarbsPerHour={fuelingState.carbsPerHour}
+                                                initialTotalCarbs={fuelingState.totalCarbs}
+                                                initialAltitude={fuelingState.altitude}
+                                                fromRacePacing={fuelingState.fromRacePacing}
                                             />
                                         )}
                                         {raceSubTab === 'racepacing' && (
@@ -776,8 +790,16 @@ const App = () => {
                                                 userSettings={userSettings}
                                                 initialState={racePacingState}
                                                 onStateChange={setRacePacingState}
-                                                onExportToFueling={(duration, intensity) => {
-                                                    setFuelingState({ duration, intensity });
+                                                onExportToFueling={(handoff) => {
+                                                    if (!handoff) return;
+                                                    setFuelingState({
+                                                        duration: handoff.duration,
+                                                        intensity: handoff.intensity,
+                                                        carbsPerHour: handoff.carbsPerHour,
+                                                        totalCarbs: handoff.totalCarbs,
+                                                        altitude: handoff.altitude,
+                                                        fromRacePacing: true,
+                                                    });
                                                     setRaceSubTab('fueling');
                                                 }}
                                             />
@@ -814,6 +836,14 @@ const App = () => {
                                     <BucketList
                                         initialState={bucketListState}
                                         onStateChange={setBucketListState}
+                                        onOpenWeatherForClimb={(climb) => {
+                                            setWeatherClimbState((prev) => ({
+                                                ...prev,
+                                                selectedClimb: climb,
+                                            }));
+                                            setActiveTab('weather');
+                                        }}
+                                        onOpenMapTab={() => setActiveTab('climbmap')}
                                     />
                                 )}
 
@@ -821,19 +851,7 @@ const App = () => {
                                     <ClimbMap
                                         bucketListState={bucketListState}
                                         onUpdateBucketList={(action, climbId) => {
-                                            setBucketListState(prev => {
-                                                const next = {
-                                                    done: [...(prev.done || [])],
-                                                    planned: [...(prev.planned || [])],
-                                                    want: [...(prev.want || [])],
-                                                };
-                                                // Verwijder uit alle lijsten eerst
-                                                ['done', 'planned', 'want'].forEach(k => {
-                                                    next[k] = next[k].filter(id => id !== climbId);
-                                                });
-                                                next[action] = [...next[action], climbId];
-                                                return next;
-                                            });
+                                            setBucketListState((prev) => setClimbBucketStatus(prev, climbId, action));
                                         }}
                                     />
                                 )}
