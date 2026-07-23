@@ -6,20 +6,55 @@ import { buildClimbMatchIndex, findBestClimbForActivity } from './activityClimbM
 import { activityMovingTimeSec } from './activityFilterMetrics';
 import { normalizeDate } from './formatters';
 import { stravaIdFromActivity } from './climbPbActivityLinks';
+import {
+    activityVenue,
+    activityMatchesVenueFilter,
+    pbMatchesVenueFilter,
+    resolvePbVenue,
+    climbVenue,
+} from './activityVenue';
 import { yieldToMain } from './yieldToMain';
+
+/**
+ * Drop PB rows where the stored ride venue does not match the climb (e.g. Zwift PB on a real climb).
+ * @param {Record<string, object>} climbPbs
+ * @param {object[]} climbs
+ */
+export function pruneMismatchedVenuePbs(climbPbs, climbs) {
+    const climbById = new Map((climbs || []).map((c) => [String(c.id), c]));
+    const next = {};
+
+    for (const [id, pb] of Object.entries(climbPbs || {})) {
+        if (!formatPbSummary(pb)) continue;
+        const climb = climbById.get(id);
+        if (!climb) {
+            next[id] = pb;
+            continue;
+        }
+        const pbVenue = resolvePbVenue(pb, climb);
+        if (pbVenue && pbVenue !== climbVenue(climb)) continue;
+        next[id] = pb;
+    }
+
+    return next;
+}
 
 /**
  * Apply one activity to the in-progress PB map (mutates `pbs`).
  * @param {object} act
  * @param {ReturnType<typeof buildClimbMatchIndex>} index
  * @param {Record<string, object>} pbs
+ * @param {{ venueFilter?: 'all' | 'outdoor' | 'virtual' }} [options]
  */
-function applyActivityToClimbPbs(act, index, pbs) {
+function applyActivityToClimbPbs(act, index, pbs, options = {}) {
+    const venueFilter = options.venueFilter ?? 'all';
+    if (!activityMatchesVenueFilter(act, venueFilter)) return;
     if (!act?.title && !act?.description && !act?.notes) return;
     const { climb, source } = findBestClimbForActivity(act, index);
     if (!climb?.id) return;
 
     const climbId = String(climb.id);
+    const venue = activityVenue(act);
     const np = Number(act.norm_power) || 0;
     const ap = Number(act.avg_power) || 0;
     const movingSec = activityMovingTimeSec(act);
@@ -34,6 +69,7 @@ function applyActivityToClimbPbs(act, index, pbs) {
         pbs[climbId] = {
             climbId,
             climbName: climb.name,
+            venue,
             normPower: np > 0 ? np : null,
             avgPower: ap > 0 ? ap : null,
             movingTimeSec: movingSec > 0 ? movingSec : null,
@@ -50,6 +86,7 @@ function applyActivityToClimbPbs(act, index, pbs) {
 
     pbs[climbId] = {
         ...prev,
+        venue,
         normPower: betterNp ? np : prev.normPower,
         avgPower: betterAp ? ap : prev.avgPower,
         movingTimeSec: betterTime ? movingSec : prev.movingTimeSec,
@@ -72,14 +109,15 @@ function applyActivityToClimbPbs(act, index, pbs) {
 /**
  * @param {object[]} activities
  * @param {object[]} climbs
+ * @param {{ venueFilter?: 'all' | 'outdoor' | 'virtual' }} [options]
  * @returns {Record<string, object>}
  */
-export function scanClimbPersonalBests(activities, climbs) {
+export function scanClimbPersonalBests(activities, climbs, options = {}) {
     const index = buildClimbMatchIndex(climbs);
     const pbs = {};
 
     for (const act of activities || []) {
-        applyActivityToClimbPbs(act, index, pbs);
+        applyActivityToClimbPbs(act, index, pbs, options);
     }
 
     return pbs;
@@ -91,7 +129,7 @@ export function scanClimbPersonalBests(activities, climbs) {
  *
  * @param {object[]} activities
  * @param {object[]} climbs
- * @param {{ chunkSize?: number, onProgress?: (p: { done: number, total: number }) => void }} [options]
+ * @param {{ chunkSize?: number, onProgress?: (p: { done: number, total: number }) => void, venueFilter?: 'all' | 'outdoor' | 'virtual' }} [options]
  * @returns {Promise<Record<string, object>>}
  */
 export async function scanClimbPersonalBestsAsync(activities, climbs, options = {}) {
@@ -105,7 +143,7 @@ export async function scanClimbPersonalBestsAsync(activities, climbs, options = 
     onProgress?.({ done: 0, total });
 
     for (let i = 0; i < total; i++) {
-        applyActivityToClimbPbs(list[i], index, pbs);
+        applyActivityToClimbPbs(list[i], index, pbs, options);
         const done = i + 1;
         if (done % chunkSize === 0 || done === total) {
             onProgress?.({ done, total });
@@ -146,20 +184,27 @@ export function formatPbSummary(pb) {
 /**
  * @param {Record<string, object> | null | undefined} climbPbs
  * @param {string} climbId
+ * @param {object | null} [climb]
+ * @param {'all' | 'outdoor' | 'virtual'} [venueFilter]
  */
-export function hasStoredClimbPb(climbPbs, climbId) {
+export function hasStoredClimbPb(climbPbs, climbId, climb = null, venueFilter = 'all') {
     if (!climbPbs || climbId == null) return false;
-    return !!formatPbSummary(climbPbs[String(climbId)]);
+    const pb = climbPbs[String(climbId)];
+    if (!formatPbSummary(pb)) return false;
+    return pbMatchesVenueFilter(pb, climb, venueFilter);
 }
 
 /**
  * @param {Record<string, object> | null | undefined} climbPbs
+ * @param {object[]} [climbs]
+ * @param {'all' | 'outdoor' | 'virtual'} [venueFilter]
  */
-export function countClimbsWithPb(climbPbs) {
+export function countClimbsWithPb(climbPbs, climbs = [], venueFilter = 'all') {
     if (!climbPbs) return 0;
+    const climbById = new Map((climbs || []).map((c) => [String(c.id), c]));
     let count = 0;
     for (const id of Object.keys(climbPbs)) {
-        if (hasStoredClimbPb(climbPbs, id)) count += 1;
+        if (hasStoredClimbPb(climbPbs, id, climbById.get(id) ?? null, venueFilter)) count += 1;
     }
     return count;
 }
@@ -184,8 +229,9 @@ function pbMetricScore(pb) {
  * Merge a fresh scan into stored PBs, keeping the stronger record per climb.
  * @param {Record<string, object> | null | undefined} prevPbs
  * @param {Record<string, object>} scanned
+ * @param {object[]} [climbs]
  */
-export function mergeScannedIntoClimbPbs(prevPbs, scanned) {
+export function mergeScannedIntoClimbPbs(prevPbs, scanned, climbs = []) {
     const prev = prevPbs || {};
     const next = { ...prev };
 
@@ -197,7 +243,7 @@ export function mergeScannedIntoClimbPbs(prevPbs, scanned) {
         }
     }
 
-    return next;
+    return pruneMismatchedVenuePbs(next, climbs);
 }
 
 /**
@@ -231,11 +277,12 @@ export function countPbByMatchSource(climbPbs) {
  * @param {Record<string, object> | null | undefined} prevPbs
  * @param {Record<string, object>} scanned
  * @param {object[]} activities
+ * @param {object[]} [climbs]
  */
-export function summarizePbScanResult(prevPbs, scanned, activities) {
-    const merged = mergeScannedIntoClimbPbs(prevPbs, scanned);
-    const previousWithPb = countClimbsWithPb(prevPbs);
-    const totalWithPb = countClimbsWithPb(merged);
+export function summarizePbScanResult(prevPbs, scanned, activities, climbs = []) {
+    const merged = mergeScannedIntoClimbPbs(prevPbs, scanned, climbs);
+    const previousWithPb = countClimbsWithPb(prevPbs, climbs);
+    const totalWithPb = countClimbsWithPb(merged, climbs);
 
     const prevIds = new Set(
         Object.keys(prevPbs || {}).filter((id) => hasStoredClimbPb(prevPbs, id)),
@@ -311,4 +358,3 @@ export function formatPbScanFeedbackMessage(summary) {
 
     return `Scanned ${activitiesScanned.toLocaleString('en-GB')} activities. ${totalWithPb} climbs with a PB${delta}.${descHint}`;
 }
-

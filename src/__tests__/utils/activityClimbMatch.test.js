@@ -45,4 +45,24 @@ describe('findBestClimbForActivityTitle', () => {
     expect(text).toContain('Ride');
     expect(text).toContain('Alpe');
   });
+
+  it('routes virtual rides to Zwift climbs and outdoor rides to real climbs with the same name', () => {
+    const climbs = [
+      { id: 'fr_platzerwasel', name: 'Col du Platzerwasel', country: 'FR' },
+      { id: 'zp_platzer', name: 'Col du Platzerwasel', country: 'ZWIFT' },
+    ];
+    const idx = buildClimbMatchIndex(climbs);
+
+    const zwift = findBestClimbForActivity({
+      type: 'VirtualRide',
+      title: 'Zwift: Col du Platzerwasel',
+    }, idx);
+    expect(zwift.climb?.id).toBe('zp_platzer');
+
+    const outdoor = findBestClimbForActivity({
+      type: 'Ride',
+      title: 'Col du Platzerwasel',
+    }, idx);
+    expect(outdoor.climb?.id).toBe('fr_platzerwasel');
+  });
 });

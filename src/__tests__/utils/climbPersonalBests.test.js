@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { scanClimbPersonalBests, scanClimbPersonalBestsAsync, formatPbSummary, hasStoredClimbPb, countClimbsWithPb, summarizePbScanResult, formatPbScanFeedbackMessage } from '../../utils/climbPersonalBests';
+import { scanClimbPersonalBests, scanClimbPersonalBestsAsync, formatPbSummary, hasStoredClimbPb, countClimbsWithPb, summarizePbScanResult, formatPbScanFeedbackMessage, pruneMismatchedVenuePbs } from '../../utils/climbPersonalBests';
 
 const climbs = [
-    { id: 'fr_alpe', name: "Alpe d'Huez" },
-    { id: 'it_stelvio', name: 'Passo dello Stelvio' },
+    { id: 'fr_alpe', name: "Alpe d'Huez", country: 'FR' },
+    { id: 'it_stelvio', name: 'Passo dello Stelvio', country: 'IT' },
+    { id: 'fr_platzerwasel', name: 'Col du Platzerwasel', country: 'FR' },
+    { id: 'zp_platzer', name: 'Col du Platzerwasel', country: 'ZWIFT' },
 ];
 
 describe('scanClimbPersonalBests', () => {
@@ -74,12 +76,39 @@ describe('scanClimbPersonalBests', () => {
 
     it('hasStoredClimbPb and countClimbsWithPb', () => {
         const pbs = {
-            fr_alpe: { normPower: 250 },
+            fr_alpe: { normPower: 250, venue: 'outdoor' },
             empty: {},
         };
-        expect(hasStoredClimbPb(pbs, 'fr_alpe')).toBe(true);
+        expect(hasStoredClimbPb(pbs, 'fr_alpe', { country: 'FR' }, 'outdoor')).toBe(true);
         expect(hasStoredClimbPb(pbs, 'empty')).toBe(false);
-        expect(countClimbsWithPb(pbs)).toBe(1);
+        expect(countClimbsWithPb(pbs, [{ id: 'fr_alpe', country: 'FR' }], 'outdoor')).toBe(1);
+    });
+
+    it('stores separate outdoor and Zwift PBs for similarly named climbs', () => {
+        const pbs = scanClimbPersonalBests(
+            [
+                { id: 'z1', type: 'VirtualRide', title: 'Zwift: Col du Platzerwasel', norm_power: 300, moving_time: 2000 },
+                { id: 'o1', type: 'Ride', title: 'Col du Platzerwasel', norm_power: 260, moving_time: 2800 },
+            ],
+            climbs,
+        );
+
+        expect(pbs.zp_platzer?.normPower).toBe(300);
+        expect(pbs.zp_platzer?.venue).toBe('virtual');
+        expect(pbs.fr_platzerwasel?.normPower).toBe(260);
+        expect(pbs.fr_platzerwasel?.venue).toBe('outdoor');
+    });
+
+    it('pruneMismatchedVenuePbs removes Zwift PB rows from real climbs', () => {
+        const pruned = pruneMismatchedVenuePbs(
+            {
+                fr_platzerwasel: { normPower: 300, venue: 'virtual' },
+                zp_platzer: { normPower: 300, venue: 'virtual' },
+            },
+            climbs,
+        );
+        expect(pruned.fr_platzerwasel).toBeUndefined();
+        expect(pruned.zp_platzer?.normPower).toBe(300);
     });
 
     it('summarizePbScanResult reports no change when scan matches same climbs', () => {
