@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { scanClimbPersonalBests, formatPbSummary } from '../../utils/climbPersonalBests';
+import { scanClimbPersonalBests, formatPbSummary, hasStoredClimbPb, countClimbsWithPb } from '../../utils/climbPersonalBests';
 
 const climbs = [
     { id: 'fr_alpe', name: "Alpe d'Huez" },
@@ -24,5 +24,15 @@ describe('scanClimbPersonalBests', () => {
         const label = formatPbSummary({ normPower: 260, movingTimeSec: 2700 });
         expect(label).toContain('260');
         expect(label).toContain('45 min');
+    });
+
+    it('hasStoredClimbPb and countClimbsWithPb', () => {
+        const pbs = {
+            fr_alpe: { normPower: 250 },
+            empty: {},
+        };
+        expect(hasStoredClimbPb(pbs, 'fr_alpe')).toBe(true);
+        expect(hasStoredClimbPb(pbs, 'empty')).toBe(false);
+        expect(countClimbsWithPb(pbs)).toBe(1);
     });
 });

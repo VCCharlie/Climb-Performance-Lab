@@ -5,7 +5,7 @@ import { useActivitiesList } from '../hooks/useActivities';
 import FlagIcon from './FlagIcon';
 import PlannedClimbWeatherPanel from './bucket-list/PlannedClimbWeatherPanel';
 import { mergeClimbPbs } from '../utils/bucketListState';
-import { scanClimbPersonalBests, formatPbSummary } from '../utils/climbPersonalBests';
+import { scanClimbPersonalBests, formatPbSummary, hasStoredClimbPb, countClimbsWithPb } from '../utils/climbPersonalBests';
 
 const BucketList = ({
     initialState,
@@ -22,7 +22,7 @@ const BucketList = ({
     // State: climb status (done, planned, want) + optional PBs
     const [climbStatus, setClimbStatus] = useState(initialState?.climbStatus || {});
     const [climbPbs, setClimbPbs] = useState(initialState?.climbPbs || {});
-    const [filterStatus, setFilterStatus] = useState('all'); // all, done, planned, want, todo
+    const [filterStatus, setFilterStatus] = useState('all'); // all, done, planned, want, todo, with_pb
     const [searchTerm, setSearchTerm] = useState('');
     const [sortBy, setSortBy] = useState('name'); // name, difficulty, status
 
@@ -169,6 +169,8 @@ const BucketList = ({
         return { done, planned, want, todo };
     }, [climbStatus, climbDatabase.length]);
 
+    const pbCount = useMemo(() => countClimbsWithPb(climbPbs), [climbPbs]);
+
     // Filter and sort climbs
     const filteredClimbs = useMemo(() => {
         let filtered = climbDatabase;
@@ -183,8 +185,10 @@ const BucketList = ({
             );
         }
 
-        // Filter by status
-        if (filterStatus !== 'all') {
+        // Filter by status or activity PB
+        if (filterStatus === 'with_pb') {
+            filtered = filtered.filter((climb) => hasStoredClimbPb(climbPbs, climb.id));
+        } else if (filterStatus !== 'all') {
             filtered = filtered.filter(climb => {
                 const status = climbStatus[climb.id];
                 if (filterStatus === 'todo') {
@@ -208,7 +212,7 @@ const BucketList = ({
         });
 
         return filtered;
-    }, [searchTerm, filterStatus, sortBy, climbStatus, climbDatabase]);
+    }, [searchTerm, filterStatus, sortBy, climbStatus, climbDatabase, climbPbs]);
 
     return (
         <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl space-y-6">
@@ -319,6 +323,7 @@ const BucketList = ({
                         <option value="planned">Planned ({statusCounts.planned})</option>
                         <option value="want">Want to do ({statusCounts.want})</option>
                         <option value="todo">To do ({statusCounts.todo})</option>
+                        <option value="with_pb">With activity PB ({pbCount})</option>
                     </select>
                 </div>
 
@@ -342,7 +347,13 @@ const BucketList = ({
                     Climbs ({filteredClimbs.length})
                 </h3>
                 <div className="space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
-                    {filteredClimbs.map(climb => {
+                    {filteredClimbs.length === 0 ? (
+                        <p className="text-sm text-cdmuted text-center py-6">
+                            {filterStatus === 'with_pb'
+                                ? 'No climbs with a scanned personal best yet. Run “Scan activities for PBs” above.'
+                                : 'No climbs match your filters.'}
+                        </p>
+                    ) : filteredClimbs.map(climb => {
                         const status = climbStatus[climb.id];
                         const pb = climbPbs[climb.id];
                         const pbLabel = formatPbSummary(pb);
@@ -368,7 +379,7 @@ const BucketList = ({
                                         <p className="text-cdmuted text-xs mt-1">
                                             {climb.lengthKm}km • {climb.elevation}m • {climb.avgGrade}% avg
                                         </p>
-                                        {pbLabel && (status === 'done' || status === 'planned') && (
+                                        {pbLabel && (
                                             <p className="text-[10px] text-cdaccent mt-1 font-medium" title={pb?.activityTitle || ''}>
                                                 PB: {pbLabel}
                                             </p>
