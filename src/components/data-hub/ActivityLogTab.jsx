@@ -3,7 +3,7 @@ import { Loader2, AlertTriangle } from 'lucide-react';
 import ActivityLogView from './ActivityLogView';
 import ActivityLogFilterBar from './ActivityLogFilterBar';
 import ActivityLogSyncBanners from './ActivityLogSyncBanners';
-import FetchIntervalsPanel from './FetchIntervalsPanel';
+import IntervalsSyncPanel from './IntervalsSyncPanel';
 import QuickNav from './QuickNav';
 import { formatDateDDMMYYYY } from '../../utils/formatters';
 
@@ -12,6 +12,7 @@ import { formatDateDDMMYYYY } from '../../utils/formatters';
  */
 export default function ActivityLogTab({
     intervalsSync,
+    bulkSelectedCount = 0,
     stravaListProgress,
     stravaAutoEnrichNotice,
     onDismissStravaAutoEnrichNotice,
@@ -61,12 +62,18 @@ export default function ActivityLogTab({
                 onDismissStravaAutoEnrichNotice={onDismissStravaAutoEnrichNotice}
             />
 
-            <FetchIntervalsPanel
-                fetchIntervalsDates={intervalsSync.fetchIntervalsDates}
-                onFetchIntervalsDatesChange={intervalsSync.setFetchIntervalsDates}
-                onFetch={intervalsSync.handleFetchNewFromIntervals}
-                isFetching={intervalsSync.isFetchingNewIntervals}
-                isSyncing={intervalsSync.isSyncing}
+            <IntervalsSyncPanel
+                syncDates={intervalsSync.syncDates}
+                onSyncDatesChange={intervalsSync.setSyncDates}
+                sportFilters={intervalsSync.sportFilters}
+                onToggleSportFilter={intervalsSync.toggleSportFilter}
+                onSetAllSportFilters={intervalsSync.setAllSportFilters}
+                syncMode={intervalsSync.syncMode}
+                onSyncModeChange={intervalsSync.setSyncMode}
+                selectedCount={bulkSelectedCount}
+                onRunSync={intervalsSync.handleRunSync}
+                isBusy={intervalsSync.isFetchingNewIntervals || intervalsSync.isSyncing}
+                syncProgress={intervalsSync.syncProgress}
                 stravaConnected={filterBarProps.stravaGetToken != null}
                 onOpenImportTab={onOpenImportTab}
             />

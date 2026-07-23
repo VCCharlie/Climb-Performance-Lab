@@ -12,6 +12,7 @@ import {
 } from '../utils/stravaLinkIntervalsFetch';
 import useIntervalsSync from './useIntervalsSync';
 import { resolveDeviceProfileTitlesFromSettings } from '../utils/bikeComputerProfileTitles';
+import { useToast } from '../context/ToastContext';
 
 /**
  * Intervals.icu sync + fetch-new flows for DataHub (selected-row sync and date-range fetch).
@@ -26,14 +27,32 @@ export function useDataHubIntervalsSync({
     userSettings,
 }) {
     const deviceProfileTitles = resolveDeviceProfileTitlesFromSettings(userSettings);
+    const { showToast } = useToast();
     const { syncIntervals, isSyncing, syncProgress } = useIntervalsSync(intervalsConfig);
     const [syncStatus, setSyncStatus] = useState(null);
     const [syncErrorDetail, setSyncErrorDetail] = useState(null);
-    const [fetchIntervalsDates, setFetchIntervalsDates] = useState(() => ({
+    const [syncDates, setSyncDates] = useState(() => ({
         start: new Date(new Date().setDate(new Date().getDate() - 14)).toISOString().split('T')[0],
         end: new Date().toISOString().split('T')[0],
     }));
+    const [syncMode, setSyncMode] = useState('fetch-range');
+    const [sportFilters, setSportFilters] = useState(() =>
+        SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: true }), {}),
+    );
     const [isFetchingNewIntervals, setIsFetchingNewIntervals] = useState(false);
+
+    const getSelectedSportTypes = useCallback(
+        () => Object.keys(sportFilters).filter((k) => sportFilters[k]),
+        [sportFilters],
+    );
+
+    const toggleSportFilter = useCallback((type) => {
+        setSportFilters((prev) => ({ ...prev, [type]: !prev[type] }));
+    }, []);
+
+    const setAllSportFilters = useCallback((val) => {
+        setSportFilters(SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: val }), {}));
+    }, []);
 
     const handleSync = useCallback(async () => {
         if (bulkSelectedIds.size === 0) {
@@ -68,8 +87,14 @@ export function useDataHubIntervalsSync({
         setSyncErrorDetail(`Step 1/2: Intervals.icu ${syncStart} → ${syncEnd} (${bulkSelectedIds.size} selected)…`);
 
         try {
-            const sportFilters = SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: true }), {});
-            const selectedTypes = Object.keys(sportFilters).filter((k) => sportFilters[k]);
+            const selectedTypes = getSelectedSportTypes();
+            if (selectedTypes.length === 0) {
+                setSyncStatus('error');
+                setSyncErrorDetail('Select at least one sport type to sync.');
+                showToast('Select at least one sport type to sync.', { variant: 'warning' });
+                setTimeout(() => setSyncStatus(null), 7000);
+                return;
+            }
 
             const newActivitiesRaw = await syncIntervals(syncStart, syncEnd, selectedTypes);
             const newActivities = newActivitiesRaw.filter((a) => selectedIdSet.has(String(a.id)));
@@ -182,11 +207,18 @@ export function useDataHubIntervalsSync({
                     ? `✅ Sync complete. ${parts.join(' · ')}.`
                     : '✅ Sync complete. No Intervals changes for selected ids; Strava refresh attempted.',
             );
+            showToast(
+                parts.length > 0
+                    ? `Sync complete. ${parts.join(' · ')}.`
+                    : 'Sync complete. No Intervals changes for selected rows.',
+                { variant: 'success' },
+            );
             setTimeout(() => setSyncStatus(null), 9000);
         } catch (e) {
             console.error('Sync failed:', e);
             setSyncStatus('error');
             setSyncErrorDetail(`❌ Error: ${e.message}`);
+            showToast(e.message || 'Sync failed.', { variant: 'error', durationMs: 10000 });
         }
     }, [
         bulkSelectedIds,
@@ -196,11 +228,13 @@ export function useDataHubIntervalsSync({
         stravaGetToken,
         onImport,
         deviceProfileTitles,
+        getSelectedSportTypes,
+        showToast,
     ]);
 
     const handleFetchNewFromIntervals = useCallback(async () => {
-        const syncStart = fetchIntervalsDates.start;
-        const syncEnd = fetchIntervalsDates.end;
+        const syncStart = syncDates.start;
+        const syncEnd = syncDates.end;
         if (!syncStart || !syncEnd) {
             setSyncStatus('error');
             setSyncErrorDetail('Choose a valid From and To date for fetching new activities.');
@@ -219,8 +253,14 @@ export function useDataHubIntervalsSync({
         setSyncErrorDetail(`Fetching Intervals.icu ${syncStart} → ${syncEnd}…`);
 
         try {
-            const sportFiltersAll = SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: true }), {});
-            const selectedTypes = Object.keys(sportFiltersAll).filter((k) => sportFiltersAll[k]);
+            const selectedTypes = getSelectedSportTypes();
+            if (selectedTypes.length === 0) {
+                setSyncStatus('error');
+                setSyncErrorDetail('Select at least one sport type to sync.');
+                showToast('Select at least one sport type to sync.', { variant: 'warning' });
+                setTimeout(() => setSyncStatus(null), 7000);
+                return;
+            }
             const newActivitiesRaw = await syncIntervals(syncStart, syncEnd, selectedTypes);
 
             const activitiesMap = new Map((activities || []).map((a) => [String(a.id), a]));
@@ -329,29 +369,53 @@ export function useDataHubIntervalsSync({
                     ? `✅ ${parts.join(' · ')}.`
                     : 'No new activities returned from Intervals.icu for this range (or all filtered out).',
             );
+            showToast(
+                merged.length > 0
+                    ? parts.join(' · ')
+                    : 'No new activities returned for this range.',
+                { variant: merged.length > 0 ? 'success' : 'info' },
+            );
             setTimeout(() => setSyncStatus(null), 9000);
         } catch (e) {
             console.error('Fetch new from Intervals failed:', e);
             setSyncStatus('error');
             setSyncErrorDetail(`❌ ${e.message || e}`);
+            showToast(e.message || 'Intervals fetch failed.', { variant: 'error', durationMs: 10000 });
             setTimeout(() => setSyncStatus(null), 10000);
         } finally {
             setIsFetchingNewIntervals(false);
         }
     }, [
-        fetchIntervalsDates,
+        syncDates,
         syncIntervals,
         activities,
         stravaGetToken,
         onImport,
         deviceProfileTitles,
+        getSelectedSportTypes,
+        showToast,
     ]);
+
+    const handleRunSync = useCallback(() => {
+        if (syncMode === 'refresh-selected') {
+            return handleSync();
+        }
+        return handleFetchNewFromIntervals();
+    }, [syncMode, handleSync, handleFetchNewFromIntervals]);
 
     return {
         syncStatus,
         syncErrorDetail,
-        fetchIntervalsDates,
-        setFetchIntervalsDates,
+        syncDates,
+        setSyncDates,
+        fetchIntervalsDates: syncDates,
+        setFetchIntervalsDates: setSyncDates,
+        syncMode,
+        setSyncMode,
+        sportFilters,
+        toggleSportFilter,
+        setAllSportFilters,
+        handleRunSync,
         isFetchingNewIntervals,
         handleSync,
         handleFetchNewFromIntervals,

@@ -269,6 +269,7 @@ const DataHub = ({
                 {internalTab === 'log' && (
                     <ActivityLogTab
                         intervalsSync={intervalsSync}
+                        bulkSelectedCount={bulk.bulkSelectedIds.size}
                         stravaListProgress={stravaEnrich.stravaListProgress}
                         stravaAutoEnrichNotice={stravaEnrich.stravaAutoEnrichNotice}
                         onDismissStravaAutoEnrichNotice={stravaEnrich.dismissStravaAutoEnrichNotice}

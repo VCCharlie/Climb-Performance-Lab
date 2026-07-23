@@ -7,6 +7,7 @@ import { buildBackupExport, validateBackupPayload, describeBackupImport, BACKUP_
 import { Button, IconButton, inputBaseClass, inputNumberClass, modalScrimClass, modalPanelClass, modalHeaderClass, modalFooterClass } from './ui';
 import ModalPortal from './ui/ModalPortal';
 import { useActivities } from '../hooks/useActivities';
+import { useToast } from '../context/ToastContext';
 import {
     formatBikeComputerProfileTitlesForInput,
     parseBikeComputerProfileTitlesInput,
@@ -29,6 +30,7 @@ const SettingsModal = ({
     stravaConfig, stravaAuth
 }) => {
     const { activities, syncFromIntervals, restoreFromBackup } = useActivities();
+    const { showToast } = useToast();
     const [isSaving, setIsSaving] = useState(false);
     const [profileTitlesText, setProfileTitlesText] = useState(() =>
         formatBikeComputerProfileTitlesForInput(userSettings.bikeComputerProfileTitles),
@@ -58,12 +60,12 @@ const SettingsModal = ({
             const newRides = await syncIntervals(syncDates.start, syncDates.end, selectedTypes);
             if (newRides && newRides.length > 0) {
                 const count = await syncFromIntervals(newRides);
-                alert(`Sync successful! Handled ${count} activities.`);
+                showToast(`Sync successful! Handled ${count} activities.`, { variant: 'success' });
             } else if (newRides) {
-                alert("No activities found in range.");
+                showToast('No activities found in range.', { variant: 'info' });
             }
         } catch (e) {
-            alert(e.message);
+            showToast(e.message, { variant: 'error' });
         }
     };
 

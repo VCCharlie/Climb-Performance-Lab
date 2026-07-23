@@ -7,6 +7,112 @@ import { normalizeDate } from './formatters';
 import { determineActivityType } from './activityTypes';
 import { extractStravaId } from './strava';
 
+/**
+ * True when the payload looks like raw Intervals.icu API JSON (not our normalized shape).
+ */
+export function isRawIntervalsApiPayload(item) {
+    if (!item || typeof item !== 'object') return false;
+
+    const rawOnlyKeys = [
+        'start_date_local',
+        'start_date',
+        'startDate',
+        'name',
+        'icu_average_watts',
+        'icu_distance',
+        'icu_intervals',
+        'device_watts',
+        'elevationGain',
+        'total_elevation_gain',
+        'total_elevation_loss',
+        'Best1minpower',
+        'Best5minpower',
+        'movingTime',
+        'elapsedTime',
+        'normalizedPower',
+        'velocity_smooth',
+        'weighted_average_watts',
+        'average_watts',
+        'activity_id',
+        'kilojoules',
+        'icu_joules',
+        'perceived_exertion',
+        'power_load',
+        'sub_type',
+    ];
+
+    for (const key of rawOnlyKeys) {
+        if (item[key] !== undefined && item[key] !== null && item[key] !== '') {
+            return true;
+        }
+    }
+
+    if (item.title != null && (item.avg_power != null || item.norm_power != null)) {
+        return false;
+    }
+
+    return false;
+}
+
+/**
+ * Map cloud/Python-transformed activity back to API-like fields for JS normalization.
+ */
+export function cloudPayloadToRawShape(item) {
+    const distanceKm = Number(item.distance) || 0;
+    const avgSpeedKmh = Number(item.avg_speed) || 0;
+    return {
+        id: item.id,
+        name: item.title,
+        type: item.type,
+        start_date_local: item.date,
+        external_id: item.strava_id ? `strava-${item.strava_id}` : undefined,
+        moving_time: item.moving_time,
+        distance: distanceKm > 0 ? distanceKm * 1000 : 0,
+        total_elevation_gain: item.climbing,
+        average_speed: avgSpeedKmh > 0 ? avgSpeedKmh / 3.6 : 0,
+        icu_average_watts: item.avg_power,
+        icu_weighted_avg_watts: item.norm_power,
+        icu_training_load: item.load,
+        icu_rpe: item.rpe,
+        icu_average_heartrate: item.avg_hr,
+        max_heartrate: item.max_hr,
+        work: item.work,
+        icu_ftp: item.ftp || item.eFTP,
+        icu_max_watts: item.max_power,
+        Best1minpower: item.best_1min,
+        Best5minpower: item.best_5min,
+        Best10minpower: item.best_10min,
+        Best20minpower: item.best_20min,
+        Best60minpower: item.best_60min,
+        Best90minpower: item.best_90min,
+        Best120minpower: item.best_120min,
+        average_altitude: item.avg_altitude,
+        maximum_altitude: item.max_altitude,
+        trainer: item.type === 'VirtualRide',
+    };
+}
+
+/**
+ * Normalize any Intervals payload (raw API or cloud/Python output) to the canonical app shape.
+ */
+export function normalizeIntervalsActivityFromAny(item) {
+    if (!item || typeof item !== 'object') {
+        return normalizeIntervalsActivity({});
+    }
+    if (isRawIntervalsApiPayload(item)) {
+        return normalizeIntervalsActivity(item);
+    }
+    return normalizeIntervalsActivity(cloudPayloadToRawShape(item));
+}
+
+export function filterNonEmptyIntervalsActivities(activities) {
+    return (activities || []).filter((act) =>
+        (act.distance && act.distance > 0) ||
+        (act.moving_time && act.moving_time > 0) ||
+        (act.avg_power && act.avg_power > 0),
+    );
+}
+
 export const normalizeIntervalsActivity = (item) => {
     const getNum = (val) => { const n = Number(val); return isNaN(n) ? 0 : n; };
     const getVal = (...keys) => { for (const k of keys) { if (item[k] !== undefined && item[k] !== null && item[k] !== "") return item[k]; } return null; };
@@ -17,7 +123,12 @@ export const normalizeIntervalsActivity = (item) => {
 
     const movingTime = getNum(getVal('movingTime', 'moving_time', 'icu_recording_time', 'elapsedTime', 'elapsed_time', 'time'));
     // Intervals.icu / API: distance is always meters (short rides included). Never treat <1000 m as km.
-    const distanceMeters = getNum(getVal('distance', 'icu_distance', 'total_distance'));
+    const isIndoor = item.trainer === true;
+    const distanceMeters = getNum(
+        isIndoor
+            ? getVal('icu_distance', 'distance', 'total_distance')
+            : getVal('distance', 'icu_distance', 'total_distance'),
+    );
     const climbing = getNum(getVal('elevationGain', 'total_elevation_gain', 'total_elevation_loss', 'climbing'));
     const avgSpeedMs = getNum(getVal('avg_speed', 'avgSpeed', 'average_speed', 'velocity_smooth'));
     const normPower = getNum(getVal('norm_power', 'normalizedPower', 'icu_weighted_avg_watts', 'weighted_average_watts', 'np', 'normalized_power'));
@@ -98,7 +209,7 @@ export const normalizeIntervalsActivity = (item) => {
         distance: distanceMeters > 0 ? Math.round((distanceMeters / 1000) * 100) / 100 : 0,
         climbing: Math.round(climbing),
         avg_speed: (avgSpeedMs > 0 && avgSpeedMs < 15) ? (avgSpeedMs * 3.6).toFixed(1) : avgSpeedMs,
-        norm_power: Math.round(normPower),
+        norm_power: Math.round(normPower > 0 ? normPower : (avgPower > 0 ? avgPower : 0)),
         avg_power: Math.round(avgPower),
         avg_hr: Math.round(avgHr),
         load: Math.round(load),
