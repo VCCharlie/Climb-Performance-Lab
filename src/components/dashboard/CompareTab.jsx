@@ -2,8 +2,11 @@ import React, { useMemo, useState } from 'react';
 import { GitCompare } from 'lucide-react';
 import { SPORT_TYPES } from '../../config';
 import { chartCardClass } from '../../utils/chartTheme';
-import { computeMultiYearYtdAtSameMoment } from '../../utils/multiYearSameMoment';
+import { COMPARE_PERIODS, comparePeriodSubtitle } from '../../utils/comparePeriodWindows';
+import { computeMultiYearCompareRows } from '../../utils/multiYearSameMoment';
+import { computeSportMixForComparePeriod } from '../../utils/compareSportMix';
 import YearAtMomentBars from './YearAtMomentBars';
+import CompareSportDonut from './CompareSportDonut';
 
 const DEFAULT_SPORTS = new Set(['Ride', 'VirtualRide']);
 
@@ -20,18 +23,25 @@ function sportPillClass(active) {
 }
 
 /**
- * Year-over-year comparison at the same calendar moment — sport filters + horizontal bars.
+ * Year-over-year comparison — sport filters, period toggle, bars + donut.
  */
 const CompareTab = ({ allActivities }) => {
     const [selectedSports, setSelectedSports] = useState(() => new Set(DEFAULT_SPORTS));
+    const [period, setPeriod] = useState('ytd');
     const now = useMemo(() => new Date(), []);
     const currentYear = now.getFullYear();
-    const refLabel = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
     const rows = useMemo(
-        () => computeMultiYearYtdAtSameMoment(allActivities, now, 5, selectedSports),
-        [allActivities, now, selectedSports],
+        () => computeMultiYearCompareRows(allActivities, now, 5, selectedSports, period),
+        [allActivities, now, selectedSports, period],
     );
+
+    const sportMix = useMemo(
+        () => computeSportMixForComparePeriod(allActivities, period, now, selectedSports, 'distanceKm'),
+        [allActivities, period, now, selectedSports],
+    );
+
+    const periodLabel = COMPARE_PERIODS.find((p) => p.id === period)?.label || 'YTD';
 
     const toggleSport = (type) => {
         setSelectedSports((prev) => {
@@ -57,13 +67,31 @@ const CompareTab = ({ allActivities }) => {
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
             <div className={chartCardClass}>
-                <div className="flex items-start gap-2 mb-4">
-                    <GitCompare className="w-5 h-5 text-cdaccent shrink-0 mt-0.5" aria-hidden />
-                    <div>
-                        <h3 className="text-sm font-bold text-cdtext uppercase tracking-wider">Compare years (YTD)</h3>
-                        <p className="text-[11px] text-cdmuted">
-                            Same calendar window: 1 Jan through {refLabel}. Toggle sport types to match your Strava Year Review filters.
-                        </p>
+                <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+                    <div className="flex items-start gap-2">
+                        <GitCompare className="w-5 h-5 text-cdaccent shrink-0 mt-0.5" aria-hidden />
+                        <div>
+                            <h3 className="text-sm font-bold text-cdtext uppercase tracking-wider">
+                                Compare years ({periodLabel})
+                            </h3>
+                            <p className="text-[11px] text-cdmuted">
+                                {comparePeriodSubtitle(period, now)}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex bg-cdbg/60 border border-cdborder rounded overflow-hidden text-[11px] font-bold">
+                        {COMPARE_PERIODS.map((p) => (
+                            <button
+                                key={p.id}
+                                type="button"
+                                onClick={() => setPeriod(p.id)}
+                                className={`px-3 py-1.5 transition-colors ${
+                                    period === p.id ? 'bg-cdaccent text-white' : 'text-cdmuted hover:text-cdtext'
+                                }`}
+                            >
+                                {p.label}
+                            </button>
+                        ))}
                     </div>
                 </div>
 
@@ -89,16 +117,19 @@ const CompareTab = ({ allActivities }) => {
 
                 {!rows.length ? (
                     <p className="text-sm text-cdmuted text-center py-8">
-                        No activities for the selected sport types in the YTD window.
+                        No activities for the selected sport types in this period.
                     </p>
                 ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        {METRICS.map((m) => (
-                            <div key={m.id} className="space-y-2">
-                                <h4 className="text-[10px] font-bold text-cdmuted uppercase tracking-wide">{m.label}</h4>
-                                <YearAtMomentBars rows={rows} metricId={m.id} currentYear={currentYear} />
-                            </div>
-                        ))}
+                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                        <div className="xl:col-span-2 grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            {METRICS.map((m) => (
+                                <div key={m.id} className="space-y-2">
+                                    <h4 className="text-[10px] font-bold text-cdmuted uppercase tracking-wide">{m.label}</h4>
+                                    <YearAtMomentBars rows={rows} metricId={m.id} currentYear={currentYear} />
+                                </div>
+                            ))}
+                        </div>
+                        <CompareSportDonut rows={sportMix} basis="distanceKm" />
                     </div>
                 )}
             </div>

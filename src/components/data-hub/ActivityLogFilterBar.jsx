@@ -515,7 +515,7 @@ const ActivityLogFilterBar = ({
                             type="button"
                             onClick={onStravaDescriptionBackfill}
                             disabled={isStravaDescBackfilling}
-                            title="Fetch Strava activity description only (MyCols / ClimbFinder text) — uses selected rows, or all Strava-linked rides if none selected. Max ~80 per run."
+                            title="Fetch Strava activity description only (MyCols / ClimbFinder). No selection = next 80 Strava-linked rides still missing a description (newest first). Re-click until the banner says none remain."
                             className="inline-flex items-center gap-1 px-2 py-1 rounded border border-cdborder text-cdmuted hover:text-cdaccent hover:border-cdaccent/40 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
                         >
                             {isStravaDescBackfilling ? <Loader2 size={12} className="animate-spin" aria-hidden="true" /> : <Link2 size={12} aria-hidden="true" />}

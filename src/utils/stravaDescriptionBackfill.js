@@ -14,6 +14,7 @@ const DEFAULT_MAX_PER_RUN = 80;
  */
 export function activityNeedsStravaDescription(act) {
     if (!act?.strava_id) return false;
+    if (act.strava_description_checked === true) return false;
     const desc = (act.description || act.notes || '').trim();
     return desc.length === 0;
 }
@@ -77,7 +78,8 @@ export async function buildStravaDescriptionBackfillUpdates(siteActivities, toke
     const conc = Math.max(1, Math.min(4, opts.concurrency ?? DEFAULT_CONCURRENCY));
     const maxPerRun = Math.max(1, opts.maxPerRun ?? DEFAULT_MAX_PER_RUN);
     const candidates = pickActivitiesNeedingStravaDescription(siteActivities, opts.onlyIds);
-    const batch = candidates.slice(0, maxPerRun);
+    const sorted = [...candidates].sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+    const batch = sorted.slice(0, maxPerRun);
 
     if (!token || batch.length === 0) {
         return {
@@ -103,10 +105,13 @@ export async function buildStravaDescriptionBackfillUpdates(siteActivities, toke
     await runInBatches(batch, conc, async (act, index) => {
         try {
             const description = await fetchStravaActivityDescription(act.strava_id, token);
+            const patch = { strava_description_checked: true };
             if (description) {
-                updates.push({ id: act.id, data: { description } });
+                patch.description = description;
+                updates.push({ id: act.id, data: patch });
                 filled += 1;
             } else {
+                updates.push({ id: act.id, data: { ...patch, strava_description_empty: true } });
                 emptyOnStrava += 1;
             }
         } catch (e) {

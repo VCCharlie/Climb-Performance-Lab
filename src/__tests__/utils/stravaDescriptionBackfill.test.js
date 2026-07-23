@@ -14,6 +14,10 @@ describe('stravaDescriptionBackfill', () => {
         vi.unstubAllGlobals();
     });
 
+    it('activityNeedsStravaDescription skips already checked rides', () => {
+        expect(activityNeedsStravaDescription({ strava_id: '123', strava_description_checked: true })).toBe(false);
+    });
+
     it('activityNeedsStravaDescription when strava_id and empty description', () => {
         expect(activityNeedsStravaDescription({ strava_id: '123', title: 'Ride' })).toBe(true);
         expect(activityNeedsStravaDescription({ strava_id: '123', description: 'Cols' })).toBe(false);
@@ -43,7 +47,10 @@ describe('stravaDescriptionBackfill', () => {
         );
 
         expect(result.filled).toBe(1);
-        expect(result.updates[0].data).toEqual({ description: 'MyCols: Alpe d Huez' });
+        expect(result.updates[0].data).toEqual({
+            description: 'MyCols: Alpe d Huez',
+            strava_description_checked: true,
+        });
         expect(String(fetch.mock.calls[0][0])).not.toContain('include_all_efforts');
     });
 });

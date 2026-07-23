@@ -332,7 +332,7 @@ export function useDataHubBulkActions({
             const rateNote = result.rateLimitHits > 0 ? ' Some requests hit Strava rate limits.' : '';
 
             setStravaDescBackfillMsg(
-                `Done: stored ${formatNlNumber(result.filled)} Strava description(s) (description field only — low API load).${remainNote}${rateNote}`,
+                `Done: stored ${formatNlNumber(result.filled)} Strava description(s) (description field only — low API load).${remainNote}${rateNote} Next run automatically continues with rides not yet checked.`,
             );
         } catch (e) {
             console.error('[Strava description backfill]', e);
