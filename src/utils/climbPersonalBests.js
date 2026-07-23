@@ -13,6 +13,7 @@ import {
     resolvePbVenue,
     climbVenue,
 } from './activityVenue';
+import { yieldToMain } from './yieldToMain';
 
 /**
  * Drop PB rows where the stored ride venue does not match the climb (e.g. Zwift PB on a real climb).
@@ -39,73 +40,117 @@ export function pruneMismatchedVenuePbs(climbPbs, climbs) {
 }
 
 /**
+ * Apply one activity to the in-progress PB map (mutates `pbs`).
+ * @param {object} act
+ * @param {ReturnType<typeof buildClimbMatchIndex>} index
+ * @param {Record<string, object>} pbs
+ * @param {{ venueFilter?: 'all' | 'outdoor' | 'virtual' }} [options]
+ */
+function applyActivityToClimbPbs(act, index, pbs, options = {}) {
+    const venueFilter = options.venueFilter ?? 'all';
+    if (!activityMatchesVenueFilter(act, venueFilter)) return;
+    if (!act?.title && !act?.description && !act?.notes) return;
+    const { climb, source } = findBestClimbForActivity(act, index);
+    if (!climb?.id) return;
+
+    const climbId = String(climb.id);
+    const venue = activityVenue(act);
+    const np = Number(act.norm_power) || 0;
+    const ap = Number(act.avg_power) || 0;
+    const movingSec = activityMovingTimeSec(act);
+    const prev = pbs[climbId];
+
+    const betterNp = np > 0 && (!prev?.normPower || np > prev.normPower);
+    const betterAp = ap > 0 && (!prev?.avgPower || ap > prev.avgPower);
+    const betterTime = movingSec != null && movingSec > 60
+        && (!prev?.movingTimeSec || movingSec < prev.movingTimeSec);
+
+    if (!prev) {
+        pbs[climbId] = {
+            climbId,
+            climbName: climb.name,
+            venue,
+            normPower: np > 0 ? np : null,
+            avgPower: ap > 0 ? ap : null,
+            movingTimeSec: movingSec > 0 ? movingSec : null,
+            activityId: act.id != null ? String(act.id) : null,
+            stravaId: stravaIdFromActivity(act),
+            date: normalizeDate(act.date) || null,
+            activityTitle: act.title || null,
+            matchSource: source,
+        };
+        return;
+    }
+
+    if (!betterNp && !betterAp && !betterTime) return;
+
+    pbs[climbId] = {
+        ...prev,
+        venue,
+        normPower: betterNp ? np : prev.normPower,
+        avgPower: betterAp ? ap : prev.avgPower,
+        movingTimeSec: betterTime ? movingSec : prev.movingTimeSec,
+        activityId: (betterNp || betterAp || betterTime) && act.id != null
+            ? String(act.id)
+            : prev.activityId,
+        stravaId: (betterNp || betterAp || betterTime)
+            ? (stravaIdFromActivity(act) || prev.stravaId || null)
+            : prev.stravaId,
+        date: (betterNp || betterAp || betterTime)
+            ? (normalizeDate(act.date) || prev.date)
+            : prev.date,
+        activityTitle: (betterNp || betterAp || betterTime)
+            ? (act.title || prev.activityTitle)
+            : prev.activityTitle,
+        matchSource: (betterNp || betterAp || betterTime) ? (source || prev.matchSource) : prev.matchSource,
+    };
+}
+
+/**
  * @param {object[]} activities
  * @param {object[]} climbs
  * @param {{ venueFilter?: 'all' | 'outdoor' | 'virtual' }} [options]
  * @returns {Record<string, object>}
  */
 export function scanClimbPersonalBests(activities, climbs, options = {}) {
-    const venueFilter = options.venueFilter ?? 'all';
     const index = buildClimbMatchIndex(climbs);
     const pbs = {};
 
     for (const act of activities || []) {
-        if (!activityMatchesVenueFilter(act, venueFilter)) continue;
-        if (!act?.title && !act?.description && !act?.notes) continue;
-        const { climb, source } = findBestClimbForActivity(act, index);
-        if (!climb?.id) continue;
+        applyActivityToClimbPbs(act, index, pbs, options);
+    }
 
-        const climbId = String(climb.id);
-        const venue = activityVenue(act);
-        const np = Number(act.norm_power) || 0;
-        const ap = Number(act.avg_power) || 0;
-        const movingSec = activityMovingTimeSec(act);
-        const prev = pbs[climbId];
+    return pbs;
+}
 
-        const betterNp = np > 0 && (!prev?.normPower || np > prev.normPower);
-        const betterAp = ap > 0 && (!prev?.avgPower || ap > prev.avgPower);
-        const betterTime = movingSec != null && movingSec > 60
-            && (!prev?.movingTimeSec || movingSec < prev.movingTimeSec);
+/**
+ * Same result as scanClimbPersonalBests, but yields to the main thread between chunks
+ * so the UI stays responsive on large activity logs.
+ *
+ * @param {object[]} activities
+ * @param {object[]} climbs
+ * @param {{ chunkSize?: number, onProgress?: (p: { done: number, total: number }) => void, venueFilter?: 'all' | 'outdoor' | 'virtual' }} [options]
+ * @returns {Promise<Record<string, object>>}
+ */
+export async function scanClimbPersonalBestsAsync(activities, climbs, options = {}) {
+    const chunkSize = Math.max(50, options.chunkSize ?? 250);
+    const onProgress = options.onProgress;
+    const index = buildClimbMatchIndex(climbs);
+    const pbs = {};
+    const list = activities || [];
+    const total = list.length;
 
-        if (!prev) {
-            pbs[climbId] = {
-                climbId,
-                climbName: climb.name,
-                venue,
-                normPower: np > 0 ? np : null,
-                avgPower: ap > 0 ? ap : null,
-                movingTimeSec: movingSec > 0 ? movingSec : null,
-                activityId: act.id != null ? String(act.id) : null,
-                stravaId: stravaIdFromActivity(act),
-                date: normalizeDate(act.date) || null,
-                activityTitle: act.title || null,
-                matchSource: source,
-            };
-            continue;
+    onProgress?.({ done: 0, total });
+
+    for (let i = 0; i < total; i++) {
+        applyActivityToClimbPbs(list[i], index, pbs, options);
+        const done = i + 1;
+        if (done % chunkSize === 0 || done === total) {
+            onProgress?.({ done, total });
+            if (done < total) {
+                await yieldToMain();
+            }
         }
-
-        if (!betterNp && !betterAp && !betterTime) continue;
-
-        pbs[climbId] = {
-            ...prev,
-            venue,
-            normPower: betterNp ? np : prev.normPower,
-            avgPower: betterAp ? ap : prev.avgPower,
-            movingTimeSec: betterTime ? movingSec : prev.movingTimeSec,
-            activityId: (betterNp || betterAp || betterTime) && act.id != null
-                ? String(act.id)
-                : prev.activityId,
-            stravaId: (betterNp || betterAp || betterTime)
-                ? (stravaIdFromActivity(act) || prev.stravaId || null)
-                : prev.stravaId,
-            date: (betterNp || betterAp || betterTime)
-                ? (normalizeDate(act.date) || prev.date)
-                : prev.date,
-            activityTitle: (betterNp || betterAp || betterTime)
-                ? (act.title || prev.activityTitle)
-                : prev.activityTitle,
-            matchSource: (betterNp || betterAp || betterTime) ? (source || prev.matchSource) : prev.matchSource,
-        };
     }
 
     return pbs;
@@ -184,6 +229,7 @@ function pbMetricScore(pb) {
  * Merge a fresh scan into stored PBs, keeping the stronger record per climb.
  * @param {Record<string, object> | null | undefined} prevPbs
  * @param {Record<string, object>} scanned
+ * @param {object[]} [climbs]
  */
 export function mergeScannedIntoClimbPbs(prevPbs, scanned, climbs = []) {
     const prev = prevPbs || {};
@@ -231,11 +277,12 @@ export function countPbByMatchSource(climbPbs) {
  * @param {Record<string, object> | null | undefined} prevPbs
  * @param {Record<string, object>} scanned
  * @param {object[]} activities
+ * @param {object[]} [climbs]
  */
 export function summarizePbScanResult(prevPbs, scanned, activities, climbs = []) {
     const merged = mergeScannedIntoClimbPbs(prevPbs, scanned, climbs);
-    const previousWithPb = countClimbsWithPb(prevPbs);
-    const totalWithPb = countClimbsWithPb(merged);
+    const previousWithPb = countClimbsWithPb(prevPbs, climbs);
+    const totalWithPb = countClimbsWithPb(merged, climbs);
 
     const prevIds = new Set(
         Object.keys(prevPbs || {}).filter((id) => hasStoredClimbPb(prevPbs, id)),
@@ -311,4 +358,3 @@ export function formatPbScanFeedbackMessage(summary) {
 
     return `Scanned ${activitiesScanned.toLocaleString('en-GB')} activities. ${totalWithPb} climbs with a PB${delta}.${descHint}`;
 }
-
