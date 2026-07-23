@@ -75,6 +75,8 @@ export default function ActivityLogTab({
                 isBusy={intervalsSync.isFetchingNewIntervals || intervalsSync.isSyncing}
                 syncProgress={intervalsSync.syncProgress}
                 stravaConnected={filterBarProps.stravaGetToken != null}
+                stravaEnrichEnabled={intervalsSync.stravaEnrichEnabled}
+                onStravaEnrichEnabledChange={intervalsSync.setStravaEnrichEnabled}
                 onOpenImportTab={onOpenImportTab}
             />
 

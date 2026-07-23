@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-    Search, Loader2, Trash, Split, RefreshCw, Zap, ChevronDown, ChevronRight,
+    Search, Loader2, Trash, Split, RefreshCw, ChevronDown, ChevronRight,
     Link2, GitMerge, Edit2,
 } from 'lucide-react';
 import ActivityColumnPicker from './ActivityColumnPicker';
@@ -38,11 +38,7 @@ const ActivityLogFilterBar = ({
     isManualRefreshing,
     onManualRefresh,
     // Tools menu actions
-    onSync,
-    isSyncing,
-    bulkSelectedCount,
     onFindDuplicates,
-    onOpenNoPower,
     onClearDatabase,
     activitiesCount,
     isDeleting,
@@ -193,33 +189,11 @@ const ActivityLogFilterBar = ({
                     >
                         <button
                             type="button"
-                            onClick={onSync}
-                            disabled={isSyncing || bulkSelectedCount === 0}
-                            title={
-                                bulkSelectedCount === 0
-                                    ? 'Select activities in the log (checkboxes). Sync uses the date range from those rows for Intervals.icu, then refreshes Strava link, gear, and segment / KOM badges for the same selection.'
-                                    : 'Re-fetch Intervals.icu for the date span of selected rows, match Strava in that window, then force-refresh Strava activity details (segments / KOM) for every selected ride that has strava_id.'
-                            }
-                            className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-blue-400 hover:bg-cdborder disabled:opacity-40 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
-                        >
-                            <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} aria-hidden="true" />
-                            {isSyncing ? 'Working...' : 'Sync Now'}
-                        </button>
-                        <button
-                            type="button"
                             onClick={onFindDuplicates}
                             disabled={!activitiesCount}
                             className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-orange-400 hover:bg-cdborder disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
                         >
                             <Split size={14} aria-hidden="true" /> Duplicates
-                        </button>
-                        <button
-                            type="button"
-                            onClick={onOpenNoPower}
-                            disabled={!activitiesCount}
-                            className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-yellow-400 hover:bg-cdborder disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
-                        >
-                            <Zap size={14} aria-hidden="true" /> No Power
                         </button>
                         <div className="border-t border-cdborder" />
                         <button
