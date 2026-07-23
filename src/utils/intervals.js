@@ -120,6 +120,8 @@ export const normalizeIntervalsActivity = (item) => {
     const id = String(getVal('id', 'activity_id') || crypto.randomUUID());
     const dateStr = getVal('startDate', 'start_date_local', 'start_date', 'date');
     const title = getVal('name', 'title') || "Untitled";
+    const descriptionRaw = getVal('description', 'notes', 'activity_description');
+    const description = descriptionRaw != null ? String(descriptionRaw).trim() : '';
 
     const movingTime = getNum(getVal('movingTime', 'moving_time', 'icu_recording_time', 'elapsedTime', 'elapsed_time', 'time'));
     // Intervals.icu / API: distance is always meters (short rides included). Never treat <1000 m as km.
@@ -204,6 +206,7 @@ export const normalizeIntervalsActivity = (item) => {
         strava_id: stravaId,
         date: normalizeDate(dateStr),
         title: title,
+        ...(description ? { description } : {}),
         type: finalType,
         moving_time: movingTime,
         distance: distanceMeters > 0 ? Math.round((distanceMeters / 1000) * 100) / 100 : 0,

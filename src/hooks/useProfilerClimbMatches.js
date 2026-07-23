@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { buildClimbMatchIndex, findBestClimbUsingIndex } from '../utils/activityClimbMatch';
+import { buildClimbMatchIndex, buildActivityClimbMatchText, findBestClimbForActivity } from '../utils/activityClimbMatch';
 
 /** Use worker when filtered log exceeds this (main-thread fallback below). */
 const WORKER_ACTIVITY_THRESHOLD = 250;
@@ -29,9 +29,10 @@ function matchClimbsSync(activities, climbs) {
     const index = buildClimbMatchIndex(climbs);
     const map = new Map();
     for (const a of activities || []) {
-        if (!a?.id || !a?.title) continue;
-        const c = findBestClimbUsingIndex(a.title, index);
-        if (c) map.set(String(a.id), c);
+        if (!a?.id) continue;
+        if (!a.title && !a.description && !a.notes) continue;
+        const { climb } = findBestClimbForActivity(a, index);
+        if (climb) map.set(String(a.id), climb);
     }
     return map;
 }
@@ -46,8 +47,13 @@ export function useProfilerClimbMatches(processedActivities, climbs) {
 
     const activityPayload = useMemo(
         () => (processedActivities || [])
-            .filter((a) => a?.id && a?.title)
-            .map((a) => ({ id: String(a.id), title: a.title })),
+            .filter((a) => a?.id && (a.title || a.description || a.notes))
+            .map((a) => ({
+                id: String(a.id),
+                title: a.title || '',
+                description: a.description || a.notes || '',
+                matchText: buildActivityClimbMatchText(a),
+            })),
         [processedActivities],
     );
 

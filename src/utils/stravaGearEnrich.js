@@ -236,6 +236,11 @@ export async function enrichActivityGearFromStrava(merged, stravaSide, token, op
         out.strava_map = detail.map.summary_polyline;
     }
 
+    const stravaDescription = detail?.description != null ? String(detail.description).trim() : '';
+    if (stravaDescription && stravaDescription !== String(out.description || '').trim()) {
+        out.description = stravaDescription;
+    }
+
     // Strava API: moving_time / elapsed_time in seconds — fill when site still has 0 / unparsed
     if (detail && storedMovingTimeSec(out) <= 0) {
         const mv = stravaDurationSeconds(detail.moving_time);
@@ -318,6 +323,9 @@ export async function buildStravaDetailEnrichmentUpdates(siteActivities, token, 
                 ...(Object.prototype.hasOwnProperty.call(enriched, 'strava_kom_summary')
                     ? { strava_kom_summary: enriched.strava_kom_summary }
                     : {}),
+                ...(enriched.description != null && String(enriched.description).trim()
+                    ? { description: String(enriched.description).trim() }
+                    : {}),
             });
             const komSame = JSON.stringify(act.strava_kom_summary ?? null)
                 === JSON.stringify(enriched.strava_kom_summary ?? null);
@@ -328,7 +336,8 @@ export async function buildStravaDetailEnrichmentUpdates(siteActivities, token, 
                 && String(act.strava_map ?? '') === String(patch.strava_map ?? '')
                 && !timeChanged
                 && !distChanged
-                && komSame;
+                && komSame
+                && String(act.description ?? '').trim() === String(patch.description ?? '').trim();
             if (same || Object.keys(patch).length === 0) {
                 unchanged += 1;
                 return;

@@ -20,6 +20,25 @@ describe('scanClimbPersonalBests', () => {
         expect(pbs.fr_alpe?.activityId).toBe('2');
     });
 
+    it('matches activities by description when title is generic', () => {
+        const pbs = scanClimbPersonalBests(
+            [
+                {
+                    id: '3',
+                    title: 'Sunday ride',
+                    description: 'MyCols: Passo dello Stelvio from Prato',
+                    norm_power: 240,
+                    date: '2026-03-01',
+                    moving_time: 4000,
+                },
+            ],
+            climbs,
+        );
+
+        expect(pbs.it_stelvio?.normPower).toBe(240);
+        expect(pbs.it_stelvio?.matchSource).toBe('description');
+    });
+
     it('formatPbSummary combines power and time', () => {
         const label = formatPbSummary({ normPower: 260, movingTimeSec: 2700 });
         expect(label).toContain('260');

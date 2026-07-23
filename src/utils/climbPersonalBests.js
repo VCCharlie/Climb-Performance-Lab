@@ -1,8 +1,8 @@
 /**
- * Personal bests per climb via activity title matching (same heuristic as Profiler).
+ * Personal bests per climb via activity title + description matching (Profiler heuristic).
  */
 
-import { buildClimbMatchIndex, findBestClimbUsingIndex } from './activityClimbMatch';
+import { buildClimbMatchIndex, findBestClimbForActivity } from './activityClimbMatch';
 import { activityMovingTimeSec } from './activityFilterMetrics';
 import { normalizeDate } from './formatters';
 
@@ -16,8 +16,8 @@ export function scanClimbPersonalBests(activities, climbs) {
     const pbs = {};
 
     for (const act of activities || []) {
-        if (!act?.title) continue;
-        const climb = findBestClimbUsingIndex(act.title, index);
+        if (!act?.title && !act?.description && !act?.notes) continue;
+        const { climb, source } = findBestClimbForActivity(act, index);
         if (!climb?.id) continue;
 
         const climbId = String(climb.id);
@@ -40,7 +40,8 @@ export function scanClimbPersonalBests(activities, climbs) {
                 movingTimeSec: movingSec > 0 ? movingSec : null,
                 activityId: act.id != null ? String(act.id) : null,
                 date: normalizeDate(act.date) || null,
-                activityTitle: act.title,
+                activityTitle: act.title || null,
+                matchSource: source,
             };
             continue;
         }
@@ -58,7 +59,10 @@ export function scanClimbPersonalBests(activities, climbs) {
             date: (betterNp || betterAp || betterTime)
                 ? (normalizeDate(act.date) || prev.date)
                 : prev.date,
-            activityTitle: (betterNp || betterAp || betterTime) ? act.title : prev.activityTitle,
+            activityTitle: (betterNp || betterAp || betterTime)
+                ? (act.title || prev.activityTitle)
+                : prev.activityTitle,
+            matchSource: (betterNp || betterAp || betterTime) ? (source || prev.matchSource) : prev.matchSource,
         };
     }
 
@@ -109,4 +113,13 @@ export function countClimbsWithPb(climbPbs) {
         if (hasStoredClimbPb(climbPbs, id)) count += 1;
     }
     return count;
+}
+
+/**
+ * @param {'title' | 'description' | null | undefined} source
+ */
+export function formatPbMatchSourceLabel(source) {
+    if (source === 'description') return 'Matched from activity description';
+    if (source === 'title') return 'Matched from activity title';
+    return 'Matched from activity title or description';
 }

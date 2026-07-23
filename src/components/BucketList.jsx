@@ -5,7 +5,7 @@ import { useActivitiesList } from '../hooks/useActivities';
 import FlagIcon from './FlagIcon';
 import PlannedClimbWeatherPanel from './bucket-list/PlannedClimbWeatherPanel';
 import { mergeClimbPbs } from '../utils/bucketListState';
-import { scanClimbPersonalBests, formatPbSummary, hasStoredClimbPb, countClimbsWithPb } from '../utils/climbPersonalBests';
+import { scanClimbPersonalBests, formatPbSummary, hasStoredClimbPb, countClimbsWithPb, formatPbMatchSourceLabel } from '../utils/climbPersonalBests';
 
 const STATUS_FILTER_OPTIONS = [
     { id: 'all', label: 'All' },
@@ -319,6 +319,9 @@ const BucketList = ({
                     <Sparkles size={14} aria-hidden />
                     Scan activities for PBs
                 </button>
+                <p className="text-[10px] text-cdmuted mt-1">
+                    Matches climbs from activity title or Strava description (MyCols, ClimbFinder, etc.).
+                </p>
             </div>
 
             {/* Filters */}
@@ -404,7 +407,10 @@ const BucketList = ({
                                             {climb.lengthKm}km • {climb.elevation}m • {climb.avgGrade}% avg
                                         </p>
                                         {pbLabel && (
-                                            <p className="text-[10px] text-cdaccent mt-1 font-medium" title={pb?.activityTitle || ''}>
+                                            <p
+                                                className="text-[10px] text-cdaccent mt-1 font-medium"
+                                                title={[pb?.activityTitle, formatPbMatchSourceLabel(pb?.matchSource)].filter(Boolean).join(' · ')}
+                                            >
                                                 PB: {pbLabel}
                                             </p>
                                         )}

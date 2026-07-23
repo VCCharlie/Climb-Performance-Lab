@@ -132,3 +132,65 @@ export function findBestClimbUsingIndex(activityTitle, index) {
 export function findBestClimbForActivityTitle(activityTitle, climbs) {
     return findBestClimbUsingIndex(activityTitle, buildClimbMatchIndex(climbs));
 }
+
+function stripHtml(text) {
+    if (!text || typeof text !== 'string') return '';
+    return text
+        .replace(/<br\s*\/?>/gi, ' ')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+/**
+ * Text fields searched for climb name heuristics (title first, then Strava/Intervals description).
+ * @param {object | null | undefined} activity
+ * @returns {string}
+ */
+export function buildActivityClimbMatchText(activity) {
+    if (!activity || typeof activity !== 'object') return '';
+    const parts = [];
+    const title = (activity.title || '').trim();
+    if (title) parts.push(title);
+    const description = stripHtml(activity.description || activity.notes || '');
+    if (description && description !== title) parts.push(description);
+    return parts.join(' · ');
+}
+
+/**
+ * Best climb match with source hint (title vs description-only).
+ * @param {object} activity
+ * @param {{ climbByWord: Map<string, Set<object>>, climbs: object[] }} index
+ * @returns {{ climb: object | null, source: 'title' | 'description' | null }}
+ */
+export function findBestClimbForActivity(activity, index) {
+    if (!activity || !index?.climbs?.length) {
+        return { climb: null, source: null };
+    }
+
+    const title = (activity.title || '').trim();
+    const fromTitle = title ? findBestClimbUsingIndex(title, index) : null;
+    if (fromTitle) {
+        return { climb: fromTitle, source: 'title' };
+    }
+
+    const description = stripHtml(activity.description || activity.notes || '');
+    if (!description || description === title) {
+        return { climb: null, source: null };
+    }
+
+    const fromDescription = findBestClimbUsingIndex(description, index);
+    if (fromDescription) {
+        return { climb: fromDescription, source: 'description' };
+    }
+
+    const combined = buildActivityClimbMatchText(activity);
+    const fromCombined = combined && combined !== title && combined !== description
+        ? findBestClimbUsingIndex(combined, index)
+        : null;
+
+    return {
+        climb: fromCombined,
+        source: fromCombined ? 'description' : null,
+    };
+}
