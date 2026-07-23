@@ -89,3 +89,24 @@ export function formatPbSummary(pb) {
     if (time) parts.push(time);
     return parts.length > 0 ? parts.join(' · ') : null;
 }
+
+/**
+ * @param {Record<string, object> | null | undefined} climbPbs
+ * @param {string} climbId
+ */
+export function hasStoredClimbPb(climbPbs, climbId) {
+    if (!climbPbs || climbId == null) return false;
+    return !!formatPbSummary(climbPbs[String(climbId)]);
+}
+
+/**
+ * @param {Record<string, object> | null | undefined} climbPbs
+ */
+export function countClimbsWithPb(climbPbs) {
+    if (!climbPbs) return 0;
+    let count = 0;
+    for (const id of Object.keys(climbPbs)) {
+        if (hasStoredClimbPb(climbPbs, id)) count += 1;
+    }
+    return count;
+}
