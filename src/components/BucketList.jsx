@@ -19,7 +19,7 @@ import { yieldToMain } from '../utils/yieldToMain';
 
 const PB_VENUE_FILTER_OPTIONS = [
     { id: 'outdoor', label: 'Outdoor' },
-    { id: 'virtual', label: 'Zwift' },
+    { id: 'virtual', label: 'Indoor' },
     { id: 'all', label: 'All' },
 ];
 
@@ -242,9 +242,17 @@ const BucketList = ({
         return { done, planned, want, todo };
     }, [climbStatus, climbDatabase.length]);
 
+    const activityById = useMemo(() => {
+        const map = new Map();
+        for (const act of activities || []) {
+            if (act?.id != null) map.set(String(act.id), act);
+        }
+        return map;
+    }, [activities]);
+
     const pbCount = useMemo(
-        () => countClimbsWithPb(climbPbs, climbDatabase, pbVenueFilter),
-        [climbPbs, climbDatabase, pbVenueFilter],
+        () => countClimbsWithPb(climbPbs, climbDatabase, pbVenueFilter, activities),
+        [climbPbs, climbDatabase, pbVenueFilter, activities],
     );
 
     const statusFilterCounts = useMemo(() => ({
@@ -272,7 +280,11 @@ const BucketList = ({
 
         // Filter by status or activity PB
         if (filterStatus === 'with_pb') {
-            filtered = filtered.filter((climb) => hasStoredClimbPb(climbPbs, climb.id, climb, pbVenueFilter));
+            filtered = filtered.filter((climb) => {
+                const pb = climbPbs[climb.id];
+                const activity = pb?.activityId ? activityById.get(String(pb.activityId)) : null;
+                return hasStoredClimbPb(climbPbs, climb.id, climb, pbVenueFilter, activity);
+            });
         } else if (filterStatus !== 'all') {
             filtered = filtered.filter(climb => {
                 const status = climbStatus[climb.id];
@@ -297,7 +309,7 @@ const BucketList = ({
         });
 
         return filtered;
-    }, [searchTerm, filterStatus, sortBy, climbStatus, climbDatabase, climbPbs, pbVenueFilter]);
+    }, [searchTerm, filterStatus, sortBy, climbStatus, climbDatabase, climbPbs, pbVenueFilter, activityById]);
 
     return (
         <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl space-y-6">
@@ -371,7 +383,7 @@ const BucketList = ({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-xs text-cdmuted">
                         Personal bests match from activity title or Strava description (MyCols, ClimbFinder).
-                        Outdoor rides match real climbs; Zwift rides match Zwift portal climbs only.
+                        Outdoor rides match real climbs; indoor/virtual rides match Zwift portal climbs only. App “Similar to …” hints are ignored.
                     </p>
                     <button
                         type="button"
@@ -491,9 +503,10 @@ const BucketList = ({
                     ) : filteredClimbs.map(climb => {
                         const status = climbStatus[climb.id];
                         const pb = climbPbs[climb.id];
-                        const showPb = hasStoredClimbPb(climbPbs, climb.id, climb, pbVenueFilter);
+                        const pbActivity = pb?.activityId ? activityById.get(String(pb.activityId)) : null;
+                        const showPb = hasStoredClimbPb(climbPbs, climb.id, climb, pbVenueFilter, pbActivity);
                         const pbLabel = showPb ? formatPbSummary(pb) : null;
-                        const pbVenue = showPb ? resolvePbVenue(pb, climb) : null;
+                        const pbVenue = showPb ? resolvePbVenue(pb, climb, pbActivity) : null;
                         return (
                             <div
                                 key={climb.id}

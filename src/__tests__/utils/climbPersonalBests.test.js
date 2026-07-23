@@ -102,13 +102,29 @@ describe('scanClimbPersonalBests', () => {
     it('pruneMismatchedVenuePbs removes Zwift PB rows from real climbs', () => {
         const pruned = pruneMismatchedVenuePbs(
             {
-                fr_platzerwasel: { normPower: 300, venue: 'virtual' },
-                zp_platzer: { normPower: 300, venue: 'virtual' },
+                fr_platzerwasel: { normPower: 300, venue: 'virtual', activityId: 'z1' },
+                zp_platzer: { normPower: 300, venue: 'virtual', activityId: 'z1' },
             },
             climbs,
+            [{ id: 'z1', type: 'VirtualRide', title: 'Rouvy Platzerwasel' }],
         );
         expect(pruned.fr_platzerwasel).toBeUndefined();
         expect(pruned.zp_platzer?.normPower).toBe(300);
+    });
+
+    it('does not match PB from Similar to description hints', () => {
+        const pbs = scanClimbPersonalBests(
+            [{
+                id: 'bad',
+                type: 'Ride',
+                title: 'Profile title',
+                description: 'Similar to Passo dello Stelvio',
+                norm_power: 240,
+                moving_time: 3600,
+            }],
+            climbs,
+        );
+        expect(pbs.it_stelvio).toBeUndefined();
     });
 
     it('summarizePbScanResult reports no change when scan matches same climbs', () => {

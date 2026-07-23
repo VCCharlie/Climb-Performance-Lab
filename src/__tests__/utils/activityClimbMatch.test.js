@@ -65,4 +65,20 @@ describe('findBestClimbForActivityTitle', () => {
     }, idx);
     expect(outdoor.climb?.id).toBe('fr_platzerwasel');
   });
+
+  it('ignores app-generated Similar to hints in description for matching', () => {
+    const climbs = [{ id: 'fr_alpe', name: "Alpe d'Huez", country: 'FR' }];
+    const idx = buildClimbMatchIndex(climbs);
+    const { climb, source } = findBestClimbForActivity({
+      type: 'Ride',
+      title: 'Morning ride',
+      description: 'Similar to Alpe d Huez',
+    }, idx);
+    expect(climb).toBeNull();
+    expect(source).toBeNull();
+    expect(buildActivityClimbMatchText({
+      title: 'Morning ride',
+      description: 'Similar to Alpe d Huez',
+    })).toBe('Morning ride');
+  });
 });

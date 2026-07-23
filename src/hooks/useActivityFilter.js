@@ -10,6 +10,7 @@ import {
     inNumericRange,
 } from '../utils/activityFilterMetrics';
 import { compareActivitiesForSort } from '../utils/activitySort';
+import { resolveActivityType } from '../utils/activityVenue';
 
 // Helper inside hook or import
 const isValid = (act) => act && act.id && act.date;
@@ -174,8 +175,9 @@ const useActivityFilter = (activities, profileFtp) => {
 
             // Indoor/Outdoor Filter
             const effectiveIndoor = virtualRideChip ? 'indoor' : indoorFilter;
-            if (effectiveIndoor === 'indoor' && !['VirtualRide', 'VirtualRun'].includes(a.type)) return false;
-            if (effectiveIndoor === 'outdoor' && ['VirtualRide', 'VirtualRun'].includes(a.type)) return false;
+            const sportType = resolveActivityType(a);
+            if (effectiveIndoor === 'indoor' && !['VirtualRide', 'VirtualRun'].includes(sportType)) return false;
+            if (effectiveIndoor === 'outdoor' && ['VirtualRide', 'VirtualRun'].includes(sportType)) return false;
 
             if (thisWeekOnly && weekRange) {
                 const dStr = normalizeDate(a.date);

@@ -2,7 +2,19 @@
  * Outdoor vs virtual (Zwift/trainer) venue helpers for activity ↔ climb matching.
  */
 
+import { determineActivityType } from './activityTypes';
+
 const VIRTUAL_ACTIVITY_TYPES = new Set(['VirtualRide', 'VirtualRun']);
+
+/**
+ * Resolve canonical sport type (aligns indoor filter + PB venue with title heuristics).
+ * @param {object | null | undefined} activity
+ * @returns {string}
+ */
+export function resolveActivityType(activity) {
+    if (!activity) return 'Ride';
+    return determineActivityType(activity.type, activity.title);
+}
 
 /**
  * @param {object | null | undefined} activity
@@ -11,7 +23,7 @@ const VIRTUAL_ACTIVITY_TYPES = new Set(['VirtualRide', 'VirtualRun']);
 export function isVirtualActivity(activity) {
     if (!activity) return false;
     if (activity.trainer === true) return true;
-    return VIRTUAL_ACTIVITY_TYPES.has(activity.type);
+    return VIRTUAL_ACTIVITY_TYPES.has(resolveActivityType(activity));
 }
 
 /**
@@ -53,11 +65,12 @@ export function isClimbVenueCompatible(climb, venue) {
 /**
  * @param {object | null | undefined} pb
  * @param {object | null | undefined} climb
- * @param {PbVenueFilter} filter
+ * @param {object | null | undefined} [activity]
  * @returns {'outdoor' | 'virtual' | null}
  */
-export function resolvePbVenue(pb, climb) {
+export function resolvePbVenue(pb, climb, activity = null) {
     if (pb?.venue === 'outdoor' || pb?.venue === 'virtual') return pb.venue;
+    if (activity) return activityVenue(activity);
     if (climb) return climbVenue(climb);
     return null;
 }
@@ -66,11 +79,12 @@ export function resolvePbVenue(pb, climb) {
  * @param {object | null | undefined} pb
  * @param {object | null | undefined} climb
  * @param {PbVenueFilter} filter
+ * @param {object | null | undefined} [activity]
  */
-export function pbMatchesVenueFilter(pb, climb, filter) {
+export function pbMatchesVenueFilter(pb, climb, filter, activity = null) {
     if (!pb) return false;
     if (!filter || filter === 'all') return true;
-    const venue = resolvePbVenue(pb, climb);
+    const venue = resolvePbVenue(pb, climb, activity);
     return venue === filter;
 }
 
@@ -87,6 +101,6 @@ export function activityMatchesVenueFilter(activity, filter) {
  * @param {'outdoor' | 'virtual'} venue
  */
 export function formatPbVenueLabel(venue) {
-    if (venue === 'virtual') return 'Zwift';
+    if (venue === 'virtual') return 'Indoor';
     return 'Outdoor';
 }
