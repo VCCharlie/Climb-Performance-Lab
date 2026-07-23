@@ -4,8 +4,15 @@ import { useClimbDatabase } from '../hooks/useClimbDatabase';
 import { useActivitiesList } from '../hooks/useActivities';
 import FlagIcon from './FlagIcon';
 import PlannedClimbWeatherPanel from './bucket-list/PlannedClimbWeatherPanel';
-import { mergeClimbPbs } from '../utils/bucketListState';
-import { scanClimbPersonalBests, formatPbSummary, hasStoredClimbPb, countClimbsWithPb, formatPbMatchSourceLabel } from '../utils/climbPersonalBests';
+import {
+    scanClimbPersonalBests,
+    formatPbSummary,
+    hasStoredClimbPb,
+    countClimbsWithPb,
+    formatPbMatchSourceLabel,
+    summarizePbScanResult,
+    formatPbScanFeedbackMessage,
+} from '../utils/climbPersonalBests';
 
 const STATUS_FILTER_OPTIONS = [
     { id: 'all', label: 'All' },
@@ -40,6 +47,8 @@ const BucketList = ({
     const [filterStatus, setFilterStatus] = useState('all'); // all, done, planned, want, todo, with_pb
     const [searchTerm, setSearchTerm] = useState('');
     const [sortBy, setSortBy] = useState('name'); // name, difficulty, status
+    const [scanFeedback, setScanFeedback] = useState(null);
+    const [isScanning, setIsScanning] = useState(false);
 
     // Update parent when state changes
     React.useEffect(() => {
@@ -49,10 +58,32 @@ const BucketList = ({
     }, [climbStatus, climbPbs, onStateChange]);
 
     const handleScanPbs = () => {
-        const scanned = scanClimbPersonalBests(activities, climbDatabase);
-        setClimbPbs((prev) => ({ ...prev, ...scanned }));
-        if (onStateChange) {
-            onStateChange(mergeClimbPbs({ climbStatus, climbPbs }, scanned));
+        if (!activities?.length) {
+            setScanFeedback({
+                tone: 'warn',
+                message: 'No activities loaded yet — import or sync your log first.',
+            });
+            return;
+        }
+
+        setIsScanning(true);
+        try {
+            const scanned = scanClimbPersonalBests(activities, climbDatabase);
+            const summary = summarizePbScanResult(climbPbs, scanned, activities);
+            setClimbPbs(summary.merged);
+            if (onStateChange) {
+                onStateChange({
+                    climbStatus,
+                    climbPbs: summary.merged,
+                });
+            }
+            setScanFeedback({
+                tone: summary.newClimbs > 0 || summary.improvedPbs > 0 ? 'success' : 'info',
+                message: formatPbScanFeedbackMessage(summary),
+                at: Date.now(),
+            });
+        } finally {
+            setIsScanning(false);
         }
     };
 
@@ -306,22 +337,42 @@ const BucketList = ({
                 onOpenMapTab={onOpenMapTab}
             />
 
-            <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-xs text-cdmuted">
-                    Personal bests match from activity title or Strava description (MyCols, ClimbFinder).
-                </p>
-                <button
-                    type="button"
-                    onClick={handleScanPbs}
-                    disabled={!activities?.length}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md border border-cdborder bg-cdsurface text-cdtext hover:border-cdaccent hover:text-cdaccent disabled:opacity-40 cd-transition"
-                >
-                    <Sparkles size={14} aria-hidden />
-                    Scan activities for PBs
-                </button>
-                <p className="text-[10px] text-cdmuted mt-1 w-full">
-                    Strava descriptions: Activities → bulk → Strava descriptions (not from Intervals).
-                </p>
+            <div className="space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs text-cdmuted">
+                        Personal bests match from activity title or Strava description (MyCols, ClimbFinder).
+                    </p>
+                    <button
+                        type="button"
+                        onClick={handleScanPbs}
+                        disabled={!activities?.length || isScanning}
+                        aria-busy={isScanning}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md border border-cdborder bg-cdsurface text-cdtext hover:border-cdaccent hover:text-cdaccent disabled:opacity-40 cd-transition"
+                    >
+                        <Sparkles size={14} aria-hidden className={isScanning ? 'animate-pulse' : ''} />
+                        {isScanning ? 'Scanning…' : 'Scan activities for PBs'}
+                    </button>
+                </div>
+
+                {scanFeedback ? (
+                    <div
+                        role="status"
+                        className={`rounded-lg border px-3 py-2 text-xs leading-snug ${
+                            scanFeedback.tone === 'success'
+                                ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300'
+                                : scanFeedback.tone === 'warn'
+                                  ? 'border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300'
+                                  : 'border-cdborder bg-cdbg/40 text-cdtext'
+                        }`}
+                    >
+                        {scanFeedback.message}
+                    </div>
+                ) : (
+                    <p className="text-[10px] text-cdmuted">
+                        After scanning you will see a summary here (activities scanned, PB count, new matches).
+                        Strava descriptions: Activities → bulk → Strava descriptions (not from Intervals).
+                    </p>
+                )}
             </div>
 
             {/* Filters */}

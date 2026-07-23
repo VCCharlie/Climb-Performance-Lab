@@ -123,3 +123,143 @@ export function formatPbMatchSourceLabel(source) {
     if (source === 'title') return 'Matched from activity title';
     return 'Matched from activity title or description';
 }
+
+function pbMetricScore(pb) {
+    if (!pb) return 0;
+    const np = Number(pb.normPower) || Number(pb.avgPower) || 0;
+    const time = Number(pb.movingTimeSec) || 0;
+    return np * 10000 + (time > 0 ? 1000000 / time : 0);
+}
+
+/**
+ * Merge a fresh scan into stored PBs, keeping the stronger record per climb.
+ * @param {Record<string, object> | null | undefined} prevPbs
+ * @param {Record<string, object>} scanned
+ */
+export function mergeScannedIntoClimbPbs(prevPbs, scanned) {
+    const prev = prevPbs || {};
+    const next = { ...prev };
+
+    for (const [id, fresh] of Object.entries(scanned || {})) {
+        if (!formatPbSummary(fresh)) continue;
+        const old = prev[id];
+        if (!old || !formatPbSummary(old) || pbMetricScore(fresh) > pbMetricScore(old)) {
+            next[id] = fresh;
+        }
+    }
+
+    return next;
+}
+
+/**
+ * @param {object[]} activities
+ */
+export function countActivitiesWithDescription(activities) {
+    let count = 0;
+    for (const act of activities || []) {
+        const text = (act?.description || act?.notes || '').trim();
+        if (text) count += 1;
+    }
+    return count;
+}
+
+/**
+ * @param {Record<string, object>} climbPbs
+ */
+export function countPbByMatchSource(climbPbs) {
+    let title = 0;
+    let description = 0;
+    for (const pb of Object.values(climbPbs || {})) {
+        if (!formatPbSummary(pb)) continue;
+        if (pb.matchSource === 'description') description += 1;
+        else title += 1;
+    }
+    return { title, description };
+}
+
+/**
+ * Compare stored PBs with a fresh scan — used for scan button feedback.
+ * @param {Record<string, object> | null | undefined} prevPbs
+ * @param {Record<string, object>} scanned
+ * @param {object[]} activities
+ */
+export function summarizePbScanResult(prevPbs, scanned, activities) {
+    const merged = mergeScannedIntoClimbPbs(prevPbs, scanned);
+    const previousWithPb = countClimbsWithPb(prevPbs);
+    const totalWithPb = countClimbsWithPb(merged);
+
+    const prevIds = new Set(
+        Object.keys(prevPbs || {}).filter((id) => hasStoredClimbPb(prevPbs, id)),
+    );
+
+    let newClimbs = 0;
+    let improvedPbs = 0;
+
+    for (const id of Object.keys(merged)) {
+        if (!hasStoredClimbPb(merged, id)) continue;
+        if (!prevIds.has(id)) {
+            newClimbs += 1;
+            continue;
+        }
+        const old = prevPbs[id];
+        const neu = merged[id];
+        const betterNp = (neu.normPower || 0) > (old.normPower || 0);
+        const betterTime = (neu.movingTimeSec || 0) > 0
+            && (old.movingTimeSec || 0) > 0
+            && neu.movingTimeSec < old.movingTimeSec;
+        if (betterNp || betterTime) improvedPbs += 1;
+    }
+
+    const { description: matchedFromDescription } = countPbByMatchSource(scanned);
+
+    return {
+        activitiesScanned: activities?.length || 0,
+        activitiesWithDescription: countActivitiesWithDescription(activities),
+        climbsMatchedInScan: Object.keys(scanned || {}).filter((id) => hasStoredClimbPb(scanned, id)).length,
+        previousWithPb,
+        totalWithPb,
+        newClimbs,
+        improvedPbs,
+        matchedFromDescription,
+        merged,
+    };
+}
+
+/**
+ * @param {ReturnType<typeof summarizePbScanResult>} summary
+ */
+export function formatPbScanFeedbackMessage(summary) {
+    if (!summary) return 'Scan could not run — no activities loaded.';
+
+    const {
+        activitiesScanned,
+        activitiesWithDescription,
+        totalWithPb,
+        previousWithPb,
+        newClimbs,
+        improvedPbs,
+        matchedFromDescription,
+    } = summary;
+
+    let delta = '';
+    if (newClimbs === 0 && improvedPbs === 0 && previousWithPb === totalWithPb) {
+        delta = ' — no new matches or improvements since your last scan';
+    } else {
+        const bits = [];
+        if (newClimbs > 0) bits.push(`${newClimbs} new`);
+        if (improvedPbs > 0) bits.push(`${improvedPbs} improved`);
+        if (bits.length) delta = ` (+${bits.join(', ')})`;
+    }
+
+    let descHint = '';
+    if (activitiesWithDescription === 0) {
+        descHint = ' Tip: link Strava and run gear/map backfill in Activities to fill descriptions (MyCols, ClimbFinder).';
+    } else if (matchedFromDescription === 0) {
+        descHint = ` ${activitiesWithDescription} activities have a description; titles already covered those matches.`;
+    } else {
+        descHint = ` ${matchedFromDescription} match(es) used activity description.`;
+    }
+
+    return `Scanned ${activitiesScanned.toLocaleString('en-GB')} activities. ${totalWithPb} climbs with a PB${delta}.${descHint}`;
+}
+
