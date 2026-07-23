@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { scanClimbPersonalBests, formatPbSummary, hasStoredClimbPb, countClimbsWithPb } from '../../utils/climbPersonalBests';
+import { scanClimbPersonalBests, formatPbSummary, hasStoredClimbPb, countClimbsWithPb, summarizePbScanResult, formatPbScanFeedbackMessage } from '../../utils/climbPersonalBests';
 
 const climbs = [
     { id: 'fr_alpe', name: "Alpe d'Huez" },
@@ -53,5 +53,31 @@ describe('scanClimbPersonalBests', () => {
         expect(hasStoredClimbPb(pbs, 'fr_alpe')).toBe(true);
         expect(hasStoredClimbPb(pbs, 'empty')).toBe(false);
         expect(countClimbsWithPb(pbs)).toBe(1);
+    });
+
+    it('summarizePbScanResult reports no change when scan matches same climbs', () => {
+        const prev = {
+            fr_alpe: { normPower: 265, movingTimeSec: 3500 },
+        };
+        const scanned = {
+            fr_alpe: { normPower: 265, movingTimeSec: 3500, matchSource: 'title' },
+        };
+        const activities = [{ title: 'Alpe d Huez', norm_power: 265, moving_time: 3500 }];
+
+        const summary = summarizePbScanResult(prev, scanned, activities);
+        expect(summary.totalWithPb).toBe(1);
+        expect(summary.newClimbs).toBe(0);
+        expect(summary.improvedPbs).toBe(0);
+        expect(formatPbScanFeedbackMessage(summary)).toContain('no new matches');
+    });
+
+    it('summarizePbScanResult counts new climbs', () => {
+        const summary = summarizePbScanResult(
+            {},
+            { it_stelvio: { normPower: 240, matchSource: 'description' } },
+            [{ description: 'Stelvio', norm_power: 240 }],
+        );
+        expect(summary.newClimbs).toBe(1);
+        expect(summary.totalWithPb).toBe(1);
     });
 });
