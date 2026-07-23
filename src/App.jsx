@@ -65,6 +65,7 @@ import {
 } from './utils/sessionData';
 import { safeLocalStorageSet } from './utils/safeStorage.js';
 import { runGoogleSignIn, isGoogleSignInInProgress, googleSignInErrorMessage, completeGoogleRedirectIfNeeded } from './utils/googleSignIn';
+import { ToastProvider } from './context/ToastContext';
 import { ActivitiesProvider, useActivitiesState } from './context/ActivitiesContext';
 import { ActivityLogNavigationProvider, useActivityLogNavigation } from './context/ActivityLogNavigationContext';
 
@@ -642,6 +643,7 @@ const App = () => {
     const mainClass = isDark ? 'bg-cdbg text-cdtext' : 'bg-cdbg text-cdtext';
 
     return (
+        <ToastProvider>
         <ActivitiesProvider key={user?.uid ?? 'signed-out'} user={user}>
             <ActivityLogNavigationProvider onNavigateToActivities={navigateToActivities}>
                 <div className={`min-h-screen font-sans pb-20 transition-colors duration-300 ${mainClass}`}>
@@ -883,6 +885,7 @@ const App = () => {
                 </div>
             </ActivityLogNavigationProvider>
         </ActivitiesProvider>
+        </ToastProvider>
     );
 };
 

@@ -1,19 +1,14 @@
 import { useState } from 'react';
-import { normalizeIntervalsActivity } from '../utils/intervals';
+import {
+    normalizeIntervalsActivityFromAny,
+    filterNonEmptyIntervalsActivities,
+} from '../utils/intervals';
 import { fetchWithTimeout } from '../utils/fetchWithTimeout';
 import { devLog } from '../utils/safeLog';
 import {
     fetchIntervalsActivitiesViaCloud,
     hasLocalIntervalsCredentials,
 } from '../services/intervalsCloudApi';
-
-function filterNonEmptyActivities(activities) {
-    return activities.filter((act) =>
-        (act.distance && act.distance > 0) ||
-        (act.moving_time && act.moving_time > 0) ||
-        (act.avg_power && act.avg_power > 0),
-    );
-}
 
 const useIntervalsSync = (intervalsConfig) => {
     const [isSyncing, setIsSyncing] = useState(false);
@@ -44,24 +39,26 @@ const useIntervalsSync = (intervalsConfig) => {
         const rawActivities = await response.json();
         devLog(`Fetched ${rawActivities.length} activities from Intervals.icu (direct API)`);
 
-        let transformed = rawActivities.map(normalizeIntervalsActivity);
+        let transformed = rawActivities.map(normalizeIntervalsActivityFromAny);
         if (allowedTypes?.length > 0) {
             transformed = transformed.filter((act) => allowedTypes.includes(act.type));
         }
-        return filterNonEmptyActivities(transformed);
+        return filterNonEmptyIntervalsActivities(transformed);
     };
 
     const syncViaCloud = async (startDate, endDate, allowedTypes) => {
         devLog('Starting Intervals.icu sync via cloud function (server credentials)...');
         setSyncProgress('Fetching activities via secure cloud sync...');
 
-        const transformed = await fetchIntervalsActivitiesViaCloud({
+        const cloudPayload = await fetchIntervalsActivitiesViaCloud({
             startDate,
             endDate,
             sportTypes: allowedTypes || [],
         });
-        devLog(`Fetched ${transformed.length} activities via cloud sync`);
-        return filterNonEmptyActivities(transformed);
+        devLog(`Fetched ${cloudPayload.length} activities via cloud sync`);
+
+        const transformed = cloudPayload.map(normalizeIntervalsActivityFromAny);
+        return filterNonEmptyIntervalsActivities(transformed);
     };
 
     const syncIntervals = async (startDate, endDate, allowedTypes) => {

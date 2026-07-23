@@ -3,6 +3,7 @@
 import { devLog } from '../utils/safeLog';
 import { fetchIntervalsActivitiesViaCloud } from './intervalsCloudApi';
 import { safeLocalStorageSet, pruneLocalStorageCaches } from '../utils/safeStorage.js';
+import { normalizeIntervalsActivityFromAny } from '../utils/intervals';
 
 const CACHE_DURATION = 60 * 60 * 1000; // 1 hour in ms
 
@@ -29,7 +30,8 @@ export async function fetchIntervalsData(startDate, endDate) {
       }
     }
 
-    const data = await fetchIntervalsActivitiesViaCloud({ startDate, endDate });
+    const raw = await fetchIntervalsActivitiesViaCloud({ startDate, endDate });
+    const data = raw.map(normalizeIntervalsActivityFromAny);
 
     pruneLocalStorageCaches({ aggressive: false });
     safeLocalStorageSet(cacheKey, JSON.stringify({
