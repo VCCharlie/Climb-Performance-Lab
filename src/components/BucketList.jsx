@@ -14,6 +14,13 @@ import {
     summarizePbScanResult,
     formatPbScanFeedbackMessage,
 } from '../utils/climbPersonalBests';
+import { formatPbVenueLabel, resolvePbVenue } from '../utils/activityVenue';
+
+const PB_VENUE_FILTER_OPTIONS = [
+    { id: 'outdoor', label: 'Outdoor' },
+    { id: 'virtual', label: 'Zwift' },
+    { id: 'all', label: 'All' },
+];
 
 const STATUS_FILTER_OPTIONS = [
     { id: 'all', label: 'All' },
@@ -51,6 +58,7 @@ const BucketList = ({
     const [sortBy, setSortBy] = useState('name'); // name, difficulty, status
     const [scanFeedback, setScanFeedback] = useState(null);
     const [isScanning, setIsScanning] = useState(false);
+    const [pbVenueFilter, setPbVenueFilter] = useState('outdoor');
 
     // Update parent when state changes
     React.useEffect(() => {
@@ -70,8 +78,8 @@ const BucketList = ({
 
         setIsScanning(true);
         try {
-            const scanned = scanClimbPersonalBests(activities, climbDatabase);
-            const summary = summarizePbScanResult(climbPbs, scanned, activities);
+            const scanned = scanClimbPersonalBests(activities, climbDatabase, { venueFilter: 'all' });
+            const summary = summarizePbScanResult(climbPbs, scanned, activities, climbDatabase);
             setClimbPbs(summary.merged);
             if (onStateChange) {
                 onStateChange({
@@ -217,7 +225,10 @@ const BucketList = ({
         return { done, planned, want, todo };
     }, [climbStatus, climbDatabase.length]);
 
-    const pbCount = useMemo(() => countClimbsWithPb(climbPbs), [climbPbs]);
+    const pbCount = useMemo(
+        () => countClimbsWithPb(climbPbs, climbDatabase, pbVenueFilter),
+        [climbPbs, climbDatabase, pbVenueFilter],
+    );
 
     const statusFilterCounts = useMemo(() => ({
         all: climbDatabase.length,
@@ -244,7 +255,7 @@ const BucketList = ({
 
         // Filter by status or activity PB
         if (filterStatus === 'with_pb') {
-            filtered = filtered.filter((climb) => hasStoredClimbPb(climbPbs, climb.id));
+            filtered = filtered.filter((climb) => hasStoredClimbPb(climbPbs, climb.id, climb, pbVenueFilter));
         } else if (filterStatus !== 'all') {
             filtered = filtered.filter(climb => {
                 const status = climbStatus[climb.id];
@@ -269,7 +280,7 @@ const BucketList = ({
         });
 
         return filtered;
-    }, [searchTerm, filterStatus, sortBy, climbStatus, climbDatabase, climbPbs]);
+    }, [searchTerm, filterStatus, sortBy, climbStatus, climbDatabase, climbPbs, pbVenueFilter]);
 
     return (
         <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl space-y-6">
@@ -343,6 +354,7 @@ const BucketList = ({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-xs text-cdmuted">
                         Personal bests match from activity title or Strava description (MyCols, ClimbFinder).
+                        Outdoor rides match real climbs; Zwift rides match Zwift portal climbs only.
                     </p>
                     <button
                         type="button"
@@ -375,6 +387,28 @@ const BucketList = ({
                         Strava descriptions: Activities → bulk → Strava descriptions (not from Intervals).
                     </p>
                 )}
+
+                <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wide text-cdmuted">PB view</span>
+                    {PB_VENUE_FILTER_OPTIONS.map((opt) => (
+                        <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => setPbVenueFilter(opt.id)}
+                            aria-pressed={pbVenueFilter === opt.id}
+                            className={`px-2.5 py-1 text-[10px] font-bold rounded-full border cd-transition ${pbVenueFilter === opt.id
+                                ? opt.id === 'virtual'
+                                    ? 'bg-orange-500/20 border-orange-500/50 text-orange-700 dark:text-orange-300'
+                                    : opt.id === 'outdoor'
+                                        ? 'bg-green-600/20 border-green-600/50 text-green-800 dark:text-green-300'
+                                        : 'bg-cdaccent/20 border-cdaccent/50 text-cdaccent'
+                                : 'bg-cdsurface border-cdborder text-cdmuted hover:text-cdtext'
+                            }`}
+                        >
+                            {opt.label}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {/* Filters */}
@@ -436,7 +470,9 @@ const BucketList = ({
                     ) : filteredClimbs.map(climb => {
                         const status = climbStatus[climb.id];
                         const pb = climbPbs[climb.id];
-                        const pbLabel = formatPbSummary(pb);
+                        const showPb = hasStoredClimbPb(climbPbs, climb.id, climb, pbVenueFilter);
+                        const pbLabel = showPb ? formatPbSummary(pb) : null;
+                        const pbVenue = showPb ? resolvePbVenue(pb, climb) : null;
                         return (
                             <div
                                 key={climb.id}
@@ -465,7 +501,7 @@ const BucketList = ({
                                                     className="text-[10px] text-cdaccent mt-1 font-medium"
                                                     title={[pb?.activityTitle, formatPbMatchSourceLabel(pb?.matchSource)].filter(Boolean).join(' · ')}
                                                 >
-                                                    PB: {pbLabel}
+                                                    PB{pbVenue ? ` (${formatPbVenueLabel(pbVenue)})` : ''}: {pbLabel}
                                                 </p>
                                                 <ClimbPbActivityLinks
                                                     pb={pb}

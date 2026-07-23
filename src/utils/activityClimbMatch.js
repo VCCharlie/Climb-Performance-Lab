@@ -3,6 +3,8 @@
  * Uses an inverted index so typical cases avoid O(activities × climbs) work.
  */
 
+import { isClimbVenueCompatible, activityVenue } from './activityVenue';
+
 const STOP = new Set([
     'ride', 'rit', 'fiets', 'bike', 'cycling', 'virtual', 'zwift', 'training',
     'morning', 'afternoon', 'evening', 'ochtend', 'middag', 'avond', 'weekend',
@@ -73,29 +75,40 @@ export function buildClimbMatchIndex(climbs) {
 /**
  * @param {string} activityTitle
  * @param {{ climbByWord: Map<string, Set<object>>, climbs: object[] }} index
+ * @param {{ activityVenue?: 'outdoor' | 'virtual' | null }} [options]
  * @returns {object | null}
  */
-export function findBestClimbUsingIndex(activityTitle, index) {
+export function findBestClimbUsingIndex(activityTitle, index, options = {}) {
     if (!activityTitle || !index?.climbs?.length) return null;
+
+    const venue = options.activityVenue ?? null;
+    const venueOk = (climb) => !venue || isClimbVenueCompatible(climb, venue);
 
     const titleLower = stripDiacritics(activityTitle.toLowerCase());
     const titleWords = normWords(activityTitle);
+    const titleWordSet = new Set(titleWords);
     const lookupKeys = titleWords.length > 0 ? titleWords : fallbackTokens(activityTitle);
 
     const candidates = new Set();
     for (const w of lookupKeys) {
         const s = index.climbByWord.get(w);
-        if (s) s.forEach((c) => candidates.add(c));
+        if (s) {
+            for (const c of s) {
+                if (venueOk(c)) candidates.add(c);
+            }
+        }
     }
 
     let toCheck;
     if (lookupKeys.length === 0) {
-        toCheck = index.climbs;
+        toCheck = index.climbs.filter(venueOk);
     } else if (candidates.size === 0) {
         return null;
     } else {
         toCheck = [...candidates];
     }
+
+    if (toCheck.length === 0) return null;
 
     let best = null;
     let bestScore = 0;
@@ -112,7 +125,7 @@ export function findBestClimbUsingIndex(activityTitle, index) {
         const climbWords = normWords(name);
         let score = 0;
         for (const cw of climbWords) {
-            if (titleWords.includes(cw)) score += cw.length + 2;
+            if (titleWordSet.has(cw)) score += cw.length + 2;
             else if (titleLower.includes(cw)) score += cw.length;
         }
         if (score > bestScore) {
@@ -168,8 +181,9 @@ export function findBestClimbForActivity(activity, index) {
         return { climb: null, source: null };
     }
 
+    const matchOpts = { activityVenue: activityVenue(activity) };
     const title = (activity.title || '').trim();
-    const fromTitle = title ? findBestClimbUsingIndex(title, index) : null;
+    const fromTitle = title ? findBestClimbUsingIndex(title, index, matchOpts) : null;
     if (fromTitle) {
         return { climb: fromTitle, source: 'title' };
     }
@@ -179,14 +193,14 @@ export function findBestClimbForActivity(activity, index) {
         return { climb: null, source: null };
     }
 
-    const fromDescription = findBestClimbUsingIndex(description, index);
+    const fromDescription = findBestClimbUsingIndex(description, index, matchOpts);
     if (fromDescription) {
         return { climb: fromDescription, source: 'description' };
     }
 
     const combined = buildActivityClimbMatchText(activity);
     const fromCombined = combined && combined !== title && combined !== description
-        ? findBestClimbUsingIndex(combined, index)
+        ? findBestClimbUsingIndex(combined, index, matchOpts)
         : null;
 
     return {
