@@ -7,13 +7,20 @@ const DEFAULT_DURATION_MS = 6000;
 let toastCounter = 0;
 
 const VARIANT_CLASS = {
-    success: 'bg-green-500/15 border-green-500/40 text-green-200',
-    error: 'bg-red-500/15 border-red-500/40 text-red-200',
-    info: 'bg-blue-500/15 border-blue-500/40 text-blue-200',
-    warning: 'bg-amber-500/15 border-amber-500/40 text-amber-100',
+    success: 'bg-cdsurface border border-cdgreen text-cdtext shadow-xl',
+    error: 'bg-cdsurface border border-cdred text-cdtext shadow-xl',
+    info: 'bg-cdsurface border border-cdblue text-cdtext shadow-xl',
+    warning: 'bg-cdsurface border border-amber-500 text-cdtext shadow-xl',
 };
 
-function ToastStack({ toasts, onDismiss, variantClass }) {
+const VARIANT_DISMISS_CLASS = {
+    success: 'text-cdgreen hover:text-cdtext',
+    error: 'text-cdred hover:text-cdtext',
+    info: 'text-cdblue hover:text-cdtext',
+    warning: 'text-amber-600 hover:text-cdtext',
+};
+
+function ToastStack({ toasts, onDismiss, variantClass, dismissClass }) {
     if (toasts.length === 0) return null;
 
     return (
@@ -25,13 +32,13 @@ function ToastStack({ toasts, onDismiss, variantClass }) {
             {toasts.map((toast) => (
                 <div
                     key={toast.id}
-                    className={`pointer-events-auto flex items-start justify-between gap-3 rounded-lg border px-3 py-2.5 text-sm shadow-lg backdrop-blur-sm ${variantClass[toast.variant] || variantClass.info}`}
+                    className={`pointer-events-auto flex items-start justify-between gap-3 rounded-lg px-3 py-2.5 text-sm font-medium ${variantClass[toast.variant] || variantClass.info}`}
                 >
-                    <span className="leading-snug">{toast.message}</span>
+                    <span className="leading-snug text-cdtext">{toast.message}</span>
                     <button
                         type="button"
                         onClick={() => onDismiss(toast.id)}
-                        className="shrink-0 text-xs opacity-70 hover:opacity-100 underline"
+                        className={`shrink-0 text-xs underline ${dismissClass[toast.variant] || dismissClass.info}`}
                         aria-label="Dismiss notification"
                     >
                         Dismiss
@@ -79,7 +86,7 @@ export function ToastProvider({ children }) {
     return (
         <ToastContext.Provider value={value}>
             {children}
-            <ToastStack toasts={toasts} onDismiss={dismissToast} variantClass={VARIANT_CLASS} />
+            <ToastStack toasts={toasts} onDismiss={dismissToast} variantClass={VARIANT_CLASS} dismissClass={VARIANT_DISMISS_CLASS} />
         </ToastContext.Provider>
     );
 }

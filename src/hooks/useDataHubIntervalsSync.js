@@ -40,6 +40,7 @@ export function useDataHubIntervalsSync({
         SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: true }), {}),
     );
     const [isFetchingNewIntervals, setIsFetchingNewIntervals] = useState(false);
+    const [stravaEnrichEnabled, setStravaEnrichEnabled] = useState(true);
 
     const getSelectedSportTypes = useCallback(
         () => Object.keys(sportFilters).filter((k) => sportFilters[k]),
@@ -57,7 +58,7 @@ export function useDataHubIntervalsSync({
     const handleSync = useCallback(async () => {
         if (bulkSelectedIds.size === 0) {
             setSyncStatus('error');
-            setSyncErrorDetail('Select one or more activities (checkboxes in the Activity Log), then Sync Now.');
+            setSyncErrorDetail('Select one or more activities (checkboxes), then use Refresh selected in the Intervals.icu sync panel.');
             setTimeout(() => setSyncStatus(null), 7000);
             return;
         }
@@ -142,7 +143,7 @@ export function useDataHubIntervalsSync({
             let enrichedLinkCount = 0;
             let segmentRefreshCount = 0;
             let detailFailed = 0;
-            if (stravaGetToken) {
+            if (stravaEnrichEnabled && stravaGetToken) {
                 try {
                     const token = await stravaGetToken();
                     if (token) {
@@ -230,6 +231,7 @@ export function useDataHubIntervalsSync({
         deviceProfileTitles,
         getSelectedSportTypes,
         showToast,
+        stravaEnrichEnabled,
     ]);
 
     const handleFetchNewFromIntervals = useCallback(async () => {
@@ -271,7 +273,7 @@ export function useDataHubIntervalsSync({
             };
             let merged = (newActivitiesRaw || []).map(mergeNewInto);
 
-            if (stravaGetToken && merged.length > 0) {
+            if (stravaEnrichEnabled && stravaGetToken && merged.length > 0) {
                 setSyncErrorDetail(`Linking Strava for ${syncStart} → ${syncEnd}…`);
                 try {
                     const token = await stravaGetToken();
@@ -301,7 +303,7 @@ export function useDataHubIntervalsSync({
             let enrichCount = 0;
             let segmentRefreshCount = 0;
             let detailFailed = 0;
-            if (stravaGetToken && merged.length > 0) {
+            if (stravaEnrichEnabled && stravaGetToken && merged.length > 0) {
                 setSyncStatus('enriching');
                 setSyncErrorDetail('Strava: auto-link + gear/HR/RPE/KOM for fetched rides…');
                 try {
@@ -356,11 +358,13 @@ export function useDataHubIntervalsSync({
             setSyncStatus('done');
             const parts = [];
             if (merged.length > 0) parts.push(`${merged.length} from Intervals.icu`);
-            if (stravaGetToken && merged.length > 0) {
+            if (stravaEnrichEnabled && stravaGetToken && merged.length > 0) {
                 parts.push('Strava link + enrich');
                 if (enrichCount > 0) parts.push(`${enrichCount} field update(s) from Strava`);
                 if (segmentRefreshCount > 0) parts.push(`${segmentRefreshCount} detail/KOM refresh`);
                 if (detailFailed > 0) parts.push(`${detailFailed} detail error(s)`);
+            } else if (merged.length > 0 && !stravaEnrichEnabled) {
+                parts.push('Strava enrich skipped');
             } else if (merged.length > 0) {
                 parts.push('connect Strava in Settings for auto-link + details');
             }
@@ -394,7 +398,8 @@ export function useDataHubIntervalsSync({
         deviceProfileTitles,
         getSelectedSportTypes,
         showToast,
-    ]);
+        stravaEnrichEnabled,
+    });
 
     const handleRunSync = useCallback(() => {
         if (syncMode === 'refresh-selected') {
@@ -415,6 +420,8 @@ export function useDataHubIntervalsSync({
         sportFilters,
         toggleSportFilter,
         setAllSportFilters,
+        stravaEnrichEnabled,
+        setStravaEnrichEnabled,
         handleRunSync,
         isFetchingNewIntervals,
         handleSync,

@@ -93,14 +93,7 @@ export function useDataHubFilterBar({
             try { await onRefresh(); } catch (e) { console.error(e); }
             finally { setIsManualRefreshing(false); }
         },
-        onSync: () => {
-            setShowUtilMenu(false);
-            intervalsSync.handleSync();
-        },
-        isSyncing: intervalsSync.isSyncing,
-        bulkSelectedCount: bulk.bulkSelectedIds.size,
         onFindDuplicates: () => { dataImport.findDuplicates(); setShowUtilMenu(false); },
-        onOpenNoPower: () => { openNoPowerFilter(); setShowUtilMenu(false); },
         onClearDatabase: () => { handleClearDatabase(); setShowUtilMenu(false); },
         activitiesCount: activities?.length ?? 0,
         isDeleting,
