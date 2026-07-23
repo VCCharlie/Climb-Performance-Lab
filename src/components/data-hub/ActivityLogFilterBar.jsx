@@ -40,6 +40,7 @@ const ActivityLogFilterBar = ({
     // Tools menu actions
     onFindDuplicates,
     onClearDatabase,
+    bulkSelectedCount = 0,
     activitiesCount,
     isDeleting,
     // Quick filter chips
