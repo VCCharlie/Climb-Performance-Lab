@@ -111,8 +111,12 @@ export function findBestClimbUsingIndex(activityTitle, index, options = {}) {
 
     if (toCheck.length === 0) return null;
 
+    const minScore = options.minScore ?? 6;
+    const minWordMatches = options.minWordMatches ?? 1;
+
     let best = null;
     let bestScore = 0;
+    let bestMatchedWords = 0;
 
     for (const c of toCheck) {
         const name = (c.name || '').trim();
@@ -125,17 +129,28 @@ export function findBestClimbUsingIndex(activityTitle, index, options = {}) {
 
         const climbWords = normWords(name);
         let score = 0;
+        let matchedWords = 0;
         for (const cw of climbWords) {
-            if (titleWordSet.has(cw)) score += cw.length + 2;
-            else if (titleLower.includes(cw)) score += cw.length;
+            if (titleWordSet.has(cw)) {
+                score += cw.length + 2;
+                matchedWords += 1;
+            } else if (titleLower.includes(cw)) {
+                score += cw.length;
+                matchedWords += 1;
+            }
         }
-        if (score > bestScore) {
+        if (score > bestScore || (score === bestScore && matchedWords > bestMatchedWords)) {
             bestScore = score;
+            bestMatchedWords = matchedWords;
             best = c;
+        } else if (score === bestScore && score > 0 && matchedWords === bestMatchedWords) {
+            const bestNameLen = (best?.name || '').length;
+            if (name.length > bestNameLen) best = c;
         }
     }
 
-    return bestScore >= 6 ? best : null;
+    if (!best || bestScore < minScore || bestMatchedWords < minWordMatches) return null;
+    return best;
 }
 
 /**

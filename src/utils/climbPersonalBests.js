@@ -2,7 +2,8 @@
  * Personal bests per climb via activity title + description matching (Profiler heuristic).
  */
 
-import { buildClimbMatchIndex, findBestClimbForActivity } from './activityClimbMatch';
+import { buildClimbMatchIndex } from './activityClimbMatch';
+import { findBestClimbForActivityPb } from './activityClimbMatchPb';
 import { activityMovingTimeSec } from './activityFilterMetrics';
 import { normalizeDate } from './formatters';
 import { stravaIdFromActivity } from './climbPbActivityLinks';
@@ -55,7 +56,7 @@ function applyActivityToClimbPbs(act, index, pbs, options = {}) {
     const venueFilter = options.venueFilter ?? 'all';
     if (!activityMatchesVenueFilter(act, venueFilter)) return;
     if (!act?.title && !act?.description && !act?.notes) return;
-    const { climb, source } = findBestClimbForActivity(act, index);
+    const { climb, source } = findBestClimbForActivityPb(act, index);
     if (!climb?.id) return;
 
     const climbId = String(climb.id);
@@ -235,7 +236,24 @@ function pbMetricScore(pb) {
 }
 
 /**
- * Merge a fresh scan into stored PBs, keeping the stronger record per climb.
+ * Replace stored PBs with a fresh scan (drops climbs that no longer match).
+ * @param {Record<string, object>} scanned
+ * @param {object[]} [climbs]
+ * @param {object[]} [activities]
+ */
+export function replaceClimbPbsFromScan(scanned, climbs = [], activities = []) {
+    const next = {};
+
+    for (const [id, fresh] of Object.entries(scanned || {})) {
+        if (!formatPbSummary(fresh)) continue;
+        next[id] = fresh;
+    }
+
+    return pruneMismatchedVenuePbs(next, climbs, activities);
+}
+
+/**
+ * @deprecated Prefer replaceClimbPbsFromScan — merge kept old false-positive PBs across rescans.
  * @param {Record<string, object> | null | undefined} prevPbs
  * @param {Record<string, object>} scanned
  * @param {object[]} [climbs]
@@ -289,30 +307,37 @@ export function countPbByMatchSource(climbPbs) {
  * @param {object[]} [climbs]
  */
 export function summarizePbScanResult(prevPbs, scanned, activities, climbs = []) {
-    const merged = mergeScannedIntoClimbPbs(prevPbs, scanned, climbs, activities);
-    const previousWithPb = countClimbsWithPb(prevPbs, climbs);
-    const totalWithPb = countClimbsWithPb(merged, climbs);
+    const replaced = replaceClimbPbsFromScan(scanned, climbs, activities);
+    const previousWithPb = countClimbsWithPb(prevPbs, climbs, 'all', activities);
+    const totalWithPb = countClimbsWithPb(replaced, climbs, 'all', activities);
 
     const prevIds = new Set(
         Object.keys(prevPbs || {}).filter((id) => hasStoredClimbPb(prevPbs, id)),
     );
+    const nextIds = new Set(
+        Object.keys(replaced || {}).filter((id) => hasStoredClimbPb(replaced, id)),
+    );
 
     let newClimbs = 0;
     let improvedPbs = 0;
+    let removedPbs = 0;
 
-    for (const id of Object.keys(merged)) {
-        if (!hasStoredClimbPb(merged, id)) continue;
+    for (const id of nextIds) {
         if (!prevIds.has(id)) {
             newClimbs += 1;
             continue;
         }
         const old = prevPbs[id];
-        const neu = merged[id];
+        const neu = replaced[id];
         const betterNp = (neu.normPower || 0) > (old.normPower || 0);
         const betterTime = (neu.movingTimeSec || 0) > 0
             && (old.movingTimeSec || 0) > 0
             && neu.movingTimeSec < old.movingTimeSec;
         if (betterNp || betterTime) improvedPbs += 1;
+    }
+
+    for (const id of prevIds) {
+        if (!nextIds.has(id)) removedPbs += 1;
     }
 
     const { description: matchedFromDescription } = countPbByMatchSource(scanned);
@@ -325,8 +350,11 @@ export function summarizePbScanResult(prevPbs, scanned, activities, climbs = [])
         totalWithPb,
         newClimbs,
         improvedPbs,
+        removedPbs,
         matchedFromDescription,
-        merged,
+        replaced,
+        /** @deprecated use replaced */
+        merged: replaced,
     };
 }
 
@@ -339,31 +367,34 @@ export function formatPbScanFeedbackMessage(summary) {
     const {
         activitiesScanned,
         activitiesWithDescription,
+        climbsMatchedInScan,
         totalWithPb,
         previousWithPb,
         newClimbs,
         improvedPbs,
+        removedPbs,
         matchedFromDescription,
     } = summary;
 
     let delta = '';
-    if (newClimbs === 0 && improvedPbs === 0 && previousWithPb === totalWithPb) {
-        delta = ' — no new matches or improvements since your last scan';
+    if (newClimbs === 0 && improvedPbs === 0 && removedPbs === 0 && previousWithPb === totalWithPb) {
+        delta = ' — no changes since your last scan';
     } else {
         const bits = [];
         if (newClimbs > 0) bits.push(`${newClimbs} new`);
         if (improvedPbs > 0) bits.push(`${improvedPbs} improved`);
-        if (bits.length) delta = ` (+${bits.join(', ')})`;
+        if (removedPbs > 0) bits.push(`${removedPbs} removed`);
+        if (bits.length) delta = ` (${bits.join(', ')})`;
     }
 
     let descHint = '';
     if (activitiesWithDescription === 0) {
         descHint = ' Tip: link Strava and run gear/map backfill in Activities to fill descriptions (MyCols, ClimbFinder).';
     } else if (matchedFromDescription === 0) {
-        descHint = ` ${activitiesWithDescription} activities have a description; titles already covered those matches.`;
+        descHint = ` ${activitiesWithDescription} activities have a description; titles covered the matches.`;
     } else {
         descHint = ` ${matchedFromDescription} match(es) used activity description.`;
     }
 
-    return `Scanned ${activitiesScanned.toLocaleString('en-GB')} activities. ${totalWithPb} climbs with a PB${delta}.${descHint}`;
+    return `Scanned ${activitiesScanned.toLocaleString('en-GB')} activities — ${climbsMatchedInScan} climb match(es) found. ${totalWithPb} climbs with a PB${delta}.${descHint}`;
 }
