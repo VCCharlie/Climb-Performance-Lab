@@ -5,6 +5,7 @@
 import { buildClimbMatchIndex, findBestClimbForActivity } from './activityClimbMatch';
 import { activityMovingTimeSec } from './activityFilterMetrics';
 import { normalizeDate } from './formatters';
+import { stravaIdFromActivity } from './climbPbActivityLinks';
 
 /**
  * @param {object[]} activities
@@ -39,6 +40,7 @@ export function scanClimbPersonalBests(activities, climbs) {
                 avgPower: ap > 0 ? ap : null,
                 movingTimeSec: movingSec > 0 ? movingSec : null,
                 activityId: act.id != null ? String(act.id) : null,
+                stravaId: stravaIdFromActivity(act),
                 date: normalizeDate(act.date) || null,
                 activityTitle: act.title || null,
                 matchSource: source,
@@ -56,6 +58,9 @@ export function scanClimbPersonalBests(activities, climbs) {
             activityId: (betterNp || betterAp || betterTime) && act.id != null
                 ? String(act.id)
                 : prev.activityId,
+            stravaId: (betterNp || betterAp || betterTime)
+                ? (stravaIdFromActivity(act) || prev.stravaId || null)
+                : prev.stravaId,
             date: (betterNp || betterAp || betterTime)
                 ? (normalizeDate(act.date) || prev.date)
                 : prev.date,

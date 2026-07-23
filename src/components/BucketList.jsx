@@ -4,6 +4,7 @@ import { useClimbDatabase } from '../hooks/useClimbDatabase';
 import { useActivitiesList } from '../hooks/useActivities';
 import FlagIcon from './FlagIcon';
 import PlannedClimbWeatherPanel from './bucket-list/PlannedClimbWeatherPanel';
+import ClimbPbActivityLinks from './bucket-list/ClimbPbActivityLinks';
 import {
     scanClimbPersonalBests,
     formatPbSummary,
@@ -34,6 +35,7 @@ const BucketList = ({
     onStateChange,
     onOpenWeatherForClimb,
     onOpenMapTab,
+    onOpenActivityInLog,
 }) => {
     const { climbs: climbDatabase, loadFull } = useClimbDatabase();
     const activities = useActivitiesList();
@@ -458,12 +460,19 @@ const BucketList = ({
                                             {climb.lengthKm}km • {climb.elevation}m • {climb.avgGrade}% avg
                                         </p>
                                         {pbLabel && (
-                                            <p
-                                                className="text-[10px] text-cdaccent mt-1 font-medium"
-                                                title={[pb?.activityTitle, formatPbMatchSourceLabel(pb?.matchSource)].filter(Boolean).join(' · ')}
-                                            >
-                                                PB: {pbLabel}
-                                            </p>
+                                            <>
+                                                <p
+                                                    className="text-[10px] text-cdaccent mt-1 font-medium"
+                                                    title={[pb?.activityTitle, formatPbMatchSourceLabel(pb?.matchSource)].filter(Boolean).join(' · ')}
+                                                >
+                                                    PB: {pbLabel}
+                                                </p>
+                                                <ClimbPbActivityLinks
+                                                    pb={pb}
+                                                    activities={activities}
+                                                    onOpenActivityInLog={onOpenActivityInLog}
+                                                />
+                                            </>
                                         )}
                                     </div>
 

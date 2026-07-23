@@ -96,6 +96,16 @@ function DashboardWithNavigation(props) {
     );
 }
 
+function BucketListWithNavigation(props) {
+    const { openActivityInLog } = useActivityLogNavigation();
+    return (
+        <BucketList
+            {...props}
+            onOpenActivityInLog={openActivityInLog}
+        />
+    );
+}
+
 const CLIMB_HEAVY_TABS = new Set([
     'profiler', 'bucketlist', 'climbmap', 'weather', 'gearoptimizer', 'physics', 'activities',
 ]);
@@ -856,7 +866,7 @@ const App = () => {
                                 )}
 
                                 {activeTab === 'bucketlist' && (
-                                    <BucketList
+                                    <BucketListWithNavigation
                                         initialState={bucketListState}
                                         onStateChange={setBucketListState}
                                         onOpenWeatherForClimb={(climb) => {
