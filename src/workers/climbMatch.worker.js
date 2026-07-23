@@ -1,8 +1,8 @@
-import { buildClimbMatchIndex, findBestClimbUsingIndex } from '../utils/activityClimbMatch';
+import { buildClimbMatchIndex, findBestClimbForActivity } from '../utils/activityClimbMatch';
 
 /**
  * Off-main-thread climb title matching for large activity logs (Bolt 4.1).
- * @param {{ type: 'match', requestId: number, activities: Array<{id, title}>, climbs: object[] }} msg
+ * @param {{ type: 'match', requestId: number, activities: Array<{id, title, description, matchText}>, climbs: object[] }} msg
  */
 self.onmessage = (event) => {
     const data = event.data;
@@ -13,8 +13,12 @@ self.onmessage = (event) => {
     const matches = [];
 
     for (const a of activities || []) {
-        if (!a?.id || !a?.title) continue;
-        const climb = findBestClimbUsingIndex(a.title, index);
+        if (!a?.id) continue;
+        const activity = {
+            title: a.title || '',
+            description: a.description || '',
+        };
+        const { climb } = findBestClimbForActivity(activity, index);
         if (climb?.id != null) {
             matches.push({ activityId: String(a.id), climbId: String(climb.id) });
         }

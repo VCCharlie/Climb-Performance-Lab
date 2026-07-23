@@ -1,13 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ChevronDown, ChevronUp, Target } from 'lucide-react';
-import {
-    deriveVolumeGoalsFromYearlyGoals,
-    scaleVolumeGoals,
-    currentWeekRange,
-    currentMonthRange,
-    currentYearRange,
-    sumVolumeForRange,
-} from '../../utils/volumeGoals';
+import { deriveVolumeGoalsFromYearlyGoals, scaleVolumeGoals, currentWeekRange, currentMonthRange, currentYearRange, sumVolumeForRange } from '../../utils/volumeGoals';
+import { projectYearEndVolume } from '../../utils/yearEndProjection';
 import { VolumeGoalPeriodCard } from './VolumeGoalPeriodCard';
 import { chartCardClass } from '../../utils/chartTheme';
 
@@ -148,10 +142,23 @@ const VolumeGoalsPanel = ({ chartData = [], userSettings, onOpenSettings }) => {
         };
     }, [chartData, week.startYmd, week.endYmd, month.startYmd, month.endYmd, year.startYmd, year.endYmd]);
 
+    const yearEndProjection = useMemo(
+        () => projectYearEndVolume(sums.year, year, nowRef),
+        [sums.year, year, nowRef],
+    );
+
     const sections = [
         { id: 'weekly', title: 'This week', subtitle: week.label, range: week, g: goals.weekly, s: sums.week },
         { id: 'monthly', title: 'This month', subtitle: month.label, range: month, g: goals.monthly, s: sums.month },
-        { id: 'yearly', title: 'This year', subtitle: year.label, range: year, g: goals.yearly, s: sums.year },
+        {
+            id: 'yearly',
+            title: 'This year',
+            subtitle: year.label,
+            range: year,
+            g: goals.yearly,
+            s: sums.year,
+            yearEndProjection,
+        },
     ];
 
     return (
@@ -223,7 +230,7 @@ const VolumeGoalsPanel = ({ chartData = [], userSettings, onOpenSettings }) => {
 
             {!collapsed && (
                 <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    {sections.map(({ id, title, subtitle, range, g, s }) => (
+                    {sections.map(({ id, title, subtitle, range, g, s, yearEndProjection: projection }) => (
                         <VolumeGoalPeriodCard
                             key={id}
                             title={title}
@@ -232,6 +239,7 @@ const VolumeGoalsPanel = ({ chartData = [], userSettings, onOpenSettings }) => {
                             g={g}
                             s={s}
                             nowRef={nowRef}
+                            yearEndProjection={id === 'yearly' ? projection : null}
                         />
                     ))}
                 </div>

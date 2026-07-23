@@ -4,6 +4,8 @@ import BarChartCard from './charts/BarChartCard';
 import ActivityHeatmap from './charts/ActivityHeatmap';
 import VolumeGoalsPanel from './VolumeGoalsPanel';
 import ClimbingReadinessCard from './ClimbingReadinessCard';
+import YtdCompareCard from './YtdCompareCard';
+import MultiYearCompareChart from './MultiYearCompareChart';
 import { buildOverviewBarChartIndex } from '../../utils/dashboardBarChartBuckets';
 
 /**
@@ -41,6 +43,8 @@ const OverviewTab = ({
                 userSettings={userSettings}
             />
 
+            <YtdCompareCard activities={activitySource} />
+
             {userSettings && (
                 <VolumeGoalsPanel
                     chartData={activitySource}
@@ -48,6 +52,8 @@ const OverviewTab = ({
                     onOpenSettings={onOpenSettings}
                 />
             )}
+
+            <MultiYearCompareChart activities={activitySource} />
 
             {!hasFilteredData ? (
                 <div className="rounded-xl border border-cdborder bg-cdsurface px-4 py-6 text-center text-sm text-cdmuted">
