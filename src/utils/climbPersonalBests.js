@@ -12,16 +12,19 @@ import {
     pbMatchesVenueFilter,
     resolvePbVenue,
     climbVenue,
+    isClimbVenueCompatible,
 } from './activityVenue';
 import { yieldToMain } from './yieldToMain';
 
 /**
- * Drop PB rows where the stored ride venue does not match the climb (e.g. Zwift PB on a real climb).
+ * Drop PB rows where the stored ride venue does not match the climb or source activity.
  * @param {Record<string, object>} climbPbs
  * @param {object[]} climbs
+ * @param {object[]} [activities]
  */
-export function pruneMismatchedVenuePbs(climbPbs, climbs) {
+export function pruneMismatchedVenuePbs(climbPbs, climbs, activities = []) {
     const climbById = new Map((climbs || []).map((c) => [String(c.id), c]));
+    const actById = new Map((activities || []).map((a) => [String(a.id), a]));
     const next = {};
 
     for (const [id, pb] of Object.entries(climbPbs || {})) {
@@ -31,8 +34,10 @@ export function pruneMismatchedVenuePbs(climbPbs, climbs) {
             next[id] = pb;
             continue;
         }
-        const pbVenue = resolvePbVenue(pb, climb);
+        const activity = pb.activityId ? actById.get(String(pb.activityId)) : null;
+        const pbVenue = resolvePbVenue(pb, climb, activity);
         if (pbVenue && pbVenue !== climbVenue(climb)) continue;
+        if (activity && !isClimbVenueCompatible(climb, activityVenue(activity))) continue;
         next[id] = pb;
     }
 
@@ -187,24 +192,28 @@ export function formatPbSummary(pb) {
  * @param {object | null} [climb]
  * @param {'all' | 'outdoor' | 'virtual'} [venueFilter]
  */
-export function hasStoredClimbPb(climbPbs, climbId, climb = null, venueFilter = 'all') {
+export function hasStoredClimbPb(climbPbs, climbId, climb = null, venueFilter = 'all', activity = null) {
     if (!climbPbs || climbId == null) return false;
     const pb = climbPbs[String(climbId)];
     if (!formatPbSummary(pb)) return false;
-    return pbMatchesVenueFilter(pb, climb, venueFilter);
+    return pbMatchesVenueFilter(pb, climb, venueFilter, activity);
 }
 
 /**
  * @param {Record<string, object> | null | undefined} climbPbs
  * @param {object[]} [climbs]
  * @param {'all' | 'outdoor' | 'virtual'} [venueFilter]
+ * @param {object[]} [activities]
  */
-export function countClimbsWithPb(climbPbs, climbs = [], venueFilter = 'all') {
+export function countClimbsWithPb(climbPbs, climbs = [], venueFilter = 'all', activities = []) {
     if (!climbPbs) return 0;
     const climbById = new Map((climbs || []).map((c) => [String(c.id), c]));
+    const actById = new Map((activities || []).map((a) => [String(a.id), a]));
     let count = 0;
     for (const id of Object.keys(climbPbs)) {
-        if (hasStoredClimbPb(climbPbs, id, climbById.get(id) ?? null, venueFilter)) count += 1;
+        const pb = climbPbs[id];
+        const activity = pb?.activityId ? actById.get(String(pb.activityId)) : null;
+        if (hasStoredClimbPb(climbPbs, id, climbById.get(id) ?? null, venueFilter, activity)) count += 1;
     }
     return count;
 }
@@ -231,7 +240,7 @@ function pbMetricScore(pb) {
  * @param {Record<string, object>} scanned
  * @param {object[]} [climbs]
  */
-export function mergeScannedIntoClimbPbs(prevPbs, scanned, climbs = []) {
+export function mergeScannedIntoClimbPbs(prevPbs, scanned, climbs = [], activities = []) {
     const prev = prevPbs || {};
     const next = { ...prev };
 
@@ -243,7 +252,7 @@ export function mergeScannedIntoClimbPbs(prevPbs, scanned, climbs = []) {
         }
     }
 
-    return pruneMismatchedVenuePbs(next, climbs);
+    return pruneMismatchedVenuePbs(next, climbs, activities);
 }
 
 /**
@@ -280,7 +289,7 @@ export function countPbByMatchSource(climbPbs) {
  * @param {object[]} [climbs]
  */
 export function summarizePbScanResult(prevPbs, scanned, activities, climbs = []) {
-    const merged = mergeScannedIntoClimbPbs(prevPbs, scanned, climbs);
+    const merged = mergeScannedIntoClimbPbs(prevPbs, scanned, climbs, activities);
     const previousWithPb = countClimbsWithPb(prevPbs, climbs);
     const totalWithPb = countClimbsWithPb(merged, climbs);
 

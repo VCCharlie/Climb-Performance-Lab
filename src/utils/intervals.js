@@ -230,6 +230,7 @@ export const normalizeIntervalsActivity = (item) => {
         best_90min: Math.round(best90min),
         best_120min: Math.round(best120min),
         avg_altitude: Math.round(avgAltitude),
-        max_altitude: Math.round(maxAltitude)
+        max_altitude: Math.round(maxAltitude),
+        trainer: item.trainer === true || finalType === 'VirtualRide' || finalType === 'VirtualRun',
     };
 };

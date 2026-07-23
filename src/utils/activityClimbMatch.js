@@ -4,6 +4,7 @@
  */
 
 import { isClimbVenueCompatible, activityVenue } from './activityVenue';
+import { isAppGeneratedClimbHint, stripAppGeneratedClimbHint } from './activityClimbMatchText';
 
 const STOP = new Set([
     'ride', 'rit', 'fiets', 'bike', 'cycling', 'virtual', 'zwift', 'training',
@@ -156,6 +157,29 @@ function stripHtml(text) {
 }
 
 /**
+ * Title text usable for climb matching (excludes app "Similar to …" hints).
+ * @param {object | null | undefined} activity
+ * @returns {string}
+ */
+export function climbMatchTitleForActivity(activity) {
+    const title = (activity?.title || '').trim();
+    if (!title || isAppGeneratedClimbHint(title)) return '';
+    return title;
+}
+
+/**
+ * Description/notes usable for climb matching (excludes app-generated hints).
+ * @param {object | null | undefined} activity
+ * @returns {string}
+ */
+export function climbMatchDescriptionForActivity(activity) {
+    const title = (activity?.title || '').trim();
+    const description = stripHtml(activity?.description || activity?.notes || '');
+    if (!description || description === title || isAppGeneratedClimbHint(description)) return '';
+    return description;
+}
+
+/**
  * Text fields searched for climb name heuristics (title first, then Strava/Intervals description).
  * @param {object | null | undefined} activity
  * @returns {string}
@@ -163,10 +187,10 @@ function stripHtml(text) {
 export function buildActivityClimbMatchText(activity) {
     if (!activity || typeof activity !== 'object') return '';
     const parts = [];
-    const title = (activity.title || '').trim();
+    const title = climbMatchTitleForActivity(activity);
     if (title) parts.push(title);
-    const description = stripHtml(activity.description || activity.notes || '');
-    if (description && description !== title) parts.push(description);
+    const description = climbMatchDescriptionForActivity(activity);
+    if (description) parts.push(description);
     return parts.join(' · ');
 }
 
@@ -182,14 +206,14 @@ export function findBestClimbForActivity(activity, index) {
     }
 
     const matchOpts = { activityVenue: activityVenue(activity) };
-    const title = (activity.title || '').trim();
+    const title = climbMatchTitleForActivity(activity);
     const fromTitle = title ? findBestClimbUsingIndex(title, index, matchOpts) : null;
     if (fromTitle) {
         return { climb: fromTitle, source: 'title' };
     }
 
-    const description = stripHtml(activity.description || activity.notes || '');
-    if (!description || description === title) {
+    const description = climbMatchDescriptionForActivity(activity);
+    if (!description) {
         return { climb: null, source: null };
     }
 
