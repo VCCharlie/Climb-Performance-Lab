@@ -7,6 +7,21 @@ import PlannedClimbWeatherPanel from './bucket-list/PlannedClimbWeatherPanel';
 import { mergeClimbPbs } from '../utils/bucketListState';
 import { scanClimbPersonalBests, formatPbSummary, hasStoredClimbPb, countClimbsWithPb } from '../utils/climbPersonalBests';
 
+const STATUS_FILTER_OPTIONS = [
+    { id: 'all', label: 'All' },
+    { id: 'done', label: 'Done' },
+    { id: 'planned', label: 'Planned' },
+    { id: 'want', label: 'Want' },
+    { id: 'todo', label: 'To do' },
+    { id: 'with_pb', label: 'With PB' },
+];
+
+function statusPillClass(active) {
+    return active
+        ? 'bg-cdaccent/20 text-cdaccent border-cdaccent/50'
+        : 'bg-cdsurface border-cdborder text-cdmuted hover:text-cdtext hover:border-cdborder';
+}
+
 const BucketList = ({
     initialState,
     onStateChange,
@@ -170,6 +185,15 @@ const BucketList = ({
     }, [climbStatus, climbDatabase.length]);
 
     const pbCount = useMemo(() => countClimbsWithPb(climbPbs), [climbPbs]);
+
+    const statusFilterCounts = useMemo(() => ({
+        all: climbDatabase.length,
+        done: statusCounts.done,
+        planned: statusCounts.planned,
+        want: statusCounts.want,
+        todo: statusCounts.todo,
+        with_pb: pbCount,
+    }), [climbDatabase.length, statusCounts, pbCount]);
 
     // Filter and sort climbs
     const filteredClimbs = useMemo(() => {
