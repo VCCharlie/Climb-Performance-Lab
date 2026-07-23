@@ -4,6 +4,10 @@ import { useClimbDatabase } from '../hooks/useClimbDatabase';
 import { computeTrainingGoalPlan } from '../utils/trainingGoalPlan';
 import { calculatePowerZones } from '../utils/calculations';
 import { useActivitiesList } from '../hooks/useActivities';
+import {
+    buildTrainingPlanSnapshot,
+    writeTrainingPlanSnapshot,
+} from '../utils/trainingPlanSnapshot';
 import NlDateInput from './NlDateInput';
 
 const defaultGoalDate = () => {
@@ -72,6 +76,15 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
     }, [ftp, zones, targetPctFtp]);
 
     const expectedAvgWatts = ftp > 0 ? Math.round((ftp * targetPctFtp) / 100) : null;
+
+    useEffect(() => {
+        const snapshot = buildTrainingPlanSnapshot({
+            goalDate,
+            eventName: eventName || (source === 'climb' ? climbSearch : ''),
+            planResult,
+        });
+        writeTrainingPlanSnapshot(snapshot);
+    }, [goalDate, eventName, source, climbSearch, planResult]);
 
     return (
         <div className="space-y-6 animate-in fade-in">

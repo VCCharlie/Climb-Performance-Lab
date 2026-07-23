@@ -8,6 +8,7 @@ import { stravaActivityUrl, stravaFlybyUrl } from '../../utils/strava';
 import { cn } from '../ui/cn';
 import AnchoredDropdownPortal from '../ui/AnchoredDropdownPortal';
 import ActivityTypeIcon from './ActivityTypeIcon';
+import ClimbMatchBadge from './ClimbMatchBadge';
 
 const StravaIcon = () => (
     <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" className="shrink-0" aria-hidden>
@@ -134,6 +135,13 @@ const ActivityCard = React.memo(({
                     <h3 className="font-semibold text-sm text-cdtext truncate mt-0.5" title={title}>
                         {title}
                     </h3>
+                    {climbMatch && (
+                        <ClimbMatchBadge
+                            climb={climbMatch}
+                            activity={act}
+                            onOpenProfiler={onOpenProfiler}
+                        />
+                    )}
                     {metrics.length > 0 && (
                         <div className="flex flex-wrap gap-1.5 mt-2">
                             {metrics.map((m) => (
