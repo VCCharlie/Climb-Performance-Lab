@@ -95,6 +95,7 @@ export function useDataHubFilterBar({
         },
         onFindDuplicates: () => { dataImport.findDuplicates(); setShowUtilMenu(false); },
         onClearDatabase: () => { handleClearDatabase(); setShowUtilMenu(false); },
+        bulkSelectedCount: bulk.bulkSelectedIds.size,
         activitiesCount: activities?.length ?? 0,
         isDeleting,
         thisWeekOnly,
