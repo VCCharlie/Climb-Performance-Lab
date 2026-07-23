@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { scanClimbPersonalBests, scanClimbPersonalBestsAsync, formatPbSummary, hasStoredClimbPb, countClimbsWithPb, summarizePbScanResult, formatPbScanFeedbackMessage, pruneMismatchedVenuePbs } from '../../utils/climbPersonalBests';
+import { scanClimbPersonalBests, scanClimbPersonalBestsAsync, formatPbSummary, hasStoredClimbPb, countClimbsWithPb, summarizePbScanResult, formatPbScanFeedbackMessage, pruneMismatchedVenuePbs, replaceClimbPbsFromScan } from '../../utils/climbPersonalBests';
 
 const climbs = [
     { id: 'fr_alpe', name: "Alpe d'Huez", country: 'FR' },
@@ -127,6 +127,34 @@ describe('scanClimbPersonalBests', () => {
         expect(pbs.it_stelvio).toBeUndefined();
     });
 
+    it('does not match PB from loose title word overlap', () => {
+        const pbs = scanClimbPersonalBests(
+            [{
+                id: 'loose',
+                type: 'Ride',
+                title: 'Easy ride near Stelvio',
+                norm_power: 240,
+                moving_time: 3600,
+            }],
+            climbs,
+        );
+        expect(pbs.it_stelvio).toBeUndefined();
+    });
+
+    it('replaceClimbPbsFromScan drops stale PB rows from a previous scan', () => {
+        const prev = {
+            fr_alpe: { normPower: 265, movingTimeSec: 3500 },
+            it_stelvio: { normPower: 240, movingTimeSec: 4000 },
+        };
+        const scanned = {
+            fr_alpe: { normPower: 265, movingTimeSec: 3500, matchSource: 'title' },
+        };
+
+        const replaced = replaceClimbPbsFromScan(scanned, climbs);
+        expect(replaced.fr_alpe?.normPower).toBe(265);
+        expect(replaced.it_stelvio).toBeUndefined();
+    });
+
     it('summarizePbScanResult reports no change when scan matches same climbs', () => {
         const prev = {
             fr_alpe: { normPower: 265, movingTimeSec: 3500 },
@@ -140,7 +168,20 @@ describe('scanClimbPersonalBests', () => {
         expect(summary.totalWithPb).toBe(1);
         expect(summary.newClimbs).toBe(0);
         expect(summary.improvedPbs).toBe(0);
-        expect(formatPbScanFeedbackMessage(summary)).toContain('no new matches');
+        expect(summary.removedPbs).toBe(0);
+        expect(formatPbScanFeedbackMessage(summary)).toContain('no changes');
+    });
+
+    it('summarizePbScanResult counts removed stale PBs', () => {
+        const summary = summarizePbScanResult(
+            { it_stelvio: { normPower: 240, movingTimeSec: 4000 } },
+            {},
+            [],
+            climbs,
+        );
+        expect(summary.removedPbs).toBe(1);
+        expect(summary.totalWithPb).toBe(0);
+        expect(formatPbScanFeedbackMessage(summary)).toContain('1 removed');
     });
 
     it('summarizePbScanResult counts new climbs', () => {

@@ -90,15 +90,15 @@ const BucketList = ({
                 onProgress: setScanProgress,
             });
             const summary = summarizePbScanResult(climbPbs, scanned, activities, climbDatabase);
-            setClimbPbs(summary.merged);
+            setClimbPbs(summary.replaced);
             if (onStateChange) {
                 onStateChange({
                     climbStatus,
-                    climbPbs: summary.merged,
+                    climbPbs: summary.replaced,
                 });
             }
             setScanFeedback({
-                tone: summary.newClimbs > 0 || summary.improvedPbs > 0 ? 'success' : 'info',
+                tone: summary.newClimbs > 0 || summary.improvedPbs > 0 || summary.removedPbs > 0 ? 'success' : 'info',
                 message: formatPbScanFeedbackMessage(summary),
                 at: Date.now(),
             });
