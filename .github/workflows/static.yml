@@ -50,21 +50,36 @@ jobs:
       pages: write
       id-token: write
     steps:
+      # When two main pushes deploy back-to-back, an older workflow can finish last and
+      # overwrite GitHub Pages with stale assets (e.g. #348 deploy after #349).
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Skip deploy when a newer main commit exists
+        id: stale
+        run: |
+          git fetch origin main --depth=1
+          if [ "$(git rev-parse origin/main)" != "${{ github.sha }}" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Skipping stale Pages deploy for ${{ github.sha }}; tip is $(git rev-parse origin/main)"
+          fi
       # GitHub Pages allows only one deployment in flight per site. A prior deploy
       # may still be settling when this job starts — retry once after a short wait.
       - name: Deploy to GitHub Pages
         id: deployment
+        if: steps.stale.outputs.skip != 'true'
         uses: actions/deploy-pages@v4
         continue-on-error: true
       - name: Wait for in-flight deployment to settle
-        if: steps.deployment.outcome == 'failure'
+        if: steps.stale.outputs.skip != 'true' && steps.deployment.outcome == 'failure'
         run: sleep 90
       - name: Deploy to GitHub Pages (retry)
-        if: steps.deployment.outcome == 'failure'
+        if: steps.stale.outputs.skip != 'true' && steps.deployment.outcome == 'failure'
         id: deployment-retry
         uses: actions/deploy-pages@v4
       - name: Fail if both deploy attempts failed
-        if: steps.deployment.outcome == 'failure' && steps.deployment-retry.outcome == 'failure'
+        if: steps.stale.outputs.skip != 'true' && steps.deployment.outcome == 'failure' && steps.deployment-retry.outcome == 'failure'
         run: |
           echo "GitHub Pages deployment failed twice. Re-run the workflow or check https://www.githubstatus.com/"
           exit 1
