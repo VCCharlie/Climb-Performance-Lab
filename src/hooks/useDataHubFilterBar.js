@@ -159,11 +159,16 @@ export function useDataHubFilterBar({
         onMarkRecovery: bulk.markBulkRecovery,
         recoveryTss,
         onStravaEnrich: () => bulk.runStravaEnrichSelected(bulk.selectedActivitiesForBulk),
+        onStravaDescriptionBackfill: () => {
+            const sel = bulk.selectedActivitiesForBulk;
+            bulk.runStravaDescriptionBackfill(sel.length > 0 ? sel : null);
+        },
         onMergePair: bulk.openMergeModal,
         onDeleteSelected: bulk.confirmBulkDeleteSelected,
         onClearSelection: () => bulk.setBulkSelectedIds(new Set()),
         isBulkSaving: bulk.isBulkSaving,
         isStravaEnriching: bulk.isStravaEnriching,
+        isStravaDescBackfilling: bulk.isStravaDescBackfilling,
     };
 
     return { filterBarProps, showUtilMenu, setShowUtilMenu };

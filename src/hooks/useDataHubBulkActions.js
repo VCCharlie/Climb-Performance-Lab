@@ -12,6 +12,7 @@ import {
 } from '../utils/mergeActivities';
 import { enrichActivityGearFromStrava } from '../utils/stravaGearEnrich';
 import { enrichSelectedActivitiesFromStrava } from '../utils/stravaSelectedEnrich';
+import { buildStravaDescriptionBackfillUpdates } from '../utils/stravaDescriptionBackfill';
 import { formatNlNumber } from '../utils/formatters';
 import { buildMarkRecoveryConfirmMessage, resolveRecoveryTss } from '../utils/recoveryTss';
 import { resolveDeviceProfileTitlesFromSettings } from '../utils/bikeComputerProfileTitles';
@@ -38,6 +39,8 @@ export function useDataHubBulkActions({
     const [isBulkSaving, setIsBulkSaving] = useState(false);
     const [isStravaEnriching, setIsStravaEnriching] = useState(false);
     const [stravaEnrichMsg, setStravaEnrichMsg] = useState(null);
+    const [isStravaDescBackfilling, setIsStravaDescBackfilling] = useState(false);
+    const [stravaDescBackfillMsg, setStravaDescBackfillMsg] = useState(null);
     const [isExportingXlsx, setIsExportingXlsx] = useState(false);
 
     const allVisibleSelected = useMemo(
@@ -270,6 +273,75 @@ export function useDataHubBulkActions({
         }
     }, [stravaGetToken, persistStravaEnrichUpdates, deviceProfileTitles]);
 
+    const runStravaDescriptionBackfill = useCallback(async (subset) => {
+        if (!stravaGetToken) {
+            setStravaDescBackfillMsg('Connect Strava in Settings first.');
+            return;
+        }
+
+        const selected = subset && subset.length > 0 ? subset : null;
+        const pool = selected
+            ? selected
+            : (activities || []).filter((a) => a?.strava_id);
+
+        if (!pool.length) {
+            setStravaDescBackfillMsg('No Strava-linked activities to check.');
+            return;
+        }
+
+        setIsStravaDescBackfilling(true);
+        setStravaDescBackfillMsg('Starting Strava description backfill…');
+
+        try {
+            const token = await stravaGetToken();
+            if (!token) {
+                setStravaDescBackfillMsg('Could not get Strava token.');
+                return;
+            }
+
+            const onlyIds = selected ? selected.map((a) => a.id) : null;
+            const result = await buildStravaDescriptionBackfillUpdates(activities, token, {
+                onlyIds,
+                onProgress: (m) => setStravaDescBackfillMsg(m),
+            });
+
+            if (result.candidates === 0) {
+                setStravaDescBackfillMsg('All Strava-linked activities already have a description stored.');
+                return;
+            }
+
+            if (result.updates.length === 0) {
+                const rateNote = result.rateLimitHits > 0
+                    ? ' Strava rate limit — try again in ~15 minutes.'
+                    : '';
+                setStravaDescBackfillMsg(
+                    `Checked ${formatNlNumber(result.processed)} ride(s): no new descriptions`
+                    + (result.emptyOnStrava > 0 ? ` (${formatNlNumber(result.emptyOnStrava)} empty on Strava)` : '')
+                    + rateNote
+                    + (result.remaining > 0 ? ` · ${formatNlNumber(result.remaining)} still waiting — run again.` : ''),
+                );
+                return;
+            }
+
+            setStravaDescBackfillMsg(`Saving ${result.updates.length} descriptions…`);
+            await persistStravaEnrichUpdates(result.updates, pool);
+
+            const remainNote = result.remaining > 0
+                ? ` ${formatNlNumber(result.remaining)} more ride(s) still need a fetch — click again to continue.`
+                : '';
+            const rateNote = result.rateLimitHits > 0 ? ' Some requests hit Strava rate limits.' : '';
+
+            setStravaDescBackfillMsg(
+                `Done: stored ${formatNlNumber(result.filled)} Strava description(s) (description field only — low API load).${remainNote}${rateNote}`,
+            );
+        } catch (e) {
+            console.error('[Strava description backfill]', e);
+            setStravaDescBackfillMsg(`Error: ${e.message || e}`);
+        } finally {
+            setIsStravaDescBackfilling(false);
+        }
+    }, [stravaGetToken, activities, persistStravaEnrichUpdates]);
+
     const markBulkRecovery = useCallback(async () => {
         if (selectedActivitiesForBulk.length === 0) return;
         const tss = resolveRecoveryTss({ recoveryTss });
@@ -376,5 +448,9 @@ export function useDataHubBulkActions({
         isStravaEnriching,
         stravaEnrichMsg,
         setStravaEnrichMsg,
+        runStravaDescriptionBackfill,
+        isStravaDescBackfilling,
+        stravaDescBackfillMsg,
+        setStravaDescBackfillMsg,
     };
 }

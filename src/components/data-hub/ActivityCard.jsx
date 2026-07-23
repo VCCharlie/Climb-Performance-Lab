@@ -90,6 +90,7 @@ const ActivityCard = React.memo(({
 
     const metrics = getActivityCardMetrics(act, visibleColumns, profileFtp, profileMaxHr);
     const title = act.title || 'Untitled activity';
+    const description = (act.description || act.notes || '').trim();
     const climbMatch = profilerClimbByActivityId?.get(String(act.id));
     const stravaUrl = stravaActivityUrl(act.strava_id);
     const flybyUrl = stravaFlybyUrl(act.strava_id);
@@ -135,6 +136,11 @@ const ActivityCard = React.memo(({
                     <h3 className="font-semibold text-sm text-cdtext truncate mt-0.5" title={title}>
                         {title}
                     </h3>
+                    {description ? (
+                        <p className="text-[10px] text-cdmuted mt-1 line-clamp-2 leading-snug" title={description}>
+                            {description}
+                        </p>
+                    ) : null}
                     {climbMatch && (
                         <ClimbMatchBadge
                             climb={climbMatch}

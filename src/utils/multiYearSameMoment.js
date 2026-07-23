@@ -12,12 +12,32 @@ const DEFAULT_MAX_YEARS = 5;
 
 /**
  * @param {object[]} activities
+ * @param {Set<string> | null} sportTypes - when empty/null, all tracked sports count
+ */
+export function filterActivitiesBySportTypes(activities, sportTypes) {
+    const useAll = !sportTypes || sportTypes.size === 0;
+    return (activities || []).filter((a) => {
+        if (!a?.type) return false;
+        if (useAll) return TRACKED_SPORTS.has(a.type);
+        return sportTypes.has(a.type);
+    });
+}
+
+/**
+ * @param {object[]} activities
  * @param {Date} [referenceDate]
  * @param {number} [maxYears]
+ * @param {Set<string> | null} [sportTypes]
  * @returns {Array<{ year: number, count: number, distanceKm: number, elevationM: number, movingTimeSec: number, load: number }>}
  */
-export function computeMultiYearYtdAtSameMoment(activities, referenceDate = new Date(), maxYears = DEFAULT_MAX_YEARS) {
-    if (!activities?.length || !referenceDate || Number.isNaN(referenceDate.getTime())) {
+export function computeMultiYearYtdAtSameMoment(
+    activities,
+    referenceDate = new Date(),
+    maxYears = DEFAULT_MAX_YEARS,
+    sportTypes = null,
+) {
+    const filtered = filterActivitiesBySportTypes(activities, sportTypes);
+    if (!filtered.length || !referenceDate || Number.isNaN(referenceDate.getTime())) {
         return [];
     }
 
@@ -45,7 +65,7 @@ export function computeMultiYearYtdAtSameMoment(activities, referenceDate = new 
         windows.set(y, { start: win.startThis, end: win.endThis });
     }
 
-    for (const a of activities) {
+    for (const a of filtered) {
         if (!a?.type || !TRACKED_SPORTS.has(a.type)) continue;
         const day = normalizeDate(a.date);
         if (!day || day.length < 10) continue;

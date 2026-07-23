@@ -105,11 +105,13 @@ const ActivityLogFilterBar = ({
     onMarkRecovery,
     recoveryTss = 35,
     onStravaEnrich,
+    onStravaDescriptionBackfill,
     onMergePair,
     onDeleteSelected,
     onClearSelection,
     isBulkSaving,
     isStravaEnriching,
+    isStravaDescBackfilling = false,
 }) => (
     <div className={`shrink-0 space-y-3 mb-3 lg:mb-4 max-h-[38vh] lg:max-h-none custom-scrollbar pr-0.5 ${showUtilMenu ? 'overflow-visible' : 'overflow-y-auto'} lg:overflow-visible`}>
         <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
@@ -498,16 +500,28 @@ const ActivityLogFilterBar = ({
                     Mark recovery (TSS {recoveryTss})
                 </button>
                 {stravaGetToken && (
-                    <button
-                        type="button"
-                        onClick={onStravaEnrich}
-                        disabled={isStravaEnriching || bulkSelectedCount === 0}
-                        title="Auto-link selected rides to Strava, then enrich gear, route, HR, RPE, and segment badges (no manual Strava URL needed)"
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded border border-orange-500/40 text-orange-400 hover:bg-orange-500/10 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
-                    >
-                        {isStravaEnriching ? <Loader2 size={12} className="animate-spin" aria-hidden="true" /> : <Link2 size={12} aria-hidden="true" />}
-                        Strava enrich
-                    </button>
+                    <>
+                        <button
+                            type="button"
+                            onClick={onStravaEnrich}
+                            disabled={isStravaEnriching || bulkSelectedCount === 0}
+                            title="Auto-link selected rides to Strava, then enrich gear, route, HR, RPE, and segment badges (no manual Strava URL needed)"
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded border border-orange-500/40 text-orange-400 hover:bg-orange-500/10 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                        >
+                            {isStravaEnriching ? <Loader2 size={12} className="animate-spin" aria-hidden="true" /> : <Link2 size={12} aria-hidden="true" />}
+                            Strava enrich
+                        </button>
+                        <button
+                            type="button"
+                            onClick={onStravaDescriptionBackfill}
+                            disabled={isStravaDescBackfilling}
+                            title="Fetch Strava activity description only (MyCols / ClimbFinder text) — uses selected rows, or all Strava-linked rides if none selected. Max ~80 per run."
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded border border-cdborder text-cdmuted hover:text-cdaccent hover:border-cdaccent/40 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                        >
+                            {isStravaDescBackfilling ? <Loader2 size={12} className="animate-spin" aria-hidden="true" /> : <Link2 size={12} aria-hidden="true" />}
+                            Strava descriptions
+                        </button>
+                    </>
                 )}
                 <button
                     type="button"

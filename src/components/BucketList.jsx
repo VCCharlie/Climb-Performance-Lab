@@ -308,7 +308,7 @@ const BucketList = ({
 
             <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-xs text-cdmuted">
-                    Personal bests are matched from activity titles (same logic as Climb Profiler).
+                    Personal bests match from activity title or Strava description (MyCols, ClimbFinder).
                 </p>
                 <button
                     type="button"
@@ -319,8 +319,8 @@ const BucketList = ({
                     <Sparkles size={14} aria-hidden />
                     Scan activities for PBs
                 </button>
-                <p className="text-[10px] text-cdmuted mt-1">
-                    Matches climbs from activity title or Strava description (MyCols, ClimbFinder, etc.).
+                <p className="text-[10px] text-cdmuted mt-1 w-full">
+                    Strava descriptions: Activities → bulk → Strava descriptions (not from Intervals).
                 </p>
             </div>
 
