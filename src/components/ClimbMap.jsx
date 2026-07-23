@@ -10,6 +10,7 @@ import { useClimbDatabase } from '../hooks/useClimbDatabase';
 import { useLeaflet } from '../hooks/useLeaflet';
 import { haversineDistance, calculateClimbCategory } from '../utils/calculations';
 import FlagIcon from './FlagIcon';
+import { hasBucketStatus } from '../utils/bucketListState';
 
 const CAT_COLORS = {
     HC: '#ffffff',
@@ -134,9 +135,18 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
     const [trackLoading, setTrackLoading] = useState(false);
     const [totalShown, setTotalShown] = useState(0);
 
-    const bucketDone = useMemo(() => new Set(bucketListState?.done || []), [bucketListState]);
-    const bucketPlanned = useMemo(() => new Set(bucketListState?.planned || []), [bucketListState]);
-    const bucketWant = useMemo(() => new Set(bucketListState?.want || []), [bucketListState]);
+    const bucketDone = useMemo(
+        () => (id) => hasBucketStatus(bucketListState, id, 'done'),
+        [bucketListState],
+    );
+    const bucketPlanned = useMemo(
+        () => (id) => hasBucketStatus(bucketListState, id, 'planned'),
+        [bucketListState],
+    );
+    const bucketWant = useMemo(
+        () => (id) => hasBucketStatus(bucketListState, id, 'want'),
+        [bucketListState],
+    );
 
     const uniqueCountries = useMemo(() => {
         const countries = [...new Set(realClimbs.map(c => c.country))].sort();
@@ -198,11 +208,11 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
                 title: climb.name,
             });
 
-            const inBucket = bucketDone.has(climb.id)
+            const inBucket = bucketDone(climb.id)
                 ? '✅ Done'
-                : bucketPlanned.has(climb.id)
+                : bucketPlanned(climb.id)
                 ? '📅 Planned'
-                : bucketWant.has(climb.id)
+                : bucketWant(climb.id)
                 ? '⭐ Want'
                 : null;
 
@@ -217,9 +227,9 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
                     </div>
                     ${inBucket ? `<div style="margin-top:6px; font-size:11px; font-weight:bold;">${inBucket}</div>` : ''}
                     <div style="margin-top:8px; display:flex; gap:4px; flex-wrap:wrap;">
-                        ${!bucketDone.has(climb.id) ? `<button onclick="window.__climbMapAction('done','${climb.id}')" style="font-size:10px; padding:3px 7px; border-radius:4px; background:#22c55e; color:white; border:none; cursor:pointer;">✅ Done</button>` : ''}
-                        ${!bucketPlanned.has(climb.id) ? `<button onclick="window.__climbMapAction('planned','${climb.id}')" style="font-size:10px; padding:3px 7px; border-radius:4px; background:#3b82f6; color:white; border:none; cursor:pointer;">📅 Plan</button>` : ''}
-                        ${!bucketWant.has(climb.id) ? `<button onclick="window.__climbMapAction('want','${climb.id}')" style="font-size:10px; padding:3px 7px; border-radius:4px; background:#a855f7; color:white; border:none; cursor:pointer;">⭐ Want</button>` : ''}
+                        ${!bucketDone(climb.id) ? `<button onclick="window.__climbMapAction('done','${climb.id}')" style="font-size:10px; padding:3px 7px; border-radius:4px; background:#22c55e; color:white; border:none; cursor:pointer;">✅ Done</button>` : ''}
+                        ${!bucketPlanned(climb.id) ? `<button onclick="window.__climbMapAction('planned','${climb.id}')" style="font-size:10px; padding:3px 7px; border-radius:4px; background:#3b82f6; color:white; border:none; cursor:pointer;">📅 Plan</button>` : ''}
+                        ${!bucketWant(climb.id) ? `<button onclick="window.__climbMapAction('want','${climb.id}')" style="font-size:10px; padding:3px 7px; border-radius:4px; background:#a855f7; color:white; border:none; cursor:pointer;">⭐ Want</button>` : ''}
                     </div>
                 </div>`,
                 { maxWidth: 260 }

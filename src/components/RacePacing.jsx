@@ -2,6 +2,7 @@
 import { Mountain, Plus, Trash2, AlertTriangle, TrendingDown, Battery, Zap, Clock, Utensils, Info, Lightbulb, Map as MapIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import ClimbSelector from './shared/ClimbSelector';
 import FlagIcon from './FlagIcon';
+import { buildFuelingHandoff } from '../utils/raceFuelingHandoff';
 
 const RacePacingMap = lazy(() => import('./RacePacingMap'));
 
@@ -412,7 +413,14 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
                             </div>
                             {onExportToFueling && (
                                 <button
-                                    onClick={() => onExportToFueling(raceStrategy.totalTime, targetIntensity)}
+                                    onClick={() => {
+                                        const handoff = buildFuelingHandoff(
+                                            raceStrategy,
+                                            targetIntensity,
+                                            selectedClimbs,
+                                        );
+                                        if (handoff) onExportToFueling(handoff);
+                                    }}
                                     className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-cdtext px-4 py-2 rounded text-sm font-bold transition-colors whitespace-nowrap w-full sm:w-auto justify-center"
                                 >
                                     <Utensils size={16} />
