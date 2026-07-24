@@ -19,9 +19,10 @@ describe('activityClimbMatchPb', () => {
         expect(isTrustedClimbDescription('Great weather and coffee')).toBe(false);
     });
 
-    it('climbNameAppearsInText requires the full climb name', () => {
+    it('climbNameAppearsInText requires distinctive climb name proof', () => {
         expect(climbNameAppearsInText('Passo dello Stelvio', 'MyCols: Passo dello Stelvio from Prato')).toBe(true);
         expect(climbNameAppearsInText('Passo dello Stelvio', 'Passed near the Stelvio area')).toBe(false);
+        expect(climbNameAppearsInText('Amerongse Berg', 'Dan toch liever een berg')).toBe(false);
     });
 
     it('matches specific titles and trusted descriptions', () => {

@@ -13,6 +13,7 @@ import {
     formatPbMatchSourceLabel,
     summarizePbScanResult,
     formatPbScanFeedbackMessage,
+    pruneInvalidPbAttributions,
 } from '../utils/climbPersonalBests';
 import { formatPbVenueLabel, resolvePbVenue } from '../utils/activityVenue';
 import { yieldToMain } from '../utils/yieldToMain';
@@ -45,12 +46,30 @@ const BucketList = ({
     onOpenMapTab,
     onOpenActivityInLog,
 }) => {
-    const { climbs: climbDatabase, loadFull } = useClimbDatabase();
+    const { climbs: climbDatabase, loadFull, isFullLoaded } = useClimbDatabase();
     const activities = useActivitiesList();
 
     useEffect(() => {
         loadFull();
     }, [loadFull]);
+
+    useEffect(() => {
+        if (!isFullLoaded || !activities?.length || !climbDatabase?.length) return;
+        setClimbPbs((prev) => {
+            const pruned = pruneInvalidPbAttributions(prev, activities, climbDatabase);
+            if (Object.keys(pruned).length === Object.keys(prev).length) {
+                let same = true;
+                for (const key of Object.keys(prev)) {
+                    if (prev[key] !== pruned[key]) {
+                        same = false;
+                        break;
+                    }
+                }
+                if (same) return prev;
+            }
+            return pruned;
+        });
+    }, [isFullLoaded, activities, climbDatabase]);
     // State: climb status (done, planned, want) + optional PBs
     const [climbStatus, setClimbStatus] = useState(initialState?.climbStatus || {});
     const [climbPbs, setClimbPbs] = useState(initialState?.climbPbs || {});
@@ -383,7 +402,7 @@ const BucketList = ({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-xs text-cdmuted">
                         Personal bests match from activity title or Strava description (MyCols, ClimbFinder).
-                        Outdoor rides match real climbs; indoor/virtual rides match Zwift portal climbs only. App “Similar to …” hints are ignored.
+                        Outdoor rides match real climbs; indoor/virtual rides match Zwift portal climbs only. PBs need the climb name in the ride title or a MyCols/ClimbFinder description — not Activity Log “Similar to …” hints.
                     </p>
                     <button
                         type="button"
