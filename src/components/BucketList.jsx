@@ -389,9 +389,14 @@ const BucketList = ({
                             <p className="text-cdmuted text-xs">Avg. gradient</p>
                             <p className="text-cdtext font-bold text-lg">{achievements.stats.avgGrade}%</p>
                         </div>
-                        <div>
+                        <div className="min-w-0">
                             <p className="text-cdmuted text-xs">Hardest col</p>
-                            <p className="text-cdtext font-bold text-sm">{achievements.stats.hardestClimb?.name.substring(0, 15) || '-'}</p>
+                            <p
+                                className="text-cdtext font-bold text-sm leading-snug line-clamp-2 break-words"
+                                title={achievements.stats.hardestClimb?.name || undefined}
+                            >
+                                {achievements.stats.hardestClimb?.name || '-'}
+                            </p>
                         </div>
                     </div>
                 </div>
