@@ -84,6 +84,53 @@ export function pruneInvalidPbAttributions(climbPbs, activities, climbs) {
 }
 
 /**
+ * Async variant — yields between PB checks so the Bucket List tab stays responsive.
+ *
+ * @param {Record<string, object> | null | undefined} climbPbs
+ * @param {object[]} activities
+ * @param {object[]} climbs
+ * @param {{ chunkSize?: number }} [options]
+ * @returns {Promise<Record<string, object>>}
+ */
+export async function pruneInvalidPbAttributionsAsync(climbPbs, activities, climbs, options = {}) {
+    const list = activities || [];
+    const climbList = climbs || [];
+    if (!climbPbs || !list.length || !climbList.length) {
+        return climbPbs || {};
+    }
+
+    const chunkSize = Math.max(1, options.chunkSize ?? 8);
+    const index = buildClimbMatchIndex(climbList);
+    const climbById = new Map(climbList.map((c) => [String(c.id), c]));
+    const actById = new Map(list.map((a) => [String(a.id), a]));
+    const next = { ...climbPbs };
+    const ids = Object.keys(climbPbs);
+
+    for (let i = 0; i < ids.length; i += 1) {
+        const climbId = ids[i];
+        const pb = climbPbs[climbId];
+        if (!formatPbSummary(pb)) {
+            delete next[climbId];
+        } else {
+            const climb = climbById.get(String(climbId));
+            const activity = pb.activityId ? actById.get(String(pb.activityId)) : null;
+            if (climb && activity) {
+                const { climb: matched } = findBestClimbForActivityPb(activity, index);
+                if (!matched || String(matched.id) !== String(climbId)) {
+                    delete next[climbId];
+                }
+            }
+        }
+
+        if ((i + 1) % chunkSize === 0) {
+            await yieldToMain();
+        }
+    }
+
+    return next;
+}
+
+/**
  * Apply one activity to the in-progress PB map (mutates `pbs`).
  * @param {object} act
  * @param {ReturnType<typeof buildClimbMatchIndex>} index

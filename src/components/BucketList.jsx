@@ -1,21 +1,17 @@
-﻿import React, { useState, useMemo, useEffect, useRef } from 'react';
+﻿import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { Mountain, Check, Clock, Star, Trophy, Filter, Search, Sparkles } from 'lucide-react';
 import { useClimbDatabase } from '../hooks/useClimbDatabase';
 import { useActivitiesList } from '../hooks/useActivities';
-import FlagIcon from './FlagIcon';
 import PlannedClimbWeatherPanel from './bucket-list/PlannedClimbWeatherPanel';
-import ClimbPbActivityLinks from './bucket-list/ClimbPbActivityLinks';
+import BucketListClimbRow from './bucket-list/BucketListClimbRow';
 import {
     scanClimbPersonalBestsAsync,
-    formatPbSummary,
     hasStoredClimbPb,
     countClimbsWithPb,
-    formatPbMatchSourceLabel,
     summarizePbScanResult,
     formatPbScanFeedbackMessage,
-    pruneInvalidPbAttributions,
 } from '../utils/climbPersonalBests';
-import { formatPbVenueLabel, resolvePbVenue } from '../utils/activityVenue';
 import { yieldToMain } from '../utils/yieldToMain';
 
 const PB_VENUE_FILTER_OPTIONS = [
@@ -46,7 +42,7 @@ const BucketList = ({
     onOpenMapTab,
     onOpenActivityInLog,
 }) => {
-    const { climbs: climbDatabase, loadFull, isFullLoaded } = useClimbDatabase();
+    const { climbs: climbDatabase, loadFull } = useClimbDatabase();
     const activities = useActivitiesList();
 
     useEffect(() => {
@@ -66,6 +62,7 @@ const BucketList = ({
     const parentSyncToken = initialState?.updatedAt || null;
     const skipParentNotifyRef = useRef(false);
     const initialNotifyDoneRef = useRef(false);
+    const climbListScrollRef = useRef(null);
 
     useEffect(() => {
         if (!parentSyncToken) return;
@@ -73,24 +70,6 @@ const BucketList = ({
         setClimbStatus(initialState?.climbStatus || {});
         setClimbPbs(initialState?.climbPbs || {});
     }, [parentSyncToken, initialState]);
-
-    useEffect(() => {
-        if (!isFullLoaded || !activities?.length || !climbDatabase?.length) return;
-        setClimbPbs((prev) => {
-            const pruned = pruneInvalidPbAttributions(prev, activities, climbDatabase);
-            if (Object.keys(pruned).length === Object.keys(prev).length) {
-                let same = true;
-                for (const key of Object.keys(prev)) {
-                    if (prev[key] !== pruned[key]) {
-                        same = false;
-                        break;
-                    }
-                }
-                if (same) return prev;
-            }
-            return pruned;
-        });
-    }, [isFullLoaded, activities, climbDatabase]);
 
     // Update parent when local bucket list edits change (not when applying cloud sync).
     React.useEffect(() => {
@@ -153,20 +132,28 @@ const BucketList = ({
     };
 
     // Toggle climb status
-    const toggleClimbStatus = (climbId, status) => {
-        setClimbStatus(prev => ({
+    const toggleClimbStatus = useCallback((climbId, status) => {
+        setClimbStatus((prev) => ({
             ...prev,
-            [climbId]: prev[climbId] === status ? null : status
+            [climbId]: prev[climbId] === status ? null : status,
         }));
-    };
+    }, []);
 
-    // Calculate achievements
+    const climbById = useMemo(() => {
+        const map = new Map();
+        for (const climb of climbDatabase) {
+            map.set(String(climb.id), climb);
+        }
+        return map;
+    }, [climbDatabase]);
+
+    // Calculate achievements (only climbs with a status — not full DB scan)
     const achievements = useMemo(() => {
         const doneClimbs = [];
-        for (const climb of climbDatabase) {
-            if (climbStatus[climb.id] === 'done') {
-                doneClimbs.push(climb);
-            }
+        for (const [id, status] of Object.entries(climbStatus)) {
+            if (status !== 'done') continue;
+            const climb = climbById.get(String(id));
+            if (climb) doneClimbs.push(climb);
         }
         const doneLength = doneClimbs.length;
 
@@ -267,7 +254,7 @@ const BucketList = ({
                 hardestClimb
             }
         };
-    }, [climbStatus, climbDatabase]);
+    }, [climbStatus, climbById]);
 
     // Pre-calculate status counts for the filter dropdown in a single pass (O(N) vs 4 * O(N))
     const statusCounts = useMemo(() => {
@@ -348,6 +335,13 @@ const BucketList = ({
 
         return filtered;
     }, [searchTerm, filterStatus, sortBy, climbStatus, climbDatabase, climbPbs, pbVenueFilter, activityById]);
+
+    const climbRowVirtualizer = useVirtualizer({
+        count: filteredClimbs.length,
+        getScrollElement: () => climbListScrollRef.current,
+        estimateSize: () => 96,
+        overscan: 10,
+    });
 
     return (
         <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl space-y-6">
@@ -531,96 +525,49 @@ const BucketList = ({
                 <h3 className="text-cdtext font-bold text-sm mb-3 uppercase tracking-wide">
                     Climbs ({filteredClimbs.length})
                 </h3>
-                <div className="space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
+                <div
+                    ref={climbListScrollRef}
+                    className="max-h-96 overflow-y-auto custom-scrollbar"
+                >
                     {filteredClimbs.length === 0 ? (
                         <p className="text-sm text-cdmuted text-center py-6">
                             {filterStatus === 'with_pb'
                                 ? 'No climbs with a scanned personal best yet. Run “Scan activities for PBs” above.'
                                 : 'No climbs match your filters.'}
                         </p>
-                    ) : filteredClimbs.map(climb => {
-                        const status = climbStatus[climb.id];
-                        const pb = climbPbs[climb.id];
-                        const pbActivity = pb?.activityId ? activityById.get(String(pb.activityId)) : null;
-                        const showPb = hasStoredClimbPb(climbPbs, climb.id, climb, pbVenueFilter, pbActivity);
-                        const pbLabel = showPb ? formatPbSummary(pb) : null;
-                        const pbVenue = showPb ? resolvePbVenue(pb, climb, pbActivity) : null;
-                        return (
-                            <div
-                                key={climb.id}
-                                className={`p-3 rounded border transition-all ${status === 'done'
-                                    ? 'bg-green-50 border-green-200'
-                                    : status === 'planned'
-                                        ? 'bg-blue-50 border-blue-200'
-                                        : status === 'want'
-                                            ? 'bg-yellow-50 border-yellow-200'
-                                            : 'bg-cdsurface border-cdborder hover:border-cdborder'
-                                    }`}
-                            >
-                                <div className="flex items-start justify-between gap-3">
-                                    <div className="flex-1">
-                                        <h4 className="text-cdtext font-bold text-sm flex items-center gap-2">
-                                            <FlagIcon country={climb.country} size="sm" />
-                                            {climb.name}
-                                            {status === 'done' && <Check className="text-green-500" size={16} />}
-                                        </h4>
-                                        <p className="text-cdmuted text-xs mt-1">
-                                            {climb.lengthKm}km • {climb.elevation}m • {climb.avgGrade}% avg
-                                        </p>
-                                        {pbLabel && (
-                                            <>
-                                                <p
-                                                    className="text-[10px] text-cdaccent mt-1 font-medium"
-                                                    title={[pb?.activityTitle, formatPbMatchSourceLabel(pb?.matchSource)].filter(Boolean).join(' · ')}
-                                                >
-                                                    PB{pbVenue ? ` (${formatPbVenueLabel(pbVenue)})` : ''}: {pbLabel}
-                                                </p>
-                                                <ClimbPbActivityLinks
-                                                    pb={pb}
-                                                    activities={activities}
-                                                    onOpenActivityInLog={onOpenActivityInLog}
-                                                />
-                                            </>
-                                        )}
-                                    </div>
+                    ) : (
+                        <div
+                            className="relative w-full"
+                            style={{ height: `${climbRowVirtualizer.getTotalSize()}px` }}
+                        >
+                            {climbRowVirtualizer.getVirtualItems().map((virtualRow) => {
+                                const climb = filteredClimbs[virtualRow.index];
+                                const status = climbStatus[climb.id];
+                                const pb = climbPbs[climb.id];
+                                const pbActivity = pb?.activityId ? activityById.get(String(pb.activityId)) : null;
+                                const showPb = hasStoredClimbPb(climbPbs, climb.id, climb, pbVenueFilter, pbActivity);
 
-                                    {/* Status buttons */}
-                                    <div className="flex gap-1">
-                                        <button
-                                            onClick={() => toggleClimbStatus(climb.id, 'done')}
-                                            className={`p-1.5 rounded transition-colors ${status === 'done'
-                                                ? 'bg-green-500 text-white'
-                                                : 'bg-cdborder text-cdmuted hover:bg-green-100 hover:text-green-600'
-                                                }`}
-                                            title="Completed"
-                                        >
-                                            <Check size={14} />
-                                        </button>
-                                        <button
-                                            onClick={() => toggleClimbStatus(climb.id, 'planned')}
-                                            className={`p-1.5 rounded transition-colors ${status === 'planned'
-                                                ? 'bg-blue-500 text-white'
-                                                : 'bg-cdborder text-cdmuted hover:bg-blue-100 hover:text-blue-600'
-                                                }`}
-                                            title="Planned"
-                                        >
-                                            <Clock size={14} />
-                                        </button>
-                                        <button
-                                            onClick={() => toggleClimbStatus(climb.id, 'want')}
-                                            className={`p-1.5 rounded transition-colors ${status === 'want'
-                                                ? 'bg-yellow-500 text-white'
-                                                : 'bg-cdborder text-cdmuted hover:bg-yellow-100 hover:text-yellow-600'
-                                                }`}
-                                            title="Want to do"
-                                        >
-                                            <Star size={14} />
-                                        </button>
+                                return (
+                                    <div
+                                        key={climb.id}
+                                        className="absolute left-0 top-0 w-full pb-2"
+                                        style={{ transform: `translateY(${virtualRow.start}px)` }}
+                                    >
+                                        <BucketListClimbRow
+                                            climb={climb}
+                                            status={status}
+                                            showPb={showPb}
+                                            pb={pb}
+                                            pbActivity={pbActivity}
+                                            activities={activities}
+                                            onToggleStatus={toggleClimbStatus}
+                                            onOpenActivityInLog={onOpenActivityInLog}
+                                        />
                                     </div>
-                                </div>
-                            </div>
-                        );
-                    })}
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

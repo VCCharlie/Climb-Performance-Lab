@@ -624,6 +624,14 @@ const App = () => {
         let cancelled = false;
 
         const refresh = async () => {
+            await new Promise((resolve) => {
+                if (typeof requestIdleCallback === 'function') {
+                    requestIdleCallback(() => resolve(), { timeout: 2000 });
+                } else {
+                    setTimeout(resolve, 32);
+                }
+            });
+            if (cancelled) return;
             try {
                 const remote = await fetchBucketListFromFirestore(db, user.uid);
                 if (cancelled || !remote?.state) return;
