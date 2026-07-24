@@ -11,7 +11,6 @@ import {
     countClimbsWithPb,
     summarizePbScanResult,
     formatPbScanFeedbackMessage,
-    pruneInvalidPbAttributionsAsync,
 } from '../utils/climbPersonalBests';
 import { yieldToMain } from '../utils/yieldToMain';
 
@@ -43,7 +42,7 @@ const BucketList = ({
     onOpenMapTab,
     onOpenActivityInLog,
 }) => {
-    const { climbs: climbDatabase, loadFull, isFullLoaded } = useClimbDatabase();
+    const { climbs: climbDatabase, loadFull } = useClimbDatabase();
     const activities = useActivitiesList();
 
     useEffect(() => {
@@ -63,11 +62,7 @@ const BucketList = ({
     const parentSyncToken = initialState?.updatedAt || null;
     const skipParentNotifyRef = useRef(false);
     const initialNotifyDoneRef = useRef(false);
-    const climbPbsRef = useRef(climbPbs);
-    const pruneFingerprintRef = useRef('');
     const climbListScrollRef = useRef(null);
-
-    climbPbsRef.current = climbPbs;
 
     useEffect(() => {
         if (!parentSyncToken) return;
@@ -75,52 +70,6 @@ const BucketList = ({
         setClimbStatus(initialState?.climbStatus || {});
         setClimbPbs(initialState?.climbPbs || {});
     }, [parentSyncToken, initialState]);
-
-    useEffect(() => {
-        if (!isFullLoaded || !activities?.length || !climbDatabase?.length) return undefined;
-
-        const fingerprint = `${parentSyncToken || 'local'}:${Object.keys(climbPbsRef.current).length}`;
-        if (pruneFingerprintRef.current === fingerprint) return undefined;
-
-        let cancelled = false;
-
-        const run = async () => {
-            await yieldToMain();
-            if (cancelled) return;
-            const pruned = await pruneInvalidPbAttributionsAsync(
-                climbPbsRef.current,
-                activities,
-                climbDatabase,
-            );
-            if (cancelled) return;
-            pruneFingerprintRef.current = fingerprint;
-            setClimbPbs((prev) => {
-                if (Object.keys(pruned).length === Object.keys(prev).length) {
-                    let same = true;
-                    for (const key of Object.keys(prev)) {
-                        if (prev[key] !== pruned[key]) {
-                            same = false;
-                            break;
-                        }
-                    }
-                    if (same) return prev;
-                }
-                return pruned;
-            });
-        };
-
-        const useIdle = typeof requestIdleCallback === 'function';
-        const idleId = useIdle
-            ? requestIdleCallback(() => { run(); }, { timeout: 3000 })
-            : null;
-        const timeoutId = useIdle ? null : setTimeout(run, 120);
-
-        return () => {
-            cancelled = true;
-            if (idleId != null) cancelIdleCallback(idleId);
-            if (timeoutId != null) clearTimeout(timeoutId);
-        };
-    }, [isFullLoaded, activities, climbDatabase, parentSyncToken]);
 
     // Update parent when local bucket list edits change (not when applying cloud sync).
     React.useEffect(() => {
@@ -170,7 +119,6 @@ const BucketList = ({
                 message: formatPbScanFeedbackMessage(summary),
                 at: Date.now(),
             });
-            pruneFingerprintRef.current = '';
         } catch (err) {
             console.error('PB scan failed', err);
             setScanFeedback({
