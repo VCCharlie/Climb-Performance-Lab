@@ -1,13 +1,10 @@
 import React, { useMemo } from 'react';
 import { formatNlNumber } from '../../utils/formatters';
-
-const PAST_YEAR_BAR_COLORS = [
-    'rgba(100,116,139,0.72)',
-    'rgba(71,85,105,0.68)',
-    'rgba(59,130,246,0.55)',
-    'rgba(52,211,153,0.5)',
-    'rgba(148,163,184,0.65)',
-];
+import {
+    compareYearBarColor,
+    compareYearValueSpan,
+    normalizeCompareYearValue,
+} from '../../utils/compareYearBarColors';
 
 function metricValue(row, metricId) {
     if (metricId === 'distanceKm') return row.distanceKm;
@@ -31,7 +28,7 @@ function formatMetric(metricId, value) {
 }
 
 /**
- * Horizontal year bars (Strava Year Review style).
+ * Horizontal year bars (Strava Year Review style) with value-based color gradation.
  */
 const YearAtMomentBars = ({ rows, metricId, currentYear }) => {
     const sorted = useMemo(
@@ -39,19 +36,16 @@ const YearAtMomentBars = ({ rows, metricId, currentYear }) => {
         [rows],
     );
 
-    const max = useMemo(() => {
-        let m = 0;
-        for (const row of sorted) {
-            m = Math.max(m, metricValue(row, metricId));
-        }
-        return m > 0 ? m : 1;
+    const { max, span } = useMemo(() => {
+        const values = sorted.map((row) => metricValue(row, metricId));
+        const valueSpan = compareYearValueSpan(values);
+        const barMax = valueSpan.max > 0 ? valueSpan.max : 1;
+        return { max: barMax, span: valueSpan };
     }, [sorted, metricId]);
 
     if (!sorted.length) {
         return <p className="text-xs text-cdmuted">No data for this metric.</p>;
     }
-
-    let pastIndex = 0;
 
     return (
         <div className="space-y-2">
@@ -59,11 +53,8 @@ const YearAtMomentBars = ({ rows, metricId, currentYear }) => {
                 const value = metricValue(row, metricId);
                 const pct = Math.max(4, (value / max) * 100);
                 const isCurrent = row.year === currentYear;
-                let barColor = 'var(--cd-accent, #ea580c)';
-                if (!isCurrent) {
-                    barColor = PAST_YEAR_BAR_COLORS[pastIndex % PAST_YEAR_BAR_COLORS.length];
-                    pastIndex += 1;
-                }
+                const norm = normalizeCompareYearValue(value, span);
+                const barColor = compareYearBarColor(norm, { isCurrentYear: isCurrent });
 
                 return (
                     <div key={row.year} className="flex items-center gap-2 text-xs">
