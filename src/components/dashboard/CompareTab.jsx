@@ -135,7 +135,7 @@ const CompareTab = ({ allActivities }) => {
                                 </div>
                             ))}
                             <p className="text-[10px] text-cdmuted lg:col-span-3">
-                                Bar color in each chart: green = lowest volume in that period, red = highest (among years shown).
+                                Bar color (Excel-style per chart): green = lowest, yellow = middle, red = highest among years shown.
                             </p>
                         </div>
                         <CompareSportDonut rows={sportMix} basis="distanceKm" />
