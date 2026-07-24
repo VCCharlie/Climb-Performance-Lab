@@ -371,6 +371,11 @@ const App = () => {
         }
         return getDefaultBucketListState();
     });
+    /** Bumps when bucket list is replaced from cloud/login — not on local edits (avoids wiping toggles). */
+    const [bucketListRemoteRevision, setBucketListRemoteRevision] = useState(0);
+    const bumpBucketListRemoteRevision = useCallback(() => {
+        setBucketListRemoteRevision((n) => n + 1);
+    }, []);
 
 
 
@@ -587,6 +592,9 @@ const App = () => {
                         );
                         setBucketListState(resolved.state);
                         safeLocalStorageSet('bucketListState', JSON.stringify(resolved.state));
+                        if (resolved.source === 'cloud') {
+                            bumpBucketListRemoteRevision();
+                        }
                     }
                     if (data.strava) {
                         setStravaConfig((prev) => {
@@ -645,6 +653,7 @@ const App = () => {
                     );
                     if (resolved.source === 'cloud') {
                         safeLocalStorageSet('bucketListState', JSON.stringify(resolved.state));
+                        bumpBucketListRemoteRevision();
                     }
                     return resolved.state;
                 });
@@ -657,7 +666,7 @@ const App = () => {
         return () => {
             cancelled = true;
         };
-    }, [activeTab, user]);
+    }, [activeTab, user, bumpBucketListRemoteRevision]);
 
     // Update Power Zones
     useEffect(() => {
@@ -700,6 +709,7 @@ const App = () => {
                     if (resolved.source === 'cloud') {
                         setBucketListState(resolved.state);
                         safeLocalStorageSet('bucketListState', JSON.stringify(resolved.state));
+                        bumpBucketListRemoteRevision();
                     }
                 }
             } catch (err) {
@@ -745,6 +755,7 @@ const App = () => {
         }
         if (backupData.bucketList) {
             setBucketListState(stampBucketListState(migrateLegacyBucketState(backupData.bucketList)));
+            bumpBucketListRemoteRevision();
         }
         if (backupData.strava) {
             setStravaConfig((prev) => {
@@ -955,6 +966,7 @@ const App = () => {
                                 {activeTab === 'bucketlist' && (
                                     <BucketListWithNavigation
                                         initialState={bucketListState}
+                                        remoteRevision={bucketListRemoteRevision}
                                         onStateChange={(state) => setBucketListState(stampBucketListState(state))}
                                         onOpenWeatherForClimb={(climb) => {
                                             setWeatherClimbState((prev) => ({
