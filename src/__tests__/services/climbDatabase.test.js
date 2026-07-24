@@ -31,4 +31,11 @@ describe('climbDatabase service', () => {
         expect(isFullClimbDatabaseLoaded()).toBe(true);
         expect(full.length).toBeGreaterThan(1000);
     });
+
+    it('concurrent loadFullClimbDatabase callers share one full result', async () => {
+        const [a, b] = await Promise.all([loadFullClimbDatabase(), loadFullClimbDatabase()]);
+        expect(a).toBe(b);
+        expect(a.length).toBeGreaterThan(CORE_CLIMB_DATABASE.length);
+        expect(a.some((c) => c.country && c.country !== 'ZWIFT')).toBe(true);
+    });
 });

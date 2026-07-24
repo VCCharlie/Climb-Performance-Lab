@@ -63,6 +63,7 @@ const BucketList = ({
     const skipParentNotifyRef = useRef(false);
     const initialNotifyDoneRef = useRef(false);
     const climbListScrollRef = useRef(null);
+    const climbPbsAtScanStartRef = useRef(climbPbs);
 
     useEffect(() => {
         if (!parentSyncToken) return;
@@ -98,22 +99,34 @@ const BucketList = ({
         setIsScanning(true);
         setScanProgress({ done: 0, total: activities.length });
         setScanFeedback(null);
+        climbPbsAtScanStartRef.current = climbPbs;
 
         await yieldToMain();
 
         try {
-            const scanned = await scanClimbPersonalBestsAsync(activities, climbDatabase, {
+            // Full replace scan must use outdoor + Zwift climbs — core bundle is Zwift-only.
+            const climbsForScan = await loadFull();
+            if (!climbsForScan?.length) {
+                setScanFeedback({
+                    tone: 'warn',
+                    message: 'Climb database could not be loaded — try again in a moment.',
+                });
+                return;
+            }
+
+            const scanned = await scanClimbPersonalBestsAsync(activities, climbsForScan, {
                 venueFilter: 'all',
                 onProgress: setScanProgress,
             });
-            const summary = summarizePbScanResult(climbPbs, scanned, activities, climbDatabase);
+            const summary = summarizePbScanResult(
+                climbPbsAtScanStartRef.current,
+                scanned,
+                activities,
+                climbsForScan,
+            );
+            // Only update PBs here. Status toggles during the async scan must not be
+            // overwritten by a closed-over climbStatus; the effect above notifies parent.
             setClimbPbs(summary.replaced);
-            if (onStateChange) {
-                onStateChange({
-                    climbStatus,
-                    climbPbs: summary.replaced,
-                });
-            }
             setScanFeedback({
                 tone: summary.newClimbs > 0 || summary.improvedPbs > 0 || summary.removedPbs > 0 ? 'success' : 'info',
                 message: formatPbScanFeedbackMessage(summary),

@@ -683,14 +683,39 @@ const App = () => {
                 strava: stravaConfig,
                 stravaProfile: stravaProfileData,
             }));
+
+            // Resolve against remote first so a stale in-memory bucket list cannot
+            // overwrite newer PB/status data written by another device.
+            let bucketToSync = bucketListState;
+            try {
+                const remote = await fetchBucketListFromFirestore(db, user.uid);
+                if (remote?.state) {
+                    const resolved = resolveBucketListOnSync(
+                        bucketListState,
+                        bucketListState.updatedAt,
+                        remote.state,
+                        remote.updatedAt,
+                    );
+                    bucketToSync = resolved.state;
+                    if (resolved.source === 'cloud') {
+                        setBucketListState(resolved.state);
+                        safeLocalStorageSet('bucketListState', JSON.stringify(resolved.state));
+                    }
+                }
+            } catch (err) {
+                console.warn('[Bucket list] Could not resolve before settings save:', err);
+            }
+
             await setDoc(doc(db, "settings", settingsId), {
                 intervals: safeIntervals,
                 body: safeBody,
                 theme: theme,
-                bucketList: bucketListState,
                 strava: safeStrava,
-                stravaProfile: stravaProfileData
+                stravaProfile: stravaProfileData,
+                // bucketList + bucketListUpdatedAt: only via syncBucketListToFirestore
             }, { merge: true });
+
+            await syncBucketListToFirestore(db, user.uid, bucketToSync);
             alert('Settings saved.');
         } catch (e) { alert("Error saving settings: " + e.message); }
     };
@@ -718,7 +743,9 @@ const App = () => {
         if (backupData.intervals) {
             setIntervalsConfig((prev) => ({ ...prev, ...backupData.intervals }));
         }
-        if (backupData.bucketList) setBucketListState(migrateLegacyBucketState(backupData.bucketList));
+        if (backupData.bucketList) {
+            setBucketListState(stampBucketListState(migrateLegacyBucketState(backupData.bucketList)));
+        }
         if (backupData.strava) {
             setStravaConfig((prev) => {
                 const merged = { ...prev, ...backupData.strava };

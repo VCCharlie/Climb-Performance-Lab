@@ -24,6 +24,8 @@ export function ClimbDatabaseProvider({ children, prefetchOnIdle = true }) {
     const [isFullLoaded, setIsFullLoaded] = useState(isFullClimbDatabaseLoaded);
     const [isLoading, setIsLoading] = useState(false);
 
+    // Always await the shared loader promise — never return core climbs while a
+    // prefetch is in flight (PB scan / matching must see the full outdoor DB).
     const loadFull = useCallback(async () => {
         if (isFullClimbDatabaseLoaded()) {
             const full = getClimbDatabaseSync();
@@ -31,7 +33,6 @@ export function ClimbDatabaseProvider({ children, prefetchOnIdle = true }) {
             setIsFullLoaded(true);
             return full;
         }
-        if (isLoading) return climbs;
 
         setIsLoading(true);
         try {
@@ -42,7 +43,7 @@ export function ClimbDatabaseProvider({ children, prefetchOnIdle = true }) {
         } finally {
             setIsLoading(false);
         }
-    }, [climbs, isLoading]);
+    }, []);
 
     useEffect(() => {
         if (!prefetchOnIdle || isFullLoaded) return undefined;
