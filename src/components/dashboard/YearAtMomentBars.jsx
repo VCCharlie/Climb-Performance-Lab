@@ -54,14 +54,18 @@ const YearAtMomentBars = ({ rows, metricId, currentYear }) => {
                 const pct = Math.max(4, (value / max) * 100);
                 const isCurrent = row.year === currentYear;
                 const norm = normalizeCompareYearValue(value, span);
-                const barColor = compareYearBarColor(norm, { isCurrentYear: isCurrent });
+                const barColor = compareYearBarColor(norm);
 
                 return (
                     <div key={row.year} className="flex items-center gap-2 text-xs">
                         <span className={`w-10 shrink-0 font-mono tabular-nums ${isCurrent ? 'text-cdaccent font-bold' : 'text-cdmuted'}`}>
                             {row.year}
                         </span>
-                        <div className="flex-1 h-5 rounded bg-cdbg/70 border border-cdborder/40 overflow-hidden">
+                        <div
+                            className={`flex-1 h-5 rounded bg-cdbg/70 overflow-hidden ${
+                                isCurrent ? 'ring-1 ring-cdaccent/60 border border-cdaccent/40' : 'border border-cdborder/40'
+                            }`}
+                        >
                             <div
                                 className="h-full rounded-sm transition-all duration-500"
                                 style={{ width: `${pct}%`, backgroundColor: barColor }}
