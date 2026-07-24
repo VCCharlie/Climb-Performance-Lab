@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { scanClimbPersonalBests, scanClimbPersonalBestsAsync, formatPbSummary, hasStoredClimbPb, countClimbsWithPb, summarizePbScanResult, formatPbScanFeedbackMessage, pruneMismatchedVenuePbs, replaceClimbPbsFromScan } from '../../utils/climbPersonalBests';
+import { scanClimbPersonalBests, scanClimbPersonalBestsAsync, formatPbSummary, hasStoredClimbPb, countClimbsWithPb, summarizePbScanResult, formatPbScanFeedbackMessage, pruneMismatchedVenuePbs, replaceClimbPbsFromScan, pruneInvalidPbAttributions } from '../../utils/climbPersonalBests';
 
 const climbs = [
     { id: 'fr_alpe', name: "Alpe d'Huez", country: 'FR' },
@@ -182,6 +182,31 @@ describe('scanClimbPersonalBests', () => {
         expect(summary.removedPbs).toBe(1);
         expect(summary.totalWithPb).toBe(0);
         expect(formatPbScanFeedbackMessage(summary)).toContain('1 removed');
+    });
+
+    it('pruneInvalidPbAttributions drops legacy word-overlap PB rows', () => {
+        const climbs = [
+            { id: 'nl_amerongse', name: 'Amerongse Berg', country: 'NL' },
+        ];
+        const activities = [{
+            id: 'a1',
+            type: 'Ride',
+            title: 'Windkracht 5 in je giechel. Dan toch liever een berg...',
+            norm_power: 200,
+            moving_time: 3600,
+        }];
+        const pruned = pruneInvalidPbAttributions(
+            {
+                nl_amerongse: {
+                    normPower: 200,
+                    movingTimeSec: 3600,
+                    activityId: 'a1',
+                },
+            },
+            activities,
+            climbs,
+        );
+        expect(pruned.nl_amerongse).toBeUndefined();
     });
 
     it('summarizePbScanResult counts new climbs', () => {

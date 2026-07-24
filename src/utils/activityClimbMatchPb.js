@@ -1,11 +1,13 @@
 /**
  * Stricter climb matching for Bucket List PB attribution.
  * Profiler badges keep the looser heuristic in activityClimbMatch.js.
+ *
+ * PB rules: no single-word overlap (berg, Rome, Grande, korter). The climb name
+ * (or its distinctive tokens) must clearly appear in the title or trusted description.
  */
 
 import {
     buildClimbMatchIndex,
-    findBestClimbUsingIndex,
     climbMatchTitleForActivity,
     climbMatchDescriptionForActivity,
 } from './activityClimbMatch';
@@ -14,8 +16,97 @@ import { isGenericActivityTitle } from './stravaTitleHeuristics';
 
 const TRUSTED_DESCRIPTION_PATTERN = /mycols|climbfinder|cols?\s+climbed|kols?\s+beklommen|climbs?\s+(done|ridden|completed|summited)/i;
 
+/** Tokens too generic to prove a specific climb was ridden. */
+const WEAK_NAME_TOKENS = new Set([
+    'grande', 'rome', 'berg', 'korter', 'route', 'col', 'pass', 'mont', 'monte', 'alto',
+    'barrage', 'chaine', 'top', 'wind', 'fiets', 'met', 'rit', 'ritje', 'sneller', 'langer',
+    'north', 'south', 'east', 'west', 'nord', 'sud', 'short', 'long', 'kort', 'lang',
+]);
+
 function stripDiacritics(s) {
     return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+/**
+ * @param {string} text
+ * @returns {string}
+ */
+export function normalizeClimbMatchText(text) {
+    return stripDiacritics((text || '').trim().toLowerCase())
+        .replace(/['’`]/g, ' ')
+        .replace(/[^a-z0-9\s-]/g, ' ')
+        .replace(/[-]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+/**
+ * @param {string} climbName
+ * @returns {string}
+ */
+function climbPrimaryName(climbName) {
+    const trimmed = (climbName || '').trim();
+    const withoutParen = trimmed.replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s+/g, ' ').trim();
+    return withoutParen || trimmed;
+}
+
+/**
+ * @param {string} haystackNorm
+ * @param {string} token
+ * @returns {boolean}
+ */
+function wholeWordIncludes(haystackNorm, token) {
+    if (!token) return false;
+    const re = new RegExp(`(?:^|\\s)${token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:\\s|$)`);
+    return re.test(haystackNorm);
+}
+
+/**
+ * @param {string} climbName
+ * @returns {string[]}
+ */
+function distinctiveNameTokens(climbName) {
+    const primary = normalizeClimbMatchText(climbPrimaryName(climbName));
+    const words = primary.split(/\s+/).filter((w) => w.length >= 4 && !WEAK_NAME_TOKENS.has(w));
+    const long = words.filter((w) => w.length >= 7);
+    if (long.length > 0) return long;
+    return words.filter((w) => w.length >= 6 && !WEAK_NAME_TOKENS.has(w));
+}
+
+/**
+ * Strong PB proof: full primary climb name or every distinctive token as a whole word.
+ * @param {string} climbName
+ * @param {string} text
+ * @returns {boolean}
+ */
+export function isStrongClimbNameMatch(climbName, text) {
+    const haystack = normalizeClimbMatchText(text);
+    if (!haystack || !climbName) return false;
+
+    const primary = normalizeClimbMatchText(climbPrimaryName(climbName));
+    const full = normalizeClimbMatchText(climbName);
+
+    if (primary.length >= 10 && haystack.includes(primary)) return true;
+    if (full.length >= 10 && full !== primary && haystack.includes(full)) return true;
+
+    const tokens = distinctiveNameTokens(climbName);
+    if (tokens.length === 0) return false;
+
+    if (tokens.length === 1 && tokens[0].length < 8) {
+        return false;
+    }
+
+    return tokens.every((tok) => wholeWordIncludes(haystack, tok));
+}
+
+/**
+ * @deprecated Use isStrongClimbNameMatch — kept for tests migrating off substring-only checks.
+ * @param {string} climbName
+ * @param {string} text
+ * @returns {boolean}
+ */
+export function climbNameAppearsInText(climbName, text) {
+    return isStrongClimbNameMatch(climbName, text);
 }
 
 /**
@@ -29,23 +120,12 @@ export function isTrustedClimbDescription(text) {
 }
 
 /**
- * @param {string} climbName
- * @param {string} text
- * @returns {boolean}
- */
-export function climbNameAppearsInText(climbName, text) {
-    const name = stripDiacritics((climbName || '').trim().toLowerCase());
-    const haystack = stripDiacritics((text || '').trim().toLowerCase());
-    return name.length >= 5 && haystack.includes(name);
-}
-
-/**
  * @param {string} text
  * @param {{ climbByWord: Map<string, Set<object>>, climbs: object[] }} index
  * @param {{ activityVenue?: 'outdoor' | 'virtual' | null }} matchOpts
  * @returns {object | null}
  */
-function findClimbByFullNameInText(text, index, matchOpts) {
+function findClimbByStrongNameInText(text, index, matchOpts) {
     const venue = matchOpts.activityVenue ?? null;
     const venueOk = (climb) => !venue || isClimbVenueCompatible(climb, venue);
 
@@ -55,7 +135,7 @@ function findClimbByFullNameInText(text, index, matchOpts) {
     for (const climb of index.climbs || []) {
         if (!venueOk(climb)) continue;
         const name = (climb.name || '').trim();
-        if (!climbNameAppearsInText(name, text)) continue;
+        if (!isStrongClimbNameMatch(name, text)) continue;
         if (name.length > bestLen) {
             best = climb;
             bestLen = name.length;
@@ -73,15 +153,7 @@ function findClimbByFullNameInText(text, index, matchOpts) {
  */
 function findBestClimbPbFromTitle(title, index, matchOpts) {
     if (!title || isGenericActivityTitle(title)) return null;
-
-    const byName = findClimbByFullNameInText(title, index, matchOpts);
-    if (byName) return byName;
-
-    return findBestClimbUsingIndex(title, index, {
-        ...matchOpts,
-        minScore: 12,
-        minWordMatches: 2,
-    });
+    return findClimbByStrongNameInText(title, index, matchOpts);
 }
 
 /**
@@ -93,20 +165,16 @@ function findBestClimbPbFromTitle(title, index, matchOpts) {
 function findBestClimbPbFromDescription(description, index, matchOpts) {
     if (!description) return null;
 
-    const byName = findClimbByFullNameInText(description, index, matchOpts);
+    const byName = findClimbByStrongNameInText(description, index, matchOpts);
     if (byName) return byName;
 
     if (!isTrustedClimbDescription(description)) return null;
 
-    return findBestClimbUsingIndex(description, index, {
-        ...matchOpts,
-        minScore: 10,
-        minWordMatches: 2,
-    });
+    return findClimbByStrongNameInText(description, index, matchOpts);
 }
 
 /**
- * PB-only climb match — title must be specific; description needs trusted export text or full climb name.
+ * PB-only climb match — title must name the climb; description needs trusted export text + strong name proof.
  * @param {object} activity
  * @param {{ climbByWord: Map<string, Set<object>>, climbs: object[] }} index
  * @returns {{ climb: object | null, source: 'title' | 'description' | null }}

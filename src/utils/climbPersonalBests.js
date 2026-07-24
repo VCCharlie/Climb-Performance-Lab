@@ -46,6 +46,44 @@ export function pruneMismatchedVenuePbs(climbPbs, climbs, activities = []) {
 }
 
 /**
+ * Remove PB rows whose linked activity no longer passes strict PB climb matching
+ * (e.g. legacy false positives from loose word overlap).
+ *
+ * @param {Record<string, object> | null | undefined} climbPbs
+ * @param {object[]} activities
+ * @param {object[]} climbs
+ */
+export function pruneInvalidPbAttributions(climbPbs, activities, climbs) {
+    const list = activities || [];
+    const climbList = climbs || [];
+    if (!climbPbs || !list.length || !climbList.length) {
+        return climbPbs || {};
+    }
+
+    const index = buildClimbMatchIndex(climbList);
+    const climbById = new Map(climbList.map((c) => [String(c.id), c]));
+    const actById = new Map(list.map((a) => [String(a.id), a]));
+    const next = { ...climbPbs };
+
+    for (const [climbId, pb] of Object.entries(climbPbs)) {
+        if (!formatPbSummary(pb)) {
+            delete next[climbId];
+            continue;
+        }
+        const climb = climbById.get(String(climbId));
+        const activity = pb.activityId ? actById.get(String(pb.activityId)) : null;
+        if (!climb || !activity) continue;
+
+        const { climb: matched } = findBestClimbForActivityPb(activity, index);
+        if (!matched || String(matched.id) !== String(climbId)) {
+            delete next[climbId];
+        }
+    }
+
+    return next;
+}
+
+/**
  * Apply one activity to the in-progress PB map (mutates `pbs`).
  * @param {object} act
  * @param {ReturnType<typeof buildClimbMatchIndex>} index
