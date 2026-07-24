@@ -345,7 +345,7 @@ const ActivityLogFilterBar = ({
                         }
                     }}
                     title="Show activities stored as GravelRide"
-                    className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-colors ${gravelRideChip ? 'bg-amber-600/25 border-amber-500/50 text-amber-200' : 'border-cdborder text-cdmuted hover:text-cdtext'}`}
+                    className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-colors ${gravelRideChip ? 'bg-fuchsia-500/20 border-fuchsia-400/50 text-fuchsia-300' : 'border-cdborder text-cdmuted hover:text-cdtext'}`}
                 >
                     Gravel
                 </button>
@@ -531,7 +531,7 @@ const ActivityLogFilterBar = ({
                     onClick={onBulkSetGravelRide}
                     disabled={bulkSelectedCount === 0 || isBulkSaving}
                     title="Set activity type to GravelRide for all selected rows"
-                    className="px-2 py-1 rounded border border-amber-500/40 text-amber-200 hover:bg-amber-500/10 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                    className="px-2 py-1 rounded border border-fuchsia-400/45 text-fuchsia-300 hover:bg-fuchsia-500/10 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
                 >
                     Set Gravel
                 </button>
