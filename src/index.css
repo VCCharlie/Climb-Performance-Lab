@@ -24,10 +24,15 @@ body {
   overflow-x: hidden;
 }
 
-/* Themed scrollbars */
+/* Themed scrollbars — accent thumb for visibility (Activity Log, modals, etc.) */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--cd-primary) var(--cd-primary-container);
+}
+
 .custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 @media (pointer: coarse) {
@@ -38,12 +43,31 @@ body {
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: var(--cd-surface-container-low);
+  background: color-mix(in srgb, var(--cd-primary-container) 55%, var(--cd-surface-container-low));
+  border-radius: 20px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: var(--cd-surface-container-high);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--cd-brand) 35%, var(--cd-primary)) 0%,
+    var(--cd-primary) 100%
+  );
   border-radius: 20px;
+  border: 2px solid color-mix(in srgb, var(--cd-primary-container) 70%, transparent);
+  min-height: 40px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    var(--cd-brand) 0%,
+    color-mix(in srgb, var(--cd-primary) 85%, #000) 100%
+  );
+}
+
+.custom-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* Activity table — sticky identifier columns (desktop horizontal scroll) */
