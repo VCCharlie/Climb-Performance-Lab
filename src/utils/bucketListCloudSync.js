@@ -30,6 +30,16 @@ export function newerIsoTimestamp(a, b) {
     return b;
 }
 
+function pickClimbPbsByLatestScan(local, cloud) {
+    const localScan = local?.pbScanCompletedAt;
+    const cloudScan = cloud?.pbScanCompletedAt;
+    const localMs = localScan ? Date.parse(localScan) : 0;
+    const cloudMs = cloudScan ? Date.parse(cloudScan) : 0;
+    if (localMs > cloudMs) return local.climbPbs || {};
+    if (cloudMs > localMs) return cloud.climbPbs || {};
+    return null;
+}
+
 /**
  * Pick local vs cloud bucket list by bucketListUpdatedAt (last write wins).
  *
@@ -63,13 +73,30 @@ export function resolveBucketListOnSync(localState, localUpdatedAt, cloudState, 
     }
 
     if (cloudMs > localMs) {
-        return { state: { ...cloud, updatedAt: cloudAt }, source: 'cloud' };
+        const climbPbs = pickClimbPbsByLatestScan(local, cloud) ?? cloud.climbPbs;
+        return {
+            state: { ...cloud, climbPbs, updatedAt: cloudAt, pbScanCompletedAt: newerIsoTimestamp(local.pbScanCompletedAt, cloud.pbScanCompletedAt) },
+            source: 'cloud',
+        };
     }
     if (localMs > cloudMs) {
-        return { state: { ...local, updatedAt: localAt }, source: 'local' };
+        const climbPbs = pickClimbPbsByLatestScan(local, cloud) ?? local.climbPbs;
+        return {
+            state: { ...local, climbPbs, updatedAt: localAt, pbScanCompletedAt: newerIsoTimestamp(local.pbScanCompletedAt, cloud.pbScanCompletedAt) },
+            source: 'local',
+        };
     }
 
-    return { state: { ...cloud, updatedAt: cloudAt || localAt }, source: 'cloud' };
+    const climbPbs = pickClimbPbsByLatestScan(local, cloud) ?? cloud.climbPbs;
+    return {
+        state: {
+            ...cloud,
+            climbPbs,
+            updatedAt: cloudAt || localAt,
+            pbScanCompletedAt: newerIsoTimestamp(local.pbScanCompletedAt, cloud.pbScanCompletedAt),
+        },
+        source: 'cloud',
+    };
 }
 
 /**

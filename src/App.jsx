@@ -408,6 +408,14 @@ const App = () => {
         return () => clearTimeout(timer);
     }, [bucketListState, user]);
 
+    const handleBucketListStateChange = useCallback((state) => {
+        const stamped = stampBucketListState(state);
+        setBucketListState(stamped);
+        if (state?.pbScanCompletedAt && user && db && bucketListCloudReadyRef.current) {
+            syncBucketListToFirestore(db, user.uid, stamped);
+        }
+    }, [user]);
+
     const [weatherClimbState, setWeatherClimbState] = useState({
         selectedClimb: getDefaultClimb(),
         targetPower: 280 * 0.85,
@@ -967,7 +975,7 @@ const App = () => {
                                     <BucketListWithNavigation
                                         initialState={bucketListState}
                                         remoteRevision={bucketListRemoteRevision}
-                                        onStateChange={(state) => setBucketListState(stampBucketListState(state))}
+                                        onStateChange={handleBucketListStateChange}
                                         onOpenWeatherForClimb={(climb) => {
                                             setWeatherClimbState((prev) => ({
                                                 ...prev,
