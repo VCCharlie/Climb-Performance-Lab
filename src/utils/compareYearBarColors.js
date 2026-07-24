@@ -1,23 +1,20 @@
 /**
  * Bar fill colors for Dashboard Compare year bars (value-based gradient).
+ * Low volume → green, high volume → red (readable at a glance).
  */
 
 /**
  * @param {number} normalizedValue 0 (lowest in set) … 1 (highest)
- * @param {{ isCurrentYear?: boolean }} [opts]
  * @returns {string}
  */
-export function compareYearBarColor(normalizedValue, opts = {}) {
+export function compareYearBarColor(normalizedValue) {
     const t = Math.min(1, Math.max(0, Number(normalizedValue) || 0));
 
-    if (opts.isCurrentYear) {
-        const mix = Math.round(38 + t * 62);
-        return `color-mix(in srgb, var(--cd-accent, #ea580c) ${mix}%, var(--cd-surface, #334155) ${100 - mix}%)`;
-    }
+    const hue = 142 - t * 138;
+    const saturation = 48 + t * 22;
+    const lightness = 46 - t * 8;
 
-    const lightness = 74 - t * 36;
-    const saturation = 38 + t * 32;
-    return `hsl(215, ${saturation}%, ${lightness}%)`;
+    return `hsl(${Math.round(hue)}, ${Math.round(saturation)}%, ${Math.round(lightness)}%)`;
 }
 
 /**
@@ -46,4 +43,13 @@ export function compareYearValueSpan(values) {
 export function normalizeCompareYearValue(value, span) {
     const v = Number(value) || 0;
     return (v - span.min) / span.range;
+}
+
+/**
+ * @param {string} hsl
+ * @returns {number | null}
+ */
+export function parseCompareBarHue(hsl) {
+    const match = (hsl || '').match(/hsl\(\s*([\d.]+)/);
+    return match ? Number(match[1]) : null;
 }

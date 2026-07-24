@@ -3,6 +3,7 @@ import {
     compareYearBarColor,
     compareYearValueSpan,
     normalizeCompareYearValue,
+    parseCompareBarHue,
 } from '../../utils/compareYearBarColors';
 
 describe('compareYearBarColors', () => {
@@ -16,10 +17,15 @@ describe('compareYearBarColors', () => {
         expect(normalizeCompareYearValue(30, span)).toBe(1);
     });
 
-    it('compareYearBarColor returns distinct strings for low vs high', () => {
-        const low = compareYearBarColor(0.1, { isCurrentYear: false });
-        const high = compareYearBarColor(0.95, { isCurrentYear: false });
-        expect(low).not.toBe(high);
-        expect(low).toContain('hsl');
+    it('compareYearBarColor runs green (low) to red (high)', () => {
+        const low = compareYearBarColor(0);
+        const high = compareYearBarColor(1);
+        const lowHue = parseCompareBarHue(low);
+        const highHue = parseCompareBarHue(high);
+        expect(lowHue).not.toBeNull();
+        expect(highHue).not.toBeNull();
+        expect(lowHue).toBeGreaterThan(highHue);
+        expect(lowHue).toBeGreaterThanOrEqual(100);
+        expect(highHue).toBeLessThanOrEqual(20);
     });
 });
