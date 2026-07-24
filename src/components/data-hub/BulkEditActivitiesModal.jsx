@@ -127,7 +127,7 @@ const BulkEditActivitiesModal = ({
                                             setApplyType(true);
                                             setTypeValue('GravelRide');
                                         }}
-                                        className={`px-2.5 py-1 rounded text-[11px] font-bold border transition-colors ${typeValue === 'GravelRide' ? 'bg-amber-600/25 border-amber-500/50 text-amber-200' : 'border-cdborder text-cdmuted hover:text-cdtext'}`}
+                                        className={`px-2.5 py-1 rounded text-[11px] font-bold border transition-colors ${typeValue === 'GravelRide' ? 'bg-fuchsia-500/20 border-fuchsia-400/50 text-fuchsia-300' : 'border-cdborder text-cdmuted hover:text-cdtext'}`}
                                     >
                                         Gravel ride
                                     </button>
