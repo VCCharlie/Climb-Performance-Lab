@@ -68,6 +68,9 @@ import { migrateLegacyBucketState, setClimbBucketStatus } from './utils/bucketLi
 import {
     syncBucketListToFirestore,
     BUCKET_LIST_CLOUD_DEBOUNCE_MS,
+    resolveBucketListOnSync,
+    fetchBucketListFromFirestore,
+    stampBucketListState,
 } from './utils/bucketListCloudSync';
 import { runGoogleSignIn, isGoogleSignInInProgress, googleSignInErrorMessage, completeGoogleRedirectIfNeeded } from './utils/googleSignIn';
 import { ToastProvider } from './context/ToastContext';
@@ -568,9 +571,22 @@ const App = () => {
                         safeLocalStorageSet('theme', data.theme);
                     }
                     if (data.bucketList) {
-                        const migrated = migrateLegacyBucketState(data.bucketList);
-                        setBucketListState(migrated);
-                        safeLocalStorageSet('bucketListState', JSON.stringify(migrated));
+                        let localRaw = null;
+                        try {
+                            const saved = localStorage.getItem('bucketListState');
+                            if (saved) localRaw = JSON.parse(saved);
+                        } catch {
+                            localRaw = null;
+                        }
+                        const localMigrated = migrateLegacyBucketState(localRaw);
+                        const resolved = resolveBucketListOnSync(
+                            localMigrated,
+                            localMigrated.updatedAt,
+                            data.bucketList,
+                            data.bucketListUpdatedAt,
+                        );
+                        setBucketListState(resolved.state);
+                        safeLocalStorageSet('bucketListState', JSON.stringify(resolved.state));
                     }
                     if (data.strava) {
                         setStravaConfig((prev) => {
@@ -598,6 +614,42 @@ const App = () => {
             bucketListCloudReadyRef.current = false;
         };
     }, [user]);
+
+    // Refresh bucket list from Firestore when opening the tab (keeps mobile/PC in sync).
+    useEffect(() => {
+        if (!user || !db || activeTab !== 'bucketlist' || !bucketListCloudReadyRef.current) {
+            return undefined;
+        }
+
+        let cancelled = false;
+
+        const refresh = async () => {
+            try {
+                const remote = await fetchBucketListFromFirestore(db, user.uid);
+                if (cancelled || !remote?.state) return;
+
+                setBucketListState((prev) => {
+                    const resolved = resolveBucketListOnSync(
+                        prev,
+                        prev.updatedAt,
+                        remote.state,
+                        remote.updatedAt,
+                    );
+                    if (resolved.source === 'cloud') {
+                        safeLocalStorageSet('bucketListState', JSON.stringify(resolved.state));
+                    }
+                    return resolved.state;
+                });
+            } catch (err) {
+                console.warn('[Bucket list] Could not refresh from cloud:', err);
+            }
+        };
+
+        refresh();
+        return () => {
+            cancelled = true;
+        };
+    }, [activeTab, user]);
 
     // Update Power Zones
     useEffect(() => {
@@ -868,7 +920,7 @@ const App = () => {
                                 {activeTab === 'bucketlist' && (
                                     <BucketListWithNavigation
                                         initialState={bucketListState}
-                                        onStateChange={setBucketListState}
+                                        onStateChange={(state) => setBucketListState(stampBucketListState(state))}
                                         onOpenWeatherForClimb={(climb) => {
                                             setWeatherClimbState((prev) => ({
                                                 ...prev,
@@ -884,7 +936,9 @@ const App = () => {
                                     <ClimbMap
                                         bucketListState={bucketListState}
                                         onUpdateBucketList={(action, climbId) => {
-                                            setBucketListState((prev) => setClimbBucketStatus(prev, climbId, action));
+                                            setBucketListState((prev) => stampBucketListState(
+                                                setClimbBucketStatus(prev, climbId, action),
+                                            ));
                                         }}
                                     />
                                 )}

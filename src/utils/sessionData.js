@@ -92,7 +92,7 @@ export function getDefaultStravaConfig() {
 }
 
 export function getDefaultBucketListState() {
-    return { climbStatus: {}, climbPbs: {} };
+    return { climbStatus: {}, climbPbs: {}, updatedAt: null };
 }
 
 /**
