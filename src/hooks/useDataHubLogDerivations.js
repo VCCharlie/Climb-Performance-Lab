@@ -1,7 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { MONTH_ORDER } from '../config';
 import { normalizeDate } from '../utils/formatters';
-import { resolveStravaGearDisplay } from '../utils/stravaBikesLocalMap';
 import { useProfilerClimbMatches } from './useProfilerClimbMatches';
 
 /**
@@ -87,22 +86,6 @@ export function useDataHubLogDerivations({
             : (isGroupedView ? groupedActivities : processedActivities);
     const logTableGrouped = isolateActivityId || rangeFilteredActivities != null ? false : isGroupedView;
 
-    const gearFilterOptions = useMemo(() => {
-        const map = new Map();
-        for (const a of activities || []) {
-            const gid = a?.gear_id != null ? String(a.gear_id).trim() : '';
-            if (!gid) continue;
-            if (!map.has(gid)) {
-                const rawName = (a.gear_name != null && String(a.gear_name).trim()) ? String(a.gear_name).trim() : '';
-                const { display } = resolveStravaGearDisplay(gid, rawName);
-                map.set(gid, display !== '-' ? display : gid);
-            }
-        }
-        return Array.from(map.entries())
-            .map(([id, label]) => ({ id, label }))
-            .sort((x, y) => x.label.localeCompare(y.label, undefined, { sensitivity: 'base' }));
-    }, [activities]);
-
     const metricRangeActive =
         [filterDistMin, filterDistMax, filterSpeedMin, filterSpeedMax, filterPowerMin, filterPowerMax,
             filterDurMinMin, filterDurMaxMin, filterElevMin, filterElevMax, filterKjMin, filterKjMax]
@@ -148,7 +131,6 @@ export function useDataHubLogDerivations({
         rangeFilteredActivities,
         logTableActivities,
         logTableGrouped,
-        gearFilterOptions,
         metricRangeActive,
         applyMetricPreset,
         profilerClimbByActivityId,

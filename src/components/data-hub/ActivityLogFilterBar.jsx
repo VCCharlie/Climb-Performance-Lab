@@ -387,7 +387,7 @@ const ActivityLogFilterBar = ({
                         value={filterGearId}
                         onChange={(e) => onFilterGearIdChange(e.target.value)}
                         className="min-w-0 flex-1 bg-cdbg border border-cdborder rounded px-2 py-1 text-cdtext text-[10px]"
-                        title="Filter by Strava bike (gear_id)"
+                        title="Bikes used on activities matching your current filters (search, chips, ranges). Gear filter itself is excluded so you can switch bikes."
                     >
                         <option value="">All bikes</option>
                         {gearFilterOptions.map(({ id, label }) => (

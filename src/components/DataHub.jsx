@@ -198,7 +198,7 @@ const DataHub = ({
         setMissingHrOnly: filter.setMissingHrOnly,
         minTss: filter.minTss,
         setMinTss: filter.setMinTss,
-        gearFilterOptions: logDerivations.gearFilterOptions,
+        gearFilterOptions: filter.gearFilterOptions,
         filterGearId: filter.filterGearId,
         setFilterGearId: filter.setFilterGearId,
         activityLogRangesExpanded,

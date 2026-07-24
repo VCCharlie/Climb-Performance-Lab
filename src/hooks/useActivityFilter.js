@@ -11,6 +11,10 @@ import {
 } from '../utils/activityFilterMetrics';
 import { compareActivitiesForSort } from '../utils/activitySort';
 import { resolveActivityType } from '../utils/activityVenue';
+import {
+    buildGearFilterOptionsFromActivities,
+    mergeActiveGearFilterOption,
+} from '../utils/activityGearFilterOptions';
 
 // Helper inside hook or import
 const isValid = (act) => act && act.id && act.date;
@@ -137,8 +141,10 @@ const useActivityFilter = (activities, profileFtp) => {
     }, [activities]);
 
     // -- Derived State --
-    const processedActivities = useMemo(() => {
-        if (!activities) return [];
+    const { processedActivities, activitiesForGearFilterOptions } = useMemo(() => {
+        if (!activities) {
+            return { processedActivities: [], activitiesForGearFilterOptions: [] };
+        }
         const weekRange = thisWeekOnly ? getThisCalendarWeekRange() : null;
         const rollingStart = rollingDays != null && rollingDays > 0
             ? (() => { const s = startOfToday(); s.setDate(s.getDate() - rollingDays); return s; })()
@@ -169,13 +175,11 @@ const useActivityFilter = (activities, profileFtp) => {
         const anyMetric =
             needDist || needSpeed || needPower || needDur || needElev || needKj;
 
-        // ⚡ Bolt Optimization: Compute searchLower once outside the filter loop
         const searchLower = search ? search.toLowerCase() : '';
 
-        let filtered = activities.filter(a => {
+        const activityPassesLogFilters = (a) => {
             if (!isValid(a)) return false;
 
-            // Indoor/Outdoor Filter
             const effectiveIndoor = virtualRideChip ? 'indoor' : indoorFilter;
             const sportType = resolveActivityType(a);
             if (effectiveIndoor === 'indoor' && !['VirtualRide', 'VirtualRun'].includes(sportType)) return false;
@@ -220,13 +224,7 @@ const useActivityFilter = (activities, profileFtp) => {
 
             if (tssOk && !((Number(a.load) || 0) > tssThreshold)) return false;
 
-            if (filterGearId) {
-                const ag = a.gear_id != null ? String(a.gear_id).trim() : '';
-                if (ag !== filterGearId) return false;
-            }
-
             if (anyMetric) {
-                // ⚡ Bolt Optimization: Only calculate metrics if they are needed for filtering
                 let distKm, timeSec;
                 if (needDist || needSpeed) {
                     distKm = activityDistanceKm(a);
@@ -269,17 +267,13 @@ const useActivityFilter = (activities, profileFtp) => {
                 }
             }
 
-            // Search
             if (!searchLower) return true;
 
-            // 1. Title Match
             if (a.title && a.title.toLowerCase().includes(searchLower)) return true;
 
-            // 2. Date Match
             if (a.date) {
                 if (a.date.includes(searchLower)) return true;
 
-                // ⚡ Bolt Optimization: Use regex for ISO dates to avoid expensive new Date() allocations in filter loops
                 const ymdMatch = String(a.date).match(/^(\d{4})-(\d{2})-(\d{2})/);
                 if (ymdMatch) {
                     const year = ymdMatch[1];
@@ -307,13 +301,33 @@ const useActivityFilter = (activities, profileFtp) => {
                 }
             }
             return false;
-        });
+        };
+
+        const forGearOptions = [];
+        const filtered = [];
+        for (const a of activities) {
+            if (!activityPassesLogFilters(a)) continue;
+            forGearOptions.push(a);
+            if (filterGearId) {
+                const ag = a.gear_id != null ? String(a.gear_id).trim() : '';
+                if (ag !== filterGearId) continue;
+            }
+            filtered.push(a);
+        }
 
         if (sortConfig.key) {
             filtered.sort((a, b) => compareActivitiesForSort(a, b, sortConfig, profileFtp));
         }
-        return filtered;
+        return { processedActivities: filtered, activitiesForGearFilterOptions: forGearOptions };
     }, [activities, search, sortConfig, profileFtp, indoorFilter, virtualRideChip, gravelRideChip, mtbRideChip, thisWeekOnly, rollingDays, stravaLinkedOnly, noPowerOnly, withPowerOnly, highLoadOnly, longRideOnly, missingHrOnly, minTss, filterGearId, filterDistMin, filterDistMax, filterSpeedMin, filterSpeedMax, filterPowerMin, filterPowerMax, filterDurMinMin, filterDurMaxMin, filterElevMin, filterElevMax, filterKjMin, filterKjMax]);
+
+    const gearFilterOptions = useMemo(() => {
+        const base = buildGearFilterOptionsFromActivities(activitiesForGearFilterOptions);
+        if (!filterGearId) return base;
+        const active = (activities || []).find((a) => String(a?.gear_id || '').trim() === filterGearId);
+        const name = active?.gear_name != null ? String(active.gear_name).trim() : '';
+        return mergeActiveGearFilterOption(base, filterGearId, name);
+    }, [activitiesForGearFilterOptions, filterGearId, activities]);
 
     const isGroupedView = sortConfig.key === 'date';
 
@@ -469,6 +483,7 @@ const useActivityFilter = (activities, profileFtp) => {
         filterKjMin, setFilterKjMin,
         filterKjMax, setFilterKjMax,
         filterGearId, setFilterGearId,
+        gearFilterOptions,
         clearMetricFilters,
     };
 };
