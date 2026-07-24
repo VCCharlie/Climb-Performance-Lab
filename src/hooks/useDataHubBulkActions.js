@@ -411,6 +411,16 @@ export function useDataHubBulkActions({
         }
     }, [selectedActivitiesForBulk, activities, onImport, stravaGetToken]);
 
+    const applyBulkActivityType = useCallback(async (typeValue) => {
+        const list = selectedActivitiesForBulk;
+        if (!list.length || !typeValue) return;
+        const ok = window.confirm(
+            `Set activity type to "${typeValue}" for ${list.length} selected ${list.length === 1 ? 'activity' : 'activities'}?`,
+        );
+        if (!ok) return;
+        await handleBulkApplyPatch({ type: typeValue });
+    }, [selectedActivitiesForBulk, handleBulkApplyPatch]);
+
     const openMergeModal = useCallback(() => {
         setMergeError(null);
         setShowMergeModal(true);
@@ -441,6 +451,7 @@ export function useDataHubBulkActions({
         closeMergeModal,
         markBulkRecovery,
         handleBulkApplyPatch,
+        applyBulkActivityType,
         showBulkEditModal,
         setShowBulkEditModal,
         isBulkSaving,

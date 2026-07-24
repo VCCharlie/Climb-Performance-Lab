@@ -58,6 +58,8 @@ const useActivityFilter = (activities, profileFtp) => {
     const [longRideOnly, setLongRideOnly] = useState(false);
     const [missingHrOnly, setMissingHrOnly] = useState(false);
     const [virtualRideChip, setVirtualRideChip] = useState(false);
+    const [gravelRideChip, setGravelRideChip] = useState(false);
+    const [mtbRideChip, setMtbRideChip] = useState(false);
     const [minTss, setMinTss] = useState('');
 
     /** Min/max filters (empty string = no bound). Distance km, speed km/h, power W, duration minutes, elev m, kJ */
@@ -178,6 +180,9 @@ const useActivityFilter = (activities, profileFtp) => {
             const sportType = resolveActivityType(a);
             if (effectiveIndoor === 'indoor' && !['VirtualRide', 'VirtualRun'].includes(sportType)) return false;
             if (effectiveIndoor === 'outdoor' && ['VirtualRide', 'VirtualRun'].includes(sportType)) return false;
+
+            if (gravelRideChip && sportType !== 'GravelRide') return false;
+            if (mtbRideChip && sportType !== 'MountainBikeRide') return false;
 
             if (thisWeekOnly && weekRange) {
                 const dStr = normalizeDate(a.date);
@@ -308,7 +313,7 @@ const useActivityFilter = (activities, profileFtp) => {
             filtered.sort((a, b) => compareActivitiesForSort(a, b, sortConfig, profileFtp));
         }
         return filtered;
-    }, [activities, search, sortConfig, profileFtp, indoorFilter, virtualRideChip, thisWeekOnly, rollingDays, stravaLinkedOnly, noPowerOnly, withPowerOnly, highLoadOnly, longRideOnly, missingHrOnly, minTss, filterGearId, filterDistMin, filterDistMax, filterSpeedMin, filterSpeedMax, filterPowerMin, filterPowerMax, filterDurMinMin, filterDurMaxMin, filterElevMin, filterElevMax, filterKjMin, filterKjMax]);
+    }, [activities, search, sortConfig, profileFtp, indoorFilter, virtualRideChip, gravelRideChip, mtbRideChip, thisWeekOnly, rollingDays, stravaLinkedOnly, noPowerOnly, withPowerOnly, highLoadOnly, longRideOnly, missingHrOnly, minTss, filterGearId, filterDistMin, filterDistMax, filterSpeedMin, filterSpeedMax, filterPowerMin, filterPowerMax, filterDurMinMin, filterDurMaxMin, filterElevMin, filterElevMax, filterKjMin, filterKjMax]);
 
     const isGroupedView = sortConfig.key === 'date';
 
@@ -448,6 +453,8 @@ const useActivityFilter = (activities, profileFtp) => {
         longRideOnly, setLongRideOnly,
         missingHrOnly, setMissingHrOnly,
         virtualRideChip, setVirtualRideChip,
+        gravelRideChip, setGravelRideChip,
+        mtbRideChip, setMtbRideChip,
         minTss, setMinTss,
         filterDistMin, setFilterDistMin,
         filterDistMax, setFilterDistMax,

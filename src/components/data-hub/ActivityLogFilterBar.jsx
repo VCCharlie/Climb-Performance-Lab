@@ -20,6 +20,10 @@ const ActivityLogFilterBar = ({
     onIndoorFilterChange,
     virtualRideChip,
     onVirtualRideChipChange,
+    gravelRideChip,
+    onGravelRideChipChange,
+    mtbRideChip,
+    onMtbRideChipChange,
     useCardLayout,
     logMobileFiltersOpen,
     onLogMobileFiltersOpenChange,
@@ -99,6 +103,8 @@ const ActivityLogFilterBar = ({
     onFilterKjMaxChange,
     // Bulk actions
     onBulkEdit,
+    onBulkSetGravelRide,
+    onBulkSetMtbRide,
     onExportCsv,
     onExportXlsx,
     isExportingXlsx = false,
@@ -317,12 +323,48 @@ const ActivityLogFilterBar = ({
                             onIndoorFilterChange('all');
                         } else {
                             onVirtualRideChipChange(true);
+                            onGravelRideChipChange(false);
+                            onMtbRideChipChange(false);
                             onIndoorFilterChange('indoor');
                         }
                     }}
                     className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-colors ${virtualRideChip ? 'bg-orange-600/25 border-orange-500/50 text-orange-300' : 'border-cdborder text-cdmuted hover:text-cdtext'}`}
                 >
                     Virtual only
+                </button>
+                <button
+                    type="button"
+                    onClick={() => {
+                        if (gravelRideChip) {
+                            onGravelRideChipChange(false);
+                        } else {
+                            onGravelRideChipChange(true);
+                            onMtbRideChipChange(false);
+                            onVirtualRideChipChange(false);
+                            if (indoorFilter === 'indoor') onIndoorFilterChange('all');
+                        }
+                    }}
+                    title="Show activities stored as GravelRide"
+                    className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-colors ${gravelRideChip ? 'bg-amber-600/25 border-amber-500/50 text-amber-200' : 'border-cdborder text-cdmuted hover:text-cdtext'}`}
+                >
+                    Gravel
+                </button>
+                <button
+                    type="button"
+                    onClick={() => {
+                        if (mtbRideChip) {
+                            onMtbRideChipChange(false);
+                        } else {
+                            onMtbRideChipChange(true);
+                            onGravelRideChipChange(false);
+                            onVirtualRideChipChange(false);
+                            if (indoorFilter === 'indoor') onIndoorFilterChange('all');
+                        }
+                    }}
+                    title="Show activities stored as MountainBikeRide"
+                    className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-colors ${mtbRideChip ? 'bg-lime-600/25 border-lime-500/50 text-lime-200' : 'border-cdborder text-cdmuted hover:text-cdtext'}`}
+                >
+                    MTB
                 </button>
                 <label className="flex items-center gap-1.5 text-[10px] text-cdmuted">
                     <span className="font-bold uppercase shrink-0">TSS &gt;</span>
@@ -483,6 +525,24 @@ const ActivityLogFilterBar = ({
                 >
                     {isBulkSaving ? <Loader2 size={12} className="animate-spin" aria-hidden="true" /> : <Edit2 size={12} aria-hidden="true" />}
                     Bulk edit
+                </button>
+                <button
+                    type="button"
+                    onClick={onBulkSetGravelRide}
+                    disabled={bulkSelectedCount === 0 || isBulkSaving}
+                    title="Set activity type to GravelRide for all selected rows"
+                    className="px-2 py-1 rounded border border-amber-500/40 text-amber-200 hover:bg-amber-500/10 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                >
+                    Set Gravel
+                </button>
+                <button
+                    type="button"
+                    onClick={onBulkSetMtbRide}
+                    disabled={bulkSelectedCount === 0 || isBulkSaving}
+                    title="Set activity type to MountainBikeRide for all selected rows"
+                    className="px-2 py-1 rounded border border-lime-500/40 text-lime-200 hover:bg-lime-500/10 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                >
+                    Set MTB
                 </button>
                 <ActivityLogExportButtons
                     disabled={bulkSelectedCount === 0}

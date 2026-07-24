@@ -7,6 +7,8 @@ export function useDataHubFilterBar({
     search, setSearch,
     indoorFilter, setIndoorFilter,
     virtualRideChip, setVirtualRideChip,
+    gravelRideChip, setGravelRideChip,
+    mtbRideChip, setMtbRideChip,
     useCardLayout,
     visibleKeys, activePreset, applyPreset, toggleColumn, isColumnVisible,
     onRefresh,
@@ -74,6 +76,10 @@ export function useDataHubFilterBar({
         onIndoorFilterChange: setIndoorFilter,
         virtualRideChip,
         onVirtualRideChipChange: setVirtualRideChip,
+        gravelRideChip,
+        onGravelRideChipChange: setGravelRideChip,
+        mtbRideChip,
+        onMtbRideChipChange: setMtbRideChip,
         useCardLayout,
         logMobileFiltersOpen,
         onLogMobileFiltersOpenChange: setLogMobileFiltersOpen,
@@ -153,6 +159,8 @@ export function useDataHubFilterBar({
             setEditingActivity(null);
             bulk.setShowBulkEditModal(true);
         },
+        onBulkSetGravelRide: () => bulk.applyBulkActivityType('GravelRide'),
+        onBulkSetMtbRide: () => bulk.applyBulkActivityType('MountainBikeRide'),
         onExportCsv: bulk.exportBulkCsv,
         onExportXlsx: bulk.exportBulkXlsx,
         isExportingXlsx: bulk.isExportingXlsx,
