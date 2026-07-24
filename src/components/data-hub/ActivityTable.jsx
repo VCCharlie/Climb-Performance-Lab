@@ -2,8 +2,8 @@
 import React, { useMemo, useRef } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import {
-    ArrowUpDown, ChevronUp, ChevronDown, ChevronRight, Monitor, Bike, Footprints,
-    Mountain, Edit2, Trash2, ExternalLink, Route, Trophy, Crown, Play,
+    ArrowUpDown, ChevronUp, ChevronDown, ChevronRight,
+    Edit2, Trash2, ExternalLink, Route, Trophy, Crown, Play,
 } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
 import { resolveStravaGearDisplay } from '../../utils/stravaBikesLocalMap';
@@ -13,6 +13,8 @@ import { buildStickyColumnMeta, stickyTableCellProps, stickyActionsCellProps } f
 import NormPowerCell from './NormPowerCell';
 import ZoneMetricCell from './ZoneMetricCell';
 import ClimbMatchBadge from './ClimbMatchBadge';
+import ActivityTypeIcon from './ActivityTypeIcon';
+import { resolveActivityType } from '../../utils/activityVenue';
 import {
     flattenActivityList,
     estimateFlattenedRowSize,
@@ -210,19 +212,18 @@ export const Row = React.memo(React.forwardRef(({
 
             switch (col.key) {
                 case 'date': return <span className="text-cdtext whitespace-nowrap">{formatDateDDMMYYYY(val)}</span>;
-                case 'type': return (
+                case 'type': {
+                    const resolvedType = resolveActivityType(act);
+                    return (
                     <div
                         className={`flex justify-center items-center h-full ${isPreview ? 'cursor-pointer hover:text-yellow-400' : ''}`}
                         onClick={(e) => { if (isPreview && onToggleType) { e.stopPropagation(); onToggleType(act.id); } }}
-                        title={isPreview ? `Current: ${val}. Click to change.` : val}
+                        title={isPreview ? `Current: ${val}. Click to change.` : resolvedType}
                     >
-                        {val === 'VirtualRide' ? <Monitor size={15} className="text-orange-400" title="Virtual Ride" /> :
-                            val === 'Run' ? <Footprints size={15} className="text-blue-400" title="Run" /> :
-                                val === 'Walk' ? <Footprints size={15} className="text-green-300" title="Walk" /> :
-                                    val === 'Hike' ? <Mountain size={15} className="text-green-500" title="Hike" /> :
-                                        <Bike size={15} className="text-green-400" title="Ride" />}
+                        <ActivityTypeIcon type={resolvedType} size={15} />
                     </div>
-                );
+                    );
+                }
                 case 'data_source': {
                     if (isPreview) return <span className="text-cdmuted">—</span>;
                     const hasStrava = !!act.strava_id;
