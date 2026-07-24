@@ -65,6 +65,11 @@ const BucketList = ({
     const initialNotifyDoneRef = useRef(false);
     const climbListScrollRef = useRef(null);
     const climbPbsAtScanStartRef = useRef(climbPbs);
+    const climbStatusRef = useRef(climbStatus);
+
+    useEffect(() => {
+        climbStatusRef.current = climbStatus;
+    }, [climbStatus]);
 
     useEffect(() => {
         if (!parentSyncToken) return;
@@ -125,9 +130,16 @@ const BucketList = ({
                 activities,
                 climbsForScan,
             );
-            // Only update PBs here. Status toggles during the async scan must not be
-            // overwritten by a closed-over climbStatus; the effect above notifies parent.
+            const pbScanCompletedAt = new Date().toISOString();
+            skipParentNotifyRef.current = true;
             setClimbPbs(summary.replaced);
+            if (onStateChange) {
+                onStateChange({
+                    climbStatus: climbStatusRef.current,
+                    climbPbs: summary.replaced,
+                    pbScanCompletedAt,
+                });
+            }
             setScanFeedback({
                 tone: summary.newClimbs > 0 || summary.improvedPbs > 0 || summary.removedPbs > 0 ? 'success' : 'info',
                 message: formatPbScanFeedbackMessage(summary),
