@@ -4,6 +4,7 @@ import {
     BUCKET_LIST_CLOUD_DEBOUNCE_MS,
     resolveBucketListOnSync,
     newerIsoTimestamp,
+    stampBucketListState,
 } from '../../utils/bucketListCloudSync';
 
 describe('bucketListCloudSync', () => {
@@ -53,5 +54,38 @@ describe('bucketListCloudSync', () => {
         );
         expect(resolved.source).toBe('local');
         expect(resolved.state.climbPbs.a?.normPower).toBe(200);
+    });
+
+    it('settings-save style resolve keeps newer cloud PBs over stale local memory', () => {
+        const staleLocal = {
+            climbStatus: { it_stelvio: 'planned' },
+            climbPbs: {},
+            updatedAt: '2026-01-01T00:00:00.000Z',
+        };
+        const newerCloud = {
+            climbStatus: {},
+            climbPbs: { fr_alpe: { normPower: 280, activityId: 'a1' } },
+            updatedAt: '2026-06-01T00:00:00.000Z',
+        };
+        const resolved = resolveBucketListOnSync(
+            staleLocal,
+            staleLocal.updatedAt,
+            newerCloud,
+            newerCloud.updatedAt,
+        );
+        expect(resolved.source).toBe('cloud');
+        expect(resolved.state.climbPbs.fr_alpe?.normPower).toBe(280);
+        expect(resolved.state.climbStatus.it_stelvio).toBeUndefined();
+    });
+
+    it('stampBucketListState always sets a non-null updatedAt for restores', () => {
+        const stamped = stampBucketListState({
+            climbStatus: { fr_alpe: 'done' },
+            climbPbs: { fr_alpe: { normPower: 250 } },
+            updatedAt: null,
+        });
+        expect(typeof stamped.updatedAt).toBe('string');
+        expect(Date.parse(stamped.updatedAt)).not.toBeNaN();
+        expect(stamped.climbStatus.fr_alpe).toBe('done');
     });
 });

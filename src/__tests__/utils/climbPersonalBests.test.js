@@ -142,10 +142,6 @@ describe('scanClimbPersonalBests', () => {
     });
 
     it('replaceClimbPbsFromScan drops stale PB rows from a previous scan', () => {
-        const prev = {
-            fr_alpe: { normPower: 265, movingTimeSec: 3500 },
-            it_stelvio: { normPower: 240, movingTimeSec: 4000 },
-        };
         const scanned = {
             fr_alpe: { normPower: 265, movingTimeSec: 3500, matchSource: 'title' },
         };
@@ -153,6 +149,38 @@ describe('scanClimbPersonalBests', () => {
         const replaced = replaceClimbPbsFromScan(scanned, climbs);
         expect(replaced.fr_alpe?.normPower).toBe(265);
         expect(replaced.it_stelvio).toBeUndefined();
+    });
+
+    it('scanning with Zwift-only climbs then replace drops outdoor PBs (full DB required)', () => {
+        const prev = {
+            fr_alpe: { normPower: 280, movingTimeSec: 3300, date: '2026-04-01', title: "Alpe d'Huez", activityId: 'out-1' },
+            zp_platzer: { normPower: 220, movingTimeSec: 2000, date: '2026-04-02', title: 'Platzer', activityId: 'zw-1' },
+        };
+        const zwiftOnlyClimbs = climbs.filter((c) => c.country === 'ZWIFT');
+        const scanned = scanClimbPersonalBests(
+            [
+                {
+                    id: 'out-1',
+                    title: "Alpe d'Huez",
+                    norm_power: 280,
+                    date: '2026-04-01',
+                    moving_time: 3300,
+                    type: 'Ride',
+                },
+                {
+                    id: 'zw-1',
+                    title: 'Col du Platzerwasel',
+                    norm_power: 220,
+                    date: '2026-04-02',
+                    moving_time: 2000,
+                    type: 'VirtualRide',
+                },
+            ],
+            zwiftOnlyClimbs,
+        );
+        const replaced = replaceClimbPbsFromScan(scanned, zwiftOnlyClimbs);
+        expect(replaced.fr_alpe).toBeUndefined();
+        expect(Object.keys(replaced).length).toBeLessThan(Object.keys(prev).length);
     });
 
     it('summarizePbScanResult reports no change when scan matches same climbs', () => {
