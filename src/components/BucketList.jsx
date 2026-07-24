@@ -37,6 +37,7 @@ function statusPillClass(active) {
 
 const BucketList = ({
     initialState,
+    remoteRevision = 0,
     onStateChange,
     onOpenWeatherForClimb,
     onOpenMapTab,
@@ -59,7 +60,7 @@ const BucketList = ({
     const [pbVenueFilter, setPbVenueFilter] = useState('outdoor');
     const [scanProgress, setScanProgress] = useState(null);
 
-    const parentSyncToken = initialState?.updatedAt || null;
+    const parentSyncToken = remoteRevision;
     const skipParentNotifyRef = useRef(false);
     const initialNotifyDoneRef = useRef(false);
     const climbListScrollRef = useRef(null);
@@ -146,10 +147,16 @@ const BucketList = ({
 
     // Toggle climb status
     const toggleClimbStatus = useCallback((climbId, status) => {
-        setClimbStatus((prev) => ({
-            ...prev,
-            [climbId]: prev[climbId] === status ? null : status,
-        }));
+        const id = String(climbId);
+        setClimbStatus((prev) => {
+            const next = { ...prev };
+            if (next[id] === status) {
+                delete next[id];
+            } else {
+                next[id] = status;
+            }
+            return next;
+        });
     }, []);
 
     const climbById = useMemo(() => {
@@ -325,7 +332,7 @@ const BucketList = ({
             });
         } else if (filterStatus !== 'all') {
             filtered = filtered.filter(climb => {
-                const status = climbStatus[climb.id];
+                const status = climbStatus[String(climb.id)];
                 if (filterStatus === 'todo') {
                     return !status; // Not done, not planned, not want
                 }
@@ -341,7 +348,7 @@ const BucketList = ({
                 return b.avgGrade - a.avgGrade;
             } else if (sortBy === 'status') {
                 const statusOrder = { done: 0, planned: 1, want: 2, null: 3 };
-                return (statusOrder[climbStatus[a.id]] || 3) - (statusOrder[climbStatus[b.id]] || 3);
+                return (statusOrder[climbStatus[String(a.id)]] ?? 3) - (statusOrder[climbStatus[String(b.id)]] ?? 3);
             }
             return 0;
         });
@@ -352,8 +359,9 @@ const BucketList = ({
     const climbRowVirtualizer = useVirtualizer({
         count: filteredClimbs.length,
         getScrollElement: () => climbListScrollRef.current,
-        estimateSize: () => 96,
-        overscan: 10,
+        estimateSize: () => 118,
+        overscan: 8,
+        measureElement: (el) => el?.getBoundingClientRect().height ?? 118,
     });
 
     return (
@@ -560,14 +568,17 @@ const BucketList = ({
                         >
                             {climbRowVirtualizer.getVirtualItems().map((virtualRow) => {
                                 const climb = filteredClimbs[virtualRow.index];
-                                const status = climbStatus[climb.id];
-                                const pb = climbPbs[climb.id];
+                                const climbId = String(climb.id);
+                                const status = climbStatus[climbId];
+                                const pb = climbPbs[climbId] ?? climbPbs[climb.id];
                                 const pbActivity = pb?.activityId ? activityById.get(String(pb.activityId)) : null;
                                 const showPb = hasStoredClimbPb(climbPbs, climb.id, climb, pbVenueFilter, pbActivity);
 
                                 return (
                                     <div
-                                        key={climb.id}
+                                        key={climbId}
+                                        data-index={virtualRow.index}
+                                        ref={climbRowVirtualizer.measureElement}
                                         className="absolute left-0 top-0 w-full pb-2"
                                         style={{ transform: `translateY(${virtualRow.start}px)` }}
                                     >
