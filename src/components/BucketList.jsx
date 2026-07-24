@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useEffect } from 'react';
+﻿import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Mountain, Check, Clock, Star, Trophy, Filter, Search, Sparkles } from 'lucide-react';
 import { useClimbDatabase } from '../hooks/useClimbDatabase';
 import { useActivitiesList } from '../hooks/useActivities';
@@ -53,6 +53,27 @@ const BucketList = ({
         loadFull();
     }, [loadFull]);
 
+    const [climbStatus, setClimbStatus] = useState(initialState?.climbStatus || {});
+    const [climbPbs, setClimbPbs] = useState(initialState?.climbPbs || {});
+    const [filterStatus, setFilterStatus] = useState('all');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [sortBy, setSortBy] = useState('name');
+    const [scanFeedback, setScanFeedback] = useState(null);
+    const [isScanning, setIsScanning] = useState(false);
+    const [pbVenueFilter, setPbVenueFilter] = useState('outdoor');
+    const [scanProgress, setScanProgress] = useState(null);
+
+    const parentSyncToken = initialState?.updatedAt || null;
+    const skipParentNotifyRef = useRef(false);
+    const initialNotifyDoneRef = useRef(false);
+
+    useEffect(() => {
+        if (!parentSyncToken) return;
+        skipParentNotifyRef.current = true;
+        setClimbStatus(initialState?.climbStatus || {});
+        setClimbPbs(initialState?.climbPbs || {});
+    }, [parentSyncToken, initialState]);
+
     useEffect(() => {
         if (!isFullLoaded || !activities?.length || !climbDatabase?.length) return;
         setClimbPbs((prev) => {
@@ -70,19 +91,17 @@ const BucketList = ({
             return pruned;
         });
     }, [isFullLoaded, activities, climbDatabase]);
-    // State: climb status (done, planned, want) + optional PBs
-    const [climbStatus, setClimbStatus] = useState(initialState?.climbStatus || {});
-    const [climbPbs, setClimbPbs] = useState(initialState?.climbPbs || {});
-    const [filterStatus, setFilterStatus] = useState('all'); // all, done, planned, want, todo, with_pb
-    const [searchTerm, setSearchTerm] = useState('');
-    const [sortBy, setSortBy] = useState('name'); // name, difficulty, status
-    const [scanFeedback, setScanFeedback] = useState(null);
-    const [isScanning, setIsScanning] = useState(false);
-    const [pbVenueFilter, setPbVenueFilter] = useState('outdoor');
-    const [scanProgress, setScanProgress] = useState(null);
 
-    // Update parent when state changes
+    // Update parent when local bucket list edits change (not when applying cloud sync).
     React.useEffect(() => {
+        if (skipParentNotifyRef.current) {
+            skipParentNotifyRef.current = false;
+            return;
+        }
+        if (!initialNotifyDoneRef.current) {
+            initialNotifyDoneRef.current = true;
+            return;
+        }
         if (onStateChange) {
             onStateChange({ climbStatus, climbPbs });
         }

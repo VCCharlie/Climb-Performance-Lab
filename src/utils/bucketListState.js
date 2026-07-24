@@ -9,7 +9,7 @@ export const BUCKET_STATUSES = ['done', 'planned', 'want'];
  * @returns {{ climbStatus: Record<string, string>, climbPbs: Record<string, object> }}
  */
 export function defaultBucketListState() {
-    return { climbStatus: {}, climbPbs: {} };
+    return { climbStatus: {}, climbPbs: {}, updatedAt: null };
 }
 
 /**
@@ -23,8 +23,12 @@ export function migrateLegacyBucketState(raw) {
         ? { ...raw.climbPbs }
         : {};
 
+    const updatedAt = typeof raw.updatedAt === 'string' && raw.updatedAt.trim()
+        ? raw.updatedAt.trim()
+        : null;
+
     if (raw.climbStatus && typeof raw.climbStatus === 'object') {
-        return { climbStatus: { ...raw.climbStatus }, climbPbs };
+        return { climbStatus: { ...raw.climbStatus }, climbPbs, updatedAt };
     }
 
     const climbStatus = {};
@@ -36,7 +40,7 @@ export function migrateLegacyBucketState(raw) {
         }
     }
 
-    return { climbStatus, climbPbs };
+    return { climbStatus, climbPbs, updatedAt };
 }
 
 /**
