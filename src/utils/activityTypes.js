@@ -22,6 +22,27 @@ function normalizeTypeToken(type) {
     return type.toString().replace(/\s+/g, '').toLowerCase();
 }
 
+/**
+ * Titles that mention Zwift/indoor platforms but describe a real outdoor ride.
+ * @param {string} title
+ */
+function titleOverridesVirtualKeywords(title) {
+    const name = title ? title.toLowerCase() : '';
+    if (!name) return false;
+    const outdoorDespitePlatform = [
+        /\boutside\s+zwift\b/,
+        /\bwithout\s+zwift\b/,
+        /\bno\s+zwift\b/,
+        /\bnot\s+zwift\b/,
+        /\bnon[-\s]?zwift\b/,
+        /\boff\s+zwift\b/,
+        /\bzwift\s+outside\b/,
+        /\boutside\s+(virtual|indoor)\b/,
+        /\bnot\s+(virtual|indoor)\b/,
+    ];
+    return outdoorDespitePlatform.some((re) => re.test(name));
+}
+
 export const determineActivityType = (type, title) => {
     const token = normalizeTypeToken(type);
 
@@ -33,6 +54,11 @@ export const determineActivityType = (type, title) => {
     if (['nordicski', 'alpineski', 'iceskate'].includes(token)) return 'Run';
 
     const name = title ? title.toLowerCase() : '';
+
+    if (titleOverridesVirtualKeywords(title)) {
+        return preserved === 'Ride' || token === 'ride' ? 'Ride' : (preserved || 'Ride');
+    }
+
     const virtualKeywords = ['virtual', 'indoor', 'zwift', 'watopia', 'rouvy', 'fulgaz', 'bkool', 'indievelo', 'tacx', 'trainerroad', 'wahoo'];
     if (virtualKeywords.some((keyword) => name.includes(keyword))) return 'VirtualRide';
 
