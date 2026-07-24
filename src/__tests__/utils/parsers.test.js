@@ -104,6 +104,15 @@ describe('determineActivityType', () => {
     expect(determineActivityType('Ride', 'TrainerRoad Sweet Spot')).toBe('VirtualRide');
   });
 
+  it('preserves gravel, MTB, and e-bike types from import', () => {
+    expect(determineActivityType('GravelRide', 'Forest loop')).toBe('GravelRide');
+    expect(determineActivityType('Gravel Ride', 'Forest loop')).toBe('GravelRide');
+    expect(determineActivityType('gravelride', '')).toBe('GravelRide');
+    expect(determineActivityType('MountainBikeRide', 'Singletrack')).toBe('MountainBikeRide');
+    expect(determineActivityType('Mountain Bike Ride', '')).toBe('MountainBikeRide');
+    expect(determineActivityType('EBikeRide', 'Commute')).toBe('EBikeRide');
+  });
+
   it('returns Ride for normal outdoor rides', () => {
     expect(determineActivityType('Ride', 'Morning Ride')).toBe('Ride');
     expect(determineActivityType('Ride', 'Col du Galibier')).toBe('Ride');

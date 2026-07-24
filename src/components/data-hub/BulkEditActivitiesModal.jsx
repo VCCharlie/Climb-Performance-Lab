@@ -119,15 +119,49 @@ const BulkEditActivitiesModal = ({
                             Activity type
                         </label>
                         {applyType && (
-                            <select
-                                value={typeValue}
-                                onChange={(e) => setTypeValue(e.target.value)}
-                                className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext text-sm"
-                            >
-                                {SPORT_TYPES.map((t) => (
-                                    <option key={t} value={t}>{t}</option>
-                                ))}
-                            </select>
+                            <div className="space-y-2">
+                                <div className="flex flex-wrap gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setApplyType(true);
+                                            setTypeValue('GravelRide');
+                                        }}
+                                        className={`px-2.5 py-1 rounded text-[11px] font-bold border transition-colors ${typeValue === 'GravelRide' ? 'bg-amber-600/25 border-amber-500/50 text-amber-200' : 'border-cdborder text-cdmuted hover:text-cdtext'}`}
+                                    >
+                                        Gravel ride
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setApplyType(true);
+                                            setTypeValue('MountainBikeRide');
+                                        }}
+                                        className={`px-2.5 py-1 rounded text-[11px] font-bold border transition-colors ${typeValue === 'MountainBikeRide' ? 'bg-lime-600/25 border-lime-500/50 text-lime-200' : 'border-cdborder text-cdmuted hover:text-cdtext'}`}
+                                    >
+                                        MTB ride
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setApplyType(true);
+                                            setTypeValue('Ride');
+                                        }}
+                                        className={`px-2.5 py-1 rounded text-[11px] font-bold border transition-colors ${typeValue === 'Ride' ? 'bg-cdborder text-cdtext' : 'border-cdborder text-cdmuted hover:text-cdtext'}`}
+                                    >
+                                        Road ride
+                                    </button>
+                                </div>
+                                <select
+                                    value={typeValue}
+                                    onChange={(e) => setTypeValue(e.target.value)}
+                                    className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext text-sm"
+                                >
+                                    {SPORT_TYPES.map((t) => (
+                                        <option key={t} value={t}>{t}</option>
+                                    ))}
+                                </select>
+                            </div>
                         )}
                     </fieldset>
 
