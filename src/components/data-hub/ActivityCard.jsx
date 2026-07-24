@@ -9,6 +9,7 @@ import { cn } from '../ui/cn';
 import AnchoredDropdownPortal from '../ui/AnchoredDropdownPortal';
 import ActivityTypeIcon from './ActivityTypeIcon';
 import ClimbMatchBadge from './ClimbMatchBadge';
+import { resolveActivityType } from '../../utils/activityVenue';
 
 const StravaIcon = () => (
     <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" className="shrink-0" aria-hidden>
@@ -128,7 +129,7 @@ const ActivityCard = React.memo(({
                     aria-label={`View details for ${title}`}
                 >
                     <div className="flex items-center gap-2 min-w-0">
-                        <ActivityTypeIcon type={act.type} size={15} />
+                        <ActivityTypeIcon type={resolveActivityType(act)} size={15} />
                         <span className="text-[11px] text-cdmuted tabular-nums shrink-0">
                             {act.date ? formatDateDDMMYYYY(act.date) : '—'}
                         </span>

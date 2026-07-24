@@ -116,6 +116,8 @@ describe('determineActivityType', () => {
   it('returns Ride for normal outdoor rides', () => {
     expect(determineActivityType('Ride', 'Morning Ride')).toBe('Ride');
     expect(determineActivityType('Ride', 'Col du Galibier')).toBe('Ride');
+    expect(determineActivityType('Ride', 'Outside Zwift')).toBe('Ride');
+    expect(determineActivityType('Ride', 'No Zwift today — road loop')).toBe('Ride');
   });
 
   it('identifies Run type', () => {
