@@ -148,7 +148,9 @@ const App = () => {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-
+    useEffect(() => {
+        setIsMobileMenuOpen(false);
+    }, [activeTab]);
 
     const [userSettings, setUserSettings] = useState(() => {
         const saved = localStorage.getItem('userSettings');
