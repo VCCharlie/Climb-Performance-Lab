@@ -20,7 +20,7 @@ const SIZE_CLASSES = {
  * MD3-style button primitive.
  * Variants: filled | tonal | outlined | text | danger | success
  */
-export default function Button({
+const Button = React.forwardRef(function Button({
   variant = 'filled',
   size = 'md',
   fullWidth = false,
@@ -30,11 +30,12 @@ export default function Button({
   className,
   children,
   ...rest
-}) {
+}, ref) {
   const isDisabled = disabled || loading;
 
   return (
     <button
+      ref={ref}
       type={type}
       disabled={isDisabled}
       className={cn(
@@ -51,4 +52,6 @@ export default function Button({
       {children}
     </button>
   );
-}
+});
+
+export default Button;

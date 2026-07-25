@@ -116,6 +116,17 @@ body {
   transition-timing-function: var(--cd-ease-emphasized);
 }
 
+@media (pointer: coarse) {
+  .cd-min-touch {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .cd-min-touch-y {
+    min-height: 44px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cd-transition {
     transition-duration: 0.01ms;

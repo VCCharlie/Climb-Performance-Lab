@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useId } from 'react';
 import { createPortal } from 'react-dom';
+import { computeAnchoredOverlayStyle } from '../../utils/anchoredOverlayPosition';
 
 /**
- * Dropdown menu positioned below an anchor element; escapes overflow:hidden parents.
+ * Dropdown menu positioned relative to an anchor; escapes overflow:hidden parents.
  */
 export default function AnchoredDropdownPortal({
     open,
@@ -12,8 +13,12 @@ export default function AnchoredDropdownPortal({
     className = '',
     align = 'end',
     minWidth = 224,
+    closeOnOutsideClick = true,
+    role = 'menu',
+    'aria-label': ariaLabel,
 }) {
     const [style, setStyle] = useState(null);
+    const listId = useId();
 
     useEffect(() => {
         if (!open) {
@@ -25,18 +30,7 @@ export default function AnchoredDropdownPortal({
             const el = anchorRef?.current;
             if (!el) return;
             const rect = el.getBoundingClientRect();
-            const width = Math.min(Math.max(minWidth, rect.width), window.innerWidth - 16);
-            const margin = 8;
-            let left = align === 'end' ? rect.right - width : rect.left;
-            left = Math.max(margin, Math.min(left, window.innerWidth - width - margin));
-            const top = rect.bottom + 4;
-            setStyle({
-                position: 'fixed',
-                top: `${top}px`,
-                left: `${left}px`,
-                width: `${width}px`,
-                zIndex: 200,
-            });
+            setStyle(computeAnchoredOverlayStyle(rect, { minWidth, align }));
         };
 
         update();
@@ -57,14 +51,35 @@ export default function AnchoredDropdownPortal({
         return () => document.removeEventListener('keydown', onKey);
     }, [open, onClose]);
 
+    useEffect(() => {
+        if (!open || !closeOnOutsideClick) return undefined;
+        const onDoc = (e) => {
+            const anchor = anchorRef?.current;
+            if (anchor?.contains(e.target)) return;
+            if (e.target.closest?.('[data-anchored-dropdown]')) return;
+            onClose?.();
+        };
+        document.addEventListener('mousedown', onDoc);
+        document.addEventListener('touchstart', onDoc, { passive: true });
+        return () => {
+            document.removeEventListener('mousedown', onDoc);
+            document.removeEventListener('touchstart', onDoc);
+        };
+    }, [open, closeOnOutsideClick, anchorRef, onClose]);
+
     if (!open || !style) return null;
+
+    const { placement: _placement, ...positionStyle } = style;
 
     return createPortal(
         <div
-            role="menu"
+            id={listId}
+            role={role}
+            aria-label={ariaLabel}
             data-anchored-dropdown=""
-            style={style}
-            className={`bg-cdsurface border border-cdborder rounded-lg shadow-xl overflow-hidden ${className}`.trim()}
+            data-placement={style.placement}
+            style={positionStyle}
+            className={`bg-cdsurface border border-cdborder rounded-lg shadow-xl overflow-x-hidden custom-scrollbar ${className}`.trim()}
         >
             {children}
         </div>,

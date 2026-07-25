@@ -183,7 +183,7 @@ const ActivityCard = React.memo(({
                         ref={menuButtonRef}
                         type="button"
                         onClick={() => setMenuOpen((v) => !v)}
-                        className="p-2 rounded-md text-cdmuted hover:text-cdtext hover:bg-cdborder/40 cd-transition cd-focus-ring"
+                        className="p-2.5 rounded-md text-cdmuted hover:text-cdtext hover:bg-cdborder/40 cd-transition cd-focus-ring cd-min-touch"
                         aria-expanded={menuOpen}
                         aria-haspopup="menu"
                         aria-label={`Actions for ${title}`}

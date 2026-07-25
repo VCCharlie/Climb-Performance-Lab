@@ -50,7 +50,7 @@ export default function SegmentedControl({
             className={cn(
               'inline-flex items-center justify-center font-semibold whitespace-nowrap',
               caps && 'uppercase tracking-wide',
-              'rounded-cdsm px-2.5 py-1.5 cd-transition cd-focus-ring',
+              'rounded-cdsm px-2.5 py-1.5 cd-transition cd-focus-ring cd-min-touch-y',
               'active:scale-[0.98]',
               SIZE_CLASSES[size],
               fullWidth && 'flex-1',
