@@ -5,6 +5,7 @@ import {
     resolveBucketListOnSync,
     newerIsoTimestamp,
     stampBucketListState,
+    applyBucketListStateChange,
 } from '../../utils/bucketListCloudSync';
 
 describe('bucketListCloudSync', () => {
@@ -115,5 +116,54 @@ describe('bucketListCloudSync', () => {
         expect(typeof stamped.updatedAt).toBe('string');
         expect(Date.parse(stamped.updatedAt)).not.toBeNaN();
         expect(stamped.climbStatus.fr_alpe).toBe('done');
+    });
+
+    it('applyBucketListStateChange keeps pbScanCompletedAt across status-only edits', () => {
+        const previous = {
+            climbStatus: { fr_alpe: 'done' },
+            climbPbs: { fr_alpe: { normPower: 300, activityId: 'a1' } },
+            updatedAt: '2026-06-02T12:00:00.000Z',
+            pbScanCompletedAt: '2026-06-02T12:00:00.000Z',
+        };
+        // BucketList status toggle historically sent only climbStatus + climbPbs.
+        const statusOnlyEdit = {
+            climbStatus: { fr_alpe: 'done', it_stelvio: 'planned' },
+            climbPbs: previous.climbPbs,
+        };
+        const next = applyBucketListStateChange(previous, statusOnlyEdit);
+        expect(next.pbScanCompletedAt).toBe(previous.pbScanCompletedAt);
+        expect(next.climbStatus.it_stelvio).toBe('planned');
+        expect(next.climbPbs.fr_alpe?.normPower).toBe(300);
+        expect(typeof next.updatedAt).toBe('string');
+    });
+
+    it('status edit that keeps scan timestamp still wins PB merge against stale peer', () => {
+        const afterStatusEdit = applyBucketListStateChange(
+            {
+                climbStatus: { fr_alpe: 'done' },
+                climbPbs: { fr_alpe: { normPower: 300, activityId: 'a1' } },
+                updatedAt: '2026-06-02T12:00:00.000Z',
+                pbScanCompletedAt: '2026-06-02T12:00:00.000Z',
+            },
+            {
+                climbStatus: { fr_alpe: 'done', it_stelvio: 'planned' },
+                climbPbs: { fr_alpe: { normPower: 300, activityId: 'a1' } },
+            },
+        );
+        const stalePeer = {
+            climbStatus: {},
+            climbPbs: { fr_alpe: { normPower: 250, activityId: 'old' } },
+            updatedAt: '2026-06-01T00:00:00.000Z',
+            pbScanCompletedAt: '2026-06-01T00:00:00.000Z',
+        };
+        const resolved = resolveBucketListOnSync(
+            stalePeer,
+            stalePeer.updatedAt,
+            afterStatusEdit,
+            afterStatusEdit.updatedAt,
+        );
+        expect(resolved.state.climbPbs.fr_alpe?.normPower).toBe(300);
+        expect(resolved.state.pbScanCompletedAt).toBe('2026-06-02T12:00:00.000Z');
+        expect(resolved.state.climbStatus.it_stelvio).toBe('planned');
     });
 });

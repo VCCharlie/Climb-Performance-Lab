@@ -88,6 +88,9 @@ export function setClimbBucketStatus(state, climbId, status, { toggle = true } =
     return {
         climbStatus,
         climbPbs: state?.climbPbs || {},
+        // Keep sync metadata — status toggles must not wipe PB scan timestamps.
+        updatedAt: typeof state?.updatedAt === 'string' ? state.updatedAt : null,
+        pbScanCompletedAt: typeof state?.pbScanCompletedAt === 'string' ? state.pbScanCompletedAt : null,
     };
 }
 
@@ -109,5 +112,7 @@ export function mergeClimbPbs(state, climbPbs) {
     return {
         climbStatus: state?.climbStatus || {},
         climbPbs: { ...(state?.climbPbs || {}), ...(climbPbs || {}) },
+        updatedAt: typeof state?.updatedAt === 'string' ? state.updatedAt : null,
+        pbScanCompletedAt: typeof state?.pbScanCompletedAt === 'string' ? state.pbScanCompletedAt : null,
     };
 }

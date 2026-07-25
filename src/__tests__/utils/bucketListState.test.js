@@ -41,4 +41,18 @@ describe('setClimbBucketStatus', () => {
         expect(hasBucketStatus(next, 'b', 'want')).toBe(true);
         expect(idsByStatus(next, 'want')).toEqual(['b']);
     });
+
+    it('preserves pbScanCompletedAt so cloud PB merges do not regress', () => {
+        const base = {
+            climbStatus: { a: 'planned' },
+            climbPbs: { a: { normPower: 280 } },
+            updatedAt: '2026-06-02T12:00:00.000Z',
+            pbScanCompletedAt: '2026-06-02T12:00:00.000Z',
+        };
+        const next = setClimbBucketStatus(base, 'b', 'done');
+        expect(next.pbScanCompletedAt).toBe(base.pbScanCompletedAt);
+        expect(next.updatedAt).toBe(base.updatedAt);
+        expect(next.climbPbs.a?.normPower).toBe(280);
+        expect(next.climbStatus.b).toBe('done');
+    });
 });
