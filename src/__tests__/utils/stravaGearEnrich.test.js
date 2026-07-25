@@ -216,6 +216,8 @@ describe('buildStravaDetailEnrichmentUpdates', () => {
       gear_name: 'Bike A',
       strava_map: 'same',
       moving_time: 3600,
+      climbing: 1200,
+      climbing_from_strava: true,
     };
     const r = await buildStravaDetailEnrichmentUpdates([act], 'tok');
     expect(r.updates).toHaveLength(0);
@@ -247,5 +249,31 @@ describe('buildStravaDetailEnrichmentUpdates', () => {
     const r = await buildStravaDetailEnrichmentUpdates([act], 'tok');
     expect(r.updates).toHaveLength(1);
     expect(r.updates[0].data.distance).toBe(0.76);
+  });
+
+  it('updates climbing from Strava detail when Intervals elevation differs', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        gear_id: 'g1',
+        map: { summary_polyline: 'same' },
+        moving_time: 3600,
+        total_elevation_gain: 812,
+      }),
+    });
+
+    const act = {
+      id: '10',
+      strava_id: '999',
+      gear_id: 'g1',
+      gear_name: 'Bike A',
+      strava_map: 'same',
+      moving_time: 3600,
+      climbing: 1200,
+    };
+    const r = await buildStravaDetailEnrichmentUpdates([act], 'tok');
+    expect(r.updates).toHaveLength(1);
+    expect(r.updates[0].data.climbing).toBe(812);
+    expect(r.updates[0].data.climbing_from_strava).toBe(true);
   });
 });

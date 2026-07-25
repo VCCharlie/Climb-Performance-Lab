@@ -5,6 +5,7 @@
 import { normalizeStravaActivityId } from './strava';
 import { parseDurationToSeconds } from './formatters';
 import { activityDistanceKm } from './activityFilterMetrics';
+import { climbingMetersFromStrava } from './stravaElevation';
 
 /** Intervals sync uses seconds (number); Strava normalize uses "H:MM:SS" string — compare in seconds. */
 function movingTimeToSeconds(val) {
@@ -83,6 +84,7 @@ export function mergeActivitiesIntervalsPrimary(primary, secondary) {
 
     const existingSid = normalizeStravaActivityId(p.strava_id) || (p.strava_id ? String(p.strava_id).trim() : '');
     const incomingSid = normalizeStravaActivityId(s.strava_id) || (s.strava_id ? String(s.strava_id).trim() : '');
+    const secondaryIsStrava = Boolean(incomingSid) || isStravaOnlyActivityId(s.id);
     if (existingSid && incomingSid && existingSid !== incomingSid) {
         throw new Error(
             `Intervals activity already has strava_id ${existingSid}; selected duplicate has ${incomingSid}. Unlink one first or pick a different pair.`
@@ -136,7 +138,18 @@ export function mergeActivitiesIntervalsPrimary(primary, secondary) {
 
     const pClimb = Number(p.climbing) || 0;
     const sClimb = Number(s.climbing) || 0;
-    if (pClimb <= 0 && sClimb > 0) p.climbing = s.climbing;
+    if (secondaryIsStrava) {
+        const fromStrava = climbingMetersFromStrava(s.total_elevation_gain ?? s.climbing);
+        if (fromStrava != null) {
+            p.climbing = fromStrava;
+            p.climbing_from_strava = true;
+        } else if (pClimb <= 0 && sClimb > 0) {
+            p.climbing = s.climbing;
+            p.climbing_from_strava = true;
+        }
+    } else if (pClimb <= 0 && sClimb > 0) {
+        p.climbing = s.climbing;
+    }
 
     const pDistKm = activityDistanceKm(p) ?? 0;
     const sDistKm = activityDistanceKm(s) ?? 0;

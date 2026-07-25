@@ -53,6 +53,7 @@ export const normalizeStravaActivity = (act) => ({
     title: act.name,
     distance: Math.round((act.distance / 1000) * 10) / 10,
     climbing: Math.round(act.total_elevation_gain || 0),
+    climbing_from_strava: true,
     avg_speed: Math.round((act.average_speed * 3.6) * 10) / 10,
     avg_power: Math.round(act.average_watts || 0),
     norm_power: Math.round(act.weighted_average_watts || 0),
