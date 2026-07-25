@@ -26,7 +26,7 @@ const IntervalsSyncPanel = ({
     const datesDisabled = isRefreshMode;
 
     return (
-        <div className="rounded-lg border border-cdborder bg-cdsurface/80 p-3 space-y-3 mb-3 shrink-0">
+        <div className="rounded-lg border border-cdborder bg-cdsurface/80 p-3 space-y-3 mb-3 shrink-0 min-w-0 overflow-x-hidden">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                 <div className="min-w-0">
                     <h4 className="text-xs font-bold text-cdtext uppercase tracking-wide">Intervals.icu sync</h4>
@@ -45,47 +45,55 @@ const IntervalsSyncPanel = ({
                 </button>
             </div>
 
-            <div className="flex flex-wrap items-end gap-2">
-                <button
-                    type="button"
-                    onClick={() => onSyncModeChange('fetch-range')}
-                    className={`text-[10px] font-bold px-2.5 py-1 rounded border transition-colors shrink-0 ${
-                        !isRefreshMode
-                            ? 'bg-orange-500/20 border-orange-500/50 text-cdtext'
-                            : 'border-cdborder text-cdmuted hover:border-cdmuted'
-                    }`}
-                >
-                    Fetch date range
-                </button>
-                <button
-                    type="button"
-                    onClick={() => onSyncModeChange('refresh-selected')}
-                    className={`text-[10px] font-bold px-2.5 py-1 rounded border transition-colors shrink-0 ${
-                        isRefreshMode
-                            ? 'bg-orange-500/20 border-orange-500/50 text-cdtext'
-                            : 'border-cdborder text-cdmuted hover:border-cdmuted'
-                    }`}
-                >
-                    Refresh selected ({selectedCount})
-                </button>
+            <div className="flex flex-col gap-3">
+                <div className="flex flex-wrap gap-2">
+                    <button
+                        type="button"
+                        onClick={() => onSyncModeChange('fetch-range')}
+                        className={`text-[10px] font-bold px-2.5 py-1.5 min-h-11 rounded border transition-colors shrink-0 cd-focus-ring ${
+                            !isRefreshMode
+                                ? 'bg-orange-500/20 border-orange-500/50 text-cdtext'
+                                : 'border-cdborder text-cdmuted hover:border-cdmuted'
+                        }`}
+                    >
+                        Fetch date range
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => onSyncModeChange('refresh-selected')}
+                        className={`text-[10px] font-bold px-2.5 py-1.5 min-h-11 rounded border transition-colors shrink-0 cd-focus-ring ${
+                            isRefreshMode
+                                ? 'bg-orange-500/20 border-orange-500/50 text-cdtext'
+                                : 'border-cdborder text-cdmuted hover:border-cdmuted'
+                        }`}
+                    >
+                        Refresh selected ({selectedCount})
+                    </button>
+                </div>
 
-                <div className={`flex items-center gap-2 min-w-0 flex-1 sm:flex-none sm:max-w-[20rem] ${datesDisabled ? 'opacity-50' : ''}`}>
-                    <label className="text-[10px] text-cdmuted shrink-0">From</label>
-                    <NlDateInput
-                        value={syncDates.start}
-                        onChange={(v) => onSyncDatesChange((s) => ({ ...s, start: v }))}
-                        disabled={datesDisabled}
-                        className="w-full min-w-[6.5rem] bg-cdbg border border-cdborder rounded px-2 py-1.5 text-cdtext text-xs disabled:cursor-not-allowed"
-                        aria-label="Sync from (dd-mm-yyyy)"
-                    />
-                    <label className="text-[10px] text-cdmuted shrink-0">To</label>
-                    <NlDateInput
-                        value={syncDates.end}
-                        onChange={(v) => onSyncDatesChange((s) => ({ ...s, end: v }))}
-                        disabled={datesDisabled}
-                        className="w-full min-w-[6.5rem] bg-cdbg border border-cdborder rounded px-2 py-1.5 text-cdtext text-xs disabled:cursor-not-allowed"
-                        aria-label="Sync to (dd-mm-yyyy)"
-                    />
+                <div
+                    className={`grid grid-cols-1 sm:grid-cols-2 gap-2 w-full min-w-0 ${datesDisabled ? 'opacity-50' : ''}`}
+                >
+                    <label className="flex flex-col gap-1 min-w-0">
+                        <span className="text-[10px] text-cdmuted font-semibold">From</span>
+                        <NlDateInput
+                            value={syncDates.start}
+                            onChange={(v) => onSyncDatesChange((s) => ({ ...s, start: v }))}
+                            disabled={datesDisabled}
+                            className="w-full min-w-0 bg-cdbg border border-cdborder rounded px-2 py-2.5 text-cdtext text-xs disabled:cursor-not-allowed cd-focus-ring"
+                            aria-label="Sync from (dd-mm-yyyy)"
+                        />
+                    </label>
+                    <label className="flex flex-col gap-1 min-w-0">
+                        <span className="text-[10px] text-cdmuted font-semibold">To</span>
+                        <NlDateInput
+                            value={syncDates.end}
+                            onChange={(v) => onSyncDatesChange((s) => ({ ...s, end: v }))}
+                            disabled={datesDisabled}
+                            className="w-full min-w-0 bg-cdbg border border-cdborder rounded px-2 py-2.5 text-cdtext text-xs disabled:cursor-not-allowed cd-focus-ring"
+                            aria-label="Sync to (dd-mm-yyyy)"
+                        />
+                    </label>
                 </div>
             </div>
 

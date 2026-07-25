@@ -84,7 +84,7 @@ const ActivityCardList = React.memo(({
         [activities, isGroupedView, sortConfig, isYearExpanded, isMonthExpanded, showBulkSelect],
     );
 
-    const useVirtual = shouldVirtualizeActivityList(flatRows);
+    const useVirtual = shouldVirtualizeActivityList(flatRows, { layout: 'card' });
 
     const virtualizer = useVirtualizer({
         count: useVirtual ? flatRows.length : 0,

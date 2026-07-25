@@ -70,12 +70,13 @@ describe('activityListFlatten', () => {
         expect(getFlattenedRowKey({ type: 'activity', act: { id: 'x' } }, 0)).toBe('act-x');
     });
 
-    it('virtualizes at threshold', () => {
+    it('virtualizes at threshold for table layout only', () => {
         const rows = Array.from({ length: ACTIVITY_LIST_VIRTUALIZE_THRESHOLD }, (_, i) => ({
             type: 'activity',
             act: { id: String(i) },
         }));
-        expect(shouldVirtualizeActivityList(rows)).toBe(true);
-        expect(shouldVirtualizeActivityList(rows.slice(0, -1))).toBe(false);
+        expect(shouldVirtualizeActivityList(rows, { layout: 'table' })).toBe(true);
+        expect(shouldVirtualizeActivityList(rows.slice(0, -1), { layout: 'table' })).toBe(false);
+        expect(shouldVirtualizeActivityList(rows, { layout: 'card' })).toBe(false);
     });
 });

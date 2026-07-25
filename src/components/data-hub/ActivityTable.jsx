@@ -532,7 +532,7 @@ const ActivityTable = React.memo(({
         [activities, isGroupedView, sortConfig, isYearExpanded, isMonthExpanded],
     );
 
-    const useVirtual = shouldVirtualizeActivityList(flatRows);
+    const useVirtual = shouldVirtualizeActivityList(flatRows, { layout: 'table' });
 
     const virtualizer = useVirtualizer({
         count: useVirtual ? flatRows.length : 0,

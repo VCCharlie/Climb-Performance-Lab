@@ -87,6 +87,18 @@ export function flattenActivityList({
 }
 
 /**
+ * @param {FlattenedRow[]} rows
+ * @param {{ layout?: 'card' | 'table' }} [options]
+ */
+export function shouldVirtualizeActivityList(rows, options = {}) {
+    const layout = options.layout ?? 'table';
+    // Card rows vary widely (descriptions, climb badges); virtualization caused overlap on mobile.
+    if (layout === 'card') return false;
+    return rows.length >= ACTIVITY_LIST_VIRTUALIZE_THRESHOLD;
+}
+
+/**
+ * Heuristic height for virtualized table rows / initial card paint metrics.
  * @param {FlattenedRow} row
  * @param {'card' | 'table'} [layout]
  */
@@ -99,7 +111,21 @@ export function estimateFlattenedRowSize(row, layout = 'card') {
     if (row.type === 'month') {
         return layout === 'table' ? FLATTENED_ROW_ESTIMATE_PX.tableMonth : FLATTENED_ROW_ESTIMATE_PX.month;
     }
+    if (row.type === 'activity' && layout === 'card') {
+        return estimateActivityCardRowHeight(row.act);
+    }
     return layout === 'table' ? FLATTENED_ROW_ESTIMATE_PX.tableActivity : FLATTENED_ROW_ESTIMATE_PX.activity;
+}
+
+/**
+ * @param {object | undefined} act
+ */
+export function estimateActivityCardRowHeight(act) {
+    const base = 132;
+    if (!act) return base;
+    const description = String(act.description || act.notes || '').trim();
+    const descLines = description ? Math.min(3, Math.ceil(description.length / 42)) : act.strava_id ? 1 : 0;
+    return base + descLines * 18 + metricsBonus;
 }
 
 /**
@@ -119,11 +145,4 @@ export function getFlattenedRowKey(row, index) {
  */
 export function countFlattenedActivities(rows) {
     return rows.reduce((n, row) => (row.type === 'activity' ? n + 1 : n), 0);
-}
-
-/**
- * @param {FlattenedRow[]} rows
- */
-export function shouldVirtualizeActivityList(rows) {
-    return rows.length >= ACTIVITY_LIST_VIRTUALIZE_THRESHOLD;
 }
