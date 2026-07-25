@@ -105,7 +105,7 @@ const ActivityCard = React.memo(({
         <article
             id={act.id != null ? `activity-row-${act.id}` : undefined}
             className={cn(
-                'rounded-lg border border-cdborder/60 bg-cdsurface cd-transition',
+                'rounded-lg border border-cdborder/60 bg-cdsurface cd-transition relative',
                 isSelected && showBulkSelect && 'ring-2 ring-cdprimary/40 border-cdprimary/30 bg-cdprimarycontainer/20',
             )}
         >
