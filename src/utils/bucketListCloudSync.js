@@ -112,6 +112,25 @@ export function stampBucketListState(state) {
 }
 
 /**
+ * Apply a Bucket List child update onto the previous parent state.
+ * Status-only edits omit pbScanCompletedAt; dropping it would let older devices
+ * win PB merges via pickClimbPbsByLatestScan and regress/wipe newer PBs.
+ *
+ * @param {unknown} previousState
+ * @param {unknown} incomingState
+ * @returns {{ climbStatus: object, climbPbs: object, updatedAt: string, pbScanCompletedAt: string | null }}
+ */
+export function applyBucketListStateChange(previousState, incomingState) {
+    const previous = migrateLegacyBucketState(previousState);
+    const incoming = migrateLegacyBucketState(incomingState);
+    return stampBucketListState({
+        climbStatus: incoming.climbStatus,
+        climbPbs: incoming.climbPbs,
+        pbScanCompletedAt: incoming.pbScanCompletedAt ?? previous.pbScanCompletedAt,
+    });
+}
+
+/**
  * @param {import('firebase/firestore').Firestore | null | undefined} db
  * @param {string | null | undefined} uid
  * @param {unknown} bucketListState

@@ -71,6 +71,7 @@ import {
     resolveBucketListOnSync,
     fetchBucketListFromFirestore,
     stampBucketListState,
+    applyBucketListStateChange,
 } from './utils/bucketListCloudSync';
 import { runGoogleSignIn, isGoogleSignInInProgress, googleSignInErrorMessage, completeGoogleRedirectIfNeeded } from './utils/googleSignIn';
 import { ToastProvider } from './context/ToastContext';
@@ -411,11 +412,13 @@ const App = () => {
     }, [bucketListState, user]);
 
     const handleBucketListStateChange = useCallback((state) => {
-        const stamped = stampBucketListState(state);
-        setBucketListState(stamped);
-        if (state?.pbScanCompletedAt && user && db && bucketListCloudReadyRef.current) {
-            syncBucketListToFirestore(db, user.uid, stamped);
-        }
+        setBucketListState((prev) => {
+            const stamped = applyBucketListStateChange(prev, state);
+            if (state?.pbScanCompletedAt && user && db && bucketListCloudReadyRef.current) {
+                syncBucketListToFirestore(db, user.uid, stamped);
+            }
+            return stamped;
+        });
     }, [user]);
 
     const [weatherClimbState, setWeatherClimbState] = useState({
