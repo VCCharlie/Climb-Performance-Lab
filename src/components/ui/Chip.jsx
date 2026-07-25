@@ -48,6 +48,7 @@ export default function Chip({
         styles.base,
         stateClass,
         SIZE_CLASSES[size],
+        variant === 'filter' && 'cd-min-touch-y',
         className,
       )}
       {...rest}

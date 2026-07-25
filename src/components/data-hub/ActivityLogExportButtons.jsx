@@ -23,7 +23,7 @@ const ActivityLogExportButtons = ({
                     type="button"
                     onClick={() => setMenuOpen((open) => !open)}
                     disabled={disabled || isExportingXlsx}
-                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-cdborder text-cdtext text-[11px] font-bold disabled:opacity-40 cd-focus-ring"
+                    className="inline-flex items-center gap-1 px-2.5 py-2 min-h-11 rounded-lg border border-cdborder text-cdtext text-[11px] font-bold disabled:opacity-40 cd-focus-ring"
                     title="Export selected activities"
                     aria-expanded={menuOpen}
                     aria-haspopup="menu"
@@ -46,7 +46,7 @@ const ActivityLogExportButtons = ({
                     <button
                         type="button"
                         role="menuitem"
-                        className="w-full px-3 py-2 text-left text-sm text-cdtext hover:bg-cdborder/40 cd-transition"
+                        className="w-full px-3 py-3 text-left text-sm text-cdtext hover:bg-cdborder/40 active:bg-cdborder/60 cd-transition cd-focus-ring cd-min-touch-y"
                         onClick={() => {
                             onExportCsv?.();
                             setMenuOpen(false);
@@ -57,7 +57,7 @@ const ActivityLogExportButtons = ({
                     <button
                         type="button"
                         role="menuitem"
-                        className="w-full px-3 py-2 text-left text-sm text-cdtext hover:bg-cdborder/40 cd-transition"
+                        className="w-full px-3 py-3 text-left text-sm text-cdtext hover:bg-cdborder/40 active:bg-cdborder/60 cd-transition cd-focus-ring cd-min-touch-y"
                         onClick={() => {
                             onExportXlsx?.();
                             setMenuOpen(false);

@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useEffect, useRef, useId, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Menu, X, ChevronRight } from 'lucide-react';
 import { Button, cn } from '../ui';
 import NavTab from './NavTab';
 import TimeRangeToolbar from './TimeRangeToolbar';
 import { MAIN_NAV_TABS } from '../../config/navTabs';
 import { prefetchMainTabChunk } from '../../utils/prefetchTabChunks';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import { computeAnchoredOverlayStyle } from '../../utils/anchoredOverlayPosition';
 
 /**
  * App shell navigation — mobile menu + desktop primary nav bar with time-range toolbar.
@@ -23,23 +26,74 @@ export default function MainNav({
   tabs = MAIN_NAV_TABS,
 }) {
   const mobileLabel = tabs.find((t) => t.id === activeTab)?.label || 'Menu';
+  const menuTriggerRef = useRef(null);
+  const menuPanelId = useId();
+
+  useBodyScrollLock(isMobileMenuOpen);
+
+  useEffect(() => {
+    if (!isMobileMenuOpen) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape') onMobileMenuOpenChange(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isMobileMenuOpen, onMobileMenuOpenChange]);
 
   const selectTab = (tabId) => {
     onTabChange(tabId);
     onMobileMenuOpenChange(false);
   };
 
+  const [mobilePanelStyle, setMobilePanelStyle] = useState(null);
+
+  useEffect(() => {
+    if (!isMobileMenuOpen) {
+      setMobilePanelStyle(null);
+      return undefined;
+    }
+
+    const update = () => {
+      const el = menuTriggerRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const anchored = computeAnchoredOverlayStyle(rect, {
+        minWidth: Math.min(window.innerWidth - 16, 480),
+        align: 'start',
+        maxHeightCap: Math.round(window.innerHeight * 0.65),
+      });
+      const { placement: _placement, ...rest } = anchored;
+      setMobilePanelStyle({
+        ...rest,
+        left: '12px',
+        right: '12px',
+        width: 'auto',
+        zIndex: 150,
+      });
+    };
+
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+    };
+  }, [isMobileMenuOpen]);
+
   return (
     <div className="relative mb-4">
       {/* Mobile: menu trigger + quick range */}
       <div className="flex items-center gap-2 mb-3 md:hidden">
         <Button
+          ref={menuTriggerRef}
           type="button"
           variant="tonal"
-          className="flex-1 justify-start font-semibold"
+          className="flex-1 justify-start font-semibold min-h-11"
           onClick={() => onMobileMenuOpenChange(!isMobileMenuOpen)}
           aria-expanded={isMobileMenuOpen}
           aria-haspopup="true"
+          aria-controls={menuPanelId}
         >
           {isMobileMenuOpen ? <X size={18} aria-hidden /> : <Menu size={18} aria-hidden />}
           {mobileLabel}
@@ -66,17 +120,20 @@ export default function MainNav({
         className="md:hidden"
       />
 
-      {/* Mobile: slide-down menu with scrim */}
-      {isMobileMenuOpen && (
+      {/* Mobile: portaled menu + scrim (avoids parent overflow clipping) */}
+      {isMobileMenuOpen && typeof document !== 'undefined' && createPortal(
         <>
           <button
             type="button"
-            className="fixed inset-0 z-40 bg-cdscrim md:hidden cd-transition"
+            className="fixed inset-0 z-[140] bg-cdscrim md:hidden cd-transition"
             aria-label="Close navigation menu"
             onClick={() => onMobileMenuOpenChange(false)}
           />
+          {mobilePanelStyle && (
           <nav
-            className="md:hidden absolute top-full left-0 right-0 z-50 mt-1 overflow-hidden rounded-cdxl border border-cdborder/60 bg-cdsurface shadow-lg"
+            id={menuPanelId}
+            style={mobilePanelStyle}
+            className="md:hidden fixed z-[150] overflow-y-auto custom-scrollbar rounded-cdxl border border-cdborder/60 bg-cdsurface shadow-lg animate-in fade-in slide-in-from-top-2 duration-200"
             aria-label="Main navigation"
           >
             {tabs.map((item) => {
@@ -90,10 +147,10 @@ export default function MainNav({
                   onMouseEnter={() => prefetchMainTabChunk(item.id)}
                   onFocus={() => prefetchMainTabChunk(item.id)}
                   className={cn(
-                    'flex w-full items-center gap-3 px-4 py-3 text-sm font-medium cd-transition cd-focus-ring',
+                    'flex w-full items-center gap-3 px-4 min-h-11 py-3 text-sm font-medium cd-transition cd-focus-ring',
                     isActive
                       ? 'bg-cdprimarycontainer text-cdonprimarycontainer'
-                      : 'text-cdtext hover:bg-cdsurfacelow',
+                      : 'text-cdtext hover:bg-cdsurfacelow active:bg-cdsurfacehigh',
                   )}
                 >
                   <Icon className={cn('w-4 h-4 shrink-0', isActive && 'text-cdprimary')} aria-hidden />
@@ -105,7 +162,9 @@ export default function MainNav({
               );
             })}
           </nav>
-        </>
+          )}
+        </>,
+        document.body,
       )}
 
       {/* Desktop: primary nav + time range */}

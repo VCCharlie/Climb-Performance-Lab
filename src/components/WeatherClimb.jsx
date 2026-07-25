@@ -6,6 +6,7 @@ import WeatherForecastStrip from './WeatherForecastStrip';
 import FlagIcon from './FlagIcon';
 import { geocodeLocation, fetchCurrentWeather } from '../services/openWeatherProxy';
 import { WEATHER_CLIMB_LOCATIONS } from '../utils/weatherClimbLocations';
+import AnchoredDropdownPortal from './ui/AnchoredDropdownPortal';
 
 // Re-export for components that imported CLIMB_LOCATIONS from here historically
 const CLIMB_LOCATIONS = WEATHER_CLIMB_LOCATIONS;
@@ -44,6 +45,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
     const [showSuggestions, setShowSuggestions] = useState(false);
     const debounceRef = useRef(null);
     const suggestionsRef = useRef(null);
+    const locationInputRef = useRef(null);
 
     // Sync state changes to parent
     useEffect(() => {
@@ -78,7 +80,9 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
     useEffect(() => {
         const handleClickOutside = (e) => {
             if (suggestionsRef.current && !suggestionsRef.current.contains(e.target)) {
-                setShowSuggestions(false);
+                if (!e.target.closest?.('[data-anchored-dropdown]')) {
+                    setShowSuggestions(false);
+                }
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -357,31 +361,42 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                             <div className="relative flex-1" ref={suggestionsRef}>
                                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-cdmuted z-10" size={14} />
                                 <input
+                                    ref={locationInputRef}
                                     type="text"
                                     placeholder="Search city or town..."
                                     value={locationInput}
                                     onChange={(e) => searchLocations(e.target.value)}
                                     onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-                                    className="w-full pl-9 pr-3 py-2 bg-cdborder border border-cdborder rounded text-cdtext text-sm focus:border-cyan-400 outline-none"
+                                    role="combobox"
+                                    aria-expanded={showSuggestions && suggestions.length > 0}
+                                    aria-autocomplete="list"
+                                    className="w-full pl-9 pr-3 py-2.5 min-h-11 bg-cdborder border border-cdborder rounded text-cdtext text-sm focus:border-cyan-400 outline-none cd-focus-ring"
                                 />
                                 {isLoadingSuggestions && (
                                     <RefreshCw size={12} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-cdmuted" />
                                 )}
-                                {/* Autocomplete Dropdown */}
-                                {showSuggestions && suggestions.length > 0 && (
-                                    <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-cdsurface border border-cdborder rounded shadow-xl overflow-hidden">
-                                        {suggestions.map((s, idx) => (
-                                            <button
-                                                key={idx}
-                                                onMouseDown={() => selectSuggestion(s)}
-                                                className="w-full text-left px-3 py-2 text-sm text-cdtext hover:bg-cdborder transition-colors border-b border-cdborder/50 last:border-0"
-                                            >
-                                                <Search size={11} className="inline mr-2 text-cdmuted" />
-                                                {s.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
+                                <AnchoredDropdownPortal
+                                    open={showSuggestions && suggestions.length > 0}
+                                    anchorRef={locationInputRef}
+                                    onClose={() => setShowSuggestions(false)}
+                                    align="start"
+                                    minWidth={280}
+                                    role="listbox"
+                                    aria-label="Location suggestions"
+                                >
+                                    {suggestions.map((s, idx) => (
+                                        <button
+                                            key={idx}
+                                            type="button"
+                                            role="option"
+                                            onMouseDown={() => selectSuggestion(s)}
+                                            className="w-full text-left px-3 py-3 text-sm text-cdtext hover:bg-cdborder active:bg-cdborder/80 transition-colors border-b border-cdborder/50 last:border-0 cd-focus-ring cd-min-touch-y"
+                                        >
+                                            <Search size={11} className="inline mr-2 text-cdmuted" aria-hidden />
+                                            {s.label}
+                                        </button>
+                                    ))}
+                                </AnchoredDropdownPortal>
                             </div>
                             <button
                                 onClick={fetchWeather}
