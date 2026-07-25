@@ -350,6 +350,7 @@ const DataHub = ({
 
             {internalTab === 'log' && (
                 <ActivityLogBulkBar
+                    useCardLayout={useCardLayout}
                     count={bulk.bulkSelectedIds.size}
                     onBulkEdit={() => {
                         setEditingActivity(null);
@@ -365,6 +366,11 @@ const DataHub = ({
                     stravaGetToken={stravaGetToken}
                     onStravaEnrich={() => bulk.runStravaEnrichSelected(bulk.selectedActivitiesForBulk)}
                     isStravaEnriching={bulk.isStravaEnriching}
+                    onStravaDescriptionBackfill={() => {
+                        const sel = bulk.selectedActivitiesForBulk;
+                        bulk.runStravaDescriptionBackfill(sel.length > 0 ? sel : null);
+                    }}
+                    isStravaDescBackfilling={bulk.isStravaDescBackfilling}
                 />
             )}
         </div>

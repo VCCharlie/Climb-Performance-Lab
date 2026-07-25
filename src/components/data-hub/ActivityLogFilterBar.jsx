@@ -8,6 +8,7 @@ import ActivityLogExportButtons from './ActivityLogExportButtons';
 import AnchoredDropdownPortal from '../ui/AnchoredDropdownPortal';
 import { formatNlNumber } from '../../utils/formatters';
 import { buildMarkRecoveryTooltip } from '../../utils/recoveryTss';
+import { cn } from '../ui/cn';
 
 /**
  * Activity Log toolbar: search, indoor filter, tools menu, quick chips, metric ranges, bulk actions.
@@ -118,8 +119,25 @@ const ActivityLogFilterBar = ({
     isBulkSaving,
     isStravaEnriching,
     isStravaDescBackfilling = false,
-}) => (
-    <div className={`shrink-0 space-y-3 mb-3 lg:mb-4 max-h-[38vh] lg:max-h-none custom-scrollbar pr-0.5 ${showUtilMenu ? 'overflow-visible' : 'overflow-y-auto'} lg:overflow-visible`}>
+    filterBarRootRef,
+}) => {
+    const mobilePanelExpanded = useCardLayout && logMobileFiltersOpen;
+
+    return (
+    <div
+        ref={filterBarRootRef}
+        className={cn(
+            'shrink-0 space-y-3 mb-3 lg:mb-4 custom-scrollbar pr-0.5',
+            useCardLayout
+                ? cn(
+                    showUtilMenu ? 'overflow-visible' : 'overflow-y-auto',
+                    mobilePanelExpanded
+                        ? 'max-h-[min(85vh,100%)] landscape:max-h-[min(92vh,100%)]'
+                        : 'max-h-[min(38vh,100%)] landscape:max-h-[min(52vh,100%)]',
+                )
+                : 'lg:max-h-none lg:overflow-visible',
+        )}
+    >
         <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
             <div className="flex gap-2 w-full md:w-auto flex-1 min-w-0">
                 <div className="relative flex-1 min-w-0">
@@ -201,9 +219,25 @@ const ActivityLogFilterBar = ({
                             onClick={onFindDuplicates}
                             disabled={!activitiesCount}
                             className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-orange-400 hover:bg-cdborder disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                            role="menuitem"
                         >
                             <Split size={14} aria-hidden="true" /> Duplicates
                         </button>
+                        {stravaGetToken && (
+                            <button
+                                type="button"
+                                role="menuitem"
+                                onClick={() => {
+                                    onStravaDescriptionBackfill?.();
+                                    onShowUtilMenuChange(false);
+                                }}
+                                disabled={isStravaDescBackfilling}
+                                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-cdtext hover:bg-cdborder disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                            >
+                                {isStravaDescBackfilling ? <Loader2 className="animate-spin" size={14} aria-hidden="true" /> : <Link2 size={14} aria-hidden="true" />}
+                                Strava descriptions
+                            </button>
+                        )}
                         <div className="border-t border-cdborder" />
                         <button
                             type="button"
@@ -223,7 +257,7 @@ const ActivityLogFilterBar = ({
             <button
                 type="button"
                 onClick={() => onLogMobileFiltersOpenChange((v) => !v)}
-                className="lg:hidden w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-cdborder bg-cdsurface text-xs font-bold text-cdtext cd-transition focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                className="w-full flex items-center justify-between gap-2 px-3 py-2.5 min-h-11 rounded-lg border border-cdborder bg-cdsurface text-xs font-bold text-cdtext cd-transition focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none cd-focus-ring"
                 aria-expanded={logMobileFiltersOpen}
             >
                 <span>{logMobileFiltersOpen ? 'Hide filters & bulk' : 'Filters & bulk actions'}</span>
@@ -231,7 +265,7 @@ const ActivityLogFilterBar = ({
             </button>
         )}
 
-        <div className={`space-y-3 ${useCardLayout && !logMobileFiltersOpen ? 'hidden' : ''} lg:block`}>
+        <div className={cn('space-y-3', useCardLayout && !logMobileFiltersOpen && 'hidden')}>
             <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[10px] font-bold text-cdmuted uppercase shrink-0">Quick</span>
                 <button
@@ -614,6 +648,7 @@ const ActivityLogFilterBar = ({
             </div>
         </div>
     </div>
-);
+    );
+};
 
 export default ActivityLogFilterBar;
