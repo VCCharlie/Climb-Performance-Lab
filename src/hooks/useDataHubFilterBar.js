@@ -56,6 +56,15 @@ export function useDataHubFilterBar({
     const utilMenuButtonRef = useRef(null);
     const [isManualRefreshing, setIsManualRefreshing] = useState(false);
     const [logMobileFiltersOpen, setLogMobileFiltersOpen] = useState(false);
+    const filterBarRootRef = useRef(null);
+
+    useEffect(() => {
+        if (!logMobileFiltersOpen || !useCardLayout) return undefined;
+        const id = window.requestAnimationFrame(() => {
+            filterBarRootRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        });
+        return () => window.cancelAnimationFrame(id);
+    }, [logMobileFiltersOpen, useCardLayout]);
 
     useEffect(() => {
         if (!showUtilMenu) return undefined;
@@ -177,6 +186,7 @@ export function useDataHubFilterBar({
         isBulkSaving: bulk.isBulkSaving,
         isStravaEnriching: bulk.isStravaEnriching,
         isStravaDescBackfilling: bulk.isStravaDescBackfilling,
+        filterBarRootRef,
     };
 
     return { filterBarProps, showUtilMenu, setShowUtilMenu };
