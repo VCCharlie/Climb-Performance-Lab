@@ -9,6 +9,10 @@ import { parseDurationToSeconds } from './formatters';
 import { activityDistanceKm } from './activityFilterMetrics';
 import { buildStravaKomSummaryFromActivityDetail } from './stravaSegmentKomSummary';
 import { safeLocalStorageSet } from './safeStorage.js';
+import {
+    applyStravaElevationToActivity,
+    climbingPatchFromStravaActivity,
+} from './stravaElevation';
 
 function storedMovingTimeSec(act) {
     const t = act?.moving_time;
@@ -132,10 +136,12 @@ export function buildAlreadyLinkedStravaUpdate(match, bikesMap = {}) {
         : null;
     const gearName = gearId ? (bikesMap[gearId] || 'Strava bike') : null;
     const stravaTitle = (strava.name || '').trim();
+    const elevationPatch = climbingPatchFromStravaActivity(strava);
 
     return stripUndefinedFields({
         ...(gearId && { gear_id: gearId, gear_name: gearName }),
         ...(stravaTitle && { title: stravaTitle }),
+        ...elevationPatch,
         ...((!site.rpe || site.rpe === 0) && strava.perceived_exertion && { rpe: strava.perceived_exertion }),
         ...((!site.avg_hr || site.avg_hr === 0) && strava.average_heartrate && { avg_hr: Math.round(strava.average_heartrate) }),
         ...((!site.max_hr || site.max_hr === 0) && strava.max_heartrate && { max_hr: Math.round(strava.max_heartrate) }),
@@ -158,13 +164,18 @@ export async function enrichActivityGearFromStrava(merged, stravaSide, token, op
 
     const forceDetail = opts.forceStravaDetail === true;
 
+    const needsStravaElevation =
+        forceDetail
+        || out.climbing_from_strava !== true;
+
     const needsDetail =
         forceDetail
         || !out.gear_id
         || !out.strava_map
         || (!(out.gear_name != null && String(out.gear_name).trim()))
         || storedMovingTimeSec(out) <= 0
-        || storedDistanceImplausible(out);
+        || storedDistanceImplausible(out)
+        || needsStravaElevation;
 
     const existingKom = out.strava_kom_summary;
     const needsKomSummary = forceDetail
@@ -251,6 +262,8 @@ export async function enrichActivityGearFromStrava(merged, stravaSide, token, op
 
     // Fix legacy bug: Intervals stored meters as "km" for rides <1 km (e.g. 772 m → 772 "km")
     if (detail) {
+        out = applyStravaElevationToActivity(out, detail);
+
         const stravaKm = kmFromStravaDistanceMeters(detail.distance);
         const storeKm = activityDistanceKm(out);
         const suspicious =
@@ -320,6 +333,10 @@ export async function buildStravaDetailEnrichmentUpdates(siteActivities, token, 
                     : {}),
                 ...(timeChanged ? { moving_time: enriched.moving_time } : {}),
                 ...(distChanged ? { distance: enriched.distance } : {}),
+                ...(enriched.climbing_from_strava === true
+                    && Number.isFinite(Number(enriched.climbing))
+                    ? { climbing: Math.round(Number(enriched.climbing)), climbing_from_strava: true }
+                    : {}),
                 ...(Object.prototype.hasOwnProperty.call(enriched, 'strava_kom_summary')
                     ? { strava_kom_summary: enriched.strava_kom_summary }
                     : {}),
@@ -329,6 +346,9 @@ export async function buildStravaDetailEnrichmentUpdates(siteActivities, token, 
             });
             const komSame = JSON.stringify(act.strava_kom_summary ?? null)
                 === JSON.stringify(enriched.strava_kom_summary ?? null);
+            const climbChanged =
+                enriched.climbing_from_strava === true
+                && Math.round(Number(act.climbing) || 0) !== Math.round(Number(enriched.climbing) || 0);
             const same =
                 String(normalizeStravaActivityId(act.strava_id) || act.strava_id || '') === String(patch.strava_id || '')
                 && String(act.gear_id ?? '') === String(patch.gear_id ?? '')
@@ -336,6 +356,7 @@ export async function buildStravaDetailEnrichmentUpdates(siteActivities, token, 
                 && String(act.strava_map ?? '') === String(patch.strava_map ?? '')
                 && !timeChanged
                 && !distChanged
+                && !climbChanged
                 && komSame
                 && String(act.description ?? '').trim() === String(patch.description ?? '').trim();
             if (same || Object.keys(patch).length === 0) {

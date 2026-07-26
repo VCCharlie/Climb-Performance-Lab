@@ -8,13 +8,15 @@ describe('stravaLinkIntervalsFetch', () => {
             { id: 'i2', date: '2026-05-02T08:00:00', strava_id: '999', title: 'Already' },
         ];
         const strava = [
-            { id: 111, start_date_local: '2026-05-01T10:02:00', name: 'Strava A', gear_id: 'b1', sport_type: 'Ride', distance: 50100 },
+            { id: 111, start_date_local: '2026-05-01T10:02:00', name: 'Strava A', gear_id: 'b1', sport_type: 'Ride', distance: 50100, total_elevation_gain: 890 },
             { id: 222, start_date_local: '2026-05-03T08:00:00', name: 'Other' },
         ];
         const out = linkIntervalsActivitiesToStravaList(intervals, strava);
         expect(out[0].strava_id).toBe('111');
         expect(out[0].gear_id).toBe('b1');
         expect(out[0].title).toBe('Strava A');
+        expect(out[0].climbing).toBe(890);
+        expect(out[0].climbing_from_strava).toBe(true);
         expect(out[1].strava_id).toBe('999');
     });
 

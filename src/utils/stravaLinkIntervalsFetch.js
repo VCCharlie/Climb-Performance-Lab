@@ -1,5 +1,6 @@
 import { stravaHttpErrorMessage } from './stravaHttp.js';
 import { isIncludedStravaType, matchStravaToSite } from './stravaMatch.js';
+import { climbingPatchFromStravaActivity } from './stravaElevation.js';
 
 const DEFAULT_MATCH_MS = 900000; // 15 minutes — same as SyncTab
 const MAX_DISTANCE_DIFF_RATIO = 0.25;
@@ -128,6 +129,7 @@ export function linkIntervalsActivitiesToStravaList(intervalsActivities, stravaA
             strava_id: String(bestMatch.id),
             gear_id: bestMatch.gear_id || act.gear_id || null,
             ...(stravaTitle && { title: stravaTitle }),
+            ...climbingPatchFromStravaActivity(bestMatch),
         };
     });
 }
@@ -165,6 +167,7 @@ export function applyStravaFuzzyMatchesToIntervals(intervalsActivities, stravaAc
             strava_id: String(m.strava.id),
             gear_id: m.strava.gear_id || row.gear_id || null,
             ...(stravaTitle && { title: stravaTitle }),
+            ...climbingPatchFromStravaActivity(m.strava),
         };
     }
 }

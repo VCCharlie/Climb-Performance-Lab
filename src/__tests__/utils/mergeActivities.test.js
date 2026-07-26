@@ -110,4 +110,21 @@ describe('mergeActivitiesIntervalsPrimary', () => {
     expect(m.title).toBe('Nice climb day');
     expect(m.strava_kom_summary).toEqual(komSummary);
   });
+
+  it('prefers Strava map-corrected elevation over Intervals climbing', () => {
+    const primary = {
+      id: '100',
+      title: 'Ride',
+      climbing: 1200,
+      strava_id: null,
+    };
+    const secondary = {
+      id: 'strava_9',
+      strava_id: '999',
+      climbing: 890,
+    };
+    const m = mergeActivitiesIntervalsPrimary(primary, secondary);
+    expect(m.climbing).toBe(890);
+    expect(m.climbing_from_strava).toBe(true);
+  });
 });

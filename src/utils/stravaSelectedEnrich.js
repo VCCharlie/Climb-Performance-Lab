@@ -13,6 +13,7 @@ import { buildStravaKomSummaryFromActivityDetail } from './stravaSegmentKomSumma
 import { buildStravaDetailEnrichmentUpdates } from './stravaGearEnrich';
 import { stripUndefinedFields } from './mergeActivities';
 import { shouldPreferStravaTitle } from './stravaTitleHeuristics';
+import { climbingPatchFromStravaActivity } from './stravaElevation';
 
 /**
  * @param {object[]} activities
@@ -171,6 +172,7 @@ async function buildStravaLinkPhaseUpdates(siteActivities, bikeActivities, bikes
             ...(siteNeedsHr && stravaDetailed.average_heartrate && { avg_hr: Math.round(stravaDetailed.average_heartrate) }),
             ...((!m.site.max_hr || m.site.max_hr === 0) && stravaDetailed.max_heartrate && { max_hr: Math.round(stravaDetailed.max_heartrate) }),
             ...(komSummary != null ? { strava_kom_summary: komSummary || null } : {}),
+            ...climbingPatchFromStravaActivity(stravaDetailed),
         });
 
         const hasChanges = Object.keys(updateData).some((k) => updateData[k] !== m.site[k]);

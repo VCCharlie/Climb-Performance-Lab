@@ -83,5 +83,14 @@ export function protectEnrichedFieldsOnMerge(incoming, existing) {
         out.strava_kom_summary = existing.strava_kom_summary;
     }
 
+    if (
+        hasStravaId(existing.strava_id)
+        && existing.climbing_from_strava === true
+        && incoming.climbing_from_strava !== true
+    ) {
+        out.climbing = existing.climbing;
+        out.climbing_from_strava = true;
+    }
+
     return out;
 }
