@@ -31,12 +31,6 @@ const STATUS_FILTER_OPTIONS = [
     { id: 'pb_not_done', label: 'PB not done' },
 ];
 
-function statusPillClass(active) {
-    return active
-        ? 'bg-cdaccent/20 text-cdaccent border-cdaccent/50'
-        : 'bg-cdsurface border-cdborder text-cdmuted hover:text-cdtext hover:border-cdborder';
-}
-
 const BucketList = ({
     initialState,
     remoteRevision = 0,
