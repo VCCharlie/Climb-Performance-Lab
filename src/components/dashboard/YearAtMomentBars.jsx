@@ -1,9 +1,7 @@
 import React, { useMemo } from 'react';
 import { formatNlNumber } from '../../utils/formatters';
 import {
-    compareYearBarColor,
-    compareYearValueSpan,
-    normalizeCompareYearValue,
+    compareYearPaletteColor,
 } from '../../utils/compareYearBarColors';
 
 function metricValue(row, metricId) {
@@ -36,11 +34,16 @@ const YearAtMomentBars = ({ rows, metricId, currentYear }) => {
         [rows],
     );
 
-    const { max, span } = useMemo(() => {
+    const yearsInChart = useMemo(() => sorted.map((row) => row.year), [sorted]);
+
+    const max = useMemo(() => {
         const values = sorted.map((row) => metricValue(row, metricId));
-        const valueSpan = compareYearValueSpan(values);
-        const barMax = valueSpan.max > 0 ? valueSpan.max : 1;
-        return { max: barMax, span: valueSpan };
+        let m = 0;
+        for (const v of values) {
+            const n = Number(v) || 0;
+            if (n > m) m = n;
+        }
+        return m > 0 ? m : 1;
     }, [sorted, metricId]);
 
     if (!sorted.length) {
@@ -53,8 +56,7 @@ const YearAtMomentBars = ({ rows, metricId, currentYear }) => {
                 const value = metricValue(row, metricId);
                 const pct = Math.max(4, (value / max) * 100);
                 const isCurrent = row.year === currentYear;
-                const norm = normalizeCompareYearValue(value, span);
-                const barColor = compareYearBarColor(norm);
+                const barColor = compareYearPaletteColor(row.year, yearsInChart);
 
                 return (
                     <div key={row.year} className="flex items-center gap-2 text-xs">

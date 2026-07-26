@@ -4,6 +4,7 @@ import {
     compareYearValueSpan,
     normalizeCompareYearValue,
     parseCompareBarRgb,
+    compareYearPaletteColor,
 } from '../../utils/compareYearBarColors';
 
 describe('compareYearBarColors', () => {
@@ -28,5 +29,13 @@ describe('compareYearBarColors', () => {
 
         expect(low[1]).toBeGreaterThan(high[1]);
         expect(high[0]).toBeGreaterThan(low[0]);
+    });
+
+    it('compareYearPaletteColor is stable per year in set', () => {
+        const years = [2024, 2025, 2026];
+        const c2026 = compareYearPaletteColor(2026, years);
+        const c2025 = compareYearPaletteColor(2025, years);
+        expect(c2026).not.toBe(c2025);
+        expect(compareYearPaletteColor(2026, years)).toBe(c2026);
     });
 });

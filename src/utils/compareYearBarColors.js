@@ -73,6 +73,32 @@ export function normalizeCompareYearValue(value, span) {
     return (v - span.min) / span.range;
 }
 
+/** Distinct bar colors per calendar year (stable across charts). */
+export const COMPARE_YEAR_PALETTE = [
+    '#3b82f6', // blue — current era
+    '#f59e0b', // amber
+    '#10b981', // emerald
+    '#a855f7', // purple
+    '#ef4444', // red
+    '#06b6d4', // cyan
+    '#ec4899', // pink
+    '#84cc16', // lime
+];
+
+/**
+ * Color for a year in multi-year compare bars.
+ * @param {number} year
+ * @param {number[]} yearsOrdered unique years, any order
+ */
+export function compareYearPaletteColor(year, yearsOrdered = []) {
+    const years = [...new Set((yearsOrdered || []).map((y) => Number(y)))].filter((y) => Number.isFinite(y));
+    years.sort((a, b) => a - b);
+    const y = Number(year);
+    const idx = years.indexOf(y);
+    if (idx < 0) return COMPARE_YEAR_PALETTE[0];
+    return COMPARE_YEAR_PALETTE[idx % COMPARE_YEAR_PALETTE.length];
+}
+
 /**
  * @param {string} rgb
  * @returns {[number, number, number] | null}

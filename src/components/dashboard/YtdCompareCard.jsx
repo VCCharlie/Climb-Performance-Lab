@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { TrendingUp, Bike, Mountain, Clock, Zap } from 'lucide-react';
-import { computeCplYtdYearOverYear, percentChange } from '../../utils/ytdYearOverYear';
+import { computeCplYtdYearOverYear, computeYtdGravelVsRoad, percentChange } from '../../utils/ytdYearOverYear';
 import { chartCardClass } from '../../utils/chartTheme';
 
 const LOCALE = 'en-GB';
@@ -42,6 +42,11 @@ function CompareLine({ label, cur, prev, pct, formatValue }) {
 const YtdCompareCard = ({ activities }) => {
     const ytdYoy = useMemo(
         () => computeCplYtdYearOverYear(activities, new Date()),
+        [activities],
+    );
+
+    const ytdSurface = useMemo(
+        () => computeYtdGravelVsRoad(activities, new Date()),
         [activities],
     );
 
@@ -103,6 +108,46 @@ const YtdCompareCard = ({ activities }) => {
                     formatValue={(n) => `${fmt.int(n)} rides`}
                 />
             </div>
+
+            {ytdSurface && (ytdSurface.thisYtd.road.count > 0 || ytdSurface.thisYtd.gravel.count > 0
+                || ytdSurface.prevYtd.road.count > 0 || ytdSurface.prevYtd.gravel.count > 0) && (
+                <div className="mt-4 rounded-lg border border-cdborder/70 bg-cdbg/30 p-3 space-y-2">
+                    <h4 className="text-[10px] font-bold text-cdmuted uppercase tracking-wide">
+                        YTD volume — road vs gravel
+                    </h4>
+                    <p className="text-[10px] text-cdmuted">
+                        Road = Ride + VirtualRide · Gravel = GravelRide (same calendar window as above).
+                    </p>
+                    <CompareLine
+                        label="Road distance"
+                        cur={ytdSurface.thisYtd.road.distanceKm}
+                        prev={ytdSurface.prevYtd.road.distanceKm}
+                        pct={percentChange(ytdSurface.thisYtd.road.distanceKm, ytdSurface.prevYtd.road.distanceKm)}
+                        formatValue={fmt.dist}
+                    />
+                    <CompareLine
+                        label="Road moving time"
+                        cur={ytdSurface.thisYtd.road.movingTimeSec}
+                        prev={ytdSurface.prevYtd.road.movingTimeSec}
+                        pct={percentChange(ytdSurface.thisYtd.road.movingTimeSec, ytdSurface.prevYtd.road.movingTimeSec)}
+                        formatValue={fmt.time}
+                    />
+                    <CompareLine
+                        label="Gravel distance"
+                        cur={ytdSurface.thisYtd.gravel.distanceKm}
+                        prev={ytdSurface.prevYtd.gravel.distanceKm}
+                        pct={percentChange(ytdSurface.thisYtd.gravel.distanceKm, ytdSurface.prevYtd.gravel.distanceKm)}
+                        formatValue={fmt.dist}
+                    />
+                    <CompareLine
+                        label="Gravel moving time"
+                        cur={ytdSurface.thisYtd.gravel.movingTimeSec}
+                        prev={ytdSurface.prevYtd.gravel.movingTimeSec}
+                        pct={percentChange(ytdSurface.thisYtd.gravel.movingTimeSec, ytdSurface.prevYtd.gravel.movingTimeSec)}
+                        formatValue={fmt.time}
+                    />
+                </div>
+            )}
 
             <div className="mt-3 grid grid-cols-2 sm:grid-cols-5 gap-2 text-[10px] text-cdmuted">
                 <span className="flex items-center gap-1"><Bike size={12} className="text-orange-400" /> Rides</span>
