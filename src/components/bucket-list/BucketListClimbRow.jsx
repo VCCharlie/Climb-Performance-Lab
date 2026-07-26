@@ -2,7 +2,10 @@ import React from 'react';
 import { Check, Clock, Star } from 'lucide-react';
 import FlagIcon from '../FlagIcon';
 import ClimbPbActivityLinks from './ClimbPbActivityLinks';
-import { formatPbSummary, formatPbMatchSourceLabel } from '../../utils/climbPersonalBests';
+import {
+    formatPbSummary,
+    formatPbAttributionDetail,
+} from '../../utils/climbPersonalBests';
 import { formatPbVenueLabel, resolvePbVenue } from '../../utils/activityVenue';
 
 /**
@@ -16,6 +19,7 @@ const BucketListClimbRow = ({
     pbActivity,
     activities,
     onToggleStatus,
+    onRemovePb,
     onOpenActivityInLog,
 }) => {
     const pbLabel = showPb ? formatPbSummary(pb) : null;
@@ -44,17 +48,26 @@ const BucketListClimbRow = ({
                     </p>
                     {pbLabel && (
                         <>
-                            <p
-                                className="text-[10px] text-cdaccent mt-1 font-medium"
-                                title={[pb?.activityTitle, formatPbMatchSourceLabel(pb?.matchSource)].filter(Boolean).join(' · ')}
-                            >
+                            <p className="text-[10px] text-cdaccent mt-1 font-medium">
                                 PB{pbVenue ? ` (${formatPbVenueLabel(pbVenue)})` : ''}: {pbLabel}
+                            </p>
+                            <p className="text-[10px] text-cdmuted mt-0.5 leading-snug">
+                                {formatPbAttributionDetail(pb, climb, pbActivity)}
                             </p>
                             <ClimbPbActivityLinks
                                 pb={pb}
                                 activities={activities}
                                 onOpenActivityInLog={onOpenActivityInLog}
                             />
+                            {onRemovePb && (
+                                <button
+                                    type="button"
+                                    onClick={() => onRemovePb(climb.id)}
+                                    className="mt-1 text-[10px] font-medium text-red-600 dark:text-red-400 hover:underline"
+                                >
+                                    Remove PB
+                                </button>
+                            )}
                         </>
                     )}
                 </div>

@@ -12,6 +12,7 @@ import {
     activityMatchesVenueFilter,
     pbMatchesVenueFilter,
     resolvePbVenue,
+    formatPbVenueLabel,
     climbVenue,
     isClimbVenueCompatible,
 } from './activityVenue';
@@ -311,6 +312,22 @@ export function formatPbMatchSourceLabel(source) {
     if (source === 'description') return 'Matched from activity description';
     if (source === 'title') return 'Matched from activity title';
     return 'Matched from activity title or description';
+}
+
+/**
+ * One-line “why this PB” for bucket list UI.
+ * @param {object | null | undefined} pb
+ * @param {object | null | undefined} climb
+ * @param {object | null | undefined} activity
+ */
+export function formatPbAttributionDetail(pb, climb, activity = null) {
+    if (!pb) return '';
+    const parts = [formatPbMatchSourceLabel(pb.matchSource)];
+    const venue = resolvePbVenue(pb, climb, activity);
+    if (venue) parts.push(formatPbVenueLabel(venue));
+    const title = (pb.activityTitle || activity?.title || '').trim();
+    if (title) parts.push(`Ride: ${title}`);
+    return parts.join(' · ');
 }
 
 function pbMetricScore(pb) {

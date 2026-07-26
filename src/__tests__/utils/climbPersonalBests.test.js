@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { scanClimbPersonalBests, scanClimbPersonalBestsAsync, formatPbSummary, hasStoredClimbPb, countClimbsWithPb, summarizePbScanResult, formatPbScanFeedbackMessage, pruneMismatchedVenuePbs, replaceClimbPbsFromScan, pruneInvalidPbAttributions } from '../../utils/climbPersonalBests';
+import { scanClimbPersonalBests, scanClimbPersonalBestsAsync, formatPbSummary, hasStoredClimbPb, countClimbsWithPb, summarizePbScanResult, formatPbScanFeedbackMessage, formatPbAttributionDetail, pruneMismatchedVenuePbs, replaceClimbPbsFromScan, pruneInvalidPbAttributions } from '../../utils/climbPersonalBests';
 
 const climbs = [
     { id: 'fr_alpe', name: "Alpe d'Huez", country: 'FR' },
@@ -181,6 +181,18 @@ describe('scanClimbPersonalBests', () => {
         const replaced = replaceClimbPbsFromScan(scanned, zwiftOnlyClimbs);
         expect(replaced.fr_alpe).toBeUndefined();
         expect(Object.keys(replaced).length).toBeLessThan(Object.keys(prev).length);
+    });
+
+    it('formatPbAttributionDetail combines match source, venue, and ride title', () => {
+        const climb = { id: 'fr_alpe', name: 'Alpe d\'Huez', country: 'FR' };
+        const pb = {
+            matchSource: 'description',
+            activityTitle: 'Sunday climb',
+            venue: 'outdoor',
+        };
+        const detail = formatPbAttributionDetail(pb, climb, null);
+        expect(detail).toContain('description');
+        expect(detail).toContain('Sunday climb');
     });
 
     it('summarizePbScanResult reports no change when scan matches same climbs', () => {
