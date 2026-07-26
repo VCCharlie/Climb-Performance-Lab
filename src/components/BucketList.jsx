@@ -12,6 +12,7 @@ import {
     summarizePbScanResult,
     formatPbScanFeedbackMessage,
 } from '../utils/climbPersonalBests';
+import { formatBucketListSyncLabel } from '../utils/bucketListSyncLabel';
 import { yieldToMain } from '../utils/yieldToMain';
 
 const PB_VENUE_FILTER_OPTIONS = [
@@ -27,17 +28,13 @@ const STATUS_FILTER_OPTIONS = [
     { id: 'want', label: 'Want' },
     { id: 'todo', label: 'To do' },
     { id: 'with_pb', label: 'With PB' },
+    { id: 'pb_not_done', label: 'PB not done' },
 ];
-
-function statusPillClass(active) {
-    return active
-        ? 'bg-cdaccent/20 text-cdaccent border-cdaccent/50'
-        : 'bg-cdsurface border-cdborder text-cdmuted hover:text-cdtext hover:border-cdborder';
-}
 
 const BucketList = ({
     initialState,
     remoteRevision = 0,
+    isSignedIn = false,
     onStateChange,
     onOpenWeatherForClimb,
     onOpenMapTab,
@@ -142,7 +139,7 @@ const BucketList = ({
             }
             setScanFeedback({
                 tone: summary.newClimbs > 0 || summary.improvedPbs > 0 || summary.removedPbs > 0 ? 'success' : 'info',
-                message: formatPbScanFeedbackMessage(summary),
+                message: `${formatPbScanFeedbackMessage(summary)}${isSignedIn ? ' Saved to cloud.' : ''}`,
                 at: Date.now(),
             });
         } catch (err) {
@@ -167,6 +164,16 @@ const BucketList = ({
             } else {
                 next[id] = status;
             }
+            return next;
+        });
+    }, []);
+
+    const removeClimbPb = useCallback((climbId) => {
+        const id = String(climbId);
+        setClimbPbs((prev) => {
+            if (!prev[id]) return prev;
+            const next = { ...prev };
+            delete next[id];
             return next;
         });
     }, []);
@@ -312,6 +319,18 @@ const BucketList = ({
         [climbPbs, climbDatabase, pbVenueFilter, activities],
     );
 
+    const pbNotDoneCount = useMemo(() => {
+        let count = 0;
+        for (const climb of climbDatabase) {
+            const climbId = String(climb.id);
+            if (climbStatus[climbId] === 'done') continue;
+            const pb = climbPbs[climbId];
+            const activity = pb?.activityId ? activityById.get(String(pb.activityId)) : null;
+            if (hasStoredClimbPb(climbPbs, climb.id, climb, pbVenueFilter, activity)) count += 1;
+        }
+        return count;
+    }, [climbDatabase, climbStatus, climbPbs, pbVenueFilter, activityById]);
+
     const statusFilterCounts = useMemo(() => ({
         all: climbDatabase.length,
         done: statusCounts.done,
@@ -319,7 +338,8 @@ const BucketList = ({
         want: statusCounts.want,
         todo: statusCounts.todo,
         with_pb: pbCount,
-    }), [climbDatabase.length, statusCounts, pbCount]);
+        pb_not_done: pbNotDoneCount,
+    }), [climbDatabase.length, statusCounts, pbCount, pbNotDoneCount]);
 
     // Filter and sort climbs
     const filteredClimbs = useMemo(() => {
@@ -339,6 +359,14 @@ const BucketList = ({
         if (filterStatus === 'with_pb') {
             filtered = filtered.filter((climb) => {
                 const pb = climbPbs[climb.id];
+                const activity = pb?.activityId ? activityById.get(String(pb.activityId)) : null;
+                return hasStoredClimbPb(climbPbs, climb.id, climb, pbVenueFilter, activity);
+            });
+        } else if (filterStatus === 'pb_not_done') {
+            filtered = filtered.filter((climb) => {
+                const climbId = String(climb.id);
+                if (climbStatus[climbId] === 'done') return false;
+                const pb = climbPbs[climbId];
                 const activity = pb?.activityId ? activityById.get(String(pb.activityId)) : null;
                 return hasStoredClimbPb(climbPbs, climb.id, climb, pbVenueFilter, activity);
             });
@@ -368,17 +396,50 @@ const BucketList = ({
         return filtered;
     }, [searchTerm, filterStatus, sortBy, climbStatus, climbDatabase, climbPbs, pbVenueFilter, activityById]);
 
+    const visiblePbNotDoneCount = useMemo(() => {
+        let count = 0;
+        for (const climb of filteredClimbs) {
+            const climbId = String(climb.id);
+            if (climbStatus[climbId] === 'done') continue;
+            const pb = climbPbs[climbId];
+            const activity = pb?.activityId ? activityById.get(String(pb.activityId)) : null;
+            if (hasStoredClimbPb(climbPbs, climb.id, climb, pbVenueFilter, activity)) count += 1;
+        }
+        return count;
+    }, [filteredClimbs, climbStatus, climbPbs, pbVenueFilter, activityById]);
+
+    const markVisiblePbAsDone = useCallback(() => {
+        setClimbStatus((prev) => {
+            const next = { ...prev };
+            for (const climb of filteredClimbs) {
+                const climbId = String(climb.id);
+                if (next[climbId] === 'done') continue;
+                const pb = climbPbs[climbId];
+                const activity = pb?.activityId ? activityById.get(String(pb.activityId)) : null;
+                if (!hasStoredClimbPb(climbPbs, climb.id, climb, pbVenueFilter, activity)) continue;
+                next[climbId] = 'done';
+            }
+            return next;
+        });
+    }, [filteredClimbs, climbPbs, pbVenueFilter, activityById]);
+
+    const bucketSyncLabel = formatBucketListSyncLabel({
+        isSignedIn,
+        updatedAt: initialState?.updatedAt,
+        pbScanCompletedAt: initialState?.pbScanCompletedAt,
+    });
+
     const climbRowVirtualizer = useVirtualizer({
         count: filteredClimbs.length,
         getScrollElement: () => climbListScrollRef.current,
-        estimateSize: () => 118,
+        estimateSize: () => 140,
         overscan: 8,
-        measureElement: (el) => el?.getBoundingClientRect().height ?? 118,
+        measureElement: (el) => el?.getBoundingClientRect().height ?? 140,
     });
 
     return (
         <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
                 <h2 className="text-xl font-bold text-cdtext flex items-center gap-2">
                     <Mountain className="text-orange-400" />
                     Climb Bucket List
@@ -387,6 +448,9 @@ const BucketList = ({
                     {achievements.stats.totalDone} / {climbDatabase.length} completed
                 </div>
             </div>
+            <p className="text-[11px] text-cdmuted leading-snug" role="status">
+                {bucketSyncLabel}
+            </p>
 
             {/* Stats & Achievements */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -540,7 +604,8 @@ const BucketList = ({
                         <option value="planned">Planned ({statusCounts.planned})</option>
                         <option value="want">Want to do ({statusCounts.want})</option>
                         <option value="todo">To do ({statusCounts.todo})</option>
-                        <option value="with_pb">With activity PB ({pbCount})</option>
+                        <option value="with_pb">With activity PB ({statusFilterCounts.with_pb})</option>
+                        <option value="pb_not_done">PB not marked Done ({statusFilterCounts.pb_not_done})</option>
                     </select>
                 </div>
 
@@ -560,8 +625,17 @@ const BucketList = ({
 
             {/* Climb List */}
             <div className="bg-cdbg p-4 rounded border border-cdborder">
-                <h3 className="text-cdtext font-bold text-sm mb-3 uppercase tracking-wide">
-                    Climbs ({filteredClimbs.length})
+                <h3 className="text-cdtext font-bold text-sm mb-3 uppercase tracking-wide flex flex-wrap items-center justify-between gap-2">
+                    <span>Climbs ({filteredClimbs.length})</span>
+                    {visiblePbNotDoneCount > 0 && (
+                        <button
+                            type="button"
+                            onClick={markVisiblePbAsDone}
+                            className="text-[10px] font-bold px-2.5 py-1 rounded-md border border-green-600/50 bg-green-600/10 text-green-800 dark:text-green-300 hover:bg-green-600/20 cd-transition"
+                        >
+                            Mark {visiblePbNotDoneCount} visible PB as Done
+                        </button>
+                    )}
                 </h3>
                 <div
                     ref={climbListScrollRef}
@@ -571,7 +645,9 @@ const BucketList = ({
                         <p className="text-sm text-cdmuted text-center py-6">
                             {filterStatus === 'with_pb'
                                 ? 'No climbs with a scanned personal best yet. Run “Scan activities for PBs” above.'
-                                : 'No climbs match your filters.'}
+                                : filterStatus === 'pb_not_done'
+                                  ? 'No climbs with a PB that still need marking as Done.'
+                                  : 'No climbs match your filters.'}
                         </p>
                     ) : (
                         <div
@@ -602,6 +678,7 @@ const BucketList = ({
                                             pbActivity={pbActivity}
                                             activities={activities}
                                             onToggleStatus={toggleClimbStatus}
+                                            onRemovePb={removeClimbPb}
                                             onOpenActivityInLog={onOpenActivityInLog}
                                         />
                                     </div>

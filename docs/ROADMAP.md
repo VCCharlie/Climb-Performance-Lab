@@ -25,13 +25,28 @@ Planmatige uitrol van verbeteringen (juli 2026). Volgorde volgt impact en afhank
 
 ---
 
-## Fase 3 — Race & bucket list (huidige fase)
+## Fase 3 — Race & bucket list ✅
 
 | # | Onderdeel | Status |
 |---|-----------|--------|
 | 3a | **Race Pacing → Fueling** (`raceFuelingHandoff.js`, carbs/h + altitude) | Done |
 | 3b | **Bucket List + Map + Weather** (schema-fix, planned panel, weather link) | Done |
 | 3c | **Persoonlijke klim-PB's** (`climbPersonalBests.js`, scan uit activities) | Done |
+
+---
+
+## Fase 6 — Product backlog (juli 2026)
+
+Grote thema’s uit gebruikersfeedback; uitrol in deel-fases (A–F).
+
+| Fase | Thema | Onderdelen | Status |
+|------|--------|------------|--------|
+| **6A** | PB-trust & sync-UX | “Why this PB”, Remove PB, filter PB not Done, bulk Mark PB as Done, sync-statusregel, “Saved to cloud” na scan | Done (PR #388) |
+| **6B** | Activity Log | Filter presets, MTB-icoon, filter-by-bike van rij, EBike-chip | Planned |
+| **6C** | Dashboard | Jaar-kleur legend compare, YTD gravel vs road volume | Planned |
+| **6D** | Bucket ↔ Profiler/Weather | Snellere flows; Done-klim PB vs DB-gradient | Planned |
+| **6E** | Sync UX (breed) | Overige sync-status in DataHub | Planned |
+| **6F** | Export | Done + PB CSV/JSON | Planned |
 
 ---
 

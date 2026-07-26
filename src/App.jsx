@@ -980,6 +980,7 @@ const App = () => {
                                     <BucketListWithNavigation
                                         initialState={bucketListState}
                                         remoteRevision={bucketListRemoteRevision}
+                                        isSignedIn={!!user}
                                         onStateChange={handleBucketListStateChange}
                                         onOpenWeatherForClimb={(climb) => {
                                             setWeatherClimbState((prev) => ({
