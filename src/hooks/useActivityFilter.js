@@ -19,6 +19,10 @@ import {
     detectActiveLogFilterPreset,
 } from '../utils/activityLogFilterPresets';
 import { safeLocalStorageSet } from '../utils/safeStorage';
+import {
+    buildGearFilterOptionsFromActivities,
+    mergeActiveGearFilterOption,
+} from '../utils/activityGearFilterOptions';
 
 // Helper inside hook or import
 const isValid = (act) => act && act.id && act.date;
