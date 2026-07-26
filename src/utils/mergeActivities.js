@@ -139,13 +139,22 @@ export function mergeActivitiesIntervalsPrimary(primary, secondary) {
     const pClimb = Number(p.climbing) || 0;
     const sClimb = Number(s.climbing) || 0;
     if (secondaryIsStrava) {
-        const fromStrava = climbingMetersFromStrava(s.total_elevation_gain ?? s.climbing);
-        if (fromStrava != null) {
-            p.climbing = fromStrava;
+        // Prefer Strava map-corrected elevation only from an authentic source:
+        // total_elevation_gain, or climbing already flagged climbing_from_strava.
+        // Falling back to bare climbing:0 (normalize default) was treating missing
+        // elevation as authoritative and zeroing Intervals meters permanently.
+        const fromGain = climbingMetersFromStrava(s.total_elevation_gain);
+        if (fromGain != null) {
+            p.climbing = fromGain;
             p.climbing_from_strava = true;
+        } else if (s.climbing_from_strava === true) {
+            const authenticated = climbingMetersFromStrava(s.climbing);
+            if (authenticated != null) {
+                p.climbing = authenticated;
+                p.climbing_from_strava = true;
+            }
         } else if (pClimb <= 0 && sClimb > 0) {
             p.climbing = s.climbing;
-            p.climbing_from_strava = true;
         }
     } else if (pClimb <= 0 && sClimb > 0) {
         p.climbing = s.climbing;

@@ -67,4 +67,18 @@ describe('protectEnrichedFieldsOnMerge', () => {
     );
     expect(out.strava_kom_summary).toEqual(kom);
   });
+
+  it('protects Strava map-corrected climbing from Intervals overwrite', () => {
+    const out = protectEnrichedFieldsOnMerge(
+      { id: '1', title: 'Ride', climbing: 1100, strava_id: '12345678' },
+      {
+        id: '1',
+        strava_id: '12345678',
+        climbing: 890,
+        climbing_from_strava: true,
+      }
+    );
+    expect(out.climbing).toBe(890);
+    expect(out.climbing_from_strava).toBe(true);
+  });
 });
