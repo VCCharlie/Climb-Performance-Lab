@@ -872,6 +872,7 @@ const App = () => {
                                                 profileFtp={userSettings?.ftp}
                                                 profileMaxHr={userSettings?.maxHr}
                                                 userSettings={userSettings}
+                                                isSignedIn={!!user}
                                             />
                                         )}
 

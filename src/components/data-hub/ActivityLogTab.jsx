@@ -3,6 +3,7 @@ import { Loader2, AlertTriangle } from 'lucide-react';
 import ActivityLogView from './ActivityLogView';
 import ActivityLogFilterBar from './ActivityLogFilterBar';
 import ActivityLogSyncBanners from './ActivityLogSyncBanners';
+import ActivityLogSyncStatusLine from './ActivityLogSyncStatusLine';
 import IntervalsSyncPanel from './IntervalsSyncPanel';
 import QuickNav from './QuickNav';
 import { formatDateDDMMYYYY } from '../../utils/formatters';
@@ -12,6 +13,12 @@ import { formatDateDDMMYYYY } from '../../utils/formatters';
  */
 export default function ActivityLogTab({
     intervalsSync,
+    isSignedIn = false,
+    firestoreSyncStatus,
+    isLoadingActivities,
+    lastActivityDate,
+    lastCloudSyncAt,
+    lastIntervalsSyncAt,
     bulkSelectedCount = 0,
     stravaListProgress,
     stravaAutoEnrichNotice,
@@ -64,6 +71,17 @@ export default function ActivityLogTab({
                 onDismissStravaDescBackfillMsg={() => bulk.setStravaDescBackfillMsg(null)}
                 stravaAutoEnrichNotice={stravaAutoEnrichNotice}
                 onDismissStravaAutoEnrichNotice={onDismissStravaAutoEnrichNotice}
+            />
+
+            <ActivityLogSyncStatusLine
+                isSignedIn={isSignedIn}
+                firestoreSyncStatus={firestoreSyncStatus}
+                isLoadingActivities={isLoadingActivities}
+                activityCount={activities?.length ?? 0}
+                lastActivityDate={lastActivityDate}
+                lastCloudSyncAt={lastCloudSyncAt}
+                lastIntervalsSyncAt={lastIntervalsSyncAt}
+                isIntervalsBusy={intervalsSync.isFetchingNewIntervals || intervalsSync.isSyncing}
             />
 
             <IntervalsSyncPanel

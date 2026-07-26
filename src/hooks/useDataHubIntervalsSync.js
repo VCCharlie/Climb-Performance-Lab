@@ -13,6 +13,8 @@ import {
 import useIntervalsSync from './useIntervalsSync';
 import { resolveDeviceProfileTitlesFromSettings } from '../utils/bikeComputerProfileTitles';
 import { useToast } from '../context/ToastContext';
+import { safeLocalStorageSet } from '../utils/safeStorage';
+import { ACTIVITY_LOG_INTERVALS_LAST_SYNC_KEY, readLastIntervalsSyncAt } from '../utils/activityLogSyncLabel';
 
 /**
  * Intervals.icu sync + fetch-new flows for DataHub (selected-row sync and date-range fetch).
@@ -28,9 +30,16 @@ export function useDataHubIntervalsSync({
 }) {
     const deviceProfileTitles = resolveDeviceProfileTitlesFromSettings(userSettings);
     const { showToast } = useToast();
+
+    const recordIntervalsSyncSuccess = useCallback(() => {
+        const now = new Date().toISOString();
+        safeLocalStorageSet(ACTIVITY_LOG_INTERVALS_LAST_SYNC_KEY, now);
+        setLastIntervalsSyncAt(now);
+    }, []);
     const { syncIntervals, isSyncing, syncProgress } = useIntervalsSync(intervalsConfig);
     const [syncStatus, setSyncStatus] = useState(null);
     const [syncErrorDetail, setSyncErrorDetail] = useState(null);
+    const [lastIntervalsSyncAt, setLastIntervalsSyncAt] = useState(() => readLastIntervalsSyncAt());
     const [syncDates, setSyncDates] = useState(() => ({
         start: new Date(new Date().setDate(new Date().getDate() - 14)).toISOString().split('T')[0],
         end: new Date().toISOString().split('T')[0],
@@ -194,6 +203,7 @@ export function useDataHubIntervalsSync({
 
             onImport(working);
 
+            recordIntervalsSyncSuccess();
             setSyncStatus('done');
             const parts = [];
             if (mergedNews.length > 0) parts.push(`${mergedNews.length} Intervals row(s) saved`);
@@ -232,6 +242,7 @@ export function useDataHubIntervalsSync({
         getSelectedSportTypes,
         showToast,
         stravaEnrichEnabled,
+        recordIntervalsSyncSuccess,
     ]);
 
     const handleFetchNewFromIntervals = useCallback(async () => {
@@ -355,6 +366,7 @@ export function useDataHubIntervalsSync({
                 onImport(merged);
             }
 
+            recordIntervalsSyncSuccess();
             setSyncStatus('done');
             const parts = [];
             if (merged.length > 0) parts.push(`${merged.length} from Intervals.icu`);
@@ -399,6 +411,7 @@ export function useDataHubIntervalsSync({
         getSelectedSportTypes,
         showToast,
         stravaEnrichEnabled,
+        recordIntervalsSyncSuccess,
     ]);
 
     const handleRunSync = useCallback(() => {
@@ -428,5 +441,6 @@ export function useDataHubIntervalsSync({
         handleFetchNewFromIntervals,
         isSyncing,
         syncProgress,
+        lastIntervalsSyncAt,
     };
 }
