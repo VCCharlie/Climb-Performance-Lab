@@ -121,10 +121,50 @@ describe('mergeActivitiesIntervalsPrimary', () => {
     const secondary = {
       id: 'strava_9',
       strava_id: '999',
+      total_elevation_gain: 890,
       climbing: 890,
+      climbing_from_strava: true,
     };
     const m = mergeActivitiesIntervalsPrimary(primary, secondary);
     expect(m.climbing).toBe(890);
+    expect(m.climbing_from_strava).toBe(true);
+  });
+
+  it('does not zero Intervals climbing when Strava elevation is missing', () => {
+    const primary = {
+      id: '100',
+      title: 'Ride',
+      climbing: 1200,
+      strava_id: null,
+    };
+    // Normalized Strava row without total_elevation_gain used to set climbing:0
+    // and climbing_from_strava:true, which wiped Intervals meters on merge.
+    const secondary = {
+      id: 'strava_9',
+      strava_id: '999',
+      climbing: 0,
+    };
+    const m = mergeActivitiesIntervalsPrimary(primary, secondary);
+    expect(m.climbing).toBe(1200);
+    expect(m.climbing_from_strava).toBeUndefined();
+  });
+
+  it('keeps authentic Strava flat-ride elevation of 0 over Intervals climbing', () => {
+    const primary = {
+      id: '100',
+      title: 'Ride',
+      climbing: 40,
+      strava_id: null,
+    };
+    const secondary = {
+      id: 'strava_9',
+      strava_id: '999',
+      total_elevation_gain: 0,
+      climbing: 0,
+      climbing_from_strava: true,
+    };
+    const m = mergeActivitiesIntervalsPrimary(primary, secondary);
+    expect(m.climbing).toBe(0);
     expect(m.climbing_from_strava).toBe(true);
   });
 });

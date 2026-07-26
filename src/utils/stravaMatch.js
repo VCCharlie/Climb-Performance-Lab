@@ -4,6 +4,8 @@
  * op basis van datum + afstand + duur (fuzzy match, geen Strava ID vereist).
  */
 
+import { climbingMetersFromStrava } from './stravaElevation';
+
 // Fietstypes die we willen ophalen / koppelen
 export const STRAVA_BIKE_TYPES = new Set([
     'Ride', 'VirtualRide', 'GravelRide', 'MountainBikeRide', 'Cycling'
@@ -44,25 +46,31 @@ const parseMovingTime = (timeStr) => {
 };
 
 // Converteer Strava API activiteit naar site-formaat
-export const normalizeStravaActivity = (act) => ({
-    id: `strava_${act.id}`,
-    strava_id: String(act.id),
-    strava_map: act.map?.summary_polyline || null,
-    date: act.start_date_local.split('T')[0],
-    type: mapType(act.sport_type || act.type),
-    title: act.name,
-    distance: Math.round((act.distance / 1000) * 10) / 10,
-    climbing: Math.round(act.total_elevation_gain || 0),
-    climbing_from_strava: true,
-    avg_speed: Math.round((act.average_speed * 3.6) * 10) / 10,
-    avg_power: Math.round(act.average_watts || 0),
-    norm_power: Math.round(act.weighted_average_watts || 0),
-    avg_hr: Math.round(act.average_heartrate || 0),
-    max_hr: Math.round(act.max_heartrate || 0),
-    load: 0,
-    rpe: act.perceived_exertion || 0,
-    moving_time: formatMovingTime(act.moving_time || 0)
-});
+export const normalizeStravaActivity = (act) => {
+    // Only mark climbing_from_strava when total_elevation_gain is present.
+    // Defaulting missing elevation to 0 + the flag let merges wipe Intervals climbing
+    // and protectEnrichedFieldsOnMerge then blocked Intervals from restoring it.
+    const climbingMeters = climbingMetersFromStrava(act?.total_elevation_gain);
+    return {
+        id: `strava_${act.id}`,
+        strava_id: String(act.id),
+        strava_map: act.map?.summary_polyline || null,
+        date: act.start_date_local.split('T')[0],
+        type: mapType(act.sport_type || act.type),
+        title: act.name,
+        distance: Math.round((act.distance / 1000) * 10) / 10,
+        climbing: climbingMeters != null ? climbingMeters : 0,
+        ...(climbingMeters != null ? { climbing_from_strava: true } : {}),
+        avg_speed: Math.round((act.average_speed * 3.6) * 10) / 10,
+        avg_power: Math.round(act.average_watts || 0),
+        norm_power: Math.round(act.weighted_average_watts || 0),
+        avg_hr: Math.round(act.average_heartrate || 0),
+        max_hr: Math.round(act.max_heartrate || 0),
+        load: 0,
+        rpe: act.perceived_exertion || 0,
+        moving_time: formatMovingTime(act.moving_time || 0)
+    };
+};
 
 /**
  * Koppel Strava-activiteiten aan bestaande site-activiteiten via fuzzy matching.
