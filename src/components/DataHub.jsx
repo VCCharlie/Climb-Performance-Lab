@@ -18,9 +18,10 @@ import { useDataHubLogDerivations } from '../hooks/useDataHubLogDerivations';
 import { useDataHubFilterBar } from '../hooks/useDataHubFilterBar';
 import { useDataHubMaintenance } from '../hooks/useDataHubMaintenance';
 import { useActivityCardLayout } from '../hooks/useMediaQuery';
-import { useActivities } from '../hooks/useActivities';
+import { useActivities, useActivitiesSync } from '../hooks/useActivities';
 import { useActivityLogNavigation } from '../context/ActivityLogNavigationContext';
 import { resolveRecoveryTss } from '../utils/recoveryTss';
+import { readLastCloudSyncAt } from '../utils/activityLogSyncLabel';
 
 const DataHub = ({
     intervalsConfig,
@@ -38,6 +39,7 @@ const DataHub = ({
     profileFtp,
     profileMaxHr,
     userSettings,
+    isSignedIn = false,
 }) => {
     const {
         activities,
@@ -46,6 +48,17 @@ const DataHub = ({
         clearActivities: onClear,
         refreshFromServer: onRefresh,
     } = useActivities();
+
+    const {
+        syncStatus: firestoreSyncStatus,
+        isLoading: isLoadingActivities,
+        lastActivityDate,
+    } = useActivitiesSync();
+
+    const lastCloudSyncAt = React.useMemo(
+        () => readLastCloudSyncAt(),
+        [firestoreSyncStatus, activities.length],
+    );
 
     const {
         activityFocusId: focusActivityId,
@@ -280,6 +293,12 @@ const DataHub = ({
                 {internalTab === 'log' && (
                     <ActivityLogTab
                         intervalsSync={intervalsSync}
+                        isSignedIn={isSignedIn}
+                        firestoreSyncStatus={firestoreSyncStatus}
+                        isLoadingActivities={isLoadingActivities}
+                        lastActivityDate={lastActivityDate}
+                        lastCloudSyncAt={lastCloudSyncAt}
+                        lastIntervalsSyncAt={intervalsSync.lastIntervalsSyncAt}
                         bulkSelectedCount={bulk.bulkSelectedIds.size}
                         stravaListProgress={stravaEnrich.stravaListProgress}
                         stravaAutoEnrichNotice={stravaEnrich.stravaAutoEnrichNotice}
