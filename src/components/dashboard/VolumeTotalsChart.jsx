@@ -221,7 +221,7 @@ const VolumeTotalsChart = ({
                 </div>
             </div>
 
-            <div className="flex flex-wrap gap-2 justify-center" role="group" aria-label="Metric">
+            <div className="flex flex-wrap gap-2 justify-start" role="group" aria-label="Metric">
                 {METRICS.map((m) => (
                     <button key={m.id} type="button" className={pill(metricId === m.id)} onClick={() => setMetricId(m.id)}>
                         {m.label}
@@ -229,7 +229,7 @@ const VolumeTotalsChart = ({
                 ))}
             </div>
 
-            <div className="flex flex-wrap gap-2 justify-center" role="group" aria-label="Compare">
+            <div className="flex flex-wrap gap-2 justify-start items-center" role="group" aria-label="Compare">
                 <span className="text-[10px] text-cdmuted self-center mr-1 uppercase font-bold">Compare</span>
                 <button type="button" className={pill(compareMode === 'off')} onClick={() => setCompareMode('off')}>
                     Off
