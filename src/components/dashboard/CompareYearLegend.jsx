@@ -5,7 +5,7 @@ import { compareYearPaletteColor } from '../../utils/compareYearBarColors';
  * Legend for Compare tab year bars — one swatch per year shown.
  */
 const CompareYearLegend = ({ years, currentYear }) => {
-    const sorted = [...new Set((years || []).map((y) => Number(y))).filter((y) => Number.isFinite(y))];
+    const sorted = [...new Set((years || []).map((y) => Number(y)))].filter((y) => Number.isFinite(y));
     sorted.sort((a, b) => b - a);
 
     if (!sorted.length) return null;
