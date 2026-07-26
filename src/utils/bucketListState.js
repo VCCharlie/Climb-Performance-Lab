@@ -3,13 +3,21 @@
  * Migrates legacy { done: [], planned: [], want: [] } from early ClimbMap.
  */
 
+import { normalizeDismissedPbClimbIds } from './bucketListPbDismiss';
+
 export const BUCKET_STATUSES = ['done', 'planned', 'want'];
 
 /**
  * @returns {{ climbStatus: Record<string, string>, climbPbs: Record<string, object> }}
  */
 export function defaultBucketListState() {
-    return { climbStatus: {}, climbPbs: {}, updatedAt: null, pbScanCompletedAt: null };
+    return {
+        climbStatus: {},
+        climbPbs: {},
+        updatedAt: null,
+        pbScanCompletedAt: null,
+        dismissedPbClimbIds: [],
+    };
 }
 
 /**
@@ -31,8 +39,10 @@ export function migrateLegacyBucketState(raw) {
         ? raw.pbScanCompletedAt.trim()
         : null;
 
+    const dismissedPbClimbIds = normalizeDismissedPbClimbIds(raw.dismissedPbClimbIds);
+
     if (raw.climbStatus && typeof raw.climbStatus === 'object') {
-        return { climbStatus: { ...raw.climbStatus }, climbPbs, updatedAt, pbScanCompletedAt };
+        return { climbStatus: { ...raw.climbStatus }, climbPbs, updatedAt, pbScanCompletedAt, dismissedPbClimbIds };
     }
 
     const climbStatus = {};
@@ -44,7 +54,7 @@ export function migrateLegacyBucketState(raw) {
         }
     }
 
-    return { climbStatus, climbPbs, updatedAt, pbScanCompletedAt };
+    return { climbStatus, climbPbs, updatedAt, pbScanCompletedAt, dismissedPbClimbIds };
 }
 
 /**
@@ -91,6 +101,7 @@ export function setClimbBucketStatus(state, climbId, status, { toggle = true } =
         // Keep sync metadata — status toggles must not wipe PB scan timestamps.
         updatedAt: typeof state?.updatedAt === 'string' ? state.updatedAt : null,
         pbScanCompletedAt: typeof state?.pbScanCompletedAt === 'string' ? state.pbScanCompletedAt : null,
+        dismissedPbClimbIds: normalizeDismissedPbClimbIds(state?.dismissedPbClimbIds),
     };
 }
 
@@ -114,5 +125,6 @@ export function mergeClimbPbs(state, climbPbs) {
         climbPbs: { ...(state?.climbPbs || {}), ...(climbPbs || {}) },
         updatedAt: typeof state?.updatedAt === 'string' ? state.updatedAt : null,
         pbScanCompletedAt: typeof state?.pbScanCompletedAt === 'string' ? state.pbScanCompletedAt : null,
+        dismissedPbClimbIds: normalizeDismissedPbClimbIds(state?.dismissedPbClimbIds),
     };
 }

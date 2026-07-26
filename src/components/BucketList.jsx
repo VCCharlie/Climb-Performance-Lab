@@ -19,6 +19,7 @@ import {
     buildBucketListExportRows,
 } from '../utils/bucketListExport';
 import { yieldToMain } from '../utils/yieldToMain';
+import { addDismissedPbClimbId, climbPbsWithoutDismissed } from '../utils/bucketListPbDismiss';
 
 const PB_VENUE_FILTER_OPTIONS = [
     { id: 'outdoor', label: 'Outdoor' },
@@ -55,6 +56,9 @@ const BucketList = ({
 
     const [climbStatus, setClimbStatus] = useState(initialState?.climbStatus || {});
     const [climbPbs, setClimbPbs] = useState(initialState?.climbPbs || {});
+    const [dismissedPbClimbIds, setDismissedPbClimbIds] = useState(
+        initialState?.dismissedPbClimbIds || [],
+    );
     const [filterStatus, setFilterStatus] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [sortBy, setSortBy] = useState('name');
@@ -79,6 +83,7 @@ const BucketList = ({
         skipParentNotifyRef.current = true;
         setClimbStatus(initialState?.climbStatus || {});
         setClimbPbs(initialState?.climbPbs || {});
+        setDismissedPbClimbIds(initialState?.dismissedPbClimbIds || []);
     }, [parentSyncToken, initialState]);
 
     // Update parent when local bucket list edits change (not when applying cloud sync).
@@ -92,9 +97,9 @@ const BucketList = ({
             return;
         }
         if (onStateChange) {
-            onStateChange({ climbStatus, climbPbs });
+            onStateChange({ climbStatus, climbPbs, dismissedPbClimbIds });
         }
-    }, [climbStatus, climbPbs, onStateChange]);
+    }, [climbStatus, climbPbs, dismissedPbClimbIds, onStateChange]);
 
     const handleScanPbs = async () => {
         if (!activities?.length) {
@@ -134,13 +139,15 @@ const BucketList = ({
                 climbsForScan,
             );
             const pbScanCompletedAt = new Date().toISOString();
+            const replaced = climbPbsWithoutDismissed(summary.replaced, dismissedPbClimbIds);
             skipParentNotifyRef.current = true;
-            setClimbPbs(summary.replaced);
+            setClimbPbs(replaced);
             if (onStateChange) {
                 onStateChange({
                     climbStatus: climbStatusRef.current,
-                    climbPbs: summary.replaced,
+                    climbPbs: replaced,
                     pbScanCompletedAt,
+                    dismissedPbClimbIds,
                 });
             }
             setScanFeedback({
@@ -176,6 +183,7 @@ const BucketList = ({
 
     const removeClimbPb = useCallback((climbId) => {
         const id = String(climbId);
+        setDismissedPbClimbIds((prev) => addDismissedPbClimbId(prev, id));
         setClimbPbs((prev) => {
             if (!prev[id]) return prev;
             const next = { ...prev };

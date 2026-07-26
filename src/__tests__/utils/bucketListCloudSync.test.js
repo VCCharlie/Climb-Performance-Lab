@@ -6,7 +6,9 @@ import {
     newerIsoTimestamp,
     stampBucketListState,
     applyBucketListStateChange,
+    shouldImmediateSyncBucketList,
 } from '../../utils/bucketListCloudSync';
+import { migrateLegacyBucketState } from '../../utils/bucketListState';
 
 describe('bucketListCloudSync', () => {
     it('builds settings doc id from uid', () => {
@@ -165,5 +167,77 @@ describe('bucketListCloudSync', () => {
         expect(resolved.state.climbPbs.fr_alpe?.normPower).toBe(300);
         expect(resolved.state.pbScanCompletedAt).toBe('2026-06-02T12:00:00.000Z');
         expect(resolved.state.climbStatus.it_stelvio).toBe('planned');
+    });
+
+    it('resolveBucketListOnSync uses newer updatedAt for climbPbs when pbScanCompletedAt matches', () => {
+        const scanAt = '2026-06-02T12:00:00.000Z';
+        const local = {
+            climbStatus: {},
+            climbPbs: { fr_alpe: { normPower: 280 } },
+            updatedAt: '2026-06-03T10:00:00.000Z',
+            pbScanCompletedAt: scanAt,
+            dismissedPbClimbIds: ['es_angliru'],
+        };
+        const cloud = {
+            climbStatus: {},
+            climbPbs: {
+                es_angliru: { normPower: 250, activityId: 'bad' },
+                ch_grande_dixence: { normPower: 240, activityId: 'bad2' },
+            },
+            updatedAt: '2026-06-01T00:00:00.000Z',
+            pbScanCompletedAt: scanAt,
+        };
+        const resolved = resolveBucketListOnSync(
+            local,
+            local.updatedAt,
+            cloud,
+            cloud.updatedAt,
+        );
+        expect(resolved.source).toBe('local');
+        expect(resolved.state.climbPbs.fr_alpe?.normPower).toBe(280);
+        expect(resolved.state.climbPbs.es_angliru).toBeUndefined();
+        expect(resolved.state.climbPbs.ch_grande_dixence).toBeUndefined();
+        expect(resolved.state.dismissedPbClimbIds).toContain('es_angliru');
+    });
+
+    it('resolveBucketListOnSync strips dismissed PBs even when cloud climbPbs win on updatedAt', () => {
+        const local = {
+            climbStatus: {},
+            climbPbs: {},
+            updatedAt: '2026-01-01T00:00:00.000Z',
+            dismissedPbClimbIds: ['es_angliru', 'ch_grande_dixence'],
+        };
+        const cloud = {
+            climbStatus: {},
+            climbPbs: {
+                es_angliru: { normPower: 250 },
+                ch_grande_dixence: { normPower: 240 },
+            },
+            updatedAt: '2026-06-01T00:00:00.000Z',
+        };
+        const resolved = resolveBucketListOnSync(
+            local,
+            local.updatedAt,
+            cloud,
+            cloud.updatedAt,
+        );
+        expect(resolved.source).toBe('cloud');
+        expect(Object.keys(resolved.state.climbPbs)).toHaveLength(0);
+        expect(resolved.state.dismissedPbClimbIds).toEqual(
+            expect.arrayContaining(['es_angliru', 'ch_grande_dixence']),
+        );
+    });
+
+    it('shouldImmediateSyncBucketList when PB row removed or dismissed list grows', () => {
+        const previous = migrateLegacyBucketState({
+            climbPbs: { es_angliru: { normPower: 200 } },
+            dismissedPbClimbIds: [],
+        });
+        const afterRemove = applyBucketListStateChange(previous, {
+            climbStatus: {},
+            climbPbs: {},
+            dismissedPbClimbIds: ['es_angliru'],
+        });
+        expect(shouldImmediateSyncBucketList(previous, afterRemove)).toBe(true);
     });
 });

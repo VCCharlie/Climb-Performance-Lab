@@ -72,6 +72,7 @@ import {
     fetchBucketListFromFirestore,
     stampBucketListState,
     applyBucketListStateChange,
+    shouldImmediateSyncBucketList,
 } from './utils/bucketListCloudSync';
 import { runGoogleSignIn, isGoogleSignInInProgress, googleSignInErrorMessage, completeGoogleRedirectIfNeeded } from './utils/googleSignIn';
 import { ToastProvider } from './context/ToastContext';
@@ -422,8 +423,14 @@ const App = () => {
 
     const handleBucketListStateChange = useCallback((state) => {
         setBucketListState((prev) => {
+            const previous = migrateLegacyBucketState(prev);
             const stamped = applyBucketListStateChange(prev, state);
-            if (state?.pbScanCompletedAt && user && db && bucketListCloudReadyRef.current) {
+            if (
+                user
+                && db
+                && bucketListCloudReadyRef.current
+                && shouldImmediateSyncBucketList(previous, stamped)
+            ) {
                 syncBucketListToFirestore(db, user.uid, stamped);
             }
             return stamped;
