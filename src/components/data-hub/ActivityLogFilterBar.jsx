@@ -25,6 +25,13 @@ const ActivityLogFilterBar = ({
     onGravelRideChipChange,
     mtbRideChip,
     onMtbRideChipChange,
+    ebikeRideChip,
+    onEbikeRideChipChange,
+    logFilterPresets,
+    activeLogFilterPresetId,
+    detectedLogFilterPresetId,
+    onApplyLogFilterPreset,
+    onResetLogFilters,
     useCardLayout,
     logMobileFiltersOpen,
     onLogMobileFiltersOpenChange,
@@ -106,6 +113,7 @@ const ActivityLogFilterBar = ({
     onBulkEdit,
     onBulkSetGravelRide,
     onBulkSetMtbRide,
+    onBulkSetEbikeRide,
     onExportCsv,
     onExportXlsx,
     isExportingXlsx = false,
@@ -175,6 +183,27 @@ const ActivityLogFilterBar = ({
                         In
                     </button>
                 </div>
+                <label className="flex items-center gap-1.5 text-[10px] text-cdmuted shrink-0">
+                    <span className="font-bold uppercase text-[9px]">Preset</span>
+                    <select
+                        value={detectedLogFilterPresetId || activeLogFilterPresetId || 'all'}
+                        onChange={(e) => onApplyLogFilterPreset(e.target.value)}
+                        className="bg-cdbg border border-cdborder rounded px-2 py-1 text-cdtext text-[10px] max-w-[9rem]"
+                        title="Quick filter presets (saved on this device)"
+                    >
+                        {logFilterPresets.map((p) => (
+                            <option key={p.id} value={p.id}>{p.label}</option>
+                        ))}
+                    </select>
+                </label>
+                <button
+                    type="button"
+                    onClick={onResetLogFilters}
+                    className="text-[9px] text-cdmuted hover:text-cdaccent underline shrink-0"
+                    title="Clear search, gear, metrics, and chip filters"
+                >
+                    Reset filters
+                </button>
                 <ActivityColumnPicker
                     visibleKeys={visibleKeys}
                     activePreset={activePreset}
@@ -359,6 +388,7 @@ const ActivityLogFilterBar = ({
                             onVirtualRideChipChange(true);
                             onGravelRideChipChange(false);
                             onMtbRideChipChange(false);
+                            onEbikeRideChipChange(false);
                             onIndoorFilterChange('indoor');
                         }
                     }}
@@ -374,6 +404,7 @@ const ActivityLogFilterBar = ({
                         } else {
                             onGravelRideChipChange(true);
                             onMtbRideChipChange(false);
+                            onEbikeRideChipChange(false);
                             onVirtualRideChipChange(false);
                             if (indoorFilter === 'indoor') onIndoorFilterChange('all');
                         }
@@ -391,6 +422,7 @@ const ActivityLogFilterBar = ({
                         } else {
                             onMtbRideChipChange(true);
                             onGravelRideChipChange(false);
+                            onEbikeRideChipChange(false);
                             onVirtualRideChipChange(false);
                             if (indoorFilter === 'indoor') onIndoorFilterChange('all');
                         }
@@ -399,6 +431,24 @@ const ActivityLogFilterBar = ({
                     className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-colors ${mtbRideChip ? 'bg-lime-600/25 border-lime-500/50 text-lime-200' : 'border-cdborder text-cdmuted hover:text-cdtext'}`}
                 >
                     MTB
+                </button>
+                <button
+                    type="button"
+                    onClick={() => {
+                        if (ebikeRideChip) {
+                            onEbikeRideChipChange(false);
+                        } else {
+                            onEbikeRideChipChange(true);
+                            onGravelRideChipChange(false);
+                            onMtbRideChipChange(false);
+                            onVirtualRideChipChange(false);
+                            if (indoorFilter === 'indoor') onIndoorFilterChange('all');
+                        }
+                    }}
+                    title="Show activities stored as EBikeRide"
+                    className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-colors ${ebikeRideChip ? 'bg-cyan-500/20 border-cyan-400/50 text-cyan-300' : 'border-cdborder text-cdmuted hover:text-cdtext'}`}
+                >
+                    E-bike
                 </button>
                 <label className="flex items-center gap-1.5 text-[10px] text-cdmuted">
                     <span className="font-bold uppercase shrink-0">TSS &gt;</span>
@@ -577,6 +627,15 @@ const ActivityLogFilterBar = ({
                     className="px-2 py-1 rounded border border-lime-500/40 text-lime-200 hover:bg-lime-500/10 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
                 >
                     Set MTB
+                </button>
+                <button
+                    type="button"
+                    onClick={onBulkSetEbikeRide}
+                    disabled={bulkSelectedCount === 0 || isBulkSaving}
+                    title="Set activity type to EBikeRide for all selected rows"
+                    className="px-2 py-1 rounded border border-cyan-400/45 text-cyan-300 hover:bg-cyan-500/10 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                >
+                    Set E-bike
                 </button>
                 <ActivityLogExportButtons
                     disabled={bulkSelectedCount === 0}

@@ -165,6 +165,8 @@ const DataHub = ({
         setGravelRideChip: filter.setGravelRideChip,
         mtbRideChip: filter.mtbRideChip,
         setMtbRideChip: filter.setMtbRideChip,
+        ebikeRideChip: filter.ebikeRideChip,
+        setEbikeRideChip: filter.setEbikeRideChip,
         useCardLayout,
         visibleKeys,
         activePreset,
@@ -232,6 +234,11 @@ const DataHub = ({
         setFilterKjMax: filter.setFilterKjMax,
         setEditingActivity,
         recoveryTss: resolveRecoveryTss(userSettings),
+        logFilterPresets: filter.logFilterPresets,
+        activeLogFilterPresetId: filter.activeLogFilterPresetId,
+        detectedLogFilterPresetId: filter.detectedLogFilterPresetId,
+        applyLogFilterPreset: filter.applyLogFilterPreset,
+        resetLogFilters: filter.resetLogFilters,
     });
 
     const onSaveEdit = useCallback(
@@ -307,6 +314,7 @@ const DataHub = ({
                         profileFtp={profileFtp}
                         profileMaxHr={profileMaxHr}
                         visibleColumns={visibleColumns}
+                        onFilterByGearId={filter.filterByGearId}
                     />
                 )}
 

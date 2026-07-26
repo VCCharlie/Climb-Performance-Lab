@@ -46,6 +46,7 @@ export default function ActivityLogTab({
     profileFtp,
     profileMaxHr,
     visibleColumns,
+    onFilterByGearId,
 }) {
     return (
         <div role="tabpanel" id="tabpanel-log" aria-labelledby="tab-log" className="p-4 flex-1 min-h-0 overflow-hidden flex flex-col">
@@ -214,6 +215,7 @@ export default function ActivityLogTab({
                             profileFtp={profileFtp}
                             profileMaxHr={profileMaxHr}
                             visibleColumns={visibleColumns}
+                            onFilterByGearId={onFilterByGearId}
                         />
                     </div>
                 )}
