@@ -180,6 +180,7 @@ export const Row = React.memo(React.forwardRef(({
     onToggleType,
     onOpenProfiler,
     profilerClimbByActivityId,
+    onFilterByGearId,
     showBulkSelect = false,
     profileFtp,
     profileMaxHr,
@@ -302,6 +303,22 @@ export const Row = React.memo(React.forwardRef(({
                     const gid = act.gear_id != null ? String(act.gear_id) : '';
                     const { display, title } = resolveStravaGearDisplay(gid || null, typeof val === 'string' ? val : '');
                     if (display === '-') return <span className="text-cdmuted">-</span>;
+                    const canFilter = !isPreview && gid && onFilterByGearId;
+                    if (canFilter) {
+                        return (
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onFilterByGearId(gid);
+                                }}
+                                className="flex items-center gap-1 text-orange-400/90 hover:text-orange-300 hover:underline max-w-full text-left"
+                                title={`${title} — filter log by this bike`}
+                            >
+                                <span className="truncate max-w-[7rem] text-[11px] leading-tight">{display}</span>
+                            </button>
+                        );
+                    }
                     return (
                         <span className="flex items-center gap-1 text-orange-400/80" title={title}>
                             <span className="truncate max-w-[7rem] text-[11px] leading-tight">{display}</span>
@@ -506,6 +523,7 @@ const ActivityTable = React.memo(({
     selectedActivityIds,
     onOpenProfiler,
     profilerClimbByActivityId,
+    onFilterByGearId,
     showBulkSelect = false,
     allVisibleSelected = false,
     onToggleSelectAllVisible,
@@ -676,6 +694,7 @@ const ActivityTable = React.memo(({
                                         showBulkSelect={showBulkSelect}
                                         onOpenProfiler={onOpenProfiler}
                                         profilerClimbByActivityId={profilerClimbByActivityId}
+                                        onFilterByGearId={onFilterByGearId}
                                         profileFtp={profileFtp}
                                         profileMaxHr={profileMaxHr}
                                         columns={columns}

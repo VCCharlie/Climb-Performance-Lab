@@ -12,9 +12,13 @@ import {
 import { compareActivitiesForSort } from '../utils/activitySort';
 import { resolveActivityType } from '../utils/activityVenue';
 import {
-    buildGearFilterOptionsFromActivities,
-    mergeActiveGearFilterOption,
-} from '../utils/activityGearFilterOptions';
+    ACTIVITY_LOG_FILTER_PRESET_STORAGE_KEY,
+    BUILTIN_ACTIVITY_LOG_FILTER_PRESETS,
+    chipStateForPreset,
+    parseStoredFilterPresetId,
+    detectActiveLogFilterPreset,
+} from '../utils/activityLogFilterPresets';
+import { safeLocalStorageSet } from '../utils/safeStorage';
 
 // Helper inside hook or import
 const isValid = (act) => act && act.id && act.date;
@@ -47,24 +51,29 @@ function toLocalYmd(d) {
     return `${x.getFullYear()}-${m}-${day}`;
 }
 
+const storedPresetId = typeof window !== 'undefined' ? parseStoredFilterPresetId() : null;
+const initialChipState = chipStateForPreset(storedPresetId || 'all');
+
 const useActivityFilter = (activities, profileFtp) => {
     const [search, setSearch] = useState("");
-    const [indoorFilter, setIndoorFilter] = useState('all'); // 'all', 'indoor', 'outdoor'
+    const [indoorFilter, setIndoorFilter] = useState(initialChipState.indoorFilter);
     const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
 
     /** Quick chips */
-    const [thisWeekOnly, setThisWeekOnly] = useState(false);
-    const [rollingDays, setRollingDays] = useState(null); // null | 7 | 14 | 30
-    const [stravaLinkedOnly, setStravaLinkedOnly] = useState(false);
-    const [noPowerOnly, setNoPowerOnly] = useState(false);
-    const [withPowerOnly, setWithPowerOnly] = useState(false);
-    const [highLoadOnly, setHighLoadOnly] = useState(false);
-    const [longRideOnly, setLongRideOnly] = useState(false);
-    const [missingHrOnly, setMissingHrOnly] = useState(false);
-    const [virtualRideChip, setVirtualRideChip] = useState(false);
-    const [gravelRideChip, setGravelRideChip] = useState(false);
-    const [mtbRideChip, setMtbRideChip] = useState(false);
-    const [minTss, setMinTss] = useState('');
+    const [thisWeekOnly, setThisWeekOnly] = useState(initialChipState.thisWeekOnly);
+    const [rollingDays, setRollingDays] = useState(initialChipState.rollingDays);
+    const [stravaLinkedOnly, setStravaLinkedOnly] = useState(initialChipState.stravaLinkedOnly);
+    const [noPowerOnly, setNoPowerOnly] = useState(initialChipState.noPowerOnly);
+    const [withPowerOnly, setWithPowerOnly] = useState(initialChipState.withPowerOnly);
+    const [highLoadOnly, setHighLoadOnly] = useState(initialChipState.highLoadOnly);
+    const [longRideOnly, setLongRideOnly] = useState(initialChipState.longRideOnly);
+    const [missingHrOnly, setMissingHrOnly] = useState(initialChipState.missingHrOnly);
+    const [virtualRideChip, setVirtualRideChip] = useState(initialChipState.virtualRideChip);
+    const [gravelRideChip, setGravelRideChip] = useState(initialChipState.gravelRideChip);
+    const [mtbRideChip, setMtbRideChip] = useState(initialChipState.mtbRideChip);
+    const [ebikeRideChip, setEbikeRideChip] = useState(initialChipState.ebikeRideChip);
+    const [minTss, setMinTss] = useState(initialChipState.minTss);
+    const [activeLogFilterPresetId, setActiveLogFilterPresetId] = useState(storedPresetId || 'all');
 
     /** Min/max filters (empty string = no bound). Distance km, speed km/h, power W, duration minutes, elev m, kJ */
     const [filterDistMin, setFilterDistMin] = useState('');
@@ -187,6 +196,7 @@ const useActivityFilter = (activities, profileFtp) => {
 
             if (gravelRideChip && sportType !== 'GravelRide') return false;
             if (mtbRideChip && sportType !== 'MountainBikeRide') return false;
+            if (ebikeRideChip && sportType !== 'EBikeRide') return false;
 
             if (thisWeekOnly && weekRange) {
                 const dStr = normalizeDate(a.date);
@@ -319,7 +329,7 @@ const useActivityFilter = (activities, profileFtp) => {
             filtered.sort((a, b) => compareActivitiesForSort(a, b, sortConfig, profileFtp));
         }
         return { processedActivities: filtered, activitiesForGearFilterOptions: forGearOptions };
-    }, [activities, search, sortConfig, profileFtp, indoorFilter, virtualRideChip, gravelRideChip, mtbRideChip, thisWeekOnly, rollingDays, stravaLinkedOnly, noPowerOnly, withPowerOnly, highLoadOnly, longRideOnly, missingHrOnly, minTss, filterGearId, filterDistMin, filterDistMax, filterSpeedMin, filterSpeedMax, filterPowerMin, filterPowerMax, filterDurMinMin, filterDurMaxMin, filterElevMin, filterElevMax, filterKjMin, filterKjMax]);
+    }, [activities, search, sortConfig, profileFtp, indoorFilter, virtualRideChip, gravelRideChip, mtbRideChip, ebikeRideChip, thisWeekOnly, rollingDays, stravaLinkedOnly, noPowerOnly, withPowerOnly, highLoadOnly, longRideOnly, missingHrOnly, minTss, filterGearId, filterDistMin, filterDistMax, filterSpeedMin, filterSpeedMax, filterPowerMin, filterPowerMax, filterDurMinMin, filterDurMaxMin, filterElevMin, filterElevMax, filterKjMin, filterKjMax]);
 
     const gearFilterOptions = useMemo(() => {
         const base = buildGearFilterOptionsFromActivities(activitiesForGearFilterOptions);
@@ -446,6 +456,72 @@ const useActivityFilter = (activities, profileFtp) => {
         setFilterKjMax('');
     }, []);
 
+    const applyLogFilterPreset = useCallback((presetId) => {
+        const chips = chipStateForPreset(presetId || 'all');
+        setIndoorFilter(chips.indoorFilter);
+        setVirtualRideChip(chips.virtualRideChip);
+        setGravelRideChip(chips.gravelRideChip);
+        setMtbRideChip(chips.mtbRideChip);
+        setEbikeRideChip(chips.ebikeRideChip);
+        setThisWeekOnly(chips.thisWeekOnly);
+        setRollingDays(chips.rollingDays);
+        setStravaLinkedOnly(chips.stravaLinkedOnly);
+        setNoPowerOnly(chips.noPowerOnly);
+        setWithPowerOnly(chips.withPowerOnly);
+        setHighLoadOnly(chips.highLoadOnly);
+        setLongRideOnly(chips.longRideOnly);
+        setMissingHrOnly(chips.missingHrOnly);
+        setMinTss(chips.minTss);
+        const id = presetId || 'all';
+        setActiveLogFilterPresetId(id);
+        safeLocalStorageSet(ACTIVITY_LOG_FILTER_PRESET_STORAGE_KEY, id);
+    }, []);
+
+    const resetLogFilters = useCallback(() => {
+        applyLogFilterPreset('all');
+        setSearch('');
+        setFilterGearId('');
+        clearMetricFilters();
+    }, [applyLogFilterPreset, clearMetricFilters]);
+
+    const detectedLogFilterPresetId = useMemo(() => detectActiveLogFilterPreset({
+        indoorFilter,
+        virtualRideChip,
+        gravelRideChip,
+        mtbRideChip,
+        ebikeRideChip,
+        thisWeekOnly,
+        rollingDays,
+        stravaLinkedOnly,
+        noPowerOnly,
+        withPowerOnly,
+        highLoadOnly,
+        longRideOnly,
+        missingHrOnly,
+        minTss,
+    }), [
+        indoorFilter,
+        virtualRideChip,
+        gravelRideChip,
+        mtbRideChip,
+        ebikeRideChip,
+        thisWeekOnly,
+        rollingDays,
+        stravaLinkedOnly,
+        noPowerOnly,
+        withPowerOnly,
+        highLoadOnly,
+        longRideOnly,
+        missingHrOnly,
+        minTss,
+    ]);
+
+    const filterByGearId = useCallback((gearId) => {
+        const id = gearId != null ? String(gearId).trim() : '';
+        if (!id) return;
+        setFilterGearId(id);
+    }, []);
+
     return {
         search, setSearch,
         indoorFilter, setIndoorFilter,
@@ -469,6 +545,7 @@ const useActivityFilter = (activities, profileFtp) => {
         virtualRideChip, setVirtualRideChip,
         gravelRideChip, setGravelRideChip,
         mtbRideChip, setMtbRideChip,
+        ebikeRideChip, setEbikeRideChip,
         minTss, setMinTss,
         filterDistMin, setFilterDistMin,
         filterDistMax, setFilterDistMax,
@@ -485,6 +562,12 @@ const useActivityFilter = (activities, profileFtp) => {
         filterGearId, setFilterGearId,
         gearFilterOptions,
         clearMetricFilters,
+        applyLogFilterPreset,
+        resetLogFilters,
+        activeLogFilterPresetId,
+        detectedLogFilterPresetId,
+        logFilterPresets: BUILTIN_ACTIVITY_LOG_FILTER_PRESETS,
+        filterByGearId,
     };
 };
 

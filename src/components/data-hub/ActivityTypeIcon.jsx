@@ -2,10 +2,12 @@ import React from 'react';
 import { Monitor, Bike, Footprints, Mountain } from 'lucide-react';
 import GravelRideIcon from './icons/GravelRideIcon';
 
+import MtbRideIcon from './icons/MtbRideIcon';
+
 const TYPE_CONFIG = {
     VirtualRide: { kind: 'lucide', Icon: Monitor, className: 'text-orange-400', title: 'Virtual Ride' },
     GravelRide: { kind: 'custom', Icon: GravelRideIcon, className: 'text-fuchsia-500', title: 'Gravel Ride' },
-    MountainBikeRide: { kind: 'lucide', Icon: Bike, className: 'text-lime-400', title: 'Mountain Bike Ride' },
+    MountainBikeRide: { kind: 'custom', Icon: MtbRideIcon, className: 'text-lime-400', title: 'Mountain Bike Ride' },
     EBikeRide: { kind: 'lucide', Icon: Bike, className: 'text-cyan-400', title: 'E-Bike Ride' },
     Run: { kind: 'lucide', Icon: Footprints, className: 'text-blue-400', title: 'Run' },
     Walk: { kind: 'lucide', Icon: Footprints, className: 'text-green-300', title: 'Walk' },
