@@ -1,6 +1,6 @@
 ﻿import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Mountain, Check, Clock, Star, Trophy, Filter, Search, Sparkles } from 'lucide-react';
+import { Mountain, Check, Clock, Star, Trophy, Filter, Search, Sparkles, Download } from 'lucide-react';
 import { useClimbDatabase } from '../hooks/useClimbDatabase';
 import { useActivitiesList } from '../hooks/useActivities';
 import PlannedClimbWeatherPanel from './bucket-list/PlannedClimbWeatherPanel';
@@ -13,6 +13,11 @@ import {
     formatPbScanFeedbackMessage,
 } from '../utils/climbPersonalBests';
 import { formatBucketListSyncLabel } from '../utils/bucketListSyncLabel';
+import {
+    downloadBucketListDonePbCsv,
+    downloadBucketListDonePbJson,
+    buildBucketListExportRows,
+} from '../utils/bucketListExport';
 import { yieldToMain } from '../utils/yieldToMain';
 
 const PB_VENUE_FILTER_OPTIONS = [
@@ -430,6 +435,57 @@ const BucketList = ({
         pbScanCompletedAt: initialState?.pbScanCompletedAt,
     });
 
+    const exportRowCount = useMemo(
+        () => buildBucketListExportRows(
+            { climbStatus, climbPbs, updatedAt: initialState?.updatedAt, pbScanCompletedAt: initialState?.pbScanCompletedAt },
+            climbDatabase,
+            activities,
+        ).length,
+        [climbStatus, climbPbs, climbDatabase, activities, initialState?.updatedAt, initialState?.pbScanCompletedAt],
+    );
+
+    const handleExportDonePbCsv = useCallback(() => {
+        const n = downloadBucketListDonePbCsv(
+            { climbStatus, climbPbs, updatedAt: initialState?.updatedAt, pbScanCompletedAt: initialState?.pbScanCompletedAt },
+            climbDatabase,
+            activities,
+        );
+        if (n === 0) {
+            setScanFeedback({
+                tone: 'warn',
+                message: 'Nothing to export yet — mark climbs as Done or scan activities for PBs.',
+                at: Date.now(),
+            });
+        } else {
+            setScanFeedback({
+                tone: 'success',
+                message: `Exported ${n} climb(s) (Done + PB) to CSV.`,
+                at: Date.now(),
+            });
+        }
+    }, [climbStatus, climbPbs, climbDatabase, activities, initialState?.updatedAt, initialState?.pbScanCompletedAt]);
+
+    const handleExportDonePbJson = useCallback(() => {
+        const n = downloadBucketListDonePbJson(
+            { climbStatus, climbPbs, updatedAt: initialState?.updatedAt, pbScanCompletedAt: initialState?.pbScanCompletedAt },
+            climbDatabase,
+            activities,
+        );
+        if (n === 0) {
+            setScanFeedback({
+                tone: 'warn',
+                message: 'Nothing to export yet — mark climbs as Done or scan activities for PBs.',
+                at: Date.now(),
+            });
+        } else {
+            setScanFeedback({
+                tone: 'success',
+                message: `Exported ${n} climb(s) (Done + PB) to JSON.`,
+                at: Date.now(),
+            });
+        }
+    }, [climbStatus, climbPbs, climbDatabase, activities, initialState?.updatedAt, initialState?.pbScanCompletedAt]);
+
     const climbRowVirtualizer = useVirtualizer({
         count: filteredClimbs.length,
         getScrollElement: () => climbListScrollRef.current,
@@ -452,6 +508,35 @@ const BucketList = ({
             <p className="text-[11px] text-cdmuted leading-snug" role="status">
                 {bucketSyncLabel}
             </p>
+
+            <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-wide text-cdmuted">Export</span>
+                <button
+                    type="button"
+                    onClick={handleExportDonePbCsv}
+                    disabled={exportRowCount === 0}
+                    className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-md border border-cdborder bg-cdsurface text-cdtext hover:border-cdaccent hover:text-cdaccent disabled:opacity-40 cd-transition"
+                    title="Download Done climbs and PB rows as CSV"
+                >
+                    <Download size={12} aria-hidden />
+                    Done + PB CSV
+                </button>
+                <button
+                    type="button"
+                    onClick={handleExportDonePbJson}
+                    disabled={exportRowCount === 0}
+                    className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-md border border-cdborder bg-cdsurface text-cdtext hover:border-cdaccent hover:text-cdaccent disabled:opacity-40 cd-transition"
+                    title="Download Done climbs and PB rows as JSON"
+                >
+                    <Download size={12} aria-hidden />
+                    Done + PB JSON
+                </button>
+                <span className="text-[10px] text-cdmuted">
+                    {exportRowCount > 0
+                        ? `${exportRowCount} climb(s) ready (Done or with a PB).`
+                        : 'Mark climbs Done or scan for PBs to export.'}
+                </span>
+            </div>
 
             {/* Stats & Achievements */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
