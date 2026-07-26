@@ -355,6 +355,15 @@ const App = () => {
         setActiveTab('profiler');
     }, []);
 
+    const handleOpenProfilerForClimb = useCallback((climb) => {
+        if (!climb?.id) return;
+        setClimbProfilerState((prev) => ({
+            ...prev,
+            selectedClimb: climb,
+        }));
+        setActiveTab('profiler');
+    }, []);
+
     const [fuelingState, setFuelingState] = useState({
         duration: 180,
         intensity: 0.85,
@@ -968,6 +977,7 @@ const App = () => {
                                                 theme={theme}
                                                 initialState={climbProfilerState}
                                                 onStateChange={setClimbProfilerState}
+                                                onOpenBucketList={() => setActiveTab('bucketlist')}
                                             />
                                         </div>
                                         <div className="lg:col-span-1">
@@ -989,6 +999,7 @@ const App = () => {
                                             }));
                                             setActiveTab('weather');
                                         }}
+                                        onOpenProfilerForClimb={handleOpenProfilerForClimb}
                                         onOpenMapTab={() => setActiveTab('climbmap')}
                                     />
                                 )}
