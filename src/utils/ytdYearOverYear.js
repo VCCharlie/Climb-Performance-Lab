@@ -10,6 +10,35 @@ import { percentChange } from './stravaYtdCompare.js';
 
 const TRACKED_SPORTS = new Set(SPORT_TYPES);
 
+/** Road cycling YTD split (outdoor + indoor road). */
+export const YTD_ROAD_ACTIVITY_TYPES = new Set(['Ride', 'VirtualRide']);
+/** Gravel YTD split. */
+export const YTD_GRAVEL_ACTIVITY_TYPES = new Set(['GravelRide']);
+
+/**
+ * @param {string | undefined} type
+ * @returns {'road' | 'gravel' | null}
+ */
+export function ytdSurfaceBucketForType(type) {
+    if (YTD_GRAVEL_ACTIVITY_TYPES.has(type)) return 'gravel';
+    if (YTD_ROAD_ACTIVITY_TYPES.has(type)) return 'road';
+    return null;
+}
+
+/**
+ * @typedef {{ count: number, distanceKm: number, movingTimeSec: number }} YtdSurfaceTotals
+ */
+
+/** @returns {YtdSurfaceTotals} */
+function emptySurfaceTotals() {
+    return { count: 0, distanceKm: 0, movingTimeSec: 0 };
+}
+
+/** @returns {{ road: YtdSurfaceTotals, gravel: YtdSurfaceTotals }} */
+function emptySurfacePair() {
+    return { road: emptySurfaceTotals(), gravel: emptySurfaceTotals() };
+}
+
 /**
  * @typedef {{ count: number, distanceKm: number, elevationM: number, movingTimeSec: number, load: number }} YtdTotals
  */
@@ -83,6 +112,48 @@ export function computeCplYtdYearOverYear(activities, referenceDate = new Date()
         const sec = activityMovingTimeSec(a);
         if (sec != null) bucket.movingTimeSec += sec;
         bucket.load += Number(a.load) || 0;
+    }
+
+    return {
+        thisYtd,
+        prevYtd,
+        referenceDate: referenceDate.toISOString(),
+    };
+}
+
+/**
+ * YTD volume split: road (Ride + VirtualRide) vs gravel (GravelRide).
+ * @param {object[]} activities
+ * @param {Date} [referenceDate]
+ * @returns {{ thisYtd: { road: YtdSurfaceTotals, gravel: YtdSurfaceTotals }, prevYtd: { road: YtdSurfaceTotals, gravel: YtdSurfaceTotals }, referenceDate: string } | null}
+ */
+export function computeYtdGravelVsRoad(activities, referenceDate = new Date()) {
+    if (!activities?.length || !referenceDate || Number.isNaN(referenceDate.getTime())) {
+        return null;
+    }
+
+    const { startThis, endThis, startPrev, endPrev } = ytdComparisonWindows(referenceDate);
+    const thisYtd = emptySurfacePair();
+    const prevYtd = emptySurfacePair();
+
+    for (const a of activities) {
+        const surface = ytdSurfaceBucketForType(a?.type);
+        if (!surface) continue;
+        const day = normalizeDate(a.date);
+        if (!day || day.length < 10) continue;
+        const ymd = day.slice(0, 10);
+
+        let period = null;
+        if (inRange(ymd, startThis, endThis)) period = thisYtd;
+        else if (inRange(ymd, startPrev, endPrev)) period = prevYtd;
+        else continue;
+
+        const bucket = period[surface];
+        bucket.count += 1;
+        const km = activityDistanceKm(a);
+        if (km != null) bucket.distanceKm += km;
+        const sec = activityMovingTimeSec(a);
+        if (sec != null) bucket.movingTimeSec += sec;
     }
 
     return {

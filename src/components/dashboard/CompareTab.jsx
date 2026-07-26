@@ -6,6 +6,7 @@ import { COMPARE_PERIODS, comparePeriodSubtitle } from '../../utils/comparePerio
 import { computeMultiYearCompareRows, inferCompareYearCount } from '../../utils/multiYearSameMoment';
 import { computeSportMixForComparePeriod } from '../../utils/compareSportMix';
 import YearAtMomentBars from './YearAtMomentBars';
+import CompareYearLegend from './CompareYearLegend';
 import CompareSportDonut from './CompareSportDonut';
 
 const DEFAULT_SPORTS = new Set(['Ride', 'VirtualRide']);
@@ -40,6 +41,8 @@ const CompareTab = ({ allActivities }) => {
         () => computeMultiYearCompareRows(allActivities, now, yearCount, selectedSports, period),
         [allActivities, now, yearCount, selectedSports, period],
     );
+
+    const compareYears = useMemo(() => rows.map((r) => r.year), [rows]);
 
     const sportMix = useMemo(
         () => computeSportMixForComparePeriod(allActivities, period, now, selectedSports, 'distanceKm'),
@@ -134,9 +137,12 @@ const CompareTab = ({ allActivities }) => {
                                     <YearAtMomentBars rows={rows} metricId={m.id} currentYear={currentYear} />
                                 </div>
                             ))}
-                            <p className="text-[10px] text-cdmuted lg:col-span-3">
-                                Bar color (Excel-style per chart): green = lowest, yellow = middle, red = highest among years shown.
-                            </p>
+                            <div className="lg:col-span-3 space-y-2">
+                                <CompareYearLegend years={compareYears} currentYear={currentYear} />
+                                <p className="text-[10px] text-cdmuted">
+                                    Each year uses a fixed color across all three charts (see legend). Bar length is relative to the highest year in that chart.
+                                </p>
+                            </div>
                         </div>
                         <CompareSportDonut rows={sportMix} basis="distanceKm" />
                     </div>

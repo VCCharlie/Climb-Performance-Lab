@@ -43,7 +43,7 @@ Grote thema’s uit gebruikersfeedback; uitrol in deel-fases (A–F).
 |------|--------|------------|--------|
 | **6A** | PB-trust & sync-UX | “Why this PB”, Remove PB, filter PB not Done, bulk Mark PB as Done, sync-statusregel, “Saved to cloud” na scan | Done (PR #388) |
 | **6B** | Activity Log | Filter presets, MTB-icoon, filter-by-bike van rij, EBike-chip | Done (PR) |
-| **6C** | Dashboard | Jaar-kleur legend compare, YTD gravel vs road volume | Planned |
+| **6C** | Dashboard | Jaar-kleur legend compare, YTD gravel vs road volume | Done (PR) |
 | **6D** | Bucket ↔ Profiler/Weather | Snellere flows; Done-klim PB vs DB-gradient | Planned |
 | **6E** | Sync UX (breed) | Overige sync-status in DataHub | Planned |
 | **6F** | Export | Done + PB CSV/JSON | Planned |
