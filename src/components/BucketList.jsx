@@ -37,6 +37,7 @@ const BucketList = ({
     isSignedIn = false,
     onStateChange,
     onOpenWeatherForClimb,
+    onOpenProfilerForClimb,
     onOpenMapTab,
     onOpenActivityInLog,
 }) => {
@@ -432,9 +433,9 @@ const BucketList = ({
     const climbRowVirtualizer = useVirtualizer({
         count: filteredClimbs.length,
         getScrollElement: () => climbListScrollRef.current,
-        estimateSize: () => 140,
+        estimateSize: () => 155,
         overscan: 8,
-        measureElement: (el) => el?.getBoundingClientRect().height ?? 140,
+        measureElement: (el) => el?.getBoundingClientRect().height ?? 155,
     });
 
     return (
@@ -510,6 +511,7 @@ const BucketList = ({
                 bucketState={{ climbStatus, climbPbs }}
                 climbs={climbDatabase}
                 onOpenWeatherForClimb={onOpenWeatherForClimb}
+                onOpenProfilerForClimb={onOpenProfilerForClimb}
                 onOpenMapTab={onOpenMapTab}
             />
 
@@ -680,6 +682,8 @@ const BucketList = ({
                                             onToggleStatus={toggleClimbStatus}
                                             onRemovePb={removeClimbPb}
                                             onOpenActivityInLog={onOpenActivityInLog}
+                                            onOpenProfilerForClimb={onOpenProfilerForClimb}
+                                            onOpenWeatherForClimb={onOpenWeatherForClimb}
                                         />
                                     </div>
                                 );

@@ -40,7 +40,7 @@ function formatClimbDuration(minutes) {
     return `${Math.round(minutes)} min`;
 }
 
-const ClimbProfiler = ({ userSettings, initialState, onStateChange, theme = 'light' }) => {
+const ClimbProfiler = ({ userSettings, initialState, onStateChange, theme = 'light', onOpenBucketList }) => {
     const [selectedClimb, setSelectedClimb] = useState(initialState?.selectedClimb || getDefaultClimb());
     const [showPowerZones, setShowPowerZones] = useState(
         initialState?.showPowerZones !== undefined ? initialState.showPowerZones : true
@@ -110,9 +110,20 @@ const ClimbProfiler = ({ userSettings, initialState, onStateChange, theme = 'lig
                         tactical preparation; not exact GPS segment data.
                     </p>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-cdmuted bg-cdbg px-3 py-2 rounded-lg border border-cdborder shrink-0">
-                    <Info size={14} className="text-cdaccent shrink-0" />
-                    <span>Model: variation around avg. gradient</span>
+                <div className="flex flex-col items-end gap-2 shrink-0">
+                    {typeof onOpenBucketList === 'function' && (
+                        <button
+                            type="button"
+                            onClick={onOpenBucketList}
+                            className="text-xs font-bold text-cdaccent hover:underline"
+                        >
+                            Open bucket list
+                        </button>
+                    )}
+                    <div className="flex items-center gap-2 text-xs text-cdmuted bg-cdbg px-3 py-2 rounded-lg border border-cdborder">
+                        <Info size={14} className="text-cdaccent shrink-0" />
+                        <span>Model: variation around avg. gradient</span>
+                    </div>
                 </div>
             </div>
 

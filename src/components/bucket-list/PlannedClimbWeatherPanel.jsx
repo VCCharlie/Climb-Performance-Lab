@@ -1,5 +1,5 @@
 import React from 'react';
-import { Cloud, MapPin } from 'lucide-react';
+import { Cloud, MapPin, Route } from 'lucide-react';
 import FlagIcon from '../FlagIcon';
 import { climbsByStatus } from '../../utils/bucketListState';
 import { WEATHER_CLIMB_LOCATIONS } from '../../utils/weatherClimbLocations';
@@ -11,6 +11,7 @@ const PlannedClimbWeatherPanel = ({
     bucketState,
     climbs,
     onOpenWeatherForClimb,
+    onOpenProfilerForClimb,
     onOpenMapTab,
 }) => {
     const planned = climbsByStatus(bucketState, climbs, 'planned');
@@ -54,7 +55,19 @@ const PlannedClimbWeatherPanel = ({
                                     {climb.lengthKm} km · {climb.elevation} m · {climb.avgGrade}%
                                 </p>
                             </div>
-                            {typeof onOpenWeatherForClimb === 'function' && (
+                            <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                                {typeof onOpenProfilerForClimb === 'function' && (
+                                    <button
+                                        type="button"
+                                        onClick={() => onOpenProfilerForClimb(climb)}
+                                        className="text-xs font-bold px-2.5 py-1.5 rounded-md border border-cdborder bg-cdsurface text-cdtext hover:border-cdaccent hover:text-cdaccent cd-transition"
+                                        title="Open in Climb Profiler"
+                                    >
+                                        <Route size={12} className="inline mr-1" aria-hidden />
+                                        Profiler
+                                    </button>
+                                )}
+                                {typeof onOpenWeatherForClimb === 'function' && (
                                 <button
                                     type="button"
                                     disabled={!hasWeatherHint}
@@ -65,6 +78,7 @@ const PlannedClimbWeatherPanel = ({
                                     Check weather
                                 </button>
                             )}
+                            </div>
                         </li>
                     );
                 })}
