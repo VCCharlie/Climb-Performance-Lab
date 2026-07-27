@@ -4,6 +4,10 @@
 
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { migrateLegacyBucketState } from './bucketListState';
+import {
+    climbPbsWithoutDismissed,
+    unionDismissedPbClimbIds,
+} from './bucketListPbDismiss';
 
 /** Debounce before writing bucket list after local edits. */
 export const BUCKET_LIST_CLOUD_DEBOUNCE_MS = 1500;
@@ -41,6 +45,37 @@ function pickClimbPbsByLatestScan(local, cloud) {
 }
 
 /**
+ * When both sides share the same PB scan time, use climbPbs from the side with the newer bucket write.
+ * @param {ReturnType<typeof migrateLegacyBucketState>} local
+ * @param {ReturnType<typeof migrateLegacyBucketState>} cloud
+ * @param {string | null | undefined} localAt
+ * @param {string | null | undefined} cloudAt
+ */
+function pickClimbPbsForMerge(local, cloud, localAt, cloudAt) {
+    const byScan = pickClimbPbsByLatestScan(local, cloud);
+    if (byScan !== null) return byScan;
+
+    const localMs = localAt ? Date.parse(localAt) : 0;
+    const cloudMs = cloudAt ? Date.parse(cloudAt) : 0;
+    if (localMs > cloudMs) return local.climbPbs || {};
+    if (cloudMs > localMs) return cloud.climbPbs || {};
+    return local.climbPbs || {};
+}
+
+function finalizeMergedBucketState(baseState, local, cloud) {
+    const dismissedPbClimbIds = unionDismissedPbClimbIds(
+        local?.dismissedPbClimbIds,
+        cloud?.dismissedPbClimbIds,
+    );
+    const climbPbs = climbPbsWithoutDismissed(baseState.climbPbs, dismissedPbClimbIds);
+    return {
+        ...baseState,
+        climbPbs,
+        dismissedPbClimbIds,
+    };
+}
+
+/**
  * Pick local vs cloud bucket list by bucketListUpdatedAt (last write wins).
  *
  * @param {unknown} localState
@@ -56,45 +91,83 @@ export function resolveBucketListOnSync(localState, localUpdatedAt, cloudState, 
     const cloudAt = cloud?.updatedAt || cloudUpdatedAt || null;
 
     if (!cloud) {
-        return { state: local, source: 'local' };
+        return {
+            state: finalizeMergedBucketState({ ...local, updatedAt: localAt }, local, local),
+            source: 'local',
+        };
     }
 
     const localMs = localAt ? Date.parse(localAt) : 0;
     const cloudMs = cloudAt ? Date.parse(cloudAt) : 0;
 
     if (!localAt && cloudAt) {
-        return { state: { ...cloud, updatedAt: cloudAt }, source: 'cloud' };
+        return {
+            state: finalizeMergedBucketState({ ...cloud, updatedAt: cloudAt }, local, cloud),
+            source: 'cloud',
+        };
     }
     if (localAt && !cloudAt) {
-        return { state: { ...local, updatedAt: localAt }, source: 'local' };
+        return {
+            state: finalizeMergedBucketState({ ...local, updatedAt: localAt }, local, cloud),
+            source: 'local',
+        };
     }
     if (!localAt && !cloudAt) {
-        return { state: { ...cloud, updatedAt: cloudAt || new Date().toISOString() }, source: 'cloud' };
+        return {
+            state: finalizeMergedBucketState(
+                { ...cloud, updatedAt: cloudAt || new Date().toISOString() },
+                local,
+                cloud,
+            ),
+            source: 'cloud',
+        };
     }
 
     if (cloudMs > localMs) {
-        const climbPbs = pickClimbPbsByLatestScan(local, cloud) ?? cloud.climbPbs;
+        const climbPbs = pickClimbPbsForMerge(local, cloud, localAt, cloudAt);
         return {
-            state: { ...cloud, climbPbs, updatedAt: cloudAt, pbScanCompletedAt: newerIsoTimestamp(local.pbScanCompletedAt, cloud.pbScanCompletedAt) },
+            state: finalizeMergedBucketState(
+                {
+                    ...cloud,
+                    climbPbs,
+                    updatedAt: cloudAt,
+                    pbScanCompletedAt: newerIsoTimestamp(local.pbScanCompletedAt, cloud.pbScanCompletedAt),
+                },
+                local,
+                cloud,
+            ),
             source: 'cloud',
         };
     }
     if (localMs > cloudMs) {
-        const climbPbs = pickClimbPbsByLatestScan(local, cloud) ?? local.climbPbs;
+        const climbPbs = pickClimbPbsForMerge(local, cloud, localAt, cloudAt);
         return {
-            state: { ...local, climbPbs, updatedAt: localAt, pbScanCompletedAt: newerIsoTimestamp(local.pbScanCompletedAt, cloud.pbScanCompletedAt) },
+            state: finalizeMergedBucketState(
+                {
+                    ...local,
+                    climbPbs,
+                    updatedAt: localAt,
+                    pbScanCompletedAt: newerIsoTimestamp(local.pbScanCompletedAt, cloud.pbScanCompletedAt),
+                },
+                local,
+                cloud,
+            ),
             source: 'local',
         };
     }
 
-    const climbPbs = pickClimbPbsByLatestScan(local, cloud) ?? cloud.climbPbs;
+    const climbPbs = pickClimbPbsForMerge(local, cloud, localAt, cloudAt);
     return {
-        state: {
-            ...cloud,
-            climbPbs,
-            updatedAt: cloudAt || localAt,
-            pbScanCompletedAt: newerIsoTimestamp(local.pbScanCompletedAt, cloud.pbScanCompletedAt),
-        },
+        state: finalizeMergedBucketState(
+            {
+                ...cloud,
+                climbPbs,
+                updatedAt: cloudAt || localAt,
+                pbScanCompletedAt: newerIsoTimestamp(local.pbScanCompletedAt, cloud.pbScanCompletedAt),
+            },
+            local,
+            cloud,
+        ),
         source: 'cloud',
     };
 }
@@ -123,11 +196,41 @@ export function stampBucketListState(state) {
 export function applyBucketListStateChange(previousState, incomingState) {
     const previous = migrateLegacyBucketState(previousState);
     const incoming = migrateLegacyBucketState(incomingState);
+    const dismissedPbClimbIds = unionDismissedPbClimbIds(
+        previous.dismissedPbClimbIds,
+        incoming.dismissedPbClimbIds,
+    );
     return stampBucketListState({
         climbStatus: incoming.climbStatus,
-        climbPbs: incoming.climbPbs,
+        climbPbs: climbPbsWithoutDismissed(incoming.climbPbs, dismissedPbClimbIds),
         pbScanCompletedAt: incoming.pbScanCompletedAt ?? previous.pbScanCompletedAt,
+        dismissedPbClimbIds,
     });
+}
+
+/**
+ * Whether a bucket list edit should bypass debounce and write Firestore immediately.
+ * @param {ReturnType<typeof migrateLegacyBucketState>} previous
+ * @param {ReturnType<typeof migrateLegacyBucketState>} stamped
+ */
+export function shouldImmediateSyncBucketList(previous, stamped) {
+    if (stamped.pbScanCompletedAt && stamped.pbScanCompletedAt !== previous.pbScanCompletedAt) {
+        return true;
+    }
+    const prevDismissed = new Set((previous.dismissedPbClimbIds || []).map(String));
+    const nextDismissed = new Set((stamped.dismissedPbClimbIds || []).map(String));
+    if (nextDismissed.size > prevDismissed.size) {
+        return true;
+    }
+    const prevPbKeys = Object.keys(previous.climbPbs || {});
+    const nextPbKeys = Object.keys(stamped.climbPbs || {});
+    if (prevPbKeys.length !== nextPbKeys.length) {
+        return true;
+    }
+    for (const key of prevPbKeys) {
+        if (!stamped.climbPbs[key]) return true;
+    }
+    return false;
 }
 
 /**
