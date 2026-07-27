@@ -234,36 +234,92 @@ export function shouldImmediateSyncBucketList(previous, stamped) {
 }
 
 /**
+ * @param {import('firebase/firestore').Firestore} db
+ * @param {string} uid
+ * @param {ReturnType<typeof migrateLegacyBucketState> & { updatedAt: string }} stamped
+ * @returns {Promise<{ ok: boolean, reason?: string, updatedAt?: string }>}
+ */
+async function writeBucketListDoc(db, uid, stamped) {
+    const settingsId = bucketListSettingsDocId(uid);
+    try {
+        await setDoc(
+            doc(db, 'settings', settingsId),
+            {
+                bucketList: stamped,
+                bucketListUpdatedAt: stamped.updatedAt,
+            },
+            { merge: true },
+        );
+        return { ok: true, updatedAt: stamped.updatedAt };
+    } catch (err) {
+        console.warn('[Bucket list] Could not sync to Firestore:', err);
+        return { ok: false, reason: err?.message || 'write-failed' };
+    }
+}
+
+/** Latest unpaid write — newer syncs replace older ones while a write is in flight. */
+let pendingBucketListSyncJob = null;
+/** Promise chain that serializes Firestore writes for the bucket list document. */
+let bucketListSyncChain = Promise.resolve();
+/** Injectable writer for unit tests (race / coalesce coverage). */
+let bucketListDocWriter = writeBucketListDoc;
+
+/**
+ * Reset in-memory sync queue (unit tests only).
+ * @internal
+ */
+export function __resetBucketListFirestoreSyncQueueForTests() {
+    pendingBucketListSyncJob = null;
+    bucketListSyncChain = Promise.resolve();
+    bucketListDocWriter = writeBucketListDoc;
+}
+
+/**
+ * Override Firestore writer (unit tests only).
+ * @param {typeof writeBucketListDoc | null} writer
+ * @internal
+ */
+export function __setBucketListFirestoreWriterForTests(writer) {
+    bucketListDocWriter = writer || writeBucketListDoc;
+}
+
+/**
+ * Persist bucket list to Firestore. Concurrent calls are serialized and coalesced:
+ * an older in-flight write cannot overwrite a newer dismiss/scan payload.
+ *
  * @param {import('firebase/firestore').Firestore | null | undefined} db
  * @param {string | null | undefined} uid
  * @param {unknown} bucketListState
- * @returns {Promise<{ ok: boolean, reason?: string }>}
+ * @returns {Promise<{ ok: boolean, reason?: string, updatedAt?: string }>}
  */
-export async function syncBucketListToFirestore(db, uid, bucketListState) {
+export function syncBucketListToFirestore(db, uid, bucketListState) {
     if (!db || !uid) {
-        return { ok: false, reason: 'no-auth' };
+        return Promise.resolve({ ok: false, reason: 'no-auth' });
     }
 
     const payload = migrateLegacyBucketState(bucketListState);
     const updatedAt = payload.updatedAt || new Date().toISOString();
     const stamped = { ...payload, updatedAt };
 
-    const settingsId = bucketListSettingsDocId(uid);
+    pendingBucketListSyncJob = { db, uid, stamped };
 
-    try {
-        await setDoc(
-            doc(db, 'settings', settingsId),
-            {
-                bucketList: stamped,
-                bucketListUpdatedAt: updatedAt,
-            },
-            { merge: true },
-        );
-        return { ok: true, updatedAt };
-    } catch (err) {
-        console.warn('[Bucket list] Could not sync to Firestore:', err);
-        return { ok: false, reason: err?.message || 'write-failed' };
-    }
+    const run = bucketListSyncChain.then(async () => {
+        let lastResult = { ok: true, reason: 'coalesced' };
+        while (pendingBucketListSyncJob) {
+            const job = pendingBucketListSyncJob;
+            pendingBucketListSyncJob = null;
+            lastResult = await bucketListDocWriter(job.db, job.uid, job.stamped);
+        }
+        return lastResult;
+    });
+
+    // Keep the mutex alive even when a write rejects unexpectedly.
+    bucketListSyncChain = run.then(
+        () => undefined,
+        () => undefined,
+    );
+
+    return run;
 }
 
 /**

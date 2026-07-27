@@ -410,6 +410,12 @@ const App = () => {
         safeLocalStorageSet('bucketListState', JSON.stringify(bucketListState));
     }, [bucketListState]);
 
+    const photoReloadAttemptedRef = useRef(new Set());
+    const authenticatedUserRef = useRef(null);
+    const bucketListCloudReadyRef = useRef(false);
+    const bucketListStateRef = useRef(bucketListState);
+    bucketListStateRef.current = bucketListState;
+
     // Auto-sync bucket list to Firestore when signed in (cross-device).
     useEffect(() => {
         if (!user || !db || !bucketListCloudReadyRef.current) return undefined;
@@ -422,19 +428,20 @@ const App = () => {
     }, [bucketListState, user]);
 
     const handleBucketListStateChange = useCallback((state) => {
-        setBucketListState((prev) => {
-            const previous = migrateLegacyBucketState(prev);
-            const stamped = applyBucketListStateChange(prev, state);
-            if (
-                user
-                && db
-                && bucketListCloudReadyRef.current
-                && shouldImmediateSyncBucketList(previous, stamped)
-            ) {
-                syncBucketListToFirestore(db, user.uid, stamped);
-            }
-            return stamped;
-        });
+        // Compute outside the setState updater so sync is not a render-phase side effect
+        // (Strict Mode can double-invoke updaters) and so we enqueue exactly one write.
+        const previous = migrateLegacyBucketState(bucketListStateRef.current);
+        const stamped = applyBucketListStateChange(previous, state);
+        bucketListStateRef.current = stamped;
+        setBucketListState(stamped);
+        if (
+            user
+            && db
+            && bucketListCloudReadyRef.current
+            && shouldImmediateSyncBucketList(previous, stamped)
+        ) {
+            syncBucketListToFirestore(db, user.uid, stamped);
+        }
     }, [user]);
 
     const [weatherClimbState, setWeatherClimbState] = useState({
@@ -451,10 +458,6 @@ const App = () => {
 
     /** Vanuit Dashboard: focus één activiteit in DataHub log; handled via ActivityLogNavigationContext. */
     const [raceSubTab, setRaceSubTab] = useState('fueling');       // 'fueling' | 'racepacing'
-
-    const photoReloadAttemptedRef = useRef(new Set());
-    const authenticatedUserRef = useRef(null);
-    const bucketListCloudReadyRef = useRef(false);
 
     // Auth Listener — finish redirect sign-in first, then listen for session changes.
     useEffect(() => {
