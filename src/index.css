@@ -141,15 +141,18 @@ body {
 
 /*
  * Recharts 3.x: accessibilityLayer makes the chart SVG focusable (keyboard nav).
- * Mobile browsers draw a heavy default outline on tap — hide that; keep a soft ring for keyboard.
+ * Best practice: no ring on pointer tap (:focus); thin themed ring only for :focus-visible (keyboard).
+ * WCAG 2.4.7 / 2.4.11: indicator must be visible but need not be a heavy box — 1–2px themed outline is OK.
  */
 .recharts-surface:focus {
   outline: none;
 }
 
 .recharts-surface:focus-visible {
-  outline: 2px solid var(--cd-focus-ring);
-  outline-offset: 3px;
+  outline: none;
+  box-shadow:
+    0 0 0 1px var(--cd-surface-bright),
+    0 0 0 2px color-mix(in srgb, var(--cd-primary) 32%, transparent);
   border-radius: var(--cd-radius-md);
 }
 
