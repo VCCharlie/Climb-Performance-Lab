@@ -4,7 +4,7 @@ import {
 } from 'lucide-react';
 import { formatDateDDMMYYYY } from '../../utils';
 import { getActivityCardMetrics } from '../../utils/activityCardMetrics';
-import { stravaActivityUrl, stravaFlybyUrl } from '../../utils/strava';
+import { stravaActivityUrl, stravaFlybyUrl, openExternalUrl } from '../../utils/strava';
 import { cn } from '../ui/cn';
 import AnchoredDropdownPortal from '../ui/AnchoredDropdownPortal';
 import ActivityTypeIcon from './ActivityTypeIcon';
@@ -32,7 +32,13 @@ const MenuItem = ({ onClick, href, external, children, className = 'text-cdtext'
                 target={external ? '_blank' : undefined}
                 rel={external ? 'noopener noreferrer' : undefined}
                 className={cls}
-                onClick={onClick}
+                onClick={(e) => {
+                    if (external) {
+                        e.preventDefault();
+                        openExternalUrl(href);
+                    }
+                    onClick?.(e);
+                }}
             >
                 {children}
             </a>
