@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeStravaActivityId, stravaActivityUrl, stravaFlybyUrl } from '../../utils/strava';
+import { normalizeStravaActivityId, stravaActivityUrl, stravaFlybyUrl, openExternalUrl } from '../../utils/strava';
 
 describe('normalizeStravaActivityId', () => {
   it('strips non-digits when long enough', () => {
@@ -28,5 +28,12 @@ describe('stravaFlybyUrl', () => {
 
   it('returns null when id is missing', () => {
     expect(stravaFlybyUrl('')).toBeNull();
+  });
+});
+
+describe('openExternalUrl', () => {
+  it('returns false for empty url', () => {
+    expect(openExternalUrl('')).toBe(false);
+    expect(openExternalUrl(null)).toBe(false);
   });
 });

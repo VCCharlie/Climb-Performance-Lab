@@ -71,6 +71,26 @@ export function navigateToStravaSegment(segmentId) {
     }
 }
 
+/**
+ * Open a URL in a new tab without relying on anchor default navigation.
+ * Use from menus that unmount on click (portal dropdowns) so the href is not dropped mid-click.
+ * @param {string} url
+ * @returns {boolean} whether a new tab likely opened
+ */
+export function openExternalUrl(url) {
+    if (!url || typeof url !== 'string') return false;
+    const trimmed = url.trim();
+    if (!trimmed) return false;
+    const w = window.open(trimmed, '_blank', 'noopener,noreferrer');
+    if (w && !w.closed) return true;
+    try {
+        window.location.assign(trimmed);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 // Format seconds to M:SS or H:MM:SS
 export const formatSegmentTime = (seconds) => {
     if (!seconds || seconds <= 0) return '-';
