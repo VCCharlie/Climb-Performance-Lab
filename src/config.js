@@ -26,8 +26,8 @@ export const ACTIVITY_COLUMNS = [
     { key: 'norm_power', label: 'NP', align: 'right', width: 'w-9', highlight: 'yellow' },
     /** UI-only: NP ÷ profile FTP; omitted from CSV export. */
     { key: 'intensity_factor', label: 'IF', align: 'right', width: 'w-9', omitFromExport: true, hideByDefault: true },
-    { key: 'avg_power', label: 'Avg', pickerLabel: 'Average Power', align: 'right', width: 'w-9', hideByDefault: true },
-    { key: 'avg_hr', label: 'HR', pickerLabel: 'Average HR', align: 'right', width: 'w-9', text: 'slate-400', hideByDefault: true },
+    { key: 'avg_power', label: 'Avg', pickerLabel: 'Avg Pwr', align: 'right', width: 'w-9', hideByDefault: true },
+    { key: 'avg_hr', label: 'HR', pickerLabel: 'Avg HR', align: 'right', width: 'w-9', text: 'slate-400', hideByDefault: true },
     { key: 'max_hr', label: 'Max', pickerLabel: 'Max HR', align: 'right', width: 'w-9', text: 'slate-400', hideByDefault: true },
     { key: 'work', label: 'kJ', align: 'right', width: 'w-10', text: 'slate-400', hideByDefault: true },
     { key: 'load', label: 'Load', align: 'right', width: 'w-10', highlight: 'blue' },
