@@ -110,7 +110,7 @@ const ActivityColumnPicker = ({
                                         disabled={isLastVisible}
                                         onChange={() => toggleColumn(col.key)}
                                     />
-                                    <span className="text-cdtext">{col.label}</span>
+                                    <span className="text-cdtext">{col.pickerLabel || col.label}</span>
                                 </label>
                             );
                         })}
