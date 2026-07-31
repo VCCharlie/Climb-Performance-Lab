@@ -131,6 +131,17 @@ const ActivityLogFilterBar = ({
 }) => {
     const mobilePanelExpanded = useCardLayout && logMobileFiltersOpen;
 
+    const columnPicker = (
+        <ActivityColumnPicker
+            visibleKeys={visibleKeys}
+            activePreset={activePreset}
+            applyPreset={applyPreset}
+            toggleColumn={toggleColumn}
+            isColumnVisible={isColumnVisible}
+            className="flex shrink-0"
+        />
+    );
+
     return (
     <div
         ref={filterBarRootRef}
@@ -147,73 +158,76 @@ const ActivityLogFilterBar = ({
         )}
     >
         <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
-            <div className="flex gap-2 w-full md:w-auto flex-1 min-w-0">
-                <div className="relative flex-1 min-w-0">
-                    <Search className="absolute left-3 top-2.5 w-4 h-4 text-cdmuted" />
+            <div
+                className={cn(
+                    'w-full md:w-auto flex-1 min-w-0 gap-2',
+                    useCardLayout ? 'flex flex-col' : 'flex',
+                )}
+            >
+                <div className={cn('relative min-w-0', useCardLayout ? 'w-full' : 'flex-1 min-w-0')}>
+                    <Search className="absolute left-3 top-2.5 w-4 h-4 text-cdmuted pointer-events-none" aria-hidden />
                     <input
+                        type="search"
                         value={search}
                         onChange={(e) => onSearchChange(e.target.value)}
                         placeholder="Search (name or 4-2-2024)..."
-                        className="w-full bg-cdbg border border-cdborder rounded pl-10 pr-4 py-2 text-sm text-cdtext outline-none focus:border-yellow-400"
+                        aria-label="Search activities by name or date"
+                        className="w-full min-h-9 bg-cdbg border border-cdborder rounded pl-10 pr-4 py-2 text-sm text-cdtext outline-none focus:border-yellow-400"
                     />
                 </div>
-                <div className="flex bg-cdbg rounded border border-cdborder p-1 shrink-0">
+                <div className={cn('flex flex-wrap items-center gap-2', useCardLayout && 'w-full')}>
+                    <div className="flex bg-cdbg rounded border border-cdborder p-1 shrink-0">
+                        <button
+                            type="button"
+                            aria-pressed={indoorFilter === 'all'}
+                            onClick={() => { onIndoorFilterChange('all'); onVirtualRideChipChange(false); }}
+                            className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'all' ? 'bg-cdborder text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}
+                        >
+                            All
+                        </button>
+                        <button
+                            type="button"
+                            aria-pressed={indoorFilter === 'outdoor'}
+                            onClick={() => { onIndoorFilterChange('outdoor'); onVirtualRideChipChange(false); }}
+                            className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'outdoor' ? 'bg-green-600 text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}
+                        >
+                            Out
+                        </button>
+                        <button
+                            type="button"
+                            aria-pressed={indoorFilter === 'indoor'}
+                            onClick={() => { onIndoorFilterChange('indoor'); onVirtualRideChipChange(false); }}
+                            className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'indoor' ? 'bg-orange-600 text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}
+                        >
+                            In
+                        </button>
+                    </div>
+                    <label className="flex items-center gap-1.5 text-[10px] text-cdmuted shrink-0 min-w-0">
+                        <span className="font-bold uppercase text-[9px]">Preset</span>
+                        <select
+                            value={detectedLogFilterPresetId || activeLogFilterPresetId || 'all'}
+                            onChange={(e) => onApplyLogFilterPreset(e.target.value)}
+                            className="bg-cdbg border border-cdborder rounded px-2 py-1 text-cdtext text-[10px] max-w-[9rem] min-w-0"
+                            title="Quick filter presets (saved on this device)"
+                        >
+                            {logFilterPresets.map((p) => (
+                                <option key={p.id} value={p.id}>{p.label}</option>
+                            ))}
+                        </select>
+                    </label>
                     <button
                         type="button"
-                        aria-pressed={indoorFilter === 'all'}
-                        onClick={() => { onIndoorFilterChange('all'); onVirtualRideChipChange(false); }}
-                        className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'all' ? 'bg-cdborder text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}
+                        onClick={onResetLogFilters}
+                        className="text-[9px] text-cdmuted hover:text-cdaccent underline shrink-0"
+                        title="Clear search, gear, metrics, and chip filters"
                     >
-                        All
+                        Reset filters
                     </button>
-                    <button
-                        type="button"
-                        aria-pressed={indoorFilter === 'outdoor'}
-                        onClick={() => { onIndoorFilterChange('outdoor'); onVirtualRideChipChange(false); }}
-                        className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'outdoor' ? 'bg-green-600 text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}
-                    >
-                        Out
-                    </button>
-                    <button
-                        type="button"
-                        aria-pressed={indoorFilter === 'indoor'}
-                        onClick={() => { onIndoorFilterChange('indoor'); onVirtualRideChipChange(false); }}
-                        className={`px-3 py-1 text-xs font-bold rounded transition-colors ${indoorFilter === 'indoor' ? 'bg-orange-600 text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}
-                    >
-                        In
-                    </button>
+                    {!useCardLayout && columnPicker}
                 </div>
-                <label className="flex items-center gap-1.5 text-[10px] text-cdmuted shrink-0">
-                    <span className="font-bold uppercase text-[9px]">Preset</span>
-                    <select
-                        value={detectedLogFilterPresetId || activeLogFilterPresetId || 'all'}
-                        onChange={(e) => onApplyLogFilterPreset(e.target.value)}
-                        className="bg-cdbg border border-cdborder rounded px-2 py-1 text-cdtext text-[10px] max-w-[9rem]"
-                        title="Quick filter presets (saved on this device)"
-                    >
-                        {logFilterPresets.map((p) => (
-                            <option key={p.id} value={p.id}>{p.label}</option>
-                        ))}
-                    </select>
-                </label>
-                <button
-                    type="button"
-                    onClick={onResetLogFilters}
-                    className="text-[9px] text-cdmuted hover:text-cdaccent underline shrink-0"
-                    title="Clear search, gear, metrics, and chip filters"
-                >
-                    Reset filters
-                </button>
-                <ActivityColumnPicker
-                    visibleKeys={visibleKeys}
-                    activePreset={activePreset}
-                    applyPreset={applyPreset}
-                    toggleColumn={toggleColumn}
-                    isColumnVisible={isColumnVisible}
-                    className="flex shrink-0"
-                />
             </div>
-            <div className="flex gap-2 shrink-0 w-full md:w-auto justify-end">
+            <div className="flex gap-2 shrink-0 w-full md:w-auto justify-end items-center min-w-0">
+                {useCardLayout && columnPicker}
                 {onRefresh && (
                     <button
                         type="button"
