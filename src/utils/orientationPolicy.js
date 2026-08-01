@@ -62,11 +62,7 @@ export function subscribeOrientationPolicy(callback) {
 export function getOrientationPolicySnapshot() {
     const mobile = prefersMobileFormFactor();
     const portrait = prefersPortraitOrientation();
-    return {
-        mobile,
-        portrait,
-        mismatch: getOrientationMismatch({ mobile, portrait }),
-    };
+    return getOrientationMismatch({ mobile, portrait });
 }
 
 /**

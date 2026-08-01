@@ -15,27 +15,27 @@ function getSnapshot() {
 }
 
 function getServerSnapshot() {
-    return { mobile: false, portrait: false, mismatch: null };
+    return null;
 }
 
 /**
  * Tracks mobile vs desktop form factor and whether the current orientation matches policy.
  */
 export default function useOrientationPolicy() {
-    const policy = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+    const mismatch = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
     useEffect(() => {
-        if (!policy.mismatch || !isStandaloneDisplayMode()) return undefined;
+        if (!mismatch || !isStandaloneDisplayMode()) return undefined;
 
         let cancelled = false;
-        tryLockScreenOrientation(policy.mismatch).then(() => {
+        tryLockScreenOrientation(mismatch).then(() => {
             if (cancelled) return;
         });
 
         return () => {
             cancelled = true;
         };
-    }, [policy.mismatch]);
+    }, [mismatch]);
 
-    return policy;
+    return { mismatch };
 }
