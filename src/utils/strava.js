@@ -50,9 +50,29 @@ export function stravaActivityUrl(stravaId) {
 }
 
 /** @param {string | number | null | undefined} stravaId */
-export function stravaFlybyUrl(stravaId) {
+export function stravaFlybyUrl(stravaId, opts = {}) {
     const id = normalizeStravaActivityId(stravaId);
-    return id ? `https://labs.strava.com/flyby/viewer/#${id}` : null;
+    if (!id) return null;
+    const polyline = opts.polyline ?? opts.stravaMap;
+    const encoded = typeof polyline === 'string' ? polyline.trim() : '';
+    if (encoded) {
+        return `https://labs.strava.com/flyby/viewer/#${id},${encoded}`;
+    }
+    return `https://labs.strava.com/flyby/viewer/#${id}`;
+}
+
+/**
+ * Open Strava Flyby for an activity (uses stored route polyline when available).
+ * @param {string | number | { strava_id?: string | number, strava_map?: string } | null | undefined} activityOrId
+ * @returns {boolean}
+ */
+export function openStravaFlyby(activityOrId) {
+    if (activityOrId == null) return false;
+    const isObj = typeof activityOrId === 'object';
+    const stravaId = isObj ? activityOrId.strava_id : activityOrId;
+    const polyline = isObj ? activityOrId.strava_map : null;
+    const url = stravaFlybyUrl(stravaId, { polyline });
+    return url ? openExternalUrl(url) : false;
 }
 
 /**
@@ -81,6 +101,16 @@ export function openExternalUrl(url) {
     if (!url || typeof url !== 'string') return false;
     const trimmed = url.trim();
     if (!trimmed) return false;
+    try {
+        const w = window.open('about:blank', '_blank');
+        if (w) {
+            w.opener = null;
+            w.location.href = trimmed;
+            return true;
+        }
+    } catch {
+        // fall through to direct open
+    }
     const w = window.open(trimmed, '_blank', 'noopener,noreferrer');
     if (w && !w.closed) return true;
     try {

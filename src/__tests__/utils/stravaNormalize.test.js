@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeStravaActivityId, stravaActivityUrl, stravaFlybyUrl, openExternalUrl } from '../../utils/strava';
+import { normalizeStravaActivityId, stravaActivityUrl, stravaFlybyUrl, openExternalUrl, openStravaFlyby } from '../../utils/strava';
 
 describe('normalizeStravaActivityId', () => {
   it('strips non-digits when long enough', () => {
@@ -26,8 +26,19 @@ describe('stravaFlybyUrl', () => {
     expect(stravaFlybyUrl('123456')).toBe('https://labs.strava.com/flyby/viewer/#123456');
   });
 
+  it('appends route polyline when provided', () => {
+    expect(stravaFlybyUrl('123456', { polyline: '_p~iF~ps|U' }))
+      .toBe('https://labs.strava.com/flyby/viewer/#123456,_p~iF~ps|U');
+  });
+
   it('returns null when id is missing', () => {
     expect(stravaFlybyUrl('')).toBeNull();
+  });
+});
+
+describe('openStravaFlyby', () => {
+  it('returns false when activity has no strava id', () => {
+    expect(openStravaFlyby({ strava_id: null })).toBe(false);
   });
 });
 

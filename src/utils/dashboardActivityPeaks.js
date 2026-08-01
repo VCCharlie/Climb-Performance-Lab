@@ -130,7 +130,7 @@ export function activityExternalLinks(activity) {
         links.push({ label: 'Intervals.icu', href: `https://intervals.icu/activities/${id}` });
     }
     const stravaHref = stravaActivityUrl(activity.strava_id);
-    const flybyHref = stravaFlybyUrl(activity.strava_id);
+    const flybyHref = stravaFlybyUrl(activity.strava_id, { polyline: activity.strava_map });
     if (stravaHref) {
         links.push({ label: 'Strava', href: stravaHref });
     }
