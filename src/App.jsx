@@ -28,6 +28,7 @@ import Dashboard from './components/Dashboard';
 import SettingsModal from './components/SettingsModal';
 import PwaInstallBanner from './components/PwaInstallBanner';
 import PwaUpdateBanner from './components/PwaUpdateBanner';
+import OrientationGuard from './components/OrientationGuard';
 import { LoadingPanel, SegmentedControl } from './components/ui';
 import { MainNav } from './components/shell';
 import SignInGate from './components/SignInGate';
@@ -1067,6 +1068,7 @@ const App = () => {
                     </main>
                     {user && <PwaInstallBanner />}
                     <PwaUpdateBanner />
+                    <OrientationGuard />
                 </div>
             </ActivityLogNavigationProvider>
         </ActivitiesProvider>
