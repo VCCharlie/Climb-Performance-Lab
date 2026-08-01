@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
 import { resolveStravaGearDisplay } from '../../utils/stravaBikesLocalMap';
-import { stravaActivityUrl, stravaFlybyUrl } from '../../utils/strava';
+import { stravaActivityUrl, stravaFlybyUrl, openExternalUrl, openStravaFlyby } from '../../utils/strava';
 import { getKomBadgeCountsFromSummary, getKomBadgeDisplaySlots } from '../../utils/stravaSegmentKomSummary';
 import { buildStickyColumnMeta, stickyTableCellProps, stickyActionsCellProps } from '../../utils/activityTableSticky';
 import NormPowerCell from './NormPowerCell';
@@ -193,7 +193,7 @@ export const Row = React.memo(React.forwardRef(({
     if (!act) return null;
 
     const stravaUrl = stravaActivityUrl(act.strava_id);
-    const flybyUrl = stravaFlybyUrl(act.strava_id);
+    const flybyUrl = stravaFlybyUrl(act.strava_id, { polyline: act.strava_map });
     const climbMatch = profilerClimbByActivityId?.get(String(act.id));
 
     const renderCell = (col) => {
@@ -443,7 +443,11 @@ export const Row = React.memo(React.forwardRef(({
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-cdmuted hover:text-orange-400 p-0.5 flex items-center rounded hover:bg-cdborder/40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
-                                onClick={(e) => e.stopPropagation()}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    openExternalUrl(stravaUrl);
+                                }}
                                 title="Open in Strava"
                                 aria-label="Open in Strava"
                             >
@@ -456,7 +460,11 @@ export const Row = React.memo(React.forwardRef(({
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-cdmuted hover:text-orange-300 p-0.5 flex items-center rounded hover:bg-cdborder/40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
-                                onClick={(e) => e.stopPropagation()}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    openStravaFlyby(act);
+                                }}
                                 title="Open Strava Flyby"
                                 aria-label="Open Strava Flyby"
                             >

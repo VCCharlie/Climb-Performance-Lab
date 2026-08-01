@@ -4,7 +4,7 @@ import {
 } from 'lucide-react';
 import { formatDateDDMMYYYY } from '../../utils';
 import { getActivityCardMetrics } from '../../utils/activityCardMetrics';
-import { stravaActivityUrl, stravaFlybyUrl, openExternalUrl } from '../../utils/strava';
+import { stravaActivityUrl, stravaFlybyUrl, openExternalUrl, openStravaFlyby } from '../../utils/strava';
 import { cn } from '../ui/cn';
 import AnchoredDropdownPortal from '../ui/AnchoredDropdownPortal';
 import ActivityTypeIcon from './ActivityTypeIcon';
@@ -25,20 +25,26 @@ const metricToneClass = {
 
 const MenuItem = ({ onClick, href, external, children, className = 'text-cdtext' }) => {
     const cls = `w-full flex items-center gap-2 px-3 py-2.5 text-sm text-left hover:bg-cdborder/40 cd-transition ${className}`;
+    if (href && external) {
+        return (
+            <button
+                type="button"
+                className={cls}
+                onClick={(e) => {
+                    openExternalUrl(href);
+                    onClick?.(e);
+                }}
+            >
+                {children}
+            </button>
+        );
+    }
     if (href) {
         return (
             <a
                 href={href}
-                target={external ? '_blank' : undefined}
-                rel={external ? 'noopener noreferrer' : undefined}
                 className={cls}
-                onClick={(e) => {
-                    if (external) {
-                        e.preventDefault();
-                        openExternalUrl(href);
-                    }
-                    onClick?.(e);
-                }}
+                onClick={onClick}
             >
                 {children}
             </a>
@@ -100,7 +106,7 @@ const ActivityCard = React.memo(({
     const description = (act.description || act.notes || '').trim();
     const climbMatch = profilerClimbByActivityId?.get(String(act.id));
     const stravaUrl = stravaActivityUrl(act.strava_id);
-    const flybyUrl = stravaFlybyUrl(act.strava_id);
+    const flybyUrl = stravaFlybyUrl(act.strava_id, { polyline: act.strava_map });
 
     const closeMenu = () => {
         setMenuOpen(false);
