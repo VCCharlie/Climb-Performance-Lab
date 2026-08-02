@@ -49,10 +49,8 @@ const BucketList = lazyWithRetry(() => import('./components/BucketList'), 'Bucke
 const WeatherClimb = lazyWithRetry(() => import('./components/WeatherClimb'), 'WeatherClimb');
 const ClimbMap = lazyWithRetry(() => import('./components/ClimbMap'), 'ClimbMap');
 
-import useIntervalsSync from './hooks/useIntervalsSync';
 import useStravaAuth from './hooks/useStravaAuth';
 import { applyTheme } from './theme/applyTheme';
-import { SPORT_TYPES } from './config';
 import { consumeNavRestore } from './utils/sessionNavRestore';
 import { mergeVolumeGoals, hydrateYearlyGoalsFromLegacy } from './utils/volumeGoals';
 import {
@@ -250,16 +248,6 @@ const App = () => {
         if (timeRange === 'Custom') return customEnd || new Date().toISOString().split('T')[0];
         return new Date().toISOString().split('T')[0];
     }, [timeRange, customEnd]);
-
-    // --- Sync State for SettingsModal ---
-    const { syncIntervals, isSyncing, syncProgress } = useIntervalsSync(intervalsConfig);
-    const [syncDates, setSyncDates] = useState({
-        start: new Date(new Date().setDate(new Date().getDate() - 90)).toISOString().split('T')[0],
-        end: new Date().toISOString().split('T')[0]
-    });
-    const [sportFilters, setSportFilters] = useState(
-        SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: true }), {})
-    );
 
     const [user, setUser] = useState(null);
     const [authReady, setAuthReady] = useState(false);
@@ -1067,7 +1055,6 @@ const App = () => {
                                 }}
                                 onImportBackup={handleImportBackup}
                                 onCleanupCloudTokens={cleanupCloudTokens}
-                                syncState={{ syncDates, setSyncDates, sportFilters, setSportFilters, isSyncing, syncProgress, syncIntervals }}
                                 stravaConfig={stravaConfig}
                                 updateStravaConfig={updateStravaConfig}
                                 stravaAuth={stravaAuth}
