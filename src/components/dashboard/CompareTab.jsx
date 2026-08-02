@@ -11,10 +11,16 @@ import CompareSportDonut from './CompareSportDonut';
 
 const DEFAULT_SPORTS = new Set(['Ride', 'VirtualRide']);
 
-const METRICS = [
+const VOLUME_METRICS = [
     { id: 'distanceKm', label: 'Distance' },
     { id: 'elevationM', label: 'Elevation' },
     { id: 'movingTimeSec', label: 'Moving time' },
+];
+
+const POWER_METRICS = [
+    { id: 'peakEftp20', label: 'Peak eFTP (20m)' },
+    { id: 'peakBest20min', label: 'Peak 20 min' },
+    { id: 'peakBest60min', label: 'Peak 60 min' },
 ];
 
 function sportPillClass(active) {
@@ -26,7 +32,7 @@ function sportPillClass(active) {
 /**
  * Year-over-year comparison — sport filters, period toggle, bars + donut.
  */
-const CompareTab = ({ allActivities }) => {
+const CompareTab = ({ allActivities, manualFtp = 0 }) => {
     const [selectedSports, setSelectedSports] = useState(() => new Set(DEFAULT_SPORTS));
     const [period, setPeriod] = useState('ytd');
     const now = useMemo(() => new Date(), []);
@@ -38,8 +44,15 @@ const CompareTab = ({ allActivities }) => {
     );
 
     const rows = useMemo(
-        () => computeMultiYearCompareRows(allActivities, now, yearCount, selectedSports, period),
-        [allActivities, now, yearCount, selectedSports, period],
+        () => computeMultiYearCompareRows(
+            allActivities,
+            now,
+            yearCount,
+            selectedSports,
+            period,
+            manualFtp,
+        ),
+        [allActivities, now, yearCount, selectedSports, period, manualFtp],
     );
 
     const compareYears = useMemo(() => rows.map((r) => r.year), [rows]);
@@ -130,17 +143,38 @@ const CompareTab = ({ allActivities }) => {
                     </p>
                 ) : (
                     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                        <div className="xl:col-span-2 grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            {METRICS.map((m) => (
-                                <div key={m.id} className="space-y-2">
-                                    <h4 className="text-[10px] font-bold text-cdmuted uppercase tracking-wide">{m.label}</h4>
-                                    <YearAtMomentBars rows={rows} metricId={m.id} currentYear={currentYear} />
+                        <div className="xl:col-span-2 space-y-8">
+                            <div>
+                                <h4 className="text-[10px] font-bold text-cdmuted uppercase tracking-wide mb-3">Volume</h4>
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                    {VOLUME_METRICS.map((m) => (
+                                        <div key={m.id} className="space-y-2">
+                                            <h4 className="text-[10px] font-bold text-cdmuted uppercase tracking-wide">{m.label}</h4>
+                                            <YearAtMomentBars rows={rows} metricId={m.id} currentYear={currentYear} />
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
-                            <div className="lg:col-span-3 space-y-2">
+                            </div>
+
+                            <div>
+                                <h4 className="text-[10px] font-bold text-cdmuted uppercase tracking-wide mb-1">Power peaks</h4>
+                                <p className="text-[10px] text-cdmuted mb-3 leading-snug">
+                                    Best 20 min and 60 min in each year&apos;s window (eFTP = 20 min × 0.95).
+                                </p>
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                    {POWER_METRICS.map((m) => (
+                                        <div key={m.id} className="space-y-2">
+                                            <h4 className="text-[10px] font-bold text-cdmuted uppercase tracking-wide">{m.label}</h4>
+                                            <YearAtMomentBars rows={rows} metricId={m.id} currentYear={currentYear} />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
                                 <CompareYearLegend years={compareYears} currentYear={currentYear} />
                                 <p className="text-[10px] text-cdmuted">
-                                    Each year uses a fixed color across all three charts (see legend). Bar length is relative to the highest year in that chart.
+                                    Each year uses a fixed color across all charts (see legend). Bar length is relative to the highest year in that chart.
                                 </p>
                             </div>
                         </div>

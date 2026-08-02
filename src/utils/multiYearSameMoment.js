@@ -6,10 +6,18 @@ import { SPORT_TYPES } from '../config.js';
 import { normalizeDate } from './formatters.js';
 import { activityDistanceKm, activityMovingTimeSec } from './activityFilterMetrics.js';
 import { comparePeriodWindowForYear } from './comparePeriodWindows.js';
+import { DASHBOARD_FTP_CAPS } from './dashboardActivityPeaks.js';
 
 const TRACKED_SPORTS = new Set(SPORT_TYPES);
 const DEFAULT_MAX_YEARS = 5;
 const MAX_COMPARE_YEARS_CAP = 20;
+const MAX_DISPLAY_EFTP_W = 600;
+
+function capForKey(key, manualFtp) {
+    const mult = DASHBOARD_FTP_CAPS[key];
+    if (!mult) return 1500;
+    return manualFtp > 0 ? manualFtp * mult : 1500;
+}
 
 /**
  * How many year rows to show — from oldest activity year through reference year (capped).
@@ -53,6 +61,9 @@ function emptyRow(year) {
         elevationM: 0,
         movingTimeSec: 0,
         load: 0,
+        peakBest20min: 0,
+        peakEftp20: 0,
+        peakBest60min: 0,
     };
 }
 
@@ -62,7 +73,8 @@ function emptyRow(year) {
  * @param {number} [maxYears]
  * @param {Set<string> | null} [sportTypes]
  * @param {import('./comparePeriodWindows.js').ComparePeriodId} [period]
- * @returns {Array<{ year: number, count: number, distanceKm: number, elevationM: number, movingTimeSec: number, load: number }>}
+ * @param {number} [manualFtp]
+ * @returns {Array<{ year: number, count: number, distanceKm: number, elevationM: number, movingTimeSec: number, load: number, peakBest20min: number, peakEftp20: number, peakBest60min: number }>}
  */
 export function computeMultiYearCompareRows(
     activities,
@@ -70,6 +82,7 @@ export function computeMultiYearCompareRows(
     maxYears = DEFAULT_MAX_YEARS,
     sportTypes = null,
     period = 'ytd',
+    manualFtp = 0,
 ) {
     const filtered = filterActivitiesBySportTypes(activities, sportTypes);
     if (!filtered.length || !referenceDate || Number.isNaN(referenceDate.getTime())) {
@@ -90,6 +103,9 @@ export function computeMultiYearCompareRows(
         windows.set(y, win);
     }
 
+    const cap20 = capForKey('best_20min', manualFtp);
+    const cap60 = capForKey('best_60min', manualFtp);
+
     for (const a of filtered) {
         const day = normalizeDate(a.date);
         if (!day || day.length < 10) continue;
@@ -109,13 +125,24 @@ export function computeMultiYearCompareRows(
             const sec = activityMovingTimeSec(a);
             if (sec != null) row.movingTimeSec += sec;
             row.load += Number(a.load) || 0;
+
+            const v20 = Number(a.best_20min) || 0;
+            const v60 = Number(a.best_60min) || 0;
+            if (v20 > 0 && v20 <= cap20 && v20 > row.peakBest20min) {
+                row.peakBest20min = v20;
+                row.peakEftp20 = Math.min(Math.round(v20 * 0.95), MAX_DISPLAY_EFTP_W);
+            }
+            if (v60 > 0 && v60 <= cap60 && v60 > row.peakBest60min) {
+                row.peakBest60min = v60;
+            }
+
             break;
         }
     }
 
     return years
         .map((y) => byYear.get(y))
-        .filter((row) => row.count > 0 || row.distanceKm > 0 || row.elevationM > 0);
+        .filter((row) => row.count > 0 || row.distanceKm > 0 || row.elevationM > 0 || row.peakEftp20 > 0);
 }
 
 /** @deprecated use computeMultiYearCompareRows */
@@ -125,7 +152,7 @@ export function computeMultiYearYtdAtSameMoment(activities, referenceDate, maxYe
 
 /**
  * @param {ReturnType<typeof computeMultiYearCompareRows>} rows
- * @param {'distanceKm' | 'elevationM' | 'movingTimeSec' | 'load'} metric
+ * @param {'distanceKm' | 'elevationM' | 'movingTimeSec' | 'load' | 'peakEftp20' | 'peakBest20min' | 'peakBest60min'} metric
  */
 export function multiYearChartSeries(rows, metric) {
     return (rows || []).map((r) => ({

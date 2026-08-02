@@ -43,4 +43,20 @@ describe('multiYearSameMoment', () => {
         ];
         expect(inferCompareYearCount(activities, ref)).toBe(16);
     });
+
+    it('tracks peak 20m and 60m power per year window', () => {
+        const activities = [
+            { type: 'Ride', date: '2026-06-01', best_20min: 300, best_60min: 280 },
+            { type: 'Ride', date: '2025-06-01', best_20min: 320, best_60min: 290 },
+            { type: 'Ride', date: '2025-07-01', best_20min: 310, best_60min: 285 },
+        ];
+        const rows = computeMultiYearCompareRows(activities, ref, 3, null, 'ytd', 280);
+        const y2026 = rows.find((r) => r.year === 2026);
+        const y2025 = rows.find((r) => r.year === 2025);
+        expect(y2026?.peakBest20min).toBe(300);
+        expect(y2026?.peakEftp20).toBe(285);
+        expect(y2025?.peakBest20min).toBe(320);
+        expect(y2025?.peakEftp20).toBe(304);
+        expect(y2025?.peakBest60min).toBe(290);
+    });
 });
