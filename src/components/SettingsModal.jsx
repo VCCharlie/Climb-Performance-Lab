@@ -3,18 +3,19 @@ import { Settings, Activity, RefreshCw, Save, Moon, Sun, Shield, Target, Bell, D
 import { calculatePowerZones } from '../utils';
 import { DEFAULT_RECOVERY_TSS } from '../config';
 import {
-    FTP_SOURCE_ESTIMATED,
+    FTP_SOURCE_ESTIMATED_20,
+    FTP_SOURCE_ESTIMATED_60,
     FTP_SOURCE_MANUAL,
     estimateProfileFtpFromActivities,
+    estimateProfileFtp60FromActivities,
     normalizeFtpSource,
+    resolveEffectiveProfileFtp,
 } from '../utils/profileFtp';
 import { formatDateDDMMYYYY } from '../utils/formatters';
-import SyncPanel from './data-hub/SyncPanel';
 import { buildBackupExport, validateBackupPayload, describeBackupImport, BACKUP_MAX_BYTES } from '../utils/backupSchema';
 import { Button, IconButton, inputBaseClass, inputNumberClass, modalScrimClass, modalPanelClass, modalHeaderClass, modalFooterClass } from './ui';
 import ModalPortal from './ui/ModalPortal';
 import { useActivities } from '../hooks/useActivities';
-import { useToast } from '../context/ToastContext';
 import {
     formatBikeComputerProfileTitlesForInput,
     parseBikeComputerProfileTitlesInput,
@@ -33,16 +34,13 @@ const SettingsModal = ({
     userSettings, updateUserSettings,
     onSaveToCloud, theme, setTheme,
     backupExtras, onImportBackup, onCleanupCloudTokens,
-    syncState,
     stravaConfig, stravaAuth
 }) => {
-    const { activities, syncFromIntervals, restoreFromBackup } = useActivities();
-    const { showToast } = useToast();
-    const ftpEstimate = estimateProfileFtpFromActivities(activities);
+    const { activities, restoreFromBackup } = useActivities();
+    const ftpEstimate20 = estimateProfileFtpFromActivities(activities);
+    const ftpEstimate60 = estimateProfileFtp60FromActivities(activities);
     const ftpSource = normalizeFtpSource(userSettings);
-    const effectiveFtpForZones = ftpSource === FTP_SOURCE_ESTIMATED && ftpEstimate.ftp
-        ? ftpEstimate.ftp
-        : (Number(userSettings.ftp) || 0);
+    const effectiveFtpForZones = resolveEffectiveProfileFtp(userSettings, activities).ftp || (Number(userSettings.ftp) || 0);
     const [isSaving, setIsSaving] = useState(false);
     const [profileTitlesText, setProfileTitlesText] = useState(() =>
         formatBikeComputerProfileTitlesForInput(userSettings.bikeComputerProfileTitles),
@@ -51,35 +49,6 @@ const SettingsModal = ({
     useEffect(() => {
         setProfileTitlesText(formatBikeComputerProfileTitlesForInput(userSettings.bikeComputerProfileTitles));
     }, [userSettings.bikeComputerProfileTitles]);
-
-    // -- Sync Wrapper --
-    const { syncDates, setSyncDates, sportFilters, setSportFilters, isSyncing, syncProgress, syncIntervals } = syncState || {};
-
-    const toggleSportFilter = (type) => {
-        if (setSportFilters) setSportFilters(prev => ({ ...prev, [type]: !prev[type] }));
-    };
-
-    const setAllSportFilters = (val) => {
-        import('../config').then(({ SPORT_TYPES }) => {
-            if (setSportFilters) setSportFilters(SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: val }), {}));
-        });
-    };
-
-    const handleIntervalsSyncWrapper = async () => {
-        if (!syncIntervals || !syncDates || !sportFilters) return;
-        const selectedTypes = Object.keys(sportFilters).filter(k => sportFilters[k]);
-        try {
-            const newRides = await syncIntervals(syncDates.start, syncDates.end, selectedTypes);
-            if (newRides && newRides.length > 0) {
-                const count = await syncFromIntervals(newRides);
-                showToast(`Sync successful! Handled ${count} activities.`, { variant: 'success' });
-            } else if (newRides) {
-                showToast('No activities found in range.', { variant: 'info' });
-            }
-        } catch (e) {
-            showToast(e.message, { variant: 'error' });
-        }
-    };
 
     const handleSave = async () => {
         setIsSaving(true);
@@ -279,20 +248,15 @@ const SettingsModal = ({
                                 </div>
                             </div>
 
-                            {syncState && (
-                                <div className="mt-6 pt-6 border-t border-cdborder/50">
-                                    <SyncPanel
-                                        syncDates={syncDates}
-                                        setSyncDates={setSyncDates}
-                                        sportFilters={sportFilters}
-                                        toggleSportFilter={toggleSportFilter}
-                                        setAllSportFilters={setAllSportFilters}
-                                        isSyncing={isSyncing}
-                                        syncProgress={syncProgress}
-                                        handleIntervalsSync={handleIntervalsSyncWrapper}
-                                    />
-                                </div>
-                            )}
+                            <div className="mt-4 pt-4 border-t border-cdborder/30">
+                                <p className="text-xs font-semibold text-cdtext mb-1">Activity sync</p>
+                                <p className="text-xs text-cdmuted leading-snug">
+                                    Use the <strong className="text-cdtext">Activities</strong> tab for Fetch &amp; merge
+                                    (date range, sport filters, Strava enrichment, and refresh selected rows).
+                                    On <strong className="text-cdtext">Dashboard</strong>, the header refresh button syncs
+                                    today only. Nightly GitHub Actions sync above still runs in the background when configured.
+                                </p>
+                            </div>
                         </div>
 
                         {/* STRAVA CONNECTION */}
@@ -446,31 +410,89 @@ const SettingsModal = ({
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={() => updateUserSettings('ftpSource', FTP_SOURCE_ESTIMATED)}
+                                            onClick={() => updateUserSettings('ftpSource', FTP_SOURCE_ESTIMATED_20)}
                                             className={`px-3 py-1.5 rounded text-xs font-bold border cd-transition ${
-                                                ftpSource === FTP_SOURCE_ESTIMATED
+                                                ftpSource === FTP_SOURCE_ESTIMATED_20
                                                     ? 'bg-cdaccent/15 border-cdaccent/50 text-cdaccent'
                                                     : 'border-cdborder text-cdmuted hover:text-cdtext'
                                             }`}
                                         >
-                                            Estimated from data
+                                            From 20 min peak
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => updateUserSettings('ftpSource', FTP_SOURCE_ESTIMATED_60)}
+                                            className={`px-3 py-1.5 rounded text-xs font-bold border cd-transition ${
+                                                ftpSource === FTP_SOURCE_ESTIMATED_60
+                                                    ? 'bg-cdaccent/15 border-cdaccent/50 text-cdaccent'
+                                                    : 'border-cdborder text-cdmuted hover:text-cdtext'
+                                            }`}
+                                        >
+                                            From 60 min peak
                                         </button>
                                     </div>
-                                    {ftpSource === FTP_SOURCE_ESTIMATED && (
-                                        <p className="text-[10px] text-cdmuted mt-2 leading-snug">
-                                            {ftpEstimate.ftp
-                                                ? `Using ${ftpEstimate.ftp} W from best 20-minute power × 0.95`
-                                                    + (ftpEstimate.activityDate
-                                                        ? ` (${formatDateDDMMYYYY(ftpEstimate.activityDate)})`
-                                                        : '')
-                                                    + ` — confidence: ${ftpEstimate.confidence}.`
-                                                : 'No reliable 20-minute peak in your activity log yet — manual FTP is used as fallback.'}
+                                    <div className="mt-3 rounded-lg border border-cdborder/50 bg-cdsurfacehigh/20 p-3 space-y-3">
+                                        <p className="text-[10px] font-semibold text-cdmuted uppercase tracking-wide">
+                                            Estimated from activity log
                                         </p>
-                                    )}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] font-bold text-cdtext">20 min peak</p>
+                                                {ftpEstimate20.ftp ? (
+                                                    <>
+                                                        <p className="text-cdtext font-semibold">
+                                                            {ftpEstimate20.best20Min} W peak → {ftpEstimate20.ftp} W FTP (×0.95)
+                                                        </p>
+                                                        <p className="text-[10px] text-cdmuted">
+                                                            {ftpEstimate20.activityDate
+                                                                ? formatDateDDMMYYYY(ftpEstimate20.activityDate)
+                                                                : 'Unknown date'}
+                                                            {' · '}
+                                                            confidence: {ftpEstimate20.confidence}
+                                                        </p>
+                                                    </>
+                                                ) : (
+                                                    <p className="text-[10px] text-cdmuted">
+                                                        No reliable 20-minute peak in your activity log yet.
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] font-bold text-cdtext">60 min peak</p>
+                                                {ftpEstimate60.ftp ? (
+                                                    <>
+                                                        <p className="text-cdtext font-semibold">
+                                                            {ftpEstimate60.best60Min} W peak → {ftpEstimate60.ftp} W FTP
+                                                        </p>
+                                                        <p className="text-[10px] text-cdmuted">
+                                                            {ftpEstimate60.activityDate
+                                                                ? formatDateDDMMYYYY(ftpEstimate60.activityDate)
+                                                                : 'Unknown date'}
+                                                            {' · '}
+                                                            confidence: {ftpEstimate60.confidence}
+                                                        </p>
+                                                    </>
+                                                ) : (
+                                                    <p className="text-[10px] text-cdmuted">
+                                                        No reliable 60-minute peak in your activity log yet.
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                        {ftpSource !== FTP_SOURCE_MANUAL && (
+                                            <p className="text-[10px] text-cdmuted leading-snug border-t border-cdborder/30 pt-2">
+                                                {ftpSource === FTP_SOURCE_ESTIMATED_20 && ftpEstimate20.ftp
+                                                    ? `Active FTP: ${ftpEstimate20.ftp} W (from 20 min peak). Manual value below is fallback when no peak is available.`
+                                                    : ftpSource === FTP_SOURCE_ESTIMATED_60 && ftpEstimate60.ftp
+                                                        ? `Active FTP: ${ftpEstimate60.ftp} W (from 60 min peak). Manual value below is fallback when no peak is available.`
+                                                        : 'Selected estimate has no reliable peak yet — manual FTP is used until data is available.'}
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="block text-[10px] font-semibold mb-1 text-cdmuted text-blue-500" htmlFor="settings-ftp">
-                                        {ftpSource === FTP_SOURCE_ESTIMATED ? 'Manual FTP fallback (W)' : 'Current FTP (W)'}
+                                        {ftpSource === FTP_SOURCE_MANUAL ? 'Current FTP (W)' : 'Manual FTP fallback (W)'}
                                     </label>
                                     <input
                                         id="settings-ftp"
@@ -481,9 +503,10 @@ const SettingsModal = ({
                                         onChange={(e) => updateUserSettings('ftp', Number(e.target.value))}
                                         className={inputNumberClass}
                                     />
-                                    {ftpSource === FTP_SOURCE_ESTIMATED && ftpEstimate.ftp && (
+                                    {ftpSource !== FTP_SOURCE_MANUAL && effectiveFtpForZones > 0 && (
                                         <p className="text-[9px] text-cdmuted mt-1">
-                                            Active value: {ftpEstimate.ftp} W (estimated)
+                                            Active value: {effectiveFtpForZones} W
+                                            {ftpSource === FTP_SOURCE_ESTIMATED_20 ? ' (20 min estimate)' : ' (60 min estimate)'}
                                         </p>
                                     )}
                                 </div>

@@ -21,7 +21,13 @@ export function ProfileFtpProvider({ userSettings, children }) {
 export function useProfileFtp() {
     const ctx = useContext(ProfileFtpContext);
     if (!ctx) {
-        return { ftp: 0, source: 'manual', estimate: { ftp: null, confidence: 'none' } };
+        return {
+            ftp: 0,
+            source: 'manual',
+            estimate: { ftp: null, confidence: 'none' },
+            estimate20: { ftp: null, confidence: 'none' },
+            estimate60: { ftp: null, confidence: 'none' },
+        };
     }
     return ctx;
 }
