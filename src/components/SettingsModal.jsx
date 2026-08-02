@@ -6,11 +6,15 @@ import {
     FTP_SOURCE_ESTIMATED_20,
     FTP_SOURCE_ESTIMATED_60,
     FTP_SOURCE_MANUAL,
+    FTP_LOOKBACK_6_MONTHS,
+    FTP_LOOKBACK_RECENT,
+    FTP_ESTIMATE_LOOKBACK_DAYS_RECENT,
     estimateProfileFtpFromActivities,
     estimateProfileFtp60FromActivities,
     normalizeFtpSource,
+    normalizeFtpLookbackWindow,
     resolveEffectiveProfileFtp,
-    FTP_ESTIMATE_LOOKBACK_MONTHS,
+    describeFtpLookbackWindow,
 } from '../utils/profileFtp';
 import { formatDateDDMMYYYY } from '../utils/formatters';
 import { buildBackupExport, validateBackupPayload, describeBackupImport, BACKUP_MAX_BYTES } from '../utils/backupSchema';
@@ -38,8 +42,10 @@ const SettingsModal = ({
     stravaConfig, stravaAuth
 }) => {
     const { activities, restoreFromBackup } = useActivities();
-    const ftpEstimate20 = estimateProfileFtpFromActivities(activities);
-    const ftpEstimate60 = estimateProfileFtp60FromActivities(activities);
+    const ftpLookbackWindow = normalizeFtpLookbackWindow(userSettings);
+    const ftpLookbackLabel = describeFtpLookbackWindow(userSettings);
+    const ftpEstimate20 = estimateProfileFtpFromActivities(activities, undefined, userSettings);
+    const ftpEstimate60 = estimateProfileFtp60FromActivities(activities, undefined, userSettings);
     const ftpSource = normalizeFtpSource(userSettings);
     const effectiveFtpForZones = resolveEffectiveProfileFtp(userSettings, activities).ftp || (Number(userSettings.ftp) || 0);
     const [isSaving, setIsSaving] = useState(false);
@@ -432,9 +438,41 @@ const SettingsModal = ({
                                             From 60 min peak
                                         </button>
                                     </div>
+                                    <div className="mt-3">
+                                        <p className="text-[10px] font-semibold text-cdmuted mb-2">Estimate window</p>
+                                        <div className="flex flex-wrap gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => updateUserSettings('ftpLookbackWindow', FTP_LOOKBACK_6_MONTHS)}
+                                                className={`px-3 py-1.5 rounded text-xs font-bold border cd-transition ${
+                                                    ftpLookbackWindow === FTP_LOOKBACK_6_MONTHS
+                                                        ? 'bg-cdaccent/15 border-cdaccent/50 text-cdaccent'
+                                                        : 'border-cdborder text-cdmuted hover:text-cdtext'
+                                                }`}
+                                            >
+                                                Last 6 months
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => updateUserSettings('ftpLookbackWindow', FTP_LOOKBACK_RECENT)}
+                                                className={`px-3 py-1.5 rounded text-xs font-bold border cd-transition ${
+                                                    ftpLookbackWindow === FTP_LOOKBACK_RECENT
+                                                        ? 'bg-cdaccent/15 border-cdaccent/50 text-cdaccent'
+                                                        : 'border-cdborder text-cdmuted hover:text-cdtext'
+                                                }`}
+                                            >
+                                                Last {FTP_ESTIMATE_LOOKBACK_DAYS_RECENT} days
+                                            </button>
+                                        </div>
+                                        <p className="text-[10px] text-cdmuted mt-2 leading-snug">
+                                            {ftpLookbackWindow === FTP_LOOKBACK_RECENT
+                                                ? 'Recent-form window (42–90 day range). Best for current fitness when you train and test often.'
+                                                : 'Balanced window. Ignores old all-time peaks but keeps seasonal bests from the past half year.'}
+                                        </p>
+                                    </div>
                                     <div className="mt-3 rounded-lg border border-cdborder/50 bg-cdsurfacehigh/20 p-3 space-y-3">
                                         <p className="text-[10px] font-semibold text-cdmuted uppercase tracking-wide">
-                                            Estimated from activity log (last {FTP_ESTIMATE_LOOKBACK_MONTHS} months)
+                                            Estimated from activity log ({ftpLookbackLabel})
                                         </p>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                                             <div className="space-y-1">
@@ -454,7 +492,7 @@ const SettingsModal = ({
                                                     </>
                                                 ) : (
                                                     <p className="text-[10px] text-cdmuted">
-                                                        No reliable 20-minute peak in the last {FTP_ESTIMATE_LOOKBACK_MONTHS} months.
+                                                        No reliable 20-minute peak in the {ftpLookbackLabel}.
                                                     </p>
                                                 )}
                                             </div>
@@ -475,7 +513,7 @@ const SettingsModal = ({
                                                     </>
                                                 ) : (
                                                     <p className="text-[10px] text-cdmuted">
-                                                        No reliable 60-minute peak in the last {FTP_ESTIMATE_LOOKBACK_MONTHS} months.
+                                                        No reliable 60-minute peak in the {ftpLookbackLabel}.
                                                     </p>
                                                 )}
                                             </div>
