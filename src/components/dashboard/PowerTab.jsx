@@ -3,6 +3,7 @@ import PowerDurationTable from './PowerDurationTable';
 import PowerTopTenByDurationPanel from './PowerTopTenByDurationPanel';
 import PowerTabDetails from './PowerTabDetails';
 import PowerProfileRadar from './PowerProfileRadar';
+import PowerLongevitySection from './PowerLongevitySection';
 import { findBestPowerActivity, DASHBOARD_FTP_CAPS } from '../../utils/dashboardActivityPeaks';
 import { dashboardFilterLabel } from '../../utils/powerDurationTable';
 
@@ -54,6 +55,7 @@ const PowerTab = ({
     customEnd = '',
     referenceEndDate,
     weightKg = 0,
+    userSettings,
     onOpenActivityInLog,
 }) => {
     const effectiveWeightKg = Number(weightKg) > 0 ? Number(weightKg) : 0;
@@ -138,6 +140,15 @@ const PowerTab = ({
 
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
+            {chartData.length > 0 && (
+                <PowerLongevitySection
+                    activities={chartData}
+                    manualFtp={manualFtp}
+                    weightKg={effectiveWeightKg}
+                    userSettings={userSettings}
+                />
+            )}
+
             {!hasPeriodData && hasHistory && (
                 <p className="text-sm text-cdmuted bg-cdborder/20 border border-cdborder rounded-lg px-4 py-3">
                     No rides in <span className="text-cdtext font-semibold">{periodLabel}</span> — the power-duration matrix still uses

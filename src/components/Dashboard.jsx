@@ -225,6 +225,7 @@ const Dashboard = ({
                         onOpenActivityInLog={onOpenActivityInLog}
                         userSettings={userSettings}
                         onOpenSettings={onOpenSettings}
+                        onGoToPowerTab={() => setDashboardTab('power')}
                     />
                 </div>
             )}
@@ -258,6 +259,7 @@ const Dashboard = ({
                                 customEnd={customEnd}
                                 referenceEndDate={referenceEndDate}
                                 weightKg={userWeightKg}
+                                userSettings={userSettings}
                                 onOpenActivityInLog={onOpenActivityInLog}
                             />
                         </div>

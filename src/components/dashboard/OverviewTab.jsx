@@ -5,6 +5,7 @@ import ActivityHeatmap from './charts/ActivityHeatmap';
 import VolumeGoalsPanel from './VolumeGoalsPanel';
 import ClimbingReadinessCard from './ClimbingReadinessCard';
 import YtdCompareCard from './YtdCompareCard';
+import PowerLongevityCard from './PowerLongevityCard';
 import { buildOverviewBarChartIndex } from '../../utils/dashboardBarChartBuckets';
 
 /**
@@ -22,6 +23,7 @@ const OverviewTab = ({
     onOpenActivityInLog,
     userSettings,
     onOpenSettings,
+    onGoToPowerTab,
 }) => {
     const activitySource = allActivities || data || [];
     const hasFilteredData = data && data.length > 0;
@@ -43,6 +45,14 @@ const OverviewTab = ({
             />
 
             <YtdCompareCard activities={activitySource} />
+
+            <PowerLongevityCard
+                activities={activitySource}
+                manualFtp={manualFtp}
+                weightKg={userSettings?.weight}
+                userSettings={userSettings}
+                onGoToPowerTab={onGoToPowerTab}
+            />
 
             {userSettings && (
                 <VolumeGoalsPanel
