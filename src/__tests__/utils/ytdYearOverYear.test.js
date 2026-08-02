@@ -27,6 +27,19 @@ describe('ytdYearOverYear', () => {
         expect(percentChange(80, 60)).toBeCloseTo(33.33, 1);
     });
 
+    it('tracks peak power in YTD windows', () => {
+        const activities = [
+            { type: 'Ride', date: '2026-04-01', best_20min: 300, best_60min: 280 },
+            { type: 'Ride', date: '2025-04-01', best_20min: 320, best_60min: 290 },
+        ];
+        const result = computeCplYtdYearOverYear(activities, ref, 280);
+        expect(result?.thisYtd.peakBest20min).toBe(300);
+        expect(result?.thisYtd.peakEftp20).toBe(285);
+        expect(result?.prevYtd.peakBest20min).toBe(320);
+        expect(result?.prevYtd.peakEftp20).toBe(304);
+        expect(result?.prevYtd.peakBest60min).toBe(290);
+    });
+
     it('computeYtdGravelVsRoad splits road and gravel', () => {
         const activities = [
             { type: 'Ride', date: '2026-04-01', distance: 50, moving_time: 3600 },

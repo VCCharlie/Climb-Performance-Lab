@@ -9,6 +9,10 @@ const fmt = {
     int: (n) => Math.round(Number(n) || 0).toLocaleString(LOCALE),
     dist: (km) => `${(Number(km) || 0).toLocaleString(LOCALE, { minimumFractionDigits: 0, maximumFractionDigits: 1 })} km`,
     elev: (m) => `${Math.round(Number(m) || 0).toLocaleString(LOCALE)} m`,
+    watts: (w) => {
+        const n = Math.round(Number(w) || 0);
+        return n > 0 ? `${n} W` : '—';
+    },
     time: (sec) => {
         const s = Number(sec) || 0;
         const h = Math.floor(s / 3600);
@@ -39,10 +43,10 @@ function CompareLine({ label, cur, prev, pct, formatValue }) {
 /**
  * YTD vs last year at the same calendar date — CPL activity log.
  */
-const YtdCompareCard = ({ activities }) => {
+const YtdCompareCard = ({ activities, manualFtp = 0 }) => {
     const ytdYoy = useMemo(
-        () => computeCplYtdYearOverYear(activities, new Date()),
-        [activities],
+        () => computeCplYtdYearOverYear(activities, new Date(), manualFtp),
+        [activities, manualFtp],
     );
 
     const ytdSurface = useMemo(
@@ -108,6 +112,39 @@ const YtdCompareCard = ({ activities }) => {
                     formatValue={(n) => `${fmt.int(n)} rides`}
                 />
             </div>
+
+            {(thisYtd.peakEftp20 > 0 || prevYtd.peakEftp20 > 0
+                || thisYtd.peakBest60min > 0 || prevYtd.peakBest60min > 0) && (
+                <div className="mt-4 rounded-lg border border-cdborder/70 bg-cdbg/30 p-3 space-y-1">
+                    <h4 className="text-[10px] font-bold text-cdmuted uppercase tracking-wide mb-2">
+                        YTD power peaks
+                    </h4>
+                    <p className="text-[10px] text-cdmuted mb-2">
+                        Best efforts in the same calendar window (eFTP = 20 min × 0.95).
+                    </p>
+                    <CompareLine
+                        label="Peak eFTP (20m)"
+                        cur={thisYtd.peakEftp20}
+                        prev={prevYtd.peakEftp20}
+                        pct={percentChange(thisYtd.peakEftp20, prevYtd.peakEftp20)}
+                        formatValue={fmt.watts}
+                    />
+                    <CompareLine
+                        label="Peak 20 min"
+                        cur={thisYtd.peakBest20min}
+                        prev={prevYtd.peakBest20min}
+                        pct={percentChange(thisYtd.peakBest20min, prevYtd.peakBest20min)}
+                        formatValue={fmt.watts}
+                    />
+                    <CompareLine
+                        label="Peak 60 min"
+                        cur={thisYtd.peakBest60min}
+                        prev={prevYtd.peakBest60min}
+                        pct={percentChange(thisYtd.peakBest60min, prevYtd.peakBest60min)}
+                        formatValue={fmt.watts}
+                    />
+                </div>
+            )}
 
             {ytdSurface && (ytdSurface.thisYtd.road.count > 0 || ytdSurface.thisYtd.gravel.count > 0
                 || ytdSurface.prevYtd.road.count > 0 || ytdSurface.prevYtd.gravel.count > 0) && (
