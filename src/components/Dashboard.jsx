@@ -142,7 +142,7 @@ const Dashboard = ({
                 <DashboardTodaySyncButton
                     onSync={syncTodayActivities}
                     isBusy={isTodaySyncBusy}
-                    className="shrink-0"
+                    className="shrink-0 hidden md:flex"
                 />
             </div>
 

@@ -65,6 +65,7 @@ const OverviewTab = ({
                         manualFtp={manualFtp}
                         customTicks={customTicks}
                         onOpenActivityInLog={onOpenActivityInLog}
+                        userSettings={userSettings}
                     />
 
                     {/* Bar charts: 4 columns, each with their own week/month/year & rideType toggle */}
