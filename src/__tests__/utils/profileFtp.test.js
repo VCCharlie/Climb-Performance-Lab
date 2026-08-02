@@ -15,13 +15,31 @@ describe('profileFtp', () => {
         expect(band).toEqual({ minW: 154, maxW: 210, minPct: 55, maxPct: 75 });
     });
 
-    it('estimateProfileFtpFromActivities uses best 20m × 0.95', () => {
+    it('estimateProfileFtpFromActivities uses best 20m × 0.95 within lookback window', () => {
         const est = estimateProfileFtpFromActivities([
             { id: 'a1', date: '2026-07-01', best_20min: 300 },
             { id: 'a2', date: '2026-01-01', best_20min: 250 },
         ], new Date('2026-08-01'));
         expect(est.ftp).toBe(285);
         expect(est.confidence).toBe('high');
+    });
+
+    it('estimateProfileFtpFromActivities ignores all-time peaks older than 6 months', () => {
+        const est = estimateProfileFtpFromActivities([
+            { id: 'old', date: '2016-05-01', best_20min: 400 },
+            { id: 'recent', date: '2026-06-15', best_20min: 260 },
+        ], new Date('2026-08-01'));
+        expect(est.ftp).toBe(247);
+        expect(est.activity?.id).toBe('recent');
+    });
+
+    it('estimateProfileFtp60FromActivities ignores all-time peaks older than 6 months', () => {
+        const est = estimateProfileFtp60FromActivities([
+            { id: 'old', date: '2016-05-01', best_60min: 380 },
+            { id: 'recent', date: '2026-06-15', best_60min: 255 },
+        ], new Date('2026-08-01'));
+        expect(est.ftp).toBe(255);
+        expect(est.activity?.id).toBe('recent');
     });
 
     it('estimateProfileFtp60FromActivities uses best 60m as FTP', () => {
