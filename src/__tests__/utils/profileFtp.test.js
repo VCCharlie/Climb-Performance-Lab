@@ -10,6 +10,7 @@ import {
     FTP_LOOKBACK_6_MONTHS,
     FTP_LOOKBACK_RECENT,
     FTP_ESTIMATE_LOOKBACK_DAYS_RECENT,
+    describeProfileFtpSourceSubtitle,
 } from '../../utils/profileFtp';
 
 describe('profileFtp', () => {
@@ -110,5 +111,22 @@ describe('profileFtp', () => {
         );
         expect(resolved.ftp).toBe(250);
         expect(resolved.source).toBe('manual');
+    });
+
+    it('describeProfileFtpSourceSubtitle reflects 60m source and lookback window', () => {
+        const resolved = resolveEffectiveProfileFtp(
+            { ftp: 250, ftpSource: FTP_SOURCE_ESTIMATED_60, ftpLookbackWindow: FTP_LOOKBACK_RECENT },
+            [{ id: 'a1', date: '2026-07-01', best_60min: 279 }],
+            new Date('2026-08-01'),
+        );
+        expect(describeProfileFtpSourceSubtitle(
+            { ftpSource: FTP_SOURCE_ESTIMATED_60, ftpLookbackWindow: FTP_LOOKBACK_RECENT },
+            resolved,
+        )).toBe('From best 60 min peak (last 90 days)');
+    });
+
+    it('describeProfileFtpSourceSubtitle shows manual label when source is manual', () => {
+        const resolved = resolveEffectiveProfileFtp({ ftp: 250, ftpSource: 'manual' }, []);
+        expect(describeProfileFtpSourceSubtitle({ ftpSource: 'manual' }, resolved)).toBe('Manually set threshold');
     });
 });

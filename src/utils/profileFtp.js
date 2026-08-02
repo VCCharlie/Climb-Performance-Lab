@@ -71,6 +71,30 @@ export function describeFtpLookbackWindow(userSettings) {
 }
 
 /**
+ * Subtitle for Dashboard "Current FTP" stat card.
+ * @param {object} [userSettings]
+ * @param {{ source?: string, estimate20?: object, estimate60?: object }} [profileFtpResult]
+ */
+export function describeProfileFtpSourceSubtitle(userSettings, profileFtpResult) {
+    const source = profileFtpResult?.source ?? FTP_SOURCE_MANUAL;
+    const lookback = describeFtpLookbackWindow(userSettings);
+
+    if (source === FTP_SOURCE_ESTIMATED_20) {
+        if (profileFtpResult?.estimate20?.ftp) {
+            return `From best 20 min × 0.95 (${lookback})`;
+        }
+        return `20 min source (${lookback}) — manual fallback active`;
+    }
+    if (source === FTP_SOURCE_ESTIMATED_60) {
+        if (profileFtpResult?.estimate60?.ftp) {
+            return `From best 60 min peak (${lookback})`;
+        }
+        return `60 min source (${lookback}) — manual fallback active`;
+    }
+    return 'Manually set threshold';
+}
+
+/**
  * @param {Date} referenceDate
  * @param {FtpLookbackConfig} lookbackConfig
  * @returns {string} ISO date YYYY-MM-DD for cutoff (inclusive)

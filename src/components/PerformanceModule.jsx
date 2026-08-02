@@ -9,6 +9,8 @@ import {
     findPeakEftp60Activity,
     activityExternalLinks,
 } from '../utils/dashboardActivityPeaks';
+import { useProfileFtp } from '../context/ProfileFtpContext';
+import { describeProfileFtpSourceSubtitle } from '../utils/profileFtp';
 
 const formatNumber = (num) => {
     if (num === null || num === undefined) return '-';
@@ -218,8 +220,10 @@ const PerformanceModule = ({
     manualFtp,
     customTicks,
     onOpenActivityInLog,
+    userSettings,
     // Note: Control props (setTimeRange etc) not used here anymore as controls moved to Dashboard
 }) => {
+    const profileFtp = useProfileFtp();
     const filteredData = data || [];
 
     // ⚡ Bolt: Memoize chart axis ticks — avoids N× Date allocations on every parent re-render.
@@ -322,6 +326,8 @@ const PerformanceModule = ({
         return `${formatDateDDMMYYYY(act.date)} · ${short}`;
     };
 
+    const currentFtpSubtitle = describeProfileFtpSourceSubtitle(userSettings, profileFtp);
+
     return (
         <>
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
@@ -329,7 +335,7 @@ const PerformanceModule = ({
                     title="Current FTP"
                     value={displayFtp}
                     unit="W"
-                    subtitle="Manually set threshold"
+                    subtitle={currentFtpSubtitle}
                     icon={Zap}
                     colorClass="text-blue-500"
                 />
