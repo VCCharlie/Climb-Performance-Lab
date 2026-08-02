@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useId, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Menu, X, ChevronRight } from 'lucide-react';
+import { Menu, X, ChevronRight, RefreshCw } from 'lucide-react';
 import { Button, cn } from '../ui';
 import NavTab from './NavTab';
 import TimeRangeToolbar from './TimeRangeToolbar';
@@ -8,6 +8,7 @@ import { MAIN_NAV_TABS } from '../../config/navTabs';
 import { prefetchMainTabChunk } from '../../utils/prefetchTabChunks';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { computeAnchoredOverlayStyle } from '../../utils/anchoredOverlayPosition';
+import { useTodayIntervalsSync } from '../../context/TodayIntervalsSyncContext';
 
 /**
  * App shell navigation — mobile menu + desktop primary nav bar with time-range toolbar.
@@ -25,6 +26,7 @@ export default function MainNav({
   onMobileMenuOpenChange,
   tabs = MAIN_NAV_TABS,
 }) {
+  const { syncTodayActivities, isTodaySyncBusy } = useTodayIntervalsSync();
   const mobileLabel = tabs.find((t) => t.id === activeTab)?.label || 'Menu';
   const menuTriggerRef = useRef(null);
   const menuPanelId = useId();
@@ -98,6 +100,18 @@ export default function MainNav({
           {isMobileMenuOpen ? <X size={18} aria-hidden /> : <Menu size={18} aria-hidden />}
           {mobileLabel}
         </Button>
+        {activeTab === 'dashboard' && syncTodayActivities && (
+          <button
+            type="button"
+            onClick={syncTodayActivities}
+            disabled={isTodaySyncBusy}
+            className="flex items-center justify-center w-11 h-11 shrink-0 rounded-lg border border-cdborder bg-cdsurface text-cdmuted hover:text-green-400 hover:border-green-500/50 cd-transition focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none disabled:opacity-50"
+            title="Sync today's activities from Intervals.icu"
+            aria-label="Sync today's activities from Intervals.icu"
+          >
+            <RefreshCw size={18} className={isTodaySyncBusy ? 'animate-spin' : ''} aria-hidden />
+          </button>
+        )}
         <TimeRangeToolbar
           layout="mobile-quick"
           timeRange={timeRange}

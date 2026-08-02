@@ -245,9 +245,7 @@ export function useDataHubIntervalsSync({
         recordIntervalsSyncSuccess,
     ]);
 
-    const handleFetchNewFromIntervals = useCallback(async () => {
-        const syncStart = syncDates.start;
-        const syncEnd = syncDates.end;
+    const fetchAndMergeIntervalsRange = useCallback(async (syncStart, syncEnd) => {
         if (!syncStart || !syncEnd) {
             setSyncStatus('error');
             setSyncErrorDetail('Choose a valid From and To date for fetching new activities.');
@@ -402,7 +400,6 @@ export function useDataHubIntervalsSync({
             setIsFetchingNewIntervals(false);
         }
     }, [
-        syncDates,
         syncIntervals,
         activities,
         stravaGetToken,
@@ -413,6 +410,10 @@ export function useDataHubIntervalsSync({
         stravaEnrichEnabled,
         recordIntervalsSyncSuccess,
     ]);
+
+    const handleFetchNewFromIntervals = useCallback(async () => {
+        return fetchAndMergeIntervalsRange(syncDates.start, syncDates.end);
+    }, [fetchAndMergeIntervalsRange, syncDates.start, syncDates.end]);
 
     const handleRunSync = useCallback(() => {
         if (syncMode === 'refresh-selected') {
@@ -439,6 +440,7 @@ export function useDataHubIntervalsSync({
         isFetchingNewIntervals,
         handleSync,
         handleFetchNewFromIntervals,
+        fetchAndMergeIntervalsRange,
         isSyncing,
         syncProgress,
         lastIntervalsSyncAt,

@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Mountain, TrendingUp, Activity, Gauge } from 'lucide-react';
 import { computeClimbingReadiness } from '../../utils/climbingReadiness';
 import { chartCardClass } from '../../utils/chartTheme';
+import { useProfileFtp } from '../../context/ProfileFtpContext';
 
 const BADGE_STYLES = {
     recover: 'bg-red-500/15 text-red-400 border-red-500/40',
@@ -32,7 +33,8 @@ function ScoreBar({ label, value, detail }) {
  * Dashboard card: climbing-specific readiness from elevation, Z2 proxy, TSS, and TSB.
  */
 const ClimbingReadinessCard = ({ activities, userSettings }) => {
-    const ftp = Number(userSettings?.ftp) || 0;
+    const profileFtp = useProfileFtp();
+    const ftp = profileFtp.ftp || Number(userSettings?.ftp) || 0;
 
     const readiness = useMemo(
         () => computeClimbingReadiness({ activities: activities || [], ftp }),
@@ -73,6 +75,11 @@ const ClimbingReadinessCard = ({ activities, userSettings }) => {
                     <div className="text-[10px] text-cdmuted uppercase">
                         Z2 proxy{!readiness.hasFtp ? ' (no FTP)' : ''}
                     </div>
+                    {readiness.z2Band && (
+                        <div className="text-[9px] text-cdmuted mt-0.5 tabular-nums">
+                            {readiness.z2Band.minPct}–{readiness.z2Band.maxPct}% FTP · {readiness.z2Band.minW}–{readiness.z2Band.maxW} W
+                        </div>
+                    )}
                 </div>
                 <div className="rounded-lg border border-cdborder/60 bg-cdbg/40 px-2 py-2">
                     <div className="text-lg font-bold text-cdtext tabular-nums">{readiness.metrics.weekTss}</div>
@@ -97,7 +104,11 @@ const ClimbingReadinessCard = ({ activities, userSettings }) => {
                 <ScoreBar
                     label="Z2 endurance"
                     value={readiness.scores.z2}
-                    detail={`${readiness.metrics.z2Hours} h`}
+                    detail={
+                        readiness.z2Band
+                            ? `${readiness.metrics.z2Hours} h (${readiness.z2Band.minW}–${readiness.z2Band.maxW} W)`
+                            : `${readiness.metrics.z2Hours} h`
+                    }
                 />
                 <ScoreBar
                     label="Weekly load"
@@ -124,7 +135,11 @@ const ClimbingReadinessCard = ({ activities, userSettings }) => {
 
             <p className="text-[10px] text-cdmuted flex items-center gap-1">
                 <Activity size={10} aria-hidden />
-                Z2 uses NP or avg power vs FTP (55–75%) when zone time is not in your import.
+                Z2 uses NP or avg power vs FTP
+                {readiness.z2Band
+                    ? ` (${readiness.z2Band.minPct}–${readiness.z2Band.maxPct}% → ${readiness.z2Band.minW}–${readiness.z2Band.maxW} W)`
+                    : ' (55–75%)'}
+                when zone time is not in your import.
             </p>
         </section>
     );

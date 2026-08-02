@@ -5,6 +5,7 @@ import { formatDateTimeNl } from '../utils/formatters';
 import { logout } from '../firebase';
 import { runGoogleSignIn, googleSignInErrorMessage } from '../utils/googleSignIn';
 import { useActivitiesSync } from '../hooks/useActivities';
+import { useProfileFtp } from '../context/ProfileFtpContext';
 import { IconButton, cn } from './ui';
 
 function initialsFromUser(user) {
@@ -35,6 +36,7 @@ function formatUpdatedAt(dateToDisplay) {
 
 const Header = ({ userSettings, onOpenSettings, user }) => {
     const { syncStatus, lastActivityDate } = useActivitiesSync();
+    const profileFtp = useProfileFtp();
     const [lastSyncTime, setLastSyncTime] = useState(() => localStorage.getItem('app_last_sync_time'));
     const [authBusy, setAuthBusy] = useState(false);
     const [avatarImgFailed, setAvatarImgFailed] = useState(false);
@@ -68,7 +70,7 @@ const Header = ({ userSettings, onOpenSettings, user }) => {
     }, [user, authBusy]);
 
     const displayWeight = userSettings.privacyMode ? '***' : `${userSettings.weight} kg`;
-    const displayFtp = userSettings.privacyMode ? '***' : `${userSettings.ftp} W`;
+    const displayFtp = userSettings.privacyMode ? '***' : `${profileFtp.ftp || userSettings.ftp} W`;
     const formattedDate = formatUpdatedAt(lastSyncTime || lastActivityDate);
 
     const isSynced = syncStatus === 'synced' || syncStatus === 'success' || syncStatus === 'done';

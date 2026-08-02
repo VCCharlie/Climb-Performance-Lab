@@ -19,6 +19,7 @@ import { useDataHubFilterBar } from '../hooks/useDataHubFilterBar';
 import { useDataHubMaintenance } from '../hooks/useDataHubMaintenance';
 import { useActivityCardLayout } from '../hooks/useMediaQuery';
 import { useActivities, useActivitiesSync } from '../hooks/useActivities';
+import { useProfileFtp } from '../context/ProfileFtpContext';
 import { useActivityLogNavigation } from '../context/ActivityLogNavigationContext';
 import { resolveRecoveryTss } from '../utils/recoveryTss';
 import { readLastCloudSyncAt } from '../utils/activityLogSyncLabel';
@@ -36,11 +37,12 @@ const DataHub = ({
     onOpenProfilerFromActivity,
     climbDatabaseForMatch = getCoreClimbDatabase(),
     initialInternalTab = 'log',
-    profileFtp,
+    profileFtp: profileFtpProp,
     profileMaxHr,
     userSettings,
     isSignedIn = false,
 }) => {
+    const resolvedProfileFtp = useProfileFtp().ftp || profileFtpProp;
     const {
         activities,
         importActivities: onImport,
@@ -88,7 +90,7 @@ const DataHub = ({
 
     const useCardLayout = useActivityCardLayout();
 
-    const filter = useActivityFilter(activities, profileFtp);
+    const filter = useActivityFilter(activities, resolvedProfileFtp);
 
     const logDerivations = useDataHubLogDerivations({
         activities,
@@ -156,7 +158,7 @@ const DataHub = ({
         onImport,
         onDelete,
         onImportComplete: () => setInternalTab('log'),
-        profileFtp,
+        profileFtp: resolvedProfileFtp,
     });
 
     const maintenance = useDataHubMaintenance({
@@ -265,7 +267,7 @@ const DataHub = ({
                 detailActivity={detailActivity}
                 onCloseDetail={() => setDetailActivity(null)}
                 stravaGetToken={stravaGetToken}
-                profileFtp={profileFtp}
+                profileFtp={resolvedProfileFtp}
                 profileMaxHr={profileMaxHr}
                 editingActivity={editingActivity}
                 onCloseEdit={() => setEditingActivity(null)}
@@ -330,7 +332,7 @@ const DataHub = ({
                         toggleMonth={filter.toggleMonth}
                         onOpenProfilerFromActivity={onOpenProfilerFromActivity}
                         profilerClimbByActivityId={logDerivations.profilerClimbByActivityId}
-                        profileFtp={profileFtp}
+                        profileFtp={resolvedProfileFtp}
                         profileMaxHr={profileMaxHr}
                         visibleColumns={visibleColumns}
                         onFilterByGearId={filter.filterByGearId}
