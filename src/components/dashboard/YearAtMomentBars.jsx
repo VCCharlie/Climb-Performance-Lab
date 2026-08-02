@@ -8,6 +8,9 @@ function metricValue(row, metricId) {
     if (metricId === 'distanceKm') return row.distanceKm;
     if (metricId === 'elevationM') return row.elevationM;
     if (metricId === 'movingTimeSec') return row.movingTimeSec / 3600;
+    if (metricId === 'peakEftp20') return row.peakEftp20;
+    if (metricId === 'peakBest20min') return row.peakBest20min;
+    if (metricId === 'peakBest60min') return row.peakBest60min;
     return row.load;
 }
 
@@ -21,6 +24,10 @@ function formatMetric(metricId, value) {
     if (metricId === 'movingTimeSec') {
         const h = Number(value) || 0;
         return h >= 10 ? `${h.toFixed(1)} h` : `${h.toFixed(2)} h`;
+    }
+    if (metricId === 'peakEftp20' || metricId === 'peakBest20min' || metricId === 'peakBest60min') {
+        const w = Math.round(Number(value) || 0);
+        return w > 0 ? `${w} W` : '—';
     }
     return formatNlNumber(Math.round(value), 0);
 }
