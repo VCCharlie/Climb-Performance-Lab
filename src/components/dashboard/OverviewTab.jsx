@@ -44,7 +44,7 @@ const OverviewTab = ({
                 userSettings={userSettings}
             />
 
-            <YtdCompareCard activities={activitySource} />
+            <YtdCompareCard activities={activitySource} manualFtp={manualFtp} />
 
             <PowerLongevityCard
                 activities={activitySource}

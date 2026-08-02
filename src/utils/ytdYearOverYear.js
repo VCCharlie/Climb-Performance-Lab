@@ -7,8 +7,16 @@ import { SPORT_TYPES } from '../config.js';
 import { normalizeDate } from './formatters.js';
 import { activityDistanceKm, activityMovingTimeSec } from './activityFilterMetrics.js';
 import { percentChange } from './stravaYtdCompare.js';
+import { DASHBOARD_FTP_CAPS } from './dashboardActivityPeaks.js';
 
 const TRACKED_SPORTS = new Set(SPORT_TYPES);
+const MAX_DISPLAY_EFTP_W = 600;
+
+function capForKey(key, manualFtp) {
+    const mult = DASHBOARD_FTP_CAPS[key];
+    if (!mult) return 1500;
+    return manualFtp > 0 ? manualFtp * mult : 1500;
+}
 
 /** Road cycling YTD split (outdoor + indoor road). */
 export const YTD_ROAD_ACTIVITY_TYPES = new Set(['Ride', 'VirtualRide']);
@@ -40,7 +48,7 @@ function emptySurfacePair() {
 }
 
 /**
- * @typedef {{ count: number, distanceKm: number, elevationM: number, movingTimeSec: number, load: number }} YtdTotals
+ * @typedef {{ count: number, distanceKm: number, elevationM: number, movingTimeSec: number, load: number, peakBest20min: number, peakEftp20: number, peakBest60min: number }} YtdTotals
  */
 
 /**
@@ -77,15 +85,19 @@ function emptyTotals() {
         elevationM: 0,
         movingTimeSec: 0,
         load: 0,
+        peakBest20min: 0,
+        peakEftp20: 0,
+        peakBest60min: 0,
     };
 }
 
 /**
  * @param {object[]} activities
  * @param {Date} [referenceDate]
+ * @param {number} [manualFtp]
  * @returns {{ thisYtd: YtdTotals, prevYtd: YtdTotals, referenceDate: string } | null}
  */
-export function computeCplYtdYearOverYear(activities, referenceDate = new Date()) {
+export function computeCplYtdYearOverYear(activities, referenceDate = new Date(), manualFtp = 0) {
     if (!activities?.length || !referenceDate || Number.isNaN(referenceDate.getTime())) {
         return null;
     }
@@ -93,6 +105,8 @@ export function computeCplYtdYearOverYear(activities, referenceDate = new Date()
     const { startThis, endThis, startPrev, endPrev } = ytdComparisonWindows(referenceDate);
     const thisYtd = emptyTotals();
     const prevYtd = emptyTotals();
+    const cap20 = capForKey('best_20min', manualFtp);
+    const cap60 = capForKey('best_60min', manualFtp);
 
     for (const a of activities) {
         if (!isTrackedActivity(a?.type)) continue;
@@ -112,6 +126,16 @@ export function computeCplYtdYearOverYear(activities, referenceDate = new Date()
         const sec = activityMovingTimeSec(a);
         if (sec != null) bucket.movingTimeSec += sec;
         bucket.load += Number(a.load) || 0;
+
+        const v20 = Number(a.best_20min) || 0;
+        const v60 = Number(a.best_60min) || 0;
+        if (v20 > 0 && v20 <= cap20 && v20 > bucket.peakBest20min) {
+            bucket.peakBest20min = v20;
+            bucket.peakEftp20 = Math.min(Math.round(v20 * 0.95), MAX_DISPLAY_EFTP_W);
+        }
+        if (v60 > 0 && v60 <= cap60 && v60 > bucket.peakBest60min) {
+            bucket.peakBest60min = v60;
+        }
     }
 
     return {
