@@ -577,6 +577,28 @@ const SettingsModal = ({
                                         className={inputNumberClass}
                                     />
                                 </div>
+                                <div>
+                                    <label className="block text-[10px] font-semibold mb-1 text-cdmuted" htmlFor="settings-birth-year">
+                                        Birth year (optional)
+                                    </label>
+                                    <input
+                                        id="settings-birth-year"
+                                        type="number"
+                                        min={1930}
+                                        max={new Date().getFullYear()}
+                                        step={1}
+                                        placeholder="e.g. 1978"
+                                        value={userSettings.birthYear ?? ''}
+                                        onChange={(e) => {
+                                            const raw = e.target.value;
+                                            updateUserSettings('birthYear', raw ? Number(raw) : null);
+                                        }}
+                                        className={inputNumberClass}
+                                    />
+                                    <p className="text-[9px] text-cdmuted mt-1 leading-snug">
+                                        Used for long-term power charts — plot peaks by age as well as calendar year.
+                                    </p>
+                                </div>
                             </div>
                             <div className="mt-4 pt-4 border-t border-cdborder/30 space-y-3">
                                 <div>
