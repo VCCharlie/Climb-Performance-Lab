@@ -10,6 +10,7 @@ import {
     estimateProfileFtp60FromActivities,
     normalizeFtpSource,
     resolveEffectiveProfileFtp,
+    FTP_ESTIMATE_LOOKBACK_MONTHS,
 } from '../utils/profileFtp';
 import { formatDateDDMMYYYY } from '../utils/formatters';
 import { buildBackupExport, validateBackupPayload, describeBackupImport, BACKUP_MAX_BYTES } from '../utils/backupSchema';
@@ -433,7 +434,7 @@ const SettingsModal = ({
                                     </div>
                                     <div className="mt-3 rounded-lg border border-cdborder/50 bg-cdsurfacehigh/20 p-3 space-y-3">
                                         <p className="text-[10px] font-semibold text-cdmuted uppercase tracking-wide">
-                                            Estimated from activity log
+                                            Estimated from activity log (last {FTP_ESTIMATE_LOOKBACK_MONTHS} months)
                                         </p>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                                             <div className="space-y-1">
@@ -453,7 +454,7 @@ const SettingsModal = ({
                                                     </>
                                                 ) : (
                                                     <p className="text-[10px] text-cdmuted">
-                                                        No reliable 20-minute peak in your activity log yet.
+                                                        No reliable 20-minute peak in the last {FTP_ESTIMATE_LOOKBACK_MONTHS} months.
                                                     </p>
                                                 )}
                                             </div>
@@ -474,7 +475,7 @@ const SettingsModal = ({
                                                     </>
                                                 ) : (
                                                     <p className="text-[10px] text-cdmuted">
-                                                        No reliable 60-minute peak in your activity log yet.
+                                                        No reliable 60-minute peak in the last {FTP_ESTIMATE_LOOKBACK_MONTHS} months.
                                                     </p>
                                                 )}
                                             </div>
