@@ -7,6 +7,9 @@ import {
     FTP_SOURCE_ESTIMATED,
     FTP_SOURCE_ESTIMATED_20,
     FTP_SOURCE_ESTIMATED_60,
+    FTP_LOOKBACK_6_MONTHS,
+    FTP_LOOKBACK_RECENT,
+    FTP_ESTIMATE_LOOKBACK_DAYS_RECENT,
 } from '../../utils/profileFtp';
 
 describe('profileFtp', () => {
@@ -33,6 +36,21 @@ describe('profileFtp', () => {
         expect(est.activity?.id).toBe('recent');
     });
 
+    it('estimateProfileFtpFromActivities uses 90-day window when recent lookback selected', () => {
+        const ref = new Date('2026-08-01');
+        const est = estimateProfileFtpFromActivities(
+            [
+                { id: 'old-window', date: '2026-04-01', best_20min: 300 },
+                { id: 'fresh', date: '2026-07-10', best_20min: 260 },
+            ],
+            ref,
+            { ftpLookbackWindow: FTP_LOOKBACK_RECENT },
+        );
+        expect(est.ftp).toBe(247);
+        expect(est.activity?.id).toBe('fresh');
+        expect(est.lookbackDays).toBe(FTP_ESTIMATE_LOOKBACK_DAYS_RECENT);
+    });
+
     it('estimateProfileFtp60FromActivities ignores all-time peaks older than 6 months', () => {
         const est = estimateProfileFtp60FromActivities([
             { id: 'old', date: '2016-05-01', best_60min: 380 },
@@ -42,13 +60,17 @@ describe('profileFtp', () => {
         expect(est.activity?.id).toBe('recent');
     });
 
-    it('estimateProfileFtp60FromActivities uses best 60m as FTP', () => {
-        const est = estimateProfileFtp60FromActivities([
-            { id: 'a1', date: '2026-07-01', best_60min: 270 },
-            { id: 'a2', date: '2026-01-01', best_60min: 250 },
-        ], new Date('2026-08-01'));
-        expect(est.ftp).toBe(270);
-        expect(est.confidence).toBe('high');
+    it('estimateProfileFtp60FromActivities uses 90-day window when recent lookback selected', () => {
+        const est = estimateProfileFtp60FromActivities(
+            [
+                { id: 'old-window', date: '2026-04-01', best_60min: 280 },
+                { id: 'fresh', date: '2026-07-10', best_60min: 255 },
+            ],
+            new Date('2026-08-01'),
+            { ftpLookbackWindow: FTP_LOOKBACK_RECENT },
+        );
+        expect(est.ftp).toBe(255);
+        expect(est.activity?.id).toBe('fresh');
     });
 
     it('resolveEffectiveProfileFtp prefers 20m estimate when source is estimated_20', () => {
@@ -83,7 +105,7 @@ describe('profileFtp', () => {
 
     it('resolveEffectiveProfileFtp uses manual when source is manual', () => {
         const resolved = resolveEffectiveProfileFtp(
-            { ftp: 250, ftpSource: 'manual' },
+            { ftp: 250, ftpSource: 'manual', ftpLookbackWindow: FTP_LOOKBACK_6_MONTHS },
             [{ id: 'a1', date: '2026-07-01', best_20min: 300 }],
         );
         expect(resolved.ftp).toBe(250);

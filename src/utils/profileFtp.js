@@ -11,8 +11,14 @@ export const FTP_SOURCE_ESTIMATED = 'estimated';
 export const FTP_SOURCE_ESTIMATED_20 = 'estimated_20';
 export const FTP_SOURCE_ESTIMATED_60 = 'estimated_60';
 
-/** Only consider peak powers from activities within this window for profile FTP. */
+/** Look back 6 calendar months for peak powers (balanced default). */
+export const FTP_LOOKBACK_6_MONTHS = '6months';
+/** Look back ~90 days for recent-form peaks (Intervals-style eFTP window). */
+export const FTP_LOOKBACK_RECENT = 'recent';
+
 export const FTP_ESTIMATE_LOOKBACK_MONTHS = 6;
+/** Upper bound of the 42–90 day “recent form” range used by many eFTP models. */
+export const FTP_ESTIMATE_LOOKBACK_DAYS_RECENT = 90;
 
 const MAX_AGE_HIGH_DAYS = 90;
 const MAX_AGE_MEDIUM_DAYS = 365;
@@ -20,21 +26,79 @@ const MIN_BEST_20MIN_W = 120;
 const MIN_BEST_60MIN_W = 120;
 
 /**
- * Activities on or after the lookback cutoff (calendar months before reference date).
+ * @typedef {{ window: string, lookbackMonths: number | null, lookbackDays: number | null }} FtpLookbackConfig
+ */
+
+/**
+ * @param {object} [userSettings]
+ * @returns {FtpLookbackConfig}
+ */
+export function getFtpLookbackConfig(userSettings) {
+    const window = normalizeFtpLookbackWindow(userSettings);
+    if (window === FTP_LOOKBACK_RECENT) {
+        return {
+            window,
+            lookbackMonths: null,
+            lookbackDays: FTP_ESTIMATE_LOOKBACK_DAYS_RECENT,
+        };
+    }
+    return {
+        window,
+        lookbackMonths: FTP_ESTIMATE_LOOKBACK_MONTHS,
+        lookbackDays: null,
+    };
+}
+
+/**
+ * @param {object} [userSettings]
+ */
+export function normalizeFtpLookbackWindow(userSettings) {
+    return userSettings?.ftpLookbackWindow === FTP_LOOKBACK_RECENT
+        ? FTP_LOOKBACK_RECENT
+        : FTP_LOOKBACK_6_MONTHS;
+}
+
+/**
+ * Short English label for Settings UI.
+ * @param {object} [userSettings]
+ */
+export function describeFtpLookbackWindow(userSettings) {
+    const config = getFtpLookbackConfig(userSettings);
+    if (config.window === FTP_LOOKBACK_RECENT) {
+        return `last ${FTP_ESTIMATE_LOOKBACK_DAYS_RECENT} days`;
+    }
+    return `last ${FTP_ESTIMATE_LOOKBACK_MONTHS} months`;
+}
+
+/**
+ * @param {Date} referenceDate
+ * @param {FtpLookbackConfig} lookbackConfig
+ * @returns {string} ISO date YYYY-MM-DD for cutoff (inclusive)
+ */
+export function ftpEstimateLookbackStartYmd(referenceDate = new Date(), lookbackConfig = getFtpLookbackConfig()) {
+    const cutoff = new Date(referenceDate);
+    cutoff.setHours(12, 0, 0, 0);
+    if (lookbackConfig.lookbackDays) {
+        cutoff.setDate(cutoff.getDate() - lookbackConfig.lookbackDays);
+    } else if (lookbackConfig.lookbackMonths) {
+        cutoff.setMonth(cutoff.getMonth() - lookbackConfig.lookbackMonths);
+    }
+    return cutoff.toISOString().slice(0, 10);
+}
+
+/**
+ * Activities on or after the lookback cutoff.
  * @param {object[]} activities
  * @param {Date} referenceDate
- * @param {number} [lookbackMonths]
+ * @param {FtpLookbackConfig} [lookbackConfig]
  */
 export function filterActivitiesForFtpEstimate(
     activities,
     referenceDate = new Date(),
-    lookbackMonths = FTP_ESTIMATE_LOOKBACK_MONTHS,
+    lookbackConfig = getFtpLookbackConfig(),
 ) {
     if (!activities?.length) return [];
-    const cutoff = new Date(referenceDate);
-    cutoff.setHours(12, 0, 0, 0);
-    cutoff.setMonth(cutoff.getMonth() - lookbackMonths);
-    const cutoffMs = cutoff.getTime();
+    const cutoffMs = new Date(`${ftpEstimateLookbackStartYmd(referenceDate, lookbackConfig)}T12:00:00`).getTime();
 
     return activities.filter((a) => {
         const ymd = normalizeDate(a?.date);
@@ -43,21 +107,6 @@ export function filterActivitiesForFtpEstimate(
         if (Number.isNaN(d.getTime())) return false;
         return d.getTime() >= cutoffMs;
     });
-}
-
-/**
- * @param {Date} referenceDate
- * @param {number} [lookbackMonths]
- * @returns {string} ISO date YYYY-MM-DD for cutoff (inclusive)
- */
-export function ftpEstimateLookbackStartYmd(
-    referenceDate = new Date(),
-    lookbackMonths = FTP_ESTIMATE_LOOKBACK_MONTHS,
-) {
-    const cutoff = new Date(referenceDate);
-    cutoff.setHours(12, 0, 0, 0);
-    cutoff.setMonth(cutoff.getMonth() - lookbackMonths);
-    return cutoff.toISOString().slice(0, 10);
 }
 
 /**
@@ -81,15 +130,30 @@ function confidenceFromAgeDays(ageDays) {
     return 'low';
 }
 
+function buildEstimateMeta(referenceDate, lookbackConfig) {
+    return {
+        lookbackWindow: lookbackConfig.window,
+        lookbackStart: ftpEstimateLookbackStartYmd(referenceDate, lookbackConfig),
+        lookbackMonths: lookbackConfig.lookbackMonths,
+        lookbackDays: lookbackConfig.lookbackDays,
+    };
+}
+
 /**
  * Estimate FTP from stored best_20min peaks (same rule as dashboard eFTP).
  * @param {object[]} activities
  * @param {Date} [referenceDate]
+ * @param {object} [userSettings]
  */
-export function estimateProfileFtpFromActivities(activities, referenceDate = new Date()) {
-    const recentActivities = filterActivitiesForFtpEstimate(activities, referenceDate);
+export function estimateProfileFtpFromActivities(
+    activities,
+    referenceDate = new Date(),
+    userSettings = null,
+) {
+    const lookbackConfig = getFtpLookbackConfig(userSettings);
+    const recentActivities = filterActivitiesForFtpEstimate(activities, referenceDate, lookbackConfig);
     const { activity, derivedWatts, best20Raw } = findPeakEftp20Activity(recentActivities);
-    const lookbackStart = ftpEstimateLookbackStartYmd(referenceDate);
+    const meta = buildEstimateMeta(referenceDate, lookbackConfig);
     if (!derivedWatts || derivedWatts < MIN_BEST_20MIN_W * 0.95) {
         return {
             ftp: null,
@@ -97,8 +161,7 @@ export function estimateProfileFtpFromActivities(activities, referenceDate = new
             activity: null,
             best20Min: best20Raw || null,
             ageDays: null,
-            lookbackMonths: FTP_ESTIMATE_LOOKBACK_MONTHS,
-            lookbackStart,
+            ...meta,
         };
     }
 
@@ -112,8 +175,7 @@ export function estimateProfileFtpFromActivities(activities, referenceDate = new
         best20Min: best20Raw,
         ageDays,
         activityDate: actYmd,
-        lookbackMonths: FTP_ESTIMATE_LOOKBACK_MONTHS,
-        lookbackStart,
+        ...meta,
     };
 }
 
@@ -121,11 +183,17 @@ export function estimateProfileFtpFromActivities(activities, referenceDate = new
  * Estimate FTP from stored best_60min peaks (60-minute power = FTP proxy, no ×0.95).
  * @param {object[]} activities
  * @param {Date} [referenceDate]
+ * @param {object} [userSettings]
  */
-export function estimateProfileFtp60FromActivities(activities, referenceDate = new Date()) {
-    const recentActivities = filterActivitiesForFtpEstimate(activities, referenceDate);
+export function estimateProfileFtp60FromActivities(
+    activities,
+    referenceDate = new Date(),
+    userSettings = null,
+) {
+    const lookbackConfig = getFtpLookbackConfig(userSettings);
+    const recentActivities = filterActivitiesForFtpEstimate(activities, referenceDate, lookbackConfig);
     const { activity, derivedWatts, best60Raw } = findPeakEftp60Activity(recentActivities);
-    const lookbackStart = ftpEstimateLookbackStartYmd(referenceDate);
+    const meta = buildEstimateMeta(referenceDate, lookbackConfig);
     if (!derivedWatts || derivedWatts < MIN_BEST_60MIN_W) {
         return {
             ftp: null,
@@ -133,8 +201,7 @@ export function estimateProfileFtp60FromActivities(activities, referenceDate = n
             activity: null,
             best60Min: best60Raw || null,
             ageDays: null,
-            lookbackMonths: FTP_ESTIMATE_LOOKBACK_MONTHS,
-            lookbackStart,
+            ...meta,
         };
     }
 
@@ -148,8 +215,7 @@ export function estimateProfileFtp60FromActivities(activities, referenceDate = n
         best60Min: best60Raw,
         ageDays,
         activityDate: actYmd,
-        lookbackMonths: FTP_ESTIMATE_LOOKBACK_MONTHS,
-        lookbackStart,
+        ...meta,
     };
 }
 
@@ -182,8 +248,8 @@ function isUsableEstimate(estimate) {
  */
 export function resolveEffectiveProfileFtp(userSettings, activities = [], referenceDate = new Date()) {
     const manual = Number(userSettings?.ftp) || 0;
-    const estimate20 = estimateProfileFtpFromActivities(activities, referenceDate);
-    const estimate60 = estimateProfileFtp60FromActivities(activities, referenceDate);
+    const estimate20 = estimateProfileFtpFromActivities(activities, referenceDate, userSettings);
+    const estimate60 = estimateProfileFtp60FromActivities(activities, referenceDate, userSettings);
     const ftpSource = normalizeFtpSource(userSettings);
 
     if (ftpSource === FTP_SOURCE_ESTIMATED_20 && isUsableEstimate(estimate20)) {
