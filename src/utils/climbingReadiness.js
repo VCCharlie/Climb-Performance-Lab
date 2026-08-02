@@ -7,9 +7,10 @@ import { normalizeDate } from './formatters';
 import { activityMovingTimeSec } from './activityFilterMetrics';
 import { currentWeekRange } from './volumeGoals';
 import { calculateFitnessMetrics } from './formTabMetrics';
+import { z2PowerBandFromFtp } from './profileFtp';
 
-const Z2_IF_MIN = 0.55;
-const Z2_IF_MAX = 0.75;
+export const Z2_IF_MIN = 0.55;
+export const Z2_IF_MAX = 0.75;
 
 /** @typedef {'recover' | 'building' | 'good' | 'peak'} ReadinessBadgeKey */
 
@@ -157,7 +158,14 @@ export function computeClimbingReadiness({ activities, ftp = 0, referenceDate = 
         hints.push('Add hill repeats or a longer climb ride this week.');
     }
     if (ftp > 0 && z2Score < 60) {
-        hints.push('More steady Z2 time (roughly 55–75% FTP) supports climbing endurance.');
+        const band = z2PowerBandFromFtp(ftp);
+        if (band) {
+            hints.push(
+                `More steady Z2 time (${band.minPct}–${band.maxPct}% FTP, about ${band.minW}–${band.maxW} W) supports climbing endurance.`,
+            );
+        } else {
+            hints.push('More steady Z2 time (roughly 55–75% FTP) supports climbing endurance.');
+        }
     }
     if (tssScore < 55) {
         hints.push('Weekly training load is light — build volume gradually if you feel fresh.');
@@ -168,6 +176,8 @@ export function computeClimbingReadiness({ activities, ftp = 0, referenceDate = 
     if (tsb != null && tsb > 25) {
         hints.push('You are very fresh — a quality climb session could sharpen race form.');
     }
+
+    const z2Band = ftp > 0 ? z2PowerBandFromFtp(ftp) : null;
 
     return {
         weekLabel: week.label,
@@ -181,6 +191,7 @@ export function computeClimbingReadiness({ activities, ftp = 0, referenceDate = 
             ctl: latestFitness?.ctl ?? null,
             rideCount: weekActs.length,
         },
+        z2Band,
         scores: {
             elevation: elevationScore,
             z2: z2Score,

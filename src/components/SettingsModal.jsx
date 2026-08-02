@@ -2,6 +2,13 @@
 import { Settings, Activity, RefreshCw, Save, Moon, Sun, Shield, Target, Bell, Database, Download, Upload, Zap, X, Link, Unlink, List } from 'lucide-react';
 import { calculatePowerZones } from '../utils';
 import { DEFAULT_RECOVERY_TSS } from '../config';
+import {
+    FTP_SOURCE_ESTIMATED,
+    FTP_SOURCE_MANUAL,
+    estimateProfileFtpFromActivities,
+    normalizeFtpSource,
+} from '../utils/profileFtp';
+import { formatDateDDMMYYYY } from '../utils/formatters';
 import SyncPanel from './data-hub/SyncPanel';
 import { buildBackupExport, validateBackupPayload, describeBackupImport, BACKUP_MAX_BYTES } from '../utils/backupSchema';
 import { Button, IconButton, inputBaseClass, inputNumberClass, modalScrimClass, modalPanelClass, modalHeaderClass, modalFooterClass } from './ui';
@@ -31,6 +38,11 @@ const SettingsModal = ({
 }) => {
     const { activities, syncFromIntervals, restoreFromBackup } = useActivities();
     const { showToast } = useToast();
+    const ftpEstimate = estimateProfileFtpFromActivities(activities);
+    const ftpSource = normalizeFtpSource(userSettings);
+    const effectiveFtpForZones = ftpSource === FTP_SOURCE_ESTIMATED && ftpEstimate.ftp
+        ? ftpEstimate.ftp
+        : (Number(userSettings.ftp) || 0);
     const [isSaving, setIsSaving] = useState(false);
     const [profileTitlesText, setProfileTitlesText] = useState(() =>
         formatBikeComputerProfileTitlesForInput(userSettings.bikeComputerProfileTitles),
@@ -418,9 +430,47 @@ const SettingsModal = ({
                                 <h3 className="font-bold text-cdtext">Performance & Goals</h3>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="md:col-span-3">
+                                    <p className="text-[10px] font-semibold text-cdmuted mb-2">FTP source</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => updateUserSettings('ftpSource', FTP_SOURCE_MANUAL)}
+                                            className={`px-3 py-1.5 rounded text-xs font-bold border cd-transition ${
+                                                ftpSource === FTP_SOURCE_MANUAL
+                                                    ? 'bg-cdaccent/15 border-cdaccent/50 text-cdaccent'
+                                                    : 'border-cdborder text-cdmuted hover:text-cdtext'
+                                            }`}
+                                        >
+                                            Manual FTP
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => updateUserSettings('ftpSource', FTP_SOURCE_ESTIMATED)}
+                                            className={`px-3 py-1.5 rounded text-xs font-bold border cd-transition ${
+                                                ftpSource === FTP_SOURCE_ESTIMATED
+                                                    ? 'bg-cdaccent/15 border-cdaccent/50 text-cdaccent'
+                                                    : 'border-cdborder text-cdmuted hover:text-cdtext'
+                                            }`}
+                                        >
+                                            Estimated from data
+                                        </button>
+                                    </div>
+                                    {ftpSource === FTP_SOURCE_ESTIMATED && (
+                                        <p className="text-[10px] text-cdmuted mt-2 leading-snug">
+                                            {ftpEstimate.ftp
+                                                ? `Using ${ftpEstimate.ftp} W from best 20-minute power × 0.95`
+                                                    + (ftpEstimate.activityDate
+                                                        ? ` (${formatDateDDMMYYYY(ftpEstimate.activityDate)})`
+                                                        : '')
+                                                    + ` — confidence: ${ftpEstimate.confidence}.`
+                                                : 'No reliable 20-minute peak in your activity log yet — manual FTP is used as fallback.'}
+                                        </p>
+                                    )}
+                                </div>
                                 <div>
                                     <label className="block text-[10px] font-semibold mb-1 text-cdmuted text-blue-500" htmlFor="settings-ftp">
-                                        Current FTP (W)
+                                        {ftpSource === FTP_SOURCE_ESTIMATED ? 'Manual FTP fallback (W)' : 'Current FTP (W)'}
                                     </label>
                                     <input
                                         id="settings-ftp"
@@ -431,6 +481,11 @@ const SettingsModal = ({
                                         onChange={(e) => updateUserSettings('ftp', Number(e.target.value))}
                                         className={inputNumberClass}
                                     />
+                                    {ftpSource === FTP_SOURCE_ESTIMATED && ftpEstimate.ftp && (
+                                        <p className="text-[9px] text-cdmuted mt-1">
+                                            Active value: {ftpEstimate.ftp} W (estimated)
+                                        </p>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block text-[10px] font-semibold mb-1 text-cdmuted" htmlFor="settings-body-weight">
@@ -597,7 +652,7 @@ const SettingsModal = ({
                             </div>
 
                             <div className="space-y-2">
-                                {(calculatePowerZones(userSettings.ftp || 250)).map((zone, idx) => (
+                                {(calculatePowerZones(effectiveFtpForZones || 250)).map((zone, idx) => (
                                     <div key={idx} className="flex items-center gap-2">
                                         <div className="w-3 h-3 rounded-full" style={{ backgroundColor: zone.color }}></div>
                                         <span className="w-24 text-xs font-bold text-cdtext">{zone.label}</span>

@@ -79,6 +79,8 @@ import { runGoogleSignIn, isGoogleSignInInProgress, googleSignInErrorMessage, co
 import { ToastProvider } from './context/ToastContext';
 import { ActivitiesProvider, useActivitiesState } from './context/ActivitiesContext';
 import { ActivityLogNavigationProvider, useActivityLogNavigation } from './context/ActivityLogNavigationContext';
+import { ProfileFtpProvider } from './context/ProfileFtpContext';
+import { TodayIntervalsSyncProvider } from './context/TodayIntervalsSyncContext';
 
 function AppLoadingGate({ authReady, user, authBusy, authError, onSignIn, children }) {
     const { isLoading: activitiesLoading } = useActivitiesState();
@@ -817,6 +819,12 @@ const App = () => {
         <ToastProvider>
         <ActivitiesProvider key={user?.uid ?? 'signed-out'} user={user}>
             <ActivityLogNavigationProvider onNavigateToActivities={navigateToActivities}>
+                <ProfileFtpProvider userSettings={userSettings}>
+                    <TodayIntervalsSyncProvider
+                        intervalsConfig={intervalsConfig}
+                        stravaGetToken={stravaAuth.isConnected ? stravaAuth.getValidToken : null}
+                        userSettings={userSettings}
+                    >
                 <div className={`min-h-screen font-sans pb-20 transition-colors duration-300 ${mainClass}`}>
 
                     <Header
@@ -1070,6 +1078,8 @@ const App = () => {
                     <PwaUpdateBanner />
                     <OrientationGuard />
                 </div>
+                    </TodayIntervalsSyncProvider>
+                </ProfileFtpProvider>
             </ActivityLogNavigationProvider>
         </ActivitiesProvider>
         </ToastProvider>

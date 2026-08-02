@@ -11,6 +11,9 @@ import { enhanceAndSortActivities } from '../utils/enhanceActivity';
 import { prefetchDashboardSubTabChunk } from '../utils/prefetchTabChunks';
 import { useActivitiesList } from '../hooks/useActivities';
 import { SkeletonChartCard } from './ui/Skeleton';
+import DashboardTodaySyncButton from './dashboard/DashboardTodaySyncButton';
+import { useProfileFtp } from '../context/ProfileFtpContext';
+import { useTodayIntervalsSync } from '../context/TodayIntervalsSyncContext';
 import OverviewTab from './dashboard/OverviewTab';
 
 const CompareTab = lazyWithRetry(() => import('./dashboard/CompareTab'), 'CompareTab');
@@ -43,7 +46,7 @@ function shiftDashboardBoundsByYears(bounds, deltaYears) {
 }
 
 const Dashboard = ({
-    manualFtp,
+    manualFtp: manualFtpProp,
     activities: activitiesProp,
     timeRange = '1Y',
     customStart = '',
@@ -57,6 +60,9 @@ const Dashboard = ({
 }) => {
     const activitiesFromContext = useActivitiesList();
     const firestoreActivities = activitiesProp ?? activitiesFromContext;
+    const profileFtp = useProfileFtp();
+    const manualFtp = profileFtp.ftp || manualFtpProp || 0;
+    const { syncTodayActivities, isTodaySyncBusy } = useTodayIntervalsSync();
 
     const [dashboardTab, setDashboardTab] = useState(readDashboardSubTab);
 
@@ -128,9 +134,16 @@ const Dashboard = ({
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* HEADER SECTION */}
-            <div className="bg-cdsurface p-4 rounded-xl border border-cdborder shadow-md">
-                <h2 className="text-2xl font-bold text-yellow-500 tracking-tight">Dashboard</h2>
-                <p className="text-cdmuted text-sm">Performance metrics overview</p>
+            <div className="bg-cdsurface p-4 rounded-xl border border-cdborder shadow-md flex items-start justify-between gap-3">
+                <div>
+                    <h2 className="text-2xl font-bold text-yellow-500 tracking-tight">Dashboard</h2>
+                    <p className="text-cdmuted text-sm">Performance metrics overview</p>
+                </div>
+                <DashboardTodaySyncButton
+                    onSync={syncTodayActivities}
+                    isBusy={isTodaySyncBusy}
+                    className="shrink-0"
+                />
             </div>
 
             {/* SUB-TABS NAVIGATION */}

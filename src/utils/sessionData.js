@@ -80,6 +80,8 @@ export function getDefaultUserSettings() {
         openweatherApiKey: '',
         /** Garmin/Wahoo profile names used as default activity titles — prefer Strava name when matched. */
         bikeComputerProfileTitles: [],
+        /** 'manual' | 'estimated' — estimated uses best 20m × 0.95 when data allows */
+        ftpSource: 'manual',
     };
 }
 
