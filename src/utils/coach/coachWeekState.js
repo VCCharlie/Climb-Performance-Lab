@@ -31,7 +31,7 @@ export function readRawCoachWeekForSync() {
 
 /**
  * @param {object | null | undefined} raw
- * @returns {{ weekKey: string, completedDates: string[], overrides: Record<string, string>, moves: Record<string, string>, unavailableDates: string[], updatedAt: string | null }}
+ * @returns {{ weekKey: string, completedDates: string[], overrides: Record<string, string>, moves: Record<string, string>, unavailableDates: string[], availableDates: string[], updatedAt: string | null }}
  */
 export function normalizeCoachWeekState(raw) {
     return {
@@ -40,6 +40,7 @@ export function normalizeCoachWeekState(raw) {
         overrides: raw?.overrides && typeof raw.overrides === 'object' ? raw.overrides : {},
         moves: raw?.moves && typeof raw.moves === 'object' ? raw.moves : {},
         unavailableDates: Array.isArray(raw?.unavailableDates) ? raw.unavailableDates : [],
+        availableDates: Array.isArray(raw?.availableDates) ? raw.availableDates : [],
         updatedAt: raw?.updatedAt || null,
     };
 }
@@ -63,13 +64,13 @@ function writeRaw(state) {
 
 /**
  * @param {string} mondayYmd
- * @returns {{ weekKey: string, completedDates: string[], overrides: Record<string, string>, moves: Record<string, string>, unavailableDates: string[] }}
+ * @returns {{ weekKey: string, completedDates: string[], overrides: Record<string, string>, moves: Record<string, string>, unavailableDates: string[], availableDates: string[] }}
  */
 export function readCoachWeekState(mondayYmd) {
     const weekKey = isoWeekKey(mondayYmd);
     const raw = readRaw();
     if (!raw || raw.weekKey !== weekKey) {
-        return { weekKey, completedDates: [], overrides: {}, moves: {}, unavailableDates: [] };
+        return { weekKey, completedDates: [], overrides: {}, moves: {}, unavailableDates: [], availableDates: [] };
     }
     return {
         weekKey,
@@ -77,12 +78,13 @@ export function readCoachWeekState(mondayYmd) {
         overrides: raw.overrides && typeof raw.overrides === 'object' ? raw.overrides : {},
         moves: raw.moves && typeof raw.moves === 'object' ? raw.moves : {},
         unavailableDates: Array.isArray(raw.unavailableDates) ? raw.unavailableDates : [],
+        availableDates: Array.isArray(raw.availableDates) ? raw.availableDates : [],
     };
 }
 
 /**
  * @param {string} mondayYmd
- * @param {{ completedDates?: string[], overrides?: Record<string, string>, moves?: Record<string, string>, unavailableDates?: string[] }} patch
+ * @param {{ completedDates?: string[], overrides?: Record<string, string>, moves?: Record<string, string>, unavailableDates?: string[], availableDates?: string[] }} patch
  */
 export function writeCoachWeekState(mondayYmd, patch) {
     const current = readCoachWeekState(mondayYmd);
@@ -92,6 +94,7 @@ export function writeCoachWeekState(mondayYmd, patch) {
         overrides: patch.overrides ?? current.overrides,
         moves: patch.moves ?? current.moves,
         unavailableDates: patch.unavailableDates ?? current.unavailableDates,
+        availableDates: patch.availableDates ?? current.availableDates,
         updatedAt: new Date().toISOString(),
     };
     writeRaw(next);
@@ -164,8 +167,13 @@ export function moveSessionToToday(mondayYmd, fromDateYmd, todayYmd) {
 export function toggleUnavailableDate(mondayYmd, dateYmd) {
     const state = readCoachWeekState(mondayYmd);
     const set = new Set(state.unavailableDates);
+    const available = new Set(state.availableDates);
+
     if (set.has(dateYmd)) set.delete(dateYmd);
-    else set.add(dateYmd);
+    else {
+        set.add(dateYmd);
+        available.delete(dateYmd);
+    }
 
     const moves = { ...state.moves };
     delete moves[dateYmd];
@@ -175,12 +183,38 @@ export function toggleUnavailableDate(mondayYmd, dateYmd) {
 
     return writeCoachWeekState(mondayYmd, {
         unavailableDates: [...set],
+        availableDates: [...available],
         moves,
     });
 }
 
 export function clearUnavailableDates(mondayYmd) {
     return writeCoachWeekState(mondayYmd, { unavailableDates: [] });
+}
+
+/**
+ * Toggle a rest day as explicitly open for training (used when plan says rest but you can ride).
+ */
+export function toggleAvailableDate(mondayYmd, dateYmd) {
+    const state = readCoachWeekState(mondayYmd);
+    const available = new Set(state.availableDates);
+    const unavailable = new Set(state.unavailableDates);
+
+    if (available.has(dateYmd)) {
+        available.delete(dateYmd);
+    } else {
+        available.add(dateYmd);
+        unavailable.delete(dateYmd);
+    }
+
+    return writeCoachWeekState(mondayYmd, {
+        availableDates: [...available],
+        unavailableDates: [...unavailable],
+    });
+}
+
+export function clearAvailableDates(mondayYmd) {
+    return writeCoachWeekState(mondayYmd, { availableDates: [] });
 }
 
 export const COACH_WEEK_UPDATED_EVENT = 'cpl-coach-week-updated';

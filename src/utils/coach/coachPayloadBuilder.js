@@ -209,8 +209,10 @@ export function buildCoachContext(activities, userSettings, options = {}) {
             movedFromDate: s.movedFromDate || null,
             relocatedFromDate: s.relocatedFromDate || null,
             isUnavailable: s.isUnavailable || false,
+            isExplicitlyAvailable: s.isExplicitlyAvailable || false,
         })),
         unavailableDates: weekPlan.unavailableDates || [],
+        availableDates: weekPlan.availableDates || [],
         availabilityNote: weekPlan.availabilityNote || null,
     };
 
