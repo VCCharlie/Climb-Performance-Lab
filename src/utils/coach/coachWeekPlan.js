@@ -10,6 +10,7 @@ import { weeklyTssTarget } from './coachHelpers';
 import { activityIF, filterActivitiesInRange, sumTss, todayYmd } from './coachHelpers';
 import { readCoachWeekState } from './coachWeekState';
 import { matchSessionsToActivities } from './coachSessionMatcher';
+import { applyAvailabilityRelocation } from './coachAvailability';
 
 /**
  * Monday (ISO) of the week containing referenceYmd.
@@ -129,25 +130,46 @@ export function buildFluidWeekPlan({ activities, userSettings, coachContext, ref
         });
     }
 
-    const { movedTo, vacatedDates } = applySessionMoves(basePlan, weekState.moves);
+    const availability = applyAvailabilityRelocation(
+        skeleton,
+        basePlan,
+        weekState.unavailableDates,
+        referenceYmd,
+    );
+
+    const effectivePlan = new Map(basePlan);
+    if (availability.assignment) {
+        for (const [date, adj] of availability.assignment.entries()) {
+            effectivePlan.set(date, {
+                ...basePlan.get(date),
+                ...adj,
+            });
+        }
+    }
+
+    const { movedTo, vacatedDates } = applySessionMoves(effectivePlan, weekState.moves);
 
     const preliminary = skeleton.map((row) => {
-        const base = basePlan.get(row.date);
+        const base = effectivePlan.get(row.date);
         let plannedStimulus = base.plannedStimulus;
         let movedFromDate = null;
         let movedToDate = null;
+        let relocatedFromDate = base.relocatedFromDate || null;
         let note = base.note;
+        const isUnavailable = Boolean(base.unavailable);
 
         if (vacatedDates.has(row.date)) {
             movedToDate = weekState.moves[row.date];
             plannedStimulus = 'rest';
             note = null;
+            relocatedFromDate = null;
         }
 
         if (movedTo.has(row.date)) {
             const incoming = movedTo.get(row.date);
             plannedStimulus = incoming.plannedStimulus;
             movedFromDate = incoming.movedFromDate;
+            relocatedFromDate = null;
             note = incoming.note;
         }
 
@@ -165,6 +187,8 @@ export function buildFluidWeekPlan({ activities, userSettings, coachContext, ref
             note,
             movedFromDate,
             movedToDate,
+            relocatedFromDate,
+            isUnavailable,
             sameDayComplete,
             isToday: row.date === referenceYmd,
             isPast: row.date < referenceYmd,
@@ -193,11 +217,18 @@ export function buildFluidWeekPlan({ activities, userSettings, coachContext, ref
 
         let flexNote = null;
         if (row.movedFromDate) {
-            const fromDay = basePlan.get(row.movedFromDate)?.day || 'another day';
+            const fromDay = effectivePlan.get(row.movedFromDate)?.day || 'another day';
             flexNote = `Moved from ${fromDay} — do this session today instead.`;
+        } else if (row.relocatedFromDate) {
+            const fromDay = effectivePlan.get(row.relocatedFromDate)?.day
+                || basePlan.get(row.relocatedFromDate)?.day
+                || 'another day';
+            flexNote = `Rescheduled from ${fromDay} (day blocked).`;
         } else if (row.movedToDate) {
-            const toDay = basePlan.get(row.movedToDate)?.day || 'another day';
+            const toDay = effectivePlan.get(row.movedToDate)?.day || 'another day';
             flexNote = `Moved to ${toDay}.`;
+        } else if (row.isUnavailable && row.plannedStimulus === 'rest') {
+            flexNote = 'Blocked — no training this day.';
         } else if (crossDayComplete && match) {
             const matchDay = preliminary.find((s) => s.date === match.activityDate)?.day || match.activityDate;
             flexNote = `Completed via ${matchDay} ride (${match.matchedStimulus} detected).`;
@@ -210,6 +241,8 @@ export function buildFluidWeekPlan({ activities, userSettings, coachContext, ref
             matchedOnDate: match?.activityDate || null,
             matchedStimulus: match?.matchedStimulus || null,
             flexNote,
+            isUnavailable: row.isUnavailable,
+            relocatedFromDate: row.relocatedFromDate,
             fluidWorkout,
             workoutName: fluidWorkout?.name || (stimulus === 'rest' ? 'Rest' : stimulus === 'completed' ? 'Done' : row.session),
         };
@@ -229,6 +262,7 @@ export function buildFluidWeekPlan({ activities, userSettings, coachContext, ref
     }
 
     const hasMoves = Object.keys(weekState.moves || {}).length > 0;
+    const hasAvailabilityBlocks = (weekState.unavailableDates || []).length > 0;
 
     return {
         mondayYmd,
@@ -240,8 +274,11 @@ export function buildFluidWeekPlan({ activities, userSettings, coachContext, ref
         hardSessions: actuals.hardSessionsThisWeek,
         rideCount: actuals.rideCount,
         rebalanceNote,
-        flexWeekNote: 'Sessions can shift across days — ride ahead and we match by intensity, or use Move to today.',
+        availabilityNote: availability.availabilityNote,
+        unavailableDates: weekState.unavailableDates || [],
+        flexWeekNote: 'Mark days you cannot train — sessions reschedule to your open days. Or use Move to today.',
         hasMoves,
+        hasAvailabilityBlocks,
         sessions,
     };
 }
