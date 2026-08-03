@@ -11,6 +11,7 @@ import {
     ArrowRight,
     Undo2,
     Sparkles,
+    Ban,
 } from 'lucide-react';
 import { buildFluidWeekPlan } from '../../utils/coach/coachWeekPlan';
 import {
@@ -18,6 +19,8 @@ import {
     setSessionOverride,
     moveSessionToToday,
     clearSessionMove,
+    toggleUnavailableDate,
+    clearUnavailableDates,
     dispatchCoachWeekUpdated,
     COACH_WEEK_UPDATED_EVENT,
 } from '../../utils/coach/coachWeekState';
@@ -26,7 +29,7 @@ import { todayYmd } from '../../utils/coach/coachHelpers';
 import { getStimulusStyle } from './coachStimulusStyles';
 import FluidWorkoutExpandable from './FluidWorkoutExpandable';
 
-const CoachFluidWeekPlan = ({ activities, userSettings, coachContext }) => {
+const CoachFluidWeekPlan = ({ activities, userSettings, coachContext, isSignedIn = false }) => {
     const [weekRevision, setWeekRevision] = useState(0);
     const [expandedDate, setExpandedDate] = useState(null);
     const today = todayYmd();
@@ -74,6 +77,16 @@ const CoachFluidWeekPlan = ({ activities, userSettings, coachContext }) => {
         dispatchCoachWeekUpdated();
     };
 
+    const handleToggleUnavailable = (dateYmd) => {
+        toggleUnavailableDate(weekPlan.mondayYmd, dateYmd);
+        dispatchCoachWeekUpdated();
+    };
+
+    const handleClearAvailability = () => {
+        clearUnavailableDates(weekPlan.mondayYmd);
+        dispatchCoachWeekUpdated();
+    };
+
     return (
         <div className="bg-cdsurface rounded-xl border border-cdborder shadow-xl overflow-hidden">
             <div className="p-5 border-b border-cdborder bg-gradient-to-br from-cdaccent/5 to-transparent">
@@ -98,7 +111,9 @@ const CoachFluidWeekPlan = ({ activities, userSettings, coachContext }) => {
 
                 <p className="text-xs text-cdmuted mt-3 flex items-start gap-2">
                     <Sparkles size={13} className="shrink-0 mt-0.5 text-cdaccent" />
-                    {weekPlan.flexWeekNote}
+                    {isSignedIn
+                        ? 'Blocked days and moves sync across devices when signed in. Sessions reschedule to your open days.'
+                        : 'Sign in to sync blocked days across mobile and desktop. Sessions reschedule to your open days.'}
                 </p>
 
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -114,6 +129,25 @@ const CoachFluidWeekPlan = ({ activities, userSettings, coachContext }) => {
                         style={{ width: `${Math.min(100, weekPlan.compliancePct)}%` }}
                     />
                 </div>
+
+                {weekPlan.availabilityNote && (
+                    <p className="text-xs text-orange-300 mt-3 flex items-start gap-2 bg-orange-500/10 rounded-lg px-3 py-2">
+                        <Ban size={13} className="shrink-0 mt-0.5" />
+                        {weekPlan.availabilityNote}
+                    </p>
+                )}
+
+                {weekPlan.hasAvailabilityBlocks && (
+                    <div className="mt-3 flex justify-end">
+                        <button
+                            type="button"
+                            onClick={handleClearAvailability}
+                            className="text-xs text-cdmuted hover:text-cdtext underline"
+                        >
+                            Clear blocked days
+                        </button>
+                    </div>
+                )}
 
                 {weekPlan.rebalanceNote && (
                     <p className="text-xs text-cdaccent mt-3 flex items-start gap-2 bg-cdaccent/10 rounded-lg px-3 py-2">
@@ -137,6 +171,7 @@ const CoachFluidWeekPlan = ({ activities, userSettings, coachContext }) => {
                         onSwapRecovery={() => handleSwapRecovery(session.date)}
                         onMoveToToday={() => handleMoveToToday(session.movedFromDate || session.date)}
                         onUndoMove={() => handleUndoMove(session.movedFromDate || session.date)}
+                        onToggleUnavailable={() => handleToggleUnavailable(session.date)}
                     />
                 ))}
             </div>
@@ -162,13 +197,18 @@ function WeekSessionRow({
     onSwapRecovery,
     onMoveToToday,
     onUndoMove,
+    onToggleUnavailable,
 }) {
     const styles = getStimulusStyle(session.stimulus);
-    const isRest = session.stimulus === 'rest' && !session.movedToDate;
+    const isBlocked = Boolean(session.isUnavailable);
+    const isRest = (session.stimulus === 'rest' && !session.movedToDate) || isBlocked;
     const isActionable = !isRest && !session.isPast;
     const missed = session.isPast && !session.completed
         && session.plannedStimulus !== 'rest'
-        && !session.movedToDate;
+        && !session.movedToDate
+        && !isBlocked;
+
+    const canMarkUnavailable = !session.isPast;
 
     const canMoveToToday = !session.isToday
         && !session.isPast
@@ -235,6 +275,16 @@ function WeekSessionRow({
                                         Rescheduled
                                     </span>
                                 )}
+                                {session.relocatedFromDate && (
+                                    <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300">
+                                        Rescheduled here
+                                    </span>
+                                )}
+                                {isBlocked && (
+                                    <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-red-500/20 text-red-300">
+                                        Blocked
+                                    </span>
+                                )}
                                 <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${styles.badge}`}>
                                     {styles.label}
                                 </span>
@@ -283,6 +333,20 @@ function WeekSessionRow({
                                 className="text-xs font-medium px-3 py-1.5 rounded-lg border border-cdborder text-cdmuted hover:text-cdaccent hover:border-cdaccent/50"
                             >
                                 {expanded ? 'Hide details' : 'Show details'}
+                            </button>
+                        )}
+                        {canMarkUnavailable && (
+                            <button
+                                type="button"
+                                onClick={onToggleUnavailable}
+                                className={`text-xs font-medium px-3 py-1.5 rounded-lg border flex items-center gap-1.5 ${
+                                    isBlocked
+                                        ? 'border-orange-500/40 text-orange-300 bg-orange-500/10'
+                                        : 'border-cdborder text-cdmuted hover:text-orange-300 hover:border-orange-500/40'
+                                }`}
+                            >
+                                <Ban size={12} />
+                                {isBlocked ? 'Can train' : "Can't train"}
                             </button>
                         )}
                         {canMoveToToday && (

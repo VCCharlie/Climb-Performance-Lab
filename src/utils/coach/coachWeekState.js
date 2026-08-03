@@ -4,7 +4,7 @@
 
 const STORAGE_KEY = 'coachWeekState_v1';
 
-function isoWeekKey(ymd) {
+export function isoWeekKey(ymd) {
     const [y, m, d] = ymd.split('-').map(Number);
     const dt = new Date(y, m - 1, d);
     dt.setHours(12, 0, 0, 0);
@@ -24,6 +24,35 @@ function readRaw() {
     }
 }
 
+/** Full local payload for cloud sync (may be another week than today). */
+export function readRawCoachWeekForSync() {
+    return readRaw();
+}
+
+/**
+ * @param {object | null | undefined} raw
+ * @returns {{ weekKey: string, completedDates: string[], overrides: Record<string, string>, moves: Record<string, string>, unavailableDates: string[], updatedAt: string | null }}
+ */
+export function normalizeCoachWeekState(raw) {
+    return {
+        weekKey: raw?.weekKey || '',
+        completedDates: Array.isArray(raw?.completedDates) ? raw.completedDates : [],
+        overrides: raw?.overrides && typeof raw.overrides === 'object' ? raw.overrides : {},
+        moves: raw?.moves && typeof raw.moves === 'object' ? raw.moves : {},
+        unavailableDates: Array.isArray(raw?.unavailableDates) ? raw.unavailableDates : [],
+        updatedAt: raw?.updatedAt || null,
+    };
+}
+
+export function applyCoachWeekStateToLocal(state) {
+    const next = normalizeCoachWeekState(state);
+    writeRaw({
+        ...next,
+        updatedAt: next.updatedAt || new Date().toISOString(),
+    });
+    return next;
+}
+
 function writeRaw(state) {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -34,25 +63,26 @@ function writeRaw(state) {
 
 /**
  * @param {string} mondayYmd
- * @returns {{ weekKey: string, completedDates: string[], overrides: Record<string, string>, moves: Record<string, string> }}
+ * @returns {{ weekKey: string, completedDates: string[], overrides: Record<string, string>, moves: Record<string, string>, unavailableDates: string[] }}
  */
 export function readCoachWeekState(mondayYmd) {
     const weekKey = isoWeekKey(mondayYmd);
     const raw = readRaw();
     if (!raw || raw.weekKey !== weekKey) {
-        return { weekKey, completedDates: [], overrides: {}, moves: {} };
+        return { weekKey, completedDates: [], overrides: {}, moves: {}, unavailableDates: [] };
     }
     return {
         weekKey,
         completedDates: Array.isArray(raw.completedDates) ? raw.completedDates : [],
         overrides: raw.overrides && typeof raw.overrides === 'object' ? raw.overrides : {},
         moves: raw.moves && typeof raw.moves === 'object' ? raw.moves : {},
+        unavailableDates: Array.isArray(raw.unavailableDates) ? raw.unavailableDates : [],
     };
 }
 
 /**
  * @param {string} mondayYmd
- * @param {{ completedDates?: string[], overrides?: Record<string, string>, moves?: Record<string, string> }} patch
+ * @param {{ completedDates?: string[], overrides?: Record<string, string>, moves?: Record<string, string>, unavailableDates?: string[] }} patch
  */
 export function writeCoachWeekState(mondayYmd, patch) {
     const current = readCoachWeekState(mondayYmd);
@@ -61,6 +91,8 @@ export function writeCoachWeekState(mondayYmd, patch) {
         completedDates: patch.completedDates ?? current.completedDates,
         overrides: patch.overrides ?? current.overrides,
         moves: patch.moves ?? current.moves,
+        unavailableDates: patch.unavailableDates ?? current.unavailableDates,
+        updatedAt: new Date().toISOString(),
     };
     writeRaw(next);
     return next;
@@ -124,6 +156,31 @@ export function clearSessionMove(mondayYmd, fromDateYmd) {
  */
 export function moveSessionToToday(mondayYmd, fromDateYmd, todayYmd) {
     return moveSession(mondayYmd, fromDateYmd, todayYmd);
+}
+
+/**
+ * Toggle a day as unavailable for training (auto-reschedules sessions in the week plan).
+ */
+export function toggleUnavailableDate(mondayYmd, dateYmd) {
+    const state = readCoachWeekState(mondayYmd);
+    const set = new Set(state.unavailableDates);
+    if (set.has(dateYmd)) set.delete(dateYmd);
+    else set.add(dateYmd);
+
+    const moves = { ...state.moves };
+    delete moves[dateYmd];
+    Object.keys(moves).forEach((from) => {
+        if (moves[from] === dateYmd) delete moves[from];
+    });
+
+    return writeCoachWeekState(mondayYmd, {
+        unavailableDates: [...set],
+        moves,
+    });
+}
+
+export function clearUnavailableDates(mondayYmd) {
+    return writeCoachWeekState(mondayYmd, { unavailableDates: [] });
 }
 
 export const COACH_WEEK_UPDATED_EVENT = 'cpl-coach-week-updated';

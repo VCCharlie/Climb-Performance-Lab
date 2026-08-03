@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { buildWeekSkeleton, rebalanceWeek, downgradeStimulus } from '../../utils/coach/coachRebalancer';
 import { buildFluidWeekPlan, getMondayYmd, computeWeekActuals, applySessionMoves } from '../../utils/coach/coachWeekPlan';
-import { readCoachWeekState, writeCoachWeekState, moveSession } from '../../utils/coach/coachWeekState';
+import { readCoachWeekState, writeCoachWeekState, moveSession, toggleUnavailableDate } from '../../utils/coach/coachWeekState';
 
 describe('coachRebalancer', () => {
     it('downgradeStimulus steps down the ladder', () => {
@@ -115,6 +115,24 @@ describe('coachWeekPlan', () => {
         const { movedTo, vacatedDates } = applySessionMoves(basePlan, { '2026-08-04': '2026-08-03' });
         expect(vacatedDates.has('2026-08-04')).toBe(true);
         expect(movedTo.get('2026-08-03').plannedStimulus).toBe('sweetspot');
+    });
+
+    it('buildFluidWeekPlan reschedules when days are blocked', () => {
+        toggleUnavailableDate('2026-08-03', '2026-08-05');
+        toggleUnavailableDate('2026-08-03', '2026-08-06');
+        toggleUnavailableDate('2026-08-03', '2026-08-07');
+
+        const plan = buildFluidWeekPlan({
+            activities: [],
+            userSettings: { weeklyHoursTarget: 5, ftp: 250 },
+            coachContext: { athlete: { ftp: 250 }, fitness: { tsb: 0 } },
+            referenceYmd: '2026-08-03',
+        });
+
+        expect(plan.hasAvailabilityBlocks).toBe(true);
+        expect(plan.availabilityNote).toBeTruthy();
+        const thursday = plan.sessions.find((s) => s.date === '2026-08-06');
+        expect(thursday.isUnavailable).toBe(true);
     });
 });
 
