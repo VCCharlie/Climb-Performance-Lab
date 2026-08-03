@@ -11,7 +11,8 @@ import {
   GitCompare,
   Timer,
   Flame,
-  Ruler
+  Ruler,
+  Route
 } from 'lucide-react';
 import { COGGAN_ZONES } from '../cogganZones';
 import { summarizeClimbPhysics } from '../utils';
@@ -27,6 +28,7 @@ import {
   formatSignedHorizontalDelta,
   EMPTY_PHYSICS_CALC
 } from '../utils/physicsEngineCore';
+import PhysicsStagePanel from './physics/PhysicsStagePanel';
 
 const VISUAL_MAX = 1.6;
 
@@ -58,6 +60,7 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const [showCompare, setShowCompare] = useState(false);
+  const [showStage, setShowStage] = useState(false);
   const [compareTimeStr, setCompareTimeStr] = useState('1:04:00');
   const [compareWattsStr, setCompareWattsStr] = useState('');
 
@@ -193,6 +196,13 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
             </button>
             <button
               type="button"
+              onClick={() => setShowStage((v) => !v)}
+              className={`text-xs font-bold px-3 py-1 rounded border flex items-center gap-1.5 ${showStage ? 'bg-cdaccent/20 text-cdaccent border-cdaccent' : 'text-cdmuted border-cdborder hover:border-cdaccent/50'}`}
+            >
+              <Route size={14} /> {showStage ? 'Hide stage' : 'Stage simulator'}
+            </button>
+            <button
+              type="button"
               onClick={() => setShowAdvanced(!showAdvanced)}
               className={`text-xs font-bold px-3 py-1 rounded border ${showAdvanced ? 'bg-yellow-400/10 text-yellow-400 border-yellow-400' : 'text-cdmuted border-cdborder'}`}
             >
@@ -246,6 +256,15 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
         )}
 
         <ClimbSelector mode="single" selected={selectedClimb} onSelect={onUpdateClimb} showCategoryBadge />
+
+        {showStage && (
+          <PhysicsStagePanel
+            userSettings={userSettings}
+            cda={cda}
+            crr={crr}
+            loss={loss}
+          />
+        )}
 
         {showCompare && selectedClimb && (
           <div className="rounded-xl border border-cdaccent/40 bg-cdaccent/5 p-4 space-y-3 animate-in fade-in slide-in-from-top-1">
