@@ -1,9 +1,13 @@
 ﻿import React, { useMemo, useState, useEffect } from 'react';
-import { Brain, TrendingUp, AlertTriangle, Calendar, CheckCircle, Activity, Battery, Download, Target, ListChecks, GitCompareArrows, Mountain } from 'lucide-react';
+import { Brain, TrendingUp, AlertTriangle, CheckCircle, Activity, Download, Target, ListChecks, GitCompareArrows, Mountain } from 'lucide-react';
 import { buildCoachPlan, COACH_GOAL_OPTIONS, COACH_WORKOUT_LIBRARY } from '../utils/swotCoachPlan';
 import { buildPeriodComparison } from '../utils/swotPeriodCompare';
 import { normalizeDate, formatDateDDMMYYYY } from '../utils/formatters';
 import { useActivitiesList } from '../hooks/useActivities';
+import { buildCoachContext } from '../utils/coach/coachPayloadBuilder';
+import TodaysFocusCard from './coach/TodaysFocusCard';
+import CoachAskPanel from './coach/CoachAskPanel';
+import CoachPeriodReview from './coach/CoachPeriodReview';
 import {
     hydrateTrainingPlanSnapshot,
     readTrainingPlanSnapshot,
@@ -36,6 +40,7 @@ const AICoach = ({ activities: activitiesProp, userSettings, startDate, endDate 
     const activities = activitiesProp ?? activitiesFromContext;
 
     const [coachGoalId, setCoachGoalId] = useState('auto');
+    const [weeklyHoursTarget, setWeeklyHoursTarget] = useState(5);
     const [planRevision, setPlanRevision] = useState(0);
 
     useEffect(() => {
@@ -369,6 +374,11 @@ const AICoach = ({ activities: activitiesProp, userSettings, startDate, endDate 
         [swot.coachMetrics, swot.coachFlags, coachGoalId]
     );
 
+    const coachContext = useMemo(
+        () => buildCoachContext(activities, userSettings, { weeklyHoursTarget }),
+        [activities, userSettings, weeklyHoursTarget]
+    );
+
     const opportunitiesForDisplay = useMemo(() => {
         return swot.opportunities.map((o) =>
             o.label === 'Refine your focus'
@@ -377,159 +387,7 @@ const AICoach = ({ activities: activitiesProp, userSettings, startDate, endDate 
         );
     }, [swot.opportunities, coachPlan.actions]);
 
-    // --- 2. DUAL RECOMMENDATION ENGINE ---
-    const recommendations = useMemo(() => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const today = urlParams.get('day') ? parseInt(urlParams.get('day')) : new Date().getDay();
-
-        const isWeekend = (today === 0 || today === 6);
-        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-        const options = [];
-
-        if (isWeekend) {
-            // OPTION 1: Long Endurance
-            options.push({
-                id: 'weekend_long',
-                title: "Weekend Warrior: Endurance",
-                duration: "3h - 4h",
-                focus: "Zone 2 (Endurance)",
-                description: "The foundation of every cyclist. Long, easy endurance (Z2) stimulates fat burning and capillary density. Be strict: don't sneak into Tempo!",
-                type: "endurance",
-                zwoSteps: [
-                    { type: 'Warmup', duration: 900, powerLow: 0.50, powerHigh: 0.65 },
-                    { type: 'SteadyState', duration: 3600, power: 0.65 },
-                    { type: 'SteadyState', duration: 3600, power: 0.65 },
-                    { type: 'SteadyState', duration: 3600, power: 0.60 },
-                    { type: 'Cooldown', duration: 900, powerLow: 0.60, powerHigh: 0.50 }
-                ]
-            });
-            // OPTION 2: Tempo / Sweetspot (Time Crunched)
-            options.push({
-                id: 'weekend_tempo',
-                title: "Time Crunched: Tempo Climbs",
-                duration: "1h 30m - 2h",
-                focus: "Zone 3 (Tempo)",
-                description: "Short on time? Ride a bit harder. Find hills and ride them at Tempo (Z3). Not all-out, but comfortably hard.",
-                type: "interval",
-                zwoSteps: [
-                    { type: 'Warmup', duration: 900, powerLow: 0.50, powerHigh: 0.70 },
-                    { type: 'SteadyState', duration: 900, power: 0.80 }, // Tempo
-                    { type: 'SteadyState', duration: 300, power: 0.55 }, // Rest
-                    { type: 'SteadyState', duration: 900, power: 0.80 },
-                    { type: 'SteadyState', duration: 300, power: 0.55 },
-                    { type: 'SteadyState', duration: 900, power: 0.80 },
-                    { type: 'Cooldown', duration: 900, powerLow: 0.60, powerHigh: 0.50 }
-                ]
-            });
-
-        } else {
-            // WEEKDAY LOGIC
-            if (today === 1 || today === 5) { // Mon/Fri
-                options.push({
-                    id: 'recovery_active',
-                    title: "Active Recovery",
-                    duration: "45m - 60m",
-                    focus: "Zone 1 (Recovery)",
-                    description: "Active recovery improves blood flow and waste removal. Keep heart rate low and cadence high (95+ rpm). If it feels hard, stop.",
-                    type: "recovery",
-                    zwoSteps: [{ type: 'SteadyState', duration: 2700, power: 0.50 }]
-                });
-                options.push({
-                    id: 'recovery_rest',
-                    title: "Full Rest Day",
-                    duration: "0m",
-                    focus: "Sleep & Nutrition",
-                    description: "Sometimes the best workout is not training. Give your muscles and hormonal system full rest. Focus on sleep quality and protein-rich nutrition.",
-                    type: "recovery",
-                    zwoSteps: [] // No file
-                });
-
-            } else {
-                // Tue/Wed/Thu -> Quality (Intervals)
-                const isVo2Day = (today === 2 || today === 4); // Tue/Thu
-
-                if (isVo2Day) {
-                    options.push({
-                        id: 'vo2_micro',
-                        title: "VO2 Max: Micro-Bursts",
-                        duration: "1h 15m",
-                        focus: "3 sets, 10x (30s ON / 15s OFF)",
-                        description: "Short, intense bursts to raise oxygen uptake (VO2max). 30s @ 120% FTP, 15s rest. Very hard but efficient.",
-                        type: "interval",
-                        zwoSteps: [
-                            { type: 'Warmup', duration: 900, powerLow: 0.50, powerHigh: 0.75 },
-                            { type: 'IntervalsT', repeat: 10, onDuration: 30, offDuration: 15, onPower: 1.20, offPower: 0.50 },
-                            { type: 'SteadyState', duration: 300, power: 0.55 },
-                            { type: 'IntervalsT', repeat: 10, onDuration: 30, offDuration: 15, onPower: 1.20, offPower: 0.50 },
-                            { type: 'SteadyState', duration: 300, power: 0.55 },
-                            { type: 'IntervalsT', repeat: 10, onDuration: 30, offDuration: 15, onPower: 1.20, offPower: 0.50 },
-                            { type: 'Cooldown', duration: 900, powerLow: 0.60, powerHigh: 0.40 }
-                        ]
-                    });
-                    options.push({
-                        id: 'vo2_long',
-                        title: "VO2 Max: 4x5 min",
-                        duration: "1h 30m",
-                        focus: "4x 5m @ 108% FTP",
-                        description: "Classic VO2 intervals. Longer in the pain zone. This trains not only your ceiling but also your tolerance for acidosis.",
-                        type: "interval",
-                        zwoSteps: [
-                            { type: 'Warmup', duration: 1200, powerLow: 0.50, powerHigh: 0.75 },
-                            { type: 'SteadyState', duration: 300, power: 1.08 },
-                            { type: 'SteadyState', duration: 300, power: 0.55 },
-                            { type: 'SteadyState', duration: 300, power: 1.08 },
-                            { type: 'SteadyState', duration: 300, power: 0.55 },
-                            { type: 'SteadyState', duration: 300, power: 1.08 },
-                            { type: 'SteadyState', duration: 300, power: 0.55 },
-                            { type: 'SteadyState', duration: 300, power: 1.08 },
-                            { type: 'Cooldown', duration: 900, powerLow: 0.60, powerHigh: 0.40 }
-                        ]
-                    });
-                } else {
-                    // Wed: Sweetspot / Threshold
-                    options.push({
-                        id: 'sst_classic',
-                        title: "Sweetspot: 2x20m",
-                        duration: "1h 30m",
-                        focus: "2x 20m @ 90% FTP",
-                        description: "The gold standard for growing your engine (TTE). Just below your tipping point. Mentally tough, physically well recoverable.",
-                        type: "interval",
-                        zwoSteps: [
-                            { type: 'Warmup', duration: 1200, powerLow: 0.50, powerHigh: 0.75 },
-                            { type: 'SteadyState', duration: 1200, power: 0.90 },
-                            { type: 'SteadyState', duration: 300, power: 0.55 },
-                            { type: 'SteadyState', duration: 1200, power: 0.90 },
-                            { type: 'Cooldown', duration: 1200, powerLow: 0.70, powerHigh: 0.50 }
-                        ]
-                    });
-                    options.push({
-                        id: 'threshold_ou',
-                        title: "Over-Unders",
-                        duration: "1h 20m",
-                        focus: "3x (2m @ 105% / 2m @ 90%)",
-                        description: "Alternate above and below FTP. This teaches your body to process lactate ('shuttling') while riding hard.",
-                        type: "interval",
-                        zwoSteps: [
-                            { type: 'Warmup', duration: 1200, powerLow: 0.50, powerHigh: 0.75 },
-                            { type: 'IntervalsT', repeat: 3, onDuration: 120, offDuration: 120, onPower: 1.05, offPower: 0.90 }, // Block 1 (12m total?) No, this is 3 reps
-                            // Let's make it a 9-12 min block. 3x (2m/2m) = 12 mins.
-                            { type: 'SteadyState', duration: 300, power: 0.55 },
-                            { type: 'IntervalsT', repeat: 3, onDuration: 120, offDuration: 120, onPower: 1.05, offPower: 0.90 },
-                            { type: 'SteadyState', duration: 300, power: 0.55 },
-                            { type: 'IntervalsT', repeat: 3, onDuration: 120, offDuration: 120, onPower: 1.05, offPower: 0.90 },
-                            { type: 'Cooldown', duration: 1200, powerLow: 0.70, powerHigh: 0.50 }
-                        ]
-                    });
-                }
-            }
-        }
-
-        return { dayName: dayNames[today], options };
-
-    }, []);
-
-    // --- 3. DOWNLOAD HANDLER ---
+    // --- 2. ZWO DOWNLOAD HANDLER ---
     const handleDownloadZwo = (workout) => {
         if (!workout.zwoSteps || workout.zwoSteps.length === 0) {
             alert("No workout file needed for this rest day. Enjoy the rest!");
@@ -627,48 +485,30 @@ ${workout.zwoSteps.map(step => {
                 </div>
             )}
 
+            <div className="bg-cdsurface p-4 rounded-xl border border-cdborder flex flex-wrap items-center gap-4">
+                <label className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-cdmuted">
+                    <span className="font-semibold text-cdtext whitespace-nowrap">Weekly hours budget</span>
+                    <select
+                        value={weeklyHoursTarget}
+                        onChange={(e) => setWeeklyHoursTarget(Number(e.target.value))}
+                        className="bg-cdborder border border-cdborder rounded-lg px-3 py-2 text-cdtext text-sm min-w-[140px]"
+                    >
+                        <option value={4}>4 h / week</option>
+                        <option value={5}>5 h / week</option>
+                        <option value={6}>6 h / week</option>
+                        <option value={7}>7 h / week</option>
+                    </select>
+                </label>
+                <p className="text-xs text-cdmuted flex-1 min-w-[200px]">
+                    Drives TSS targets, today&apos;s fluid workout, period review, and Ask the Coach answers.
+                </p>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                {/* --- 1. WORKOUT SUGGESTIONS (Left Col) --- */}
-                <div className="lg:col-span-1 space-y-4">
-                    <div className="flex items-center gap-2 text-cdmuted text-sm uppercase font-bold tracking-wider">
-                        <Calendar size={14} /> {recommendations.dayName} Sessions
-                    </div>
-
-                    {recommendations.options.map((opt, idx) => {
-                        const styles = getCardStyles(opt.type);
-                        return (
-                            <div key={opt.id} className={`p-5 rounded-xl border-2 transition-colors relative ${styles.container} ${idx > 0 && 'opacity-90 scale-95 origin-top mt-2'}`}>
-                                {idx === 0 && <div className="absolute -top-3 left-4 px-2 py-0.5 bg-yellow-400 text-slate-900 text-[10px] font-bold uppercase rounded">Recommended</div>}
-                                {idx > 0 && <div className="absolute -top-3 left-4 px-2 py-0.5 bg-cdsurface border border-cdborder text-cdtext text-[10px] font-bold uppercase rounded">Alternative</div>}
-
-                                <div className="flex justify-between items-start mb-2 mt-2">
-                                    <h3 className={`text-lg font-bold ${styles.text}`}>{opt.title}</h3>
-                                    <div className={styles.text}>
-                                        {opt.type === 'interval' && <Activity size={16} />}
-                                        {opt.type === 'recovery' && <Battery size={16} />}
-                                        {opt.type === 'endurance' && <TrendingUp size={16} />}
-                                    </div>
-                                </div>
-
-                                <div className="flex gap-4 mb-3 text-xs font-mono text-cdmuted">
-                                    <span className="flex items-center gap-1"><ClockIcon /> {opt.duration}</span>
-                                    <span className="flex items-center gap-1"><Brain size={12} /> {opt.focus}</span>
-                                </div>
-
-                                <p className="text-xs leading-relaxed text-cdtext mb-4 h-16 overflow-y-auto custom-scrollbar">
-                                    {opt.description}
-                                </p>
-
-                                <button
-                                    onClick={() => handleDownloadZwo(opt)}
-                                    className="w-full bg-cdsurface hover:bg-cdborder text-cdtext text-xs font-bold py-2 px-3 rounded flex items-center justify-center gap-2 border border-cdborder transition-colors"
-                                >
-                                    <Download size={14} /> Download .zwo
-                                </button>
-                            </div>
-                        );
-                    })}
+                {/* --- Fluid workout (data-driven) --- */}
+                <div className="lg:col-span-1">
+                    <TodaysFocusCard coachContext={coachContext} />
                 </div>
 
                 {/* --- 2. SWOT MATRIX (Right Col, 2 span) --- */}
@@ -679,6 +519,19 @@ ${workout.zwoSteps.map(step => {
                     <SwotCard title="Threats" items={swot.threats} icon={Activity} color="text-yellow-500" border="border-yellow-500" />
                 </div>
             </div>
+
+            {/* --- Period review (4/8/12 weeks) + Ask the Coach --- */}
+            <CoachPeriodReview
+                activities={activities}
+                userSettings={userSettings}
+                weeklyHoursTarget={weeklyHoursTarget}
+            />
+
+            <CoachAskPanel
+                activities={activities}
+                userSettings={userSettings}
+                weeklyHoursTarget={weeklyHoursTarget}
+            />
 
             {/* --- Tweede tijdssnede: recent vs vorig blok / jaar-context --- */}
             <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl space-y-4">
@@ -878,10 +731,5 @@ const SwotCard = ({ title, items, icon, color, border }) => {
         </div>
     );
 };
-
-// Simple Icon Helper
-const ClockIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-);
 
 export default AICoach;
