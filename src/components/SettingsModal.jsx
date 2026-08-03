@@ -260,6 +260,34 @@ const SettingsModal = ({
                                         </a>.
                                     </p>
                                 </div>
+                                <div className="pt-2 border-t border-cdborder/30 mt-2">
+                                    <label className="block text-xs font-semibold mb-1 text-cdmuted">
+                                        Gemini API Key (AI Coach)
+                                    </label>
+                                    <input
+                                        type="password"
+                                        maxLength={120}
+                                        placeholder="Your Google AI Studio API key"
+                                        value={userSettings.geminiApiKey || ''}
+                                        onChange={(e) => updateUserSettings('geminiApiKey', e.target.value)}
+                                        className={fieldClass}
+                                    />
+                                    <p className="text-xs text-cdmuted mt-1">
+                                        Stored on this device only. Enables natural-language answers in Ask the Coach.
+                                        Without a key, the coach uses local rule-based analysis.
+                                    </p>
+                                    <p className="text-xs text-cdmuted mt-1">
+                                        Free key at{' '}
+                                        <a
+                                            href="https://aistudio.google.com/apikey"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-cdaccent hover:underline"
+                                        >
+                                            Google AI Studio
+                                        </a>.
+                                    </p>
+                                </div>
                             </div>
 
                             <div className="mt-4 pt-4 border-t border-cdborder/30">

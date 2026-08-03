@@ -58,7 +58,7 @@ export function mergeIntervalsConfigFromCloud(cloud = {}, local = {}) {
     };
 }
 
-const BODY_SECRET_KEYS = ['githubPat', 'openweatherApiKey'];
+const BODY_SECRET_KEYS = ['githubPat', 'openweatherApiKey', 'geminiApiKey'];
 
 /** User settings for Firestore — strip PAT and weather API key. */
 export function userSettingsForCloud(userSettings = {}) {
@@ -66,6 +66,7 @@ export function userSettingsForCloud(userSettings = {}) {
         ...userSettings,
         githubPat: '',
         openweatherApiKey: '',
+        geminiApiKey: '',
     };
 }
 

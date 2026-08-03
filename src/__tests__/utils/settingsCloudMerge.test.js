@@ -77,10 +77,16 @@ describe('mergeIntervalsConfigFromCloud', () => {
 });
 
 describe('userSettingsForCloud', () => {
-    it('strips githubPat and openweatherApiKey', () => {
-        const out = userSettingsForCloud({ ftp: 250, githubPat: 'ghp_x', openweatherApiKey: 'owm' });
+    it('strips githubPat, openweatherApiKey, and geminiApiKey', () => {
+        const out = userSettingsForCloud({
+            ftp: 250,
+            githubPat: 'ghp_x',
+            openweatherApiKey: 'owm',
+            geminiApiKey: 'gem-key',
+        });
         expect(out.githubPat).toBe('');
         expect(out.openweatherApiKey).toBe('');
+        expect(out.geminiApiKey).toBe('');
         expect(out.ftp).toBe(250);
     });
 });

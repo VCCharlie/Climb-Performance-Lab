@@ -78,6 +78,8 @@ export function getDefaultUserSettings() {
         powerZones: [],
         githubPat: '',
         openweatherApiKey: '',
+        /** Google AI Studio key — local only, powers Ask the Coach LLM */
+        geminiApiKey: '',
         /** Garmin/Wahoo profile names used as default activity titles — prefer Strava name when matched. */
         bikeComputerProfileTitles: [],
         /** 'manual' | 'estimated' | 'estimated_20' | 'estimated_60' */
