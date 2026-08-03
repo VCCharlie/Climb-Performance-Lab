@@ -4,6 +4,7 @@ import { useClimbDatabase } from '../hooks/useClimbDatabase';
 import { computeTrainingGoalPlan } from '../utils/trainingGoalPlan';
 import { calculatePowerZones } from '../utils/calculations';
 import { useActivitiesList } from '../hooks/useActivities';
+import { useProfileFtp } from '../context/ProfileFtpContext';
 import {
     buildTrainingPlanSnapshot,
     writeTrainingPlanSnapshot,
@@ -19,13 +20,14 @@ const defaultGoalDate = () => {
 const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDate, endDate, onOpenRecovery }) => {
     const activitiesFromContext = useActivitiesList();
     const activities = activitiesProp ?? activitiesFromContext;
+    const profileFtp = useProfileFtp();
+    const ftp = profileFtp.ftp || Number(userSettings?.ftp) || 0;
     const { climbs: climbDatabase, loadFull } = useClimbDatabase();
 
     useEffect(() => {
         loadFull();
     }, [loadFull]);
 
-    const ftp = Number(userSettings?.ftp) || 0;
     const zones = useMemo(() => (ftp > 0 ? calculatePowerZones(ftp) : []), [ftp]);
 
     const [goalDate, setGoalDate] = useState(defaultGoalDate);

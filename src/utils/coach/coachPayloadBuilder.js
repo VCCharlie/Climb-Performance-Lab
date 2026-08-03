@@ -8,6 +8,7 @@ import { calculateFitnessMetrics } from '../formTabMetrics';
 import { selectStimulus } from './stimulusSelector';
 import { buildFluidWorkout } from './fluidWorkoutTemplates';
 import { stimulusRationale } from './stimulusSelector';
+import { resolveEffectiveProfileFtp } from '../profileFtp';
 import {
     activityIF,
     classifyIF,
@@ -79,7 +80,8 @@ function countHardSessionsThisWeek(activities, ftp) {
  * @returns {object}
  */
 export function buildCoachContext(activities, userSettings, options = {}) {
-    const ftp = Number(userSettings?.ftp) || 0;
+    const profileFtp = resolveEffectiveProfileFtp(userSettings, activities);
+    const ftp = profileFtp.ftp || Number(userSettings?.ftp) || 0;
     const weeklyHours = Number(options.weeklyHoursTarget)
         || Number(userSettings?.weeklyHoursTarget)
         || 5;
@@ -117,6 +119,7 @@ export function buildCoachContext(activities, userSettings, options = {}) {
     const coachFeatures = {
         athlete: {
             ftp,
+            ftpSource: profileFtp.source,
             weight: Number(userSettings?.weight) || null,
             weeklyHoursTarget: weeklyHours,
             primaryGoal: options.primaryGoal || 'ftp_sustained_power',
