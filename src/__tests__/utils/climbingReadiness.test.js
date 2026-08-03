@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeClimbingReadiness } from '../../utils/climbingReadiness';
+import { computeClimbingReadiness, computeClimbingReadinessHistory } from '../../utils/climbingReadiness';
 import { calculateFitnessMetrics } from '../../utils/formTabMetrics';
 
 describe('computeClimbingReadiness', () => {
@@ -91,5 +91,27 @@ describe('computeClimbingReadiness', () => {
         if (result.metrics.tsb != null && result.metrics.tsb < -20) {
             expect(result.badge.key).toBe('recover');
         }
+    });
+
+    it('computeClimbingReadinessHistory returns weekly and monthly rows', () => {
+        const activities = [
+            {
+                date: '2026-07-22',
+                climbing: 800,
+                load: 120,
+                norm_power: 160,
+                moving_time: 7200,
+            },
+        ];
+        const history = computeClimbingReadinessHistory({
+            activities,
+            ftp: 250,
+            referenceDate: baseDate,
+            weekCount: 4,
+            monthCount: 3,
+        });
+        expect(history.weeks.length).toBe(4);
+        expect(history.months.length).toBe(3);
+        expect(history.weeks[0].composite).toBeGreaterThan(0);
     });
 });
