@@ -10,7 +10,7 @@
  */
 
 import { pruneLocalStorageCaches } from './safeStorage.js';
-import { clearSensitiveLocalStorage } from './sessionData.js';
+import { readPersistedMainTab } from './sessionNavRestore.js';
 
 /** @type {string|undefined} */
 const BUILD_ID = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : undefined;
@@ -196,6 +196,14 @@ export async function performSilentDeployRecovery() {
     }
 
     markRecoveryAttempted();
+    const tab = readPersistedMainTab();
+    if (tab) {
+        try {
+            sessionStorage.setItem('cpl_main_tab_v1', tab);
+        } catch {
+            /* ignore */
+        }
+    }
     await clearDeployCaches();
     window.location.reload();
     return { reloaded: true };

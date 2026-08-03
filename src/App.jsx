@@ -51,7 +51,7 @@ const ClimbMap = lazyWithRetry(() => import('./components/ClimbMap'), 'ClimbMap'
 
 import useStravaAuth from './hooks/useStravaAuth';
 import { applyTheme } from './theme/applyTheme';
-import { consumeNavRestore } from './utils/sessionNavRestore';
+import { consumeNavRestore, persistMainTab, readPersistedMainTab, resolveInitialMainTab, resolveInitialDataHubInternalTab } from './utils/sessionNavRestore';
 import { mergeVolumeGoals, hydrateYearlyGoalsFromLegacy } from './utils/volumeGoals';
 import {
     clearSensitiveLocalStorage,
@@ -81,8 +81,9 @@ import { ProfileFtpProvider } from './context/ProfileFtpContext';
 import { TodayIntervalsSyncProvider } from './context/TodayIntervalsSyncContext';
 
 function AppLoadingGate({ authReady, user, authBusy, authError, onSignIn, children }) {
-    const { isLoading: activitiesLoading } = useActivitiesState();
-    if (!authReady || authBusy || (activitiesLoading && user)) {
+    const { isLoading: activitiesLoading, activities } = useActivitiesState();
+    const waitingForInitialActivities = Boolean(user) && activitiesLoading && activities.length === 0;
+    if (!authReady || authBusy || waitingForInitialActivities) {
         return <LoadingPanel />;
     }
     if (!user) {
@@ -120,28 +121,9 @@ const MAIN_TAB_IDS = new Set([
     'dashboard', 'physics', 'activities', 'training', 'race', 'gearoptimizer',
     'profiler', 'bucketlist', 'climbmap', 'weather',
 ]);
-const DATAHUB_INTERNAL_TABS = new Set(['log', 'strava-profile', 'import']);
-
-let cachedNavRestore = null;
-function peekNavRestoreOnce() {
-    if (cachedNavRestore === null) {
-        cachedNavRestore = consumeNavRestore();
-    }
-    return cachedNavRestore;
-}
-
-function dataHubInternalTabFromRestore() {
-    const r = peekNavRestoreOnce();
-    const t = r?.dataHubInternalTab;
-    return t && DATAHUB_INTERNAL_TABS.has(t) ? t : 'log';
-}
 
 const App = () => {
-    const [activeTab, setActiveTab] = useState(() => {
-        const r = peekNavRestoreOnce();
-        const t = r?.activeTab;
-        return t && MAIN_TAB_IDS.has(t) ? t : 'dashboard';
-    });
+    const [activeTab, setActiveTab] = useState(() => resolveInitialMainTab());
     const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
 
     useEffect(() => {
@@ -150,6 +132,13 @@ const App = () => {
 
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+    const handleTabChange = useCallback((tab) => {
+        if (tab && MAIN_TAB_IDS.has(tab)) {
+            persistMainTab(tab);
+            setActiveTab(tab);
+        }
+    }, []);
 
     useEffect(() => {
         setIsMobileMenuOpen(false);
@@ -345,6 +334,7 @@ const App = () => {
             selectedClimb: target,
         }));
         setActiveTab('profiler');
+        persistMainTab('profiler');
     }, []);
 
     const handleOpenProfilerForClimb = useCallback((climb) => {
@@ -354,6 +344,7 @@ const App = () => {
             selectedClimb: climb,
         }));
         setActiveTab('profiler');
+        persistMainTab('profiler');
     }, []);
 
     const [fuelingState, setFuelingState] = useState({
@@ -798,7 +789,10 @@ const App = () => {
     // Chart Data logic moved to Dashboard.jsx
 
 
-    const navigateToActivities = useCallback(() => setActiveTab('activities'), []);
+    const navigateToActivities = useCallback(() => {
+        persistMainTab('activities');
+        setActiveTab('activities');
+    }, []);
 
     const isDark = theme === 'dark';
     const mainClass = isDark ? 'bg-cdbg text-cdtext' : 'bg-cdbg text-cdtext';
@@ -825,7 +819,7 @@ const App = () => {
                         {user && (
                             <MainNav
                                 activeTab={activeTab}
-                                onTabChange={setActiveTab}
+                                onTabChange={handleTabChange}
                                 timeRange={timeRange}
                                 onTimeRangeChange={setTimeRange}
                                 customStart={customStart}
@@ -872,7 +866,7 @@ const App = () => {
                                                 onStravaProfileData={handleStravaProfileData}
                                                 onOpenProfilerFromActivity={handleOpenProfilerFromActivity}
                                                 climbDatabaseForMatch={climbDatabase}
-                                                initialInternalTab={dataHubInternalTabFromRestore()}
+                                                initialInternalTab={resolveInitialDataHubInternalTab()}
                                                 profileFtp={userSettings?.ftp}
                                                 profileMaxHr={userSettings?.maxHr}
                                                 userSettings={userSettings}
@@ -982,7 +976,7 @@ const App = () => {
                                                 theme={theme}
                                                 initialState={climbProfilerState}
                                                 onStateChange={setClimbProfilerState}
-                                                onOpenBucketList={() => setActiveTab('bucketlist')}
+                                                onOpenBucketList={() => handleTabChange('bucketlist')}
                                             />
                                         </div>
                                         <div className="lg:col-span-1">
@@ -1003,9 +997,10 @@ const App = () => {
                                                 selectedClimb: climb,
                                             }));
                                             setActiveTab('weather');
+                                            persistMainTab('weather');
                                         }}
                                         onOpenProfilerForClimb={handleOpenProfilerForClimb}
-                                        onOpenMapTab={() => setActiveTab('climbmap')}
+                                        onOpenMapTab={() => handleTabChange('climbmap')}
                                     />
                                 )}
 

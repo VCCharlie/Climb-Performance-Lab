@@ -5,12 +5,33 @@
 
 import { normalizeDate } from './formatters';
 import { activityMovingTimeSec } from './activityFilterMetrics';
-import { currentWeekRange } from './volumeGoals';
+import { currentWeekRange, currentMonthRange } from './volumeGoals';
 import { calculateFitnessMetrics } from './formTabMetrics';
 import { z2PowerBandFromFtp } from './profileFtp';
 
 export const Z2_IF_MIN = 0.55;
 export const Z2_IF_MAX = 0.75;
+
+/** User-facing explanation for Dashboard help panel. */
+export const CLIMBING_READINESS_EXPLANATION = {
+    title: 'How the score works',
+    summary:
+        'The score (0–100) estimates how ready you are for a hard climb this week. It is not FTP — it blends recent climbing volume, endurance work, load, and freshness.',
+    weights: [
+        '30% — Elevation climbed this period (m)',
+        '25% — Z2 endurance proxy (ride time at 55–75% FTP using NP or avg power)',
+        '20% — Training load (TSS) for the period',
+        '25% — Form (TSB from your activity history)',
+    ],
+    badges: [
+        'Prioritize recovery — very negative TSB',
+        'Building base — score below ~65 or light climbing volume',
+        'Good climbing form — balanced metrics',
+        'Peak climb readiness — high score with fresh TSB (+0 to +22)',
+    ],
+    historyNote:
+        'Weekly and monthly history below re-runs the same formula on past calendar windows. TSB uses your form at the end of each window.',
+};
 
 /** @typedef {'recover' | 'building' | 'good' | 'peak'} ReadinessBadgeKey */
 
@@ -112,23 +133,55 @@ function resolveBadge(elevationScore, z2Score, tssScore, tsbScore, tsb) {
     return { key: 'building', label: 'Needs more climbing volume', tone: 'yellow' };
 }
 
+function scorePeriodTss(totalTss, periodDays) {
+    const days = Math.max(1, Number(periodDays) || 7);
+    const weeklyEquivalent = (Number(totalTss) || 0) / (days / 7);
+    return scoreWeeklyTss(weeklyEquivalent);
+}
+
 /**
- * @param {object} params
- * @param {object[]} params.activities
- * @param {number} [params.ftp]
- * @param {Date} [params.referenceDate]
+ * @param {object[]} activities
+ * @param {string} endYmd
  */
-export function computeClimbingReadiness({ activities, ftp = 0, referenceDate = new Date() }) {
-    const week = currentWeekRange(referenceDate);
-    const weekActs = filterActivitiesInYmdRange(activities, week.startYmd, week.endYmd);
+function fitnessSnapshotAtOrBefore(activities, endYmd) {
+    const fitness = calculateFitnessMetrics(activities);
+    if (!fitness.length) return null;
+    let match = null;
+    for (const row of fitness) {
+        const d = normalizeDate(row?.date);
+        if (!d || d.length < 10) continue;
+        if (d <= endYmd) match = row;
+    }
+    return match ?? fitness[fitness.length - 1];
+}
+
+/**
+ * @param {object[]} activities
+ * @param {number} ftp
+ * @param {string} startYmd
+ * @param {string} endYmd
+ * @param {string} periodLabel
+ * @param {Date} referenceDate
+ * @param {number} [periodDays]
+ */
+function computeClimbingReadinessForRange(
+    activities,
+    ftp,
+    startYmd,
+    endYmd,
+    periodLabel,
+    referenceDate,
+    periodDays = 7,
+) {
+    const periodActs = filterActivitiesInYmdRange(activities, startYmd, endYmd);
 
     let elevationM = 0;
-    let weekTss = 0;
+    let periodTss = 0;
     let z2Seconds = 0;
 
-    for (const a of weekActs) {
+    for (const a of periodActs) {
         elevationM += Math.max(0, Number(a?.climbing) || 0);
-        weekTss += Math.max(0, Number(a?.load) || 0);
+        periodTss += Math.max(0, Number(a?.load) || 0);
 
         const ifac = activityIntensityFactor(a, ftp);
         const movingSec = activityMovingTimeSec(a);
@@ -138,14 +191,12 @@ export function computeClimbingReadiness({ activities, ftp = 0, referenceDate = 
     }
 
     const z2Hours = z2Seconds / 3600;
-
-    const fitness = calculateFitnessMetrics(activities);
-    const latestFitness = fitness.length > 0 ? fitness[fitness.length - 1] : null;
+    const latestFitness = fitnessSnapshotAtOrBefore(activities, endYmd);
     const tsb = latestFitness?.tsb ?? null;
 
     const elevationScore = rampScore(elevationM, 600, 1200);
     const z2Score = ftp > 0 ? rampScore(z2Hours, 3, 6) : rampScore(z2Hours, 2, 5);
-    const tssScore = scoreWeeklyTss(weekTss);
+    const tssScore = scorePeriodTss(periodTss, periodDays);
     const tsbScore = scoreTsb(tsb);
 
     const badge = resolveBadge(elevationScore, z2Score, tssScore, tsbScore, tsb);
@@ -180,16 +231,16 @@ export function computeClimbingReadiness({ activities, ftp = 0, referenceDate = 
     const z2Band = ftp > 0 ? z2PowerBandFromFtp(ftp) : null;
 
     return {
-        weekLabel: week.label,
+        weekLabel: periodLabel,
         composite,
         badge,
         metrics: {
             elevationM: Math.round(elevationM),
-            weekTss: Math.round(weekTss),
+            weekTss: Math.round(periodTss),
             z2Hours: Math.round(z2Hours * 10) / 10,
             tsb,
             ctl: latestFitness?.ctl ?? null,
-            rideCount: weekActs.length,
+            rideCount: periodActs.length,
         },
         z2Band,
         scores: {
@@ -201,4 +252,91 @@ export function computeClimbingReadiness({ activities, ftp = 0, referenceDate = 
         hints: hints.slice(0, 3),
         hasFtp: ftp > 0,
     };
+}
+
+/**
+ * Past weekly and monthly scores using the same formula.
+ * @param {object} params
+ * @param {object[]} params.activities
+ * @param {number} [params.ftp]
+ * @param {Date} [params.referenceDate]
+ * @param {number} [params.weekCount]
+ * @param {number} [params.monthCount]
+ */
+export function computeClimbingReadinessHistory({
+    activities,
+    ftp = 0,
+    referenceDate = new Date(),
+    weekCount = 8,
+    monthCount = 6,
+}) {
+    const weeks = [];
+    for (let i = 0; i < weekCount; i += 1) {
+        const d = new Date(referenceDate);
+        d.setDate(d.getDate() - i * 7);
+        const week = currentWeekRange(d);
+        const result = computeClimbingReadinessForRange(
+            activities,
+            ftp,
+            week.startYmd,
+            week.endYmd,
+            week.label,
+            d,
+            7,
+        );
+        weeks.push({
+            label: i === 0 ? 'This week' : week.label,
+            composite: result.composite,
+            badgeKey: result.badge.key,
+            badgeLabel: result.badge.label,
+        });
+    }
+
+    const months = [];
+    for (let i = 0; i < monthCount; i += 1) {
+        const d = new Date(referenceDate.getFullYear(), referenceDate.getMonth() - i, 15);
+        const month = currentMonthRange(d);
+        const endRef = new Date(month.endYmd + 'T12:00:00');
+        const start = new Date(month.startYmd + 'T12:00:00');
+        const periodDays = Math.max(
+            1,
+            Math.round((endRef.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)) + 1,
+        );
+        const result = computeClimbingReadinessForRange(
+            activities,
+            ftp,
+            month.startYmd,
+            month.endYmd,
+            month.label,
+            endRef,
+            periodDays,
+        );
+        months.push({
+            label: month.label,
+            composite: result.composite,
+            badgeKey: result.badge.key,
+            badgeLabel: result.badge.label,
+        });
+    }
+
+    return { weeks, months };
+}
+
+/**
+ * @param {object} params
+ * @param {object[]} params.activities
+ * @param {number} [params.ftp]
+ * @param {Date} [params.referenceDate]
+ */
+export function computeClimbingReadiness({ activities, ftp = 0, referenceDate = new Date() }) {
+    const week = currentWeekRange(referenceDate);
+    return computeClimbingReadinessForRange(
+        activities,
+        ftp,
+        week.startYmd,
+        week.endYmd,
+        week.label,
+        referenceDate,
+        7,
+    );
 }
