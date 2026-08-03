@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { buildWeekSkeleton, rebalanceWeek, downgradeStimulus } from '../../utils/coach/coachRebalancer';
 import { buildFluidWeekPlan, getMondayYmd, computeWeekActuals, applySessionMoves } from '../../utils/coach/coachWeekPlan';
-import { readCoachWeekState, writeCoachWeekState, moveSession, toggleUnavailableDate } from '../../utils/coach/coachWeekState';
+import { readCoachWeekState, writeCoachWeekState, moveSession, toggleUnavailableDate, toggleAvailableDate } from '../../utils/coach/coachWeekState';
 
 describe('coachRebalancer', () => {
     it('downgradeStimulus steps down the ladder', () => {
@@ -134,6 +134,27 @@ describe('coachWeekPlan', () => {
         const thursday = plan.sessions.find((s) => s.date === '2026-08-06');
         expect(thursday.isUnavailable).toBe(true);
     });
+
+    it('buildFluidWeekPlan relocates to explicitly available rest day after move', () => {
+        moveSession('2026-08-03', '2026-08-04', '2026-08-03');
+        toggleAvailableDate('2026-08-03', '2026-08-04');
+        toggleUnavailableDate('2026-08-03', '2026-08-05');
+        toggleUnavailableDate('2026-08-03', '2026-08-06');
+        toggleUnavailableDate('2026-08-03', '2026-08-07');
+        toggleUnavailableDate('2026-08-03', '2026-08-09');
+
+        const plan = buildFluidWeekPlan({
+            activities: [],
+            userSettings: { weeklyHoursTarget: 5, ftp: 250 },
+            coachContext: { athlete: { ftp: 250 }, fitness: { tsb: 0 } },
+            referenceYmd: '2026-08-03',
+        });
+
+        const tuesday = plan.sessions.find((s) => s.date === '2026-08-04');
+        expect(tuesday.isExplicitlyAvailable).toBe(true);
+        expect(tuesday.plannedStimulus).toBe('sweetspot');
+        expect(tuesday.relocatedFromDate).toBe('2026-08-06');
+    });
 });
 
 describe('coachWeekState', () => {
@@ -156,5 +177,13 @@ describe('coachWeekState', () => {
         moveSession('2026-08-03', '2026-08-04', '2026-08-03');
         const state = readCoachWeekState('2026-08-03');
         expect(state.moves['2026-08-04']).toBe('2026-08-03');
+    });
+
+    it('toggles available dates and clears blocked status', () => {
+        toggleUnavailableDate('2026-08-03', '2026-08-04');
+        toggleAvailableDate('2026-08-03', '2026-08-04');
+        const state = readCoachWeekState('2026-08-03');
+        expect(state.availableDates).toEqual(['2026-08-04']);
+        expect(state.unavailableDates).toEqual([]);
     });
 });

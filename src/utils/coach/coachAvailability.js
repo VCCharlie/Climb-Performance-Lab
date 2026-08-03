@@ -21,9 +21,11 @@ function isWorkout(stimulus) {
  * @param {Map<string, object>} basePlan — date → { plannedStimulus, note, originalStimulus, ... }
  * @param {string[]} unavailableDates
  * @param {string} referenceYmd
+ * @param {string[]} [availableDates]
  */
-export function applyAvailabilityRelocation(skeletonRows, basePlan, unavailableDates, referenceYmd) {
+export function applyAvailabilityRelocation(skeletonRows, basePlan, unavailableDates, referenceYmd, availableDates = []) {
     const unavailable = new Set((unavailableDates || []).filter(Boolean));
+    const available = new Set((availableDates || []).filter(Boolean));
     if (unavailable.size === 0) {
         return {
             assignment: null,
@@ -81,7 +83,7 @@ export function applyAvailabilityRelocation(skeletonRows, basePlan, unavailableD
 
     while (pending.length > 0) {
         const item = pending.shift();
-        const slotDate = pickRelocationSlot(skeletonRows, assignment, unavailable, item, referenceYmd);
+        const slotDate = pickRelocationSlot(skeletonRows, assignment, unavailable, available, item, referenceYmd);
 
         if (!slotDate) {
             dropped.push(item);
@@ -142,15 +144,16 @@ export function applyAvailabilityRelocation(skeletonRows, basePlan, unavailableD
  * @param {object[]} skeletonRows
  * @param {Map<string, object>} assignment
  * @param {Set<string>} unavailable
+ * @param {Set<string>} available
  * @param {object} item
  * @param {string} referenceYmd
  */
-function pickRelocationSlot(skeletonRows, assignment, unavailable, item, referenceYmd) {
+function pickRelocationSlot(skeletonRows, assignment, unavailable, available, item, referenceYmd) {
     const candidates = skeletonRows
         .map((row) => row.date)
         .filter((date) => !unavailable.has(date))
         .filter((date) => date >= referenceYmd)
-        .sort((a, b) => compareSlotPreference(a, b, item.fromDate));
+        .sort((a, b) => compareSlotPreference(a, b, item.fromDate, available));
 
     for (const date of candidates) {
         const slot = assignment.get(date);
@@ -173,7 +176,10 @@ function pickRelocationSlot(skeletonRows, assignment, unavailable, item, referen
     return null;
 }
 
-function compareSlotPreference(a, b, fromDate) {
+function compareSlotPreference(a, b, fromDate, available = new Set()) {
+    const aOpen = available.has(a) ? 0 : 1;
+    const bOpen = available.has(b) ? 0 : 1;
+    if (aOpen !== bOpen) return aOpen - bOpen;
     const aBefore = a < fromDate ? 0 : 1;
     const bBefore = b < fromDate ? 0 : 1;
     if (aBefore !== bBefore) return aBefore - bBefore;

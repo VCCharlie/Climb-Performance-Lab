@@ -46,4 +46,31 @@ describe('coachAvailability', () => {
         const result = applyAvailabilityRelocation(skeleton, basePlanFromSkeleton(skeleton), [], monday);
         expect(result.assignment).toBeNull();
     });
+
+    it('prefers explicitly available rest days for relocation', () => {
+        const skeleton = buildWeekSkeleton(5, monday);
+        const basePlan = basePlanFromSkeleton(skeleton);
+        const tue = skeleton.find((s) => s.day === 'Tuesday').date;
+        const wed = skeleton.find((s) => s.day === 'Wednesday').date;
+        const thu = skeleton.find((s) => s.day === 'Thursday').date;
+
+        basePlan.set(tue, {
+            ...basePlan.get(tue),
+            plannedStimulus: 'rest',
+            originalStimulus: 'endurance',
+            note: null,
+        });
+
+        const result = applyAvailabilityRelocation(
+            skeleton,
+            basePlan,
+            [wed, thu],
+            monday,
+            [tue],
+        );
+
+        const sweetspotMove = result.relocations.find((r) => r.stimulus === 'sweetspot');
+        expect(sweetspotMove).toBeTruthy();
+        expect(sweetspotMove.toDate).toBe(tue);
+    });
 });

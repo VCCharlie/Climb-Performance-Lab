@@ -12,6 +12,7 @@ import {
     Undo2,
     Sparkles,
     Ban,
+    CircleCheck,
 } from 'lucide-react';
 import { buildFluidWeekPlan } from '../../utils/coach/coachWeekPlan';
 import {
@@ -21,6 +22,8 @@ import {
     clearSessionMove,
     toggleUnavailableDate,
     clearUnavailableDates,
+    toggleAvailableDate,
+    clearAvailableDates,
     dispatchCoachWeekUpdated,
     COACH_WEEK_UPDATED_EVENT,
 } from '../../utils/coach/coachWeekState';
@@ -82,8 +85,14 @@ const CoachFluidWeekPlan = ({ activities, userSettings, coachContext, isSignedIn
         dispatchCoachWeekUpdated();
     };
 
+    const handleToggleAvailable = (dateYmd) => {
+        toggleAvailableDate(weekPlan.mondayYmd, dateYmd);
+        dispatchCoachWeekUpdated();
+    };
+
     const handleClearAvailability = () => {
         clearUnavailableDates(weekPlan.mondayYmd);
+        clearAvailableDates(weekPlan.mondayYmd);
         dispatchCoachWeekUpdated();
     };
 
@@ -137,14 +146,14 @@ const CoachFluidWeekPlan = ({ activities, userSettings, coachContext, isSignedIn
                     </p>
                 )}
 
-                {weekPlan.hasAvailabilityBlocks && (
+                {(weekPlan.hasAvailabilityBlocks || weekPlan.hasExplicitAvailability) && (
                     <div className="mt-3 flex justify-end">
                         <button
                             type="button"
                             onClick={handleClearAvailability}
                             className="text-xs text-cdmuted hover:text-cdtext underline"
                         >
-                            Clear blocked days
+                            Clear availability overrides
                         </button>
                     </div>
                 )}
@@ -172,6 +181,7 @@ const CoachFluidWeekPlan = ({ activities, userSettings, coachContext, isSignedIn
                         onMoveToToday={() => handleMoveToToday(session.movedFromDate || session.date)}
                         onUndoMove={() => handleUndoMove(session.movedFromDate || session.date)}
                         onToggleUnavailable={() => handleToggleUnavailable(session.date)}
+                        onToggleAvailable={() => handleToggleAvailable(session.date)}
                     />
                 ))}
             </div>
@@ -198,17 +208,24 @@ function WeekSessionRow({
     onMoveToToday,
     onUndoMove,
     onToggleUnavailable,
+    onToggleAvailable,
 }) {
     const styles = getStimulusStyle(session.stimulus);
     const isBlocked = Boolean(session.isUnavailable);
+    const isExplicitlyAvailable = Boolean(session.isExplicitlyAvailable);
     const isRest = (session.stimulus === 'rest' && !session.movedToDate) || isBlocked;
+    const isOpenRestDay = session.plannedStimulus === 'rest'
+        && !isBlocked
+        && !session.movedFromDate
+        && !session.relocatedFromDate;
     const isActionable = !isRest && !session.isPast;
     const missed = session.isPast && !session.completed
         && session.plannedStimulus !== 'rest'
         && !session.movedToDate
         && !isBlocked;
 
-    const canMarkUnavailable = !session.isPast;
+    const canMarkUnavailable = !session.isPast && !isOpenRestDay;
+    const canMarkAvailable = !session.isPast && isOpenRestDay;
 
     const canMoveToToday = !session.isToday
         && !session.isPast
@@ -285,6 +302,11 @@ function WeekSessionRow({
                                         Blocked
                                     </span>
                                 )}
+                                {isExplicitlyAvailable && (
+                                    <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+                                        Open for training
+                                    </span>
+                                )}
                                 <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${styles.badge}`}>
                                     {styles.label}
                                 </span>
@@ -347,6 +369,20 @@ function WeekSessionRow({
                             >
                                 <Ban size={12} />
                                 {isBlocked ? 'Can train' : "Can't train"}
+                            </button>
+                        )}
+                        {canMarkAvailable && (
+                            <button
+                                type="button"
+                                onClick={onToggleAvailable}
+                                className={`text-xs font-medium px-3 py-1.5 rounded-lg border flex items-center gap-1.5 ${
+                                    isExplicitlyAvailable
+                                        ? 'border-emerald-500/40 text-emerald-300 bg-emerald-500/10'
+                                        : 'border-cdborder text-cdmuted hover:text-emerald-300 hover:border-emerald-500/40'
+                                }`}
+                            >
+                                <CircleCheck size={12} />
+                                {isExplicitlyAvailable ? 'Not open' : 'Available to train'}
                             </button>
                         )}
                         {canMoveToToday && (
