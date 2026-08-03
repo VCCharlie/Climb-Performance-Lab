@@ -78,6 +78,7 @@ import { ToastProvider } from './context/ToastContext';
 import { ActivitiesProvider, useActivitiesState } from './context/ActivitiesContext';
 import { ActivityLogNavigationProvider, useActivityLogNavigation } from './context/ActivityLogNavigationContext';
 import { ProfileFtpProvider } from './context/ProfileFtpContext';
+import TrainingFtpContextNote from './components/coach/TrainingFtpContextNote';
 import { TodayIntervalsSyncProvider } from './context/TodayIntervalsSyncContext';
 
 function AppLoadingGate({ authReady, user, authBusy, authError, onSignIn, children }) {
@@ -879,6 +880,7 @@ const App = () => {
 
                                         {activeTab === 'training' && (
                                             <div>
+                                                <TrainingFtpContextNote userSettings={userSettings} />
                                                 <SegmentedControl
                                                     className="mb-4"
                                                     size="lg"

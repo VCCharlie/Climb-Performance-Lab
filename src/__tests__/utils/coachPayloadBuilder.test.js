@@ -3,6 +3,7 @@ import { buildCoachContext } from '../../utils/coach/coachPayloadBuilder';
 import { selectStimulus } from '../../utils/coach/stimulusSelector';
 import { buildFluidWorkout } from '../../utils/coach/fluidWorkoutTemplates';
 import { analyzeTrainingPeriod } from '../../utils/coach/coachPeriodAnalysis';
+import { FTP_SOURCE_ESTIMATED_20 } from '../../utils/profileFtp';
 
 const sampleActivities = [
     {
@@ -58,6 +59,18 @@ describe('buildCoachContext', () => {
         const ctx = buildCoachContext(sampleActivities, { ftp: 250 });
         expect(typeof ctx.fitness.ctl).toBe('number');
         expect(typeof ctx.fitness.tsb).toBe('number');
+    });
+
+    it('uses estimated 20-min FTP when ftpSource is estimated_20', () => {
+        const activities = [
+            { id: '1', date: '2026-07-28', best_20min: 300, load: 50, norm_power: 180, moving_time: 3600 },
+        ];
+        const ctx = buildCoachContext(activities, {
+            ftp: 200,
+            ftpSource: FTP_SOURCE_ESTIMATED_20,
+        });
+        expect(ctx.athlete.ftp).toBe(285);
+        expect(ctx.athlete.ftpSource).toBe(FTP_SOURCE_ESTIMATED_20);
     });
 });
 

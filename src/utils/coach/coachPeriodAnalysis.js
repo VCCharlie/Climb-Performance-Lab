@@ -4,6 +4,7 @@
 
 import { addDaysToYmd } from '../dashboardVolumeTotals';
 import { calculateFitnessMetrics } from '../formTabMetrics';
+import { resolveEffectiveProfileFtp } from '../profileFtp';
 import {
     activityIF,
     filterActivitiesInRange,
@@ -275,7 +276,8 @@ function buildVerdict(metrics, ftp, weeklyHours, swot) {
  * @returns {object}
  */
 export function analyzeTrainingPeriod(activities, userSettings, weeks = 4) {
-    const ftp = Number(userSettings?.ftp) || 0;
+    const profileFtp = resolveEffectiveProfileFtp(userSettings, activities);
+    const ftp = profileFtp.ftp || Number(userSettings?.ftp) || 0;
     const weeklyHours = Number(userSettings?.weeklyHoursTarget) || 5;
     const endYmd = todayYmd();
     const startYmd = addDaysToYmd(endYmd, -(weeks * 7 - 1));

@@ -8,6 +8,7 @@ import { buildCoachContext } from '../utils/coach/coachPayloadBuilder';
 import TodaysFocusCard from './coach/TodaysFocusCard';
 import CoachAskPanel from './coach/CoachAskPanel';
 import CoachPeriodReview from './coach/CoachPeriodReview';
+import { useProfileFtp } from '../context/ProfileFtpContext';
 import {
     hydrateTrainingPlanSnapshot,
     readTrainingPlanSnapshot,
@@ -38,6 +39,8 @@ function formatVsPrimaryPct(pct) {
 const AICoach = ({ activities: activitiesProp, userSettings, startDate, endDate }) => {
     const activitiesFromContext = useActivitiesList();
     const activities = activitiesProp ?? activitiesFromContext;
+    const profileFtp = useProfileFtp();
+    const effectiveFtp = profileFtp.ftp || Number(userSettings?.ftp) || 0;
 
     const [coachGoalId, setCoachGoalId] = useState('auto');
     const [weeklyHoursTarget, setWeeklyHoursTarget] = useState(5);
@@ -80,7 +83,7 @@ const AICoach = ({ activities: activitiesProp, userSettings, startDate, endDate 
 
         const periodDays = Math.max(1, (endD - startD) / (1000 * 60 * 60 * 24));
         const weeksInPeriod = Math.max(1, periodDays / 7);
-        const ftp = Number(userSettings?.ftp) || 0;
+        const ftp = effectiveFtp;
 
         // Drempelwaarden schalen naar de periodelengte (basisreferentie = 30 dagen)
         const consistencyHigh = Math.round(12 * periodDays / 30);  // >3x/week
@@ -362,7 +365,7 @@ const AICoach = ({ activities: activitiesProp, userSettings, startDate, endDate 
             coachFlags,
             periodComparison,
         };
-    }, [activities, userSettings, startDate, endDate]);
+    }, [activities, userSettings, startDate, endDate, effectiveFtp]);
 
     const coachPlan = useMemo(
         () =>
