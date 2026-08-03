@@ -39,7 +39,8 @@ const SettingsModal = ({
     userSettings, updateUserSettings,
     onSaveToCloud, theme, setTheme,
     backupExtras, onImportBackup, onCleanupCloudTokens,
-    stravaConfig, stravaAuth
+    stravaConfig, stravaAuth,
+    isSignedIn = false,
 }) => {
     const { activities, restoreFromBackup } = useActivities();
     const ftpLookbackWindow = normalizeFtpLookbackWindow(userSettings);
@@ -266,9 +267,24 @@ const SettingsModal = ({
                                         className={fieldClass}
                                     />
                                     <p className="text-xs text-cdmuted mt-1">
-                                        Stored on this device only. Enables natural-language answers in Ask the Coach.
+                                        Stored on this device by default. Enables natural-language answers in Ask the Coach.
                                         Without a key, the coach uses local rule-based analysis.
                                     </p>
+                                    <label className="mt-2 flex items-start gap-2 text-xs text-cdtext cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="mt-0.5 accent-cdaccent"
+                                            checked={Boolean(userSettings.syncGeminiKeyToCloud)}
+                                            disabled={!isSignedIn}
+                                            onChange={(e) => updateUserSettings('syncGeminiKeyToCloud', e.target.checked)}
+                                        />
+                                        <span>
+                                            Sync this key across devices (encrypted in cloud when signed in)
+                                            {!isSignedIn && (
+                                                <span className="block text-cdmuted mt-0.5">Sign in with Google to enable.</span>
+                                            )}
+                                        </span>
+                                    </label>
                                     <p className="text-xs text-cdmuted mt-1">
                                         Free key at{' '}
                                         <a

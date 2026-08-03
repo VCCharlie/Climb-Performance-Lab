@@ -8,6 +8,7 @@ import {
     compareFtpYearsAgo,
     parseYearsAgoFromQuestion,
 } from './coachPowerHistory';
+import { rateTodayRideAnswer } from './coachTodayFocus';
 
 export const COACH_QUICK_QUESTIONS = [
     { id: 'form', label: 'How is my form today?', prompt: 'How is my form today?' },
@@ -34,6 +35,13 @@ export function answerCoachQuestion(question, activities, userSettings, options 
         || 5;
     const ctx = buildCoachContext(activities, userSettings, { weeklyHoursTarget: weeklyHours });
     const ftp = ctx.athlete.ftp;
+
+    if (matchesTodayRideQuestion(q)) {
+        return formatAnswer(
+            'Today\'s ride review',
+            rateTodayRideAnswer(ctx.todayFocus, ctx.weekPlanSummary, ctx.fitness),
+        );
+    }
 
     if (matches(q, ['form', 'tsb', 'fresh', 'fris', 'vorm'])) {
         return formatAnswer(
@@ -140,6 +148,13 @@ export function answerCoachQuestion(question, activities, userSettings, options 
 
 function matches(q, keywords) {
     return keywords.some((k) => q.includes(k));
+}
+
+function matchesTodayRideQuestion(q) {
+    const hasToday = matches(q, ['today', "today's", 'todays', 'vandaag', 'this morning', 'this afternoon']);
+    const hasRide = matches(q, ['ride', 'rit', 'session', 'training', 'workout', 'easy', 'rate', 'review', 'how was', 'hoe was']);
+    const explicit = matches(q, ['rate my', 'review my', 'easy ride']);
+    return (hasToday && hasRide) || explicit;
 }
 
 function formatAnswer(title, answer) {

@@ -61,6 +61,14 @@ describe('buildCoachContext', () => {
         expect(typeof ctx.fitness.tsb).toBe('number');
     });
 
+    it('includes todayFocus and weekPlanSummary', () => {
+        const ctx = buildCoachContext(sampleActivities, { ftp: 250, weeklyHoursTarget: 5 });
+        expect(ctx.todayFocus).toBeTruthy();
+        expect(ctx.todayFocus.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+        expect(ctx.weekPlanSummary).toBeTruthy();
+        expect(ctx.weekPlanSummary.sessions).toHaveLength(7);
+    });
+
     it('uses estimated 20-min FTP when ftpSource is estimated_20', () => {
         const activities = [
             { id: '1', date: '2026-07-28', best_20min: 300, load: 50, norm_power: 180, moving_time: 3600 },

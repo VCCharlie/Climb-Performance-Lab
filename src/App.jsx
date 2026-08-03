@@ -16,6 +16,10 @@ import {
     mergeUserSettingsFromCloud,
 } from './utils/settingsCloudMerge';
 import {
+    userSettingsBodyForCloud,
+    mergeUserSettingsBodyFromCloud,
+} from './utils/settingsSecretsCloud';
+import {
     hasStravaOAuthReturnInUrl,
     hasPendingStravaOAuthState,
     stripStravaOAuthParamsFromUrl,
@@ -576,8 +580,21 @@ const App = () => {
                         setIntervalsConfig((prev) => mergeIntervalsConfigFromCloud(data.intervals, prev));
                     }
                     if (data.body) {
+                        let localPrev = getDefaultUserSettings();
+                        try {
+                            const raw = localStorage.getItem('userSettings');
+                            if (raw) localPrev = { ...localPrev, ...JSON.parse(raw) };
+                        } catch {
+                            /* ignore */
+                        }
+                        const mergedBody = await mergeUserSettingsBodyFromCloud(
+                            data.body,
+                            localPrev,
+                            user.uid,
+                        );
+                        if (cancelled) return;
                         setUserSettings((prev) => {
-                            const merged = mergeUserSettingsFromCloud(data.body, prev);
+                            const merged = { ...prev, ...mergedBody };
                             merged.volumeGoals = mergeVolumeGoals(data.body.volumeGoals ?? prev.volumeGoals);
                             merged.goals = hydrateYearlyGoalsFromLegacy(merged.goals, merged.volumeGoals);
                             return merged;
@@ -694,7 +711,7 @@ const App = () => {
 
             // SECURITY: Never save raw API keys, secrets, or OAuth tokens to Firestore
             const safeIntervals = intervalsConfigForCloud(intervalsConfig);
-            const safeBody = userSettingsForCloud(userSettings);
+            const safeBody = await userSettingsBodyForCloud(userSettings, user.uid);
             const safeStrava = stravaConfigForCloud(stravaConfig);
             devLog('Saving Settings to Cloud:', redactSecrets({
                 intervals: intervalsConfig,
@@ -1054,6 +1071,7 @@ const App = () => {
                                 onImportBackup={handleImportBackup}
                                 onCleanupCloudTokens={cleanupCloudTokens}
                                 stravaConfig={stravaConfig}
+                                isSignedIn={Boolean(user)}
                                 updateStravaConfig={updateStravaConfig}
                                 stravaAuth={stravaAuth}
                             />
