@@ -171,7 +171,11 @@ export function buildFluidWeekPlan({ activities, userSettings, coachContext, ref
         };
     });
 
-    const crossDayMatches = matchSessionsToActivities(preliminary, activities, ftp);
+    const crossDayMatches = matchSessionsToActivities(
+        preliminary,
+        filterActivitiesInRange(activities, mondayYmd, sundayYmd),
+        ftp,
+    );
 
     const sessions = preliminary.map((row) => {
         const match = crossDayMatches.get(row.date);

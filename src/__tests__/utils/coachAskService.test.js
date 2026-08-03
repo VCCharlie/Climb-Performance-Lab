@@ -21,7 +21,8 @@ describe('coachLlmPrompt', () => {
     it('buildCoachLlmUserMessage includes question and context', () => {
         const msg = buildCoachLlmUserMessage('How is my form?', { fitness: { tsb: 3 } });
         expect(msg).toContain('How is my form?');
-        expect(msg).toContain('coachContext');
+        expect(msg).toContain('Training data');
+        expect(msg).not.toContain('coachContext:');
         expect(msg).toContain('"tsb": 3');
     });
 });
@@ -36,6 +37,12 @@ describe('coachLlmService', () => {
         const { COACH_GEMINI_MODELS } = await import('../../services/coachLlmService');
         expect(COACH_GEMINI_MODELS[0]).not.toBe('gemini-2.0-flash');
         expect(COACH_GEMINI_MODELS[0]).toMatch(/gemini-2\.5|gemini-3/);
+    });
+
+    it('sanitizeCoachLlmAnswer removes internal jargon', async () => {
+        const { sanitizeCoachLlmAnswer } = await import('../../services/coachLlmService');
+        const raw = 'I cannot answer that question because your `coachContext` does not contain historical data.';
+        expect(sanitizeCoachLlmAnswer(raw)).not.toMatch(/coachContext/i);
     });
 });
 

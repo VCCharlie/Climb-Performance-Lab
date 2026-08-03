@@ -5,6 +5,9 @@
 import { normalizeDate } from '../formatters';
 import { activityIF } from './coachHelpers';
 
+/** Max calendar days between a ride and a planned session for cross-day matching. */
+export const CROSS_DAY_MATCH_WINDOW_DAYS = 3;
+
 const STIMULUS_RANK = {
     recovery: 0,
     endurance: 1,
@@ -12,6 +15,19 @@ const STIMULUS_RANK = {
     threshold: 3,
     vo2: 4,
 };
+
+/**
+ * Absolute calendar-day distance between two YYYY-MM-DD strings.
+ * @param {string} ymdA
+ * @param {string} ymdB
+ */
+export function daysApartYmd(ymdA, ymdB) {
+    const [y1, m1, d1] = ymdA.split('-').map(Number);
+    const [y2, m2, d2] = ymdB.split('-').map(Number);
+    const t1 = Date.UTC(y1, m1 - 1, d1);
+    const t2 = Date.UTC(y2, m2 - 1, d2);
+    return Math.round(Math.abs(t2 - t1) / 86400000);
+}
 
 /**
  * Classify a ride into a training stimulus bucket from NP/FTP.
@@ -42,13 +58,15 @@ export function stimulusMatches(planned, actual) {
 }
 
 /**
- * Link unfulfilled plan slots to rides on other days in the same week.
+ * Link unfulfilled plan slots to nearby rides (±windowDays) in the same week.
  * @param {object[]} sessions — built session rows (with date, stimulus, originalStimulus, completed)
- * @param {object[]} activities
+ * @param {object[]} activities — should already be limited to the current plan week
  * @param {number} ftp
+ * @param {{ windowDays?: number }} [options]
  * @returns {Map<string, { activityDate: string, matchedStimulus: string }>}
  */
-export function matchSessionsToActivities(sessions, activities, ftp) {
+export function matchSessionsToActivities(sessions, activities, ftp, options = {}) {
+    const windowDays = options.windowDays ?? CROSS_DAY_MATCH_WINDOW_DAYS;
     const matches = new Map();
     const usedActivityIds = new Set();
 
@@ -86,11 +104,22 @@ export function matchSessionsToActivities(sessions, activities, ftp) {
 
     for (const session of pending) {
         const planned = session.plannedStimulus || session.originalStimulus;
-        const candidate = weekActivities.find((a) => {
-            if (usedActivityIds.has(a.id)) return false;
-            if (a.ymd === session.date) return false;
-            return stimulusMatches(planned, a.stimulus);
-        });
+
+        const candidates = weekActivities
+            .filter((a) => {
+                if (usedActivityIds.has(a.id)) return false;
+                if (a.ymd === session.date) return false;
+                if (daysApartYmd(a.ymd, session.date) > windowDays) return false;
+                return stimulusMatches(planned, a.stimulus);
+            })
+            .sort((a, b) => {
+                const distA = daysApartYmd(a.ymd, session.date);
+                const distB = daysApartYmd(b.ymd, session.date);
+                if (distA !== distB) return distA - distB;
+                return a.ymd.localeCompare(b.ymd);
+            });
+
+        const candidate = candidates[0];
         if (candidate) {
             usedActivityIds.add(candidate.id);
             matches.set(session.date, {

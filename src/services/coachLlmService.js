@@ -73,6 +73,26 @@ function isModelUnavailableError(err) {
 }
 
 /**
+ * Strip internal jargon the model sometimes echoes back to users.
+ * @param {string} text
+ */
+export function sanitizeCoachLlmAnswer(text) {
+    let out = String(text || '').trim();
+    out = out.replace(/\bcoachContext\b/gi, 'your training data');
+    out = out.replace(/`coachContext`/gi, 'your training data');
+    out = out.replace(
+        /I cannot answer that question because your (?:`)?(?:coachContext|training data)(?:`)?[^.]*\./gi,
+        '',
+    );
+    out = out.replace(
+        /\(I cannot provide an analysis[^)]*\)/gi,
+        '',
+    );
+    out = out.replace(/\n{3,}/g, '\n\n').trim();
+    return out;
+}
+
+/**
  * @param {string} apiKey
  * @param {string} question
  * @param {object} coachContext
@@ -91,7 +111,7 @@ export async function askCoachLlm(apiKey, question, coachContext, recentHistory 
 
     for (const model of models) {
         try {
-            const answer = await callGemini(key, userMessage, model);
+            const answer = sanitizeCoachLlmAnswer(await callGemini(key, userMessage, model));
             const titleLine = answer.split('\n').find((l) => l.trim()) || 'Coach response';
             return {
                 title: titleLine.replace(/^#+\s*/, '').slice(0, 80),
