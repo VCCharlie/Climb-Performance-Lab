@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
     bucketListSettingsDocId,
     BUCKET_LIST_CLOUD_DEBOUNCE_MS,
@@ -7,10 +7,21 @@ import {
     stampBucketListState,
     applyBucketListStateChange,
     shouldImmediateSyncBucketList,
+    syncBucketListToFirestore,
+    __resetBucketListFirestoreSyncQueueForTests,
+    __setBucketListFirestoreWriterForTests,
 } from '../../utils/bucketListCloudSync';
 import { migrateLegacyBucketState } from '../../utils/bucketListState';
 
 describe('bucketListCloudSync', () => {
+    beforeEach(() => {
+        __resetBucketListFirestoreSyncQueueForTests();
+    });
+
+    afterEach(() => {
+        __resetBucketListFirestoreSyncQueueForTests();
+    });
+
     it('builds settings doc id from uid', () => {
         expect(bucketListSettingsDocId('abc123')).toBe('user_abc123');
     });
@@ -239,5 +250,110 @@ describe('bucketListCloudSync', () => {
             dismissedPbClimbIds: ['es_angliru'],
         });
         expect(shouldImmediateSyncBucketList(previous, afterRemove)).toBe(true);
+    });
+
+    it('syncBucketListToFirestore coalesces so a slow scan write cannot overwrite a newer dismiss', async () => {
+        const writes = [];
+        let releaseScanWrite;
+        let notifyScanInFlight;
+        const scanInFlight = new Promise((resolve) => {
+            notifyScanInFlight = resolve;
+        });
+        const scanGate = new Promise((resolve) => {
+            releaseScanWrite = resolve;
+        });
+
+        __setBucketListFirestoreWriterForTests(async (_db, _uid, stamped) => {
+            writes.push({
+                dismissedPbClimbIds: [...(stamped.dismissedPbClimbIds || [])],
+                climbPbKeys: Object.keys(stamped.climbPbs || {}).sort(),
+                updatedAt: stamped.updatedAt,
+            });
+            if (stamped.pbScanCompletedAt === '2026-07-27T10:00:00.000Z'
+                && (stamped.dismissedPbClimbIds || []).length === 0) {
+                notifyScanInFlight();
+                await scanGate;
+            }
+            return { ok: true, updatedAt: stamped.updatedAt };
+        });
+
+        const db = {};
+        const scanState = {
+            climbStatus: {},
+            climbPbs: { es_angliru: { normPower: 250 } },
+            updatedAt: '2026-07-27T10:00:00.000Z',
+            pbScanCompletedAt: '2026-07-27T10:00:00.000Z',
+            dismissedPbClimbIds: [],
+        };
+        const dismissState = {
+            climbStatus: {},
+            climbPbs: {},
+            updatedAt: '2026-07-27T10:00:01.000Z',
+            pbScanCompletedAt: '2026-07-27T10:00:00.000Z',
+            dismissedPbClimbIds: ['es_angliru'],
+        };
+
+        const scanPromise = syncBucketListToFirestore(db, 'uid-1', scanState);
+        await scanInFlight;
+        const dismissPromise = syncBucketListToFirestore(db, 'uid-1', dismissState);
+        releaseScanWrite();
+        await Promise.all([scanPromise, dismissPromise]);
+
+        expect(writes.length).toBe(2);
+        expect(writes[0].climbPbKeys).toEqual(['es_angliru']);
+        expect(writes[0].dismissedPbClimbIds).toEqual([]);
+        expect(writes[1].climbPbKeys).toEqual([]);
+        expect(writes[1].dismissedPbClimbIds).toEqual(['es_angliru']);
+        expect(writes[1].updatedAt).toBe('2026-07-27T10:00:01.000Z');
+    });
+
+    it('syncBucketListToFirestore drops superseded payloads queued during an in-flight write', async () => {
+        const writes = [];
+        let releaseFirst;
+        let notifyFirstInFlight;
+        const firstInFlight = new Promise((resolve) => {
+            notifyFirstInFlight = resolve;
+        });
+        const firstGate = new Promise((resolve) => {
+            releaseFirst = resolve;
+        });
+        let writeCount = 0;
+
+        __setBucketListFirestoreWriterForTests(async (_db, _uid, stamped) => {
+            writeCount += 1;
+            const current = writeCount;
+            writes.push(stamped.updatedAt);
+            if (current === 1) {
+                notifyFirstInFlight();
+                await firstGate;
+            }
+            return { ok: true, updatedAt: stamped.updatedAt };
+        });
+
+        const db = {};
+        const p1 = syncBucketListToFirestore(db, 'uid-1', {
+            climbStatus: {},
+            climbPbs: { a: { normPower: 1 } },
+            updatedAt: '2026-07-27T10:00:00.000Z',
+        });
+        await firstInFlight;
+        const p2 = syncBucketListToFirestore(db, 'uid-1', {
+            climbStatus: {},
+            climbPbs: { a: { normPower: 2 } },
+            updatedAt: '2026-07-27T10:00:01.000Z',
+        });
+        const p3 = syncBucketListToFirestore(db, 'uid-1', {
+            climbStatus: {},
+            climbPbs: {},
+            updatedAt: '2026-07-27T10:00:02.000Z',
+            dismissedPbClimbIds: ['a'],
+        });
+        releaseFirst();
+        await Promise.all([p1, p2, p3]);
+
+        expect(writes).toEqual([
+            '2026-07-27T10:00:00.000Z',
+            '2026-07-27T10:00:02.000Z',
+        ]);
     });
 });
