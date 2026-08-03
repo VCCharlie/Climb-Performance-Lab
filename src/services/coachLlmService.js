@@ -5,26 +5,25 @@
 import { fetchWithTimeout } from '../utils/fetchWithTimeout';
 import { COACH_LLM_SYSTEM_PROMPT, buildCoachLlmUserMessage } from '../utils/coach/coachLlmPrompt';
 
-const GEMINI_MODEL = 'gemini-2.0-flash';
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+/** Ordered fallback — first available wins (2.0 Flash shut down June 2026). */
+export const COACH_GEMINI_MODELS = [
+    import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.5-flash',
+    'gemini-2.5-flash-lite',
+    'gemini-3.1-flash-lite',
+].filter((m, i, arr) => m && arr.indexOf(m) === i);
+
+function geminiGenerateUrl(model) {
+    return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+}
 
 /**
  * @param {string} apiKey
- * @param {string} question
- * @param {object} coachContext
- * @param {object[]} [recentHistory]
- * @returns {Promise<{ title: string, answer: string, source: 'llm' }>}
+ * @param {string} userMessage
+ * @param {string} model
  */
-export async function askCoachLlm(apiKey, question, coachContext, recentHistory = []) {
-    const key = String(apiKey || '').trim();
-    if (!key) {
-        throw new Error('Gemini API key not configured');
-    }
-
-    const userMessage = buildCoachLlmUserMessage(question, coachContext, recentHistory);
-
+async function callGemini(apiKey, userMessage, model) {
     const response = await fetchWithTimeout(
-        `${GEMINI_URL}?key=${encodeURIComponent(key)}`,
+        `${geminiGenerateUrl(model)}?key=${encodeURIComponent(apiKey)}`,
         {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -50,7 +49,9 @@ export async function askCoachLlm(apiKey, question, coachContext, recentHistory 
     if (!response.ok) {
         const errBody = await response.json().catch(() => ({}));
         const msg = errBody?.error?.message || `Gemini API HTTP ${response.status}`;
-        throw new Error(msg);
+        const err = new Error(msg);
+        err.status = response.status;
+        throw err;
     }
 
     const data = await response.json();
@@ -58,15 +59,55 @@ export async function askCoachLlm(apiKey, question, coachContext, recentHistory 
     if (!text || !String(text).trim()) {
         throw new Error('Empty response from Gemini');
     }
+    return String(text).trim();
+}
 
-    const answer = String(text).trim();
-    const titleLine = answer.split('\n').find((l) => l.trim()) || 'Coach response';
+function isModelUnavailableError(err) {
+    const msg = String(err?.message || '').toLowerCase();
+    return (
+        err?.status === 404
+        || msg.includes('no longer available')
+        || msg.includes('not found')
+        || msg.includes('is not supported')
+    );
+}
 
-    return {
-        title: titleLine.replace(/^#+\s*/, '').slice(0, 80),
-        answer,
-        source: 'llm',
-    };
+/**
+ * @param {string} apiKey
+ * @param {string} question
+ * @param {object} coachContext
+ * @param {object[]} [recentHistory]
+ * @returns {Promise<{ title: string, answer: string, source: 'llm', model: string }>}
+ */
+export async function askCoachLlm(apiKey, question, coachContext, recentHistory = []) {
+    const key = String(apiKey || '').trim();
+    if (!key) {
+        throw new Error('Gemini API key not configured');
+    }
+
+    const userMessage = buildCoachLlmUserMessage(question, coachContext, recentHistory);
+    const models = COACH_GEMINI_MODELS;
+    let lastError = null;
+
+    for (const model of models) {
+        try {
+            const answer = await callGemini(key, userMessage, model);
+            const titleLine = answer.split('\n').find((l) => l.trim()) || 'Coach response';
+            return {
+                title: titleLine.replace(/^#+\s*/, '').slice(0, 80),
+                answer,
+                source: 'llm',
+                model,
+            };
+        } catch (err) {
+            lastError = err;
+            if (!isModelUnavailableError(err)) {
+                throw err;
+            }
+        }
+    }
+
+    throw lastError || new Error('No Gemini model available');
 }
 
 export function hasCoachLlmConfigured(userSettings) {
