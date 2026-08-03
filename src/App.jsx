@@ -894,6 +894,7 @@ const App = () => {
                                                 {trainingSubTab === 'coach' && (
                                                     <AICoach
                                                         userSettings={userSettings}
+                                                        setUserSettings={setUserSettings}
                                                         startDate={globalStartDate}
                                                         endDate={globalEndDate}
                                                     />
