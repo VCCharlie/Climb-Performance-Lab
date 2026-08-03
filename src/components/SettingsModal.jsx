@@ -585,6 +585,25 @@ const SettingsModal = ({
                                     />
                                 </div>
                                 <div>
+                                    <label className="block text-[10px] font-semibold mb-1 text-cdmuted" htmlFor="settings-weekly-hours">
+                                        Weekly hours budget (AI Coach)
+                                    </label>
+                                    <select
+                                        id="settings-weekly-hours"
+                                        value={userSettings.weeklyHoursTarget ?? 5}
+                                        onChange={(e) => updateUserSettings('weeklyHoursTarget', Number(e.target.value))}
+                                        className={inputNumberClass}
+                                    >
+                                        <option value={4}>4 h / week</option>
+                                        <option value={5}>5 h / week</option>
+                                        <option value={6}>6 h / week</option>
+                                        <option value={7}>7 h / week</option>
+                                    </select>
+                                    <p className="text-[9px] text-cdmuted mt-1 leading-snug">
+                                        Drives TSS targets and fluid workout suggestions on the Training tab.
+                                    </p>
+                                </div>
+                                <div>
                                     <label className="block text-[10px] font-semibold mb-1 text-cdmuted" htmlFor="settings-birth-year">
                                         Birth year (optional)
                                     </label>

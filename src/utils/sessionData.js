@@ -84,6 +84,8 @@ export function getDefaultUserSettings() {
         ftpSource: 'manual',
         /** '6months' | 'recent' — window for peak-based FTP estimates */
         ftpLookbackWindow: '6months',
+        /** Weekly training hours budget for AI Coach (4–7) */
+        weeklyHoursTarget: 5,
         /** Optional — enables age axis on long-term power charts */
         birthYear: null,
         /** 'hilly' | 'flat' | 'mixed' — climbing readiness elevation targets and coach hints */

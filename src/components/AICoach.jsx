@@ -8,6 +8,7 @@ import { buildCoachContext } from '../utils/coach/coachPayloadBuilder';
 import TodaysFocusCard from './coach/TodaysFocusCard';
 import CoachAskPanel from './coach/CoachAskPanel';
 import CoachPeriodReview from './coach/CoachPeriodReview';
+import CoachFluidWeekPlan from './coach/CoachFluidWeekPlan';
 import { useProfileFtp } from '../context/ProfileFtpContext';
 import {
     hydrateTrainingPlanSnapshot,
@@ -36,15 +37,21 @@ function formatVsPrimaryPct(pct) {
     return `${sign}${Math.round(pct)}% vs. selected period`;
 }
 
-const AICoach = ({ activities: activitiesProp, userSettings, startDate, endDate }) => {
+const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, startDate, endDate }) => {
     const activitiesFromContext = useActivitiesList();
     const activities = activitiesProp ?? activitiesFromContext;
     const profileFtp = useProfileFtp();
     const effectiveFtp = profileFtp.ftp || Number(userSettings?.ftp) || 0;
 
     const [coachGoalId, setCoachGoalId] = useState('auto');
-    const [weeklyHoursTarget, setWeeklyHoursTarget] = useState(5);
+    const weeklyHoursTarget = Number(userSettings?.weeklyHoursTarget) || 5;
     const [planRevision, setPlanRevision] = useState(0);
+
+    const updateWeeklyHours = (hours) => {
+        if (setUserSettings) {
+            setUserSettings((prev) => ({ ...prev, weeklyHoursTarget: hours }));
+        }
+    };
 
     useEffect(() => {
         const onPlanUpdate = () => setPlanRevision((n) => n + 1);
@@ -493,7 +500,7 @@ ${workout.zwoSteps.map(step => {
                     <span className="font-semibold text-cdtext whitespace-nowrap">Weekly hours budget</span>
                     <select
                         value={weeklyHoursTarget}
-                        onChange={(e) => setWeeklyHoursTarget(Number(e.target.value))}
+                        onChange={(e) => updateWeeklyHours(Number(e.target.value))}
                         className="bg-cdborder border border-cdborder rounded-lg px-3 py-2 text-cdtext text-sm min-w-[140px]"
                     >
                         <option value={4}>4 h / week</option>
@@ -503,9 +510,15 @@ ${workout.zwoSteps.map(step => {
                     </select>
                 </label>
                 <p className="text-xs text-cdmuted flex-1 min-w-[200px]">
-                    Drives TSS targets, today&apos;s fluid workout, period review, and Ask the Coach answers.
+                    Saved in Settings. Drives TSS targets, fluid workouts, and week rebalancing.
                 </p>
             </div>
+
+            <CoachFluidWeekPlan
+                activities={activities}
+                userSettings={userSettings}
+                coachContext={coachContext}
+            />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
