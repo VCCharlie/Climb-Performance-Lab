@@ -31,6 +31,12 @@ describe('coachLlmService', () => {
         expect(hasCoachLlmConfigured({})).toBe(false);
         expect(hasCoachLlmConfigured({ geminiApiKey: 'abc' })).toBe(true);
     });
+
+    it('COACH_GEMINI_MODELS does not use deprecated gemini-2.0-flash', async () => {
+        const { COACH_GEMINI_MODELS } = await import('../../services/coachLlmService');
+        expect(COACH_GEMINI_MODELS[0]).not.toBe('gemini-2.0-flash');
+        expect(COACH_GEMINI_MODELS[0]).toMatch(/gemini-2\.5|gemini-3/);
+    });
 });
 
 describe('coachAskService', () => {
