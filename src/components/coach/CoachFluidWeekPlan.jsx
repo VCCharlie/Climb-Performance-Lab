@@ -29,7 +29,7 @@ import { todayYmd } from '../../utils/coach/coachHelpers';
 import { getStimulusStyle } from './coachStimulusStyles';
 import FluidWorkoutExpandable from './FluidWorkoutExpandable';
 
-const CoachFluidWeekPlan = ({ activities, userSettings, coachContext }) => {
+const CoachFluidWeekPlan = ({ activities, userSettings, coachContext, isSignedIn = false }) => {
     const [weekRevision, setWeekRevision] = useState(0);
     const [expandedDate, setExpandedDate] = useState(null);
     const today = todayYmd();
@@ -111,7 +111,9 @@ const CoachFluidWeekPlan = ({ activities, userSettings, coachContext }) => {
 
                 <p className="text-xs text-cdmuted mt-3 flex items-start gap-2">
                     <Sparkles size={13} className="shrink-0 mt-0.5 text-cdaccent" />
-                    {weekPlan.flexWeekNote}
+                    {isSignedIn
+                        ? 'Blocked days and moves sync across devices when signed in. Sessions reschedule to your open days.'
+                        : 'Sign in to sync blocked days across mobile and desktop. Sessions reschedule to your open days.'}
                 </p>
 
                 <div className="mt-4 flex flex-wrap gap-2">

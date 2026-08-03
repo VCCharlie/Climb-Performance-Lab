@@ -77,6 +77,20 @@ import {
     applyBucketListStateChange,
     shouldImmediateSyncBucketList,
 } from './utils/bucketListCloudSync';
+import {
+    syncCoachWeekToFirestore,
+    fetchCoachWeekFromFirestore,
+    resolveCoachWeekOnSync,
+    COACH_WEEK_CLOUD_DEBOUNCE_MS,
+} from './utils/coach/coachWeekCloudSync';
+import {
+    readRawCoachWeekForSync,
+    applyCoachWeekStateToLocal,
+    isoWeekKey,
+    COACH_WEEK_UPDATED_EVENT,
+    dispatchCoachWeekUpdated,
+} from './utils/coach/coachWeekState';
+import { todayYmd } from './utils/coach/coachHelpers';
 import { runGoogleSignIn, isGoogleSignInInProgress, googleSignInErrorMessage, completeGoogleRedirectIfNeeded } from './utils/googleSignIn';
 import { ToastProvider } from './context/ToastContext';
 import { ActivitiesProvider, useActivitiesState } from './context/ActivitiesContext';
@@ -637,6 +651,18 @@ const App = () => {
                         safeLocalStorageSet('stravaProfileData', JSON.stringify(data.stravaProfile));
                     }
                 }
+
+                const weekKey = isoWeekKey(todayYmd());
+                const cloudWeek = docSnap.exists() ? docSnap.data()?.coachWeekState : null;
+                const resolvedWeek = resolveCoachWeekOnSync(
+                    readRawCoachWeekForSync(),
+                    cloudWeek,
+                    weekKey,
+                );
+                applyCoachWeekStateToLocal(resolvedWeek.state);
+                if (resolvedWeek.source === 'cloud') {
+                    dispatchCoachWeekUpdated();
+                }
             } catch (e) {
                 console.error("Error loading settings", e);
             } finally {
@@ -651,6 +677,64 @@ const App = () => {
             bucketListCloudReadyRef.current = false;
         };
     }, [user]);
+
+    // Push coach week edits to Firestore when signed in (blocked days, moves, completions).
+    useEffect(() => {
+        if (!user || !db || !bucketListCloudReadyRef.current) return undefined;
+
+        let timer = null;
+
+        const pushCoachWeek = () => {
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                const raw = readRawCoachWeekForSync();
+                if (raw?.weekKey) {
+                    syncCoachWeekToFirestore(db, user.uid, raw);
+                }
+            }, COACH_WEEK_CLOUD_DEBOUNCE_MS);
+        };
+
+        window.addEventListener(COACH_WEEK_UPDATED_EVENT, pushCoachWeek);
+        return () => {
+            window.removeEventListener(COACH_WEEK_UPDATED_EVENT, pushCoachWeek);
+            clearTimeout(timer);
+        };
+    }, [user]);
+
+    // Refresh coach week from cloud when opening Training tab (mobile → desktop).
+    useEffect(() => {
+        if (!user || !db || activeTab !== 'training' || !bucketListCloudReadyRef.current) {
+            return undefined;
+        }
+
+        let cancelled = false;
+
+        const refresh = async () => {
+            try {
+                const remote = await fetchCoachWeekFromFirestore(db, user.uid);
+                if (cancelled || !remote?.state) return;
+
+                const weekKey = isoWeekKey(todayYmd());
+                const resolved = resolveCoachWeekOnSync(
+                    readRawCoachWeekForSync(),
+                    remote.state,
+                    weekKey,
+                );
+
+                if (resolved.source === 'cloud') {
+                    applyCoachWeekStateToLocal(resolved.state);
+                    dispatchCoachWeekUpdated();
+                }
+            } catch (err) {
+                console.warn('[Coach week] Could not refresh from cloud:', err);
+            }
+        };
+
+        refresh();
+        return () => {
+            cancelled = true;
+        };
+    }, [activeTab, user]);
 
     // Refresh bucket list from Firestore when opening the tab (keeps mobile/PC in sync).
     useEffect(() => {
@@ -914,6 +998,7 @@ const App = () => {
                                                         setUserSettings={setUserSettings}
                                                         startDate={globalStartDate}
                                                         endDate={globalEndDate}
+                                                        isSignedIn={Boolean(user)}
                                                     />
                                                 )}
                                                 {trainingSubTab === 'goal' && (

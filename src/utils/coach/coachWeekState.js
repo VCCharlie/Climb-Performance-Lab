@@ -4,7 +4,7 @@
 
 const STORAGE_KEY = 'coachWeekState_v1';
 
-function isoWeekKey(ymd) {
+export function isoWeekKey(ymd) {
     const [y, m, d] = ymd.split('-').map(Number);
     const dt = new Date(y, m - 1, d);
     dt.setHours(12, 0, 0, 0);
@@ -22,6 +22,35 @@ function readRaw() {
     } catch {
         return null;
     }
+}
+
+/** Full local payload for cloud sync (may be another week than today). */
+export function readRawCoachWeekForSync() {
+    return readRaw();
+}
+
+/**
+ * @param {object | null | undefined} raw
+ * @returns {{ weekKey: string, completedDates: string[], overrides: Record<string, string>, moves: Record<string, string>, unavailableDates: string[], updatedAt: string | null }}
+ */
+export function normalizeCoachWeekState(raw) {
+    return {
+        weekKey: raw?.weekKey || '',
+        completedDates: Array.isArray(raw?.completedDates) ? raw.completedDates : [],
+        overrides: raw?.overrides && typeof raw.overrides === 'object' ? raw.overrides : {},
+        moves: raw?.moves && typeof raw.moves === 'object' ? raw.moves : {},
+        unavailableDates: Array.isArray(raw?.unavailableDates) ? raw.unavailableDates : [],
+        updatedAt: raw?.updatedAt || null,
+    };
+}
+
+export function applyCoachWeekStateToLocal(state) {
+    const next = normalizeCoachWeekState(state);
+    writeRaw({
+        ...next,
+        updatedAt: next.updatedAt || new Date().toISOString(),
+    });
+    return next;
 }
 
 function writeRaw(state) {
@@ -63,6 +92,7 @@ export function writeCoachWeekState(mondayYmd, patch) {
         overrides: patch.overrides ?? current.overrides,
         moves: patch.moves ?? current.moves,
         unavailableDates: patch.unavailableDates ?? current.unavailableDates,
+        updatedAt: new Date().toISOString(),
     };
     writeRaw(next);
     return next;
