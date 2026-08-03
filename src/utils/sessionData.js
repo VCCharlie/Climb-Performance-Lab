@@ -86,6 +86,8 @@ export function getDefaultUserSettings() {
         ftpLookbackWindow: '6months',
         /** Optional — enables age axis on long-term power charts */
         birthYear: null,
+        /** 'hilly' | 'flat' | 'mixed' — climbing readiness elevation targets and coach hints */
+        terrainProfile: 'hilly',
     };
 }
 

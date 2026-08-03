@@ -8,9 +8,20 @@ import { activityMovingTimeSec } from './activityFilterMetrics';
 import { currentWeekRange, currentMonthRange } from './volumeGoals';
 import { calculateFitnessMetrics } from './formTabMetrics';
 import { z2PowerBandFromFtp } from './profileFtp';
+import {
+    normalizeTerrainProfile,
+    elevationTargetsForProfile,
+    lowVolumeBadgeLabel,
+    buildClimbingReadinessHints,
+    terrainProfileLabel,
+    TERRAIN_PROFILE_HILLY,
+} from './climbingTerrainProfile';
 
 export const Z2_IF_MIN = 0.55;
 export const Z2_IF_MAX = 0.75;
+
+/** Rolling blend: 50% this calendar week + 50% previous week (softens Monday reset). */
+export const ELEVATION_ROLLING_THIS_WEEK_WEIGHT = 0.5;
 
 /** User-facing explanation for Dashboard help panel. */
 export const CLIMBING_READINESS_EXPLANATION = {
@@ -18,11 +29,15 @@ export const CLIMBING_READINESS_EXPLANATION = {
     summary:
         'The score (0–100) estimates how ready you are for a hard climb this week. It is not FTP — it blends recent climbing volume, endurance work, load, and freshness.',
     weights: [
-        '30% — Elevation climbed this period (m)',
+        '30% — Elevation climbed this period (m), adjusted for your terrain profile in Settings',
         '25% — Z2 endurance proxy (ride time at 55–75% FTP using NP or avg power)',
         '20% — Training load (TSS) for the period',
         '25% — Form (TSB from your activity history)',
     ],
+    terrainNote:
+        'Set terrain under Settings → Performance & Goals. Flat / coastal uses lower elevation targets (dunes, dijken). Mixed is between flat and hilly.',
+    rollingNote:
+        'For the current week, elevation scoring blends this week and last week (50/50) so Monday does not reset the score to zero.',
     badges: [
         'Prioritize recovery — very negative TSB',
         'Building base — score below ~65 or light climbing volume',
@@ -60,6 +75,19 @@ function filterActivitiesInYmdRange(activities, startYmd, endYmd) {
         if (ymd >= startYmd && ymd <= endYmd) out.push(a);
     }
     return out;
+}
+
+/**
+ * @param {object[]} activities
+ * @param {string} startYmd
+ * @param {string} endYmd
+ */
+function sumElevationInRange(activities, startYmd, endYmd) {
+    let elevationM = 0;
+    for (const a of filterActivitiesInYmdRange(activities, startYmd, endYmd)) {
+        elevationM += Math.max(0, Number(a?.climbing) || 0);
+    }
+    return elevationM;
 }
 
 /**
@@ -111,9 +139,10 @@ function scoreTsb(tsb) {
  * @param {number} tssScore
  * @param {number} tsbScore
  * @param {number | null} tsb
+ * @param {'hilly' | 'flat' | 'mixed'} terrainProfile
  * @returns {{ key: ReadinessBadgeKey, label: string, tone: string }}
  */
-function resolveBadge(elevationScore, z2Score, tssScore, tsbScore, tsb) {
+function resolveBadge(elevationScore, z2Score, tssScore, tsbScore, tsb, terrainProfile) {
     const composite = Math.round(
         elevationScore * 0.3 + z2Score * 0.25 + tssScore * 0.2 + tsbScore * 0.25,
     );
@@ -130,7 +159,11 @@ function resolveBadge(elevationScore, z2Score, tssScore, tsbScore, tsb) {
     if (composite >= 40) {
         return { key: 'building', label: 'Building base', tone: 'yellow' };
     }
-    return { key: 'building', label: 'Needs more climbing volume', tone: 'yellow' };
+    return {
+        key: 'building',
+        label: lowVolumeBadgeLabel(terrainProfile),
+        tone: 'yellow',
+    };
 }
 
 function scorePeriodTss(totalTss, periodDays) {
@@ -156,6 +189,17 @@ function fitnessSnapshotAtOrBefore(activities, endYmd) {
 }
 
 /**
+ * @param {Date} referenceDate
+ * @returns {{ startYmd: string, endYmd: string }}
+ */
+function previousCalendarWeekRange(referenceDate) {
+    const d = new Date(referenceDate);
+    d.setDate(d.getDate() - 7);
+    const week = currentWeekRange(d);
+    return { startYmd: week.startYmd, endYmd: week.endYmd };
+}
+
+/**
  * @param {object[]} activities
  * @param {number} ftp
  * @param {string} startYmd
@@ -163,6 +207,9 @@ function fitnessSnapshotAtOrBefore(activities, endYmd) {
  * @param {string} periodLabel
  * @param {Date} referenceDate
  * @param {number} [periodDays]
+ * @param {object} [options]
+ * @param {'hilly' | 'flat' | 'mixed'} [options.terrainProfile]
+ * @param {boolean} [options.useRollingElevation]
  */
 function computeClimbingReadinessForRange(
     activities,
@@ -172,7 +219,11 @@ function computeClimbingReadinessForRange(
     periodLabel,
     referenceDate,
     periodDays = 7,
+    options = {},
 ) {
+    const terrainProfile = normalizeTerrainProfile(options.terrainProfile);
+    const useRollingElevation = options.useRollingElevation ?? periodDays <= 7;
+
     const periodActs = filterActivitiesInYmdRange(activities, startYmd, endYmd);
 
     let elevationM = 0;
@@ -194,54 +245,58 @@ function computeClimbingReadinessForRange(
     const latestFitness = fitnessSnapshotAtOrBefore(activities, endYmd);
     const tsb = latestFitness?.tsb ?? null;
 
-    const elevationScore = rampScore(elevationM, 600, 1200);
+    const elevTargets = elevationTargetsForProfile(terrainProfile, periodDays);
+    let elevationForScoring = elevationM;
+
+    if (useRollingElevation && periodDays <= 7) {
+        const prev = previousCalendarWeekRange(referenceDate);
+        const prevElevationM = sumElevationInRange(activities, prev.startYmd, prev.endYmd);
+        elevationForScoring =
+            elevationM * ELEVATION_ROLLING_THIS_WEEK_WEIGHT +
+            prevElevationM * (1 - ELEVATION_ROLLING_THIS_WEEK_WEIGHT);
+    }
+
+    const elevationScore = rampScore(elevationForScoring, elevTargets.goodAt, elevTargets.maxAt);
     const z2Score = ftp > 0 ? rampScore(z2Hours, 3, 6) : rampScore(z2Hours, 2, 5);
     const tssScore = scorePeriodTss(periodTss, periodDays);
     const tsbScore = scoreTsb(tsb);
 
-    const badge = resolveBadge(elevationScore, z2Score, tssScore, tsbScore, tsb);
+    const badge = resolveBadge(elevationScore, z2Score, tssScore, tsbScore, tsb, terrainProfile);
     const composite = Math.round(
         elevationScore * 0.3 + z2Score * 0.25 + tssScore * 0.2 + tsbScore * 0.25,
     );
 
-    const hints = [];
-    if (elevationScore < 60) {
-        hints.push('Add hill repeats or a longer climb ride this week.');
-    }
-    if (ftp > 0 && z2Score < 60) {
-        const band = z2PowerBandFromFtp(ftp);
-        if (band) {
-            hints.push(
-                `More steady Z2 time (${band.minPct}–${band.maxPct}% FTP, about ${band.minW}–${band.maxW} W) supports climbing endurance.`,
-            );
-        } else {
-            hints.push('More steady Z2 time (roughly 55–75% FTP) supports climbing endurance.');
-        }
-    }
-    if (tssScore < 55) {
-        hints.push('Weekly training load is light — build volume gradually if you feel fresh.');
-    }
-    if (tsb != null && tsb < -10) {
-        hints.push('TSB is negative — balance hard climbs with easier recovery days.');
-    }
-    if (tsb != null && tsb > 25) {
-        hints.push('You are very fresh — a quality climb session could sharpen race form.');
-    }
-
     const z2Band = ftp > 0 ? z2PowerBandFromFtp(ftp) : null;
+
+    const hints = buildClimbingReadinessHints({
+        terrainProfile,
+        elevationScore,
+        z2Score,
+        tssScore,
+        tsb,
+        ftp,
+        rideCount: periodActs.length,
+        referenceDate,
+        periodDays,
+        z2Band,
+    });
 
     return {
         weekLabel: periodLabel,
         composite,
         badge,
+        terrainProfile,
+        terrainLabel: terrainProfileLabel(terrainProfile),
         metrics: {
             elevationM: Math.round(elevationM),
+            elevationForScoring: Math.round(elevationForScoring),
             weekTss: Math.round(periodTss),
             z2Hours: Math.round(z2Hours * 10) / 10,
             tsb,
             ctl: latestFitness?.ctl ?? null,
             rideCount: periodActs.length,
         },
+        elevationTargets: elevTargets,
         z2Band,
         scores: {
             elevation: elevationScore,
@@ -249,8 +304,9 @@ function computeClimbingReadinessForRange(
             tss: tssScore,
             tsb: tsbScore,
         },
-        hints: hints.slice(0, 3),
+        hints,
         hasFtp: ftp > 0,
+        usesRollingElevation: useRollingElevation && periodDays <= 7,
     };
 }
 
@@ -262,6 +318,7 @@ function computeClimbingReadinessForRange(
  * @param {Date} [params.referenceDate]
  * @param {number} [params.weekCount]
  * @param {number} [params.monthCount]
+ * @param {'hilly' | 'flat' | 'mixed'} [params.terrainProfile]
  */
 export function computeClimbingReadinessHistory({
     activities,
@@ -269,7 +326,9 @@ export function computeClimbingReadinessHistory({
     referenceDate = new Date(),
     weekCount = 8,
     monthCount = 6,
+    terrainProfile = TERRAIN_PROFILE_HILLY,
 }) {
+    const profile = normalizeTerrainProfile(terrainProfile);
     const weeks = [];
     for (let i = 0; i < weekCount; i += 1) {
         const d = new Date(referenceDate);
@@ -283,6 +342,7 @@ export function computeClimbingReadinessHistory({
             week.label,
             d,
             7,
+            { terrainProfile: profile, useRollingElevation: true },
         );
         weeks.push({
             label: i === 0 ? 'This week' : week.label,
@@ -310,6 +370,7 @@ export function computeClimbingReadinessHistory({
             month.label,
             endRef,
             periodDays,
+            { terrainProfile: profile, useRollingElevation: false },
         );
         months.push({
             label: month.label,
@@ -327,8 +388,14 @@ export function computeClimbingReadinessHistory({
  * @param {object[]} params.activities
  * @param {number} [params.ftp]
  * @param {Date} [params.referenceDate]
+ * @param {'hilly' | 'flat' | 'mixed'} [params.terrainProfile]
  */
-export function computeClimbingReadiness({ activities, ftp = 0, referenceDate = new Date() }) {
+export function computeClimbingReadiness({
+    activities,
+    ftp = 0,
+    referenceDate = new Date(),
+    terrainProfile = TERRAIN_PROFILE_HILLY,
+}) {
     const week = currentWeekRange(referenceDate);
     return computeClimbingReadinessForRange(
         activities,
@@ -338,5 +405,6 @@ export function computeClimbingReadiness({ activities, ftp = 0, referenceDate = 
         week.label,
         referenceDate,
         7,
+        { terrainProfile: normalizeTerrainProfile(terrainProfile), useRollingElevation: true },
     );
 }

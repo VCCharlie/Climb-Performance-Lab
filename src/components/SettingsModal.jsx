@@ -25,6 +25,12 @@ import {
     formatBikeComputerProfileTitlesForInput,
     parseBikeComputerProfileTitlesInput,
 } from '../utils/bikeComputerProfileTitles';
+import {
+    TERRAIN_PROFILE_FLAT,
+    TERRAIN_PROFILE_HILLY,
+    TERRAIN_PROFILE_MIXED,
+    normalizeTerrainProfile,
+} from '../utils/climbingTerrainProfile';
 
 // Strava logo SVG
 const StravaIcon = ({ size = 16 }) => (
@@ -43,6 +49,7 @@ const SettingsModal = ({
 }) => {
     const { activities, restoreFromBackup } = useActivities();
     const ftpLookbackWindow = normalizeFtpLookbackWindow(userSettings);
+    const terrainProfile = normalizeTerrainProfile(userSettings.terrainProfile);
     const ftpLookbackLabel = describeFtpLookbackWindow(userSettings);
     const ftpEstimate20 = estimateProfileFtpFromActivities(activities, undefined, userSettings);
     const ftpEstimate60 = estimateProfileFtp60FromActivities(activities, undefined, userSettings);
@@ -597,6 +604,50 @@ const SettingsModal = ({
                                     />
                                     <p className="text-[9px] text-cdmuted mt-1 leading-snug">
                                         Used for long-term power charts — plot peaks by age as well as calendar year.
+                                    </p>
+                                </div>
+                                <div className="md:col-span-3">
+                                    <p className="text-[10px] font-semibold text-cdmuted mb-2">
+                                        Home terrain (climbing readiness)
+                                    </p>
+                                    <div className="flex flex-wrap gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => updateUserSettings('terrainProfile', TERRAIN_PROFILE_HILLY)}
+                                            className={`px-3 py-1.5 rounded text-xs font-bold border cd-transition ${
+                                                terrainProfile === TERRAIN_PROFILE_HILLY
+                                                    ? 'bg-cdaccent/15 border-cdaccent/50 text-cdaccent'
+                                                    : 'border-cdborder text-cdmuted hover:text-cdtext'
+                                            }`}
+                                        >
+                                            Hilly / mountains
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => updateUserSettings('terrainProfile', TERRAIN_PROFILE_FLAT)}
+                                            className={`px-3 py-1.5 rounded text-xs font-bold border cd-transition ${
+                                                terrainProfile === TERRAIN_PROFILE_FLAT
+                                                    ? 'bg-cdaccent/15 border-cdaccent/50 text-cdaccent'
+                                                    : 'border-cdborder text-cdmuted hover:text-cdtext'
+                                            }`}
+                                        >
+                                            Flat / coastal
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => updateUserSettings('terrainProfile', TERRAIN_PROFILE_MIXED)}
+                                            className={`px-3 py-1.5 rounded text-xs font-bold border cd-transition ${
+                                                terrainProfile === TERRAIN_PROFILE_MIXED
+                                                    ? 'bg-cdaccent/15 border-cdaccent/50 text-cdaccent'
+                                                    : 'border-cdborder text-cdmuted hover:text-cdtext'
+                                            }`}
+                                        >
+                                            Mixed
+                                        </button>
+                                    </div>
+                                    <p className="text-[9px] text-cdmuted mt-2 leading-snug">
+                                        Adjusts elevation targets and coach hints on Dashboard → Overview. Choose
+                                        Flat / coastal for polder or beach riding (dunes, dijken).
                                     </p>
                                 </div>
                             </div>
