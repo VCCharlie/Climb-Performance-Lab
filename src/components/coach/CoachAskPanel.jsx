@@ -1,21 +1,43 @@
 import React, { useState } from 'react';
-import { MessageCircle, Send, Sparkles } from 'lucide-react';
-import { COACH_QUICK_QUESTIONS, answerCoachQuestion } from '../../utils/coach/coachQaEngine';
+import { MessageCircle, Send, Sparkles, Loader2, Brain, Cpu } from 'lucide-react';
+import { COACH_QUICK_QUESTIONS } from '../../utils/coach/coachQaEngine';
+import { askCoach, hasCoachLlmConfigured } from '../../utils/coach/coachAskService';
 
 const CoachAskPanel = ({ activities, userSettings, weeklyHoursTarget }) => {
     const [question, setQuestion] = useState('');
     const [history, setHistory] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const llmEnabled = hasCoachLlmConfigured(userSettings);
 
-    const ask = (prompt) => {
+    const ask = async (prompt) => {
         const q = String(prompt || question).trim();
-        if (!q) return;
+        if (!q || loading) return;
 
-        const result = answerCoachQuestion(q, activities, userSettings, { weeklyHoursTarget });
-        setHistory((prev) => [
-            ...prev,
-            { id: Date.now(), question: q, title: result.title, answer: result.answer },
-        ]);
+        setLoading(true);
         setQuestion('');
+
+        try {
+            const recentHistory = history.slice(-3).map((h) => ({
+                question: h.question,
+                answer: h.answer,
+            }));
+            const result = await askCoach(q, activities, userSettings, {
+                weeklyHoursTarget,
+                recentHistory,
+            });
+            setHistory((prev) => [
+                ...prev,
+                {
+                    id: Date.now(),
+                    question: q,
+                    title: result.title,
+                    answer: result.answer,
+                    source: result.source,
+                },
+            ]);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleSubmit = (e) => {
@@ -26,14 +48,29 @@ const CoachAskPanel = ({ activities, userSettings, weeklyHoursTarget }) => {
     return (
         <div className="bg-cdsurface rounded-xl border border-cdborder shadow-xl overflow-hidden">
             <div className="p-5 border-b border-cdborder">
-                <h3 className="text-lg font-bold text-cdtext flex items-center gap-2">
-                    <MessageCircle size={20} className="text-purple-400" />
-                    Ask the Coach
-                </h3>
-                <p className="text-xs text-cdmuted mt-1 leading-relaxed">
-                    Data-driven answers from your activities — form, load, FTP signals, and period reviews.
-                    No account or API key needed; everything runs locally in your browser.
-                </p>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <h3 className="text-lg font-bold text-cdtext flex items-center gap-2">
+                            <MessageCircle size={20} className="text-purple-400" />
+                            Ask the Coach
+                        </h3>
+                        <p className="text-xs text-cdmuted mt-1 leading-relaxed">
+                            {llmEnabled
+                                ? 'Gemini AI enabled — answers use your live training data plus natural coaching language.'
+                                : 'Local analysis from your activities. Add a Gemini API key in Settings for AI-powered answers.'}
+                        </p>
+                    </div>
+                    <span
+                        className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded-full flex items-center gap-1 ${
+                            llmEnabled
+                                ? 'bg-purple-500/15 text-purple-300 border border-purple-500/30'
+                                : 'bg-cdborder/30 text-cdmuted border border-cdborder'
+                        }`}
+                    >
+                        {llmEnabled ? <Brain size={11} /> : <Cpu size={11} />}
+                        {llmEnabled ? 'AI mode' : 'Local mode'}
+                    </span>
+                </div>
             </div>
 
             <div className="p-4 flex flex-wrap gap-2 border-b border-cdborder bg-cdborder/10">
@@ -41,16 +78,17 @@ const CoachAskPanel = ({ activities, userSettings, weeklyHoursTarget }) => {
                     <button
                         key={item.id}
                         type="button"
+                        disabled={loading}
                         onClick={() => ask(item.prompt)}
-                        className="text-xs font-medium px-3 py-1.5 rounded-full border border-cdborder bg-cdsurface text-cdtext hover:border-cdaccent hover:text-cdaccent transition-colors"
+                        className="text-xs font-medium px-3 py-1.5 rounded-full border border-cdborder bg-cdsurface text-cdtext hover:border-cdaccent hover:text-cdaccent transition-colors disabled:opacity-50"
                     >
                         {item.label}
                     </button>
                 ))}
             </div>
 
-            <div className="p-4 max-h-80 overflow-y-auto custom-scrollbar space-y-4 min-h-[120px]">
-                {history.length === 0 && (
+            <div className="p-4 max-h-96 overflow-y-auto custom-scrollbar space-y-4 min-h-[140px]">
+                {history.length === 0 && !loading && (
                     <p className="text-sm text-cdmuted text-center py-6 flex flex-col items-center gap-2">
                         <Sparkles size={20} className="text-cdaccent opacity-60" />
                         Pick a quick question or type your own below.
@@ -59,14 +97,31 @@ const CoachAskPanel = ({ activities, userSettings, weeklyHoursTarget }) => {
                 {history.map((entry) => (
                     <div key={entry.id} className="space-y-2">
                         <p className="text-xs text-cdmuted text-right">{entry.question}</p>
-                        <div className="bg-cdborder/25 rounded-lg p-3 border-l-4 border-l-purple-400">
-                            <p className="text-sm font-bold text-cdtext mb-1">{entry.title}</p>
+                        <div
+                            className={`rounded-lg p-3 border-l-4 ${
+                                entry.source === 'llm'
+                                    ? 'bg-purple-500/10 border-l-purple-400'
+                                    : 'bg-cdborder/25 border-l-cdaccent'
+                            }`}
+                        >
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                                <p className="text-sm font-bold text-cdtext">{entry.title}</p>
+                                <span className="text-[9px] uppercase text-cdmuted font-bold">
+                                    {entry.source === 'llm' ? 'AI' : 'Local'}
+                                </span>
+                            </div>
                             <p className="text-sm text-cdtext leading-relaxed whitespace-pre-line">
                                 {entry.answer.replace(/\*\*/g, '')}
                             </p>
                         </div>
                     </div>
                 ))}
+                {loading && (
+                    <div className="flex items-center justify-center gap-2 py-6 text-sm text-cdmuted">
+                        <Loader2 size={18} className="animate-spin text-cdaccent" />
+                        {llmEnabled ? 'Coach is thinking…' : 'Analyzing your data…'}
+                    </div>
+                )}
             </div>
 
             <form onSubmit={handleSubmit} className="p-4 border-t border-cdborder flex gap-2">
@@ -74,15 +129,16 @@ const CoachAskPanel = ({ activities, userSettings, weeklyHoursTarget }) => {
                     type="text"
                     value={question}
                     onChange={(e) => setQuestion(e.target.value)}
+                    disabled={loading}
                     placeholder="e.g. Should I ride hard tomorrow?"
-                    className="flex-1 bg-cdborder/30 border border-cdborder rounded-lg px-3 py-2 text-sm text-cdtext placeholder:text-cdmuted focus:outline-none focus:border-cdaccent"
+                    className="flex-1 bg-cdborder/30 border border-cdborder rounded-lg px-3 py-2 text-sm text-cdtext placeholder:text-cdmuted focus:outline-none focus:border-cdaccent disabled:opacity-50"
                 />
                 <button
                     type="submit"
-                    disabled={!question.trim()}
+                    disabled={!question.trim() || loading}
                     className="shrink-0 px-4 py-2 rounded-lg bg-cdaccent text-slate-900 font-bold text-sm flex items-center gap-1.5 disabled:opacity-40 hover:opacity-90 transition-opacity"
                 >
-                    <Send size={14} />
+                    {loading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                     Ask
                 </button>
             </form>
