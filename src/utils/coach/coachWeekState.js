@@ -34,24 +34,25 @@ function writeRaw(state) {
 
 /**
  * @param {string} mondayYmd
- * @returns {{ weekKey: string, completedDates: string[], overrides: Record<string, string> }}
+ * @returns {{ weekKey: string, completedDates: string[], overrides: Record<string, string>, moves: Record<string, string> }}
  */
 export function readCoachWeekState(mondayYmd) {
     const weekKey = isoWeekKey(mondayYmd);
     const raw = readRaw();
     if (!raw || raw.weekKey !== weekKey) {
-        return { weekKey, completedDates: [], overrides: {} };
+        return { weekKey, completedDates: [], overrides: {}, moves: {} };
     }
     return {
         weekKey,
         completedDates: Array.isArray(raw.completedDates) ? raw.completedDates : [],
         overrides: raw.overrides && typeof raw.overrides === 'object' ? raw.overrides : {},
+        moves: raw.moves && typeof raw.moves === 'object' ? raw.moves : {},
     };
 }
 
 /**
  * @param {string} mondayYmd
- * @param {{ completedDates?: string[], overrides?: Record<string, string> }} patch
+ * @param {{ completedDates?: string[], overrides?: Record<string, string>, moves?: Record<string, string> }} patch
  */
 export function writeCoachWeekState(mondayYmd, patch) {
     const current = readCoachWeekState(mondayYmd);
@@ -59,6 +60,7 @@ export function writeCoachWeekState(mondayYmd, patch) {
         weekKey: current.weekKey,
         completedDates: patch.completedDates ?? current.completedDates,
         overrides: patch.overrides ?? current.overrides,
+        moves: patch.moves ?? current.moves,
     };
     writeRaw(next);
     return next;
@@ -81,6 +83,47 @@ export function setSessionOverride(mondayYmd, dateYmd, stimulus) {
         overrides[dateYmd] = stimulus;
     }
     return writeCoachWeekState(mondayYmd, { overrides });
+}
+
+/**
+ * Move a planned session from one calendar day to another (e.g. Tuesday sweetspot → Monday).
+ * @param {string} mondayYmd
+ * @param {string} fromDateYmd — original planned date
+ * @param {string} toDateYmd — day you will execute it
+ */
+export function moveSession(mondayYmd, fromDateYmd, toDateYmd) {
+    const state = readCoachWeekState(mondayYmd);
+    const moves = { ...state.moves };
+
+    if (fromDateYmd === toDateYmd) {
+        delete moves[fromDateYmd];
+        return writeCoachWeekState(mondayYmd, { moves });
+    }
+
+    // If another session already targets toDate, swap back to fromDate
+    const conflictingFrom = Object.keys(moves).find(
+        (k) => moves[k] === toDateYmd && k !== fromDateYmd,
+    );
+    if (conflictingFrom) {
+        moves[conflictingFrom] = fromDateYmd;
+    }
+
+    moves[fromDateYmd] = toDateYmd;
+    return writeCoachWeekState(mondayYmd, { moves });
+}
+
+export function clearSessionMove(mondayYmd, fromDateYmd) {
+    const state = readCoachWeekState(mondayYmd);
+    const moves = { ...state.moves };
+    delete moves[fromDateYmd];
+    return writeCoachWeekState(mondayYmd, { moves });
+}
+
+/**
+ * Move a future session to today (convenience).
+ */
+export function moveSessionToToday(mondayYmd, fromDateYmd, todayYmd) {
+    return moveSession(mondayYmd, fromDateYmd, todayYmd);
 }
 
 export const COACH_WEEK_UPDATED_EVENT = 'cpl-coach-week-updated';

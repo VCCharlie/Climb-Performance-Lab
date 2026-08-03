@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { buildWeekSkeleton, rebalanceWeek, downgradeStimulus } from '../../utils/coach/coachRebalancer';
-import { buildFluidWeekPlan, getMondayYmd, computeWeekActuals } from '../../utils/coach/coachWeekPlan';
-import { readCoachWeekState, writeCoachWeekState } from '../../utils/coach/coachWeekState';
+import { buildFluidWeekPlan, getMondayYmd, computeWeekActuals, applySessionMoves } from '../../utils/coach/coachWeekPlan';
+import { readCoachWeekState, writeCoachWeekState, moveSession } from '../../utils/coach/coachWeekState';
 
 describe('coachRebalancer', () => {
     it('downgradeStimulus steps down the ladder', () => {
@@ -33,6 +33,15 @@ describe('coachRebalancer', () => {
 });
 
 describe('coachWeekPlan', () => {
+    beforeEach(() => {
+        vi.stubGlobal('localStorage', {
+            store: {},
+            getItem(k) { return this.store[k] ?? null; },
+            setItem(k, v) { this.store[k] = v; },
+            removeItem(k) { delete this.store[k]; },
+        });
+    });
+
     it('getMondayYmd returns Monday for mid-week date', () => {
         expect(getMondayYmd('2026-08-06')).toBe('2026-08-03');
     });
@@ -55,6 +64,58 @@ describe('coachWeekPlan', () => {
         expect(plan.actualTss).toBe(80);
         expect(plan.sessions).toHaveLength(7);
     });
+
+    it('buildFluidWeekPlan moves session to another day', () => {
+        moveSession('2026-08-03', '2026-08-04', '2026-08-03');
+
+        const plan = buildFluidWeekPlan({
+            activities: [],
+            userSettings: { weeklyHoursTarget: 5, ftp: 250 },
+            coachContext: { athlete: { ftp: 250 }, fitness: { tsb: 0 } },
+            referenceYmd: '2026-08-03',
+        });
+
+        const monday = plan.sessions.find((s) => s.date === '2026-08-03');
+        const tuesday = plan.sessions.find((s) => s.date === '2026-08-04');
+        expect(monday.movedFromDate).toBe('2026-08-04');
+        expect(monday.plannedStimulus).toBe('endurance');
+        expect(tuesday.movedToDate).toBe('2026-08-03');
+        expect(tuesday.stimulus).toBe('rest');
+    });
+
+    it('buildFluidWeekPlan auto-matches cross-day sweetspot ride', () => {
+        const activities = [
+            { id: 'ride-1', date: '2026-08-03', norm_power: 230, load: 70 },
+        ];
+        const plan = buildFluidWeekPlan({
+            activities,
+            userSettings: { weeklyHoursTarget: 5, ftp: 250 },
+            coachContext: { athlete: { ftp: 250 }, fitness: { tsb: 0 } },
+            referenceYmd: '2026-08-03',
+        });
+
+        const monday = plan.sessions.find((s) => s.date === '2026-08-03');
+        expect(monday.plannedStimulus).toBe('rest');
+
+        const matched = plan.sessions.filter((s) => s.matchedOnDate);
+        expect(matched).toEqual([
+            expect.objectContaining({
+                date: '2026-08-06',
+                completed: true,
+                matchedOnDate: '2026-08-03',
+            }),
+        ]);
+    });
+
+    it('applySessionMoves vacates source day', () => {
+        const basePlan = new Map([
+            ['2026-08-03', { day: 'Monday', plannedStimulus: 'rest' }],
+            ['2026-08-04', { day: 'Tuesday', plannedStimulus: 'sweetspot' }],
+        ]);
+        const { movedTo, vacatedDates } = applySessionMoves(basePlan, { '2026-08-04': '2026-08-03' });
+        expect(vacatedDates.has('2026-08-04')).toBe(true);
+        expect(movedTo.get('2026-08-03').plannedStimulus).toBe('sweetspot');
+    });
 });
 
 describe('coachWeekState', () => {
@@ -71,5 +132,11 @@ describe('coachWeekState', () => {
         writeCoachWeekState('2026-08-03', { completedDates: ['2026-08-04'] });
         const next = readCoachWeekState('2026-08-10');
         expect(next.completedDates).toEqual([]);
+    });
+
+    it('persists session moves within the same week', () => {
+        moveSession('2026-08-03', '2026-08-04', '2026-08-03');
+        const state = readCoachWeekState('2026-08-03');
+        expect(state.moves['2026-08-04']).toBe('2026-08-03');
     });
 });

@@ -8,21 +8,28 @@ import {
     Bike,
     Flame,
     TrendingUp,
+    ArrowRight,
+    Undo2,
+    Sparkles,
 } from 'lucide-react';
 import { buildFluidWeekPlan } from '../../utils/coach/coachWeekPlan';
 import {
     toggleSessionComplete,
     setSessionOverride,
+    moveSessionToToday,
+    clearSessionMove,
     dispatchCoachWeekUpdated,
     COACH_WEEK_UPDATED_EVENT,
 } from '../../utils/coach/coachWeekState';
 import { formatDateDDMMYYYY } from '../../utils/formatters';
+import { todayYmd } from '../../utils/coach/coachHelpers';
 import { getStimulusStyle } from './coachStimulusStyles';
 import FluidWorkoutExpandable from './FluidWorkoutExpandable';
 
 const CoachFluidWeekPlan = ({ activities, userSettings, coachContext }) => {
     const [weekRevision, setWeekRevision] = useState(0);
     const [expandedDate, setExpandedDate] = useState(null);
+    const today = todayYmd();
 
     useEffect(() => {
         const onUpdate = () => setWeekRevision((n) => n + 1);
@@ -31,12 +38,12 @@ const CoachFluidWeekPlan = ({ activities, userSettings, coachContext }) => {
     }, []);
 
     const weekPlan = useMemo(
-        () => buildFluidWeekPlan({ activities, userSettings, coachContext }),
-        [activities, userSettings, coachContext, weekRevision],
+        () => buildFluidWeekPlan({ activities, userSettings, coachContext, referenceYmd: today }),
+        [activities, userSettings, coachContext, weekRevision, today],
     );
 
     const stats = useMemo(() => {
-        const planned = weekPlan.sessions.filter((s) => s.stimulus !== 'rest').length;
+        const planned = weekPlan.sessions.filter((s) => s.plannedStimulus !== 'rest').length;
         const done = weekPlan.sessions.filter((s) => s.completed).length;
         return { planned, done };
     }, [weekPlan.sessions]);
@@ -54,6 +61,16 @@ const CoachFluidWeekPlan = ({ activities, userSettings, coachContext }) => {
 
     const handleSwapRecovery = (dateYmd) => {
         setSessionOverride(weekPlan.mondayYmd, dateYmd, 'recovery');
+        dispatchCoachWeekUpdated();
+    };
+
+    const handleMoveToToday = (fromDateYmd) => {
+        moveSessionToToday(weekPlan.mondayYmd, fromDateYmd, today);
+        dispatchCoachWeekUpdated();
+    };
+
+    const handleUndoMove = (fromDateYmd) => {
+        clearSessionMove(weekPlan.mondayYmd, fromDateYmd);
         dispatchCoachWeekUpdated();
     };
 
@@ -78,6 +95,11 @@ const CoachFluidWeekPlan = ({ activities, userSettings, coachContext }) => {
                         <div className="text-[10px] text-cdmuted uppercase tracking-wide">TSS this week</div>
                     </div>
                 </div>
+
+                <p className="text-xs text-cdmuted mt-3 flex items-start gap-2">
+                    <Sparkles size={13} className="shrink-0 mt-0.5 text-cdaccent" />
+                    {weekPlan.flexWeekNote}
+                </p>
 
                 <div className="mt-4 flex flex-wrap gap-2">
                     <StatPill icon={TrendingUp} label={`${weekPlan.compliancePct}% target`} />
@@ -106,12 +128,15 @@ const CoachFluidWeekPlan = ({ activities, userSettings, coachContext }) => {
                     <WeekSessionRow
                         key={session.date}
                         session={session}
+                        today={today}
                         expanded={expandedDate === session.date}
                         onToggleExpand={() =>
                             setExpandedDate((d) => (d === session.date ? null : session.date))
                         }
                         onToggleDone={() => handleToggleDone(session.date)}
                         onSwapRecovery={() => handleSwapRecovery(session.date)}
+                        onMoveToToday={() => handleMoveToToday(session.movedFromDate || session.date)}
+                        onUndoMove={() => handleUndoMove(session.movedFromDate || session.date)}
                     />
                 ))}
             </div>
@@ -128,11 +153,30 @@ function StatPill({ icon: Icon, label }) {
     );
 }
 
-function WeekSessionRow({ session, expanded, onToggleExpand, onToggleDone, onSwapRecovery }) {
+function WeekSessionRow({
+    session,
+    today,
+    expanded,
+    onToggleExpand,
+    onToggleDone,
+    onSwapRecovery,
+    onMoveToToday,
+    onUndoMove,
+}) {
     const styles = getStimulusStyle(session.stimulus);
-    const isRest = session.stimulus === 'rest';
+    const isRest = session.stimulus === 'rest' && !session.movedToDate;
     const isActionable = !isRest && !session.isPast;
-    const missed = session.isPast && !session.completed && session.originalStimulus !== 'rest';
+    const missed = session.isPast && !session.completed
+        && session.plannedStimulus !== 'rest'
+        && !session.movedToDate;
+
+    const canMoveToToday = !session.isToday
+        && !session.isPast
+        && !session.completed
+        && session.plannedStimulus !== 'rest'
+        && !session.movedFromDate;
+
+    const canUndoMove = Boolean(session.movedFromDate || session.movedToDate);
 
     return (
         <div
@@ -181,6 +225,16 @@ function WeekSessionRow({ session, expanded, onToggleExpand, onToggleDone, onSwa
                                         Missed
                                     </span>
                                 )}
+                                {session.movedFromDate && (
+                                    <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300">
+                                        Moved here
+                                    </span>
+                                )}
+                                {session.movedToDate && (
+                                    <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-cdborder text-cdmuted">
+                                        Rescheduled
+                                    </span>
+                                )}
                                 <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${styles.badge}`}>
                                     {styles.label}
                                 </span>
@@ -194,6 +248,13 @@ function WeekSessionRow({ session, expanded, onToggleExpand, onToggleDone, onSwa
                                 <p className="text-xs text-cdaccent mt-1 flex items-start gap-1.5">
                                     <RefreshCw size={11} className="shrink-0 mt-0.5" />
                                     {session.note}
+                                </p>
+                            )}
+
+                            {session.flexNote && (
+                                <p className="text-xs text-blue-300 mt-1 flex items-start gap-1.5">
+                                    <Sparkles size={11} className="shrink-0 mt-0.5" />
+                                    {session.flexNote}
                                 </p>
                             )}
 
@@ -222,6 +283,26 @@ function WeekSessionRow({ session, expanded, onToggleExpand, onToggleDone, onSwa
                                 className="text-xs font-medium px-3 py-1.5 rounded-lg border border-cdborder text-cdmuted hover:text-cdaccent hover:border-cdaccent/50"
                             >
                                 {expanded ? 'Hide details' : 'Show details'}
+                            </button>
+                        )}
+                        {canMoveToToday && (
+                            <button
+                                type="button"
+                                onClick={onMoveToToday}
+                                className="text-xs font-medium px-3 py-1.5 rounded-lg border border-cdborder text-cdmuted hover:text-blue-300 hover:border-blue-500/40 flex items-center gap-1.5"
+                            >
+                                <ArrowRight size={12} />
+                                Move to today
+                            </button>
+                        )}
+                        {canUndoMove && (
+                            <button
+                                type="button"
+                                onClick={onUndoMove}
+                                className="text-xs font-medium px-3 py-1.5 rounded-lg border border-cdborder text-cdmuted hover:text-cdtext hover:border-cdborder flex items-center gap-1.5"
+                            >
+                                <Undo2 size={12} />
+                                Undo move
                             </button>
                         )}
                         {isActionable && session.stimulus !== 'recovery' && session.stimulus !== 'completed' && (
