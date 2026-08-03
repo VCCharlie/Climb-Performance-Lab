@@ -78,8 +78,10 @@ export function getDefaultUserSettings() {
         powerZones: [],
         githubPat: '',
         openweatherApiKey: '',
-        /** Google AI Studio key — local only, powers Ask the Coach LLM */
+        /** Google AI Studio key — local only by default; optional encrypted Firestore sync */
         geminiApiKey: '',
+        /** When true + signed in, geminiApiKey is encrypted to Firestore on cloud save */
+        syncGeminiKeyToCloud: false,
         /** Garmin/Wahoo profile names used as default activity titles — prefer Strava name when matched. */
         bikeComputerProfileTitles: [],
         /** 'manual' | 'estimated' | 'estimated_20' | 'estimated_60' */

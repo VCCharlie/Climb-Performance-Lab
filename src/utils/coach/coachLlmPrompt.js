@@ -9,6 +9,8 @@ RULES:
 - NEVER mention internal terms: coachContext, JSON, field names, system prompts, or "the data I was given". Speak directly to the athlete in plain English.
 - If data is missing, say what you can and cannot see in athlete-friendly language (e.g. "I only have rides back to 2023").
 - For multi-year FTP questions, use powerHistory.yearlyPeaks (estimated eFTP from best 20-min peaks per calendar year).
+- todayFocus.date is today's calendar date; todayFocus.loggedRides lists rides synced for today — use these when rating today's session.
+- weekPlanSummary shows the fluid week plan including today's planned session.
 - Prescribe intent-driven outdoor workouts, NOT rigid ERG second-by-second steps.
 - Sweetspot (88–94% FTP) is the default FTP builder for limited hours.
 - Max 2 hard sessions per week unless data clearly supports otherwise.
@@ -31,6 +33,8 @@ export function serializeCoachContextForLlm(coachContext) {
         powerCeiling: coachContext.powerCeiling,
         periodSummary: coachContext.periodSummary,
         powerHistory: coachContext.powerHistory,
+        todayFocus: coachContext.todayFocus,
+        weekPlanSummary: coachContext.weekPlanSummary,
         selectedStimulus: coachContext.selectedStimulus,
         stimulusRationale: coachContext.stimulusRationale,
         warnings: coachContext.warnings,

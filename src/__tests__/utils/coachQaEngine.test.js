@@ -23,6 +23,23 @@ describe('coachQaEngine', () => {
         expect(result.answer.length).toBeGreaterThan(50);
     });
 
+    it('answers rate today ride question using activity log', () => {
+        const today = new Date();
+        const ymd = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const todayActivities = [
+            ...activities,
+            { id: '3', date: ymd, moving_time: 3600, load: 42, norm_power: 170, type: 'Ride', title: 'Easy spin' },
+        ];
+        const result = answerCoachQuestion(
+            "Rate my today's easy ride in view of the plan I'm following",
+            todayActivities,
+            { ftp: 250, weeklyHoursTarget: 5 },
+        );
+        expect(result.title).toMatch(/today/i);
+        expect(result.answer).toMatch(/Easy spin|Verdict/i);
+        expect(result.answer).not.toMatch(/quick question/i);
+    });
+
     it('answers historical FTP comparison', () => {
         const historicalActivities = [
             { id: '1', date: '2021-06-01', moving_time: 3600, load: 70, norm_power: 200, type: 'Ride', best_20min: 250 },
@@ -37,6 +54,7 @@ describe('coachQaEngine', () => {
         expect(result.answer).toMatch(/2021|years ago/i);
         expect(result.answer).not.toMatch(/coachContext/i);
     });
+
     it('returns fallback for unknown questions', () => {
         const result = answerCoachQuestion('xyzzy unknown', activities, { ftp: 250 });
         expect(result.answer).toMatch(/quick question/i);
