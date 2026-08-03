@@ -19,6 +19,7 @@ import {
     todayYmd,
     weeklyTssTarget,
 } from './coachHelpers';
+import { buildCoachPowerHistory } from './coachPowerHistory';
 
 function computeIntensityProfile(activities, ftp, lookbackDays = 14) {
     const endYmd = todayYmd();
@@ -173,12 +174,15 @@ export function buildCoachContext(activities, userSettings, options = {}) {
         warnings.push('VO2 volume is high for your weekly hour budget — risk of overreach.');
     }
 
+    const powerHistory = buildCoachPowerHistory(activities, userSettings, ftp);
+
     return {
         ...coachFeatures,
         selectedStimulus,
         stimulusRationale: rationale,
         fluidWorkout,
         warnings,
+        powerHistory,
         generatedAt: new Date().toISOString(),
     };
 }

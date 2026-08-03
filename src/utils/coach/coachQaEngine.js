@@ -4,6 +4,10 @@
 
 import { analyzeTrainingPeriod } from './coachPeriodAnalysis';
 import { buildCoachContext } from './coachPayloadBuilder';
+import {
+    compareFtpYearsAgo,
+    parseYearsAgoFromQuestion,
+} from './coachPowerHistory';
 
 export const COACH_QUICK_QUESTIONS = [
     { id: 'form', label: 'How is my form today?', prompt: 'How is my form today?' },
@@ -53,9 +57,16 @@ export function answerCoachQuestion(question, activities, userSettings, options 
     }
 
     if (matches(q, ['ftp', 'improv', 'progress', 'ceiling', 'power curve', 'twintig', '20 min'])) {
+        const yearsAgo = parseYearsAgoFromQuestion(q);
+        if (yearsAgo != null || matches(q, ['years ago', 'year ago', 'compared to', 'long term', 'long-term', 'histor'])) {
+            return formatAnswer(
+                'FTP over time',
+                historicalFtpAnswer(ctx, yearsAgo ?? 5, ftp),
+            );
+        }
         return formatAnswer(
             'FTP progression signals',
-            ftpAnswer(ctx, ftp)
+            ftpAnswer(ctx, ftp),
         );
     }
 
@@ -187,6 +198,45 @@ function volumeAnswer(ctx) {
 
     return `This week: ${actualTss} / ${targetTss} TSS (${compliancePct}%). `
         + `28-day average: ~${Math.round(hours * 10) / 10} h/week.\n\n${assessment}`;
+}
+
+function historicalFtpAnswer(ctx, yearsAgo, ftp) {
+    const comparison = compareFtpYearsAgo(ctx.powerHistory, yearsAgo, ftp);
+
+    if (!comparison.ok) {
+        const lines = [comparison.message];
+        if (ctx.powerHistory?.longevity?.peakEftp20) {
+            lines.push(
+                `\nYour all-time peak in this log: ~${ctx.powerHistory.longevity.peakEftp20}W (${ctx.powerHistory.longevity.peakYear}).`,
+            );
+        }
+        if (ftp > 0) {
+            lines.push(`Current FTP setting: ${ftp}W.`);
+        }
+        return lines.join('');
+    }
+
+    const direction = comparison.delta >= 0 ? 'higher' : 'lower';
+    const lines = [
+        `Compared to ~${yearsAgo} years ago (${comparison.targetYear}):`,
+        `• Then (est. eFTP from best 20-min peaks): ${comparison.eftpThen}W (${comparison.thenRideCount} rides logged)`,
+        `• Now (${comparison.currentYear}): ${comparison.eftpNow}W`,
+        `• Change: ${comparison.delta >= 0 ? '+' : ''}${comparison.delta}W (${comparison.pct >= 0 ? '+' : ''}${comparison.pct}%) — ${Math.abs(comparison.pct)}% ${direction}`,
+    ];
+
+    if (ctx.powerHistory?.longevity?.peakEftp20) {
+        lines.push(
+            `\nAll-time peak in your log: ~${ctx.powerHistory.longevity.peakEftp20}W (${ctx.powerHistory.longevity.peakYear}).`,
+        );
+    }
+
+    if (ctx.fitness.tsb < -10) {
+        lines.push(
+            `\nNote: TSB is ${ctx.fitness.tsb} right now — focus on absorbing recent training before chasing FTP tests.`,
+        );
+    }
+
+    return lines.join('\n');
 }
 
 function ftpAnswer(ctx, ftp) {
