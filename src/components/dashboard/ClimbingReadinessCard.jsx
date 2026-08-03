@@ -5,6 +5,7 @@ import {
     computeClimbingReadinessHistory,
     CLIMBING_READINESS_EXPLANATION,
 } from '../../utils/climbingReadiness';
+import { normalizeTerrainProfile } from '../../utils/climbingTerrainProfile';
 import { chartCardClass } from '../../utils/chartTheme';
 import { useProfileFtp } from '../../context/ProfileFtpContext';
 
@@ -67,17 +68,28 @@ function HistoryTable({ rows }) {
 const ClimbingReadinessCard = ({ activities, userSettings }) => {
     const profileFtp = useProfileFtp();
     const ftp = profileFtp.ftp || Number(userSettings?.ftp) || 0;
+    const terrainProfile = normalizeTerrainProfile(userSettings?.terrainProfile);
     const [showHelp, setShowHelp] = useState(false);
     const [historyView, setHistoryView] = useState('week');
 
     const readiness = useMemo(
-        () => computeClimbingReadiness({ activities: activities || [], ftp }),
-        [activities, ftp],
+        () =>
+            computeClimbingReadiness({
+                activities: activities || [],
+                ftp,
+                terrainProfile,
+            }),
+        [activities, ftp, terrainProfile],
     );
 
     const history = useMemo(
-        () => computeClimbingReadinessHistory({ activities: activities || [], ftp }),
-        [activities, ftp],
+        () =>
+            computeClimbingReadinessHistory({
+                activities: activities || [],
+                ftp,
+                terrainProfile,
+            }),
+        [activities, ftp, terrainProfile],
     );
 
     if (!activities?.length) return null;
@@ -104,7 +116,8 @@ const ClimbingReadinessCard = ({ activities, userSettings }) => {
                         </button>
                     </h3>
                     <p className="text-xs text-cdmuted mt-0.5">
-                        This week ({readiness.weekLabel}) — score {readiness.composite}/100
+                        This week ({readiness.weekLabel}) — score {readiness.composite}/100 ·{' '}
+                        {readiness.terrainLabel}
                     </p>
                 </div>
                 <span
@@ -124,6 +137,8 @@ const ClimbingReadinessCard = ({ activities, userSettings }) => {
                             <li key={line}>{line}</li>
                         ))}
                     </ul>
+                    <p className="text-[10px] leading-snug">{CLIMBING_READINESS_EXPLANATION.terrainNote}</p>
+                    <p className="text-[10px] leading-snug">{CLIMBING_READINESS_EXPLANATION.rollingNote}</p>
                     <p className="text-[10px] leading-snug">{CLIMBING_READINESS_EXPLANATION.historyNote}</p>
                 </div>
             )}
@@ -162,7 +177,12 @@ const ClimbingReadinessCard = ({ activities, userSettings }) => {
                 <ScoreBar
                     label="Elevation"
                     value={readiness.scores.elevation}
-                    detail={`${readiness.metrics.elevationM} m`}
+                    detail={
+                        readiness.usesRollingElevation &&
+                        readiness.metrics.elevationForScoring !== readiness.metrics.elevationM
+                            ? `${readiness.metrics.elevationM} m this week (score uses ${readiness.metrics.elevationForScoring} m blended)`
+                            : `${readiness.metrics.elevationM} m`
+                    }
                 />
                 <ScoreBar
                     label="Z2 endurance"

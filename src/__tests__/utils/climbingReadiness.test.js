@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { computeClimbingReadiness, computeClimbingReadinessHistory } from '../../utils/climbingReadiness';
 import { calculateFitnessMetrics } from '../../utils/formTabMetrics';
+import { TERRAIN_PROFILE_FLAT, TERRAIN_PROFILE_HILLY } from '../../utils/climbingTerrainProfile';
 
 describe('computeClimbingReadiness', () => {
     const baseDate = new Date('2026-07-23T12:00:00');
@@ -113,5 +114,57 @@ describe('computeClimbingReadiness', () => {
         expect(history.weeks.length).toBe(4);
         expect(history.months.length).toBe(3);
         expect(history.weeks[0].composite).toBeGreaterThan(0);
+    });
+
+    it('flat terrain scores elevation higher for modest vertical', () => {
+        const activities = [
+            {
+                date: '2026-07-22',
+                climbing: 180,
+                load: 100,
+                norm_power: 160,
+                moving_time: 5400,
+            },
+        ];
+        const flat = computeClimbingReadiness({
+            activities,
+            ftp: 250,
+            referenceDate: baseDate,
+            terrainProfile: TERRAIN_PROFILE_FLAT,
+        });
+        const hilly = computeClimbingReadiness({
+            activities,
+            ftp: 250,
+            referenceDate: baseDate,
+            terrainProfile: TERRAIN_PROFILE_HILLY,
+        });
+        expect(flat.scores.elevation).toBeGreaterThan(hilly.scores.elevation);
+    });
+
+    it('Monday with no rides shows week-started hint on flat terrain', () => {
+        const monday = new Date('2026-08-03T12:00:00');
+        const result = computeClimbingReadiness({
+            activities: [],
+            ftp: 250,
+            referenceDate: monday,
+            terrainProfile: TERRAIN_PROFILE_FLAT,
+        });
+        expect(result.hints.some((h) => /Week just started/i.test(h))).toBe(true);
+    });
+
+    it('rolling elevation blends previous week into score', () => {
+        const monday = new Date('2026-08-03T12:00:00');
+        const activities = [
+            { date: '2026-07-28', climbing: 400, load: 80 },
+        ];
+        const result = computeClimbingReadiness({
+            activities,
+            ftp: 250,
+            referenceDate: monday,
+            terrainProfile: TERRAIN_PROFILE_FLAT,
+        });
+        expect(result.usesRollingElevation).toBe(true);
+        expect(result.metrics.elevationM).toBe(0);
+        expect(result.metrics.elevationForScoring).toBe(200);
     });
 });
