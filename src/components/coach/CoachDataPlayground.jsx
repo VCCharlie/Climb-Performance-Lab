@@ -1,20 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import {
-    Bar,
-    CartesianGrid,
-    ComposedChart,
-    Line,
-    ResponsiveContainer,
-    Tooltip,
-    XAxis,
-    YAxis,
-} from 'recharts';
 import { BarChart3, ChevronDown, ChevronRight, TrendingUp, Zap } from 'lucide-react';
-import { ChartTooltip } from '../ui';
-import { getChartTheme } from '../../utils/chartTheme';
-import { buildMultiYearPowerAnalysis } from '../../utils/coach/coachPowerAnalysis';
 import {
-    PLAYGROUND_METRICS,
+    VOLUME_METRICS,
+    HR_METRICS,
+    CHART_TYPES,
+    CHART_TYPE_OPTIONS,
+    VOLUME_STAT_MODES,
+    VOLUME_STAT_OPTIONS,
     buildTrendPlaygroundData,
     defaultPlaygroundPrimaryRange,
     playgroundRangeForYears,
@@ -23,12 +15,11 @@ import {
 import { COMPARE_OPTIONS } from '../dashboard/powerTopTenByDurationConstants';
 import { formatLongRange } from '../dashboard/powerTopTenByDurationConstants';
 import NlDateInput from '../NlDateInput';
-import { useProfileFtp } from '../../context/ProfileFtpContext';
 import { todayYmd } from '../../utils/coach/coachHelpers';
 import { boundsFromYmdRange } from '../../utils/dashboardActivityWindow';
+import PlaygroundVolumeChart from './playground/PlaygroundVolumeChart';
+import PlaygroundPowerPanel from './playground/PlaygroundPowerPanel';
 
-const YEAR_SPAN_OPTIONS = [5, 10, 15];
-const TOP_N_OPTIONS = [5, 10, 15];
 const RANGE_PRESETS = [
     { id: '1y', label: '1 year', years: 1 },
     { id: '3y', label: '3 years', years: 3 },
@@ -37,9 +28,7 @@ const RANGE_PRESETS = [
     { id: 'all', label: 'All data', years: 30 },
 ];
 
-const CoachDataPlayground = ({ activities, userSettings }) => {
-    const profileFtp = useProfileFtp();
-    const ftp = profileFtp.ftp || Number(userSettings?.ftp) || 0;
+const CoachDataPlayground = ({ activities }) => {
     const [expanded, setExpanded] = useState(true);
     const [mode, setMode] = useState('trends');
 
@@ -58,7 +47,7 @@ const CoachDataPlayground = ({ activities, userSettings }) => {
                         Data Playground
                     </h3>
                     <p className="text-xs text-cdmuted mt-1 leading-relaxed">
-                        Filter, compare, and chart your full activity log — volume trends and power rankings.
+                        Explore volume, heart rate, and power peaks — filter, compare, chart types, max values, and manual anomaly exclusions.
                     </p>
                 </div>
                 {expanded ? <ChevronDown size={18} className="text-cdmuted shrink-0 mt-1" /> : <ChevronRight size={18} className="text-cdmuted shrink-0 mt-1" />}
@@ -67,14 +56,14 @@ const CoachDataPlayground = ({ activities, userSettings }) => {
             {expanded && (
                 <div className="p-5 space-y-4">
                     <div className="flex flex-wrap gap-2">
-                        <ModeButton active={mode === 'trends'} onClick={() => setMode('trends')} icon={TrendingUp} label="Volume trends" />
+                        <ModeButton active={mode === 'trends'} onClick={() => setMode('trends')} icon={TrendingUp} label="Volume & HR trends" />
                         <ModeButton active={mode === 'power'} onClick={() => setMode('power')} icon={Zap} label="Power rankings" />
                     </div>
 
                     {mode === 'trends' ? (
                         <TrendsPanel activities={activities} />
                     ) : (
-                        <PowerRankingsPanel activities={activities} ftp={ftp} />
+                        <PlaygroundPowerPanel activities={activities} />
                     )}
                 </div>
             )}
@@ -82,7 +71,7 @@ const CoachDataPlayground = ({ activities, userSettings }) => {
     );
 };
 
-function ModeButton({ active, onClick, icon: Icon, label }) {
+function ModeButton({ active, onClick, icon: IconComponent, label }) {
     return (
         <button
             type="button"
@@ -93,19 +82,20 @@ function ModeButton({ active, onClick, icon: Icon, label }) {
                     : 'border-cdborder text-cdmuted hover:text-cdtext'
             }`}
         >
-            <Icon size={13} />
+            <IconComponent size={13} />
             {label}
         </button>
     );
 }
 
 function TrendsPanel({ activities }) {
-    const theme = getChartTheme();
     const today = todayYmd();
     const defaultRange = defaultPlaygroundPrimaryRange(today);
 
     const [cadence, setCadence] = useState('monthly');
     const [metricId, setMetricId] = useState('distanceKm');
+    const [statMode, setStatMode] = useState(VOLUME_STAT_MODES.PRIMARY);
+    const [chartType, setChartType] = useState(CHART_TYPES.COMPOSED);
     const [rangePreset, setRangePreset] = useState('3y');
     const [primaryStart, setPrimaryStart] = useState(defaultRange.startYmd);
     const [primaryEnd, setPrimaryEnd] = useState(defaultRange.endYmd);
@@ -114,6 +104,8 @@ function TrendsPanel({ activities }) {
     const [compareStart, setCompareStart] = useState('');
     const [compareEnd, setCompareEnd] = useState('');
     const [trendWindow, setTrendWindow] = useState(3);
+    const [showMax, setShowMax] = useState(false);
+    const [showMaxTrend, setShowMaxTrend] = useState(false);
 
     const applyPreset = (presetId) => {
         setRangePreset(presetId);
@@ -135,6 +127,7 @@ function TrendsPanel({ activities }) {
         () => buildTrendPlaygroundData(activities, {
             cadence,
             metricId,
+            statMode,
             startYmd: primaryStart,
             endYmd: primaryEnd,
             compareMode,
@@ -142,17 +135,54 @@ function TrendsPanel({ activities }) {
             compareEndYmd: compareRange?.endYmd,
             trendWindow,
         }),
-        [activities, cadence, metricId, primaryStart, primaryEnd, compareMode, compareRange, trendWindow],
+        [activities, cadence, metricId, statMode, primaryStart, primaryEnd, compareMode, compareRange, trendWindow],
     );
 
     const metric = trendData.metric;
     const unitSuffix = metric.unit ? ` ${metric.unit}` : '';
+    const metricOptions = [
+        { group: 'Volume', options: VOLUME_METRICS },
+        { group: 'Heart rate', options: HR_METRICS },
+    ];
 
     return (
         <div className="space-y-4">
             <div className="flex flex-wrap gap-3">
-                <FilterSelect label="Metric" value={metricId} onChange={setMetricId} options={PLAYGROUND_METRICS.map((m) => ({ value: m.id, label: m.label }))} />
-                <FilterSelect label="Group by" value={cadence} onChange={setCadence} options={[{ value: 'monthly', label: 'Month' }, { value: 'weekly', label: 'Week' }]} />
+                <FilterSelect label="Metric" value={metricId} onChange={setMetricId}>
+                    {metricOptions.map((group) => (
+                        <optgroup key={group.group} label={group.group}>
+                            {group.options.map((m) => (
+                                <option key={m.id} value={m.id}>{m.label}</option>
+                            ))}
+                        </optgroup>
+                    ))}
+                </FilterSelect>
+
+                <FilterSelect
+                    label="Group by"
+                    value={cadence}
+                    onChange={setCadence}
+                    options={[
+                        { value: 'weekly', label: 'Week' },
+                        { value: 'monthly', label: 'Month' },
+                        { value: 'yearly', label: 'Year' },
+                    ]}
+                />
+
+                <FilterSelect
+                    label="Value type"
+                    value={statMode}
+                    onChange={setStatMode}
+                    options={VOLUME_STAT_OPTIONS.map((o) => ({ value: o.id, label: o.label }))}
+                />
+
+                <FilterSelect
+                    label="Chart"
+                    value={chartType}
+                    onChange={setChartType}
+                    options={CHART_TYPE_OPTIONS.map((o) => ({ value: o.id, label: o.label }))}
+                />
+
                 <FilterSelect
                     label="Compare"
                     value={compareMode}
@@ -162,7 +192,24 @@ function TrendsPanel({ activities }) {
                         { value: 'prevYear', label: 'Same range, previous year' },
                     ]}
                 />
-                <FilterSelect label="Trend line" value={String(trendWindow)} onChange={(v) => setTrendWindow(Number(v))} options={[2, 3, 4, 6].map((n) => ({ value: String(n), label: `${n}-period avg` }))} />
+
+                <FilterSelect
+                    label="Trend window"
+                    value={String(trendWindow)}
+                    onChange={(v) => setTrendWindow(Number(v))}
+                    options={[2, 3, 4, 6].map((n) => ({ value: String(n), label: `${n}-period avg` }))}
+                />
+            </div>
+
+            <div className="flex flex-wrap gap-4 text-xs text-cdmuted">
+                <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={showMax} onChange={(e) => setShowMax(e.target.checked)} />
+                    Show max per period
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={showMaxTrend} onChange={(e) => setShowMaxTrend(e.target.checked)} />
+                    Show max trend line
+                </label>
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -214,21 +261,14 @@ function TrendsPanel({ activities }) {
                 <p className="text-sm text-cdmuted">No rides in this range.</p>
             ) : (
                 <>
-                    <div className="h-64 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <ComposedChart data={trendData.chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} />
-                                <XAxis dataKey="label" tick={{ fill: theme.tick, fontSize: 10 }} interval="preserveStartEnd" />
-                                <YAxis tick={{ fill: theme.tick, fontSize: 11 }} />
-                                <Tooltip content={<ChartTooltip />} />
-                                <Bar dataKey="value" name={metric.label} fill="rgba(250,204,21,0.75)" radius={[3, 3, 0, 0]} />
-                                {compareMode !== 'none' && (
-                                    <Bar dataKey="compareValue" name="Compare" fill="rgba(148,163,184,0.45)" radius={[3, 3, 0, 0]} />
-                                )}
-                                <Line type="monotone" dataKey="trend" name="Trend" stroke="rgba(96,165,250,0.9)" strokeWidth={2} dot={false} />
-                            </ComposedChart>
-                        </ResponsiveContainer>
-                    </div>
+                    <PlaygroundVolumeChart
+                        data={trendData.chartData}
+                        chartType={chartType}
+                        metricLabel={metric.label}
+                        showTrend
+                        showMax={showMax}
+                        showMaxTrend={showMaxTrend}
+                    />
 
                     <div className="overflow-x-auto rounded-lg border border-cdborder max-h-64 overflow-y-auto custom-scrollbar">
                         <table className="w-full text-left text-sm">
@@ -238,6 +278,8 @@ function TrendsPanel({ activities }) {
                                     <th className="px-3 py-2">{metric.label}</th>
                                     {compareMode !== 'none' && <th className="px-3 py-2">Compare</th>}
                                     <th className="px-3 py-2">Trend</th>
+                                    {showMax && <th className="px-3 py-2">Max</th>}
+                                    {showMaxTrend && <th className="px-3 py-2">Max trend</th>}
                                     <th className="px-3 py-2">Rides</th>
                                 </tr>
                             </thead>
@@ -246,8 +288,14 @@ function TrendsPanel({ activities }) {
                                     <tr key={row.key} className="border-t border-cdborder">
                                         <td className="px-3 py-1.5 whitespace-nowrap">{row.label}</td>
                                         <td className="px-3 py-1.5 font-mono">{row.value}{unitSuffix}</td>
-                                        {compareMode !== 'none' && <td className="px-3 py-1.5 font-mono text-cdmuted">{row.compareValue ?? '—'}{row.compareValue != null ? unitSuffix : ''}</td>}
+                                        {compareMode !== 'none' && (
+                                            <td className="px-3 py-1.5 font-mono text-cdmuted">
+                                                {row.compareValue ?? '—'}{row.compareValue != null ? unitSuffix : ''}
+                                            </td>
+                                        )}
                                         <td className="px-3 py-1.5 font-mono text-blue-300">{row.trend}{unitSuffix}</td>
+                                        {showMax && <td className="px-3 py-1.5 font-mono text-purple-300">{row.maxValue}{unitSuffix}</td>}
+                                        {showMaxTrend && <td className="px-3 py-1.5 font-mono text-pink-300">{row.maxTrend}{unitSuffix}</td>}
                                         <td className="px-3 py-1.5 text-cdmuted">{row.rideCount}</td>
                                     </tr>
                                 ))}
@@ -260,79 +308,12 @@ function TrendsPanel({ activities }) {
     );
 }
 
-function PowerRankingsPanel({ activities, ftp }) {
-    const theme = getChartTheme();
-    const [yearSpan, setYearSpan] = useState(10);
-    const [topN, setTopN] = useState(10);
-    const [field, setField] = useState('best_60min');
-
-    const analysis = useMemo(
-        () => buildMultiYearPowerAnalysis(activities, ftp, { field, limit: topN, yearSpan }),
-        [activities, ftp, field, topN, yearSpan],
-    );
-
-    const rowsWithData = analysis.yearly.filter((row) => row.count > 0);
-    const durationLabel = field === 'best_20min' ? '20-minute' : '60-minute';
-
-    return (
-        <div className="space-y-4">
-            <div className="flex flex-wrap gap-3">
-                <FilterSelect label="Duration" value={field} onChange={setField} options={[{ value: 'best_60min', label: '60-minute' }, { value: 'best_20min', label: '20-minute' }]} />
-                <FilterSelect label="Years" value={String(yearSpan)} onChange={(v) => setYearSpan(Number(v))} options={YEAR_SPAN_OPTIONS.map((n) => ({ value: String(n), label: `Last ${n} years` }))} />
-                <FilterSelect label="Top N" value={String(topN)} onChange={(v) => setTopN(Number(v))} options={TOP_N_OPTIONS.map((n) => ({ value: String(n), label: `Top ${n}` }))} />
-            </div>
-
-            {rowsWithData.length === 0 ? (
-                <p className="text-sm text-cdmuted">No {durationLabel} power data in this window.</p>
-            ) : (
-                <>
-                    <div className="h-56 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <ComposedChart data={analysis.trend} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} />
-                                <XAxis dataKey="year" tick={{ fill: theme.tick, fontSize: 11 }} />
-                                <YAxis tick={{ fill: theme.tick, fontSize: 11 }} unit=" W" />
-                                <Tooltip content={<ChartTooltip />} />
-                                <Bar dataKey="avg" name={`Avg top ${topN}`} fill="rgba(250,204,21,0.85)" radius={[4, 4, 0, 0]} />
-                                <Line type="monotone" dataKey="avg" name="Trend" stroke="rgba(96,165,250,0.9)" strokeWidth={2} dot={{ r: 3 }} />
-                            </ComposedChart>
-                        </ResponsiveContainer>
-                    </div>
-
-                    <div className="overflow-x-auto rounded-lg border border-cdborder">
-                        <table className="w-full text-left text-sm">
-                            <thead>
-                                <tr className="bg-cdborder/40 text-cdmuted text-xs uppercase">
-                                    <th className="px-3 py-2">Year</th>
-                                    <th className="px-3 py-2">Top values (W)</th>
-                                    <th className="px-3 py-2">Avg</th>
-                                    <th className="px-3 py-2">Anomalies</th>
-                                </tr>
-                            </thead>
-                            <tbody className="text-cdtext">
-                                {rowsWithData.map((row) => (
-                                    <tr key={row.year} className="border-t border-cdborder align-top">
-                                        <td className="px-3 py-2 font-medium">{row.year}</td>
-                                        <td className="px-3 py-2 font-mono text-xs text-cdmuted">{row.efforts.map((e) => e.watts).join(', ')}</td>
-                                        <td className="px-3 py-2 font-mono">{row.avg}W</td>
-                                        <td className="px-3 py-2 text-xs text-cdmuted">{row.anomalies.length ? row.anomalies.map((a) => `${a.watts}W (${a.date})`).join(', ') : 'None'}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </>
-            )}
-        </div>
-    );
-}
-
-function FilterSelect({ label, value, onChange, options }) {
+function FilterSelect({ label, value, onChange, options, children }) {
     return (
         <label className="flex flex-col gap-1 text-xs text-cdmuted">
             <span className="font-semibold text-cdtext">{label}</span>
             <select value={value} onChange={(e) => onChange(e.target.value)} className="bg-cdborder/30 border border-cdborder rounded-lg px-3 py-2 text-sm text-cdtext min-w-[130px]">
-                {options.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                {children || options.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
             </select>
         </label>
     );

@@ -38,4 +38,17 @@ describe('coachDataPlayground', () => {
         expect(range.startYmd).toBe('2024-01-01');
         expect(range.endYmd).toBe('2026-08-04');
     });
+
+    it('buildTrendPlaygroundData supports yearly cadence and max values', () => {
+        const result = buildTrendPlaygroundData(activities, {
+            cadence: 'yearly',
+            metricId: 'distanceKm',
+            startYmd: '2023-01-01',
+            endYmd: '2024-12-31',
+            compareMode: 'none',
+            trendWindow: 2,
+        });
+        expect(result.chartData.some((r) => r.label === '2024' || r.key === '2024')).toBe(true);
+        expect(result.chartData[0].maxValue).toBeDefined();
+    });
 });

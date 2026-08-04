@@ -3,15 +3,7 @@
  */
 
 import { normalizeDate } from '../formatters';
-import {
-    buildMonthlyVolumeTotals,
-    buildWeeklyVolumeTotals,
-    orderVolumeRowsChronological,
-    trailingMovingAverage,
-    formatMonthChartTickEn,
-    formatWeekChartTickEn,
-    addDaysToYmd,
-} from '../dashboardVolumeTotals';
+import { trailingMovingAverage, addDaysToYmd } from '../dashboardVolumeTotals';
 import {
     boundsFromYmdRange,
     boundsToYmdPair,
@@ -19,14 +11,19 @@ import {
     compareDaysBeforeWindow,
 } from '../dashboardActivityWindow';
 import { filterActivitiesInRange } from './coachHelpers';
+import { buildPlaygroundBuckets, bucketMetricValue } from './coachPlaygroundBuckets';
+import { getPlaygroundMetric } from './coachPlaygroundMetrics';
 
-export const PLAYGROUND_METRICS = [
-    { id: 'distanceKm', label: 'Distance', unit: 'km', decimals: 0 },
-    { id: 'elevationM', label: 'Elevation', unit: 'm', decimals: 0 },
-    { id: 'load', label: 'Load (TSS)', unit: '', decimals: 0 },
-    { id: 'hours', label: 'Moving time', unit: 'h', decimals: 1 },
-    { id: 'rideCount', label: 'Rides', unit: '', decimals: 0 },
-];
+export {
+    PLAYGROUND_METRICS,
+    VOLUME_METRICS,
+    HR_METRICS,
+    CHART_TYPES,
+    CHART_TYPE_OPTIONS,
+    VOLUME_STAT_MODES,
+    VOLUME_STAT_OPTIONS,
+    POWER_PEAK_FIELDS,
+} from './coachPlaygroundMetrics';
 
 function isRideType(type) {
     const t = String(type || '').toLowerCase();
@@ -37,19 +34,7 @@ function filterRides(activities) {
     return (activities || []).filter((a) => isRideType(a.type));
 }
 
-function metricValue(metricId, bucket) {
-    switch (metricId) {
-        case 'distanceKm': return bucket.distanceKm;
-        case 'elevationM': return bucket.elevationM;
-        case 'load': return bucket.load;
-        case 'hours': return Math.round((bucket.movingTimeSec / 3600) * 10) / 10;
-        case 'rideCount': return bucket.rideCount;
-        default: return bucket.distanceKm;
-    }
-}
-
-function roundMetric(metricId, value) {
-    const metric = PLAYGROUND_METRICS.find((m) => m.id === metricId);
+function roundMetric(metric, value) {
     const decimals = metric?.decimals ?? 0;
     const factor = 10 ** decimals;
     return Math.round(value * factor) / factor;
@@ -92,6 +77,7 @@ export function buildTrendPlaygroundData(activities, options = {}) {
     const {
         cadence = 'monthly',
         metricId = 'distanceKm',
+        statMode = 'primary',
         startYmd,
         endYmd,
         compareStartYmd,
@@ -100,50 +86,48 @@ export function buildTrendPlaygroundData(activities, options = {}) {
         trendWindow = 3,
     } = options;
 
-    const metric = PLAYGROUND_METRICS.find((m) => m.id === metricId) || PLAYGROUND_METRICS[0];
+    const metric = getPlaygroundMetric(metricId);
     const rides = filterRides(activities);
 
     const primaryActs = startYmd && endYmd
         ? filterActivitiesInRange(rides, startYmd, endYmd)
         : rides;
 
-    const rawRows = cadence === 'weekly'
-        ? buildWeeklyVolumeTotals(primaryActs)
-        : buildMonthlyVolumeTotals(primaryActs);
-
-    const chronological = orderVolumeRowsChronological(rawRows);
-    const values = chronological.map((row) => metricValue(metricId, row));
+    const chronological = buildPlaygroundBuckets(primaryActs, cadence);
+    const values = chronological.map((row) => bucketMetricValue(row, metricId, statMode));
     const trend = trailingMovingAverage(values, trendWindow);
+    const maxValues = chronological.map((row) => bucketMetricValue(row, metricId, 'max'));
+    const maxTrend = trailingMovingAverage(maxValues, trendWindow);
 
     let compareChronological = [];
     if (compareMode !== 'none' && compareStartYmd && compareEndYmd) {
         const compareActs = filterActivitiesInRange(rides, compareStartYmd, compareEndYmd);
-        compareChronological = orderVolumeRowsChronological(
-            cadence === 'weekly'
-                ? buildWeeklyVolumeTotals(compareActs)
-                : buildMonthlyVolumeTotals(compareActs),
-        );
+        compareChronological = buildPlaygroundBuckets(compareActs, cadence);
     }
 
     const chartData = chronological.map((row, index) => {
         const compareRow = compareChronological[index];
         return {
             key: row.key,
-            label: cadence === 'weekly' ? formatWeekChartTickEn(row.key) : formatMonthChartTickEn(row.key),
-            value: roundMetric(metricId, metricValue(metricId, row)),
-            trend: roundMetric(metricId, trend[index]),
+            label: row.label,
+            value: roundMetric(metric, values[index]),
+            trend: roundMetric(metric, trend[index]),
+            maxValue: roundMetric(metric, maxValues[index]),
+            maxTrend: roundMetric(metric, maxTrend[index]),
             compareValue: compareRow != null
-                ? roundMetric(metricId, metricValue(metricId, compareRow))
+                ? roundMetric(metric, bucketMetricValue(compareRow, metricId, statMode))
                 : null,
             rideCount: row.rideCount,
+            trendWindow,
+            count: row.rideCount,
         };
     });
 
-    const primaryTotal = roundMetric(metricId, values.reduce((sum, v) => sum + v, 0));
+    const primaryTotal = roundMetric(metric, values.reduce((sum, v) => sum + v, 0));
     const compareTotal = compareChronological.length
         ? roundMetric(
-            metricId,
-            compareChronological.reduce((sum, row) => sum + metricValue(metricId, row), 0),
+            metric,
+            compareChronological.reduce((sum, row) => sum + bucketMetricValue(row, metricId, statMode), 0),
         )
         : null;
 
@@ -161,10 +145,6 @@ export function buildTrendPlaygroundData(activities, options = {}) {
     };
 }
 
-/**
- * Default primary window: last 3 calendar years through today.
- * @param {string} [referenceYmd]
- */
 export function defaultPlaygroundPrimaryRange(referenceYmd) {
     const end = referenceYmd || normalizeDate(new Date()) || todayFallback();
     const startYear = parseInt(end.slice(0, 4), 10) - 2;
@@ -178,9 +158,6 @@ function todayFallback() {
     return `${d.getFullYear()}-${m}-${day}`;
 }
 
-/**
- * Shift YMD range by whole years (for year presets).
- */
 export function playgroundRangeForYears(endYmd, years) {
     const endYear = parseInt(endYmd.slice(0, 4), 10);
     const startYear = endYear - years + 1;
@@ -190,10 +167,6 @@ export function playgroundRangeForYears(endYmd, years) {
     };
 }
 
-/**
- * @param {string} endYmd
- * @param {number} months
- */
 export function playgroundRangeForMonths(endYmd, months) {
     const start = addDaysToYmd(endYmd, -(months * 31));
     return { startYmd: start || endYmd, endYmd };
