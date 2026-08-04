@@ -245,6 +245,13 @@ describe('coachWeekState', () => {
         expect(state.moves['2026-08-04']).toBe('2026-08-03');
     });
 
+    it('keeps week 1 state when editing week 2', () => {
+        writeCoachWeekState('2026-08-03', { completedDates: ['2026-08-04'] });
+        writeCoachWeekState('2026-08-10', { unavailableDates: ['2026-08-12'] });
+        expect(readCoachWeekState('2026-08-03').completedDates).toEqual(['2026-08-04']);
+        expect(readCoachWeekState('2026-08-10').unavailableDates).toEqual(['2026-08-12']);
+    });
+
     it('toggles available dates and clears blocked status', () => {
         toggleUnavailableDate('2026-08-03', '2026-08-04');
         toggleAvailableDate('2026-08-03', '2026-08-04');

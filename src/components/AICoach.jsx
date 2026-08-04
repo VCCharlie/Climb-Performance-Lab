@@ -12,10 +12,10 @@ import CoachPeriodReview from './coach/CoachPeriodReview';
 import CoachFluidWeekPlan from './coach/CoachFluidWeekPlan';
 import CoachFitnessForecast from './coach/CoachFitnessForecast';
 import CollapsibleSection from './ui/CollapsibleSection';
-import { buildFluidWeekPlan, buildPreviewWeekPlan } from '../utils/coach/coachWeekPlan';
-import { projectWeekEndTsb } from '../utils/coach/coachFitnessForecast';
-import { todayYmd } from '../utils/coach/coachHelpers';
+import { buildFluidWeekPlan } from '../utils/coach/coachWeekPlan';
 import { addDaysToYmd } from '../utils/dashboardVolumeTotals';
+import { todayYmd } from '../utils/coach/coachHelpers';
+import { projectWeekEndTsb } from '../utils/coach/coachFitnessForecast';
 import { COACH_WEEK_UPDATED_EVENT } from '../utils/coach/coachWeekState';
 import {
     hydrateTrainingPlanSnapshot,
@@ -416,22 +416,30 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
         [activities, userSettings, coachContext, referenceYmd, coachWeekRevision],
     );
 
-    const week2Sessions = useMemo(() => {
-        if (!showNextWeek) return [];
+    const week2Plan = useMemo(() => {
+        if (!showNextWeek) return null;
         const nextMonday = addDaysToYmd(fluidWeekPlan.mondayYmd, 7);
-        const endTsb = projectWeekEndTsb({
+        const week2Reference = referenceYmd >= nextMonday ? referenceYmd : nextMonday;
+        const projectedEndTsb = projectWeekEndTsb({
             activities,
             sessions: fluidWeekPlan.sessions,
             weeklyHours: weeklyHoursTarget,
             referenceYmd,
         });
-        return buildPreviewWeekPlan({
+        const week2CoachContext = {
+            ...coachContext,
+            fitness: {
+                ...coachContext.fitness,
+                tsb: projectedEndTsb,
+            },
+        };
+        return buildFluidWeekPlan({
+            activities,
             userSettings,
-            coachContext,
-            weekStartYmd: nextMonday,
-            projectedTsb: endTsb,
+            coachContext: week2CoachContext,
+            referenceYmd: week2Reference,
         });
-    }, [showNextWeek, fluidWeekPlan, activities, userSettings, coachContext, weeklyHoursTarget, referenceYmd]);
+    }, [showNextWeek, fluidWeekPlan, activities, userSettings, coachContext, referenceYmd, coachWeekRevision, weeklyHoursTarget]);
 
     const opportunitiesForDisplay = useMemo(() => {
         return swot.opportunities.map((o) =>
@@ -566,14 +574,14 @@ ${workout.zwoSteps.map(step => {
                 weekPlan={fluidWeekPlan}
                 showNextWeek={showNextWeek}
                 onToggleNextWeek={() => setShowNextWeek((v) => !v)}
-                week2Sessions={week2Sessions}
+                week2Plan={week2Plan}
             />
 
             <CoachFitnessForecast
                 activities={activities}
                 userSettings={userSettings}
                 week1Sessions={fluidWeekPlan.sessions}
-                week2Sessions={week2Sessions}
+                week2Sessions={week2Plan?.sessions || []}
             />
 
             <CollapsibleSection

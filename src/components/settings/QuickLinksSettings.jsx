@@ -1,46 +1,54 @@
-import React from 'react';
-import { Link2, Plus, Trash2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Plus, Trash2 } from 'lucide-react';
 import {
     DEFAULT_QUICK_LINKS,
     MAX_QUICK_LINKS,
     QUICK_LINK_ICON_OPTIONS,
-    normalizeQuickLinks,
+    prepareQuickLinksForEditor,
 } from '../../utils/quickLinks';
 import { inputBaseClass } from '../ui';
 
 export default function QuickLinksSettings({ quickLinks, onChange }) {
-    const links = normalizeQuickLinks(quickLinks?.length ? quickLinks : DEFAULT_QUICK_LINKS);
+    const [links, setLinks] = useState(() => prepareQuickLinksForEditor(quickLinks));
+
+    useEffect(() => {
+        setLinks(prepareQuickLinksForEditor(quickLinks));
+    }, [quickLinks]);
+
+    const commitLinks = (nextLinks) => {
+        setLinks(nextLinks);
+        onChange(nextLinks);
+    };
 
     const updateLink = (index, field, value) => {
-        const next = links.map((link, i) => (i === index ? { ...link, [field]: value } : link));
-        onChange(next);
+        commitLinks(links.map((link, i) => (i === index ? { ...link, [field]: value } : link)));
     };
 
     const addLink = () => {
         if (links.length >= MAX_QUICK_LINKS) return;
-        onChange([
+        commitLinks([
             ...links,
             {
                 id: `custom-${Date.now()}`,
                 label: 'New link',
-                href: 'https://',
+                href: 'https://example.com',
                 icon: 'link',
             },
         ]);
     };
 
     const removeLink = (index) => {
-        onChange(links.filter((_, i) => i !== index));
+        commitLinks(links.filter((_, i) => i !== index));
     };
 
     const resetDefaults = () => {
-        onChange(DEFAULT_QUICK_LINKS.map((l) => ({ ...l })));
+        commitLinks(DEFAULT_QUICK_LINKS.map((l) => ({ ...l })));
     };
 
     return (
         <div className="space-y-4">
             <p className="text-xs text-cdmuted leading-relaxed">
-                Up to {MAX_QUICK_LINKS} shortcuts shown in the site banner (with icons). Leave empty to use defaults.
+                Up to {MAX_QUICK_LINKS} shortcuts shown in the site banner (with icons). Invalid URLs are hidden in the banner until fixed.
             </p>
 
             {links.map((link, index) => (

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { estimateSessionTss, resolveSessionTssForForecast } from '../../utils/coach/coachSessionTss';
 import { buildFitnessForecast } from '../../utils/coach/coachFitnessForecast';
-import { normalizeQuickLinks, resolveQuickLinks, MAX_QUICK_LINKS } from '../../utils/quickLinks';
+import { normalizeQuickLinks, resolveQuickLinks, MAX_QUICK_LINKS, prepareQuickLinksForEditor } from '../../utils/quickLinks';
 
 describe('coachSessionTss', () => {
     it('estimateSessionTss returns 0 for rest', () => {
@@ -52,6 +52,14 @@ describe('coachFitnessForecast', () => {
 });
 
 describe('quickLinks', () => {
+    it('prepareQuickLinksForEditor keeps draft links with invalid URLs', () => {
+        const links = prepareQuickLinksForEditor([
+            { id: 'a', label: 'Draft', href: 'https://', icon: 'link' },
+        ]);
+        expect(links).toHaveLength(1);
+        expect(links[0].label).toBe('Draft');
+    });
+
     it('normalizeQuickLinks falls back to defaults when empty', () => {
         const links = normalizeQuickLinks([]);
         expect(links.length).toBe(3);
