@@ -62,11 +62,13 @@ export function stimulusMatches(planned, actual) {
  * @param {object[]} sessions — built session rows (with date, stimulus, originalStimulus, completed)
  * @param {object[]} activities — should already be limited to the current plan week
  * @param {number} ftp
- * @param {{ windowDays?: number }} [options]
+ * @param {{ windowDays?: number, referenceYmd?: string }} [options]
+ *   referenceYmd — calendar today; sessions on this date only complete via same-day rides (not cross-day).
  * @returns {Map<string, { activityDate: string, matchedStimulus: string }>}
  */
 export function matchSessionsToActivities(sessions, activities, ftp, options = {}) {
     const windowDays = options.windowDays ?? CROSS_DAY_MATCH_WINDOW_DAYS;
+    const referenceYmd = options.referenceYmd || null;
     const matches = new Map();
     const usedActivityIds = new Set();
 
@@ -84,7 +86,10 @@ export function matchSessionsToActivities(sessions, activities, ftp, options = {
     const pending = sessions
         .filter((s) => {
             const planned = s.plannedStimulus || s.originalStimulus;
-            return planned && planned !== 'rest' && !s.sameDayComplete;
+            if (!planned || planned === 'rest' || s.sameDayComplete) return false;
+            // Today stays open until you ride today or mark it done — no backfill from yesterday.
+            if (referenceYmd && s.date === referenceYmd) return false;
+            return true;
         })
         .sort((a, b) => {
             const pa = STIMULUS_RANK[a.plannedStimulus || a.originalStimulus] ?? 0;

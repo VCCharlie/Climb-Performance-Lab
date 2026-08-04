@@ -47,12 +47,38 @@ describe('coachSessionMatcher', () => {
         const activities = [
             { id: 'ride-1', date: '2026-08-03', norm_power: 230 },
         ];
-        const matches = matchSessionsToActivities(sessions, activities, 250);
+        const matches = matchSessionsToActivities(sessions, activities, 250, {
+            referenceYmd: '2026-08-03',
+        });
         expect(matches.get('2026-08-04')).toEqual({
             activityId: 'ride-1',
             activityDate: '2026-08-03',
             matchedStimulus: 'sweetspot',
         });
+    });
+
+    it('does not cross-day match onto today — today needs a same-day ride', () => {
+        const sessions = [
+            {
+                date: '2026-08-03',
+                plannedStimulus: 'rest',
+                originalStimulus: 'rest',
+                sameDayComplete: true,
+            },
+            {
+                date: '2026-08-04',
+                plannedStimulus: 'endurance',
+                originalStimulus: 'endurance',
+                sameDayComplete: false,
+            },
+        ];
+        const activities = [
+            { id: 'ride-1', date: '2026-08-03', norm_power: 200 },
+        ];
+        const matches = matchSessionsToActivities(sessions, activities, 250, {
+            referenceYmd: '2026-08-04',
+        });
+        expect(matches.has('2026-08-04')).toBe(false);
     });
 
     it('does not match rides outside the ±3 day window', () => {
