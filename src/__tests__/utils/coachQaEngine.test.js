@@ -66,10 +66,25 @@ describe('coachQaEngine', () => {
             yearActivities,
             { ftp: 280 },
         );
-        expect(result.title).toMatch(/60-minute power \(2024\)/i);
+        expect(result.source).toBe('structured');
         expect(result.answer).toMatch(/301W/);
         expect(result.answer).toMatch(/295W/);
         expect(result.answer).not.toMatch(/only have access to your yearly peak/i);
+    });
+
+    it('answers multi-year top-10 analysis locally', () => {
+        const acts = [
+            { id: 'a', date: '2024-06-01', type: 'Ride', best_60min: 301 },
+            { id: 'b', date: '2023-06-01', type: 'Ride', best_60min: 290 },
+        ];
+        const result = answerCoachQuestion(
+            'Top 10 highest 60-minute values for each of the past 10 years with yearly averages',
+            acts,
+            { ftp: 280 },
+        );
+        expect(result.source).toBe('structured');
+        expect(result.answer).toMatch(/2024/);
+        expect(result.answer).toMatch(/Trend/);
     });
 
     it('returns fallback for unknown questions', () => {

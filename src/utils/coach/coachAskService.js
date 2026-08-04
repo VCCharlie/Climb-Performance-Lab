@@ -20,6 +20,11 @@ export async function askCoach(question, activities, userSettings, options = {})
         || 5;
     const coachContext = buildCoachContext(activities, userSettings, { weeklyHoursTarget: weeklyHours });
 
+    const local = answerCoachQuestion(question, activities, userSettings, { weeklyHoursTarget: weeklyHours });
+    if (local.source === 'structured') {
+        return { title: '', answer: local.answer, source: 'local' };
+    }
+
     if (hasCoachLlmConfigured(userSettings)) {
         try {
             return await askCoachLlm(
@@ -29,17 +34,16 @@ export async function askCoach(question, activities, userSettings, options = {})
                 options.recentHistory || [],
             );
         } catch (err) {
-            const local = answerCoachQuestion(question, activities, userSettings, { weeklyHoursTarget: weeklyHours });
+            const fallback = answerCoachQuestion(question, activities, userSettings, { weeklyHoursTarget: weeklyHours });
             return {
-                ...local,
+                title: '',
+                answer: `${fallback.answer}\n\n(AI unavailable: ${err.message}. Showing local analysis.)`,
                 source: 'local',
-                answer: `${local.answer}\n\n(AI unavailable: ${err.message}. Showing local analysis.)`,
             };
         }
     }
 
-    const local = answerCoachQuestion(question, activities, userSettings, { weeklyHoursTarget: weeklyHours });
-    return { ...local, source: 'local' };
+    return { title: '', answer: local.answer, source: 'local' };
 }
 
 export { hasCoachLlmConfigured };

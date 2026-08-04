@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { MessageCircle, Send, Sparkles, Loader2, Brain, Cpu } from 'lucide-react';
 import { COACH_QUICK_QUESTIONS } from '../../utils/coach/coachQaEngine';
 import { askCoach, hasCoachLlmConfigured } from '../../utils/coach/coachAskService';
+import { splitCoachAnswerLead, stripMarkdownBold } from '../../utils/coach/coachAnswerFormat';
 
 const CoachAskPanel = ({ activities, userSettings, weeklyHoursTarget }) => {
     const [question, setQuestion] = useState('');
@@ -30,7 +31,6 @@ const CoachAskPanel = ({ activities, userSettings, weeklyHoursTarget }) => {
                 {
                     id: Date.now(),
                     question: q,
-                    title: result.title,
                     answer: result.answer,
                     source: result.source,
                 },
@@ -87,7 +87,7 @@ const CoachAskPanel = ({ activities, userSettings, weeklyHoursTarget }) => {
                 ))}
             </div>
 
-            <div className="p-4 max-h-96 overflow-y-auto custom-scrollbar space-y-4 min-h-[140px]">
+            <div className="p-4 max-h-[28rem] overflow-y-auto custom-scrollbar space-y-4 min-h-[140px]">
                 {history.length === 0 && !loading && (
                     <p className="text-sm text-cdmuted text-center py-6 flex flex-col items-center gap-2">
                         <Sparkles size={20} className="text-cdaccent opacity-60" />
@@ -95,26 +95,7 @@ const CoachAskPanel = ({ activities, userSettings, weeklyHoursTarget }) => {
                     </p>
                 )}
                 {history.map((entry) => (
-                    <div key={entry.id} className="space-y-2">
-                        <p className="text-xs text-cdmuted text-right">{entry.question}</p>
-                        <div
-                            className={`rounded-lg p-3 border-l-4 ${
-                                entry.source === 'llm'
-                                    ? 'bg-purple-500/10 border-l-purple-400'
-                                    : 'bg-cdborder/25 border-l-cdaccent'
-                            }`}
-                        >
-                            <div className="flex items-center justify-between gap-2 mb-1">
-                                <p className="text-sm font-bold text-cdtext">{entry.title}</p>
-                                <span className="text-[9px] uppercase text-cdmuted font-bold">
-                                    {entry.source === 'llm' ? 'AI' : 'Local'}
-                                </span>
-                            </div>
-                            <p className="text-sm text-cdtext leading-relaxed whitespace-pre-line">
-                                {entry.answer.replace(/\*\*/g, '')}
-                            </p>
-                        </div>
-                    </div>
+                    <CoachAnswerBlock key={entry.id} entry={entry} />
                 ))}
                 {loading && (
                     <div className="flex items-center justify-center gap-2 py-6 text-sm text-cdmuted">
@@ -145,5 +126,52 @@ const CoachAskPanel = ({ activities, userSettings, weeklyHoursTarget }) => {
         </div>
     );
 };
+
+function CoachAnswerBlock({ entry }) {
+    const [showFull, setShowFull] = useState(false);
+    const cleanAnswer = stripMarkdownBold(entry.answer);
+    const { lead, body } = splitCoachAnswerLead(cleanAnswer);
+    const displayBody = body || (!lead ? cleanAnswer : '');
+    const isLong = displayBody.length > 900;
+    const visibleBody = isLong && !showFull ? `${displayBody.slice(0, 900).trim()}…` : displayBody;
+
+    return (
+        <div className="space-y-2">
+            <p className="text-xs text-cdmuted text-right">{entry.question}</p>
+            <div
+                className={`rounded-lg p-3 border-l-4 ${
+                    entry.source === 'llm'
+                        ? 'bg-purple-500/10 border-l-purple-400'
+                        : 'bg-cdborder/25 border-l-cdaccent'
+                }`}
+            >
+                <div className="flex justify-end mb-1">
+                    <span className="text-[9px] uppercase text-cdmuted font-bold">
+                        {entry.source === 'llm' ? 'AI' : 'Local'}
+                    </span>
+                </div>
+                {lead && (
+                    <p className="text-sm font-bold text-cdtext leading-relaxed whitespace-pre-line">
+                        {lead}
+                    </p>
+                )}
+                {displayBody && (
+                    <p className={`text-sm text-cdtext leading-relaxed whitespace-pre-line ${lead ? 'mt-2' : ''}`}>
+                        {visibleBody}
+                    </p>
+                )}
+                {isLong && (
+                    <button
+                        type="button"
+                        onClick={() => setShowFull((v) => !v)}
+                        className="mt-2 text-xs font-medium text-cdaccent hover:underline"
+                    >
+                        {showFull ? 'Show less' : 'Show full answer'}
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+}
 
 export default CoachAskPanel;
