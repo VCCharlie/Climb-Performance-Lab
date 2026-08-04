@@ -15,6 +15,7 @@ import {
   EXPLORER_PRESETS,
   EXPLORER_VIEW_MODES,
   EXPLORER_VIEW_OPTIONS,
+  formatPlaygroundAxisTick,
 } from '../../../utils/coach/coachPlaygroundMetrics.js';
 import { buildExplorerData, RIDE_ENVIRONMENT } from '../../../utils/coach/coachPlaygroundExplorer.js';
 import {
@@ -340,8 +341,19 @@ export default function PlaygroundExplorerPanel({ activities }) {
           <ComposedChart data={explorer.timelineData} margin={{ top: 8, right: 48, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={THEME.grid} opacity={0.5} />
             <XAxis dataKey="label" tick={{ fill: THEME.text, fontSize: 10 }} interval="preserveStartEnd" />
-            <YAxis yAxisId="left" tick={{ fill: THEME.text, fontSize: 11 }} width={48} />
-            <YAxis yAxisId="right" orientation="right" tick={{ fill: THEME.text, fontSize: 11 }} width={48} />
+            <YAxis
+              yAxisId="left"
+              tick={{ fill: THEME.text, fontSize: 11 }}
+              width={48}
+              tickFormatter={(v) => formatPlaygroundAxisTick(v, { decimals: explorer.xMeta.decimals, unit: explorer.xMeta.unit })}
+            />
+            <YAxis
+              yAxisId="right"
+              orientation="right"
+              tick={{ fill: THEME.text, fontSize: 11 }}
+              width={48}
+              tickFormatter={(v) => formatPlaygroundAxisTick(v, { decimals: explorer.yMeta.decimals, unit: explorer.yMeta.unit })}
+            />
             <Tooltip content={<DualTimelineTooltip xUnit={explorer.xMeta.unit} yUnit={explorer.yMeta.unit} />} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
             <Line yAxisId="left" type="monotone" dataKey="xValue" name={explorer.xMeta.label} stroke={THEME.xLine} strokeWidth={2} dot={{ r: 3 }} connectNulls />

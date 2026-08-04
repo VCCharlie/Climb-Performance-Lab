@@ -255,6 +255,8 @@ function TrendsPanel({ activities }) {
                         data={trendData.chartData}
                         chartType={chartType}
                         metricLabel={metric.label}
+                        metricUnit={metric.unit}
+                        metricDecimals={metric.decimals}
                         showTrend
                         showMax={showMax}
                         showMaxTrend={showMaxTrend}

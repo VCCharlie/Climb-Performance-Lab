@@ -216,3 +216,24 @@ export function roundExplorerValue(value, metric) {
     const factor = 10 ** decimals;
     return Math.round(value * factor) / factor;
 }
+
+/**
+ * Format chart axis ticks — avoids float noise like 3.3699999999999999.
+ * @param {number} value
+ * @param {{ decimals?: number, unit?: string }} [options]
+ */
+export function formatPlaygroundAxisTick(value, options = {}) {
+    if (value == null || Number.isNaN(Number(value))) return '';
+    const n = Number(value);
+    let decimals = options.decimals;
+    if (decimals == null) {
+        if (options.unit === 'h') decimals = 1;
+        else if (Math.abs(n) >= 100) decimals = 0;
+        else if (Math.abs(n) >= 10) decimals = 1;
+        else decimals = 2;
+    }
+    const factor = 10 ** decimals;
+    const rounded = Math.round(n * factor) / factor;
+    if (decimals <= 0) return String(rounded);
+    return rounded.toFixed(decimals).replace(/\.?0+$/, '');
+}
