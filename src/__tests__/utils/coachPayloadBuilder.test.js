@@ -69,6 +69,14 @@ describe('buildCoachContext', () => {
         expect(ctx.weekPlanSummary.sessions).toHaveLength(7);
     });
 
+    it('includes activityLog with distance summaries', () => {
+        const ctx = buildCoachContext(sampleActivities, { ftp: 250 });
+        expect(ctx.activityLog).toBeTruthy();
+        expect(ctx.activityLog.totals.distanceKm).toBeGreaterThan(0);
+        expect(ctx.periodSummary.distanceKm28d).toBeGreaterThan(0);
+        expect(ctx.activityLog.rides[0].distance).toBeDefined();
+    });
+
     it('uses estimated 20-min FTP when ftpSource is estimated_20', () => {
         const activities = [
             { id: '1', date: '2026-07-28', best_20min: 300, load: 50, norm_power: 180, moving_time: 3600 },

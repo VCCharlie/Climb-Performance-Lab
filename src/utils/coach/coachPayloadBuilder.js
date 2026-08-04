@@ -20,6 +20,7 @@ import {
     weeklyTssTarget,
 } from './coachHelpers';
 import { buildCoachPowerHistory } from './coachPowerHistory';
+import { buildCoachActivityLog } from './coachActivityLog';
 import { buildTodayFocus } from './coachTodayFocus';
 import { buildFluidWeekPlan } from './coachWeekPlan';
 
@@ -103,6 +104,17 @@ export function buildCoachContext(activities, userSettings, options = {}) {
     const activities28d = filterActivitiesInRange(activities, startYmd28, endYmd);
     const activities7d = filterActivitiesInRange(activities, startYmd7, endYmd);
 
+    let distance28d = 0;
+    let elevation28d = 0;
+    let distance7d = 0;
+    for (const a of activities28d) {
+        distance28d += Number(a.distance) || 0;
+        elevation28d += Number(a.climbing) || 0;
+    }
+    for (const a of activities7d) {
+        distance7d += Number(a.distance) || 0;
+    }
+
     const intensityProfile = computeIntensityProfile(activities, ftp, 14);
 
     const best20min = bestInRange(activities28d, 'best_20min');
@@ -156,6 +168,9 @@ export function buildCoachContext(activities, userSettings, options = {}) {
             hours28d: Math.round(
                 activities28d.reduce((s, a) => s + movingTimeSec(a.moving_time), 0) / 3600 * 10
             ) / 10,
+            distanceKm28d: Math.round(distance28d * 10) / 10,
+            elevationM28d: Math.round(elevation28d),
+            distanceKm7d: Math.round(distance7d * 10) / 10,
             tss28d: Math.round(sumTss(activities28d)),
         },
         compliance: {
@@ -177,6 +192,7 @@ export function buildCoachContext(activities, userSettings, options = {}) {
     }
 
     const powerHistory = buildCoachPowerHistory(activities, userSettings, ftp);
+    const activityLog = buildCoachActivityLog(activities, ftp, { endYmd });
     const todayFocus = buildTodayFocus(activities, ftp, fluidWorkout, endYmd);
 
     const weekPlan = buildFluidWeekPlan({
@@ -223,6 +239,7 @@ export function buildCoachContext(activities, userSettings, options = {}) {
         fluidWorkout,
         warnings,
         powerHistory,
+        activityLog,
         todayFocus,
         weekPlanSummary,
         generatedAt: new Date().toISOString(),
