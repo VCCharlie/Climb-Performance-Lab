@@ -59,6 +59,9 @@ describe('buildCoachContext', () => {
         const ctx = buildCoachContext(sampleActivities, { ftp: 250 });
         expect(typeof ctx.fitness.ctl).toBe('number');
         expect(typeof ctx.fitness.tsb).toBe('number');
+        expect(ctx.fitnessHistory).toBeTruthy();
+        expect(ctx.fitnessHistory.source).toBe('local');
+        expect(Array.isArray(ctx.fitnessHistory.dailyLast14d)).toBe(true);
     });
 
     it('includes todayFocus and weekPlanSummary', () => {

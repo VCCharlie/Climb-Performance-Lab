@@ -23,6 +23,7 @@ import { buildCoachPowerHistory } from './coachPowerHistory';
 import { buildCoachActivityLog } from './coachActivityLog';
 import { buildTodayFocus } from './coachTodayFocus';
 import { buildFluidWeekPlan } from './coachWeekPlan';
+import { buildFitnessHistoryForCoach } from './coachFitnessHistory';
 
 function computeIntensityProfile(activities, ftp, lookbackDays = 14) {
     const endYmd = todayYmd();
@@ -131,6 +132,11 @@ export function buildCoachContext(activities, userSettings, options = {}) {
     const atl7 = fitness7dAgo?.atl ?? atl;
     const tsb7 = fitness7dAgo?.tsb ?? tsb;
 
+    const fitnessHistory = buildFitnessHistoryForCoach(fitnessSeries, {
+        source: 'local',
+        endYmd,
+    });
+
     const coachFeatures = {
         athlete: {
             ftp,
@@ -149,7 +155,9 @@ export function buildCoachContext(activities, userSettings, options = {}) {
             atlDelta7d: Math.round((atl - atl7) * 10) / 10,
             tsbTrend: tsb > tsb7 + 3 ? 'rising' : tsb < tsb7 - 3 ? 'falling' : 'stable',
             asOfDate: latestFitness?.date || endYmd,
+            source: 'local',
         },
+        fitnessHistory,
         weeklyLoad: {
             targetTss,
             actualTss: Math.round(actualTss7d),

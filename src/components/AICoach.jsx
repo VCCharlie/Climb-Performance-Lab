@@ -38,7 +38,7 @@ function formatVsPrimaryPct(pct) {
     return `${sign}${Math.round(pct)}% vs. selected period`;
 }
 
-const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, startDate, endDate, isSignedIn = false }) => {
+const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, startDate, endDate, isSignedIn = false, intervalsConfig }) => {
     const activitiesFromContext = useActivitiesList();
     const activities = activitiesProp ?? activitiesFromContext;
     const profileFtp = useProfileFtp();
@@ -549,6 +549,7 @@ ${workout.zwoSteps.map(step => {
                 activities={activities}
                 userSettings={userSettings}
                 weeklyHoursTarget={weeklyHoursTarget}
+                intervalsConfig={intervalsConfig}
             />
 
             <CoachDataPlayground

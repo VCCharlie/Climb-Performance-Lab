@@ -999,6 +999,7 @@ const App = () => {
                                                         startDate={globalStartDate}
                                                         endDate={globalEndDate}
                                                         isSignedIn={Boolean(user)}
+                                                        intervalsConfig={intervalsConfig}
                                                     />
                                                 )}
                                                 {trainingSubTab === 'goal' && (
