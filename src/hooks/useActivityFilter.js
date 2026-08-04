@@ -8,6 +8,7 @@ import {
     activityAvgSpeedKmh,
     parseNumericBound,
     inNumericRange,
+    activityMatchesLogSearch,
 } from '../utils/activityFilterMetrics';
 import { compareActivitiesForSort } from '../utils/activitySort';
 import { resolveActivityType } from '../utils/activityVenue';
@@ -281,40 +282,9 @@ const useActivityFilter = (activities, profileFtp) => {
                 }
             }
 
-            if (!searchLower) return true;
+            if (!activityMatchesLogSearch(a, searchLower)) return false;
 
-            if (a.title && a.title.toLowerCase().includes(searchLower)) return true;
-
-            if (a.date) {
-                if (a.date.includes(searchLower)) return true;
-
-                const ymdMatch = String(a.date).match(/^(\d{4})-(\d{2})-(\d{2})/);
-                if (ymdMatch) {
-                    const year = ymdMatch[1];
-                    const monthStr = ymdMatch[2];
-                    const dayStr = ymdMatch[3];
-                    const dayNum = parseInt(dayStr, 10);
-                    const monthNum = parseInt(monthStr, 10);
-                    const dmy = `${dayNum}-${monthNum}-${year}`;
-                    const ddmm = `${dayStr}-${monthStr}-${year}`;
-                    if (dmy.includes(searchLower) || ddmm.includes(searchLower)) return true;
-                } else {
-                    try {
-                        const d = new Date(a.date);
-                        if (!Number.isNaN(d.getTime())) {
-                            const day = d.getDate();
-                            const month = d.getMonth() + 1;
-                            const year = d.getFullYear();
-                            const dmy = `${day}-${month}-${year}`;
-                            const ddmm = `${day.toString().padStart(2, '0')}-${month.toString().padStart(2, '0')}-${year}`;
-                            if (dmy.includes(searchLower) || ddmm.includes(searchLower)) return true;
-                        }
-                    } catch {
-                        /* invalid date */
-                    }
-                }
-            }
-            return false;
+            return true;
         };
 
         const forGearOptions = [];

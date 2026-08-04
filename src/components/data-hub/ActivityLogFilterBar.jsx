@@ -170,8 +170,8 @@ const ActivityLogFilterBar = ({
                         type="search"
                         value={search}
                         onChange={(e) => onSearchChange(e.target.value)}
-                        placeholder="Search (name or 4-2-2024)..."
-                        aria-label="Search activities by name or date"
+                        placeholder="Search (name, description, or 4-2-2024)..."
+                        aria-label="Search activities by name, description, or date"
                         className="w-full min-h-9 bg-cdbg border border-cdborder rounded pl-10 pr-4 py-2 text-sm text-cdtext outline-none focus:border-yellow-400"
                     />
                 </div>
