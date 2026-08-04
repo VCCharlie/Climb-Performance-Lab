@@ -86,23 +86,14 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
         <div className="fixed inset-0 bg-cdbg/95 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-cdsurface border border-cdborder rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden relative">
 
-                {/* Header */}
-                <div className="flex-shrink-0 p-4 border-b border-cdborder bg-cdbg flex justify-between items-start">
-                    <div>
+                {/* Header — title & links only; long descriptions live in scrollable body */}
+                <div className="flex-shrink-0 p-4 border-b border-cdborder bg-cdbg flex justify-between items-start gap-3">
+                    <div className="min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                             <span className="bg-cdborder text-cdtext text-[10px] font-bold px-2 py-0.5 rounded uppercase">{activity.type}</span>
                             <span className="text-cdmuted text-xs flex items-center gap-1"><Calendar size={12} /> {formatDateDDMMYYYY(activity.date)}</span>
                         </div>
-                        <h2 className="text-xl font-bold text-cdtext">{activity.title}</h2>
-                        {displayDescription ? (
-                            <p className="text-sm text-cdmuted mt-2 leading-relaxed whitespace-pre-wrap border-l-2 border-cdaccent/40 pl-3">
-                                {displayDescription}
-                            </p>
-                        ) : activity.strava_id ? (
-                            <p className="text-[11px] text-cdmuted mt-2 italic">
-                                No Strava description stored yet. Run Activities → Strava descriptions backfill, or it will appear here after Strava loads.
-                            </p>
-                        ) : null}
+                        <h2 className="text-xl font-bold text-cdtext break-words">{activity.title}</h2>
                         <div className="flex items-center gap-4 mt-2 flex-wrap">
                             {activity.id && !String(activity.id).startsWith('csv_') && (
                                 <a href={`https://intervals.icu/activities/${activity.id}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm px-1 py-0.5 -ml-1">
@@ -119,23 +110,37 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
                     <button
                         type="button"
                         onClick={onClose}
-                        className="p-2 hover:bg-cdsurface rounded-full text-cdmuted hover:text-cdtext focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                        className="p-2 hover:bg-cdsurface rounded-full text-cdmuted hover:text-cdtext focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none shrink-0"
                         aria-label="Close modal"
                     >
                         <X size={20} />
                     </button>
                 </div>
 
-                {/* Body */}
-                <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-6">
-
-                    {/* Primary Stats */}
+                {/* Primary stats — pinned so long descriptions never push them off-screen */}
+                <div className="flex-shrink-0 px-4 py-3 border-b border-cdborder bg-cdsurface">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         <StatBox label="Time" value={formatTime(activity.moving_time)} unit="" icon={Clock} color="text-blue-500" />
                         <StatBox label="Distance" value={Number(activity.distance).toFixed(1)} unit="km" icon={MapPin} color="text-green-500" />
                         <StatBox label="Elevation" value={activity.climbing} unit="m" icon={Mountain} color="text-yellow-500" />
                         <StatBox label="Load" value={activity.load} unit="TSS" icon={TrendingUp} color="text-purple-500" />
                     </div>
+                </div>
+
+                {/* Body */}
+                <div className="flex-1 min-h-0 overflow-y-auto p-4 custom-scrollbar space-y-6">
+                    {displayDescription ? (
+                        <section aria-label="Activity description">
+                            <h3 className="text-xs uppercase font-bold text-cdmuted mb-2">Description</h3>
+                            <div className="max-h-40 overflow-y-auto custom-scrollbar text-sm text-cdmuted leading-relaxed whitespace-pre-wrap border border-cdborder/50 rounded-lg p-3 bg-cdbg/30">
+                                {displayDescription}
+                            </div>
+                        </section>
+                    ) : activity.strava_id ? (
+                        <p className="text-[11px] text-cdmuted italic">
+                            No Strava description stored yet. Run Activities → Strava descriptions backfill, or it will appear here after Strava loads.
+                        </p>
+                    ) : null}
 
                     {/* Gear */}
                     {activity.gear_name && (
