@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import {
     summarizeFluidWeekPattern,
+    summarizeAlternatingWeekPattern,
     projectFtpScenarios,
     projectFitnessMilestones,
     buildCoachPlanOutlook,
+    buildTargetFtpOutlook,
 } from '../../utils/coach/coachPlanOutlook';
 
 const templateSessions = [
@@ -58,7 +60,7 @@ describe('coachPlanOutlook', () => {
                 unavailableDates: [],
             },
             coachFeatures: {
-                athlete: { ftp: 260 },
+                athlete: { ftp: 260, targetFtp: 300 },
                 fitness: { ctl: 50, atl: 55, tsb: -5 },
             },
             activities: [],
@@ -68,6 +70,64 @@ describe('coachPlanOutlook', () => {
         expect(outlook.weeklyPattern.plannedWeeklyTss).toBeGreaterThan(0);
         expect(outlook.ftpScenarios).toHaveLength(3);
         expect(outlook.fitnessMilestones).toHaveLength(3);
+        expect(outlook.targetFtpOutlook.targetFtp).toBe(300);
+        expect(outlook.targetFtpOutlook.gapWatts).toBe(40);
         expect(outlook.assumptions.length).toBeGreaterThan(0);
+    });
+
+    it('includes week 2 when provided', () => {
+        const week2Sessions = templateSessions.map((s, i) => ({
+            ...s,
+            plannedStimulus: i === 3 ? 'threshold' : s.plannedStimulus,
+        }));
+        const outlook = buildCoachPlanOutlook({
+            weekPlan: {
+                mondayYmd: '2026-08-03',
+                sundayYmd: '2026-08-09',
+                sessions: templateSessions,
+            },
+            week2Plan: {
+                mondayYmd: '2026-08-10',
+                sundayYmd: '2026-08-16',
+                sessions: week2Sessions,
+            },
+            coachFeatures: {
+                athlete: { ftp: 260 },
+                fitness: { ctl: 50 },
+            },
+            activities: [],
+            weeklyHours: 5,
+            referenceYmd: '2026-08-05',
+        });
+        expect(outlook.includeWeek2).toBe(true);
+        expect(outlook.week2Range.mondayYmd).toBe('2026-08-10');
+        expect(outlook.weeklyPattern.week2Pattern).toBeTruthy();
+    });
+
+    it('buildTargetFtpOutlook estimates weeks to target', () => {
+        const ftpScenarios = projectFtpScenarios({
+            currentFtp: 250,
+            templateSessions,
+            weeklyHours: 5,
+            currentCtl: 45,
+        });
+        const target = buildTargetFtpOutlook({
+            currentFtp: 250,
+            targetFtp: 280,
+            ftpScenarios,
+        });
+        expect(target.gapWatts).toBe(30);
+        expect(target.estimatedWeeksToTarget).toBeGreaterThan(0);
+        expect(target.milestones[0].reachesTarget).toBe(false);
+    });
+
+    it('summarizeAlternatingWeekPattern averages two weeks', () => {
+        const week2 = templateSessions.map((s) => ({
+            ...s,
+            plannedStimulus: 'rest',
+        }));
+        const pattern = summarizeAlternatingWeekPattern(templateSessions, week2, 5);
+        expect(pattern.week2Pattern).toBeTruthy();
+        expect(pattern.plannedWeeklyTss).toBeLessThan(summarizeFluidWeekPattern(templateSessions, 5).plannedWeeklyTss);
     });
 });

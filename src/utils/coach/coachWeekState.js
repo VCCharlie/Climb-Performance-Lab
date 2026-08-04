@@ -335,3 +335,15 @@ export function dispatchCoachWeekUpdated() {
         window.dispatchEvent(new CustomEvent(COACH_WEEK_UPDATED_EVENT));
     }
 }
+
+export const COACH_WEEK2_ENABLED_KEY = 'coach_fluid_week2_enabled';
+
+export function readCoachWeek2Enabled() {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem(COACH_WEEK2_ENABLED_KEY) === '1';
+}
+
+export function writeCoachWeek2Enabled(enabled) {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(COACH_WEEK2_ENABLED_KEY, enabled ? '1' : '0');
+}

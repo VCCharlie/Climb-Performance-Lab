@@ -65,10 +65,16 @@ describe('buildCoachContext', () => {
     });
 
     it('includes planOutlook from fluid week plan', () => {
-        const ctx = buildCoachContext(sampleActivities, { ftp: 250, weeklyHoursTarget: 5 });
+        const ctx = buildCoachContext(sampleActivities, {
+            ftp: 250,
+            weeklyHoursTarget: 5,
+            goals: { targetFtp: 280 },
+        });
         expect(ctx.planOutlook).toBeTruthy();
         expect(ctx.planOutlook.weeklyPattern.plannedWeeklyTss).toBeGreaterThan(0);
         expect(ctx.planOutlook.ftpScenarios.length).toBe(3);
+        expect(ctx.planOutlook.targetFtpOutlook.targetFtp).toBe(280);
+        expect(ctx.athlete.targetFtp).toBe(280);
         expect(ctx.weekPlanSummary.sessions[0].estimatedTss).toBeDefined();
     });
 

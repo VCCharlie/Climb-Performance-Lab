@@ -12,11 +12,9 @@ import CoachPeriodReview from './coach/CoachPeriodReview';
 import CoachFluidWeekPlan from './coach/CoachFluidWeekPlan';
 import CoachFitnessForecast from './coach/CoachFitnessForecast';
 import CollapsibleSection from './ui/CollapsibleSection';
-import { buildFluidWeekPlan } from '../utils/coach/coachWeekPlan';
-import { addDaysToYmd } from '../utils/dashboardVolumeTotals';
+import { buildFluidWeekPlan, buildProjectedWeek2Plan } from '../utils/coach/coachWeekPlan';
 import { todayYmd } from '../utils/coach/coachHelpers';
-import { projectWeekEndTsb } from '../utils/coach/coachFitnessForecast';
-import { COACH_WEEK_UPDATED_EVENT } from '../utils/coach/coachWeekState';
+import { COACH_WEEK_UPDATED_EVENT, readCoachWeek2Enabled, writeCoachWeek2Enabled } from '../utils/coach/coachWeekState';
 import {
     hydrateTrainingPlanSnapshot,
     readTrainingPlanSnapshot,
@@ -54,7 +52,7 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
     const [coachGoalId, setCoachGoalId] = useState('auto');
     const weeklyHoursTarget = Number(userSettings?.weeklyHoursTarget) || 5;
     const [planRevision, setPlanRevision] = useState(0);
-    const [showNextWeek, setShowNextWeek] = useState(false);
+    const [showNextWeek, setShowNextWeek] = useState(() => readCoachWeek2Enabled());
     const [coachWeekRevision, setCoachWeekRevision] = useState(0);
 
     const updateWeeklyHours = (hours) => {
@@ -395,8 +393,11 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
     );
 
     const coachContext = useMemo(
-        () => buildCoachContext(activities, userSettings, { weeklyHoursTarget }),
-        [activities, userSettings, weeklyHoursTarget]
+        () => buildCoachContext(activities, userSettings, {
+            weeklyHoursTarget,
+            includeWeek2: showNextWeek,
+        }),
+        [activities, userSettings, weeklyHoursTarget, showNextWeek, coachWeekRevision],
     );
 
     useEffect(() => {
@@ -418,28 +419,14 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
 
     const week2Plan = useMemo(() => {
         if (!showNextWeek) return null;
-        const nextMonday = addDaysToYmd(fluidWeekPlan.mondayYmd, 7);
-        const week2Reference = referenceYmd >= nextMonday ? referenceYmd : nextMonday;
-        const projectedEndTsb = projectWeekEndTsb({
-            activities,
-            sessions: fluidWeekPlan.sessions,
-            weeklyHours: weeklyHoursTarget,
-            referenceYmd,
-        });
-        const week2CoachContext = {
-            ...coachContext,
-            fitness: {
-                ...coachContext.fitness,
-                tsb: projectedEndTsb,
-            },
-        };
-        return buildFluidWeekPlan({
+        return buildProjectedWeek2Plan({
             activities,
             userSettings,
-            coachContext: week2CoachContext,
-            referenceYmd: week2Reference,
+            week1Plan: fluidWeekPlan,
+            coachContext,
+            referenceYmd,
         });
-    }, [showNextWeek, fluidWeekPlan, activities, userSettings, coachContext, referenceYmd, coachWeekRevision, weeklyHoursTarget]);
+    }, [showNextWeek, fluidWeekPlan, activities, userSettings, coachContext, referenceYmd, coachWeekRevision]);
 
     const opportunitiesForDisplay = useMemo(() => {
         return swot.opportunities.map((o) =>
@@ -573,7 +560,13 @@ ${workout.zwoSteps.map(step => {
                 isSignedIn={isSignedIn}
                 weekPlan={fluidWeekPlan}
                 showNextWeek={showNextWeek}
-                onToggleNextWeek={() => setShowNextWeek((v) => !v)}
+                onToggleNextWeek={() => {
+                    setShowNextWeek((current) => {
+                        const next = !current;
+                        writeCoachWeek2Enabled(next);
+                        return next;
+                    });
+                }}
                 week2Plan={week2Plan}
             />
 
