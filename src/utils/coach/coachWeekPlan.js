@@ -220,12 +220,15 @@ export function buildFluidWeekPlan({ activities, userSettings, coachContext, ref
         preliminary,
         filterActivitiesInRange(activities, mondayYmd, sundayYmd),
         ftp,
+        { referenceYmd },
     );
 
     // Merge persisted matches (cross-device) when live matching has no result yet.
     const weekActivities = filterActivitiesInRange(activities, mondayYmd, sundayYmd);
     for (const [sessionDate, persisted] of Object.entries(weekState.sessionMatches || {})) {
         if (crossDayMatches.has(sessionDate)) continue;
+        // Drop stale persisted matches that counted yesterday's ride as today's workout.
+        if (sessionDate === referenceYmd && persisted.activityDate < referenceYmd) continue;
         const act = weekActivities.find(
             (a) => (persisted.activityId && a.id === persisted.activityId)
                 || normalizeDate(a.date) === persisted.activityDate,

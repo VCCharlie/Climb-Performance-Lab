@@ -110,6 +110,23 @@ describe('coachWeekPlan', () => {
         ]);
     });
 
+    it('buildFluidWeekPlan does not mark today done from yesterdays ride', () => {
+        const plan = buildFluidWeekPlan({
+            activities: [{ id: 'ride-1', date: '2026-08-03', norm_power: 200, load: 60 }],
+            userSettings: { weeklyHoursTarget: 5, ftp: 250 },
+            coachContext: { athlete: { ftp: 250 }, fitness: { tsb: 0 } },
+            referenceYmd: '2026-08-04',
+        });
+
+        const monday = plan.sessions.find((s) => s.date === '2026-08-03');
+        const tuesday = plan.sessions.find((s) => s.date === '2026-08-04');
+        expect(monday.completed).toBe(true);
+        expect(monday.flexNote).not.toMatch(/matched Tuesday/i);
+        expect(tuesday.completed).toBe(false);
+        expect(tuesday.stimulus).not.toBe('completed');
+        expect(tuesday.plannedStimulus).toBe('endurance');
+    });
+
     it('buildFluidWeekPlan restores persisted session matches', () => {
         writeCoachWeekState('2026-08-03', {
             sessionMatches: {
@@ -131,6 +148,29 @@ describe('coachWeekPlan', () => {
         const thursday = plan.sessions.find((s) => s.date === '2026-08-06');
         expect(thursday.completed).toBe(true);
         expect(thursday.matchedOnDate).toBe('2026-08-03');
+    });
+
+    it('buildFluidWeekPlan ignores stale persisted match onto today', () => {
+        writeCoachWeekState('2026-08-03', {
+            sessionMatches: {
+                '2026-08-04': {
+                    activityId: 'ride-1',
+                    activityDate: '2026-08-03',
+                    matchedStimulus: 'endurance',
+                },
+            },
+        });
+
+        const plan = buildFluidWeekPlan({
+            activities: [{ id: 'ride-1', date: '2026-08-03', norm_power: 200, load: 60 }],
+            userSettings: { weeklyHoursTarget: 5, ftp: 250 },
+            coachContext: { athlete: { ftp: 250 }, fitness: { tsb: 0 } },
+            referenceYmd: '2026-08-04',
+        });
+
+        const tuesday = plan.sessions.find((s) => s.date === '2026-08-04');
+        expect(tuesday.completed).toBe(false);
+        expect(tuesday.matchedOnDate).toBeNull();
     });
 
     it('applySessionMoves vacates source day', () => {
