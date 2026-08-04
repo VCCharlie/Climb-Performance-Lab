@@ -216,23 +216,45 @@ function planOutlookAnswer(ctx) {
     }
 
     const pattern = outlook.weeklyPattern;
+    const weekLabel = outlook.includeWeek2
+        ? 'alternating week 1 + week 2 fluid templates'
+        : 'your fluid week template';
     const lines = [
-        `Your fluid week template targets ~${pattern.plannedWeeklyTss} TSS/week `
-        + `(${pattern.qualitySessions} quality, ${pattern.enduranceSessions} endurance, ${pattern.restDays} rest days).`,
+        outlook.includeWeek2
+            ? `Your two-week plan averages ~${pattern.plannedWeeklyTss} TSS/week `
+            + `(${pattern.qualitySessions} quality, ${pattern.enduranceSessions} endurance, ${pattern.restDays} rest days).`
+            : `Your fluid week template targets ~${pattern.plannedWeeklyTss} TSS/week `
+            + `(${pattern.qualitySessions} quality, ${pattern.enduranceSessions} endurance, ${pattern.restDays} rest days).`,
     ];
 
     if (outlook.rebalanceNote) {
         lines.push(`This week: ${outlook.rebalanceNote}`);
     }
 
-    lines.push('\nIf you repeat this plan (~85% adherence):\n');
+    if (outlook.targetFtpOutlook && !outlook.targetFtpOutlook.alreadyAtTarget) {
+        const target = outlook.targetFtpOutlook;
+        lines.push(
+            `\nSettings target FTP: ${target.targetFtp}W (${target.gapWatts > 0 ? '+' : ''}${target.gapWatts}W from current ${target.currentFtp}W).`,
+        );
+        if (target.estimatedWeeksToTarget) {
+            lines.push(`At the projected mid gain rate, reaching ${target.targetFtp}W could take ~${target.estimatedWeeksToTarget} weeks.`);
+        }
+    }
+
+    lines.push(`\nIf you follow ${weekLabel} (~85% adherence):\n`);
 
     for (const ftp of outlook.ftpScenarios) {
         const fit = outlook.fitnessMilestones.find((m) => m.weeks === ftp.weeks);
         const fitnessPart = fit ? `; CTL ~${fit.ctl}, TSB ~${fit.tsb}` : '';
+        const targetMilestone = outlook.targetFtpOutlook?.milestones?.find((m) => m.weeks === ftp.weeks);
+        const targetPart = targetMilestone
+            ? (targetMilestone.reachesTarget
+                ? '; reaches your target FTP'
+                : `; still ~${targetMilestone.wattsToTarget}W below target`)
+            : '';
         lines.push(
             `• ${ftp.weeks} weeks: FTP ~${ftp.projectedFtpLow}–${ftp.projectedFtpHigh}W `
-            + `(mid ${ftp.projectedFtpMid}W, +${ftp.gainWattsMid}W)${fitnessPart}`,
+            + `(mid ${ftp.projectedFtpMid}W, +${ftp.gainWattsMid}W)${fitnessPart}${targetPart}`,
         );
     }
 

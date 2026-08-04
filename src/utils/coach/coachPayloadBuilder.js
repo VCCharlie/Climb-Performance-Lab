@@ -22,10 +22,11 @@ import {
 import { buildCoachPowerHistory } from './coachPowerHistory';
 import { buildCoachActivityLog } from './coachActivityLog';
 import { buildTodayFocus } from './coachTodayFocus';
-import { buildFluidWeekPlan } from './coachWeekPlan';
+import { buildFluidWeekPlan, buildProjectedWeek2Plan } from './coachWeekPlan';
 import { buildFitnessHistoryForCoach } from './coachFitnessHistory';
 import { buildCoachPlanOutlook } from './coachPlanOutlook';
 import { estimateSessionTss } from './coachSessionTss';
+import { readCoachWeek2Enabled } from './coachWeekState';
 
 function computeIntensityProfile(activities, ftp, lookbackDays = 14) {
     const endYmd = todayYmd();
@@ -145,6 +146,7 @@ export function buildCoachContext(activities, userSettings, options = {}) {
             ftpSource: profileFtp.source,
             weight: Number(userSettings?.weight) || null,
             weeklyHoursTarget: weeklyHours,
+            targetFtp: Number(userSettings?.goals?.targetFtp) || null,
             primaryGoal: options.primaryGoal || 'ftp_sustained_power',
             terrain: 'flat_polder',
             constraints: { hatesErgWorkouts: true, prefersOutdoor: true },
@@ -222,6 +224,26 @@ export function buildCoachContext(activities, userSettings, options = {}) {
         referenceYmd: endYmd,
     });
 
+    const includeWeek2 = options.includeWeek2 ?? readCoachWeek2Enabled();
+    const partialCoachContext = {
+        ...coachFeatures,
+        selectedStimulus,
+        stimulusRationale: rationale,
+        fluidWorkout,
+        warnings,
+        powerHistory,
+    };
+    const week2Plan = options.week2Plan
+        || (includeWeek2
+            ? buildProjectedWeek2Plan({
+                activities,
+                userSettings,
+                week1Plan: weekPlan,
+                coachContext: partialCoachContext,
+                referenceYmd: endYmd,
+            })
+            : null);
+
     const weekPlanSummary = {
         mondayYmd: weekPlan.mondayYmd,
         sundayYmd: weekPlan.sundayYmd,
@@ -245,10 +267,30 @@ export function buildCoachContext(activities, userSettings, options = {}) {
         availableDates: weekPlan.availableDates || [],
         availabilityNote: weekPlan.availabilityNote || null,
         rebalanceNote: weekPlan.rebalanceNote || null,
+        includeWeek2: Boolean(week2Plan?.sessions?.length),
+        week2: week2Plan?.sessions?.length
+            ? {
+                mondayYmd: week2Plan.mondayYmd,
+                sundayYmd: week2Plan.sundayYmd,
+                targetTss: week2Plan.targetTss,
+                sessions: week2Plan.sessions.map((s) => ({
+                    day: s.day,
+                    date: s.date,
+                    stimulus: s.plannedStimulus || s.stimulus,
+                    workoutName: s.workoutName,
+                    estimatedTss: estimateSessionTss(s.plannedStimulus || s.stimulus, weeklyHours),
+                    completed: s.completed,
+                    isUnavailable: s.isUnavailable || false,
+                })),
+                rebalanceNote: week2Plan.rebalanceNote || null,
+            }
+            : null,
     };
 
     const planOutlook = buildCoachPlanOutlook({
         weekPlan,
+        week2Plan,
+        targetFtp: coachFeatures.athlete.targetFtp,
         coachFeatures,
         activities,
         weeklyHours,

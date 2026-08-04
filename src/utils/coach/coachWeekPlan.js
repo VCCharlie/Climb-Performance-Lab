@@ -11,6 +11,7 @@ import { activityIF, filterActivitiesInRange, sumTss, todayYmd } from './coachHe
 import { readCoachWeekState } from './coachWeekState';
 import { matchSessionsToActivities, classifyActivityStimulus } from './coachSessionMatcher';
 import { applyAvailabilityRelocation } from './coachAvailability';
+import { projectWeekEndTsb } from './coachFitnessForecast';
 
 /**
  * Monday (ISO) of the week containing referenceYmd.
@@ -362,4 +363,43 @@ export function buildFluidWeekPlan({ activities, userSettings, coachContext, ref
         hasExplicitAvailability,
         sessions,
     };
+}
+
+/**
+ * Build week 2 fluid plan using projected end-of-week TSB from week 1.
+ * @param {object} params
+ * @returns {object | null}
+ */
+export function buildProjectedWeek2Plan({
+    activities,
+    userSettings,
+    week1Plan,
+    coachContext,
+    referenceYmd = todayYmd(),
+}) {
+    if (!week1Plan?.sessions?.length) return null;
+
+    const nextMonday = addDaysToYmd(week1Plan.mondayYmd, 7);
+    const week2Reference = referenceYmd >= nextMonday ? referenceYmd : nextMonday;
+    const weeklyHours = Number(userSettings?.weeklyHoursTarget) || 5;
+    const projectedEndTsb = projectWeekEndTsb({
+        activities,
+        sessions: week1Plan.sessions,
+        weeklyHours,
+        referenceYmd,
+    });
+    const week2CoachContext = {
+        ...coachContext,
+        fitness: {
+            ...coachContext?.fitness,
+            tsb: projectedEndTsb,
+        },
+    };
+
+    return buildFluidWeekPlan({
+        activities,
+        userSettings,
+        coachContext: week2CoachContext,
+        referenceYmd: week2Reference,
+    });
 }

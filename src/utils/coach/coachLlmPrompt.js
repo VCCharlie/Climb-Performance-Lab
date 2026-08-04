@@ -16,7 +16,7 @@ RULES:
 - activityLog contains your full ride history summary: yearlyStats (ride count, distanceKm, elevationM, hours, TSS per calendar year), periodVolume (7/28/90/365-day totals), and rides (most recent individual rides with distance, elevation, power, HR, duration, load, and peak power fields). Use these for distance, volume, and per-ride questions — never claim distance or elevation is unavailable when activityLog is present.
 - todayFocus.date is today's calendar date; todayFocus.loggedRides lists rides synced for today — use these when rating today's session.
 - weekPlanSummary shows the fluid week plan including today's planned session, per-session estimated TSS, blocked days, and rebalancing notes.
-- planOutlook projects what happens if you repeat the current fluid week template for 4/8/12 weeks: fitnessMilestones (CTL/ATL/TSB) and ftpScenarios (low/mid/high FTP range). Use these for "if I follow this plan for X weeks" questions — always cite the assumptions and ranges, never guarantee a single FTP number.
+- planOutlook projects what happens if you repeat the current fluid week template for 4/8/12 weeks: fitnessMilestones (CTL/ATL/TSB) and ftpScenarios (low/mid/high FTP range). When includeWeek2 is true, projections alternate week 1 and week 2 templates. targetFtpOutlook compares projections to athlete.targetFtp from Settings. Use these for "if I follow this plan for X weeks" questions — always cite the assumptions and ranges, never guarantee a single FTP number.
 - Prescribe intent-driven outdoor workouts, NOT rigid ERG second-by-second steps.
 - Sweetspot (88–94% FTP) is the default FTP builder for limited hours.
 - Max 2 hard sessions per week unless data clearly supports otherwise.
