@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { BarChart3, ChevronDown, ChevronRight, TrendingUp, Zap } from 'lucide-react';
+import { BarChart3, ChevronDown, ChevronRight, GitBranch, TrendingUp, Zap } from 'lucide-react';
 import {
     VOLUME_METRICS,
     HR_METRICS,
+    PERFORMANCE_METRICS,
     CHART_TYPES,
     CHART_TYPE_OPTIONS,
     VOLUME_STAT_MODES,
@@ -19,6 +20,7 @@ import { todayYmd } from '../../utils/coach/coachHelpers';
 import { boundsFromYmdRange } from '../../utils/dashboardActivityWindow';
 import PlaygroundVolumeChart from './playground/PlaygroundVolumeChart';
 import PlaygroundPowerPanel from './playground/PlaygroundPowerPanel';
+import PlaygroundExplorerPanel from './playground/PlaygroundExplorerPanel';
 
 const RANGE_PRESETS = [
     { id: '1y', label: '1 year', years: 1 },
@@ -47,7 +49,7 @@ const CoachDataPlayground = ({ activities }) => {
                         Data Playground
                     </h3>
                     <p className="text-xs text-cdmuted mt-1 leading-relaxed">
-                        Explore volume, heart rate, and power peaks — filter, compare, chart types, max values, and manual anomaly exclusions.
+                        Explore volume, heart rate, power, and cross-metric relationships — filter, compare, scatter plots, and manual anomaly exclusions.
                     </p>
                 </div>
                 {expanded ? <ChevronDown size={18} className="text-cdmuted shrink-0 mt-1" /> : <ChevronRight size={18} className="text-cdmuted shrink-0 mt-1" />}
@@ -57,11 +59,14 @@ const CoachDataPlayground = ({ activities }) => {
                 <div className="p-5 space-y-4">
                     <div className="flex flex-wrap gap-2">
                         <ModeButton active={mode === 'trends'} onClick={() => setMode('trends')} icon={TrendingUp} label="Volume & HR trends" />
+                        <ModeButton active={mode === 'explorer'} onClick={() => setMode('explorer')} icon={GitBranch} label="Metric explorer" />
                         <ModeButton active={mode === 'power'} onClick={() => setMode('power')} icon={Zap} label="Power rankings" />
                     </div>
 
                     {mode === 'trends' ? (
                         <TrendsPanel activities={activities} />
+                    ) : mode === 'explorer' ? (
+                        <PlaygroundExplorerPanel activities={activities} />
                     ) : (
                         <PlaygroundPowerPanel activities={activities} />
                     )}
@@ -143,6 +148,7 @@ function TrendsPanel({ activities }) {
     const metricOptions = [
         { group: 'Volume', options: VOLUME_METRICS },
         { group: 'Heart rate', options: HR_METRICS },
+        { group: 'Performance', options: PERFORMANCE_METRICS },
     ];
 
     return (
