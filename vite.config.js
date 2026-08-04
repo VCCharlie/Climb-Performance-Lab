@@ -38,7 +38,7 @@ export default defineConfig({
     injectBuildMetadata(),
     VitePWA({
       registerType: 'autoUpdate',
-      // SW registers via inline script at the top of index.html (earliest possible).
+      // SW registers in main.jsx after auth boot (see registerServiceWorker.js).
       injectRegister: false,
       scope: appBase,
       includeAssets: ['favicon.png', 'pwa-192.png', 'pwa-512.png', 'pwa-maskable-512.png', 'vite.svg'],
@@ -79,7 +79,8 @@ export default defineConfig({
         ],
       },
       workbox: {
-        skipWaiting: true,
+        // false = new SW waits until user taps "Reload now" (avoids automatic second page refresh on install).
+        skipWaiting: false,
         clientsClaim: true,
         navigateFallback: `${appBase}index.html`,
         // Do not register a second handler for request.mode === 'navigate' — NavigationRoute
