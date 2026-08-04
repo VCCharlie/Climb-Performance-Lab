@@ -6,6 +6,10 @@ import { analyzeTrainingPeriod } from './coachPeriodAnalysis';
 import { buildCoachContext } from './coachPayloadBuilder';
 import {
     compareFtpYearsAgo,
+    formatTopPowerEffortsAnswer,
+    parsePowerFieldFromQuestion,
+    parseTopLimitFromQuestion,
+    parseYearFromQuestion,
     parseYearsAgoFromQuestion,
 } from './coachPowerHistory';
 import { rateTodayRideAnswer } from './coachTodayFocus';
@@ -61,6 +65,17 @@ export function answerCoachQuestion(question, activities, userSettings, options 
         return formatAnswer(
             'Training volume check',
             volumeAnswer(ctx)
+        );
+    }
+
+    if (matchesTopPowerListQuestion(q)) {
+        const year = parseYearFromQuestion(q) ?? new Date().getFullYear();
+        const field = parsePowerFieldFromQuestion(q);
+        const limit = parseTopLimitFromQuestion(q);
+        const label = field === 'best_20min' ? '20-minute power' : '60-minute power';
+        return formatAnswer(
+            `Top ${limit} ${label} (${year})`,
+            formatTopPowerEffortsAnswer(ctx.powerHistory, year, field, limit),
         );
     }
 
@@ -148,6 +163,13 @@ export function answerCoachQuestion(question, activities, userSettings, options 
 
 function matches(q, keywords) {
     return keywords.some((k) => q.includes(k));
+}
+
+function matchesTopPowerListQuestion(q) {
+    const hasRank = (/\b(top|best)\b/.test(q) && /\b(5|10|five|ten|\d+)\b/.test(q))
+        || matches(q, ['top 10', 'top ten', 'best 10', '10 best', 'top 5', 'best 5']);
+    const hasDuration = matches(q, ['60', '20', '5 min', 'ftp', 'power', 'watt', 'minute']);
+    return hasRank && hasDuration;
 }
 
 function matchesTodayRideQuestion(q) {
