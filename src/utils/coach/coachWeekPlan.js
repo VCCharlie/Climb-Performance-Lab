@@ -9,7 +9,7 @@ import { buildFluidWorkout } from './fluidWorkoutTemplates';
 import { weeklyTssTarget } from './coachHelpers';
 import { activityIF, filterActivitiesInRange, sumTss, todayYmd } from './coachHelpers';
 import { readCoachWeekState } from './coachWeekState';
-import { matchSessionsToActivities } from './coachSessionMatcher';
+import { matchSessionsToActivities, classifyActivityStimulus } from './coachSessionMatcher';
 import { applyAvailabilityRelocation } from './coachAvailability';
 
 /**
@@ -222,13 +222,44 @@ export function buildFluidWeekPlan({ activities, userSettings, coachContext, ref
         ftp,
     );
 
+    // Merge persisted matches (cross-device) when live matching has no result yet.
+    const weekActivities = filterActivitiesInRange(activities, mondayYmd, sundayYmd);
+    for (const [sessionDate, persisted] of Object.entries(weekState.sessionMatches || {})) {
+        if (crossDayMatches.has(sessionDate)) continue;
+        const act = weekActivities.find(
+            (a) => (persisted.activityId && a.id === persisted.activityId)
+                || normalizeDate(a.date) === persisted.activityDate,
+        );
+        if (act && persisted.activityDate) {
+            crossDayMatches.set(sessionDate, {
+                activityId: act.id || persisted.activityId || null,
+                activityDate: persisted.activityDate,
+                matchedStimulus: persisted.matchedStimulus || classifyActivityStimulus(act, ftp) || 'endurance',
+            });
+        }
+    }
+
+    const activityDateToSessions = new Map();
+    for (const [sessionDate, match] of crossDayMatches.entries()) {
+        if (!activityDateToSessions.has(match.activityDate)) {
+            activityDateToSessions.set(match.activityDate, []);
+        }
+        activityDateToSessions.get(match.activityDate).push({ sessionDate, match });
+    }
+
     const sessions = preliminary.map((row) => {
         const match = crossDayMatches.get(row.date);
         const crossDayComplete = Boolean(match);
         const completed = row.sameDayComplete || crossDayComplete;
 
         let stimulus = row.stimulus;
-        if (completed && stimulus !== 'rest') {
+        let loggedRideStimulus = null;
+
+        if (row.sameDayComplete && row.plannedStimulus === 'rest' && !crossDayComplete) {
+            const ride = weekActivities.find((a) => normalizeDate(a.date) === row.date);
+            loggedRideStimulus = ride ? classifyActivityStimulus(ride, ftp) : null;
+            stimulus = 'completed';
+        } else if (completed && stimulus !== 'rest') {
             stimulus = 'completed';
         }
 
@@ -255,6 +286,24 @@ export function buildFluidWeekPlan({ activities, userSettings, coachContext, ref
         } else if (crossDayComplete && match) {
             const matchDay = preliminary.find((s) => s.date === match.activityDate)?.day || match.activityDate;
             flexNote = `Completed via ${matchDay} ride (${match.matchedStimulus} detected).`;
+        } else if (row.sameDayComplete && row.plannedStimulus === 'rest') {
+            const fulfilled = activityDateToSessions.get(row.date) || [];
+            if (fulfilled.length > 0) {
+                const targets = fulfilled.map(({ sessionDate, match: m }) => {
+                    const day = preliminary.find((s) => s.date === sessionDate)?.day || sessionDate;
+                    return `${day} ${m.matchedStimulus}`;
+                }).join(', ');
+                flexNote = `Ride logged${loggedRideStimulus ? ` (${loggedRideStimulus})` : ''} — matched ${targets}.`;
+            } else {
+                flexNote = loggedRideStimulus
+                    ? `Ride logged (${loggedRideStimulus}) on a rest day.`
+                    : 'Ride logged on a rest day.';
+            }
+        }
+
+        let workoutName = fluidWorkout?.name || (stimulus === 'rest' ? 'Rest' : stimulus === 'completed' ? 'Done' : row.session);
+        if (row.sameDayComplete && row.plannedStimulus === 'rest') {
+            workoutName = loggedRideStimulus ? `Ride logged (${loggedRideStimulus})` : 'Ride logged';
         }
 
         return {
@@ -263,12 +312,14 @@ export function buildFluidWeekPlan({ activities, userSettings, coachContext, ref
             completed,
             matchedOnDate: match?.activityDate || null,
             matchedStimulus: match?.matchedStimulus || null,
+            matchedActivityId: match?.activityId || null,
+            loggedRideStimulus,
             flexNote,
             isUnavailable: row.isUnavailable,
             isExplicitlyAvailable: row.isExplicitlyAvailable,
             relocatedFromDate: row.relocatedFromDate,
             fluidWorkout,
-            workoutName: fluidWorkout?.name || (stimulus === 'rest' ? 'Rest' : stimulus === 'completed' ? 'Done' : row.session),
+            workoutName,
         };
     });
 

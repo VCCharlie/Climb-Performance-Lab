@@ -166,6 +166,12 @@ function pickRelocationSlot(skeletonRows, assignment, unavailable, available, it
     for (const date of candidates) {
         const slot = assignment.get(date);
         if (!slot || slot.relocatedFromDate) continue;
+
+        // Do not bump today's native workout — keep the planned session for today.
+        if (date === referenceYmd && isWorkout(slot.plannedStimulus) && !available.has(date)) {
+            continue;
+        }
+
         const slotRank = STIMULUS_RANK[slot.plannedStimulus] ?? 0;
         const itemRank = STIMULUS_RANK[item.stimulus] ?? 0;
         if (itemRank > slotRank) {

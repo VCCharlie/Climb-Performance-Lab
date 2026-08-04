@@ -12,6 +12,28 @@ import {
     POWER_PEAK_FIELDS,
 } from './coachPlaygroundMetrics';
 
+export const RIDE_ENVIRONMENT = {
+    ALL: 'all',
+    OUTDOOR: 'outdoor',
+    INDOOR: 'indoor',
+};
+
+/**
+ * @param {object} activity
+ */
+export function isIndoorActivity(activity) {
+    const t = String(activity?.type || '').toLowerCase();
+    return t === 'virtualride' || t.includes('virtual') || t.includes('indoor');
+}
+
+function filterByEnvironment(activities, rideEnvironment) {
+    if (!rideEnvironment || rideEnvironment === RIDE_ENVIRONMENT.ALL) return activities;
+    if (rideEnvironment === RIDE_ENVIRONMENT.INDOOR) {
+        return activities.filter((a) => isIndoorActivity(a));
+    }
+    return activities.filter((a) => !isIndoorActivity(a));
+}
+
 function isRideType(type) {
     const t = String(type || '').toLowerCase();
     return t.includes('ride') || t.includes('virtual') || t.includes('gravel') || t.includes('mountain');
@@ -133,9 +155,11 @@ export function buildExplorerData(activities, options = {}) {
         sizeMetric = '',
         topN = 10,
         maxPoints = 500,
+        rideEnvironment = RIDE_ENVIRONMENT.ALL,
+        excludeZeros = false,
     } = options;
 
-    const rides = filterRides(activities);
+    const rides = filterByEnvironment(filterRides(activities), rideEnvironment);
     const filtered = startYmd && endYmd
         ? filterActivitiesInRange(rides, startYmd, endYmd)
         : rides;
@@ -191,10 +215,14 @@ export function buildExplorerData(activities, options = {}) {
         };
     }).filter((p) => p.x != null || p.y != null);
 
-    const scatterPoints = points.filter((p) => p.x != null && p.y != null);
+    const filteredPoints = excludeZeros
+        ? points.filter((p) => (p.x == null || p.x > 0) && (p.y == null || p.y > 0))
+        : points;
+
+    const scatterPoints = filteredPoints.filter((p) => p.x != null && p.y != null);
     const correlation = pearsonCorrelation(scatterPoints);
 
-    const timelineData = points.map((p) => ({
+    const timelineData = filteredPoints.map((p) => ({
         key: p.key,
         label: p.label,
         xValue: p.x,
@@ -204,7 +232,7 @@ export function buildExplorerData(activities, options = {}) {
     }));
 
     return {
-        points,
+        points: filteredPoints,
         scatterPoints,
         timelineData,
         correlation,
@@ -212,7 +240,7 @@ export function buildExplorerData(activities, options = {}) {
         yMeta,
         colorMeta,
         sizeMeta,
-        pointCount: points.length,
+        pointCount: filteredPoints.length,
         validScatterCount: scatterPoints.length,
     };
 }
