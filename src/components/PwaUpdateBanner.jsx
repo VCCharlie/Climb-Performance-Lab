@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { RefreshCw, X } from 'lucide-react';
 
 function listenForWaitingWorker(registration, onUpdate) {
@@ -19,21 +19,20 @@ function listenForWaitingWorker(registration, onUpdate) {
 
 /**
  * Prompts when a new service worker build is available (GitHub Pages / PWA).
- * Works with the early SW registration in index.html — no duplicate register call.
+ * Reload only after the user chooses "Reload now" — never on first SW install.
  */
 export default function PwaUpdateBanner() {
     const [registration, setRegistration] = useState(null);
     const [visible, setVisible] = useState(false);
+    const userRequestedReloadRef = useRef(false);
 
     useEffect(() => {
         if (!('serviceWorker' in navigator)) return undefined;
 
         let active = true;
-        let regRef = null;
 
         const onUpdate = (reg) => {
             if (!active) return;
-            regRef = reg;
             setRegistration(reg);
             setVisible(true);
         };
@@ -44,6 +43,7 @@ export default function PwaUpdateBanner() {
         });
 
         const onControllerChange = () => {
+            if (!userRequestedReloadRef.current) return;
             window.location.reload();
         };
         navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
@@ -58,11 +58,13 @@ export default function PwaUpdateBanner() {
 
     const reload = useCallback(() => {
         const waiting = registration?.waiting;
+        userRequestedReloadRef.current = true;
+        setVisible(false);
         if (waiting) {
             waiting.postMessage({ type: 'SKIP_WAITING' });
+            return;
         }
         window.location.reload();
-        setVisible(false);
     }, [registration]);
 
     if (!visible) return null;
@@ -78,7 +80,7 @@ export default function PwaUpdateBanner() {
                 <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-cdtext">Update available</p>
                     <p className="text-xs text-cdmuted mt-0.5">
-                        A new version of Climb Lab is ready. Reload to get the latest Activity Log improvements.
+                        A new version of Climb Lab is ready. Reload to get the latest improvements.
                     </p>
                     <div className="flex flex-wrap gap-2 mt-2">
                         <button
