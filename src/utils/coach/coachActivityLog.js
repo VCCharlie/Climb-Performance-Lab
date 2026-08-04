@@ -180,7 +180,10 @@ function buildYearlyStats(activities) {
  */
 export function buildCoachActivityLog(activities, ftp = 0, options = {}) {
     const endYmd = options.endYmd || todayYmd();
-    const maxRides = options.maxRides ?? COACH_ACTIVITY_LOG_MAX_RIDES;
+    const unlimited = Boolean(options.fullLog);
+    const maxRides = unlimited
+        ? (activities || []).length
+        : (options.maxRides ?? COACH_ACTIVITY_LOG_MAX_RIDES);
     const rideActivities = (activities || []).filter((a) => isRideType(a.type));
 
     const sorted = [...rideActivities].sort((a, b) => {

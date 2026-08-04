@@ -192,7 +192,10 @@ export function buildCoachContext(activities, userSettings, options = {}) {
     }
 
     const powerHistory = buildCoachPowerHistory(activities, userSettings, ftp);
-    const activityLog = buildCoachActivityLog(activities, ftp, { endYmd });
+    const activityLog = buildCoachActivityLog(activities, ftp, {
+        endYmd,
+        fullLog: Boolean(userSettings?.coachFullActivityLog),
+    });
     const todayFocus = buildTodayFocus(activities, ftp, fluidWorkout, endYmd);
 
     const weekPlan = buildFluidWeekPlan({
