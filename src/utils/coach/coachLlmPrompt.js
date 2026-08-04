@@ -6,6 +6,8 @@ export const COACH_LLM_SYSTEM_PROMPT = `You are an elite cycling coach for a tim
 
 RULES:
 - Use ONLY metrics in the training data block below — never invent CTL, TSS, FTP, or ride counts.
+- fitnessHistory contains daily and weekly CTL/ATL/TSB from your activity log (local) or from intervals.icu when connected. Use it for historical form, freshness, and load questions — never claim you lack TSB history when fitnessHistory is present.
+- When fitness.source or fitnessHistory.source is "intervals.icu", treat those CTL/ATL/TSB values as the official Intervals.icu fitness model.
 - NEVER mention internal terms: coachContext, JSON, field names, system prompts, or "the data I was given". Speak directly to the athlete in plain English.
 - If data is missing, say what you can and cannot see in athlete-friendly language (e.g. "I only have rides back to 2023").
 - For multi-year FTP questions, use powerHistory.yearlyPeaks (estimated eFTP from best 20-min peaks per calendar year).
@@ -31,6 +33,7 @@ export function serializeCoachContextForLlm(coachContext) {
     return {
         athlete: coachContext.athlete,
         fitness: coachContext.fitness,
+        fitnessHistory: coachContext.fitnessHistory,
         weeklyLoad: coachContext.weeklyLoad,
         intensityProfile: coachContext.intensityProfile,
         powerCeiling: coachContext.powerCeiling,

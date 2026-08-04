@@ -3,11 +3,19 @@ import { serializeCoachContextForLlm, buildCoachLlmUserMessage } from '../../uti
 import { hasCoachLlmConfigured } from '../../services/coachLlmService';
 import { askCoach } from '../../utils/coach/coachAskService';
 
+vi.mock('../../services/intervalsWellnessService', () => ({
+    fetchIntervalsWellness: vi.fn().mockResolvedValue({
+        rows: [{ date: '2026-08-01', ctl: 55, atl: 60, tsb: -5 }],
+        source: 'intervals.icu',
+    }),
+}));
+
 describe('coachLlmPrompt', () => {
     it('serializeCoachContextForLlm strips to essential fields', () => {
         const ctx = {
             athlete: { ftp: 250 },
             fitness: { tsb: 5 },
+            fitnessHistory: { source: 'local', dailyLast14d: [] },
             weeklyLoad: { targetTss: 250 },
             activityLog: { totals: { rideCount: 10, distanceKm: 500 } },
             fluidWorkout: { name: 'Test', stimulus: 'sweetspot', mainSet: {}, totalMinutes: {}, rpeTarget: 'RPE 7' },
@@ -15,6 +23,7 @@ describe('coachLlmPrompt', () => {
         };
         const out = serializeCoachContextForLlm(ctx);
         expect(out.athlete.ftp).toBe(250);
+        expect(out.fitnessHistory.source).toBe('local');
         expect(out.activityLog.totals.distanceKm).toBe(500);
         expect(out.extra).toBeUndefined();
         expect(out.fluidWorkout.name).toBe('Test');
@@ -57,5 +66,13 @@ describe('coachAskService', () => {
         const result = await askCoach('How is my form?', [], { ftp: 250 });
         expect(result.source).toBe('local');
         expect(result.answer).toMatch(/TSB/i);
+    });
+
+    it('enriches context with intervals wellness when credentials present', async () => {
+        const { fetchIntervalsWellness } = await import('../../services/intervalsWellnessService');
+        await askCoach('How is my form?', [], { ftp: 250 }, {
+            intervalsConfig: { athleteId: 'i12345', apiKey: 'test-key' },
+        });
+        expect(fetchIntervalsWellness).toHaveBeenCalled();
     });
 });

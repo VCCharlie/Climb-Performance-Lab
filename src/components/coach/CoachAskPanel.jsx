@@ -4,7 +4,7 @@ import { COACH_QUICK_QUESTIONS } from '../../utils/coach/coachQaEngine';
 import { askCoach, hasCoachLlmConfigured } from '../../utils/coach/coachAskService';
 import { splitCoachAnswerLead, stripMarkdownBold } from '../../utils/coach/coachAnswerFormat';
 
-const CoachAskPanel = ({ activities, userSettings, weeklyHoursTarget }) => {
+const CoachAskPanel = ({ activities, userSettings, weeklyHoursTarget, intervalsConfig }) => {
     const [question, setQuestion] = useState('');
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -25,6 +25,7 @@ const CoachAskPanel = ({ activities, userSettings, weeklyHoursTarget }) => {
             const result = await askCoach(q, activities, userSettings, {
                 weeklyHoursTarget,
                 recentHistory,
+                intervalsConfig,
             });
             setHistory((prev) => [
                 ...prev,
@@ -56,7 +57,7 @@ const CoachAskPanel = ({ activities, userSettings, weeklyHoursTarget }) => {
                         </h3>
                         <p className="text-xs text-cdmuted mt-1 leading-relaxed">
                             {llmEnabled
-                                ? 'Gemini AI enabled — answers use your live training data plus natural coaching language.'
+                                ? 'Gemini AI enabled — answers use your live training data, intervals.icu CTL/ATL when connected, and natural coaching language.'
                                 : 'Local analysis from your activities. Add a Gemini API key in Settings for AI-powered answers.'}
                         </p>
                     </div>
