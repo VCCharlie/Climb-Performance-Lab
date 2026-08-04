@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { BarChart3, ChevronDown, ChevronRight, GitBranch, TrendingUp, Zap } from 'lucide-react';
+import { BarChart3, GitBranch, TrendingUp, Zap } from 'lucide-react';
 import {
     VOLUME_METRICS,
     HR_METRICS,
@@ -21,6 +21,7 @@ import { boundsFromYmdRange } from '../../utils/dashboardActivityWindow';
 import PlaygroundVolumeChart from './playground/PlaygroundVolumeChart';
 import PlaygroundPowerPanel from './playground/PlaygroundPowerPanel';
 import PlaygroundExplorerPanel from './playground/PlaygroundExplorerPanel';
+import CollapsibleSection from '../ui/CollapsibleSection';
 
 const RANGE_PRESETS = [
     { id: '1y', label: '1 year', years: 1 },
@@ -31,48 +32,31 @@ const RANGE_PRESETS = [
 ];
 
 const CoachDataPlayground = ({ activities }) => {
-    const [expanded, setExpanded] = useState(true);
     const [mode, setMode] = useState('trends');
 
     if (!activities?.length) return null;
 
     return (
-        <div className="bg-cdsurface rounded-xl border border-cdborder shadow-xl overflow-hidden">
-            <button
-                type="button"
-                onClick={() => setExpanded((v) => !v)}
-                className="w-full p-5 border-b border-cdborder flex items-start justify-between gap-3 text-left hover:bg-cdborder/10 transition-colors"
-            >
-                <div>
-                    <h3 className="text-lg font-bold text-cdtext flex items-center gap-2">
-                        <BarChart3 size={20} className="text-cdaccent" />
-                        Data Playground
-                    </h3>
-                    <p className="text-xs text-cdmuted mt-1 leading-relaxed">
-                        Explore volume, heart rate, power, and cross-metric relationships — filter, compare, scatter plots, and manual anomaly exclusions.
-                    </p>
-                </div>
-                {expanded ? <ChevronDown size={18} className="text-cdmuted shrink-0 mt-1" /> : <ChevronRight size={18} className="text-cdmuted shrink-0 mt-1" />}
-            </button>
+        <CollapsibleSection
+            title="Data Playground"
+            subtitle="Explore volume, heart rate, power, and cross-metric relationships — filter, compare, scatter plots, and manual anomaly exclusions."
+            icon={BarChart3}
+            defaultExpanded
+        >
+            <div className="flex flex-wrap gap-2 -mt-1">
+                <ModeButton active={mode === 'trends'} onClick={() => setMode('trends')} icon={TrendingUp} label="Volume & HR trends" />
+                <ModeButton active={mode === 'explorer'} onClick={() => setMode('explorer')} icon={GitBranch} label="Metric explorer" />
+                <ModeButton active={mode === 'power'} onClick={() => setMode('power')} icon={Zap} label="Power rankings" />
+            </div>
 
-            {expanded && (
-                <div className="p-5 space-y-4">
-                    <div className="flex flex-wrap gap-2">
-                        <ModeButton active={mode === 'trends'} onClick={() => setMode('trends')} icon={TrendingUp} label="Volume & HR trends" />
-                        <ModeButton active={mode === 'explorer'} onClick={() => setMode('explorer')} icon={GitBranch} label="Metric explorer" />
-                        <ModeButton active={mode === 'power'} onClick={() => setMode('power')} icon={Zap} label="Power rankings" />
-                    </div>
-
-                    {mode === 'trends' ? (
-                        <TrendsPanel activities={activities} />
-                    ) : mode === 'explorer' ? (
-                        <PlaygroundExplorerPanel activities={activities} />
-                    ) : (
-                        <PlaygroundPowerPanel activities={activities} />
-                    )}
-                </div>
+            {mode === 'trends' ? (
+                <TrendsPanel activities={activities} />
+            ) : mode === 'explorer' ? (
+                <PlaygroundExplorerPanel activities={activities} />
+            ) : (
+                <PlaygroundPowerPanel activities={activities} />
             )}
-        </div>
+        </CollapsibleSection>
     );
 };
 

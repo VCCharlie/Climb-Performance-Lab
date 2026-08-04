@@ -94,6 +94,8 @@ export function getDefaultUserSettings() {
         birthYear: null,
         /** 'hilly' | 'flat' | 'mixed' — climbing readiness elevation targets and coach hints */
         terrainProfile: 'hilly',
+        /** Banner quick links (max 5): { id, label, href, icon } */
+        quickLinks: null,
     };
 }
 

@@ -14,7 +14,7 @@ import {
     Ban,
     CircleCheck,
 } from 'lucide-react';
-import { buildFluidWeekPlan } from '../../utils/coach/coachWeekPlan';
+import { buildFluidWeekPlan, buildPreviewWeekPlan } from '../../utils/coach/coachWeekPlan';
 import {
     toggleSessionComplete,
     setSessionOverride,
@@ -30,10 +30,22 @@ import {
 } from '../../utils/coach/coachWeekState';
 import { formatDateDDMMYYYY } from '../../utils/formatters';
 import { todayYmd } from '../../utils/coach/coachHelpers';
+import { addDaysToYmd } from '../../utils/dashboardVolumeTotals';
+import { projectWeekEndTsb } from '../../utils/coach/coachFitnessForecast';
 import { getStimulusStyle } from './coachStimulusStyles';
 import FluidWorkoutExpandable from './FluidWorkoutExpandable';
+import CollapsibleSection from '../ui/CollapsibleSection';
 
-const CoachFluidWeekPlan = ({ activities, userSettings, coachContext, isSignedIn = false }) => {
+const CoachFluidWeekPlan = ({
+    activities,
+    userSettings,
+    coachContext,
+    isSignedIn = false,
+    weekPlan: weekPlanProp,
+    showNextWeek = false,
+    onToggleNextWeek,
+    week2Sessions: week2SessionsProp,
+}) => {
     const [weekRevision, setWeekRevision] = useState(0);
     const [expandedDate, setExpandedDate] = useState(null);
     const today = todayYmd();
@@ -45,9 +57,27 @@ const CoachFluidWeekPlan = ({ activities, userSettings, coachContext, isSignedIn
     }, []);
 
     const weekPlan = useMemo(
-        () => buildFluidWeekPlan({ activities, userSettings, coachContext, referenceYmd: today }),
-        [activities, userSettings, coachContext, weekRevision, today],
+        () => weekPlanProp || buildFluidWeekPlan({ activities, userSettings, coachContext, referenceYmd: today }),
+        [weekPlanProp, activities, userSettings, coachContext, weekRevision, today],
     );
+
+    const week2Sessions = useMemo(() => {
+        if (week2SessionsProp) return week2SessionsProp;
+        if (!showNextWeek) return [];
+        const nextMonday = addDaysToYmd(weekPlan.mondayYmd, 7);
+        const endTsb = projectWeekEndTsb({
+            activities,
+            sessions: weekPlan.sessions,
+            weeklyHours: Number(userSettings?.weeklyHoursTarget) || 5,
+            referenceYmd: today,
+        });
+        return buildPreviewWeekPlan({
+            userSettings,
+            coachContext,
+            weekStartYmd: nextMonday,
+            projectedTsb: endTsb,
+        });
+    }, [week2SessionsProp, showNextWeek, weekPlan, activities, userSettings, coachContext, today]);
 
     useEffect(() => {
         const matches = {};
@@ -114,28 +144,41 @@ const CoachFluidWeekPlan = ({ activities, userSettings, coachContext, isSignedIn
     };
 
     return (
-        <div className="bg-cdsurface rounded-xl border border-cdborder shadow-xl overflow-hidden">
-            <div className="p-5 border-b border-cdborder bg-gradient-to-br from-cdaccent/5 to-transparent">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                        <h3 className="text-lg font-bold text-cdtext flex items-center gap-2">
-                            <CalendarDays size={20} className="text-cdaccent" />
-                            This week — fluid plan
-                        </h3>
-                        <p className="text-xs text-cdmuted mt-1">
-                            {formatDateDDMMYYYY(weekPlan.mondayYmd)} – {formatDateDDMMYYYY(weekPlan.sundayYmd)}
-                        </p>
-                    </div>
-                    <div className="text-right">
-                        <div className="text-2xl font-bold text-cdtext tabular-nums">
-                            {weekPlan.actualTss}
-                            <span className="text-cdmuted text-base font-normal"> / {weekPlan.targetTss}</span>
+        <CollapsibleSection
+            title="This week — fluid plan"
+            subtitle={`${formatDateDDMMYYYY(weekPlan.mondayYmd)} – ${formatDateDDMMYYYY(weekPlan.sundayYmd)} · ${weekPlan.actualTss}/${weekPlan.targetTss} TSS`}
+            icon={CalendarDays}
+            defaultExpanded
+            headerExtra={onToggleNextWeek ? (
+                <button
+                    type="button"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleNextWeek();
+                    }}
+                    className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded-full border transition-colors ${
+                        showNextWeek
+                            ? 'border-cdaccent bg-cdaccent/15 text-cdaccent'
+                            : 'border-cdborder text-cdmuted hover:text-cdtext'
+                    }`}
+                >
+                    + Week 2
+                </button>
+            ) : null}
+        >
+            <div className="space-y-4 -mt-1">
+                <div className="rounded-xl border border-cdborder/50 bg-gradient-to-br from-cdaccent/5 to-transparent p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div className="text-right ml-auto">
+                            <div className="text-2xl font-bold text-cdtext tabular-nums">
+                                {weekPlan.actualTss}
+                                <span className="text-cdmuted text-base font-normal"> / {weekPlan.targetTss}</span>
+                            </div>
+                            <div className="text-[10px] text-cdmuted uppercase tracking-wide">TSS this week</div>
                         </div>
-                        <div className="text-[10px] text-cdmuted uppercase tracking-wide">TSS this week</div>
                     </div>
-                </div>
 
-                <p className="text-xs text-cdmuted mt-3 flex items-start gap-2">
+                    <p className="text-xs text-cdmuted mt-3 flex items-start gap-2">
                     <Sparkles size={13} className="shrink-0 mt-0.5 text-cdaccent" />
                     {isSignedIn
                         ? 'Blocked days and moves sync across devices when signed in. Sessions reschedule to your open days.'
@@ -183,7 +226,7 @@ const CoachFluidWeekPlan = ({ activities, userSettings, coachContext, isSignedIn
                 )}
             </div>
 
-            <div className="p-3 space-y-2">
+            <div className="space-y-2">
                 {weekPlan.sessions.map((session) => (
                     <WeekSessionRow
                         key={session.date}
@@ -202,9 +245,59 @@ const CoachFluidWeekPlan = ({ activities, userSettings, coachContext, isSignedIn
                     />
                 ))}
             </div>
-        </div>
+
+            {showNextWeek && week2Sessions.length > 0 && (
+                <div className="pt-4 border-t border-cdborder space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                        <div>
+                            <h4 className="text-sm font-bold text-cdtext">Next week (preview)</h4>
+                            <p className="text-xs text-cdmuted">
+                                {formatDateDDMMYYYY(week2Sessions[0].date)} – {formatDateDDMMYYYY(week2Sessions[6].date)}
+                                {' '}· projected from week 1 completion
+                            </p>
+                        </div>
+                        <span className="text-[10px] uppercase font-bold text-cdmuted border border-cdborder px-2 py-1 rounded-full">
+                            Preview
+                        </span>
+                    </div>
+                    <div className="space-y-2">
+                        {week2Sessions.map((session) => (
+                            <PreviewSessionRow key={session.date} session={session} />
+                        ))}
+                    </div>
+                </div>
+            )}
+            </div>
+        </CollapsibleSection>
     );
 };
+
+function PreviewSessionRow({ session }) {
+    const styles = getStimulusStyle(session.stimulus);
+    const isRest = session.stimulus === 'rest';
+
+    return (
+        <div className={`rounded-xl border-l-4 border border-cdborder/40 ${styles.border} ${styles.rowBg || 'bg-cdborder/10'} opacity-90`}>
+            <div className="p-3 sm:p-4 flex flex-wrap items-center gap-3">
+                <div className="min-w-[72px]">
+                    <div className="text-xs font-bold text-cdtext">{session.day}</div>
+                    <div className="text-[10px] text-cdmuted">{formatDateDDMMYYYY(session.date)}</div>
+                </div>
+                <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold text-cdtext">{session.workoutName}</div>
+                    {session.note ? (
+                        <p className="text-xs text-cdmuted mt-0.5">{session.note}</p>
+                    ) : null}
+                </div>
+                {!isRest && session.estimatedTss ? (
+                    <span className="text-[10px] font-bold text-cdmuted tabular-nums">
+                        ~{session.estimatedTss} TSS
+                    </span>
+                ) : null}
+            </div>
+        </div>
+    );
+}
 
 function StatPill({ icon: Icon, label }) {
     return (

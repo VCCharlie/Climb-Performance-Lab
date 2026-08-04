@@ -10,12 +10,19 @@ import CoachAskPanel from './coach/CoachAskPanel';
 import CoachDataPlayground from './coach/CoachDataPlayground';
 import CoachPeriodReview from './coach/CoachPeriodReview';
 import CoachFluidWeekPlan from './coach/CoachFluidWeekPlan';
-import { useProfileFtp } from '../context/ProfileFtpContext';
+import CoachFitnessForecast from './coach/CoachFitnessForecast';
+import CollapsibleSection from './ui/CollapsibleSection';
+import { buildFluidWeekPlan, buildPreviewWeekPlan } from '../utils/coach/coachWeekPlan';
+import { projectWeekEndTsb } from '../utils/coach/coachFitnessForecast';
+import { todayYmd } from '../utils/coach/coachHelpers';
+import { addDaysToYmd } from '../utils/dashboardVolumeTotals';
+import { COACH_WEEK_UPDATED_EVENT } from '../utils/coach/coachWeekState';
 import {
     hydrateTrainingPlanSnapshot,
     readTrainingPlanSnapshot,
     TRAINING_PLAN_UPDATED_EVENT,
 } from '../utils/trainingPlanSnapshot';
+import { useProfileFtp } from '../context/ProfileFtpContext';
 
 /** moving_time: seconden (number) of "H:MM:SS" uit CSV */
 function movingTimeToSeconds(val) {
@@ -47,6 +54,8 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
     const [coachGoalId, setCoachGoalId] = useState('auto');
     const weeklyHoursTarget = Number(userSettings?.weeklyHoursTarget) || 5;
     const [planRevision, setPlanRevision] = useState(0);
+    const [showNextWeek, setShowNextWeek] = useState(false);
+    const [coachWeekRevision, setCoachWeekRevision] = useState(0);
 
     const updateWeeklyHours = (hours) => {
         if (setUserSettings) {
@@ -390,6 +399,40 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
         [activities, userSettings, weeklyHoursTarget]
     );
 
+    useEffect(() => {
+        const onUpdate = () => setCoachWeekRevision((n) => n + 1);
+        window.addEventListener(COACH_WEEK_UPDATED_EVENT, onUpdate);
+        return () => window.removeEventListener(COACH_WEEK_UPDATED_EVENT, onUpdate);
+    }, []);
+
+    const referenceYmd = todayYmd();
+    const fluidWeekPlan = useMemo(
+        () => buildFluidWeekPlan({
+            activities,
+            userSettings,
+            coachContext,
+            referenceYmd,
+        }),
+        [activities, userSettings, coachContext, referenceYmd, coachWeekRevision],
+    );
+
+    const week2Sessions = useMemo(() => {
+        if (!showNextWeek) return [];
+        const nextMonday = addDaysToYmd(fluidWeekPlan.mondayYmd, 7);
+        const endTsb = projectWeekEndTsb({
+            activities,
+            sessions: fluidWeekPlan.sessions,
+            weeklyHours: weeklyHoursTarget,
+            referenceYmd,
+        });
+        return buildPreviewWeekPlan({
+            userSettings,
+            coachContext,
+            weekStartYmd: nextMonday,
+            projectedTsb: endTsb,
+        });
+    }, [showNextWeek, fluidWeekPlan, activities, userSettings, coachContext, weeklyHoursTarget, referenceYmd]);
+
     const opportunitiesForDisplay = useMemo(() => {
         return swot.opportunities.map((o) =>
             o.label === 'Refine your focus'
@@ -520,9 +563,27 @@ ${workout.zwoSteps.map(step => {
                 userSettings={userSettings}
                 coachContext={coachContext}
                 isSignedIn={isSignedIn}
+                weekPlan={fluidWeekPlan}
+                showNextWeek={showNextWeek}
+                onToggleNextWeek={() => setShowNextWeek((v) => !v)}
+                week2Sessions={week2Sessions}
             />
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <CoachFitnessForecast
+                activities={activities}
+                userSettings={userSettings}
+                week1Sessions={fluidWeekPlan.sessions}
+                week2Sessions={week2Sessions}
+            />
+
+            <CollapsibleSection
+                title="Today's focus & SWOT"
+                subtitle="Session guidance plus strengths, weaknesses, opportunities, and threats from your selected period."
+                icon={Brain}
+                iconClassName="text-purple-400"
+                defaultExpanded={false}
+            >
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 -mt-1">
 
                 {/* --- Fluid workout (data-driven) --- */}
                 <div className="lg:col-span-1">
@@ -537,6 +598,7 @@ ${workout.zwoSteps.map(step => {
                     <SwotCard title="Threats" items={swot.threats} icon={Activity} color="text-yellow-500" border="border-yellow-500" />
                 </div>
             </div>
+            </CollapsibleSection>
 
             {/* --- Period review (4/8/12 weeks) + Ask the Coach --- */}
             <CoachPeriodReview
@@ -558,14 +620,12 @@ ${workout.zwoSteps.map(step => {
             />
 
             {/* --- Tweede tijdssnede: recent vs vorig blok / jaar-context --- */}
-            <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl space-y-4">
-                <h3 className="text-lg font-bold text-cdtext flex items-center gap-2">
-                    <GitCompareArrows size={20} className="text-cdaccent shrink-0" />
-                    Period comparison (trend)
-                </h3>
-                <p className="text-xs text-cdmuted leading-relaxed">
-                    Beyond your selected window we look at <strong className="text-cdtext font-medium">the equally long stretch before it</strong> (direct comparison) and — if your period is short enough — at the <strong className="text-cdtext font-medium">past year minus your current period</strong> (longer context). That shows whether your latest month is heavier or lighter than the year average before it.
-                </p>
+            <CollapsibleSection
+                title="Period comparison (trend)"
+                subtitle="Compare your selected window with the prior stretch and longer year context."
+                icon={GitCompareArrows}
+                defaultExpanded={false}
+            >
                 <div className="overflow-x-auto rounded-lg border border-cdborder">
                     <table className="w-full text-left text-sm min-w-[640px]">
                         <thead>
@@ -610,34 +670,33 @@ ${workout.zwoSteps.map(step => {
                         Year context is only shown for periods from about 2 weeks to under 10 months; for &quot;all&quot; or very long ranges, use the first comparison row mainly.
                     </p>
                 )}
-            </div>
+            </CollapsibleSection>
 
             {/* --- Coachplan: acties + week + .zwo gekoppeld aan SWOT/data --- */}
-            <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl space-y-5">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <h3 className="text-lg font-bold text-cdtext flex items-center gap-2">
-                        <Target size={20} className="text-purple-400 shrink-0" />
-                        {coachPlan.headline}
-                    </h3>
-                    <label className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-cdmuted">
-                        <span className="font-semibold text-cdtext whitespace-nowrap">Training goal</span>
+            <CollapsibleSection
+                title={coachPlan.headline}
+                subtitle="Weekly proposal from your SWOT signals — adjust for schedule, weather, and recovery."
+                icon={Target}
+                iconClassName="text-purple-400"
+                defaultExpanded={false}
+                headerExtra={(
+                    <label
+                        className="hidden sm:flex items-center gap-2 text-xs text-cdmuted"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <span className="font-semibold text-cdtext whitespace-nowrap">Goal</span>
                         <select
                             value={coachGoalId}
                             onChange={(e) => setCoachGoalId(e.target.value)}
-                            className="bg-cdborder border border-cdborder rounded-lg px-3 py-2 text-cdtext text-sm min-w-[220px]"
+                            className="bg-cdborder border border-cdborder rounded-lg px-2 py-1 text-cdtext text-xs min-w-[160px]"
                         >
                             {COACH_GOAL_OPTIONS.map((g) => (
-                                <option key={g.id} value={g.id}>
-                                    {g.label}
-                                </option>
+                                <option key={g.id} value={g.id}>{g.label}</option>
                             ))}
                         </select>
                     </label>
-                </div>
-                <p className="text-xs text-cdmuted leading-relaxed">
-                    This weekly proposal combines your selected period ({swot.periodLabel}), SWOT signals, and — with &quot;Automatic&quot; — the strongest focus points from your data. Use it as a starting point; adjust for schedule, weather, and recovery.
-                </p>
-
+                )}
+            >
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div>
                         <h4 className="text-sm font-bold text-cdtext uppercase tracking-wide mb-2 flex items-center gap-2">
@@ -719,7 +778,7 @@ ${workout.zwoSteps.map(step => {
                         </div>
                     </div>
                 )}
-            </div>
+            </CollapsibleSection>
         </div>
     );
 };

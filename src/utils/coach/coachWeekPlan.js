@@ -11,6 +11,7 @@ import { activityIF, filterActivitiesInRange, sumTss, todayYmd } from './coachHe
 import { readCoachWeekState } from './coachWeekState';
 import { matchSessionsToActivities, classifyActivityStimulus } from './coachSessionMatcher';
 import { applyAvailabilityRelocation } from './coachAvailability';
+import { estimateSessionTss } from './coachSessionTss';
 
 /**
  * Monday (ISO) of the week containing referenceYmd.
@@ -362,4 +363,58 @@ export function buildFluidWeekPlan({ activities, userSettings, coachContext, ref
         hasExplicitAvailability,
         sessions,
     };
+}
+
+/**
+ * Preview week plan (no activity matching / manual state) — used for week 2 forecast.
+ * @param {object} params
+ * @param {object} params.userSettings
+ * @param {object} params.coachContext
+ * @param {string} params.weekStartYmd — Monday of preview week
+ * @param {number} [params.projectedTsb] — TSB at start of preview week
+ */
+export function buildPreviewWeekPlan({
+    userSettings,
+    coachContext,
+    weekStartYmd,
+    projectedTsb = 0,
+}) {
+    const weeklyHours = Number(userSettings?.weeklyHoursTarget) || 5;
+    const ftp = coachContext?.athlete?.ftp || Number(userSettings?.ftp) || 0;
+    const targetTss = weeklyTssTarget(weeklyHours);
+    const skeleton = buildWeekSkeleton(weeklyHours, weekStartYmd);
+    const skeletonForRebalance = skeleton.map((s) => ({ ...s }));
+
+    const rebalanced = rebalanceWeek(
+        { targetTss, sessions: skeletonForRebalance },
+        {
+            tssThisWeek: 0,
+            hardSessionsThisWeek: 0,
+            currentTsb: projectedTsb,
+        },
+        weekStartYmd,
+    );
+
+    const rebalanceMap = new Map(rebalanced.map((s) => [s.date, s]));
+
+    return skeleton.map((row) => {
+        const reb = rebalanceMap.get(row.date);
+        const stimulus = reb?.stimulus || row.stimulus;
+        const fluidWorkout = stimulus !== 'rest' ? buildFluidWorkout(stimulus, { ftp }) : null;
+
+        return {
+            ...row,
+            plannedStimulus: stimulus,
+            originalStimulus: row.stimulus,
+            stimulus,
+            note: reb?.note || null,
+            completed: false,
+            isToday: false,
+            isPast: false,
+            isPreview: true,
+            fluidWorkout,
+            workoutName: fluidWorkout?.name || (stimulus === 'rest' ? 'Rest' : row.session),
+            estimatedTss: estimateSessionTss(stimulus, weeklyHours),
+        };
+    });
 }

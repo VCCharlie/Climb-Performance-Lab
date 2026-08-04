@@ -25,6 +25,7 @@ import {
     formatBikeComputerProfileTitlesForInput,
     parseBikeComputerProfileTitlesInput,
 } from '../utils/bikeComputerProfileTitles';
+import QuickLinksSettings from './settings/QuickLinksSettings';
 import {
     TERRAIN_PROFILE_FLAT,
     TERRAIN_PROFILE_HILLY,
@@ -195,6 +196,18 @@ const SettingsModal = ({
                                     </button>
                                 </div>
                             </div>
+                        </div>
+
+                        {/* BANNER QUICK LINKS */}
+                        <div className={sectionClass}>
+                            <div className="flex items-center gap-2 pb-2 border-b border-cdborder/50 mb-4">
+                                <Link className="text-cdaccent" size={18} />
+                                <h3 className="font-bold text-cdtext">Banner quick links</h3>
+                            </div>
+                            <QuickLinksSettings
+                                quickLinks={userSettings.quickLinks}
+                                onChange={(links) => updateUserSettings('quickLinks', links)}
+                            />
                         </div>
 
                         {/* INTERVALS INTEGRATION */}

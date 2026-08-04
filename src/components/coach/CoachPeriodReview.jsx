@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { FileText, CheckCircle, AlertTriangle, TrendingUp, Activity } from 'lucide-react';
 import { analyzeTrainingPeriod, PERIOD_REVIEW_OPTIONS } from '../../utils/coach/coachPeriodAnalysis';
+import CollapsibleSection from '../ui/CollapsibleSection';
 
 const GRADE_STYLES = {
     good: { border: 'border-green-500/50', badge: 'bg-green-500/15 text-green-400' },
@@ -21,24 +22,20 @@ const CoachPeriodReview = ({ activities, userSettings, weeklyHoursTarget }) => {
     const { metrics, swot, verdict } = review;
 
     return (
-        <div className={`bg-cdsurface rounded-xl border-2 ${gradeStyle.border} shadow-xl overflow-hidden`}>
-            <div className="p-5 border-b border-cdborder flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <h3 className="text-lg font-bold text-cdtext flex items-center gap-2">
-                        <FileText size={20} className="text-cdaccent" />
-                        Period review &amp; verdict
-                    </h3>
-                    <p className="text-xs text-cdmuted mt-1">
-                        Goal-aware SWOT over your selected window — FTP &amp; sustained power focus.
-                    </p>
-                </div>
-                <div className="flex gap-2">
+        <CollapsibleSection
+            title="Period review & verdict"
+            subtitle={`Goal-aware SWOT — ${review.weeks} week window · grade: ${verdict.grade}`}
+            icon={FileText}
+            borderClassName={`border-2 ${gradeStyle.border}`}
+            defaultExpanded={false}
+            headerExtra={(
+                <div className="flex gap-1" onClick={(e) => e.stopPropagation()} role="presentation">
                     {PERIOD_REVIEW_OPTIONS.map((opt) => (
                         <button
                             key={opt.weeks}
                             type="button"
                             onClick={() => setWeeks(opt.weeks)}
-                            className={`text-xs font-bold px-3 py-1.5 rounded-lg border transition-colors ${
+                            className={`text-[10px] font-bold px-2 py-1 rounded-lg border transition-colors ${
                                 weeks === opt.weeks
                                     ? 'border-cdaccent bg-cdaccent/15 text-cdaccent'
                                     : 'border-cdborder text-cdmuted hover:text-cdtext'
@@ -48,9 +45,9 @@ const CoachPeriodReview = ({ activities, userSettings, weeklyHoursTarget }) => {
                         </button>
                     ))}
                 </div>
-            </div>
-
-            <div className="p-5 space-y-5">
+            )}
+        >
+            <div className="space-y-5 -mt-1">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                         <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold ${gradeStyle.badge}`}>
@@ -91,7 +88,7 @@ const CoachPeriodReview = ({ activities, userSettings, weeklyHoursTarget }) => {
                     </ul>
                 </div>
             </div>
-        </div>
+        </CollapsibleSection>
     );
 };
 
