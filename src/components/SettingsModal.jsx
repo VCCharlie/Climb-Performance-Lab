@@ -292,6 +292,20 @@ const SettingsModal = ({
                                             )}
                                         </span>
                                     </label>
+                                    <label className="mt-3 flex items-start gap-2 text-xs text-cdtext cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="mt-0.5 accent-cdaccent"
+                                            checked={Boolean(userSettings.coachFullActivityLog)}
+                                            onChange={(e) => updateUserSettings('coachFullActivityLog', e.target.checked)}
+                                        />
+                                        <span>
+                                            Send full activity log to AI Coach (all rides, not just the latest 500)
+                                            <span className="block text-cdmuted mt-0.5">
+                                                Uses more API tokens per question (~2–4×). Yearly totals are always complete either way.
+                                            </span>
+                                        </span>
+                                    </label>
                                     <p className="text-xs text-cdmuted mt-1">
                                         Free key at{' '}
                                         <a
