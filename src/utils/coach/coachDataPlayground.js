@@ -18,12 +18,17 @@ export {
     PLAYGROUND_METRICS,
     VOLUME_METRICS,
     HR_METRICS,
+    PERFORMANCE_METRICS,
     CHART_TYPES,
     CHART_TYPE_OPTIONS,
     VOLUME_STAT_MODES,
     VOLUME_STAT_OPTIONS,
     POWER_PEAK_FIELDS,
+    ALL_EXPLORER_METRICS,
+    EXPLORER_METRIC_GROUPS,
 } from './coachPlaygroundMetrics';
+
+export { buildExplorerData, pearsonCorrelation } from './coachPlaygroundExplorer';
 
 function isRideType(type) {
     const t = String(type || '').toLowerCase();

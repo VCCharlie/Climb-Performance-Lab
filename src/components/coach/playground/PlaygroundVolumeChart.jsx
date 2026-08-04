@@ -4,6 +4,8 @@ import {
   BarChart,
   LineChart,
   AreaChart,
+  ScatterChart,
+  Scatter,
   Bar,
   Line,
   Area,
@@ -97,6 +99,42 @@ export default function PlaygroundVolumeChart({
       <Legend wrapperStyle={{ fontSize: 11 }} />
     </>
   );
+
+  if (chartType === CHART_TYPES.SCATTER) {
+    const scatterData = data.map((row, index) => ({
+      ...row,
+      periodIndex: index + 1,
+    }));
+    return (
+      <ResponsiveContainer width="100%" height={280}>
+        <ScatterChart margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke={THEME.grid} opacity={0.5} />
+          <XAxis
+            type="number"
+            dataKey="periodIndex"
+            name="Period"
+            tick={{ fill: THEME.text, fontSize: 11 }}
+          />
+          <YAxis tick={{ fill: THEME.text, fontSize: 11 }} width={48} />
+          <Tooltip
+            content={
+              <PlaygroundTooltip
+                metricLabel={metricLabel}
+                showMax={showMax}
+                showTrend={showTrend}
+                showMaxTrend={showMaxTrend}
+              />
+            }
+          />
+          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Scatter name={metricLabel} data={scatterData} dataKey="value" fill={THEME.primary} fillOpacity={0.8} />
+          {showMax && (
+            <Scatter name="Max" data={scatterData} dataKey="maxValue" fill={THEME.tertiary} fillOpacity={0.6} />
+          )}
+        </ScatterChart>
+      </ResponsiveContainer>
+    );
+  }
 
   if (chartType === CHART_TYPES.LINE) {
     return (
