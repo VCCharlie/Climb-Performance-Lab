@@ -511,12 +511,12 @@ function WeekSessionRow({
                         </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-2 sm:flex-col sm:items-end shrink-0">
+                    <div className="grid grid-cols-2 gap-1.5 shrink-0 w-full sm:w-[13.5rem]">
                         {session.fluidWorkout && !isRest && (
                             <button
                                 type="button"
                                 onClick={onToggleExpand}
-                                className="text-xs font-medium px-3 py-1.5 rounded-lg border border-cdborder text-cdmuted hover:text-cdaccent hover:border-cdaccent/50"
+                                className="text-xs font-medium px-2 py-1.5 rounded-lg border border-cdborder text-cdmuted hover:text-cdaccent hover:border-cdaccent/50 w-full justify-center"
                             >
                                 {expanded ? 'Hide details' : 'Show details'}
                             </button>
@@ -525,13 +525,13 @@ function WeekSessionRow({
                             <button
                                 type="button"
                                 onClick={onToggleUnavailable}
-                                className={`text-xs font-medium px-3 py-1.5 rounded-lg border flex items-center gap-1.5 ${
+                                className={`text-xs font-medium px-2 py-1.5 rounded-lg border flex items-center justify-center gap-1.5 w-full ${
                                     isBlocked
                                         ? 'border-orange-500/40 text-orange-300 bg-orange-500/10'
                                         : 'border-cdborder text-cdmuted hover:text-orange-300 hover:border-orange-500/40'
                                 }`}
                             >
-                                <Ban size={12} />
+                                <Ban size={12} className="shrink-0" />
                                 {isBlocked ? 'Can train' : "Can't train"}
                             </button>
                         )}
@@ -539,23 +539,23 @@ function WeekSessionRow({
                             <button
                                 type="button"
                                 onClick={onToggleAvailable}
-                                className={`text-xs font-medium px-3 py-1.5 rounded-lg border flex items-center gap-1.5 ${
+                                className={`text-xs font-medium px-2 py-1.5 rounded-lg border flex items-center justify-center gap-1.5 w-full ${
                                     isExplicitlyAvailable
                                         ? 'border-emerald-500/40 text-emerald-300 bg-emerald-500/10'
                                         : 'border-cdborder text-cdmuted hover:text-emerald-300 hover:border-emerald-500/40'
                                 }`}
                             >
-                                <CircleCheck size={12} />
-                                {isExplicitlyAvailable ? 'Not open' : 'Available to train'}
+                                <CircleCheck size={12} className="shrink-0" />
+                                {isExplicitlyAvailable ? 'Not open' : 'Available'}
                             </button>
                         )}
                         {canMoveToToday && (
                             <button
                                 type="button"
                                 onClick={onMoveToToday}
-                                className="text-xs font-medium px-3 py-1.5 rounded-lg border border-cdborder text-cdmuted hover:text-blue-300 hover:border-blue-500/40 flex items-center gap-1.5"
+                                className="text-xs font-medium px-2 py-1.5 rounded-lg border border-cdborder text-cdmuted hover:text-blue-300 hover:border-blue-500/40 flex items-center justify-center gap-1.5 w-full"
                             >
-                                <ArrowRight size={12} />
+                                <ArrowRight size={12} className="shrink-0" />
                                 Move to today
                             </button>
                         )}
@@ -563,9 +563,9 @@ function WeekSessionRow({
                             <button
                                 type="button"
                                 onClick={onUndoMove}
-                                className="text-xs font-medium px-3 py-1.5 rounded-lg border border-cdborder text-cdmuted hover:text-cdtext hover:border-cdborder flex items-center gap-1.5"
+                                className="text-xs font-medium px-2 py-1.5 rounded-lg border border-cdborder text-cdmuted hover:text-cdtext hover:border-cdborder flex items-center justify-center gap-1.5 w-full"
                             >
-                                <Undo2 size={12} />
+                                <Undo2 size={12} className="shrink-0" />
                                 Undo move
                             </button>
                         )}
@@ -573,9 +573,9 @@ function WeekSessionRow({
                             <button
                                 type="button"
                                 onClick={onSwapRecovery}
-                                className="text-xs font-medium px-3 py-1.5 rounded-lg border border-cdborder text-cdmuted hover:text-green-400 hover:border-green-500/40 flex items-center gap-1.5"
+                                className="text-xs font-medium px-2 py-1.5 rounded-lg border border-cdborder text-cdmuted hover:text-green-400 hover:border-green-500/40 flex items-center justify-center gap-1.5 w-full"
                             >
-                                <Heart size={12} />
+                                <Heart size={12} className="shrink-0" />
                                 Recovery
                             </button>
                         )}
