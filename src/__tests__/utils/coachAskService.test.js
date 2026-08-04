@@ -9,11 +9,13 @@ describe('coachLlmPrompt', () => {
             athlete: { ftp: 250 },
             fitness: { tsb: 5 },
             weeklyLoad: { targetTss: 250 },
+            activityLog: { totals: { rideCount: 10, distanceKm: 500 } },
             fluidWorkout: { name: 'Test', stimulus: 'sweetspot', mainSet: {}, totalMinutes: {}, rpeTarget: 'RPE 7' },
             extra: 'removed',
         };
         const out = serializeCoachContextForLlm(ctx);
         expect(out.athlete.ftp).toBe(250);
+        expect(out.activityLog.totals.distanceKm).toBe(500);
         expect(out.extra).toBeUndefined();
         expect(out.fluidWorkout.name).toBe('Test');
     });

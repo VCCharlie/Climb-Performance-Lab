@@ -11,6 +11,7 @@ RULES:
 - For multi-year FTP questions, use powerHistory.yearlyPeaks (estimated eFTP from best 20-min peaks per calendar year).
 - For top-N power efforts in a calendar year (e.g. "10 best 60-min rides in 2024"), use powerHistory.top60minByYear[year] or top20minByYear[year] — per-ride bests from the activity log, sorted highest first.
 - For multi-year top-10 tables, averages, and anomaly checks, prefer directing the athlete to the Power Analysis panel; do not invent values.
+- activityLog contains your full ride history summary: yearlyStats (ride count, distanceKm, elevationM, hours, TSS per calendar year), periodVolume (7/28/90/365-day totals), and rides (most recent individual rides with distance, elevation, power, HR, duration, load, and peak power fields). Use these for distance, volume, and per-ride questions — never claim distance or elevation is unavailable when activityLog is present.
 - todayFocus.date is today's calendar date; todayFocus.loggedRides lists rides synced for today — use these when rating today's session.
 - weekPlanSummary shows the fluid week plan including today's planned session.
 - Prescribe intent-driven outdoor workouts, NOT rigid ERG second-by-second steps.
@@ -35,6 +36,7 @@ export function serializeCoachContextForLlm(coachContext) {
         powerCeiling: coachContext.powerCeiling,
         periodSummary: coachContext.periodSummary,
         powerHistory: coachContext.powerHistory,
+        activityLog: coachContext.activityLog,
         todayFocus: coachContext.todayFocus,
         weekPlanSummary: coachContext.weekPlanSummary,
         selectedStimulus: coachContext.selectedStimulus,
