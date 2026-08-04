@@ -78,3 +78,68 @@ export function inNumericRange(value, min, max, opts = {}) {
     if (max != null && value > max) return false;
     return true;
 }
+
+/**
+ * Plain-text activity description for log search (Strava/Intervals HTML stripped).
+ * @param {object | null | undefined} activity
+ * @returns {string}
+ */
+export function activityDescriptionSearchText(activity) {
+    const raw = activity?.description || activity?.notes || '';
+    if (!raw || typeof raw !== 'string') return '';
+    return raw
+        .replace(/<br\s*\/?>/gi, ' ')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+/**
+ * Whether an activity matches the Activity Log free-text search (title, description, date).
+ * @param {object | null | undefined} activity
+ * @param {string} searchLower already lowercased query; empty string matches all
+ * @returns {boolean}
+ */
+export function activityMatchesLogSearch(activity, searchLower) {
+    if (!searchLower) return true;
+
+    const title = activity?.title;
+    if (title && String(title).toLowerCase().includes(searchLower)) return true;
+
+    const description = activityDescriptionSearchText(activity);
+    if (description && description.toLowerCase().includes(searchLower)) return true;
+
+    const dateRaw = activity?.date;
+    if (!dateRaw) return false;
+
+    if (String(dateRaw).includes(searchLower)) return true;
+
+    const ymdMatch = String(dateRaw).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (ymdMatch) {
+        const year = ymdMatch[1];
+        const monthStr = ymdMatch[2];
+        const dayStr = ymdMatch[3];
+        const dayNum = parseInt(dayStr, 10);
+        const monthNum = parseInt(monthStr, 10);
+        const dmy = `${dayNum}-${monthNum}-${year}`;
+        const ddmm = `${dayStr}-${monthStr}-${year}`;
+        if (dmy.includes(searchLower) || ddmm.includes(searchLower)) return true;
+        return false;
+    }
+
+    try {
+        const d = new Date(dateRaw);
+        if (!Number.isNaN(d.getTime())) {
+            const day = d.getDate();
+            const month = d.getMonth() + 1;
+            const year = d.getFullYear();
+            const dmy = `${day}-${month}-${year}`;
+            const ddmm = `${day.toString().padStart(2, '0')}-${month.toString().padStart(2, '0')}-${year}`;
+            if (dmy.includes(searchLower) || ddmm.includes(searchLower)) return true;
+        }
+    } catch {
+        /* invalid date */
+    }
+
+    return false;
+}

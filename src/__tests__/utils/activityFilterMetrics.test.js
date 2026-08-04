@@ -6,6 +6,8 @@ import {
   activityIntensityFactor,
   parseNumericBound,
   inNumericRange,
+  activityDescriptionSearchText,
+  activityMatchesLogSearch,
 } from '../../utils/activityFilterMetrics';
 
 describe('activityDistanceKm', () => {
@@ -56,5 +58,51 @@ describe('parseNumericBound / inNumericRange', () => {
     expect(inNumericRange(50, 40, 60)).toBe(true);
     expect(inNumericRange(30, 40, 60)).toBe(false);
     expect(inNumericRange(70, 40, 60)).toBe(false);
+  });
+});
+
+describe('activityDescriptionSearchText', () => {
+  it('strips HTML from Strava descriptions', () => {
+    expect(activityDescriptionSearchText({
+      description: 'Long ride with <b>Alpe d\'Huez</b><br/>felt great',
+    })).toBe('Long ride with Alpe d\'Huez felt great');
+  });
+
+  it('falls back to notes when description is empty', () => {
+    expect(activityDescriptionSearchText({ notes: 'Recovery spin' })).toBe('Recovery spin');
+  });
+});
+
+describe('activityMatchesLogSearch', () => {
+  const activity = {
+    title: 'Morning Ride',
+    date: '2024-06-15',
+    description: 'Zwift race prep — <i>VO2</i> block',
+  };
+
+  it('matches empty search', () => {
+    expect(activityMatchesLogSearch(activity, '')).toBe(true);
+  });
+
+  it('matches title', () => {
+    expect(activityMatchesLogSearch(activity, 'morning')).toBe(true);
+  });
+
+  it('matches Strava description text with HTML stripped', () => {
+    expect(activityMatchesLogSearch(activity, 'vo2')).toBe(true);
+    expect(activityMatchesLogSearch(activity, 'race prep')).toBe(true);
+  });
+
+  it('matches notes when description is missing', () => {
+    expect(activityMatchesLogSearch({ title: 'Ride', notes: 'Coffee stop at Geraardsbergen' }, 'geraardsbergen')).toBe(true);
+  });
+
+  it('matches ISO date fragments', () => {
+    expect(activityMatchesLogSearch(activity, '2024-06')).toBe(true);
+    expect(activityMatchesLogSearch(activity, '15-6-2024')).toBe(true);
+  });
+
+  it('returns false when nothing matches', () => {
+    expect(activityMatchesLogSearch(activity, 'gravel')).toBe(false);
   });
 });
