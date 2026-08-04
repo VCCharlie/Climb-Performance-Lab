@@ -27,6 +27,7 @@ export const COACH_QUICK_QUESTIONS = [
     { id: 'sweetspot', label: 'Why sweetspot?', prompt: 'Why do you recommend sweetspot for me?' },
     { id: 'period_4w', label: 'Analyze last 4 weeks', prompt: 'Analyze my training over the last 4 weeks' },
     { id: 'period_8w', label: 'Analyze last 8 weeks', prompt: 'Analyze my training over the last 8 weeks' },
+    { id: 'plan_ftp', label: 'FTP if I follow this plan?', prompt: 'If I follow my current fluid week plan for about 8 weeks, what FTP could I realistically expect?' },
 ];
 
 /**
@@ -48,6 +49,13 @@ export function answerCoachQuestion(question, activities, userSettings, options 
         return formatAnswer(
             'Today\'s ride review',
             rateTodayRideAnswer(ctx.todayFocus, ctx.weekPlanSummary, ctx.fitness),
+        );
+    }
+
+    if (matchesPlanOutlookQuestion(q)) {
+        return formatAnswer(
+            'Plan outlook',
+            planOutlookAnswer(ctx),
         );
     }
 
@@ -190,6 +198,48 @@ function matchesTodayRideQuestion(q) {
     const hasRide = matches(q, ['ride', 'rit', 'session', 'training', 'workout', 'easy', 'rate', 'review', 'how was', 'hoe was']);
     const explicit = matches(q, ['rate my', 'review my', 'easy ride']);
     return (hasToday && hasRide) || explicit;
+}
+
+function matchesPlanOutlookQuestion(q) {
+    const hasHorizon = matches(q, ['week', 'weeks', 'month', 'months', '8 week', '12 week', '4 week']);
+    const hasPlan = matches(q, ['plan', 'follow', 'stick to', 'fluid week', 'week plan', 'template']);
+    const hasFtp = matches(q, ['ftp', 'threshold', 'expect', 'projection', 'realistically', 'outcome']);
+    return (hasPlan && hasHorizon)
+        || (hasPlan && hasFtp)
+        || matches(q, ['if i follow this plan', 'follow my plan', 'follow the plan', 'follow my current']);
+}
+
+function planOutlookAnswer(ctx) {
+    const outlook = ctx.planOutlook;
+    if (!outlook) {
+        return 'I do not have your fluid week plan loaded yet. Open AI Coach and check the week plan panel first.';
+    }
+
+    const pattern = outlook.weeklyPattern;
+    const lines = [
+        `Your fluid week template targets ~${pattern.plannedWeeklyTss} TSS/week `
+        + `(${pattern.qualitySessions} quality, ${pattern.enduranceSessions} endurance, ${pattern.restDays} rest days).`,
+    ];
+
+    if (outlook.rebalanceNote) {
+        lines.push(`This week: ${outlook.rebalanceNote}`);
+    }
+
+    lines.push('\nIf you repeat this plan (~85% adherence):\n');
+
+    for (const ftp of outlook.ftpScenarios) {
+        const fit = outlook.fitnessMilestones.find((m) => m.weeks === ftp.weeks);
+        const fitnessPart = fit ? `; CTL ~${fit.ctl}, TSB ~${fit.tsb}` : '';
+        lines.push(
+            `• ${ftp.weeks} weeks: FTP ~${ftp.projectedFtpLow}–${ftp.projectedFtpHigh}W `
+            + `(mid ${ftp.projectedFtpMid}W, +${ftp.gainWattsMid}W)${fitnessPart}`,
+        );
+    }
+
+    lines.push(`\n${outlook.assumptions[0]}`);
+    lines.push(outlook.assumptions[1]);
+
+    return lines.join('\n');
 }
 
 function formatAnswer(title, answer) {
