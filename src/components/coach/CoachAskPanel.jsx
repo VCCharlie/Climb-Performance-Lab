@@ -3,6 +3,7 @@ import { MessageCircle, Send, Sparkles, Loader2, Brain, Cpu } from 'lucide-react
 import { COACH_QUICK_QUESTIONS } from '../../utils/coach/coachQaEngine';
 import { askCoach, hasCoachLlmConfigured } from '../../utils/coach/coachAskService';
 import { splitCoachAnswerLead, stripMarkdownBold } from '../../utils/coach/coachAnswerFormat';
+import CollapsibleSection from '../ui/CollapsibleSection';
 
 const CoachAskPanel = ({ activities, userSettings, weeklyHoursTarget, intervalsConfig }) => {
     const [question, setQuestion] = useState('');
@@ -47,34 +48,28 @@ const CoachAskPanel = ({ activities, userSettings, weeklyHoursTarget, intervalsC
     };
 
     return (
-        <div className="bg-cdsurface rounded-xl border border-cdborder shadow-xl overflow-hidden">
-            <div className="p-5 border-b border-cdborder">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                        <h3 className="text-lg font-bold text-cdtext flex items-center gap-2">
-                            <MessageCircle size={20} className="text-purple-400" />
-                            Ask the Coach
-                        </h3>
-                        <p className="text-xs text-cdmuted mt-1 leading-relaxed">
-                            {llmEnabled
-                                ? 'Gemini AI enabled — answers use your live training data, intervals.icu CTL/ATL when connected, and natural coaching language.'
-                                : 'Local analysis from your activities. Add a Gemini API key in Settings for AI-powered answers.'}
-                        </p>
-                    </div>
-                    <span
-                        className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded-full flex items-center gap-1 ${
-                            llmEnabled
-                                ? 'bg-purple-500/15 text-purple-300 border border-purple-500/30'
-                                : 'bg-cdborder/30 text-cdmuted border border-cdborder'
-                        }`}
-                    >
-                        {llmEnabled ? <Brain size={11} /> : <Cpu size={11} />}
-                        {llmEnabled ? 'AI mode' : 'Local mode'}
-                    </span>
-                </div>
-            </div>
-
-            <div className="p-4 flex flex-wrap gap-2 border-b border-cdborder bg-cdborder/10">
+        <CollapsibleSection
+            title="Ask the Coach"
+            subtitle={llmEnabled
+                ? 'Gemini AI — live training data plus intervals.icu CTL/ATL when connected.'
+                : 'Local analysis from your activities. Add a Gemini API key in Settings for AI answers.'}
+            icon={MessageCircle}
+            iconClassName="text-purple-400"
+            defaultExpanded={false}
+            headerExtra={(
+                <span
+                    className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded-full flex items-center gap-1 ${
+                        llmEnabled
+                            ? 'bg-purple-500/15 text-purple-300 border border-purple-500/30'
+                            : 'bg-cdborder/30 text-cdmuted border border-cdborder'
+                    }`}
+                >
+                    {llmEnabled ? <Brain size={11} /> : <Cpu size={11} />}
+                    {llmEnabled ? 'AI' : 'Local'}
+                </span>
+            )}
+        >
+            <div className="flex flex-wrap gap-2 -mt-1 pb-2 border-b border-cdborder">
                 {COACH_QUICK_QUESTIONS.map((item) => (
                     <button
                         key={item.id}
@@ -88,7 +83,7 @@ const CoachAskPanel = ({ activities, userSettings, weeklyHoursTarget, intervalsC
                 ))}
             </div>
 
-            <div className="p-4 max-h-[28rem] overflow-y-auto custom-scrollbar space-y-4 min-h-[140px]">
+            <div className="max-h-[28rem] overflow-y-auto custom-scrollbar space-y-4 min-h-[140px] py-2">
                 {history.length === 0 && !loading && (
                     <p className="text-sm text-cdmuted text-center py-6 flex flex-col items-center gap-2">
                         <Sparkles size={20} className="text-cdaccent opacity-60" />
@@ -106,7 +101,7 @@ const CoachAskPanel = ({ activities, userSettings, weeklyHoursTarget, intervalsC
                 )}
             </div>
 
-            <form onSubmit={handleSubmit} className="p-4 border-t border-cdborder flex gap-2">
+            <form onSubmit={handleSubmit} className="pt-3 border-t border-cdborder flex gap-2">
                 <input
                     type="text"
                     value={question}
@@ -124,7 +119,7 @@ const CoachAskPanel = ({ activities, userSettings, weeklyHoursTarget, intervalsC
                     Ask
                 </button>
             </form>
-        </div>
+        </CollapsibleSection>
     );
 };
 

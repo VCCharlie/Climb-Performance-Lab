@@ -1,50 +1,69 @@
 import React from 'react';
-import { ExternalLink } from 'lucide-react';
+import {
+    ExternalLink,
+    Package,
+    Map,
+    Globe,
+    Bike,
+    Mountain,
+    Link2,
+    Github,
+    Flag,
+    Compass,
+    Activity,
+} from 'lucide-react';
+import { resolveQuickLinks } from '../../utils/quickLinks';
 
-const QUICK_LINKS = [
-    {
-        id: 'cycling-pack',
-        label: 'Cycling Pack',
-        href: 'https://github.com/VCCharlie/Bike-clothing-list',
-    },
-    {
-        id: 'squadrats',
-        label: 'Squadrats',
-        href: 'https://squadrats.com/expeditions',
-    },
-    {
-        id: 'wandrer',
-        label: 'Wandrer',
-        href: 'https://wandrer.earth/dashboard',
-    },
-];
+const ICON_MAP = {
+    package: Package,
+    map: Map,
+    globe: Globe,
+    bike: Bike,
+    mountain: Mountain,
+    link: Link2,
+    github: Github,
+    flag: Flag,
+    compass: Compass,
+    activity: Activity,
+};
 
 /**
- * Subtle external shortcuts shown at the top of the app shell.
+ * Configurable external shortcuts in the site banner.
+ * @param {{ userSettings?: object, iconOnly?: boolean }} props
  */
-export default function SiteQuickLinks() {
+export default function SiteQuickLinks({ userSettings, iconOnly = false }) {
+    const links = resolveQuickLinks(userSettings);
+    if (!links.length) return null;
+
     return (
         <nav
             className="border-b border-cdborder/25 bg-cdsurface/40"
-            aria-label="Related tools"
+            aria-label="Quick links"
         >
-            <div className="max-w-7xl mx-auto px-3 py-1 flex items-center justify-center sm:justify-end gap-1 sm:gap-2">
-                {QUICK_LINKS.map((link, index) => (
-                    <React.Fragment key={link.id}>
-                        {index > 0 && (
-                            <span className="text-cdborder/60 select-none" aria-hidden>·</span>
-                        )}
+            <div className="max-w-7xl mx-auto px-3 py-1.5 flex items-center justify-center sm:justify-end gap-1.5 sm:gap-2 flex-wrap">
+                {links.map((link) => {
+                    const IconComponent = ICON_MAP[link.icon] || Link2;
+                    return (
                         <a
+                            key={link.id}
                             href={link.href}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] text-cdmuted hover:text-cdaccent transition-colors"
+                            title={link.label}
+                            className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] text-cdmuted hover:text-cdaccent transition-colors rounded-md px-1.5 py-0.5 hover:bg-cdborder/20"
                         >
-                            {link.label}
-                            <ExternalLink size={10} className="opacity-50" aria-hidden />
+                            <IconComponent size={13} className="shrink-0 opacity-80" aria-hidden />
+                            {!iconOnly ? (
+                                <>
+                                    <span>{link.label}</span>
+                                    <ExternalLink size={9} className="opacity-40" aria-hidden />
+                                </>
+                            ) : (
+                                <span className="sr-only">{link.label}</span>
+                            )}
                         </a>
-                    </React.Fragment>
-                ))}
+                    );
+                })}
             </div>
         </nav>
     );
