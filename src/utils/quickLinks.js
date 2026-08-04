@@ -49,6 +49,25 @@ function isValidHref(href) {
 }
 
 /**
+ * @param {object[]} links — raw editor values (may include drafts)
+ * @returns {object[]}
+ */
+export function prepareQuickLinksForEditor(links) {
+    if (!Array.isArray(links) || links.length === 0) {
+        return DEFAULT_QUICK_LINKS.map((l) => ({ ...l }));
+    }
+
+    const validIcons = new Set(QUICK_LINK_ICON_OPTIONS.map((o) => o.id));
+
+    return links.slice(0, MAX_QUICK_LINKS).map((link, index) => ({
+        id: String(link?.id || `link-${index}`).slice(0, 40),
+        label: String(link?.label ?? '').slice(0, 40),
+        href: String(link?.href ?? '').slice(0, 300),
+        icon: validIcons.has(link?.icon) ? link.icon : 'link',
+    }));
+}
+
+/**
  * @param {object[]} links
  * @returns {object[]}
  */

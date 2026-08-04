@@ -14,7 +14,7 @@ import {
     Ban,
     CircleCheck,
 } from 'lucide-react';
-import { buildFluidWeekPlan, buildPreviewWeekPlan } from '../../utils/coach/coachWeekPlan';
+import { buildFluidWeekPlan } from '../../utils/coach/coachWeekPlan';
 import {
     toggleSessionComplete,
     setSessionOverride,
@@ -30,8 +30,6 @@ import {
 } from '../../utils/coach/coachWeekState';
 import { formatDateDDMMYYYY } from '../../utils/formatters';
 import { todayYmd } from '../../utils/coach/coachHelpers';
-import { addDaysToYmd } from '../../utils/dashboardVolumeTotals';
-import { projectWeekEndTsb } from '../../utils/coach/coachFitnessForecast';
 import { getStimulusStyle } from './coachStimulusStyles';
 import FluidWorkoutExpandable from './FluidWorkoutExpandable';
 import CollapsibleSection from '../ui/CollapsibleSection';
@@ -44,7 +42,7 @@ const CoachFluidWeekPlan = ({
     weekPlan: weekPlanProp,
     showNextWeek = false,
     onToggleNextWeek,
-    week2Sessions: week2SessionsProp,
+    week2Plan: week2PlanProp,
 }) => {
     const [weekRevision, setWeekRevision] = useState(0);
     const [expandedDate, setExpandedDate] = useState(null);
@@ -61,23 +59,7 @@ const CoachFluidWeekPlan = ({
         [weekPlanProp, activities, userSettings, coachContext, weekRevision, today],
     );
 
-    const week2Sessions = useMemo(() => {
-        if (week2SessionsProp) return week2SessionsProp;
-        if (!showNextWeek) return [];
-        const nextMonday = addDaysToYmd(weekPlan.mondayYmd, 7);
-        const endTsb = projectWeekEndTsb({
-            activities,
-            sessions: weekPlan.sessions,
-            weeklyHours: Number(userSettings?.weeklyHoursTarget) || 5,
-            referenceYmd: today,
-        });
-        return buildPreviewWeekPlan({
-            userSettings,
-            coachContext,
-            weekStartYmd: nextMonday,
-            projectedTsb: endTsb,
-        });
-    }, [week2SessionsProp, showNextWeek, weekPlan, activities, userSettings, coachContext, today]);
+    const week2Plan = week2PlanProp || null;
 
     useEffect(() => {
         const matches = {};
@@ -94,6 +76,23 @@ const CoachFluidWeekPlan = ({
             mergeSessionMatches(weekPlan.mondayYmd, matches);
         }
     }, [weekPlan.mondayYmd, weekPlan.sessions]);
+
+    useEffect(() => {
+        if (!week2Plan?.sessions) return;
+        const matches = {};
+        week2Plan.sessions.forEach((s) => {
+            if (s.matchedOnDate) {
+                matches[s.date] = {
+                    activityId: s.matchedActivityId || null,
+                    activityDate: s.matchedOnDate,
+                    matchedStimulus: s.matchedStimulus,
+                };
+            }
+        });
+        if (Object.keys(matches).length > 0) {
+            mergeSessionMatches(week2Plan.mondayYmd, matches);
+        }
+    }, [week2Plan?.mondayYmd, week2Plan?.sessions]);
 
     const stats = useMemo(() => {
         const planned = weekPlan.sessions.filter((s) => s.plannedStimulus !== 'rest').length;
@@ -140,6 +139,49 @@ const CoachFluidWeekPlan = ({
     const handleClearAvailability = () => {
         clearUnavailableDates(weekPlan.mondayYmd);
         clearAvailableDates(weekPlan.mondayYmd);
+        dispatchCoachWeekUpdated();
+    };
+
+    const handleToggleDoneWeek2 = (dateYmd) => {
+        if (!week2Plan) return;
+        toggleSessionComplete(week2Plan.mondayYmd, dateYmd);
+        dispatchCoachWeekUpdated();
+    };
+
+    const handleSwapRecoveryWeek2 = (dateYmd) => {
+        if (!week2Plan) return;
+        setSessionOverride(week2Plan.mondayYmd, dateYmd, 'recovery');
+        dispatchCoachWeekUpdated();
+    };
+
+    const handleMoveToTodayWeek2 = (fromDateYmd) => {
+        if (!week2Plan) return;
+        moveSessionToToday(week2Plan.mondayYmd, fromDateYmd, today);
+        dispatchCoachWeekUpdated();
+    };
+
+    const handleUndoMoveWeek2 = (fromDateYmd) => {
+        if (!week2Plan) return;
+        clearSessionMove(week2Plan.mondayYmd, fromDateYmd);
+        dispatchCoachWeekUpdated();
+    };
+
+    const handleToggleUnavailableWeek2 = (dateYmd) => {
+        if (!week2Plan) return;
+        toggleUnavailableDate(week2Plan.mondayYmd, dateYmd);
+        dispatchCoachWeekUpdated();
+    };
+
+    const handleToggleAvailableWeek2 = (dateYmd) => {
+        if (!week2Plan) return;
+        toggleAvailableDate(week2Plan.mondayYmd, dateYmd);
+        dispatchCoachWeekUpdated();
+    };
+
+    const handleClearAvailabilityWeek2 = () => {
+        if (!week2Plan) return;
+        clearUnavailableDates(week2Plan.mondayYmd);
+        clearAvailableDates(week2Plan.mondayYmd);
         dispatchCoachWeekUpdated();
     };
 
@@ -246,23 +288,61 @@ const CoachFluidWeekPlan = ({
                 ))}
             </div>
 
-            {showNextWeek && week2Sessions.length > 0 && (
+            {showNextWeek && week2Plan?.sessions?.length > 0 && (
                 <div className="pt-4 border-t border-cdborder space-y-3">
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
-                            <h4 className="text-sm font-bold text-cdtext">Next week (preview)</h4>
+                            <h4 className="text-sm font-bold text-cdtext">Next week</h4>
                             <p className="text-xs text-cdmuted">
-                                {formatDateDDMMYYYY(week2Sessions[0].date)} – {formatDateDDMMYYYY(week2Sessions[6].date)}
-                                {' '}· projected from week 1 completion
+                                {formatDateDDMMYYYY(week2Plan.mondayYmd)} – {formatDateDDMMYYYY(week2Plan.sundayYmd)}
+                                {' '}· same controls as this week (blocked days, moves, completions)
                             </p>
                         </div>
-                        <span className="text-[10px] uppercase font-bold text-cdmuted border border-cdborder px-2 py-1 rounded-full">
-                            Preview
-                        </span>
+                        <div className="text-right">
+                            <div className="text-lg font-bold text-cdtext tabular-nums">
+                                {week2Plan.actualTss}
+                                <span className="text-cdmuted text-sm font-normal"> / {week2Plan.targetTss}</span>
+                            </div>
+                            <div className="text-[10px] text-cdmuted uppercase">TSS target</div>
+                        </div>
                     </div>
+
+                    {week2Plan.rebalanceNote && (
+                        <p className="text-xs text-cdaccent flex items-start gap-2 bg-cdaccent/10 rounded-lg px-3 py-2">
+                            <RefreshCw size={13} className="shrink-0 mt-0.5" />
+                            {week2Plan.rebalanceNote}
+                        </p>
+                    )}
+
+                    {(week2Plan.hasAvailabilityBlocks || week2Plan.hasExplicitAvailability) && (
+                        <div className="flex justify-end">
+                            <button
+                                type="button"
+                                onClick={handleClearAvailabilityWeek2}
+                                className="text-xs text-cdmuted hover:text-cdtext underline"
+                            >
+                                Clear availability overrides
+                            </button>
+                        </div>
+                    )}
+
                     <div className="space-y-2">
-                        {week2Sessions.map((session) => (
-                            <PreviewSessionRow key={session.date} session={session} />
+                        {week2Plan.sessions.map((session) => (
+                            <WeekSessionRow
+                                key={session.date}
+                                session={session}
+                                today={today}
+                                expanded={expandedDate === `w2-${session.date}`}
+                                onToggleExpand={() =>
+                                    setExpandedDate((d) => (d === `w2-${session.date}` ? null : `w2-${session.date}`))
+                                }
+                                onToggleDone={() => handleToggleDoneWeek2(session.date)}
+                                onSwapRecovery={() => handleSwapRecoveryWeek2(session.date)}
+                                onMoveToToday={() => handleMoveToTodayWeek2(session.movedFromDate || session.date)}
+                                onUndoMove={() => handleUndoMoveWeek2(session.movedFromDate || session.date)}
+                                onToggleUnavailable={() => handleToggleUnavailableWeek2(session.date)}
+                                onToggleAvailable={() => handleToggleAvailableWeek2(session.date)}
+                            />
                         ))}
                     </div>
                 </div>
@@ -271,33 +351,6 @@ const CoachFluidWeekPlan = ({
         </CollapsibleSection>
     );
 };
-
-function PreviewSessionRow({ session }) {
-    const styles = getStimulusStyle(session.stimulus);
-    const isRest = session.stimulus === 'rest';
-
-    return (
-        <div className={`rounded-xl border-l-4 border border-cdborder/40 ${styles.border} ${styles.rowBg || 'bg-cdborder/10'} opacity-90`}>
-            <div className="p-3 sm:p-4 flex flex-wrap items-center gap-3">
-                <div className="min-w-[72px]">
-                    <div className="text-xs font-bold text-cdtext">{session.day}</div>
-                    <div className="text-[10px] text-cdmuted">{formatDateDDMMYYYY(session.date)}</div>
-                </div>
-                <div className="flex-1 min-w-0">
-                    <div className="text-sm font-bold text-cdtext">{session.workoutName}</div>
-                    {session.note ? (
-                        <p className="text-xs text-cdmuted mt-0.5">{session.note}</p>
-                    ) : null}
-                </div>
-                {!isRest && session.estimatedTss ? (
-                    <span className="text-[10px] font-bold text-cdmuted tabular-nums">
-                        ~{session.estimatedTss} TSS
-                    </span>
-                ) : null}
-            </div>
-        </div>
-    );
-}
 
 function StatPill({ icon: Icon, label }) {
     return (

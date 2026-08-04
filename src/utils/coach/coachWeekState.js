@@ -1,8 +1,12 @@
 /**
  * Local persistence for coach week completion and manual overrides.
+ * v2: stores multiple ISO weeks so week 1 and week 2 plans do not overwrite each other.
  */
 
-const STORAGE_KEY = 'coachWeekState_v1';
+import { todayYmd } from './coachHelpers';
+
+const STORAGE_KEY_V2 = 'coachWeekState_v2';
+const STORAGE_KEY_V1 = 'coachWeekState_v1';
 
 export function isoWeekKey(ymd) {
     const [y, m, d] = ymd.split('-').map(Number);
@@ -15,18 +19,29 @@ export function isoWeekKey(ymd) {
     return `${dt.getFullYear()}-W${String(week).padStart(2, '0')}`;
 }
 
-function readRaw() {
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        return raw ? JSON.parse(raw) : null;
-    } catch {
-        return null;
-    }
+function getMondayYmd(referenceYmd) {
+    const [y, m, d] = referenceYmd.split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    const day = dt.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    dt.setDate(dt.getDate() + diff);
+    const yy = dt.getFullYear();
+    const mm = String(dt.getMonth() + 1).padStart(2, '0');
+    const dd = String(dt.getDate()).padStart(2, '0');
+    return `${yy}-${mm}-${dd}`;
 }
 
-/** Full local payload for cloud sync (may be another week than today). */
-export function readRawCoachWeekForSync() {
-    return readRaw();
+function emptyWeekState(weekKey) {
+    return {
+        weekKey,
+        completedDates: [],
+        overrides: {},
+        moves: {},
+        unavailableDates: [],
+        availableDates: [],
+        sessionMatches: {},
+        updatedAt: null,
+    };
 }
 
 /**
@@ -46,21 +61,91 @@ export function normalizeCoachWeekState(raw) {
     };
 }
 
-export function applyCoachWeekStateToLocal(state) {
-    const next = normalizeCoachWeekState(state);
-    writeRaw({
-        ...next,
-        updatedAt: next.updatedAt || new Date().toISOString(),
-    });
-    return next;
+function readStorageRoot() {
+    try {
+        const rawV2 = localStorage.getItem(STORAGE_KEY_V2);
+        if (rawV2) {
+            const parsed = JSON.parse(rawV2);
+            if (parsed?.version === 2 && parsed.weeks && typeof parsed.weeks === 'object') {
+                return parsed;
+            }
+        }
+
+        const rawV1 = localStorage.getItem(STORAGE_KEY_V1);
+        if (rawV1) {
+            const parsed = JSON.parse(rawV1);
+            if (parsed?.weekKey) {
+                return {
+                    version: 2,
+                    weeks: {
+                        [parsed.weekKey]: normalizeCoachWeekState(parsed),
+                    },
+                };
+            }
+        }
+    } catch {
+        /* corrupt storage */
+    }
+
+    return { version: 2, weeks: {} };
 }
 
-function writeRaw(state) {
+function writeStorageRoot(root) {
     try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(root));
+        localStorage.removeItem(STORAGE_KEY_V1);
     } catch {
         /* quota */
     }
+}
+
+function readWeekFromRoot(root, weekKey) {
+    const stored = root.weeks?.[weekKey];
+    return stored ? normalizeCoachWeekState(stored) : emptyWeekState(weekKey);
+}
+
+/** Full local payload for cloud sync — current ISO week only (backward compatible). */
+export function readRawCoachWeekForSync() {
+    const mondayYmd = getMondayYmd(todayYmd());
+    const weekKey = isoWeekKey(mondayYmd);
+    const state = readCoachWeekState(mondayYmd);
+    return {
+        ...state,
+        weekKey,
+        updatedAt: state.updatedAt || new Date().toISOString(),
+    };
+}
+
+/**
+ * @param {object | null | undefined} raw
+ */
+export function readRawCoachWeekForSyncFromRoot(raw) {
+    if (!raw) return readRawCoachWeekForSync();
+    if (raw.version === 2 && raw.weeks) {
+        const mondayYmd = getMondayYmd(todayYmd());
+        const weekKey = isoWeekKey(mondayYmd);
+        const state = readWeekFromRoot(raw, weekKey);
+        return {
+            ...state,
+            weekKey,
+            updatedAt: state.updatedAt || new Date().toISOString(),
+        };
+    }
+    if (raw.weekKey) {
+        return normalizeCoachWeekState(raw);
+    }
+    return readRawCoachWeekForSync();
+}
+
+export function applyCoachWeekStateToLocal(state) {
+    const next = normalizeCoachWeekState(state);
+    const root = readStorageRoot();
+    root.weeks[next.weekKey] = {
+        ...next,
+        updatedAt: next.updatedAt || new Date().toISOString(),
+    };
+    writeStorageRoot(root);
+    return next;
 }
 
 /**
@@ -69,19 +154,8 @@ function writeRaw(state) {
  */
 export function readCoachWeekState(mondayYmd) {
     const weekKey = isoWeekKey(mondayYmd);
-    const raw = readRaw();
-    if (!raw || raw.weekKey !== weekKey) {
-        return { weekKey, completedDates: [], overrides: {}, moves: {}, unavailableDates: [], availableDates: [], sessionMatches: {} };
-    }
-    return {
-        weekKey,
-        completedDates: Array.isArray(raw.completedDates) ? raw.completedDates : [],
-        overrides: raw.overrides && typeof raw.overrides === 'object' ? raw.overrides : {},
-        moves: raw.moves && typeof raw.moves === 'object' ? raw.moves : {},
-        unavailableDates: Array.isArray(raw.unavailableDates) ? raw.unavailableDates : [],
-        availableDates: Array.isArray(raw.availableDates) ? raw.availableDates : [],
-        sessionMatches: raw.sessionMatches && typeof raw.sessionMatches === 'object' ? raw.sessionMatches : {},
-    };
+    const root = readStorageRoot();
+    return readWeekFromRoot(root, weekKey);
 }
 
 /**
@@ -89,9 +163,11 @@ export function readCoachWeekState(mondayYmd) {
  * @param {{ completedDates?: string[], overrides?: Record<string, string>, moves?: Record<string, string>, unavailableDates?: string[], availableDates?: string[] }} patch
  */
 export function writeCoachWeekState(mondayYmd, patch) {
-    const current = readCoachWeekState(mondayYmd);
+    const weekKey = isoWeekKey(mondayYmd);
+    const root = readStorageRoot();
+    const current = readWeekFromRoot(root, weekKey);
     const next = {
-        weekKey: current.weekKey,
+        weekKey,
         completedDates: patch.completedDates ?? current.completedDates,
         overrides: patch.overrides ?? current.overrides,
         moves: patch.moves ?? current.moves,
@@ -100,7 +176,8 @@ export function writeCoachWeekState(mondayYmd, patch) {
         sessionMatches: patch.sessionMatches ?? current.sessionMatches,
         updatedAt: new Date().toISOString(),
     };
-    writeRaw(next);
+    root.weeks[weekKey] = next;
+    writeStorageRoot(root);
     return next;
 }
 
@@ -170,7 +247,6 @@ export function moveSession(mondayYmd, fromDateYmd, toDateYmd) {
         return writeCoachWeekState(mondayYmd, { moves });
     }
 
-    // If another session already targets toDate, swap back to fromDate
     const conflictingFrom = Object.keys(moves).find(
         (k) => moves[k] === toDateYmd && k !== fromDateYmd,
     );
@@ -192,8 +268,8 @@ export function clearSessionMove(mondayYmd, fromDateYmd) {
 /**
  * Move a future session to today (convenience).
  */
-export function moveSessionToToday(mondayYmd, fromDateYmd, todayYmd) {
-    return moveSession(mondayYmd, fromDateYmd, todayYmd);
+export function moveSessionToToday(mondayYmd, fromDateYmd, todayYmdValue) {
+    return moveSession(mondayYmd, fromDateYmd, todayYmdValue);
 }
 
 /**
