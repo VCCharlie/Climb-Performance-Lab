@@ -4,7 +4,8 @@ import {
     resolvePlaygroundCompareRange,
     playgroundRangeForYears,
 } from '../../utils/coach/coachDataPlayground';
-import { buildExplorerData, pearsonCorrelation, activityMetricValue } from '../../utils/coach/coachPlaygroundExplorer';
+import { buildExplorerData, pearsonCorrelation, activityMetricValue, isIndoorActivity, RIDE_ENVIRONMENT } from '../../utils/coach/coachPlaygroundExplorer';
+import { buildTrendLineEndpoints } from '../../utils/coach/coachPlaygroundRegression';
 import { bucketMetricValue } from '../../utils/coach/coachPlaygroundBuckets';
 
 describe('coachDataPlayground', () => {
@@ -125,5 +126,36 @@ describe('coachPlaygroundExplorer', () => {
             distanceKm: 100,
         };
         expect(bucketMetricValue(bucket, 'best_20min_topN', 'primary', { topN: 2 })).toBe(295);
+    });
+
+    it('isIndoorActivity detects virtual rides', () => {
+        expect(isIndoorActivity({ type: 'VirtualRide' })).toBe(true);
+        expect(isIndoorActivity({ type: 'Ride' })).toBe(false);
+    });
+
+    it('buildExplorerData filters indoor rides', () => {
+        const acts = [
+            { date: '2024-01-15', type: 'Ride', distance: 50, avg_hr: 140, avg_speed: 28, moving_time: 3600 },
+            { date: '2024-02-10', type: 'VirtualRide', distance: 40, avg_hr: 150, avg_speed: 32, moving_time: 3000 },
+        ];
+        const outdoor = buildExplorerData(acts, {
+            cadence: 'ride',
+            startYmd: '2024-01-01',
+            endYmd: '2024-12-31',
+            xMetric: 'avgHr',
+            yMetric: 'avgSpeed',
+            rideEnvironment: RIDE_ENVIRONMENT.OUTDOOR,
+        });
+        expect(outdoor.pointCount).toBe(1);
+    });
+
+    it('buildTrendLineEndpoints returns regression line', () => {
+        const line = buildTrendLineEndpoints([
+            { x: 1, y: 2 },
+            { x: 2, y: 4 },
+            { x: 3, y: 6 },
+        ]);
+        expect(line).toHaveLength(2);
+        expect(line[1].y).toBeGreaterThan(line[0].y);
     });
 });

@@ -24,6 +24,7 @@ import {
     clearUnavailableDates,
     toggleAvailableDate,
     clearAvailableDates,
+    mergeSessionMatches,
     dispatchCoachWeekUpdated,
     COACH_WEEK_UPDATED_EVENT,
 } from '../../utils/coach/coachWeekState';
@@ -47,6 +48,22 @@ const CoachFluidWeekPlan = ({ activities, userSettings, coachContext, isSignedIn
         () => buildFluidWeekPlan({ activities, userSettings, coachContext, referenceYmd: today }),
         [activities, userSettings, coachContext, weekRevision, today],
     );
+
+    useEffect(() => {
+        const matches = {};
+        weekPlan.sessions.forEach((s) => {
+            if (s.matchedOnDate) {
+                matches[s.date] = {
+                    activityId: s.matchedActivityId || null,
+                    activityDate: s.matchedOnDate,
+                    matchedStimulus: s.matchedStimulus,
+                };
+            }
+        });
+        if (Object.keys(matches).length > 0) {
+            mergeSessionMatches(weekPlan.mondayYmd, matches);
+        }
+    }, [weekPlan.mondayYmd, weekPlan.sessions]);
 
     const stats = useMemo(() => {
         const planned = weekPlan.sessions.filter((s) => s.plannedStimulus !== 'rest').length;
@@ -213,7 +230,8 @@ function WeekSessionRow({
     const styles = getStimulusStyle(session.stimulus);
     const isBlocked = Boolean(session.isUnavailable);
     const isExplicitlyAvailable = Boolean(session.isExplicitlyAvailable);
-    const isRest = (session.stimulus === 'rest' && !session.movedToDate) || isBlocked;
+    const isLoggedRestRide = session.plannedStimulus === 'rest' && session.sameDayComplete;
+    const isRest = (session.stimulus === 'rest' && !session.movedToDate && !isLoggedRestRide) || isBlocked;
     const isOpenRestDay = session.plannedStimulus === 'rest'
         && !isBlocked
         && !session.movedFromDate

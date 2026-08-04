@@ -96,6 +96,9 @@ describe('coachWeekPlan', () => {
 
         const monday = plan.sessions.find((s) => s.date === '2026-08-03');
         expect(monday.plannedStimulus).toBe('rest');
+        expect(monday.stimulus).toBe('completed');
+        expect(monday.workoutName).toMatch(/Ride logged/i);
+        expect(monday.flexNote).toMatch(/matched/i);
 
         const matched = plan.sessions.filter((s) => s.matchedOnDate);
         expect(matched).toEqual([
@@ -105,6 +108,29 @@ describe('coachWeekPlan', () => {
                 matchedOnDate: '2026-08-03',
             }),
         ]);
+    });
+
+    it('buildFluidWeekPlan restores persisted session matches', () => {
+        writeCoachWeekState('2026-08-03', {
+            sessionMatches: {
+                '2026-08-06': {
+                    activityId: 'ride-1',
+                    activityDate: '2026-08-03',
+                    matchedStimulus: 'sweetspot',
+                },
+            },
+        });
+
+        const plan = buildFluidWeekPlan({
+            activities: [{ id: 'ride-1', date: '2026-08-03', norm_power: 230, load: 70 }],
+            userSettings: { weeklyHoursTarget: 5, ftp: 250 },
+            coachContext: { athlete: { ftp: 250 }, fitness: { tsb: 0 } },
+            referenceYmd: '2026-08-05',
+        });
+
+        const thursday = plan.sessions.find((s) => s.date === '2026-08-06');
+        expect(thursday.completed).toBe(true);
+        expect(thursday.matchedOnDate).toBe('2026-08-03');
     });
 
     it('applySessionMoves vacates source day', () => {

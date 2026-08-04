@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -15,7 +16,7 @@ import {
   EXPLORER_VIEW_MODES,
   EXPLORER_VIEW_OPTIONS,
 } from '../../../utils/coach/coachPlaygroundMetrics.js';
-import { buildExplorerData } from '../../../utils/coach/coachPlaygroundExplorer.js';
+import { buildExplorerData, RIDE_ENVIRONMENT } from '../../../utils/coach/coachPlaygroundExplorer.js';
 import {
   defaultPlaygroundPrimaryRange,
   playgroundRangeForYears,
@@ -37,6 +38,14 @@ const THEME = {
   text: 'var(--cd-muted, #94a3b8)',
   xLine: 'var(--cd-accent, #fbbf24)',
   yLine: '#38bdf8',
+};
+
+const SORT_KEYS = {
+  label: 'label',
+  x: 'x',
+  y: 'y',
+  color: 'color',
+  rideCount: 'rideCount',
 };
 
 function MetricSelect({ label, value, onChange, allowNone = false }) {
@@ -61,6 +70,23 @@ function MetricSelect({ label, value, onChange, allowNone = false }) {
   );
 }
 
+function SortHeader({ label, sortKey, activeKey, direction, onSort }) {
+  const active = activeKey === sortKey;
+  const Icon = active ? (direction === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown;
+  return (
+    <th className="px-3 py-2">
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className={`inline-flex items-center gap-1 uppercase text-xs font-semibold ${active ? 'text-cdaccent' : 'text-cdmuted hover:text-cdtext'}`}
+      >
+        {label}
+        <Icon size={12} />
+      </button>
+    </th>
+  );
+}
+
 function DualTimelineTooltip({ active, payload, xUnit, yUnit }) {
   if (!active || !payload?.length) return null;
   const row = payload[0]?.payload || {};
@@ -78,6 +104,21 @@ function DualTimelineTooltip({ active, payload, xUnit, yUnit }) {
   );
 }
 
+function sortPoints(points, sortKey, direction) {
+  const factor = direction === 'asc' ? 1 : -1;
+  return [...points].sort((a, b) => {
+    const av = a[sortKey];
+    const bv = b[sortKey];
+    if (sortKey === SORT_KEYS.label) {
+      return factor * String(av || '').localeCompare(String(bv || ''));
+    }
+    if (av == null && bv == null) return 0;
+    if (av == null) return 1;
+    if (bv == null) return -1;
+    return factor * (av - bv);
+  });
+}
+
 export default function PlaygroundExplorerPanel({ activities }) {
   const today = todayYmd();
   const defaultRange = defaultPlaygroundPrimaryRange(today);
@@ -89,9 +130,24 @@ export default function PlaygroundExplorerPanel({ activities }) {
   const [colorMetric, setColorMetric] = useState('distanceKm');
   const [sizeMetric, setSizeMetric] = useState('');
   const [topN, setTopN] = useState(10);
+  const [rideEnvironment, setRideEnvironment] = useState(RIDE_ENVIRONMENT.ALL);
+  const [excludeZeros, setExcludeZeros] = useState(true);
+  const [autoZoom, setAutoZoom] = useState(true);
+  const [showTrendLine, setShowTrendLine] = useState(true);
+  const [sortKey, setSortKey] = useState(SORT_KEYS.label);
+  const [sortDir, setSortDir] = useState('desc');
   const [primaryStart, setPrimaryStart] = useState(defaultRange.startYmd);
   const [primaryEnd, setPrimaryEnd] = useState(defaultRange.endYmd);
   const [rangePreset, setRangePreset] = useState('5y');
+
+  const handleSort = (key) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir(key === SORT_KEYS.label ? 'desc' : 'asc');
+    }
+  };
 
   const applyPreset = (preset) => {
     setXMetric(preset.xMetric);
@@ -119,8 +175,15 @@ export default function PlaygroundExplorerPanel({ activities }) {
       colorMetric: colorMetric || undefined,
       sizeMetric: sizeMetric || undefined,
       topN,
+      rideEnvironment,
+      excludeZeros,
     }),
-    [activities, cadence, primaryStart, primaryEnd, xMetric, yMetric, colorMetric, sizeMetric, topN],
+    [activities, cadence, primaryStart, primaryEnd, xMetric, yMetric, colorMetric, sizeMetric, topN, rideEnvironment, excludeZeros],
+  );
+
+  const sortedPoints = useMemo(
+    () => sortPoints(explorer.points, sortKey, sortDir),
+    [explorer.points, sortKey, sortDir],
   );
 
   const needsTopN = xMetric.endsWith('_topN') || yMetric.endsWith('_topN')
@@ -131,7 +194,7 @@ export default function PlaygroundExplorerPanel({ activities }) {
     <div className="space-y-4">
       <p className="text-xs text-cdmuted leading-relaxed">
         Combine any metrics freely: pick X and Y, optionally color or size bubbles by a third metric.
-        Each dot is one ride or one time bucket (week / month / year).
+        Drag the brush below the chart to zoom. Each dot is one ride or one time bucket.
       </p>
 
       <div className="flex flex-wrap gap-2">
@@ -168,6 +231,19 @@ export default function PlaygroundExplorerPanel({ activities }) {
         </label>
 
         <label className="flex flex-col gap-1 text-xs text-cdmuted">
+          <span className="font-semibold text-cdtext">Ride type</span>
+          <select
+            value={rideEnvironment}
+            onChange={(e) => setRideEnvironment(e.target.value)}
+            className="bg-cdborder/30 border border-cdborder rounded-lg px-3 py-2 text-sm text-cdtext min-w-[130px]"
+          >
+            <option value={RIDE_ENVIRONMENT.ALL}>Indoor + outdoor</option>
+            <option value={RIDE_ENVIRONMENT.OUTDOOR}>Outdoor only</option>
+            <option value={RIDE_ENVIRONMENT.INDOOR}>Indoor / virtual only</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-cdmuted">
           <span className="font-semibold text-cdtext">View</span>
           <select
             value={viewMode}
@@ -193,6 +269,21 @@ export default function PlaygroundExplorerPanel({ activities }) {
             />
           </label>
         )}
+      </div>
+
+      <div className="flex flex-wrap gap-4 text-xs text-cdmuted">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" checked={showTrendLine} onChange={(e) => setShowTrendLine(e.target.checked)} />
+          Show trend line (cyan)
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" checked={excludeZeros} onChange={(e) => setExcludeZeros(e.target.checked)} />
+          Exclude zero / missing axis values
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" checked={autoZoom} onChange={(e) => setAutoZoom(e.target.checked)} />
+          Auto-zoom to data range
+        </label>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -240,8 +331,9 @@ export default function PlaygroundExplorerPanel({ activities }) {
           yLabel={explorer.yMeta.label}
           xUnit={explorer.xMeta.unit}
           yUnit={explorer.yMeta.unit}
-          colorLabel={explorer.colorMeta?.label}
           sizeLabel={explorer.sizeMeta?.label}
+          showTrendLine={showTrendLine}
+          autoZoom={autoZoom}
         />
       ) : (
         <ResponsiveContainer width="100%" height={300}>
@@ -261,16 +353,18 @@ export default function PlaygroundExplorerPanel({ activities }) {
       <div className="overflow-x-auto rounded-lg border border-cdborder max-h-56 overflow-y-auto custom-scrollbar">
         <table className="w-full text-left text-sm">
           <thead className="sticky top-0 bg-cdsurface">
-            <tr className="bg-cdborder/40 text-cdmuted text-xs uppercase">
-              <th className="px-3 py-2">Period</th>
-              <th className="px-3 py-2">{explorer.xMeta.label}</th>
-              <th className="px-3 py-2">{explorer.yMeta.label}</th>
-              {explorer.colorMeta && <th className="px-3 py-2">{explorer.colorMeta.label}</th>}
-              <th className="px-3 py-2">Rides</th>
+            <tr className="bg-cdborder/40">
+              <SortHeader label="Period" sortKey={SORT_KEYS.label} activeKey={sortKey} direction={sortDir} onSort={handleSort} />
+              <SortHeader label={explorer.xMeta.label} sortKey={SORT_KEYS.x} activeKey={sortKey} direction={sortDir} onSort={handleSort} />
+              <SortHeader label={explorer.yMeta.label} sortKey={SORT_KEYS.y} activeKey={sortKey} direction={sortDir} onSort={handleSort} />
+              {explorer.colorMeta && (
+                <SortHeader label={explorer.colorMeta.label} sortKey={SORT_KEYS.color} activeKey={sortKey} direction={sortDir} onSort={handleSort} />
+              )}
+              <SortHeader label="Rides" sortKey={SORT_KEYS.rideCount} activeKey={sortKey} direction={sortDir} onSort={handleSort} />
             </tr>
           </thead>
           <tbody className="text-cdtext">
-            {explorer.points.map((row) => (
+            {sortedPoints.map((row) => (
               <tr key={row.key} className="border-t border-cdborder">
                 <td className="px-3 py-1.5 whitespace-nowrap">{row.label}</td>
                 <td className="px-3 py-1.5 font-mono">{row.x ?? '—'}</td>

@@ -123,6 +123,7 @@ export function matchSessionsToActivities(sessions, activities, ftp, options = {
         if (candidate) {
             usedActivityIds.add(candidate.id);
             matches.set(session.date, {
+                activityId: candidate.id || null,
                 activityDate: candidate.ymd,
                 matchedStimulus: candidate.stimulus,
             });

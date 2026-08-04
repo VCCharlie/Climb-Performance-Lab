@@ -49,6 +49,7 @@ describe('coachSessionMatcher', () => {
         ];
         const matches = matchSessionsToActivities(sessions, activities, 250);
         expect(matches.get('2026-08-04')).toEqual({
+            activityId: 'ride-1',
             activityDate: '2026-08-03',
             matchedStimulus: 'sweetspot',
         });

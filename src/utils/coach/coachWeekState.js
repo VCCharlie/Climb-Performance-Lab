@@ -31,7 +31,7 @@ export function readRawCoachWeekForSync() {
 
 /**
  * @param {object | null | undefined} raw
- * @returns {{ weekKey: string, completedDates: string[], overrides: Record<string, string>, moves: Record<string, string>, unavailableDates: string[], availableDates: string[], updatedAt: string | null }}
+ * @returns {{ weekKey: string, completedDates: string[], overrides: Record<string, string>, moves: Record<string, string>, unavailableDates: string[], availableDates: string[], sessionMatches: Record<string, object>, updatedAt: string | null }}
  */
 export function normalizeCoachWeekState(raw) {
     return {
@@ -41,6 +41,7 @@ export function normalizeCoachWeekState(raw) {
         moves: raw?.moves && typeof raw.moves === 'object' ? raw.moves : {},
         unavailableDates: Array.isArray(raw?.unavailableDates) ? raw.unavailableDates : [],
         availableDates: Array.isArray(raw?.availableDates) ? raw.availableDates : [],
+        sessionMatches: raw?.sessionMatches && typeof raw.sessionMatches === 'object' ? raw.sessionMatches : {},
         updatedAt: raw?.updatedAt || null,
     };
 }
@@ -70,7 +71,7 @@ export function readCoachWeekState(mondayYmd) {
     const weekKey = isoWeekKey(mondayYmd);
     const raw = readRaw();
     if (!raw || raw.weekKey !== weekKey) {
-        return { weekKey, completedDates: [], overrides: {}, moves: {}, unavailableDates: [], availableDates: [] };
+        return { weekKey, completedDates: [], overrides: {}, moves: {}, unavailableDates: [], availableDates: [], sessionMatches: {} };
     }
     return {
         weekKey,
@@ -79,6 +80,7 @@ export function readCoachWeekState(mondayYmd) {
         moves: raw.moves && typeof raw.moves === 'object' ? raw.moves : {},
         unavailableDates: Array.isArray(raw.unavailableDates) ? raw.unavailableDates : [],
         availableDates: Array.isArray(raw.availableDates) ? raw.availableDates : [],
+        sessionMatches: raw.sessionMatches && typeof raw.sessionMatches === 'object' ? raw.sessionMatches : {},
     };
 }
 
@@ -95,10 +97,43 @@ export function writeCoachWeekState(mondayYmd, patch) {
         moves: patch.moves ?? current.moves,
         unavailableDates: patch.unavailableDates ?? current.unavailableDates,
         availableDates: patch.availableDates ?? current.availableDates,
+        sessionMatches: patch.sessionMatches ?? current.sessionMatches,
         updatedAt: new Date().toISOString(),
     };
     writeRaw(next);
     return next;
+}
+
+/**
+ * Persist auto-detected session ↔ activity matches for cross-device stability.
+ * @param {string} mondayYmd
+ * @param {Record<string, { activityId?: string, activityDate: string, matchedStimulus: string }>} matches
+ */
+export function mergeSessionMatches(mondayYmd, matches) {
+    const current = readCoachWeekState(mondayYmd);
+    const nextMatches = { ...current.sessionMatches };
+    let changed = false;
+
+    for (const [sessionDate, match] of Object.entries(matches || {})) {
+        if (!match?.activityDate) continue;
+        const prev = nextMatches[sessionDate];
+        if (
+            !prev
+            || prev.activityDate !== match.activityDate
+            || prev.matchedStimulus !== match.matchedStimulus
+            || prev.activityId !== match.activityId
+        ) {
+            nextMatches[sessionDate] = {
+                activityId: match.activityId || prev?.activityId || null,
+                activityDate: match.activityDate,
+                matchedStimulus: match.matchedStimulus,
+            };
+            changed = true;
+        }
+    }
+
+    if (!changed) return current;
+    return writeCoachWeekState(mondayYmd, { sessionMatches: nextMatches });
 }
 
 export function toggleSessionComplete(mondayYmd, dateYmd) {
