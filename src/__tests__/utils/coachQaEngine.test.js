@@ -55,6 +55,23 @@ describe('coachQaEngine', () => {
         expect(result.answer).not.toMatch(/coachContext/i);
     });
 
+    it('answers top 10 best 60-minute efforts for a calendar year', () => {
+        const yearActivities = [
+            { id: 'a', date: '2024-06-15', type: 'Ride', title: 'Long Z2', best_60min: 301 },
+            { id: 'b', date: '2024-03-01', type: 'Ride', title: 'Spring ride', best_60min: 285 },
+            { id: 'c', date: '2024-09-01', type: 'Ride', title: 'Endurance', best_60min: 295 },
+        ];
+        const result = answerCoachQuestion(
+            'What are 10 best 60-minute FTP values from 2024?',
+            yearActivities,
+            { ftp: 280 },
+        );
+        expect(result.title).toMatch(/60-minute power \(2024\)/i);
+        expect(result.answer).toMatch(/301W/);
+        expect(result.answer).toMatch(/295W/);
+        expect(result.answer).not.toMatch(/only have access to your yearly peak/i);
+    });
+
     it('returns fallback for unknown questions', () => {
         const result = answerCoachQuestion('xyzzy unknown', activities, { ftp: 250 });
         expect(result.answer).toMatch(/quick question/i);
