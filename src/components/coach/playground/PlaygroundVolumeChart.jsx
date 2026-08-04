@@ -15,7 +15,7 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
-import { CHART_TYPES } from '../../../utils/coach/coachPlaygroundMetrics.js';
+import { CHART_TYPES, formatPlaygroundAxisTick } from '../../../utils/coach/coachPlaygroundMetrics.js';
 
 const THEME = {
   grid: 'var(--cd-border, #334155)',
@@ -66,6 +66,8 @@ export default function PlaygroundVolumeChart({
   data,
   chartType,
   metricLabel,
+  metricUnit = '',
+  metricDecimals,
   showTrend,
   showMax,
   showMaxTrend,
@@ -81,11 +83,13 @@ export default function PlaygroundVolumeChart({
     margin: { top: 8, right: 12, left: 0, bottom: 0 },
   };
 
+  const yTickFormatter = (v) => formatPlaygroundAxisTick(v, { decimals: metricDecimals, unit: metricUnit });
+
   const axes = (
     <>
       <CartesianGrid strokeDasharray="3 3" stroke={THEME.grid} opacity={0.5} />
       <XAxis dataKey="label" tick={{ fill: THEME.text, fontSize: 11 }} />
-      <YAxis tick={{ fill: THEME.text, fontSize: 11 }} width={48} />
+      <YAxis tick={{ fill: THEME.text, fontSize: 11 }} width={48} tickFormatter={yTickFormatter} />
       <Tooltip
         content={
           <PlaygroundTooltip
@@ -115,7 +119,7 @@ export default function PlaygroundVolumeChart({
             name="Period"
             tick={{ fill: THEME.text, fontSize: 11 }}
           />
-          <YAxis tick={{ fill: THEME.text, fontSize: 11 }} width={48} />
+          <YAxis tick={{ fill: THEME.text, fontSize: 11 }} width={48} tickFormatter={yTickFormatter} />
           <Tooltip
             content={
               <PlaygroundTooltip

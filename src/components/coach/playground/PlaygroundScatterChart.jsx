@@ -13,6 +13,7 @@ import {
   Brush,
 } from 'recharts';
 import { buildTrendLineEndpoints, computeAxisDomain } from '../../../utils/coach/coachPlaygroundRegression.js';
+import { formatPlaygroundAxisTick } from '../../../utils/coach/coachPlaygroundMetrics.js';
 
 const THEME = {
   grid: 'var(--cd-border, #334155)',
@@ -69,6 +70,8 @@ export default function PlaygroundScatterChart({
   yLabel,
   xUnit = '',
   yUnit = '',
+  xDecimals,
+  yDecimals,
   sizeLabel,
   showTrendLine = true,
   autoZoom = false,
@@ -117,6 +120,7 @@ export default function PlaygroundScatterChart({
             domain={xDomain || ['auto', 'auto']}
             allowDataOverflow
             tick={{ fill: THEME.text, fontSize: 11 }}
+            tickFormatter={(v) => formatPlaygroundAxisTick(v, { decimals: xDecimals, unit: xUnit })}
             label={{ value: `${xLabel}${xUnit ? ` (${xUnit})` : ''}`, position: 'insideBottom', offset: -4, fill: THEME.text, fontSize: 11 }}
           />
           <YAxis
@@ -127,6 +131,7 @@ export default function PlaygroundScatterChart({
             allowDataOverflow
             tick={{ fill: THEME.text, fontSize: 11 }}
             width={52}
+            tickFormatter={(v) => formatPlaygroundAxisTick(v, { decimals: yDecimals, unit: yUnit })}
             label={{ value: `${yLabel}${yUnit ? ` (${yUnit})` : ''}`, angle: -90, position: 'insideLeft', fill: THEME.text, fontSize: 11 }}
           />
           {hasSize && (
