@@ -24,6 +24,8 @@ import { buildCoachActivityLog } from './coachActivityLog';
 import { buildTodayFocus } from './coachTodayFocus';
 import { buildFluidWeekPlan } from './coachWeekPlan';
 import { buildFitnessHistoryForCoach } from './coachFitnessHistory';
+import { buildCoachPlanOutlook } from './coachPlanOutlook';
+import { estimateSessionTss } from './coachSessionTss';
 
 function computeIntensityProfile(activities, ftp, lookbackDays = 14) {
     const endYmd = todayYmd();
@@ -231,6 +233,7 @@ export function buildCoachContext(activities, userSettings, options = {}) {
             date: s.date,
             stimulus: s.plannedStimulus || s.stimulus,
             workoutName: s.workoutName,
+            estimatedTss: estimateSessionTss(s.plannedStimulus || s.stimulus, weeklyHours),
             completed: s.completed,
             isToday: s.isToday,
             movedFromDate: s.movedFromDate || null,
@@ -241,7 +244,16 @@ export function buildCoachContext(activities, userSettings, options = {}) {
         unavailableDates: weekPlan.unavailableDates || [],
         availableDates: weekPlan.availableDates || [],
         availabilityNote: weekPlan.availabilityNote || null,
+        rebalanceNote: weekPlan.rebalanceNote || null,
     };
+
+    const planOutlook = buildCoachPlanOutlook({
+        weekPlan,
+        coachFeatures,
+        activities,
+        weeklyHours,
+        referenceYmd: endYmd,
+    });
 
     return {
         ...coachFeatures,
@@ -253,6 +265,7 @@ export function buildCoachContext(activities, userSettings, options = {}) {
         activityLog,
         todayFocus,
         weekPlanSummary,
+        planOutlook,
         generatedAt: new Date().toISOString(),
     };
 }
