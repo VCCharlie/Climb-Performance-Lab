@@ -12,6 +12,10 @@ import {
     parseYearFromQuestion,
     parseYearsAgoFromQuestion,
 } from './coachPowerHistory';
+import {
+    answerMultiYearPowerAnalysis,
+    matchesMultiYearPowerAnalysisQuestion,
+} from './coachPowerAnalysis';
 import { rateTodayRideAnswer } from './coachTodayFocus';
 
 export const COACH_QUICK_QUESTIONS = [
@@ -68,15 +72,24 @@ export function answerCoachQuestion(question, activities, userSettings, options 
         );
     }
 
+    if (matchesMultiYearPowerAnalysisQuestion(q)) {
+        const result = answerMultiYearPowerAnalysis(q, activities, userSettings);
+        return {
+            title: '',
+            answer: result.answer,
+            source: 'structured',
+        };
+    }
+
     if (matchesTopPowerListQuestion(q)) {
         const year = parseYearFromQuestion(q) ?? new Date().getFullYear();
         const field = parsePowerFieldFromQuestion(q);
         const limit = parseTopLimitFromQuestion(q);
-        const label = field === 'best_20min' ? '20-minute power' : '60-minute power';
-        return formatAnswer(
-            `Top ${limit} ${label} (${year})`,
-            formatTopPowerEffortsAnswer(ctx.powerHistory, year, field, limit),
-        );
+        return {
+            title: '',
+            answer: formatTopPowerEffortsAnswer(ctx.powerHistory, year, field, limit),
+            source: 'structured',
+        };
     }
 
     if (matches(q, ['ftp', 'improv', 'progress', 'ceiling', 'power curve', 'twintig', '20 min'])) {

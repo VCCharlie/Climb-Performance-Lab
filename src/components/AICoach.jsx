@@ -7,6 +7,7 @@ import { useActivitiesList } from '../hooks/useActivities';
 import { buildCoachContext } from '../utils/coach/coachPayloadBuilder';
 import TodaysFocusCard from './coach/TodaysFocusCard';
 import CoachAskPanel from './coach/CoachAskPanel';
+import CoachPowerPlayground from './coach/CoachPowerPlayground';
 import CoachPeriodReview from './coach/CoachPeriodReview';
 import CoachFluidWeekPlan from './coach/CoachFluidWeekPlan';
 import { useProfileFtp } from '../context/ProfileFtpContext';
@@ -548,6 +549,11 @@ ${workout.zwoSteps.map(step => {
                 activities={activities}
                 userSettings={userSettings}
                 weeklyHoursTarget={weeklyHoursTarget}
+            />
+
+            <CoachPowerPlayground
+                activities={activities}
+                userSettings={userSettings}
             />
 
             {/* --- Tweede tijdssnede: recent vs vorig blok / jaar-context --- */}

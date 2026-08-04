@@ -39,7 +39,7 @@ async function callGemini(apiKey, userMessage, model) {
                 ],
                 generationConfig: {
                     temperature: 0.65,
-                    maxOutputTokens: 1024,
+                    maxOutputTokens: 4096,
                 },
             }),
         },
@@ -55,11 +55,16 @@ async function callGemini(apiKey, userMessage, model) {
     }
 
     const data = await response.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    const candidate = data?.candidates?.[0];
+    const text = candidate?.content?.parts?.[0]?.text;
     if (!text || !String(text).trim()) {
         throw new Error('Empty response from Gemini');
     }
-    return String(text).trim();
+    let answer = String(text).trim();
+    if (candidate?.finishReason === 'MAX_TOKENS') {
+        answer += '\n\n[Response shortened by the AI token limit — use Power Analysis below for full tables and charts.]';
+    }
+    return answer;
 }
 
 function isModelUnavailableError(err) {
@@ -112,9 +117,8 @@ export async function askCoachLlm(apiKey, question, coachContext, recentHistory 
     for (const model of models) {
         try {
             const answer = sanitizeCoachLlmAnswer(await callGemini(key, userMessage, model));
-            const titleLine = answer.split('\n').find((l) => l.trim()) || 'Coach response';
             return {
-                title: titleLine.replace(/^#+\s*/, '').slice(0, 80),
+                title: '',
                 answer,
                 source: 'llm',
                 model,
