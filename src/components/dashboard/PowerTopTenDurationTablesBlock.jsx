@@ -10,8 +10,9 @@ const PowerTopTenDurationTablesBlock = ({
 }) => {
     return (
         <div className="space-y-3">
-            {tablesByDuration.map(({ label, primary, secondary, footnote }, index) => {
-                const topWatt = primary?.[0]?.watts;
+            {tablesByDuration.map(({ label, primary, secondary, footnote }) => {
+                const activeRows = compareBounds && mobileCompareColumn === 2 ? secondary : primary;
+                const topWatt = activeRows?.[0]?.watts;
                 const summary = topWatt ? `${topWatt} W` : null;
 
                 return (
@@ -20,7 +21,7 @@ const PowerTopTenDurationTablesBlock = ({
                         label={label}
                         summary={summary}
                         footnote={footnote}
-                        defaultExpanded={index === 0}
+                        defaultExpanded={false}
                     >
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-2">
                             <div className={compareBounds && mobileCompareColumn !== 1 ? 'hidden lg:block' : ''}>

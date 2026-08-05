@@ -189,6 +189,12 @@ const LongestRidesPanel = ({
                         )}
                     </div>
 
+                    <StickyCompareColumnSwitcher
+                        showCompare={Boolean(compareBounds)}
+                        activeColumn={mobileCompareColumn}
+                        onChange={setMobileCompareColumn}
+                    />
+
                     {boundsPrimary && (
                         <p className="text-[11px] text-cdmuted leading-relaxed">
                             Totals and averages in the boxes below include only the rides listed in the tables (top 10 by distance per column), not every ride in the date range.
@@ -243,12 +249,6 @@ const LongestRidesPanel = ({
                             compareBounds={compareBounds}
                         />
                     )}
-
-                    <StickyCompareColumnSwitcher
-                        showCompare={Boolean(compareBounds)}
-                        activeColumn={mobileCompareColumn}
-                        onChange={setMobileCompareColumn}
-                    />
 
                     <div className={`grid gap-4 ${compareBounds ? 'lg:grid-cols-2' : ''}`}>
                         <div className={compareBounds && mobileCompareColumn !== 1 ? 'hidden lg:block' : ''}>
