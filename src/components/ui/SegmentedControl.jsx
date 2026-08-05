@@ -19,6 +19,7 @@ export default function SegmentedControl({
   size = 'md',
   fullWidth = false,
   caps = true,
+  dense = false,
   className,
   'aria-label': ariaLabel,
 }) {
@@ -30,6 +31,7 @@ export default function SegmentedControl({
       aria-label={ariaLabel}
       className={cn(
         'inline-flex items-center gap-0.5 bg-cdsurfacelow rounded-cdmd p-1 border border-cdborder/60',
+        dense && 'p-0.5 gap-0',
         fullWidth && 'w-full',
         className,
       )}
@@ -50,7 +52,8 @@ export default function SegmentedControl({
             className={cn(
               'inline-flex items-center justify-center font-semibold whitespace-nowrap',
               caps && 'uppercase tracking-wide',
-              'rounded-cdsm px-2.5 py-1.5 cd-transition cd-focus-ring cd-min-touch-y',
+              'rounded-cdsm cd-transition cd-focus-ring',
+              dense ? 'px-2 py-0.5 min-h-8' : 'px-2.5 py-1.5 cd-min-touch-y',
               'active:scale-[0.98]',
               SIZE_CLASSES[size],
               fullWidth && 'flex-1',

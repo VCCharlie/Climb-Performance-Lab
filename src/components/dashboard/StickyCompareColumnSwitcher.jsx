@@ -40,7 +40,7 @@ export default function StickyCompareColumnSwitcher(props) {
             <div ref={sentinelRef} className="lg:hidden h-px w-full -mb-px" aria-hidden />
             <div
                 className={[
-                    'lg:hidden py-2 -mx-1 px-1',
+                    'lg:hidden py-1 -mx-1 px-1',
                     pinned ? 'invisible' : '',
                 ].join(' ')}
                 aria-hidden={isPinned}
@@ -49,7 +49,7 @@ export default function StickyCompareColumnSwitcher(props) {
             </div>
             {isPinned && (
                 <div
-                    className="lg:hidden fixed left-0 right-0 z-[35] border-b border-cdborder/60 bg-cdsurface/95 backdrop-blur-md shadow-md px-3 py-2"
+                    className="lg:hidden fixed left-0 right-0 z-[35] border-b border-cdborder/50 bg-cdsurface shadow-sm px-3 py-1"
                     style={{ top: stickyTop }}
                 >
                     <div className="max-w-7xl mx-auto">

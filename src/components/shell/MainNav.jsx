@@ -150,11 +150,13 @@ export default function MainNav({
         <TimeRangeToolbar
           layout="mobile-full"
           {...timeRangeProps}
+          compact
           className="md:hidden"
         />
         <TimeRangeToolbar
           layout="desktop"
           {...timeRangeProps}
+          compact
           className="hidden md:block"
         />
       </StickyTimeRangeToolbar>
