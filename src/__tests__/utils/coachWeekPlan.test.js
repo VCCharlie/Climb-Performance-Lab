@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { buildWeekSkeleton, rebalanceWeek, downgradeStimulus } from '../../utils/coach/coachRebalancer';
-import { buildFluidWeekPlan, getMondayYmd, computeWeekActuals, applySessionMoves } from '../../utils/coach/coachWeekPlan';
+import { buildFluidWeekPlan, buildProjectedWeek2Plan, getMondayYmd, computeWeekActuals, applySessionMoves } from '../../utils/coach/coachWeekPlan';
 import { readCoachWeekState, writeCoachWeekState, moveSession, toggleUnavailableDate, toggleAvailableDate } from '../../utils/coach/coachWeekState';
 
 describe('coachRebalancer', () => {
@@ -220,6 +220,29 @@ describe('coachWeekPlan', () => {
         expect(tuesday.isExplicitlyAvailable).toBe(true);
         expect(tuesday.plannedStimulus).toBe('sweetspot');
         expect(tuesday.relocatedFromDate).toBe('2026-08-06');
+    });
+
+    it('buildProjectedWeek2Plan marks only calendar today, not week-2 Monday', () => {
+        const week1 = buildFluidWeekPlan({
+            activities: [],
+            userSettings: { weeklyHoursTarget: 5, ftp: 250 },
+            coachContext: { athlete: { ftp: 250 }, fitness: { tsb: 0 } },
+            referenceYmd: '2026-08-05',
+        });
+
+        const week2 = buildProjectedWeek2Plan({
+            activities: [],
+            userSettings: { weeklyHoursTarget: 5, ftp: 250 },
+            week1Plan: week1,
+            coachContext: { athlete: { ftp: 250 }, fitness: { tsb: 0 } },
+            referenceYmd: '2026-08-05',
+        });
+
+        expect(week2.mondayYmd).toBe('2026-08-10');
+        const week2Monday = week2.sessions.find((s) => s.date === '2026-08-10');
+        const week1Wednesday = week1.sessions.find((s) => s.date === '2026-08-05');
+        expect(week1Wednesday.isToday).toBe(true);
+        expect(week2Monday.isToday).toBe(false);
     });
 });
 

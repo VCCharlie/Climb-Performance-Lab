@@ -83,9 +83,16 @@ export function applySessionMoves(basePlan, moves) {
  * @param {object[]} params.activities
  * @param {object} params.userSettings
  * @param {object} params.coachContext
- * @param {string} [params.referenceYmd]
+ * @param {string} [params.referenceYmd] — anchors which calendar week to build (Monday derived from this date)
+ * @param {string} [params.calendarYmd] — real "today" for isToday / isPast and session matching (defaults to referenceYmd)
  */
-export function buildFluidWeekPlan({ activities, userSettings, coachContext, referenceYmd = todayYmd() }) {
+export function buildFluidWeekPlan({
+    activities,
+    userSettings,
+    coachContext,
+    referenceYmd = todayYmd(),
+    calendarYmd = referenceYmd,
+}) {
     const weeklyHours = Number(userSettings?.weeklyHoursTarget) || 5;
     const ftp = coachContext?.athlete?.ftp || Number(userSettings?.ftp) || 0;
     const mondayYmd = getMondayYmd(referenceYmd);
@@ -212,8 +219,8 @@ export function buildFluidWeekPlan({ activities, userSettings, coachContext, ref
             isUnavailable,
             isExplicitlyAvailable,
             sameDayComplete,
-            isToday: row.date === referenceYmd,
-            isPast: row.date < referenceYmd,
+            isToday: row.date === calendarYmd,
+            isPast: row.date < calendarYmd,
         };
     });
 
@@ -221,7 +228,7 @@ export function buildFluidWeekPlan({ activities, userSettings, coachContext, ref
         preliminary,
         filterActivitiesInRange(activities, mondayYmd, sundayYmd),
         ftp,
-        { referenceYmd },
+        { referenceYmd: calendarYmd },
     );
 
     // Merge persisted matches (cross-device) when live matching has no result yet.
@@ -229,7 +236,7 @@ export function buildFluidWeekPlan({ activities, userSettings, coachContext, ref
     for (const [sessionDate, persisted] of Object.entries(weekState.sessionMatches || {})) {
         if (crossDayMatches.has(sessionDate)) continue;
         // Drop stale persisted matches that counted yesterday's ride as today's workout.
-        if (sessionDate === referenceYmd && persisted.activityDate < referenceYmd) continue;
+        if (sessionDate === calendarYmd && persisted.activityDate < calendarYmd) continue;
         const act = weekActivities.find(
             (a) => (persisted.activityId && a.id === persisted.activityId)
                 || normalizeDate(a.date) === persisted.activityDate,
@@ -401,5 +408,6 @@ export function buildProjectedWeek2Plan({
         userSettings,
         coachContext: week2CoachContext,
         referenceYmd: week2Reference,
+        calendarYmd: referenceYmd,
     });
 }
