@@ -75,6 +75,12 @@ const PowerTopTenExpandedBody = ({
             )}
         </div>
 
+        <StickyCompareColumnSwitcher
+            showCompare={Boolean(compareBounds)}
+            activeColumn={mobileCompareColumn}
+            onChange={setMobileCompareColumn}
+        />
+
         {boundsPrimary && (
             <div className={`grid gap-3 ${compareBounds ? 'lg:grid-cols-2' : ''}`}>
                 {(!compareBounds || mobileCompareColumn === 1) && (
@@ -126,12 +132,6 @@ const PowerTopTenExpandedBody = ({
                 More watts at the same rank (#1 vs #1, …) than the other column — tap or hover the watts column for details.
             </p>
         )}
-
-        <StickyCompareColumnSwitcher
-            showCompare={Boolean(compareBounds)}
-            activeColumn={mobileCompareColumn}
-            onChange={setMobileCompareColumn}
-        />
 
         <PowerTopTenDurationTablesBlock
             tablesByDuration={tablesByDuration}
