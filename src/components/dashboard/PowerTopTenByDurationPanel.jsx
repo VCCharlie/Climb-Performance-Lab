@@ -125,7 +125,7 @@ const PowerTopTenByDurationPanel = ({
         : formatLongRange(dashboardBounds);
 
     return (
-        <div className={`${chartCardShellClass} overflow-hidden`}>
+        <div className={chartCardShellClass}>
             <button
                 type="button"
                 onClick={() => setExpanded((e) => !e)}
