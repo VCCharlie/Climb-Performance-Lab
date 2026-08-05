@@ -14,6 +14,9 @@ import {
 /** Shared time-range presets for dashboard filtering. */
 export const TIME_RANGE_OPTIONS = ['1M', '3M', '6M', '1Y', '3Y', '6Y', 'ALL', 'Custom'];
 
+/** Main tabs where the global time-range filter affects displayed data. */
+export const TIME_RANGE_TAB_IDS = new Set(['dashboard', 'activities', 'training']);
+
 /** Primary app navigation tabs (10 main sections). */
 export const MAIN_NAV_TABS = [
     { id: 'dashboard', label: 'Dashboard', icon: Gauge },

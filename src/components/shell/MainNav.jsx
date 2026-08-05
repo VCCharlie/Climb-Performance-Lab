@@ -4,7 +4,8 @@ import { Menu, X, ChevronRight, RefreshCw } from 'lucide-react';
 import { Button, cn } from '../ui';
 import NavTab from './NavTab';
 import TimeRangeToolbar from './TimeRangeToolbar';
-import { MAIN_NAV_TABS } from '../../config/navTabs';
+import StickyTimeRangeToolbar from './StickyTimeRangeToolbar';
+import { MAIN_NAV_TABS, TIME_RANGE_TAB_IDS } from '../../config/navTabs';
 import { prefetchMainTabChunk } from '../../utils/prefetchTabChunks';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { computeAnchoredOverlayStyle } from '../../utils/anchoredOverlayPosition';
@@ -30,6 +31,16 @@ export default function MainNav({
   const mobileLabel = tabs.find((t) => t.id === activeTab)?.label || 'Menu';
   const menuTriggerRef = useRef(null);
   const menuPanelId = useId();
+  const showTimeRange = TIME_RANGE_TAB_IDS.has(activeTab);
+
+  const timeRangeProps = {
+    timeRange,
+    onTimeRangeChange,
+    customStart,
+    customEnd,
+    onCustomStart,
+    onCustomEnd,
+  };
 
   useBodyScrollLock(isMobileMenuOpen);
 
@@ -85,7 +96,7 @@ export default function MainNav({
 
   return (
     <div className="relative mb-4">
-      {/* Mobile: menu trigger + quick range */}
+      {/* Mobile: menu trigger */}
       <div className="flex items-center gap-2 mb-3 md:hidden">
         <Button
           ref={menuTriggerRef}
@@ -112,27 +123,41 @@ export default function MainNav({
             <RefreshCw size={18} className={isTodaySyncBusy ? 'animate-spin' : ''} aria-hidden />
           </button>
         )}
-        <TimeRangeToolbar
-          layout="mobile-quick"
-          timeRange={timeRange}
-          onTimeRangeChange={onTimeRangeChange}
-          customStart={customStart}
-          customEnd={customEnd}
-          onCustomStart={onCustomStart}
-          onCustomEnd={onCustomEnd}
-        />
       </div>
 
-      <TimeRangeToolbar
-        layout="mobile-full"
-        timeRange={timeRange}
-        onTimeRangeChange={onTimeRangeChange}
-        customStart={customStart}
-        customEnd={customEnd}
-        onCustomStart={onCustomStart}
-        onCustomEnd={onCustomEnd}
-        className="md:hidden"
-      />
+      {/* Desktop: primary nav */}
+      <div className="hidden md:block border-b border-cdborder/40 mb-3">
+        <nav
+          className="flex overflow-x-auto gap-0.5 no-scrollbar pb-1"
+          role="tablist"
+          aria-label="Main navigation"
+        >
+          {tabs.map((item) => (
+            <NavTab
+              key={item.id}
+              icon={item.icon}
+              label={item.label}
+              isActive={activeTab === item.id}
+              onClick={() => onTabChange(item.id)}
+              onPrefetch={() => prefetchMainTabChunk(item.id)}
+            />
+          ))}
+        </nav>
+      </div>
+
+      {/* Pinned time-range bar (dashboard, activities, training) */}
+      <StickyTimeRangeToolbar enabled={showTimeRange}>
+        <TimeRangeToolbar
+          layout="mobile-full"
+          {...timeRangeProps}
+          className="md:hidden"
+        />
+        <TimeRangeToolbar
+          layout="desktop"
+          {...timeRangeProps}
+          className="hidden md:block"
+        />
+      </StickyTimeRangeToolbar>
 
       {/* Mobile: portaled menu + scrim (avoids parent overflow clipping) */}
       {isMobileMenuOpen && typeof document !== 'undefined' && createPortal(
@@ -180,38 +205,6 @@ export default function MainNav({
         </>,
         document.body,
       )}
-
-      {/* Desktop: primary nav + time range */}
-      <div className="hidden md:block border-b border-cdborder/40 mb-4">
-        <div className="flex items-end justify-between gap-4 pb-1">
-          <nav
-            className="flex overflow-x-auto gap-0.5 no-scrollbar"
-            role="tablist"
-            aria-label="Main navigation"
-          >
-            {tabs.map((item) => (
-              <NavTab
-                key={item.id}
-                icon={item.icon}
-                label={item.label}
-                isActive={activeTab === item.id}
-                onClick={() => onTabChange(item.id)}
-                onPrefetch={() => prefetchMainTabChunk(item.id)}
-              />
-            ))}
-          </nav>
-          <TimeRangeToolbar
-            layout="desktop"
-            timeRange={timeRange}
-            onTimeRangeChange={onTimeRangeChange}
-            customStart={customStart}
-            customEnd={customEnd}
-            onCustomStart={onCustomStart}
-            onCustomEnd={onCustomEnd}
-            className="shrink-0"
-          />
-        </div>
-      </div>
     </div>
   );
 }

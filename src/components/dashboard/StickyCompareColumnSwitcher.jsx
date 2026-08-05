@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import CompareColumnSwitcher from './CompareColumnSwitcher';
-import useAppHeaderOffset from '../../hooks/useAppHeaderOffset';
+import useStickyToolbarTop from '../../hooks/useStickyToolbarTop';
 
 /**
  * Column 1 / 2 toggle that pins below the site header while scrolling (mobile/tablet).
  * Uses a fixed clone because CSS sticky breaks inside animated/transformed ancestors.
  */
 export default function StickyCompareColumnSwitcher(props) {
-    const headerOffset = useAppHeaderOffset();
+    const stickyTop = useStickyToolbarTop();
     const sentinelRef = useRef(null);
     const [pinned, setPinned] = useState(false);
 
@@ -21,14 +21,14 @@ export default function StickyCompareColumnSwitcher(props) {
             ([entry]) => setPinned(!entry.isIntersecting),
             {
                 root: null,
-                rootMargin: `-${headerOffset}px 0px 0px 0px`,
+                rootMargin: `-${stickyTop}px 0px 0px 0px`,
                 threshold: 0,
             },
         );
 
         observer.observe(sentinel);
         return () => observer.disconnect();
-    }, [props.showCompare, headerOffset]);
+    }, [props.showCompare, stickyTop]);
 
     if (!props.showCompare) return null;
 
@@ -50,7 +50,7 @@ export default function StickyCompareColumnSwitcher(props) {
             {isPinned && (
                 <div
                     className="lg:hidden fixed left-0 right-0 z-[35] border-b border-cdborder/60 bg-cdsurface/95 backdrop-blur-md shadow-md px-3 py-2"
-                    style={{ top: headerOffset }}
+                    style={{ top: stickyTop }}
                 >
                     <div className="max-w-7xl mx-auto">
                         {switcher}

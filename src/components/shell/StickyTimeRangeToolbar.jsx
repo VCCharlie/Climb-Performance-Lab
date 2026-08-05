@@ -1,0 +1,82 @@
+import React, { useEffect, useRef, useState } from 'react';
+import useAppHeaderOffset from '../../hooks/useAppHeaderOffset';
+import { setPinnedTimeRangeHeight } from '../../utils/pinnedTimeRangeHeight';
+
+/**
+ * Pins children (time-range toolbar) below the site header while scrolling.
+ */
+export default function StickyTimeRangeToolbar({ children, enabled = true }) {
+    const headerOffset = useAppHeaderOffset();
+    const sentinelRef = useRef(null);
+    const pinnedBarRef = useRef(null);
+    const [pinned, setPinned] = useState(false);
+
+    useEffect(() => {
+        if (!enabled) {
+            setPinnedTimeRangeHeight(0);
+            return undefined;
+        }
+
+        const sentinel = sentinelRef.current;
+        if (!sentinel || typeof IntersectionObserver === 'undefined') return undefined;
+
+        const observer = new IntersectionObserver(
+            ([entry]) => setPinned(!entry.isIntersecting),
+            {
+                root: null,
+                rootMargin: `-${headerOffset}px 0px 0px 0px`,
+                threshold: 0,
+            },
+        );
+
+        observer.observe(sentinel);
+        return () => observer.disconnect();
+    }, [enabled, headerOffset]);
+
+    useEffect(() => {
+        if (!enabled || !pinned) {
+            setPinnedTimeRangeHeight(0);
+            return undefined;
+        }
+
+        const updateHeight = () => {
+            const h = pinnedBarRef.current?.offsetHeight ?? 0;
+            setPinnedTimeRangeHeight(h);
+        };
+
+        updateHeight();
+        const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(updateHeight) : null;
+        if (pinnedBarRef.current && ro) ro.observe(pinnedBarRef.current);
+
+        return () => {
+            ro?.disconnect();
+            setPinnedTimeRangeHeight(0);
+        };
+    }, [enabled, pinned, children]);
+
+    useEffect(() => {
+        if (!enabled) setPinnedTimeRangeHeight(0);
+    }, [enabled]);
+
+    if (!enabled) return null;
+
+    return (
+        <>
+            <div ref={sentinelRef} className="h-px w-full -mb-px" aria-hidden />
+            <div className={pinned ? 'invisible' : undefined} aria-hidden={pinned}>
+                {children}
+            </div>
+            {pinned && (
+                <div
+                    ref={pinnedBarRef}
+                    className="fixed left-0 right-0 z-[34] border-b border-cdborder/60 bg-cdsurface/95 backdrop-blur-md shadow-sm"
+                    style={{ top: headerOffset }}
+                >
+                    <div className="max-w-7xl mx-auto px-3 py-2">
+                        {children}
+                    </div>
+                </div>
+            )}
+        </>
+    );
+}
