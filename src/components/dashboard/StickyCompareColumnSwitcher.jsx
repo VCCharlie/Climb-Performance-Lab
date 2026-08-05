@@ -34,9 +34,6 @@ export default function StickyCompareColumnSwitcher(props) {
 
     if (!props.showCompare) return null;
 
-    const isPinned = pinned;
-    const switcher = <CompareColumnSwitcher {...props} />;
-
     return (
         <>
             <div ref={sentinelRef} className="lg:hidden h-px w-full -mb-px" aria-hidden />
@@ -45,18 +42,18 @@ export default function StickyCompareColumnSwitcher(props) {
                     'lg:hidden py-1 -mx-1 px-1',
                     pinned ? 'invisible' : '',
                 ].join(' ')}
-                aria-hidden={isPinned}
+                aria-hidden={pinned}
             >
-                {switcher}
+                <CompareColumnSwitcher {...props} />
             </div>
-            {isPinned && (
+            {pinned && (
                 <FixedLayerPortal>
                     <div
                         className="lg:hidden fixed left-0 right-0 z-[35] border-b border-cdborder/50 bg-cdsurface shadow-sm px-3 py-1"
                         style={{ top: stickyTop }}
                     >
                         <div className="max-w-7xl mx-auto">
-                            {switcher}
+                            <CompareColumnSwitcher {...props} />
                         </div>
                     </div>
                 </FixedLayerPortal>

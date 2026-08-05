@@ -16,14 +16,14 @@ const DURATION_LABELS = { a_5min: '5 min', b_20min: '20 min', c_60min: '60 min' 
 function BestPowerPeriodAccordion({ powerPeakRows, onOpenActivityInLog }) {
     return (
         <div className="space-y-2">
-            {powerPeakRows.map((row, index) => {
+            {powerPeakRows.map((row) => {
                 const wattsLabel = row.watts > 0 ? `${row.watts} W` : '—';
                 return (
                     <CollapsibleDurationSection
                         key={row.key}
                         label={row.label}
                         summary={wattsLabel}
-                        defaultExpanded={index === 0}
+                        defaultExpanded={false}
                     >
                         <div className="space-y-2 pt-2 text-sm">
                             {row.activity?.title && (
