@@ -2,6 +2,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import useAppHeaderOffset from '../../hooks/useAppHeaderOffset';
 import { setPinnedTimeRangeHeight } from '../../utils/pinnedTimeRangeHeight';
 
+/** Solid shell matching the site header (opaque, no blur). */
+const PINNED_SHELL_CLASS =
+    'fixed left-0 right-0 z-[34] border-b border-cdborder/50 bg-cdsurface shadow-sm';
+
 /**
  * Pins children (time-range toolbar) below the site header while scrolling.
  */
@@ -69,10 +73,10 @@ export default function StickyTimeRangeToolbar({ children, enabled = true }) {
             {pinned && (
                 <div
                     ref={pinnedBarRef}
-                    className="fixed left-0 right-0 z-[34] border-b border-cdborder/60 bg-cdsurface/95 backdrop-blur-md shadow-sm"
+                    className={PINNED_SHELL_CLASS}
                     style={{ top: headerOffset }}
                 >
-                    <div className="max-w-7xl mx-auto px-3 py-2">
+                    <div className="max-w-7xl mx-auto px-3 py-1">
                         {children}
                     </div>
                 </div>
