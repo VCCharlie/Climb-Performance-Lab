@@ -7,6 +7,7 @@ import { COMPARE_OPTIONS } from './powerTopTenByDurationConstants';
 import { PeriodSummaryCard } from './powerTopTenByDurationUi';
 import PowerTopTenCustomRanges from './PowerTopTenCustomRanges';
 import PowerTopTenDurationTablesBlock from './PowerTopTenDurationTablesBlock';
+import CompareColumnSwitcher from './CompareColumnSwitcher';
 
 const PowerTopTenExpandedBody = ({
     compareMode,
@@ -30,10 +31,12 @@ const PowerTopTenExpandedBody = ({
     customCompareEnd,
     tablesByDuration,
     onOpenActivityInLog,
+    mobileCompareColumn,
+    setMobileCompareColumn,
 }) => (
     <div className="px-4 pb-4 pt-0 space-y-4 border-t border-cdborder/60">
         <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3 pt-3">
-            <label className="flex flex-col gap-1 text-xs text-cdmuted min-w-[220px]">
+            <label className="flex flex-col gap-1 text-xs text-cdmuted w-full sm:min-w-[220px]">
                 <span className="font-semibold text-cdtext">Comparison</span>
                 <select
                     value={compareMode}
@@ -50,7 +53,7 @@ const PowerTopTenExpandedBody = ({
                         }
                         setCompareMode(v);
                     }}
-                    className="bg-cdborder/30 border border-cdborder rounded-lg px-2 py-2 text-cdtext text-sm"
+                    className="bg-cdborder/30 border border-cdborder rounded-lg px-2 py-2 text-cdtext text-sm w-full"
                 >
                     {COMPARE_OPTIONS.map((o) => (
                         <option key={o.value} value={o.value}>{o.label}</option>
@@ -73,26 +76,39 @@ const PowerTopTenExpandedBody = ({
         </div>
 
         {boundsPrimary && (
-            <div className={`grid gap-3 ${compareBounds ? 'lg:grid-cols-2' : ''}`}>
-                <PeriodSummaryCard
-                    title="Column 1 — primary period"
-                    accentClass="border-cdaccent/40 bg-cdaccent/[0.07]"
-                    bounds={boundsPrimary}
-                    stats={statsPrimary}
+            <>
+                <CompareColumnSwitcher
+                    showCompare={Boolean(compareBounds)}
+                    activeColumn={mobileCompareColumn}
+                    onChange={setMobileCompareColumn}
                 />
-                {compareBounds && (
-                    <PeriodSummaryCard
-                        title="Column 2 — comparison"
-                        accentClass="border-blue-500/35 bg-blue-500/[0.07]"
-                        bounds={compareBounds}
-                        stats={statsCompare}
-                    />
-                )}
-            </div>
+                <div className={`grid gap-3 ${compareBounds ? 'lg:grid-cols-2' : ''}`}>
+                    {(!compareBounds || mobileCompareColumn === 1) && (
+                        <PeriodSummaryCard
+                            title="Column 1 — primary period"
+                            accentClass="border-cdaccent/40 bg-cdaccent/[0.07]"
+                            bounds={boundsPrimary}
+                            stats={statsPrimary}
+                        />
+                    )}
+                    {compareBounds && (
+                        <div className={mobileCompareColumn === 2 ? 'block' : 'hidden lg:block'}>
+                            <PeriodSummaryCard
+                                title="Column 2 — comparison"
+                                accentClass="border-blue-500/35 bg-blue-500/[0.07]"
+                                bounds={compareBounds}
+                                stats={statsCompare}
+                            />
+                        </div>
+                    )}
+                </div>
+            </>
         )}
 
         {diffSummary && (
-            <p className="text-[11px] text-cdmuted border-b border-cdborder/40 pb-2">{diffSummary}</p>
+            <p className="text-[11px] text-cdmuted border-b border-cdborder/40 pb-2 leading-relaxed break-words">
+                {diffSummary}
+            </p>
         )}
 
         {compareMode === 'custom' && (
@@ -114,7 +130,7 @@ const PowerTopTenExpandedBody = ({
         {compareBounds && (
             <p className="text-[10px] text-cdmuted leading-snug">
                 <span className="inline-block w-2 h-2 rounded-sm bg-emerald-500/50 align-middle mr-1.5" aria-hidden />
-                More watts at the same rank (#1 vs #1, …) than the other column — hover the watts column for details.
+                More watts at the same rank (#1 vs #1, …) than the other column — tap or hover the watts column for details.
             </p>
         )}
 
@@ -122,6 +138,7 @@ const PowerTopTenExpandedBody = ({
             tablesByDuration={tablesByDuration}
             compareBounds={compareBounds}
             onOpenActivityInLog={onOpenActivityInLog}
+            mobileCompareColumn={mobileCompareColumn}
         />
     </div>
 );

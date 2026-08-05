@@ -16,6 +16,7 @@ import { dashboardFilterLabel } from '../../utils/powerDurationTable';
 import PowerTopTenCustomRanges from './PowerTopTenCustomRanges';
 import { PeriodSummaryCard } from './powerTopTenByDurationUi';
 import LongestRidesTable from './LongestRidesTable';
+import CompareColumnSwitcher from './CompareColumnSwitcher';
 import { chartCardShellClass } from '../../utils/chartTheme';
 
 /**
@@ -32,6 +33,7 @@ const LongestRidesPanel = ({
     const [expanded, setExpanded] = useState(true);
     const [compareMode, setCompareMode] = useState('none');
     const [compareDays, setCompareDays] = useState(42);
+    const [mobileCompareColumn, setMobileCompareColumn] = useState(1);
     const [customPrimaryStart, setCustomPrimaryStart] = useState('');
     const [customPrimaryEnd, setCustomPrimaryEnd] = useState('');
     const [customCompareStart, setCustomCompareStart] = useState('');
@@ -148,7 +150,7 @@ const LongestRidesPanel = ({
             {expanded && (
                 <div className="px-4 pb-4 pt-0 space-y-4 border-t border-cdborder/60">
                     <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3 pt-3">
-                        <label className="flex flex-col gap-1 text-xs text-cdmuted min-w-[220px]">
+                        <label className="flex flex-col gap-1 text-xs text-cdmuted w-full sm:min-w-[220px]">
                             <span className="font-semibold text-cdtext">Comparison</span>
                             <select
                                 value={compareMode}
@@ -165,7 +167,7 @@ const LongestRidesPanel = ({
                                     }
                                     setCompareMode(v);
                                 }}
-                                className="bg-cdborder/30 border border-cdborder rounded-lg px-2 py-2 text-cdtext text-sm"
+                                className="bg-cdborder/30 border border-cdborder rounded-lg px-2 py-2 text-cdtext text-sm w-full"
                             >
                                 {COMPARE_OPTIONS.map((o) => (
                                     <option key={o.value} value={o.value}>{o.label}</option>
@@ -194,28 +196,43 @@ const LongestRidesPanel = ({
                     )}
 
                     {boundsPrimary && (
-                        <div className={`grid gap-3 ${compareBounds ? 'lg:grid-cols-2' : ''}`}>
-                            <PeriodSummaryCard
-                                title="Column 1 — primary period"
-                                accentClass="border-emerald-500/35 bg-emerald-500/[0.07]"
-                                bounds={boundsPrimary}
-                                stats={statsPrimary}
-                                showRideAverages
+                        <>
+                            <CompareColumnSwitcher
+                                showCompare={Boolean(compareBounds)}
+                                activeColumn={mobileCompareColumn}
+                                onChange={setMobileCompareColumn}
                             />
-                            {compareBounds && (
-                                <PeriodSummaryCard
-                                    title="Column 2 — comparison"
-                                    accentClass="border-blue-500/35 bg-blue-500/[0.07]"
-                                    bounds={compareBounds}
-                                    stats={statsCompare}
-                                    showRideAverages
-                                />
-                            )}
-                        </div>
+                            <div className={`grid gap-3 ${compareBounds ? 'lg:grid-cols-2' : ''}`}>
+                                {(!compareBounds || mobileCompareColumn === 1) && (
+                                    <div className={compareBounds ? 'lg:block' : ''}>
+                                        <PeriodSummaryCard
+                                            title="Column 1 — primary period"
+                                            accentClass="border-emerald-500/35 bg-emerald-500/[0.07]"
+                                            bounds={boundsPrimary}
+                                            stats={statsPrimary}
+                                            showRideAverages
+                                        />
+                                    </div>
+                                )}
+                                {compareBounds && (
+                                    <div className={mobileCompareColumn === 2 ? 'block' : 'hidden lg:block'}>
+                                        <PeriodSummaryCard
+                                            title="Column 2 — comparison"
+                                            accentClass="border-blue-500/35 bg-blue-500/[0.07]"
+                                            bounds={compareBounds}
+                                            stats={statsCompare}
+                                            showRideAverages
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        </>
                     )}
 
                     {diffSummary && (
-                        <p className="text-[11px] text-cdmuted border-b border-cdborder/40 pb-2">{diffSummary}</p>
+                        <p className="text-[11px] text-cdmuted border-b border-cdborder/40 pb-2 leading-relaxed break-words">
+                            {diffSummary}
+                        </p>
                     )}
 
                     {compareMode === 'custom' && (
@@ -235,12 +252,12 @@ const LongestRidesPanel = ({
                     )}
 
                     <div className={`grid gap-4 ${compareBounds ? 'lg:grid-cols-2' : ''}`}>
-                        <div>
+                        <div className={compareBounds && mobileCompareColumn !== 1 ? 'hidden lg:block' : ''}>
                             <h4 className="text-[10px] font-bold uppercase text-cdaccent mb-2">Column 1</h4>
                             <LongestRidesTable rows={primaryRows} peerRows={compareRows} onOpenActivityInLog={onOpenActivityInLog} />
                         </div>
                         {compareBounds && (
-                            <div>
+                            <div className={mobileCompareColumn === 2 ? 'block' : 'hidden lg:block'}>
                                 <h4 className="text-[10px] font-bold uppercase text-blue-400 mb-2">Column 2</h4>
                                 <LongestRidesTable rows={compareRows} peerRows={primaryRows} onOpenActivityInLog={onOpenActivityInLog} />
                             </div>
