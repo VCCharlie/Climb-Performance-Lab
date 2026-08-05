@@ -3,46 +3,46 @@ import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
     Legend, ResponsiveContainer
 } from 'recharts';
-import { ExternalLink } from 'lucide-react';
 import PowerCurveChart from './charts/PowerCurveChart';
 import { formatDateDDMMYYYY } from '../../utils';
-import { activityExternalLinks } from '../../utils/dashboardActivityPeaks';
 import { ChartTooltip } from '../ui';
 import { getChartTheme, chartCardClassLg } from '../../utils/chartTheme';
 import useMediaQuery from '../../hooks/useMediaQuery';
 import { RankedTableLinks } from './dashboardRankedTableParts';
+import CollapsibleDurationSection from './CollapsibleDurationSection';
 
 const DURATION_LABELS = { a_5min: '5 min', b_20min: '20 min', c_60min: '60 min' };
 
-function BestPowerPeriodMobileCards({ powerPeakRows, onOpenActivityInLog }) {
+function BestPowerPeriodAccordion({ powerPeakRows, onOpenActivityInLog }) {
     return (
-        <ul className="space-y-2 sm:hidden">
-            {powerPeakRows.map((row) => (
-                <li
-                    key={row.key}
-                    className="rounded-lg border border-cdborder bg-cdborder/10 p-3 space-y-2"
-                >
-                    <div className="flex items-start justify-between gap-2">
-                        <span className="text-sm font-semibold text-cdtext">{row.label}</span>
-                        <span className="text-lg font-mono font-bold text-cdtext tabular-nums">
-                            {row.watts > 0 ? `${row.watts} W` : '—'}
-                        </span>
-                    </div>
-                    {row.activity?.title && (
-                        <p className="text-sm text-cdmuted leading-snug break-words">{row.activity.title}</p>
-                    )}
-                    <div className="text-[11px] text-cdmuted">
-                        {row.activity ? formatDateDDMMYYYY(row.activity.date) : '—'}
-                    </div>
-                    <div className="pt-1 border-t border-cdborder/40">
-                        <div className="text-[9px] uppercase tracking-wide text-cdmuted font-bold mb-1">
-                            Links
+        <div className="space-y-2">
+            {powerPeakRows.map((row, index) => {
+                const wattsLabel = row.watts > 0 ? `${row.watts} W` : '—';
+                return (
+                    <CollapsibleDurationSection
+                        key={row.key}
+                        label={row.label}
+                        summary={wattsLabel}
+                        defaultExpanded={index === 0}
+                    >
+                        <div className="space-y-2 pt-2 text-sm">
+                            {row.activity?.title && (
+                                <p className="text-cdtext leading-snug break-words">{row.activity.title}</p>
+                            )}
+                            <p className="text-[11px] text-cdmuted">
+                                {row.activity ? formatDateDDMMYYYY(row.activity.date) : '—'}
+                            </p>
+                            <div className="pt-1 border-t border-cdborder/40">
+                                <div className="text-[9px] uppercase tracking-wide text-cdmuted font-bold mb-1">
+                                    Links
+                                </div>
+                                <RankedTableLinks activity={row.activity} onOpenActivityInLog={onOpenActivityInLog} />
+                            </div>
                         </div>
-                        <RankedTableLinks activity={row.activity} onOpenActivityInLog={onOpenActivityInLog} />
-                    </div>
-                </li>
-            ))}
-        </ul>
+                    </CollapsibleDurationSection>
+                );
+            })}
+        </div>
     );
 }
 
@@ -62,73 +62,13 @@ const PowerTabDetails = ({ powerPeakRows, monthlyBests, data, manualFtp, onOpenA
                 <a href="https://intervals.icu/power" target="_blank" rel="noopener noreferrer" className="text-cdaccent hover:underline">
                     intervals.icu/power
                 </a>
-                .
+                . Tap a duration to expand ride details.
             </p>
 
-            {isMobile ? (
-                <BestPowerPeriodMobileCards
-                    powerPeakRows={powerPeakRows}
-                    onOpenActivityInLog={onOpenActivityInLog}
-                />
-            ) : (
-                <div className="overflow-x-auto rounded-lg border border-cdborder">
-                    <table className="w-full text-sm text-left min-w-[420px]">
-                        <thead>
-                            <tr className="bg-cdborder/40 text-cdmuted text-xs uppercase">
-                                <th className="px-3 py-2 font-semibold">Duration</th>
-                                <th className="px-3 py-2 font-semibold text-right">Watts</th>
-                                <th className="px-3 py-2 font-semibold">Date</th>
-                                <th className="px-3 py-2 font-semibold">Activity</th>
-                                <th className="px-3 py-2 font-semibold text-right">Links</th>
-                            </tr>
-                        </thead>
-                        <tbody className="text-cdtext">
-                            {powerPeakRows.map((row) => {
-                                const links = row.activity ? activityExternalLinks(row.activity) : [];
-                                return (
-                                    <tr key={row.key} className="border-t border-cdborder">
-                                        <td className="px-3 py-2 font-medium whitespace-nowrap">{row.label}</td>
-                                        <td className="px-3 py-2 text-right font-mono font-bold">
-                                            {row.watts > 0 ? row.watts : '—'}
-                                        </td>
-                                        <td className="px-3 py-2 text-cdmuted text-xs whitespace-nowrap">
-                                            {row.activity ? formatDateDDMMYYYY(row.activity.date) : '—'}
-                                        </td>
-                                        <td className="px-3 py-2 text-xs text-cdmuted max-w-[200px] truncate" title={row.activity?.title}>
-                                            {row.activity?.title || '—'}
-                                        </td>
-                                        <td className="px-3 py-2 text-right">
-                                            <div className="flex flex-wrap justify-end gap-1">
-                                                {row.activity && typeof onOpenActivityInLog === 'function' && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => onOpenActivityInLog(row.activity.id)}
-                                                        className="text-xs font-bold text-cdaccent hover:underline inline-flex items-center gap-0.5"
-                                                        title="Open in Activities log"
-                                                    >
-                                                        <ExternalLink size={12} /> Log
-                                                    </button>
-                                                )}
-                                                {links.map((l) => (
-                                                    <a
-                                                        key={l.label}
-                                                        href={l.href}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="text-xs font-bold text-cdmuted hover:text-cdaccent"
-                                                    >
-                                                        {l.label}
-                                                    </a>
-                                                ))}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+            <BestPowerPeriodAccordion
+                powerPeakRows={powerPeakRows}
+                onOpenActivityInLog={onOpenActivityInLog}
+            />
         </div>
 
         <div className={chartCardClassLg}>

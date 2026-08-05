@@ -16,7 +16,7 @@ import { dashboardFilterLabel } from '../../utils/powerDurationTable';
 import PowerTopTenCustomRanges from './PowerTopTenCustomRanges';
 import { PeriodSummaryCard } from './powerTopTenByDurationUi';
 import LongestRidesTable from './LongestRidesTable';
-import CompareColumnSwitcher from './CompareColumnSwitcher';
+import StickyCompareColumnSwitcher from './StickyCompareColumnSwitcher';
 import { chartCardShellClass } from '../../utils/chartTheme';
 
 /**
@@ -110,7 +110,7 @@ const LongestRidesPanel = ({
         : formatLongRange(dashboardBounds);
 
     return (
-        <div className={`${chartCardShellClass} overflow-hidden`}>
+        <div className={chartCardShellClass}>
             <button
                 type="button"
                 onClick={() => setExpanded((e) => !e)}
@@ -196,37 +196,30 @@ const LongestRidesPanel = ({
                     )}
 
                     {boundsPrimary && (
-                        <>
-                            <CompareColumnSwitcher
-                                showCompare={Boolean(compareBounds)}
-                                activeColumn={mobileCompareColumn}
-                                onChange={setMobileCompareColumn}
-                            />
-                            <div className={`grid gap-3 ${compareBounds ? 'lg:grid-cols-2' : ''}`}>
-                                {(!compareBounds || mobileCompareColumn === 1) && (
-                                    <div className={compareBounds ? 'lg:block' : ''}>
-                                        <PeriodSummaryCard
-                                            title="Column 1 — primary period"
-                                            accentClass="border-emerald-500/35 bg-emerald-500/[0.07]"
-                                            bounds={boundsPrimary}
-                                            stats={statsPrimary}
-                                            showRideAverages
-                                        />
-                                    </div>
-                                )}
-                                {compareBounds && (
-                                    <div className={mobileCompareColumn === 2 ? 'block' : 'hidden lg:block'}>
-                                        <PeriodSummaryCard
-                                            title="Column 2 — comparison"
-                                            accentClass="border-blue-500/35 bg-blue-500/[0.07]"
-                                            bounds={compareBounds}
-                                            stats={statsCompare}
-                                            showRideAverages
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                        </>
+                        <div className={`grid gap-3 ${compareBounds ? 'lg:grid-cols-2' : ''}`}>
+                            {(!compareBounds || mobileCompareColumn === 1) && (
+                                <div className={compareBounds ? 'lg:block' : ''}>
+                                    <PeriodSummaryCard
+                                        title="Column 1 — primary period"
+                                        accentClass="border-emerald-500/35 bg-emerald-500/[0.07]"
+                                        bounds={boundsPrimary}
+                                        stats={statsPrimary}
+                                        showRideAverages
+                                    />
+                                </div>
+                            )}
+                            {compareBounds && (
+                                <div className={mobileCompareColumn === 2 ? 'block' : 'hidden lg:block'}>
+                                    <PeriodSummaryCard
+                                        title="Column 2 — comparison"
+                                        accentClass="border-blue-500/35 bg-blue-500/[0.07]"
+                                        bounds={compareBounds}
+                                        stats={statsCompare}
+                                        showRideAverages
+                                    />
+                                </div>
+                            )}
+                        </div>
                     )}
 
                     {diffSummary && (
@@ -250,6 +243,12 @@ const LongestRidesPanel = ({
                             compareBounds={compareBounds}
                         />
                     )}
+
+                    <StickyCompareColumnSwitcher
+                        showCompare={Boolean(compareBounds)}
+                        activeColumn={mobileCompareColumn}
+                        onChange={setMobileCompareColumn}
+                    />
 
                     <div className={`grid gap-4 ${compareBounds ? 'lg:grid-cols-2' : ''}`}>
                         <div className={compareBounds && mobileCompareColumn !== 1 ? 'hidden lg:block' : ''}>

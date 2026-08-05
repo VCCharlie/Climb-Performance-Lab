@@ -7,7 +7,7 @@ import { COMPARE_OPTIONS } from './powerTopTenByDurationConstants';
 import { PeriodSummaryCard } from './powerTopTenByDurationUi';
 import PowerTopTenCustomRanges from './PowerTopTenCustomRanges';
 import PowerTopTenDurationTablesBlock from './PowerTopTenDurationTablesBlock';
-import CompareColumnSwitcher from './CompareColumnSwitcher';
+import StickyCompareColumnSwitcher from './StickyCompareColumnSwitcher';
 
 const PowerTopTenExpandedBody = ({
     compareMode,
@@ -76,33 +76,26 @@ const PowerTopTenExpandedBody = ({
         </div>
 
         {boundsPrimary && (
-            <>
-                <CompareColumnSwitcher
-                    showCompare={Boolean(compareBounds)}
-                    activeColumn={mobileCompareColumn}
-                    onChange={setMobileCompareColumn}
-                />
-                <div className={`grid gap-3 ${compareBounds ? 'lg:grid-cols-2' : ''}`}>
-                    {(!compareBounds || mobileCompareColumn === 1) && (
+            <div className={`grid gap-3 ${compareBounds ? 'lg:grid-cols-2' : ''}`}>
+                {(!compareBounds || mobileCompareColumn === 1) && (
+                    <PeriodSummaryCard
+                        title="Column 1 — primary period"
+                        accentClass="border-cdaccent/40 bg-cdaccent/[0.07]"
+                        bounds={boundsPrimary}
+                        stats={statsPrimary}
+                    />
+                )}
+                {compareBounds && (
+                    <div className={mobileCompareColumn === 2 ? 'block' : 'hidden lg:block'}>
                         <PeriodSummaryCard
-                            title="Column 1 — primary period"
-                            accentClass="border-cdaccent/40 bg-cdaccent/[0.07]"
-                            bounds={boundsPrimary}
-                            stats={statsPrimary}
+                            title="Column 2 — comparison"
+                            accentClass="border-blue-500/35 bg-blue-500/[0.07]"
+                            bounds={compareBounds}
+                            stats={statsCompare}
                         />
-                    )}
-                    {compareBounds && (
-                        <div className={mobileCompareColumn === 2 ? 'block' : 'hidden lg:block'}>
-                            <PeriodSummaryCard
-                                title="Column 2 — comparison"
-                                accentClass="border-blue-500/35 bg-blue-500/[0.07]"
-                                bounds={compareBounds}
-                                stats={statsCompare}
-                            />
-                        </div>
-                    )}
-                </div>
-            </>
+                    </div>
+                )}
+            </div>
         )}
 
         {diffSummary && (
@@ -133,6 +126,12 @@ const PowerTopTenExpandedBody = ({
                 More watts at the same rank (#1 vs #1, …) than the other column — tap or hover the watts column for details.
             </p>
         )}
+
+        <StickyCompareColumnSwitcher
+            showCompare={Boolean(compareBounds)}
+            activeColumn={mobileCompareColumn}
+            onChange={setMobileCompareColumn}
+        />
 
         <PowerTopTenDurationTablesBlock
             tablesByDuration={tablesByDuration}
