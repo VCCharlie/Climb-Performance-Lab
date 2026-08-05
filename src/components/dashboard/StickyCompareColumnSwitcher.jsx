@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import CompareColumnSwitcher from './CompareColumnSwitcher';
+import FixedLayerPortal from '../ui/FixedLayerPortal';
 import useStickyToolbarTop from '../../hooks/useStickyToolbarTop';
 
 /**
  * Column 1 / 2 toggle that pins below the site header while scrolling (mobile/tablet).
- * Uses a fixed clone because CSS sticky breaks inside animated/transformed ancestors.
+ * Pinned bar is portaled to document.body so fixed positioning is not trapped by
+ * transform ancestors (cd-enter, animate-in, etc.).
  */
 export default function StickyCompareColumnSwitcher(props) {
     const stickyTop = useStickyToolbarTop();
@@ -48,14 +50,16 @@ export default function StickyCompareColumnSwitcher(props) {
                 {switcher}
             </div>
             {isPinned && (
-                <div
-                    className="lg:hidden fixed left-0 right-0 z-[35] border-b border-cdborder/50 bg-cdsurface shadow-sm px-3 py-1"
-                    style={{ top: stickyTop }}
-                >
-                    <div className="max-w-7xl mx-auto">
-                        {switcher}
+                <FixedLayerPortal>
+                    <div
+                        className="lg:hidden fixed left-0 right-0 z-[35] border-b border-cdborder/50 bg-cdsurface shadow-sm px-3 py-1"
+                        style={{ top: stickyTop }}
+                    >
+                        <div className="max-w-7xl mx-auto">
+                            {switcher}
+                        </div>
                     </div>
-                </div>
+                </FixedLayerPortal>
             )}
         </>
     );
