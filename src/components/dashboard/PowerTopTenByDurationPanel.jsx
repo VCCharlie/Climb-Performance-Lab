@@ -40,6 +40,7 @@ const PowerTopTenByDurationPanel = ({
     const [customPrimaryEnd, setCustomPrimaryEnd] = useState('');
     const [customCompareStart, setCustomCompareStart] = useState('');
     const [customCompareEnd, setCustomCompareEnd] = useState('');
+    const [mobileCompareColumn, setMobileCompareColumn] = useState(1);
 
     const dashboardBounds = useMemo(
         () => getDashboardWindowBounds(timeRange, customStart, customEnd, referenceEndDate),
@@ -184,6 +185,8 @@ const PowerTopTenByDurationPanel = ({
                     customCompareEnd={customCompareEnd}
                     tablesByDuration={tablesByDuration}
                     onOpenActivityInLog={onOpenActivityInLog}
+                    mobileCompareColumn={mobileCompareColumn}
+                    setMobileCompareColumn={setMobileCompareColumn}
                 />
             )}
         </div>

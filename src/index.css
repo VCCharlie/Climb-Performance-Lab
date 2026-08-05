@@ -109,6 +109,14 @@ body {
   background: linear-gradient(to left, var(--cd-surface) 15%, transparent);
 }
 
+.dashboard-table-scroll-fade-left {
+  background: linear-gradient(to right, var(--cd-surface) 15%, transparent);
+}
+
+.dashboard-table-scroll-fade-right {
+  background: linear-gradient(to left, var(--cd-surface) 15%, transparent);
+}
+
 /* MD3 motion utility — opt-in on interactive elements */
 .cd-transition {
   transition-property: color, background-color, border-color, box-shadow, transform, opacity;

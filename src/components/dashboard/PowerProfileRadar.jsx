@@ -5,12 +5,13 @@ import {
     PolarAngleAxis,
     PolarRadiusAxis,
     Radar,
-    ResponsiveContainer,
     Polygon,
 } from 'recharts';
 import { ExternalLink } from 'lucide-react';
 import { activityExternalLinks } from '../../utils/dashboardActivityPeaks';
 import { chartCardClassLg } from '../../utils/chartTheme';
+import useElementSize from '../../hooks/useElementSize';
+import useMediaQuery from '../../hooks/useMediaQuery';
 
 const RADAR_MAX_FTP_PCT = 160;
 
@@ -48,7 +49,7 @@ function PowerRadarDetailPanel({ d, pinned, onDismissPin, onOpenActivityInLog })
             </div>
             {pinned && (
                 <p className="text-[10px] text-cdmuted mb-2 border-b border-cdborder/40 pb-2">
-                    Pinned — click outside the chart or this panel to close.
+                    Pinned — tap outside the chart or this panel to close.
                 </p>
             )}
             <div className="space-y-2">
@@ -58,7 +59,7 @@ function PowerRadarDetailPanel({ d, pinned, onDismissPin, onOpenActivityInLog })
                     </div>
                     <div className="text-cdtext font-mono font-bold tabular-nums">{d.wattsPeriod} W</div>
                     {d.activityPeriod?.title && (
-                        <div className="text-cdmuted mt-0.5 truncate" title={d.activityPeriod.title}>
+                        <div className="text-cdmuted mt-0.5 break-words" title={d.activityPeriod.title}>
                             {d.activityPeriod.title}
                         </div>
                     )}
@@ -91,7 +92,7 @@ function PowerRadarDetailPanel({ d, pinned, onDismissPin, onOpenActivityInLog })
                     </div>
                     <div className="text-cdtext font-mono font-bold tabular-nums">{d.wattsMax} W</div>
                     {d.activityMax?.title && (
-                        <div className="text-cdmuted mt-0.5 truncate" title={d.activityMax.title}>
+                        <div className="text-cdmuted mt-0.5 break-words" title={d.activityMax.title}>
                             {d.activityMax.title}
                         </div>
                     )}
@@ -129,6 +130,8 @@ function PowerRadarDetailPanel({ d, pinned, onDismissPin, onOpenActivityInLog })
 const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenActivityInLog }) => {
     const chartWrapRef = useRef(null);
     const sidePanelRef = useRef(null);
+    const [chartRef, chartSize] = useElementSize();
+    const isCoarsePointer = useMediaQuery('(pointer: coarse)');
 
     const [hoverKey, setHoverKey] = useState(null);
     const [pinnedKey, setPinnedKey] = useState(null);
@@ -174,14 +177,18 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
 
     useEffect(() => {
         if (!pinnedKey) return undefined;
-        const onDocMouseDown = (e) => {
+        const onDocPointerDown = (e) => {
             const t = e.target;
             if (chartWrapRef.current?.contains(t)) return;
             if (sidePanelRef.current?.contains(t)) return;
             setPinnedKey(null);
         };
-        document.addEventListener('mousedown', onDocMouseDown);
-        return () => document.removeEventListener('mousedown', onDocMouseDown);
+        document.addEventListener('mousedown', onDocPointerDown);
+        document.addEventListener('touchstart', onDocPointerDown, { passive: true });
+        return () => {
+            document.removeEventListener('mousedown', onDocPointerDown);
+            document.removeEventListener('touchstart', onDocPointerDown);
+        };
     }, [pinnedKey]);
 
     useEffect(() => {
@@ -192,6 +199,11 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
         document.addEventListener('keydown', onKey);
         return () => document.removeEventListener('keydown', onKey);
     }, [pinnedKey]);
+
+    const handleDotActivate = useCallback((key) => {
+        setPinnedKey(key);
+        setHoverKey(key);
+    }, []);
 
     const renderPeriodDot = useCallback(
         (dotProps) => {
@@ -207,17 +219,22 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
                     fill={hi ? 'rgba(249, 115, 22, 0.38)' : 'rgba(249, 115, 22, 0.14)'}
                     stroke="#c2410c"
                     strokeWidth={hi ? 2.5 : 1.5}
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: 'pointer', touchAction: 'manipulation' }}
                     onMouseEnter={() => setHoverKey(k)}
                     onMouseLeave={() => setHoverKey(null)}
                     onClick={(e) => {
                         e.stopPropagation();
-                        setPinnedKey(k);
+                        handleDotActivate(k);
+                    }}
+                    onTouchEnd={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleDotActivate(k);
                     }}
                 />
             );
         },
-        [displayKey],
+        [displayKey, handleDotActivate],
     );
 
     const showHistoryRing = useMemo(() => {
@@ -226,7 +243,6 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
     }, [data, historyPeakRows, powerPeakRows]);
 
     const domainMax = useMemo(() => {
-        // ⚡ Bolt Optimization: Use single-pass reduce instead of Math.max(...array.flatMap()) to prevent call stack issues and avoid intermediate array allocations
         const peak = data.reduce(
             (acc, d) => Math.max(acc, d.pctPeriod, d.pctMax),
             manualFtp > 0 ? 100 : 0,
@@ -235,10 +251,13 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
     }, [data, manualFtp]);
 
     const noFtpScaleMaxW = useMemo(
-        // ⚡ Bolt Optimization: Use single-pass reduce instead of Math.max(...array.map()) to prevent call stack issues and avoid intermediate array allocations
         () => (data.length ? data.reduce((max, x) => Math.max(max, x.wattsPeriod, x.wattsMax), 0) : 0),
         [data],
     );
+
+    const chartHeight = isCoarsePointer ? 280 : 320;
+    const chartOuterRadius = chartSize.width > 0 && chartSize.width < 400 ? '68%' : '74%';
+    const chartReady = chartSize.width > 0 && chartSize.height > 0;
 
     const hasData = data.some((d) => d.wattsPeriod > 0 || d.wattsMax > 0);
     if (!hasData) return null;
@@ -247,6 +266,10 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
         ? `Both shapes use % of your FTP (${manualFtp} W), capped at ${RADAR_MAX_FTP_PCT}% on the chart.`
         : `FTP not set — both shapes use % of the strongest value among these durations (max of period and history, ${noFtpScaleMaxW} W in this view), capped at ${RADAR_MAX_FTP_PCT}%.`;
 
+    const interactionHint = isCoarsePointer
+        ? 'Tap a point on the orange web for details. Tap outside the chart to dismiss.'
+        : 'Hover a point on the orange web for details. Click a point to pin this panel; click outside the chart or press Esc to dismiss.';
+
     return (
         <div className={`${chartCardClassLg} space-y-4`}>
             <div>
@@ -254,7 +277,7 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
                 <p className="text-xs text-cdmuted leading-relaxed">{scaleHint}</p>
             </div>
 
-            <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-[11px] text-cdmuted">
+            <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-[11px] text-cdmuted">
                 <span className="inline-flex items-center gap-2">
                     <span className="h-2.5 w-2.5 shrink-0 rounded-sm bg-orange-500 shadow-[0_0_0_1px_rgba(0,0,0,0.2)]" />
                     <span>
@@ -275,10 +298,24 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
                 </span>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 max-w-3xl mx-auto items-stretch">
-                <div ref={chartWrapRef} className="flex-1 min-w-0 h-[320px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <RadarChart cx="50%" cy="52%" outerRadius="74%" data={data}>
+            <div className="flex flex-col sm:flex-row gap-3 w-full max-w-3xl mx-auto items-stretch">
+                <div
+                    ref={(node) => {
+                        chartWrapRef.current = node;
+                        chartRef(node);
+                    }}
+                    className="w-full min-w-0 shrink-0"
+                    style={{ height: chartHeight }}
+                >
+                    {chartReady ? (
+                        <RadarChart
+                            width={chartSize.width}
+                            height={chartHeight}
+                            cx="50%"
+                            cy="52%"
+                            outerRadius={chartOuterRadius}
+                            data={data}
+                        >
                             <PolarGrid
                                 stroke="#64748b"
                                 strokeOpacity={0.4}
@@ -286,7 +323,7 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
                             />
                             <PolarAngleAxis
                                 dataKey="subject"
-                                tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }}
+                                tick={{ fill: '#94a3b8', fontSize: isCoarsePointer ? 10 : 11, fontWeight: 600 }}
                             />
                             <PolarRadiusAxis
                                 angle={30}
@@ -319,12 +356,17 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
                                 isAnimationActive={false}
                             />
                         </RadarChart>
-                    </ResponsiveContainer>
+                    ) : (
+                        <div
+                            className="w-full h-full rounded-lg bg-cdborder/20 animate-pulse"
+                            aria-hidden
+                        />
+                    )}
                 </div>
 
                 <div
                     ref={sidePanelRef}
-                    className="w-full sm:w-[240px] shrink-0 sm:border-l border-cdborder/50 sm:pl-3 flex flex-col justify-center min-h-[120px]"
+                    className="w-full sm:w-[240px] shrink-0 sm:border-l border-cdborder/50 sm:pl-3 flex flex-col justify-center min-h-[100px]"
                 >
                     {displayDatum ? (
                         <PowerRadarDetailPanel
@@ -335,16 +377,15 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
                         />
                     ) : (
                         <p className="text-[11px] text-cdmuted leading-relaxed">
-                            Hover a point on the orange web for details. Click a point to pin this panel; click
-                            outside the chart or press Esc to dismiss.
+                            {interactionHint}
                         </p>
                     )}
                 </div>
             </div>
 
-            <ul className="text-[11px] text-cdmuted space-y-1.5 border-t border-cdborder/50 pt-3">
+            <ul className="text-[11px] text-cdmuted space-y-2 border-t border-cdborder/50 pt-3">
                 {data.map((d) => (
-                    <li key={d.key} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <li key={d.key} className="flex flex-wrap items-center gap-x-2 gap-y-1">
                         <span className="font-semibold text-cdtext w-12 shrink-0">{d.subject}</span>
                         <span className="font-mono text-orange-200/95 tabular-nums">
                             {d.wattsPeriod > 0 ? `${d.wattsPeriod} W` : '—'}
