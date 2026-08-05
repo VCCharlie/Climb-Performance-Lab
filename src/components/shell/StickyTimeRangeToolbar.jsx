@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import FixedLayerPortal from '../ui/FixedLayerPortal';
 import useAppHeaderOffset from '../../hooks/useAppHeaderOffset';
 import { setPinnedTimeRangeHeight } from '../../utils/pinnedTimeRangeHeight';
 
@@ -71,15 +72,17 @@ export default function StickyTimeRangeToolbar({ children, enabled = true }) {
                 {children}
             </div>
             {pinned && (
-                <div
-                    ref={pinnedBarRef}
-                    className={PINNED_SHELL_CLASS}
-                    style={{ top: headerOffset }}
-                >
-                    <div className="max-w-7xl mx-auto px-3 py-1">
-                        {children}
+                <FixedLayerPortal>
+                    <div
+                        ref={pinnedBarRef}
+                        className={PINNED_SHELL_CLASS}
+                        style={{ top: headerOffset }}
+                    >
+                        <div className="max-w-7xl mx-auto px-3 py-1">
+                            {children}
+                        </div>
                     </div>
-                </div>
+                </FixedLayerPortal>
             )}
         </>
     );
