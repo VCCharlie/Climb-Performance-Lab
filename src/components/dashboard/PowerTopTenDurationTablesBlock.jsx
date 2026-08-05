@@ -17,7 +17,7 @@ const PowerTopTenDurationTablesBlock = ({
 
                 return (
                     <CollapsibleDurationSection
-                        key={label}
+                        key={`${label}-col-${mobileCompareColumn}`}
                         label={label}
                         summary={summary}
                         footnote={footnote}

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { Children, cloneElement, isValidElement, useEffect, useRef, useState } from 'react';
 import FixedLayerPortal from '../ui/FixedLayerPortal';
 import useAppHeaderOffset from '../../hooks/useAppHeaderOffset';
 import { setPinnedTimeRangeHeight } from '../../utils/pinnedTimeRangeHeight';
@@ -6,6 +6,13 @@ import { setPinnedTimeRangeHeight } from '../../utils/pinnedTimeRangeHeight';
 /** Solid shell matching the site header (opaque, no blur). */
 const PINNED_SHELL_CLASS =
     'fixed left-0 right-0 z-[34] border-b border-cdborder/50 bg-cdsurface shadow-sm';
+
+function clonePinnedChild(children) {
+    return Children.map(children, (child) => {
+        if (!isValidElement(child)) return child;
+        return cloneElement(child, { key: `${child.key ?? 'toolbar'}-pinned` });
+    });
+}
 
 /**
  * Pins children (time-range toolbar) below the site header while scrolling.
@@ -79,7 +86,7 @@ export default function StickyTimeRangeToolbar({ children, enabled = true }) {
                         style={{ top: headerOffset }}
                     >
                         <div className="max-w-7xl mx-auto px-3 py-1">
-                            {children}
+                            {clonePinnedChild(children)}
                         </div>
                     </div>
                 </FixedLayerPortal>
