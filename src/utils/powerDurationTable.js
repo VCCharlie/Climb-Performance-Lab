@@ -276,7 +276,13 @@ export function topNInterpolatedAtSec(activities, manualFtp, sec, limit = 10, op
     const list = [];
     for (const a of activities) {
         const anchors = anchorsForActivity(a, manualFtp, anchorsCache);
-        if (needAnchor != null && maxAnchorSec(anchors) < needAnchor) continue;
+        if (!anchors.length) continue;
+        const longestAnchor = maxAnchorSec(anchors);
+        if (needAnchor != null && longestAnchor < needAnchor) continue;
+        // Skip durations beyond measured anchors — interpolatePowerAt would flat-extrapolate.
+        if (sec > longestAnchor) continue;
+        const mv = activityMovingTimeSec(a);
+        if (mv != null && mv < sec) continue;
         const w = interpolatePowerAt(anchors, sec);
         if (w == null || w <= 0) continue;
         list.push({ activity: a, watts: w });

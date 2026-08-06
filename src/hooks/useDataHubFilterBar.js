@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { prefersActivityCardLayout } from '../utils/activityLogLayout';
 
 /**
  * Activity Log filter bar props + util menu / manual refresh UI state.
@@ -61,16 +62,18 @@ export function useDataHubFilterBar({
     const utilMenuRef = useRef(null);
     const utilMenuButtonRef = useRef(null);
     const [isManualRefreshing, setIsManualRefreshing] = useState(false);
-    const [logMobileFiltersOpen, setLogMobileFiltersOpen] = useState(false);
+    const [logFiltersPanelOpen, setLogFiltersPanelOpen] = useState(
+        () => (typeof window !== 'undefined' ? !prefersActivityCardLayout() : true),
+    );
     const filterBarRootRef = useRef(null);
 
     useEffect(() => {
-        if (!logMobileFiltersOpen || !useCardLayout) return undefined;
+        if (!logFiltersPanelOpen || !useCardLayout) return undefined;
         const id = window.requestAnimationFrame(() => {
             filterBarRootRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         });
         return () => window.cancelAnimationFrame(id);
-    }, [logMobileFiltersOpen, useCardLayout]);
+    }, [logFiltersPanelOpen, useCardLayout]);
 
     useEffect(() => {
         if (!showUtilMenu) return undefined;
@@ -103,8 +106,8 @@ export function useDataHubFilterBar({
         onApplyLogFilterPreset: applyLogFilterPreset,
         onResetLogFilters: resetLogFilters,
         useCardLayout,
-        logMobileFiltersOpen,
-        onLogMobileFiltersOpenChange: setLogMobileFiltersOpen,
+        logFiltersPanelOpen,
+        onLogFiltersPanelOpenChange: setLogFiltersPanelOpen,
         showUtilMenu,
         onShowUtilMenuChange: setShowUtilMenu,
         utilMenuRef,

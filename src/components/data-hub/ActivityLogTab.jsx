@@ -34,6 +34,7 @@ export default function ActivityLogTab({
     groupedActivities,
     isYearExpanded,
     toggleYear,
+    ensureYearExpanded,
     clearActivityLogFilters,
     isolatedActivity,
     rangeFilteredActivities,
@@ -48,6 +49,7 @@ export default function ActivityLogTab({
     setDetailActivity,
     isMonthExpanded,
     toggleMonth,
+    ensureMonthExpanded,
     onOpenProfilerFromActivity,
     profilerClimbByActivityId,
     profileFtp,
@@ -126,7 +128,13 @@ export default function ActivityLogTab({
                         </span>
                     </div>
                     <div className="hidden lg:block">
-                        <QuickNav groupedActivities={groupedActivities} isYearExpanded={isYearExpanded} onToggleYear={toggleYear} />
+                        <QuickNav
+                            groupedActivities={groupedActivities}
+                            isYearExpanded={isYearExpanded}
+                            onToggleYear={toggleYear}
+                            ensureYearExpanded={ensureYearExpanded}
+                            ensureMonthExpanded={ensureMonthExpanded}
+                        />
                     </div>
                 </div>
             )}

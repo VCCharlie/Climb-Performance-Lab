@@ -114,6 +114,16 @@ const useActivityFilter = (activities, profileFtp) => {
         setExpandedMonths(p => ({ ...(p || {}), [key]: !(p?.[key]) }));
     }, []);
 
+    const ensureYearExpanded = useCallback((year) => {
+        setExpandedYears((p) => ({ ...(p || {}), [year]: true }));
+    }, []);
+
+    const ensureMonthExpanded = useCallback((year, month) => {
+        const mk = `${year}-${month}`;
+        setExpandedYears((p) => ({ ...(p || {}), [year]: true }));
+        setExpandedMonths((p) => ({ ...(p || {}), [mk]: true }));
+    }, []);
+
     /** Expand year/month so a grouped row exists in the DOM (e.g. Dashboard deep-link). */
     const openGroupedPathForActivity = useCallback((activity) => {
         if (!activity?.date) return;
@@ -500,8 +510,8 @@ const useActivityFilter = (activities, profileFtp) => {
         search, setSearch,
         indoorFilter, setIndoorFilter,
         sortConfig, requestSort,
-        isYearExpanded, toggleYear,
-        isMonthExpanded, toggleMonth,
+        isYearExpanded, toggleYear, ensureYearExpanded,
+        isMonthExpanded, toggleMonth, ensureMonthExpanded,
         openGroupedPathForActivity,
         expandAllGrouped,
         collapseAllGrouped,

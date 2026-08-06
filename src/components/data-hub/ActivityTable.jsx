@@ -1,5 +1,5 @@
 
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo, useRef, useEffect, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import {
     ArrowUpDown, ChevronUp, ChevronDown, ChevronRight,
@@ -21,6 +21,7 @@ import {
     getFlattenedRowKey,
     shouldVirtualizeActivityList,
 } from '../../utils/activityListFlatten';
+import { registerActivityLogScroller, unregisterActivityLogScroller } from '../../utils/activityLogScroll';
 import { ACTIVITY_TABLE_COLUMNS, MONTH_ORDER } from '../../config';
 import TableScrollShell from './TableScrollShell';
 import {
@@ -573,6 +574,42 @@ const ActivityTable = React.memo(({
     const paddingBottom = virtualItems.length > 0
         ? virtualizer.getTotalSize() - virtualItems[virtualItems.length - 1].end
         : 0;
+
+    const scrollToId = useCallback((id) => {
+        const container = scrollRef.current;
+        if (!container) return;
+
+        const yearMatch = id.match(/^year-(\d+)$/);
+        const monthMatch = id.match(/^month-(\d+)-(.+)$/);
+
+        let rowIndex = -1;
+        if (yearMatch) {
+            const year = yearMatch[1];
+            rowIndex = flatRows.findIndex((r) => r.type === 'year' && String(r.year) === year);
+        } else if (monthMatch) {
+            const [, year, month] = monthMatch;
+            rowIndex = flatRows.findIndex(
+                (r) => r.type === 'month' && String(r.year) === year && r.month === month,
+            );
+        }
+
+        if (rowIndex >= 0 && useVirtual) {
+            virtualizer.scrollToIndex(rowIndex, { align: 'start' });
+            return;
+        }
+
+        const el = container.querySelector(`#${CSS.escape(id)}`);
+        if (!el) return;
+        const containerRect = container.getBoundingClientRect();
+        const elRect = el.getBoundingClientRect();
+        const top = elRect.top - containerRect.top + container.scrollTop;
+        container.scrollTo({ top: Math.max(0, top - 4), behavior: 'smooth' });
+    }, [flatRows, useVirtual, virtualizer]);
+
+    useEffect(() => {
+        registerActivityLogScroller({ scrollToId });
+        return () => unregisterActivityLogScroller();
+    }, [scrollToId]);
 
     const renderFlatRow = (row) => {
         if (row.type === 'year') {

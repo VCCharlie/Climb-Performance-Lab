@@ -2,7 +2,7 @@ import React from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Button, Chip, cn, inputBaseClass } from '../../ui';
 
-const RANGE_INPUT_CLASS = cn(inputBaseClass, 'w-12 !py-0.5 !px-1 text-[10px]');
+const RANGE_INPUT_CLASS = cn(inputBaseClass, 'w-12 !py-0.5 !px-1 !text-[10px] !leading-tight');
 
 function RangeField({ label, minValue, maxValue, onMinChange, onMaxChange, step = 1 }) {
     return (
