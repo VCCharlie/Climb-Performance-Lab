@@ -3,7 +3,7 @@ import { useCallback } from 'react';
 /**
  * WAI-ARIA tabs keyboard pattern: ArrowLeft/Right, Home, End.
  */
-export function useTabListKeyboard(tabIds, activeId, onSelect, { orientation = 'horizontal' } = {}) {
+export function useTabListKeyboard(tabIds, activeId, onSelect, { orientation = 'horizontal', getTabElementId } = {}) {
     const onKeyDown = useCallback((event) => {
         if (!tabIds?.length) return;
 
@@ -32,8 +32,11 @@ export function useTabListKeyboard(tabIds, activeId, onSelect, { orientation = '
         if (nextIndex == null) return;
         const nextId = tabIds[nextIndex];
         onSelect(nextId);
-        document.getElementById(`tab-${nextId}`)?.focus?.();
-    }, [tabIds, activeId, onSelect, orientation]);
+        const elementId = typeof getTabElementId === 'function'
+            ? getTabElementId(nextId)
+            : `tab-${nextId}`;
+        document.getElementById(elementId)?.focus?.();
+    }, [tabIds, activeId, onSelect, orientation, getTabElementId]);
 
     return onKeyDown;
 }

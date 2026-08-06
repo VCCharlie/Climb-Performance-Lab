@@ -1,5 +1,6 @@
-import React, { useId } from 'react';
+import React, { useId, useMemo } from 'react';
 import { cn } from './cn';
+import { useTabListKeyboard } from '../../hooks/useTabListKeyboard';
 
 const SIZE_CLASSES = {
   sm: 'text-[10px]',
@@ -24,11 +25,16 @@ export default function SegmentedControl({
   'aria-label': ariaLabel,
 }) {
   const groupId = useId();
+  const tabIds = useMemo(() => options.map((option) => option.value), [options]);
+  const onKeyDown = useTabListKeyboard(tabIds, value, onChange, {
+    getTabElementId: (tabId) => `${groupId}-${tabId}`,
+  });
 
   return (
     <div
       role="group"
       aria-label={ariaLabel}
+      onKeyDown={onKeyDown}
       className={cn(
         'inline-flex items-center gap-0.5 bg-cdsurfacelow rounded-cdmd p-1 border border-cdborder/60',
         dense && 'p-0.5 gap-0',

@@ -3,6 +3,7 @@ import { Download, Upload, ArrowUpRight } from 'lucide-react';
 import { smartParseCSV, smartParseJSON } from '../../utils';
 import ManualActivityImportBlock from './ManualActivityImportBlock';
 import { Button, Card, inputBaseClass, cn } from '../ui';
+import { useToast } from '../../context/ToastContext';
 
 const ImportSection = ({
     intervalsConfig = { athleteId: '' },
@@ -12,6 +13,7 @@ const ImportSection = ({
 }) => {
     const [importText, setImportText] = useState('');
     const [isDragging, setIsDragging] = useState(false);
+    const { showToast } = useToast();
 
     const handleFileUpload = (file) => {
         if (!file) return;
@@ -25,7 +27,7 @@ const ImportSection = ({
     const handleProcessInfo = () => {
         const text = importText.trim();
         if (!text) {
-            alert('Paste data into the field first.');
+            showToast('Paste data into the field first.', { variant: 'warning' });
             return;
         }
 
@@ -37,7 +39,7 @@ const ImportSection = ({
             onDataDetected(parsedData);
             setImportText('');
         } else {
-            alert('No valid activities found.');
+            showToast('No valid activities found.', { variant: 'error' });
         }
     };
 
