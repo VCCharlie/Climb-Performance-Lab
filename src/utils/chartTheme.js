@@ -31,3 +31,10 @@ export const chartCardClassLg = `${chartCardBase} p-6`;
 
 export const chartTooltipShellClass =
   'rounded-cdlg border border-cdborder/60 bg-cdsurface px-3 py-2.5 text-left shadow-lg max-w-xs';
+
+/** Mobile-friendly toggle buttons on dashboard chart cards (week/month, metric pickers). */
+export function chartSegmentToggleClass(isActive, activeClasses = 'bg-cdaccent text-white') {
+  return `px-3 py-1.5 text-[11px] font-bold cd-min-touch-y cd-focus-ring transition-colors ${
+    isActive ? activeClasses : 'text-cdmuted hover:text-cdtext'
+  }`;
+}

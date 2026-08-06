@@ -312,7 +312,7 @@ const BulkEditActivitiesModal = ({
                         </button>
                         <button
                             type="submit"
-                            className="px-6 py-2 bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-bold rounded shadow-lg shadow-yellow-500/20 flex items-center gap-2"
+                            className="px-6 py-2 bg-yellow-500 hover:bg-yellow-400 text-cdonbrand font-bold rounded shadow-lg shadow-yellow-500/20 flex items-center gap-2"
                         >
                             <Save size={16} /> Apply to {count}
                         </button>

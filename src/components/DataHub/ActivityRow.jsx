@@ -21,7 +21,7 @@ const ActivityRow = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview
             }
 
             const val = act[col.key];
-            if (val === null || val === undefined) return <span className="text-slate-600">-</span>;
+            if (val === null || val === undefined) return <span className="text-cdmuted">-</span>;
 
             switch (col.key) {
                 case 'data_source': return <span className="text-cdmuted text-center block">—</span>;
@@ -95,7 +95,7 @@ const ActivityRow = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview
                 case 'norm_power': return <NormPowerCell watts={val} profileFtp={profileFtp} />;
                 case 'load': return <span className="font-bold text-blue-400">{Math.round(val || 0)}</span>;
                 case 'rpe': return <span className="text-cdmuted">{val || '-'}</span>;
-                default: return <span className={`text-${col.text || 'slate-500'}`}>{val ? Math.round(val) : '-'}</span>;
+                default: return <span className={`text-${col.text || 'cdmuted'}`}>{val ? Math.round(val) : '-'}</span>;
             }
         } catch (e) {
             console.error("Error rendering cell", col.key, e);
@@ -109,7 +109,7 @@ const ActivityRow = ({ act, onDelete, deleteConfirm, setDeleteConfirm, isPreview
             {ACTIVITY_TABLE_COLUMNS.map(col => <td key={col.key} className={`p-3 text-${col.align} text-xs`}>{renderCell(col)}</td>)}
             {!isPreview && <td className="p-3 text-right">
                 <div className="flex gap-2 justify-end items-center">
-                    {deleteConfirm === act.id ? <div className="flex gap-2 justify-end"><button type="button" onClick={(e) => { e.stopPropagation(); onDelete(act.id) }} className="text-red-500 font-bold text-xs bg-red-500/10 px-2 py-1 rounded focus-visible:ring-2 focus-visible:ring-red-400 focus:outline-none" aria-label={`Confirm delete activity ${act.title || ''}`}>SURE?</button><button type="button" onClick={(e) => { e.stopPropagation(); setDeleteConfirm(null) }} className="text-cdmuted text-xs px-2 py-1 rounded focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none" aria-label="Cancel delete">Cancel</button></div> : <button type="button" onClick={(e) => { e.stopPropagation(); setDeleteConfirm(act.id) }} className="text-slate-600 hover:text-red-400 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm" title="Delete Activity" aria-label={`Delete activity ${act.title || ''}`}>
+                    {deleteConfirm === act.id ? <div className="flex gap-2 justify-end"><button type="button" onClick={(e) => { e.stopPropagation(); onDelete(act.id) }} className="text-red-500 font-bold text-xs bg-red-500/10 px-2 py-1 rounded focus-visible:ring-2 focus-visible:ring-red-400 focus:outline-none" aria-label={`Confirm delete activity ${act.title || ''}`}>SURE?</button><button type="button" onClick={(e) => { e.stopPropagation(); setDeleteConfirm(null) }} className="text-cdmuted text-xs px-2 py-1 rounded focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none" aria-label="Cancel delete">Cancel</button></div> : <button type="button" onClick={(e) => { e.stopPropagation(); setDeleteConfirm(act.id) }} className="text-cdmuted hover:text-red-400 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm" title="Delete Activity" aria-label={`Delete activity ${act.title || ''}`}>
                         <Trash2 size={14} />
                     </button>}
                 </div>

@@ -240,7 +240,7 @@ const Dashboard = ({
                 <Suspense fallback={<SkeletonChartCard className="mt-2" />}>
                     {dashboardTab === 'compare' && (
                         <div role="tabpanel" id="tabpanel-compare" aria-labelledby="tab-compare">
-                            <CompareTab allActivities={firestoreActivities} manualFtp={manualFtp} />
+                            <CompareTab allActivities={firestoreActivities} manualFtp={manualFtp} onGoToActivities={onGoToActivities} />
                         </div>
                     )}
 

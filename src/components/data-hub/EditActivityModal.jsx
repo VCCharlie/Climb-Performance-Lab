@@ -88,7 +88,7 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                                 <button
                                     type="button"
                                     onClick={() => onFindOnStrava(activity)}
-                                    className="flex items-center gap-1.5 px-2 py-1 rounded text-xs bg-slate-500/10 text-slate-400 hover:bg-slate-500/20 border border-slate-500/30"
+                                    className="flex items-center gap-1.5 px-2 py-1 rounded text-xs bg-cdsurfacehigh/30 text-cdmuted hover:bg-cdsurfacehigh/50 border border-cdborder"
                                     title="Find or link this activity on Strava"
                                 >
                                     <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" /></svg>
@@ -298,7 +298,7 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
 
                     <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-cdborder">
                         <button type="button" onClick={onClose} className="px-4 py-2 text-cdmuted hover:text-cdtext font-bold text-sm">Cancel</button>
-                        <button type="submit" className="px-6 py-2 bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-bold rounded shadow-lg shadow-yellow-500/20 flex items-center gap-2">
+                        <button type="submit" className="px-6 py-2 bg-yellow-500 hover:bg-yellow-400 text-cdonbrand font-bold rounded shadow-lg shadow-yellow-500/20 flex items-center gap-2">
                             <Save size={16} /> Save
                         </button>
                     </div>

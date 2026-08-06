@@ -360,7 +360,7 @@ const ClimbSelector = ({
         >
           Filters {showAdvanced ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           {activeFilterCount > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 bg-yellow-400 text-slate-900 text-[9px] font-black rounded-full w-4 h-4 flex items-center justify-center">
+            <span className="absolute -top-1.5 -right-1.5 bg-yellow-400 text-cdonbrand text-[9px] font-black rounded-full w-4 h-4 flex items-center justify-center">
               {activeFilterCount}
             </span>
           )}
@@ -389,7 +389,7 @@ const ClimbSelector = ({
           <button
             key={c}
             onClick={() => handleCountryChange(c)}
-            className={`px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-colors flex items-center gap-1 ${countryFilter === c ? 'bg-yellow-400 text-slate-900 border border-yellow-400' : 'bg-cdsurface border-cdborder border text-cdmuted hover:text-cdtext'}`}
+            className={`px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-colors flex items-center gap-1 ${countryFilter === c ? 'bg-yellow-400 text-cdonbrand border border-yellow-400' : 'bg-cdsurface border-cdborder border text-cdmuted hover:text-cdtext'}`}
           >
             {c === 'All' ? <><Globe size={12} />All</> : <><FlagIcon country={c} size="sm" />{c}</>}
           </button>
@@ -403,7 +403,7 @@ const ClimbSelector = ({
             <button
               key={r}
               onClick={() => setRegionFilter(r)}
-              className={`px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${regionFilter === r ? 'bg-orange-400 text-slate-900 border border-orange-400' : 'bg-cdsurface border border-cdborder text-cdmuted hover:text-cdtext'}`}
+              className={`px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${regionFilter === r ? 'bg-orange-400 text-cdonbrand border border-orange-400' : 'bg-cdsurface border border-cdborder text-cdmuted hover:text-cdtext'}`}
             >
               {r === 'All' ? 'All regions' : r}
             </button>
