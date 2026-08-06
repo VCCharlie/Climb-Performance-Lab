@@ -12,7 +12,7 @@ import { computeAnchoredOverlayStyle } from '../../utils/anchoredOverlayPosition
 import { useTodayIntervalsSync } from '../../context/TodayIntervalsSyncContext';
 
 /**
- * App shell navigation — mobile menu + desktop primary nav bar with time-range toolbar.
+ * App shell navigation — sticky mobile context row + desktop tabs with inline time presets.
  */
 function MainNav({
   activeTab,
@@ -96,69 +96,77 @@ function MainNav({
 
   return (
     <div className="relative mb-4">
-      {/* Mobile: menu trigger */}
-      <div className="flex items-center gap-2 mb-3 md:hidden">
-        <Button
-          ref={menuTriggerRef}
-          type="button"
-          variant="tonal"
-          className="flex-1 justify-start font-semibold min-h-11"
-          onClick={() => onMobileMenuOpenChange(!isMobileMenuOpen)}
-          aria-expanded={isMobileMenuOpen}
-          aria-haspopup="true"
-          aria-controls={menuPanelId}
-        >
-          {isMobileMenuOpen ? <X size={18} aria-hidden /> : <Menu size={18} aria-hidden />}
-          {mobileLabel}
-        </Button>
-        {activeTab === 'dashboard' && syncTodayActivities && (
-          <button
-            type="button"
-            onClick={syncTodayActivities}
-            disabled={isTodaySyncBusy}
-            className="flex items-center justify-center w-11 h-11 shrink-0 rounded-lg border border-cdborder bg-cdsurface text-cdmuted hover:text-green-400 hover:border-green-500/50 cd-transition focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none disabled:opacity-50"
-            title="Sync today's activities from Intervals.icu"
-            aria-label="Sync today's activities from Intervals.icu"
-          >
-            <RefreshCw size={18} className={isTodaySyncBusy ? 'animate-spin' : ''} aria-hidden />
-          </button>
-        )}
-      </div>
-
-      {/* Desktop: primary nav */}
-      <div className="hidden md:block border-b border-cdborder/40 mb-3">
-        <nav
-          className="flex overflow-x-auto gap-0.5 no-scrollbar pb-1"
-          role="tablist"
-          aria-label="Main navigation"
-        >
-          {tabs.map((item) => (
-            <NavTab
-              key={item.id}
-              icon={item.icon}
-              label={item.label}
-              isActive={activeTab === item.id}
-              onClick={() => onTabChange(item.id)}
-              onPrefetch={() => prefetchMainTabChunk(item.id)}
+      <StickyTimeRangeToolbar enabled>
+        {/* Mobile: menu trigger + optional time presets (sticky together) */}
+        <div className="md:hidden pb-2">
+          <div className="flex items-center gap-2 mb-2">
+            <Button
+              ref={menuTriggerRef}
+              type="button"
+              variant="tonal"
+              className="flex-1 justify-start font-semibold min-h-11"
+              onClick={() => onMobileMenuOpenChange(!isMobileMenuOpen)}
+              aria-expanded={isMobileMenuOpen}
+              aria-haspopup="true"
+              aria-controls={menuPanelId}
+            >
+              {isMobileMenuOpen ? <X size={18} aria-hidden /> : <Menu size={18} aria-hidden />}
+              {mobileLabel}
+            </Button>
+            {activeTab === 'dashboard' && syncTodayActivities && (
+              <button
+                type="button"
+                onClick={syncTodayActivities}
+                disabled={isTodaySyncBusy}
+                className="flex items-center justify-center w-11 h-11 shrink-0 rounded-lg border border-cdborder bg-cdsurface text-cdmuted hover:text-green-400 hover:border-green-500/50 cd-transition focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none disabled:opacity-50"
+                title="Sync today's activities from Intervals.icu"
+                aria-label="Sync today's activities from Intervals.icu"
+              >
+                <RefreshCw size={18} className={isTodaySyncBusy ? 'animate-spin' : ''} aria-hidden />
+              </button>
+            )}
+          </div>
+          {showTimeRange ? (
+            <TimeRangeToolbar
+              layout="mobile-full"
+              {...timeRangeProps}
+              compact
             />
-          ))}
-        </nav>
-      </div>
+          ) : null}
+        </div>
 
-      {/* Pinned time-range bar (dashboard, activities, training) */}
-      <StickyTimeRangeToolbar enabled={showTimeRange}>
-        <TimeRangeToolbar
-          layout="mobile-full"
-          {...timeRangeProps}
-          compact
-          className="md:hidden"
-        />
-        <TimeRangeToolbar
-          layout="desktop"
-          {...timeRangeProps}
-          compact
-          className="hidden md:block"
-        />
+        {/* Desktop: tabs left, time presets right on one row (sticky together) */}
+        <div className="hidden md:block border-b border-cdborder/40 pb-1">
+          <div className="flex items-center gap-3 min-h-[2.75rem]">
+            <nav
+              className="flex flex-1 min-w-0 overflow-x-auto gap-0.5 no-scrollbar"
+              role="tablist"
+              aria-label="Main navigation"
+            >
+              {tabs.map((item) => (
+                <NavTab
+                  key={item.id}
+                  icon={item.icon}
+                  label={item.label}
+                  isActive={activeTab === item.id}
+                  onClick={() => onTabChange(item.id)}
+                  onPrefetch={() => prefetchMainTabChunk(item.id)}
+                />
+              ))}
+            </nav>
+            {showTimeRange ? (
+              <>
+                <div className="w-px self-stretch bg-cdborder/50 shrink-0" aria-hidden />
+                <TimeRangeToolbar
+                  layout="desktop"
+                  {...timeRangeProps}
+                  compact
+                  className="shrink-0 max-w-[min(100%,32rem)]"
+                />
+              </>
+            ) : null}
+          </div>
+        </div>
       </StickyTimeRangeToolbar>
 
       {/* Mobile: portaled menu + scrim (avoids parent overflow clipping) */}
