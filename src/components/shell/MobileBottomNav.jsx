@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Gauge, Activity, Brain, Mountain } from 'lucide-react';
 import { cn } from '../ui';
+import { prefetchMainTabChunk } from '../../utils/prefetchTabChunks';
 
 const BOTTOM_NAV_TABS = [
     { id: 'dashboard', label: 'Dashboard', icon: Gauge },
@@ -12,7 +13,11 @@ const BOTTOM_NAV_TABS = [
 /**
  * Mobile bottom navigation for the four most-used tabs (md and up uses MainNav).
  */
-export default function MobileBottomNav({ activeTab, onTabChange }) {
+function MobileBottomNav({ activeTab, onTabChange }) {
+    const handlePrefetch = useCallback((tabId) => {
+        prefetchMainTabChunk(tabId);
+    }, []);
+
     return (
         <nav
             className="md:hidden fixed bottom-0 inset-x-0 z-50 border-t border-cdborder bg-cdsurface/95 backdrop-blur-md supports-[backdrop-filter]:bg-cdsurface/90"
@@ -28,6 +33,8 @@ export default function MobileBottomNav({ activeTab, onTabChange }) {
                             <button
                                 type="button"
                                 onClick={() => onTabChange(tab.id)}
+                                onPointerDown={() => handlePrefetch(tab.id)}
+                                onFocus={() => handlePrefetch(tab.id)}
                                 aria-current={isActive ? 'page' : undefined}
                                 className={cn(
                                     'w-full flex flex-col items-center justify-center gap-0.5 py-2 px-1 min-h-14 cd-focus-ring cd-transition',
@@ -44,3 +51,5 @@ export default function MobileBottomNav({ activeTab, onTabChange }) {
         </nav>
     );
 }
+
+export default React.memo(MobileBottomNav);

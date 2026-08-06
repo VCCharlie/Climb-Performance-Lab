@@ -36,7 +36,7 @@ function formatUpdatedAt(dateToDisplay) {
     return formatDateTimeNl(d);
 }
 
-const Header = ({ userSettings, onOpenSettings, user }) => {
+function Header({ userSettings, onOpenSettings, user }) {
     const { showToast } = useToast();
     const { syncStatus, lastActivityDate } = useActivitiesSync();
     const profileFtp = useProfileFtp();
@@ -192,6 +192,6 @@ const Header = ({ userSettings, onOpenSettings, user }) => {
             </div>
         </header>
     );
-};
+}
 
-export default Header;
+export default React.memo(Header);

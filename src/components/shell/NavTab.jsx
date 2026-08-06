@@ -13,6 +13,7 @@ export default function NavTab({ icon, label, isActive, onClick, onPrefetch }) {
       onClick={onClick}
       onMouseEnter={onPrefetch}
       onFocus={onPrefetch}
+      onPointerDown={onPrefetch}
       className={cn(
         'relative flex items-center gap-1.5 px-3 py-2.5 text-xs font-semibold whitespace-nowrap',
         'rounded-t-cdmd cd-transition cd-focus-ring',
