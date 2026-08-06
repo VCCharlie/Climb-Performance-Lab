@@ -1,5 +1,5 @@
-import React, { useId } from 'react';
-import { Download, RefreshCw } from 'lucide-react';
+import React, { useId, useState } from 'react';
+import { ChevronDown, ChevronRight, Download, RefreshCw } from 'lucide-react';
 import NlDateInput from '../NlDateInput';
 import { SPORT_TYPES } from '../../config';
 import { Button, Chip } from '../ui';
@@ -23,31 +23,47 @@ const IntervalsSyncPanel = ({
 }) => {
     const fromDateId = useId();
     const toDateId = useId();
+    const panelId = useId();
+    const [expanded, setExpanded] = useState(false);
     const isRefreshMode = syncMode === 'refresh-selected';
     const refreshDisabled = isRefreshMode && selectedCount === 0;
     const datesDisabled = isRefreshMode;
 
+    const subtitle = isRefreshMode
+        ? `Re-fetch ${selectedCount} selected row(s) from Intervals.icu.`
+        : 'Fetch activities for the date range and add or update them in your log.';
+
     return (
-        <div className="rounded-lg border border-cdborder bg-cdsurface/80 p-3 space-y-3 mb-3 shrink-0 min-w-0 overflow-x-hidden">
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                <div className="min-w-0">
-                    <h4 className="text-xs font-bold text-cdtext uppercase tracking-wide">Intervals.icu sync</h4>
-                    <p className="text-[10px] text-cdmuted leading-snug mt-0.5">
-                        {isRefreshMode
-                            ? `Re-fetch ${selectedCount} selected row(s) from Intervals.icu.`
-                            : 'Fetch activities for the date range and add or update them in your log.'}
-                    </p>
-                </div>
+        <div className="rounded-lg border border-cdborder bg-cdsurface/80 mb-3 shrink-0 min-w-0 overflow-x-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 p-3">
+                <button
+                    type="button"
+                    onClick={() => setExpanded((v) => !v)}
+                    aria-expanded={expanded}
+                    aria-controls={panelId}
+                    className="flex flex-1 min-w-0 items-start gap-2 text-left hover:bg-cdborder/10 rounded-md -m-1 p-1 transition-colors focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                >
+                    {expanded ? (
+                        <ChevronDown size={16} className="text-cdmuted shrink-0 mt-0.5" aria-hidden />
+                    ) : (
+                        <ChevronRight size={16} className="text-cdmuted shrink-0 mt-0.5" aria-hidden />
+                    )}
+                    <div className="min-w-0">
+                        <h4 className="text-xs font-bold text-cdtext uppercase tracking-wide">Intervals.icu sync</h4>
+                        <p className="text-[10px] text-cdmuted leading-snug mt-0.5">{subtitle}</p>
+                    </div>
+                </button>
                 <button
                     type="button"
                     onClick={onOpenImportTab}
-                    className="shrink-0 text-[10px] font-bold px-2 py-1 rounded border border-cdborder text-cdaccent hover:bg-cdborder/40 self-start sm:self-auto"
+                    className="shrink-0 text-[10px] font-bold px-2 py-1 rounded border border-cdborder text-cdaccent hover:bg-cdborder/40 self-start sm:self-auto cd-focus-ring"
                 >
                     Import tab (CSV / URL)
                 </button>
             </div>
 
-            <div className="flex flex-col gap-3">
+            {expanded ? (
+            <div id={panelId} className="px-3 pb-3 space-y-3 border-t border-cdborder/40 pt-3">
                 <div className="flex flex-wrap gap-2">
                     <button
                         type="button"
@@ -97,7 +113,6 @@ const IntervalsSyncPanel = ({
                         />
                     </label>
                 </div>
-            </div>
 
             <div>
                 <div className="flex justify-between mb-2">
@@ -160,6 +175,8 @@ const IntervalsSyncPanel = ({
                         : (isRefreshMode ? 'Refresh selected' : 'Fetch & merge')}
                 </Button>
             </div>
+            </div>
+            ) : null}
         </div>
     );
 };
