@@ -5,6 +5,7 @@ import { formatSegmentTime } from '../../utils/strava';
 import NormPowerCell from '../data-hub/NormPowerCell';
 import ZoneMetricCell from '../data-hub/ZoneMetricCell';
 import ModalPortal from '../ui/ModalPortal';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 const StravaMap = lazy(() => import('./StravaMap'));
 
@@ -29,6 +30,7 @@ const StatBox = ({ label, value, unit, icon, color = "text-cdmuted" }) => (
 );
 
 const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, profileMaxHr }) => {
+    const panelRef = useModalA11y({ isOpen: true, onClose });
     const [stravaData, setStravaData] = useState(null);
     const [stravaLoading, setStravaLoading] = useState(false);
     const [stravaError, setStravaError] = useState(null);
@@ -84,7 +86,14 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
     return (
         <ModalPortal>
         <div className="fixed inset-0 bg-cdbg/95 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-cdsurface border border-cdborder rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden relative">
+            <div
+                ref={panelRef}
+                className="bg-cdsurface border border-cdborder rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden relative"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="activity-detail-modal-title"
+                tabIndex={-1}
+            >
 
                 {/* Header — title & links only; long descriptions live in scrollable body */}
                 <div className="flex-shrink-0 p-4 border-b border-cdborder bg-cdbg flex justify-between items-start gap-3">
@@ -93,7 +102,7 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
                             <span className="bg-cdborder text-cdtext text-[10px] font-bold px-2 py-0.5 rounded uppercase">{activity.type}</span>
                             <span className="text-cdmuted text-xs flex items-center gap-1"><Calendar size={12} /> {formatDateDDMMYYYY(activity.date)}</span>
                         </div>
-                        <h2 className="text-xl font-bold text-cdtext break-words">{activity.title}</h2>
+                        <h2 id="activity-detail-modal-title" className="text-xl font-bold text-cdtext break-words">{activity.title}</h2>
                         <div className="flex items-center gap-4 mt-2 flex-wrap">
                             {activity.id && !String(activity.id).startsWith('csv_') && (
                                 <a href={`https://intervals.icu/activities/${activity.id}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm px-1 py-0.5 -ml-1">

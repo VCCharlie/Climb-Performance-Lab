@@ -94,6 +94,7 @@ import { todayYmd } from './utils/coach/coachHelpers';
 import { runGoogleSignIn, isGoogleSignInInProgress, googleSignInErrorMessage, completeGoogleRedirectIfNeeded } from './utils/googleSignIn';
 import { notify } from './utils/notify';
 import { ToastProvider } from './context/ToastContext';
+import { ConfirmProvider } from './context/ConfirmContext';
 import { ActivitiesProvider, useActivitiesState } from './context/ActivitiesContext';
 import { useActivitiesList } from './hooks/useActivities';
 import { ActivityLogNavigationProvider, useActivityLogNavigation } from './context/ActivityLogNavigationContext';
@@ -911,11 +912,22 @@ const App = () => {
         setActiveTab('activities');
     }, []);
 
+    const [dataHubMountKey, setDataHubMountKey] = useState(0);
+    const [dataHubMountTab, setDataHubMountTab] = useState(() => resolveInitialDataHubInternalTab());
+
+    const navigateToActivitiesSync = useCallback(() => {
+        persistMainTab('activities');
+        setDataHubMountTab('import');
+        setDataHubMountKey((key) => key + 1);
+        setActiveTab('activities');
+    }, []);
+
     const isDark = theme === 'dark';
     const mainClass = isDark ? 'bg-cdbg text-cdtext' : 'bg-cdbg text-cdtext';
 
     return (
         <ToastProvider>
+        <ConfirmProvider>
         <ActivitiesProvider key={user?.uid ?? 'signed-out'} user={user}>
             <ActivityLogNavigationProvider onNavigateToActivities={navigateToActivities}>
                 <ProfileFtpProvider userSettings={userSettings}>
@@ -985,6 +997,7 @@ const App = () => {
 
                                         {activeTab === 'activities' && (
                                             <DataHub
+                                                key={dataHubMountKey}
                                                 intervalsConfig={intervalsConfig}
                                                 stravaGetToken={stravaAuth.isConnected ? stravaAuth.getValidToken : null}
                                                 startDate={globalStartDate}
@@ -996,7 +1009,7 @@ const App = () => {
                                                 onStravaProfileData={handleStravaProfileData}
                                                 onOpenProfilerFromActivity={handleOpenProfilerFromActivity}
                                                 climbDatabaseForMatch={climbDatabase}
-                                                initialInternalTab={resolveInitialDataHubInternalTab()}
+                                                initialInternalTab={dataHubMountTab}
                                                 profileFtp={userSettings?.ftp}
                                                 profileMaxHr={userSettings?.maxHr}
                                                 userSettings={userSettings}
@@ -1190,6 +1203,7 @@ const App = () => {
                                 isSignedIn={Boolean(user)}
                                 updateStravaConfig={updateStravaConfig}
                                 stravaAuth={stravaAuth}
+                                onGoToActivitiesSync={navigateToActivitiesSync}
                             />
                         )}
                     </main>
@@ -1204,6 +1218,7 @@ const App = () => {
                 </ProfileFtpProvider>
             </ActivityLogNavigationProvider>
         </ActivitiesProvider>
+        </ConfirmProvider>
         </ToastProvider>
     );
 };

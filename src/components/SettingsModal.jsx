@@ -18,9 +18,12 @@ import {
 } from '../utils/profileFtp';
 import { formatDateDDMMYYYY } from '../utils/formatters';
 import { buildBackupExport, validateBackupPayload, describeBackupImport, BACKUP_MAX_BYTES } from '../utils/backupSchema';
-import { Button, IconButton, inputBaseClass, inputNumberClass, modalScrimClass, modalPanelClass, modalHeaderClass, modalFooterClass } from './ui';
+import { Button, IconButton, inputBaseClass, inputNumberClass, modalScrimClass, modalPanelClass, modalHeaderClass, modalFooterClass, SegmentedControl } from './ui';
 import ModalPortal from './ui/ModalPortal';
 import { useActivities } from '../hooks/useActivities';
+import { useConfirm } from '../context/ConfirmContext';
+import { useToast } from '../context/ToastContext';
+import { useModalA11y } from '../hooks/useModalA11y';
 import {
     formatBikeComputerProfileTitlesForInput,
     parseBikeComputerProfileTitlesInput,
@@ -40,6 +43,13 @@ const StravaIcon = ({ size = 16 }) => (
     </svg>
 );
 
+const SETTINGS_TABS = [
+    { value: 'profile', label: 'Profile' },
+    { value: 'integrations', label: 'Integrations' },
+    { value: 'goals', label: 'Goals' },
+    { value: 'backup', label: 'Backup' },
+];
+
 const SettingsModal = ({
     onClose,
     intervalsConfig, updateIntervalsConfig,
@@ -48,8 +58,12 @@ const SettingsModal = ({
     backupExtras, onImportBackup, onCleanupCloudTokens,
     stravaConfig, stravaAuth,
     isSignedIn = false,
+    onGoToActivitiesSync,
 }) => {
     const { activities, restoreFromBackup } = useActivities();
+    const { confirm } = useConfirm();
+    const { showToast } = useToast();
+    const panelRef = useModalA11y({ isOpen: true, onClose });
     const ftpLookbackWindow = normalizeFtpLookbackWindow(userSettings);
     const terrainProfile = normalizeTerrainProfile(userSettings.terrainProfile);
     const ftpLookbackLabel = describeFtpLookbackWindow(userSettings);
@@ -58,6 +72,7 @@ const SettingsModal = ({
     const ftpSource = normalizeFtpSource(userSettings);
     const effectiveFtpForZones = resolveEffectiveProfileFtp(userSettings, activities).ftp || (Number(userSettings.ftp) || 0);
     const [isSaving, setIsSaving] = useState(false);
+    const [settingsTab, setSettingsTab] = useState('profile');
     const [profileTitlesText, setProfileTitlesText] = useState(() =>
         formatBikeComputerProfileTitlesForInput(userSettings.bikeComputerProfileTitles),
     );
@@ -98,27 +113,35 @@ const SettingsModal = ({
         e.target.value = '';
         if (!file) return;
         if (file.size > BACKUP_MAX_BYTES) {
-            alert(`Backup file is too large (max ${Math.round(BACKUP_MAX_BYTES / (1024 * 1024))} MB).`);
+            showToast(`Backup file is too large (max ${Math.round(BACKUP_MAX_BYTES / (1024 * 1024))} MB).`, {
+                variant: 'error',
+            });
             return;
         }
         const reader = new FileReader();
-        reader.onload = (event) => {
+        reader.onload = async (event) => {
             try {
                 const data = JSON.parse(event.target.result);
                 const validation = validateBackupPayload(data);
                 if (!validation.ok) {
-                    alert('Invalid backup file: ' + validation.error);
+                    showToast(`Invalid backup file: ${validation.error}`, { variant: 'error' });
                     return;
                 }
                 const sections = describeBackupImport(data);
                 const message = sections.length > 0
-                    ? `Import backup?\n\nThis will overwrite:\n• ${sections.join('\n• ')}`
-                    : 'Import backup?';
-                if (!window.confirm(message)) return;
+                    ? `This will overwrite:\n• ${sections.join('\n• ')}`
+                    : 'Import this backup file?';
+                const confirmed = await confirm({
+                    title: 'Import backup',
+                    message,
+                    confirmLabel: 'Import',
+                    variant: 'danger',
+                });
+                if (!confirmed) return;
                 if (data.activities) restoreFromBackup(data.activities);
                 if (onImportBackup) onImportBackup(data);
             } catch (err) {
-                alert('Error reading file: ' + err.message);
+                showToast(`Error reading file: ${err.message}`, { variant: 'error' });
             }
         };
         reader.readAsText(file);
@@ -126,20 +149,29 @@ const SettingsModal = ({
 
     const handleCleanupCloudTokens = async () => {
         if (!onCleanupCloudTokens) return;
-        const confirmed = window.confirm(
-            'Remove OAuth tokens from the cloud database?\n\n'
-            + 'Your local Strava connection stays intact. '
-            + 'Use this after a security update if tokens were previously stored in Firestore.',
-        );
+        const confirmed = await confirm({
+            title: 'Remove cloud tokens',
+            message:
+                'Remove OAuth tokens from the cloud database?\n\n'
+                + 'Your local Strava connection stays intact. '
+                + 'Use this after a security update if tokens were previously stored in Firestore.',
+            confirmLabel: 'Remove from cloud',
+            variant: 'danger',
+        });
         if (!confirmed) return;
         await onCleanupCloudTokens();
+    };
+
+    const handleOpenActivitiesSync = () => {
+        onClose();
+        onGoToActivitiesSync?.();
     };
 
 
     return (
         <ModalPortal>
         <div className={modalScrimClass}>
-            <div className={modalPanelClass} role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
+            <div ref={panelRef} className={modalPanelClass} role="dialog" aria-modal="true" aria-labelledby="settings-modal-title" tabIndex={-1}>
 
                 <div className={modalHeaderClass}>
                     <h2 id="settings-modal-title" className="text-xl font-bold text-cdtext flex items-center gap-2">
@@ -150,10 +182,21 @@ const SettingsModal = ({
                     </IconButton>
                 </div>
 
-                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 overflow-y-auto">
+                <div className="px-6 pt-4 pb-2 border-b border-cdborder/40 bg-cdsurfacelow">
+                    <SegmentedControl
+                        options={SETTINGS_TABS}
+                        value={settingsTab}
+                        onChange={setSettingsTab}
+                        fullWidth
+                        size="sm"
+                        caps={false}
+                        aria-label="Settings sections"
+                    />
+                </div>
 
-                    {/* KOLOM 1: ALGEMEEN & PRIVACY */}
-                    <div className="space-y-6">
+                <div className="p-6 grid grid-cols-1 gap-6 overflow-y-auto max-h-[calc(90vh-11rem)]">
+                    {settingsTab === 'profile' && (
+                    <>
                         {/* VISUAL & PRIVACY */}
                         <div className={sectionClass}>
                             <div className="flex items-center gap-2 pb-2 border-b border-cdborder/50 mb-4">
@@ -209,7 +252,11 @@ const SettingsModal = ({
                                 onChange={(links) => updateUserSettings('quickLinks', links)}
                             />
                         </div>
+                    </>
+                    )}
 
+                    {settingsTab === 'integrations' && (
+                    <>
                         {/* INTERVALS INTEGRATION */}
                         <div className={sectionClass}>
                             <div className="flex items-center gap-2 pb-2 border-b border-cdborder/50 mb-4">
@@ -343,7 +390,7 @@ const SettingsModal = ({
                                 </div>
                             </div>
 
-                            <div className="mt-4 pt-4 border-t border-cdborder/30">
+                            <div className="mt-4 pt-4 border-t border-cdborder/30 space-y-3">
                                 <p className="text-xs font-semibold text-cdtext mb-1">Activity sync</p>
                                 <p className="text-xs text-cdmuted leading-snug">
                                     Use the <strong className="text-cdtext">Activities</strong> tab for Fetch &amp; merge
@@ -351,6 +398,16 @@ const SettingsModal = ({
                                     On <strong className="text-cdtext">Dashboard</strong>, the header refresh button syncs
                                     today only. Nightly GitHub Actions sync above still runs in the background when configured.
                                 </p>
+                                {onGoToActivitiesSync && (
+                                    <Button
+                                        type="button"
+                                        variant="filled"
+                                        className="w-full sm:w-auto"
+                                        onClick={handleOpenActivitiesSync}
+                                    >
+                                        Open Activities sync
+                                    </Button>
+                                )}
                             </div>
                         </div>
 
@@ -434,7 +491,11 @@ const SettingsModal = ({
                                 </div>
                             </div>
                         )}
+                    </>
+                    )}
 
+                    {settingsTab === 'backup' && (
+                    <>
                         {/* BACKUP & RESTORE */}
                         <div className={sectionClass}>
                             <div className="flex items-center gap-2 pb-2 border-b border-cdborder/50 mb-4">
@@ -478,9 +539,10 @@ const SettingsModal = ({
                                 </Button>
                             </div>
                         )}
-                    </div>
+                    </>
+                    )}
 
-                    {/* KOLOM 2: DOELEN & ZONES */}
+                    {settingsTab === 'goals' && (
                     <div className="space-y-6">
                         {/* DOELEN & PROFILE */}
                         <div className={sectionClass}>
@@ -901,6 +963,7 @@ const SettingsModal = ({
                         </div>
 
                     </div>
+                    )}
                 </div>
 
                 {/* FOOTER ACTIONS */}

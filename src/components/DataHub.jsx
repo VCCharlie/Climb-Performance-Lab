@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { getCoreClimbDatabase } from '../services/climbDatabase';
 
 import ActivityLogBulkBar from './data-hub/ActivityLogBulkBar';
@@ -23,6 +23,7 @@ import { useProfileFtp } from '../context/ProfileFtpContext';
 import { useActivityLogNavigation } from '../context/ActivityLogNavigationContext';
 import { resolveRecoveryTss } from '../utils/recoveryTss';
 import { readLastCloudSyncAt } from '../utils/activityLogSyncLabel';
+import { useTabListKeyboard } from '../hooks/useTabListKeyboard';
 
 const DataHub = ({
     intervalsConfig,
@@ -75,6 +76,15 @@ const DataHub = ({
     const [internalTab, setInternalTab] = useState(() => (
         ['log', 'strava-profile', 'import'].includes(initialInternalTab) ? initialInternalTab : 'log'
     ));
+
+    const dataHubTabIds = useMemo(() => {
+        const ids = ['log'];
+        if (stravaGetToken) ids.push('strava-profile');
+        ids.push('import');
+        return ids;
+    }, [stravaGetToken]);
+
+    const onDataHubTabKeyDown = useTabListKeyboard(dataHubTabIds, internalTab, setInternalTab);
     const [detailActivity, setDetailActivity] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [editingActivity, setEditingActivity] = useState(null);
@@ -280,7 +290,7 @@ const DataHub = ({
                 isDeleting={isDeleting}
             />
 
-            <div className="flex border-b border-cdborder" role="tablist" aria-label="Data Hub Tabs">
+            <div className="flex border-b border-cdborder" role="tablist" aria-label="Data Hub Tabs" onKeyDown={onDataHubTabKeyDown}>
                 <button type="button" id="tab-log" role="tab" aria-selected={internalTab === 'log'} aria-controls="tabpanel-log" onClick={() => setInternalTab('log')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'log' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Activity Log</button>
                 {stravaGetToken && (
                     <button type="button" id="tab-strava-profile" role="tab" aria-selected={internalTab === 'strava-profile'} aria-controls="tabpanel-strava-profile" onClick={() => setInternalTab('strava-profile')} className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-1.5 ${internalTab === 'strava-profile' ? 'bg-cdborder text-orange-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>

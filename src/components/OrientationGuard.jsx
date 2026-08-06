@@ -1,51 +1,80 @@
-import React from 'react';
-import { Monitor, Smartphone } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Monitor, Smartphone, X } from 'lucide-react';
 import useOrientationPolicy from '../hooks/useOrientationPolicy';
 
 const COPY = {
     portrait: {
         icon: Smartphone,
         title: 'Rotate to portrait',
-        body: 'Climb Lab Pro works best on your phone in upright (portrait) mode. Please turn your device.',
+        body: 'Climb Lab Pro works best on your phone in upright (portrait) mode. You can keep using the app, but some layouts may feel cramped.',
     },
     landscape: {
         icon: Monitor,
         title: 'Use landscape layout',
-        body: 'On desktop, widen your browser window or rotate your screen so it is wider than it is tall.',
+        body: 'On desktop, widen your browser window or rotate your screen so it is wider than it is tall for the best layout.',
     },
 };
 
+function readDismissed(mismatch) {
+    if (!mismatch || typeof sessionStorage === 'undefined') return false;
+    try {
+        return sessionStorage.getItem(`cpl.orientation.dismiss.${mismatch}`) === '1';
+    } catch {
+        return false;
+    }
+}
+
 /**
- * Blocks interaction when orientation does not match device class (mobile portrait, desktop landscape).
+ * Non-blocking orientation hint — dismissible banner instead of a full-screen block.
  */
 export default function OrientationGuard() {
     const { mismatch } = useOrientationPolicy();
+    const [dismissed, setDismissed] = useState(() => readDismissed(mismatch));
 
-    if (!mismatch) return null;
+    useEffect(() => {
+        setDismissed(readDismissed(mismatch));
+    }, [mismatch]);
+
+    if (!mismatch || dismissed) return null;
 
     const content = COPY[mismatch];
     const Icon = content.icon;
 
+    const handleDismiss = () => {
+        setDismissed(true);
+        try {
+            sessionStorage.setItem(`cpl.orientation.dismiss.${mismatch}`, '1');
+        } catch {
+            /* ignore */
+        }
+    };
+
     return (
         <div
-            className="fixed inset-0 z-[500] flex items-center justify-center bg-cdbg/95 backdrop-blur-sm p-6"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="orientation-guard-title"
-            aria-describedby="orientation-guard-desc"
+            className="fixed top-0 left-0 right-0 z-[500] border-b border-cdborder bg-cdsurface/95 backdrop-blur-sm px-4 py-3 shadow-md"
+            role="status"
+            aria-live="polite"
         >
-            <div className="max-w-sm text-center space-y-4">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-cdborder bg-cdsurface text-cdaccent">
-                    <Icon size={32} aria-hidden />
+            <div className="mx-auto max-w-7xl flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-cdborder bg-cdsurfacehigh text-cdaccent">
+                    <Icon size={20} aria-hidden />
                 </div>
-                <div className="space-y-2">
-                    <h2 id="orientation-guard-title" className="text-xl font-bold text-cdtext font-head tracking-wide uppercase">
+                <div className="min-w-0 flex-1 pt-0.5">
+                    <p id="orientation-guard-title" className="text-sm font-bold text-cdtext">
                         {content.title}
-                    </h2>
-                    <p id="orientation-guard-desc" className="text-sm text-cdmuted leading-relaxed">
+                    </p>
+                    <p id="orientation-guard-desc" className="text-xs text-cdmuted leading-relaxed mt-0.5">
                         {content.body}
                     </p>
                 </div>
+                <button
+                    type="button"
+                    onClick={handleDismiss}
+                    className="shrink-0 rounded-lg p-2 text-cdmuted hover:text-cdtext hover:bg-cdsurfacehigh cd-transition cd-focus-ring"
+                    aria-label="Dismiss orientation hint"
+                >
+                    <X size={18} aria-hidden />
+                </button>
             </div>
         </div>
     );

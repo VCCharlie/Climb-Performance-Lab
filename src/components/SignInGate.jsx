@@ -3,6 +3,7 @@ import { Cloud, LogIn, RefreshCw } from 'lucide-react';
 import { Button, Card } from './ui';
 import { repairSignInBrowserState } from '../utils/repairSignInState.js';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmContext';
 
 /**
  * Shown when the user is signed out — replaces dashboard / activity content.
@@ -10,13 +11,18 @@ import { useToast } from '../context/ToastContext';
 export default function SignInGate({ onSignIn, authBusy = false, authError = null }) {
     const [repairBusy, setRepairBusy] = useState(false);
     const { showToast } = useToast();
+    const { confirm } = useConfirm();
 
     const handleRepair = async () => {
         if (repairBusy || authBusy) return;
-        const confirmed = window.confirm(
-            'Clear cached app data (including full local storage if needed) and reset sign-in for this browser?\n\n'
-            + 'Your cloud data is safe. This fixes sign-in when incognito works but this browser does not.',
-        );
+        const confirmed = await confirm({
+            title: 'Reset browser cache',
+            message:
+                'Clear cached app data (including full local storage if needed) and reset sign-in for this browser?\n\n'
+                + 'Your cloud data is safe. This fixes sign-in when incognito works but this browser does not.',
+            confirmLabel: 'Reset cache',
+            variant: 'danger',
+        });
         if (!confirmed) return;
         setRepairBusy(true);
         try {
