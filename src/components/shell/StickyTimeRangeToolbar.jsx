@@ -15,7 +15,7 @@ function clonePinnedChild(children) {
 }
 
 /**
- * Pins children (time-range toolbar) below the site header while scrolling.
+ * Pins children (main nav + time-range toolbar) below the site header while scrolling.
  */
 export default function StickyTimeRangeToolbar({ children, enabled = true }) {
     const headerOffset = useAppHeaderOffset();
@@ -85,7 +85,7 @@ export default function StickyTimeRangeToolbar({ children, enabled = true }) {
                         className={PINNED_SHELL_CLASS}
                         style={{ top: headerOffset }}
                     >
-                        <div className="max-w-7xl mx-auto px-3 py-1">
+                        <div className="max-w-7xl mx-auto px-3 py-1.5">
                             {clonePinnedChild(children)}
                         </div>
                     </div>
