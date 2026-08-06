@@ -26,11 +26,12 @@ export function isStravaOnlyActivityId(id) {
     return id != null && String(id).startsWith('strava_');
 }
 
-/** Intervals.icu ids are numeric strings; CSV imports use csv_ prefix */
+/** Intervals.icu ids are numeric or i-prefixed (e.g. i53534754); CSV imports use csv_ prefix */
 export function isLikelyIntervalsActivityId(id) {
     const s = String(id ?? '');
     if (!s || s.startsWith('strava_')) return false;
     if (s.startsWith('csv_')) return true;
+    if (/^i\d+$/i.test(s)) return true;
     return /^\d+$/.test(s);
 }
 

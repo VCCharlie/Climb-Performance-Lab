@@ -12,6 +12,7 @@ import CoachPeriodReview from './coach/CoachPeriodReview';
 import CoachFluidWeekPlan from './coach/CoachFluidWeekPlan';
 import CoachFitnessForecast from './coach/CoachFitnessForecast';
 import CollapsibleSection from './ui/CollapsibleSection';
+import EmptyStateCard from './ui/EmptyStateCard';
 import { buildFluidWeekPlan, buildProjectedWeek2Plan } from '../utils/coach/coachWeekPlan';
 import { todayYmd } from '../utils/coach/coachHelpers';
 import { COACH_WEEK_UPDATED_EVENT, readCoachWeek2Enabled, writeCoachWeek2Enabled } from '../utils/coach/coachWeekState';
@@ -43,7 +44,7 @@ function formatVsPrimaryPct(pct) {
     return `${sign}${Math.round(pct)}% vs. selected period`;
 }
 
-const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, startDate, endDate, isSignedIn = false, intervalsConfig }) => {
+const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, startDate, endDate, isSignedIn = false, intervalsConfig, onGoToActivities, onOpenSettings }) => {
     const activitiesFromContext = useActivitiesList();
     const activities = activitiesProp ?? activitiesFromContext;
     const profileFtp = useProfileFtp();
@@ -445,7 +446,7 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
 
         const xml = `
 <workout_file>
-    <author>Climb Performance Lab</author>
+    <author>Climb Lab Pro</author>
     <name>${workout.title}</name>
     <description>${workout.description}</description>
     <sportType>bike</sportType>
@@ -505,6 +506,18 @@ ${workout.zwoSteps.map(step => {
                     <div className="text-xs text-cdmuted uppercase">Avg Weekly Load</div>
                 </div>
             </div>
+
+            {swot.coachFlags?.noData && (
+                <EmptyStateCard
+                    icon={Activity}
+                    title="No activities in this period"
+                    message="Import or sync your training data, or widen the time range in the header toolbar, so the coach can analyze your rides."
+                    primaryLabel="Go to Activities"
+                    onPrimary={onGoToActivities}
+                    secondaryLabel="Open settings"
+                    onSecondary={onOpenSettings}
+                />
+            )}
 
             {trainingPlan?.currentWeekTargetTss != null && (
                 <div className="bg-cdsurface p-4 rounded-xl border border-cdborder border-l-4 border-l-cdaccent flex flex-wrap items-start justify-between gap-3">

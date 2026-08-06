@@ -224,6 +224,19 @@ describe('normalizeIntervalsActivity - speed', () => {
 // ─── EMPTY / MINIMAL INPUT ──────────────────────────────────────────────────
 
 describe('normalizeIntervalsActivity - edge cases', () => {
+  it('parses moving_time duration strings (H:MM:SS)', () => {
+    const activity = {
+      id: 'i99999',
+      startDate: '2025-06-20',
+      name: 'Duration String Test',
+      type: 'Ride',
+      moving_time: '2:15:30',
+      distance: 50000,
+    };
+    const norm = normalizeIntervalsActivity(activity);
+    expect(norm.moving_time).toBe(8130);
+  });
+
   it('handles completely empty object', () => {
     const norm = normalizeIntervalsActivity({});
     expect(norm.title).toBe('Untitled');

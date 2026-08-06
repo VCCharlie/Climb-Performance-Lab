@@ -34,7 +34,7 @@ import PwaInstallBanner from './components/PwaInstallBanner';
 import PwaUpdateBanner from './components/PwaUpdateBanner';
 import OrientationGuard from './components/OrientationGuard';
 import { LoadingPanel, SegmentedControl } from './components/ui';
-import { MainNav } from './components/shell';
+import { MainNav, MobileBottomNav, GetStartedChecklist } from './components/shell';
 import SignInGate from './components/SignInGate';
 import { lazyWithRetry } from './utils/lazyWithRetry.js';
 
@@ -92,12 +92,26 @@ import {
 } from './utils/coach/coachWeekState';
 import { todayYmd } from './utils/coach/coachHelpers';
 import { runGoogleSignIn, isGoogleSignInInProgress, googleSignInErrorMessage, completeGoogleRedirectIfNeeded } from './utils/googleSignIn';
+import { notify } from './utils/notify';
 import { ToastProvider } from './context/ToastContext';
-import { ActivitiesProvider, useActivitiesState } from './context/ActivitiesContext';
+import { ActivitiesProvider, useActivitiesState, useActivitiesList } from './context/ActivitiesContext';
 import { ActivityLogNavigationProvider, useActivityLogNavigation } from './context/ActivityLogNavigationContext';
 import { ProfileFtpProvider } from './context/ProfileFtpContext';
 import TrainingFtpContextNote from './components/coach/TrainingFtpContextNote';
 import { TodayIntervalsSyncProvider } from './context/TodayIntervalsSyncContext';
+
+function GetStartedStrip({ userSettings, intervalsConfig, onOpenSettings, onGoToActivities }) {
+    const activities = useActivitiesList();
+    return (
+        <GetStartedChecklist
+            userSettings={userSettings}
+            intervalsConfig={intervalsConfig}
+            activityCount={activities.length}
+            onOpenSettings={onOpenSettings}
+            onGoToActivities={onGoToActivities}
+        />
+    );
+}
 
 function AppLoadingGate({ authReady, user, authBusy, authError, onSignIn, children }) {
     const { isLoading: activitiesLoading, activities } = useActivitiesState();
@@ -121,7 +135,6 @@ function DashboardWithNavigation(props) {
         />
     );
 }
-
 function BucketListWithNavigation(props) {
     const { openActivityInLog } = useActivityLogNavigation();
     return (
@@ -282,7 +295,6 @@ const App = () => {
         } catch (err) {
             const message = googleSignInErrorMessage(err);
             setAuthError(message);
-            window.alert(message);
             return;
         }
         if (hasStravaOAuthReturnInUrl() && !hasPendingStravaOAuthState()) {
@@ -295,7 +307,6 @@ const App = () => {
         } catch (err) {
             const message = googleSignInErrorMessage(err);
             setAuthError(message);
-            window.alert(message);
         } finally {
             setAuthBusy(false);
         }
@@ -564,7 +575,7 @@ const App = () => {
             })
             .catch((e) => {
                 console.error('Strava OAuth error:', e);
-                alert('Strava connection failed: ' + e.message);
+                notify('Strava connection failed: ' + e.message, { variant: 'error', durationMs: 10000 });
             });
     }, [authReady, user, stravaAuth]);
 
@@ -842,13 +853,13 @@ const App = () => {
             }, { merge: true });
 
             await syncBucketListToFirestore(db, user.uid, bucketToSync);
-            alert('Settings saved.');
-        } catch (e) { alert("Error saving settings: " + e.message); }
+            notify('Settings saved.', { variant: 'success' });
+        } catch (e) { notify('Error saving settings: ' + e.message, { variant: 'error', durationMs: 10000 }); }
     };
 
     const cleanupCloudTokens = async () => {
         if (!db) {
-            alert('Cloud database is not available.');
+            notify('Cloud database is not available.', { variant: 'error' });
             return;
         }
         try {
@@ -856,9 +867,9 @@ const App = () => {
             await setDoc(doc(db, 'settings', settingsId), {
                 strava: stravaConfigForCloud(stravaConfig),
             }, { merge: true });
-            alert('Stored OAuth tokens were removed from the cloud. Your local Strava connection is unchanged.');
+            notify('Stored OAuth tokens were removed from the cloud. Your local Strava connection is unchanged.', { variant: 'success' });
         } catch (e) {
-            alert('Could not clean cloud tokens: ' + e.message);
+            notify('Could not clean cloud tokens: ' + e.message, { variant: 'error', durationMs: 10000 });
         }
     };
 
@@ -888,7 +899,7 @@ const App = () => {
             setTheme(backupData.theme);
             safeLocalStorageSet('theme', backupData.theme);
         }
-        alert('Backup restored successfully!');
+        notify('Backup restored successfully!', { variant: 'success' });
     };
 
     // Chart Data logic moved to Dashboard.jsx
@@ -912,7 +923,10 @@ const App = () => {
                         stravaGetToken={stravaAuth.isConnected ? stravaAuth.getValidToken : null}
                         userSettings={userSettings}
                     >
-                <div className={`min-h-screen font-sans pb-20 transition-colors duration-300 ${mainClass}`}>
+                <div className={`min-h-screen font-sans pb-20 md:pb-20 transition-colors duration-300 ${mainClass}`}>
+                    <a href="#main-content" className="cd-skip-link">
+                        Skip to main content
+                    </a>
 
                     <Header
                         userSettings={userSettings}
@@ -920,7 +934,7 @@ const App = () => {
                         user={user}
                     />
 
-                    <main className={`mx-auto p-3 space-y-4 transition-all duration-300 ${activeTab === 'activities' && user ? 'max-w-[95%]' : 'max-w-7xl'}`}>
+                    <main id="main-content" className={`mx-auto p-3 space-y-4 transition-all duration-300 ${activeTab === 'activities' && user ? 'max-w-[95%]' : 'max-w-7xl'}`}>
                         {user && (
                             <MainNav
                                 activeTab={activeTab}
@@ -933,6 +947,15 @@ const App = () => {
                                 onCustomEnd={setCustomEnd}
                                 isMobileMenuOpen={isMobileMenuOpen}
                                 onMobileMenuOpenChange={setIsMobileMenuOpen}
+                            />
+                        )}
+
+                        {user && (
+                            <GetStartedStrip
+                                userSettings={userSettings}
+                                intervalsConfig={intervalsConfig}
+                                onOpenSettings={handleOpenSettings}
+                                onGoToActivities={navigateToActivities}
                             />
                         )}
 
@@ -949,6 +972,7 @@ const App = () => {
                                         referenceEndDate={globalEndDate}
                                         userSettings={userSettings}
                                         onOpenSettings={handleOpenSettings}
+                                        onGoToActivities={navigateToActivities}
                                     />
                                 )}
 
@@ -1003,6 +1027,8 @@ const App = () => {
                                                         endDate={globalEndDate}
                                                         isSignedIn={Boolean(user)}
                                                         intervalsConfig={intervalsConfig}
+                                                        onGoToActivities={navigateToActivities}
+                                                        onOpenSettings={handleOpenSettings}
                                                     />
                                                 )}
                                                 {trainingSubTab === 'goal' && (
@@ -1166,6 +1192,9 @@ const App = () => {
                             />
                         )}
                     </main>
+                    {user && (
+                        <MobileBottomNav activeTab={activeTab} onTabChange={handleTabChange} />
+                    )}
                     {user && <PwaInstallBanner />}
                     <PwaUpdateBanner />
                     <OrientationGuard />

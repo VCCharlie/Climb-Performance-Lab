@@ -216,6 +216,16 @@ const SettingsModal = ({
                                 <Activity className="text-orange-400" size={18} />
                                 <h3 className="font-bold text-cdtext">Intervals.icu Sync</h3>
                             </div>
+
+                            <div className="mb-4 rounded-cdmd border border-cdprimary/30 bg-cdprimarycontainer/15 p-3">
+                                <p className="text-xs font-semibold text-cdtext mb-1">How to connect your data</p>
+                                <ol className="text-xs text-cdmuted space-y-1 list-decimal list-inside leading-relaxed">
+                                    <li>Enter your <strong className="text-cdtext">Athlete ID</strong> below (from Intervals.icu → Settings).</li>
+                                    <li>Optionally add an API key for direct browser sync.</li>
+                                    <li>Go to the <strong className="text-cdtext">Activities</strong> tab → <strong className="text-cdtext">Fetch &amp; merge</strong> to import rides.</li>
+                                </ol>
+                            </div>
+
                             <div className="grid grid-cols-1 gap-4">
                                 <div>
                                     <label className={`block text-xs font-semibold mb-1 text-cdmuted`}>Athlete ID</label>

@@ -6,7 +6,9 @@ import VolumeGoalsPanel from './VolumeGoalsPanel';
 import ClimbingReadinessCard from './ClimbingReadinessCard';
 import YtdCompareCard from './YtdCompareCard';
 import PowerLongevityCard from './PowerLongevityCard';
+import EmptyStateCard from '../ui/EmptyStateCard';
 import { buildOverviewBarChartIndex } from '../../utils/dashboardBarChartBuckets';
+import { BarChart3 } from 'lucide-react';
 
 /**
  * OverviewTab: Main Dashboard overview.
@@ -24,6 +26,7 @@ const OverviewTab = ({
     userSettings,
     onOpenSettings,
     onGoToPowerTab,
+    onGoToActivities,
 }) => {
     const activitySource = allActivities || data || [];
     const hasFilteredData = data && data.length > 0;
@@ -31,9 +34,16 @@ const OverviewTab = ({
 
     if (!activitySource.length) {
         return (
-            <div className="flex items-center justify-center h-40 text-cdmuted">
-                No data available for this period.
-            </div>
+            <EmptyStateCard
+                icon={BarChart3}
+                title="No activities yet"
+                message="Import or sync your training data to see performance trends, volume goals, and climbing readiness."
+                primaryLabel="Go to Activities"
+                onPrimary={onGoToActivities}
+                secondaryLabel="Open settings"
+                onSecondary={onOpenSettings}
+                className="min-h-[12rem]"
+            />
         );
     }
 

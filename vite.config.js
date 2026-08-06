@@ -44,8 +44,8 @@ export default defineConfig({
       includeAssets: ['favicon.png', 'pwa-192.png', 'pwa-512.png', 'pwa-maskable-512.png', 'vite.svg'],
       manifest: {
         id: `${appBase}?source=pwa`,
-        name: 'Climb Performance Lab',
-        short_name: 'Climb Lab',
+        name: 'Climb Lab Pro',
+        short_name: 'Climb Lab Pro',
         description: 'Cycling performance analysis for climbers — power, pacing, and training insights.',
         theme_color: '#1e2330',
         background_color: '#f0f2f5',

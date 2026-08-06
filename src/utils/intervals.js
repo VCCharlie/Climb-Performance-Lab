@@ -3,7 +3,7 @@
  * Intervals.icu specific logic
  */
 
-import { normalizeDate } from './formatters';
+import { normalizeDate, parseDurationToSeconds } from './formatters';
 import { determineActivityType } from './activityTypes';
 import { extractStravaId } from './strava';
 
@@ -123,7 +123,12 @@ export const normalizeIntervalsActivity = (item) => {
     const descriptionRaw = getVal('description', 'notes', 'activity_description');
     const description = descriptionRaw != null ? String(descriptionRaw).trim() : '';
 
-    const movingTime = getNum(getVal('movingTime', 'moving_time', 'icu_recording_time', 'elapsedTime', 'elapsed_time', 'time'));
+    const movingTimeRaw = getVal('movingTime', 'moving_time', 'icu_recording_time', 'elapsedTime', 'elapsed_time', 'time');
+    let movingTime = getNum(movingTimeRaw);
+    if (movingTime === 0 && movingTimeRaw != null && String(movingTimeRaw).trim() !== '') {
+        const parsedDuration = parseDurationToSeconds(String(movingTimeRaw));
+        if (parsedDuration > 0) movingTime = parsedDuration;
+    }
     // Intervals.icu / API: distance is always meters (short rides included). Never treat <1000 m as km.
     const isIndoor = item.trainer === true;
     const distanceMeters = getNum(

@@ -205,9 +205,21 @@ export default function ActivityLogTab({
                         )}
                     </div>
                 ) : !isolateActivityId && !(logDateRangeFilter?.startYmd && logDateRangeFilter?.endYmd) && processedActivities.length === 0 ? (
-                    <div className="flex-1 flex flex-col items-center justify-center text-cdmuted gap-2 border border-dashed border-cdborder rounded-lg">
-                        <AlertTriangle size={32} className="text-slate-600" />
-                        <p>No activities found. Start with an Import!</p>
+                    <div className="flex-1 flex flex-col items-center justify-center gap-4 border border-dashed border-cdborder rounded-lg p-6">
+                        <AlertTriangle size={32} className="text-cdmuted" aria-hidden />
+                        <div className="text-center space-y-1">
+                            <p className="text-sm font-semibold text-cdtext">No activities in your log</p>
+                            <p className="text-xs text-cdmuted">Sync from Intervals.icu above, or import a CSV file.</p>
+                        </div>
+                        {typeof onOpenImportTab === 'function' && (
+                            <button
+                                type="button"
+                                onClick={onOpenImportTab}
+                                className="px-4 py-2 rounded-cdmd bg-cdprimary text-cdonprimary text-sm font-bold hover:brightness-105 cd-focus-ring"
+                            >
+                                Open import tab
+                            </button>
+                        )}
                     </div>
                 ) : (
                     <div className="flex-1 min-h-0 flex flex-col">

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { Download, RefreshCw } from 'lucide-react';
 import NlDateInput from '../NlDateInput';
 import { SPORT_TYPES } from '../../config';
@@ -21,6 +21,8 @@ const IntervalsSyncPanel = ({
     onStravaEnrichEnabledChange,
     onOpenImportTab,
 }) => {
+    const fromDateId = useId();
+    const toDateId = useId();
     const isRefreshMode = syncMode === 'refresh-selected';
     const refreshDisabled = isRefreshMode && selectedCount === 0;
     const datesDisabled = isRefreshMode;
@@ -74,24 +76,24 @@ const IntervalsSyncPanel = ({
                 <div
                     className={`grid grid-cols-1 sm:grid-cols-2 gap-2 w-full min-w-0 ${datesDisabled ? 'opacity-50' : ''}`}
                 >
-                    <label className="flex flex-col gap-1 min-w-0">
+                    <label htmlFor={fromDateId} className="flex flex-col gap-1 min-w-0">
                         <span className="text-[10px] text-cdmuted font-semibold">From</span>
                         <NlDateInput
+                            id={fromDateId}
                             value={syncDates.start}
                             onChange={(v) => onSyncDatesChange((s) => ({ ...s, start: v }))}
                             disabled={datesDisabled}
                             className="w-full min-w-0 bg-cdbg border border-cdborder rounded px-2 py-2.5 text-cdtext text-xs disabled:cursor-not-allowed cd-focus-ring"
-                            aria-label="Sync from (dd-mm-yyyy)"
                         />
                     </label>
-                    <label className="flex flex-col gap-1 min-w-0">
+                    <label htmlFor={toDateId} className="flex flex-col gap-1 min-w-0">
                         <span className="text-[10px] text-cdmuted font-semibold">To</span>
                         <NlDateInput
+                            id={toDateId}
                             value={syncDates.end}
                             onChange={(v) => onSyncDatesChange((s) => ({ ...s, end: v }))}
                             disabled={datesDisabled}
                             className="w-full min-w-0 bg-cdbg border border-cdborder rounded px-2 py-2.5 text-cdtext text-xs disabled:cursor-not-allowed cd-focus-ring"
-                            aria-label="Sync to (dd-mm-yyyy)"
                         />
                     </label>
                 </div>
