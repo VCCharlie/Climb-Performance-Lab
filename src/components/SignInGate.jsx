@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { Cloud, LogIn, RefreshCw } from 'lucide-react';
 import { Button, Card } from './ui';
 import { repairSignInBrowserState } from '../utils/repairSignInState.js';
+import { useToast } from '../context/ToastContext';
 
 /**
  * Shown when the user is signed out — replaces dashboard / activity content.
  */
 export default function SignInGate({ onSignIn, authBusy = false, authError = null }) {
     const [repairBusy, setRepairBusy] = useState(false);
+    const { showToast } = useToast();
 
     const handleRepair = async () => {
         if (repairBusy || authBusy) return;
@@ -21,7 +23,10 @@ export default function SignInGate({ onSignIn, authBusy = false, authError = nul
             await repairSignInBrowserState();
         } catch (err) {
             console.error('[SignInGate] repair failed:', err);
-            window.alert('Could not reset browser cache. Try clearing site data manually in browser settings.');
+            showToast('Could not reset browser cache. Try clearing site data manually in browser settings.', {
+                variant: 'error',
+                durationMs: 10000,
+            });
             setRepairBusy(false);
         }
     };

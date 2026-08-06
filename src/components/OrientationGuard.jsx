@@ -6,7 +6,7 @@ const COPY = {
     portrait: {
         icon: Smartphone,
         title: 'Rotate to portrait',
-        body: 'Climb Performance Lab works best on your phone in upright (portrait) mode. Please turn your device.',
+        body: 'Climb Lab Pro works best on your phone in upright (portrait) mode. Please turn your device.',
     },
     landscape: {
         icon: Monitor,

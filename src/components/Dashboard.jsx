@@ -57,6 +57,7 @@ const Dashboard = ({
     userSettings,
     onOpenSettings,
     onOpenActivityLogDateRange,
+    onGoToActivities,
 }) => {
     const activitiesFromContext = useActivitiesList();
     const firestoreActivities = activitiesProp ?? activitiesFromContext;
@@ -226,6 +227,7 @@ const Dashboard = ({
                         userSettings={userSettings}
                         onOpenSettings={onOpenSettings}
                         onGoToPowerTab={() => setDashboardTab('power')}
+                        onGoToActivities={onGoToActivities}
                     />
                 </div>
             )}

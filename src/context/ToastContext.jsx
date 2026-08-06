@@ -1,4 +1,5 @@
-import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { registerNotifyHandler, unregisterNotifyHandler } from '../utils/notify';
 
 const ToastContext = createContext(null);
 
@@ -82,6 +83,11 @@ export function ToastProvider({ children }) {
     }, [dismissToast]);
 
     const value = useMemo(() => ({ showToast, dismissToast }), [showToast, dismissToast]);
+
+    useEffect(() => {
+        registerNotifyHandler(showToast);
+        return () => unregisterNotifyHandler(showToast);
+    }, [showToast]);
 
     return (
         <ToastContext.Provider value={value}>

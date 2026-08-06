@@ -80,7 +80,7 @@ export default function PwaUpdateBanner() {
                 <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-cdtext">Update available</p>
                     <p className="text-xs text-cdmuted mt-0.5">
-                        A new version of Climb Lab is ready. Reload to get the latest improvements.
+                        A new version of Climb Lab Pro is ready. Reload to get the latest improvements.
                     </p>
                     <div className="flex flex-wrap gap-2 mt-2">
                         <button

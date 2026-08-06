@@ -10,6 +10,7 @@ import {
     filterStoredDuplicatePairs,
     recordDuplicatePairResolution,
 } from '../utils/duplicateResolutions';
+import { useToast } from '../context/ToastContext';
 
 /**
  * CSV import preview, confirm flow, and duplicate resolution (Bolt 3d-bis follow-up).
@@ -21,6 +22,7 @@ export function useDataHubImport({
     onImportComplete,
     profileFtp,
 }) {
+    const { showToast } = useToast();
     const [fetchedActivities, setFetchedActivities] = useState([]);
     const [selectedActivities, setSelectedActivities] = useState([]);
     const [showModal, setShowModal] = useState(false);
@@ -113,7 +115,10 @@ export function useDataHubImport({
                 savedCount = importPayloads.length;
                 cloudPersisted = true;
             } catch (e) {
-                alert(`Note: Data imported locally, but cloud backup failed: ${e.message}`);
+                showToast(`Data imported locally, but cloud backup failed: ${e.message}`, {
+                    variant: 'warning',
+                    durationMs: 10000,
+                });
             }
         }
 

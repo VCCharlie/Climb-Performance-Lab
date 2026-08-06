@@ -15,6 +15,7 @@ describe('id heuristics', () => {
 
   it('detects intervals-like ids', () => {
     expect(isLikelyIntervalsActivityId('88442211')).toBe(true);
+    expect(isLikelyIntervalsActivityId('i53534754')).toBe(true);
     expect(isLikelyIntervalsActivityId('csv_abc')).toBe(true);
     expect(isLikelyIntervalsActivityId('strava_1')).toBe(false);
   });

@@ -6,6 +6,7 @@ import { logout } from '../firebase';
 import { runGoogleSignIn, googleSignInErrorMessage } from '../utils/googleSignIn';
 import { useActivitiesSync } from '../hooks/useActivities';
 import { useProfileFtp } from '../context/ProfileFtpContext';
+import { useToast } from '../context/ToastContext';
 import { IconButton, cn } from './ui';
 import SiteQuickLinks from './shell/SiteQuickLinks';
 
@@ -36,6 +37,7 @@ function formatUpdatedAt(dateToDisplay) {
 }
 
 const Header = ({ userSettings, onOpenSettings, user }) => {
+    const { showToast } = useToast();
     const { syncStatus, lastActivityDate } = useActivitiesSync();
     const profileFtp = useProfileFtp();
     const [lastSyncTime, setLastSyncTime] = useState(() => localStorage.getItem('app_last_sync_time'));
@@ -64,11 +66,11 @@ const Header = ({ userSettings, onOpenSettings, user }) => {
                 await runGoogleSignIn();
             }
         } catch (err) {
-            window.alert(googleSignInErrorMessage(err));
+            showToast(googleSignInErrorMessage(err), { variant: 'error', durationMs: 10000 });
         } finally {
             setAuthBusy(false);
         }
-    }, [user, authBusy]);
+    }, [user, authBusy, showToast]);
 
     const displayWeight = userSettings.privacyMode ? '***' : `${userSettings.weight} kg`;
     const displayFtp = userSettings.privacyMode ? '***' : `${profileFtp.ftp || userSettings.ftp} W`;
@@ -92,7 +94,7 @@ const Header = ({ userSettings, onOpenSettings, user }) => {
                     </div>
                     <div className="min-w-0">
                         <h1 className="text-lg md:text-xl font-head font-bold tracking-tight text-cdtext truncate">
-                            Climb<span className="text-cdbrand">Lab</span>
+                            Climb Lab <span className="text-cdbrand">Pro</span>
                         </h1>
                         {showAppChrome && (
                             <p className="hidden sm:block text-xs text-cdmuted">Performance Analytics</p>
