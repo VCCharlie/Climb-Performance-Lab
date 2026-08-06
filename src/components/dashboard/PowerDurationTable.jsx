@@ -17,7 +17,7 @@ const COL_STYLES = [
     { key: 'd90', label: '90 d', headerClass: 'bg-orange-600/90 text-white' },
     { key: 'filter', label: null, headerClass: 'bg-emerald-600/90 text-white' },
     { key: 'season', label: null, headerClass: 'bg-lime-600/90 text-white' },
-    { key: 'lastSeason', label: null, headerClass: 'bg-amber-500/90 text-slate-900' },
+    { key: 'lastSeason', label: null, headerClass: 'bg-amber-500/90 text-cdonbrand' },
     { key: 'all', label: 'All', headerClass: 'bg-pink-600/90 text-white' },
 ];
 

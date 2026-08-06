@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { GitCompare } from 'lucide-react';
 import { SPORT_TYPES } from '../../config';
-import { chartCardClass } from '../../utils/chartTheme';
+import { chartCardClass, chartSegmentToggleClass } from '../../utils/chartTheme';
+import EmptyStateCard from '../ui/EmptyStateCard';
 import { COMPARE_PERIODS, comparePeriodSubtitle } from '../../utils/comparePeriodWindows';
 import { computeMultiYearCompareRows, inferCompareYearCount } from '../../utils/multiYearSameMoment';
 import { computeSportMixForComparePeriod } from '../../utils/compareSportMix';
@@ -32,7 +33,7 @@ function sportPillClass(active) {
 /**
  * Year-over-year comparison — sport filters, period toggle, bars + donut.
  */
-const CompareTab = ({ allActivities, manualFtp = 0 }) => {
+const CompareTab = ({ allActivities, manualFtp = 0, onGoToActivities }) => {
     const [selectedSports, setSelectedSports] = useState(() => new Set(DEFAULT_SPORTS));
     const [period, setPeriod] = useState('ytd');
     const now = useMemo(() => new Date(), []);
@@ -101,15 +102,13 @@ const CompareTab = ({ allActivities, manualFtp = 0 }) => {
                             </p>
                         </div>
                     </div>
-                    <div className="flex bg-cdbg/60 border border-cdborder rounded overflow-hidden text-[11px] font-bold">
+                    <div className="flex bg-cdbg/60 border border-cdborder rounded overflow-hidden">
                         {COMPARE_PERIODS.map((p) => (
                             <button
                                 key={p.id}
                                 type="button"
                                 onClick={() => setPeriod(p.id)}
-                                className={`px-3 py-1.5 transition-colors ${
-                                    period === p.id ? 'bg-cdaccent text-white' : 'text-cdmuted hover:text-cdtext'
-                                }`}
+                                className={chartSegmentToggleClass(period === p.id)}
                             >
                                 {p.label}
                             </button>
@@ -127,7 +126,7 @@ const CompareTab = ({ allActivities, manualFtp = 0 }) => {
                                     key={type}
                                     type="button"
                                     onClick={() => toggleSport(type)}
-                                    className={`text-[10px] font-bold px-2 py-1 rounded-full border cd-transition ${sportPillClass(active)}`}
+                                    className={`text-[10px] font-bold px-2.5 py-1.5 rounded-full border cd-transition cd-min-touch-y cd-focus-ring ${sportPillClass(active)}`}
                                     aria-pressed={active}
                                 >
                                     {type}
@@ -138,9 +137,13 @@ const CompareTab = ({ allActivities, manualFtp = 0 }) => {
                 </div>
 
                 {!rows.length ? (
-                    <p className="text-sm text-cdmuted text-center py-8">
-                        No activities for the selected sport types in this period.
-                    </p>
+                    <EmptyStateCard
+                        icon={GitCompare}
+                        title="Nothing to compare yet"
+                        message="Import or sync activities for the selected sport types and period, then year-over-year bars will appear here."
+                        primaryLabel={typeof onGoToActivities === 'function' ? 'Go to Activities' : undefined}
+                        onPrimary={onGoToActivities}
+                    />
                 ) : (
                     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                         <div className="xl:col-span-2 space-y-8">

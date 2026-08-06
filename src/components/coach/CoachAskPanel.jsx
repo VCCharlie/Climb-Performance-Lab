@@ -113,7 +113,7 @@ const CoachAskPanel = ({ activities, userSettings, weeklyHoursTarget, intervalsC
                 <button
                     type="submit"
                     disabled={!question.trim() || loading}
-                    className="shrink-0 px-4 py-2 rounded-lg bg-cdaccent text-slate-900 font-bold text-sm flex items-center gap-1.5 disabled:opacity-40 hover:opacity-90 transition-opacity"
+                    className="shrink-0 px-4 py-2 rounded-lg bg-cdaccent text-cdonbrand font-bold text-sm flex items-center gap-1.5 disabled:opacity-40 hover:opacity-90 transition-opacity"
                 >
                     {loading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                     Ask

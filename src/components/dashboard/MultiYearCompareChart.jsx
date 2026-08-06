@@ -4,7 +4,7 @@ import {
 } from 'recharts';
 import { History } from 'lucide-react';
 import { ChartTooltip } from '../ui';
-import { getChartTheme, chartCardClass } from '../../utils/chartTheme';
+import { getChartTheme, chartCardClass, chartSegmentToggleClass } from '../../utils/chartTheme';
 import { computeMultiYearYtdAtSameMoment, multiYearChartSeries } from '../../utils/multiYearSameMoment';
 import { formatNlNumber } from '../../utils/formatters';
 
@@ -62,15 +62,13 @@ const MultiYearCompareChart = ({ activities }) => {
                         </p>
                     </div>
                 </div>
-                <div className="flex bg-cdbg/60 border border-cdborder rounded overflow-hidden text-[11px] font-bold">
+                <div className="flex bg-cdbg/60 border border-cdborder rounded overflow-hidden">
                     {METRICS.map((m) => (
                         <button
                             key={m.id}
                             type="button"
                             onClick={() => setMetric(m.id)}
-                            className={`px-3 py-1 transition-colors ${
-                                metric === m.id ? 'bg-cdaccent text-white' : 'text-cdmuted hover:text-cdtext'
-                            }`}
+                            className={chartSegmentToggleClass(metric === m.id)}
                         >
                             {m.label}
                         </button>

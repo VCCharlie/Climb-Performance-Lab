@@ -12,7 +12,7 @@ import {
 } from 'recharts';
 import { TrendingUp } from 'lucide-react';
 import { ChartTooltip } from '../ui';
-import { getChartTheme, chartCardClass } from '../../utils/chartTheme';
+import { getChartTheme, chartCardClass, chartSegmentToggleClass } from '../../utils/chartTheme';
 import { formatNlNumber } from '../../utils/formatters';
 import {
     computeYearlyPowerPeakRows,
@@ -78,13 +78,11 @@ export default function PowerLongevitySection({
                     </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                    <div className="flex bg-cdbg/60 border border-cdborder rounded overflow-hidden text-[11px] font-bold">
+                    <div className="flex bg-cdbg/60 border border-cdborder rounded overflow-hidden">
                         <button
                             type="button"
                             onClick={() => setXMode('year')}
-                            className={`px-3 py-1 transition-colors ${
-                                xMode === 'year' ? 'bg-cdaccent text-white' : 'text-cdmuted hover:text-cdtext'
-                            }`}
+                            className={chartSegmentToggleClass(xMode === 'year')}
                         >
                             By year
                         </button>
@@ -92,22 +90,18 @@ export default function PowerLongevitySection({
                             type="button"
                             onClick={() => birthYear && setXMode('age')}
                             disabled={!birthYear}
-                            className={`px-3 py-1 transition-colors disabled:opacity-40 ${
-                                xMode === 'age' ? 'bg-cdaccent text-white' : 'text-cdmuted hover:text-cdtext'
-                            }`}
+                            className={`${chartSegmentToggleClass(xMode === 'age')} disabled:opacity-40`}
                         >
                             By age
                         </button>
                     </div>
-                    <div className="flex bg-cdbg/60 border border-cdborder rounded overflow-hidden text-[11px] font-bold">
+                    <div className="flex bg-cdbg/60 border border-cdborder rounded overflow-hidden">
                         {METRICS.map((m) => (
                             <button
                                 key={m.id}
                                 type="button"
                                 onClick={() => setMetric(m.id)}
-                                className={`px-3 py-1 transition-colors ${
-                                    metric === m.id ? 'bg-cdaccent text-white' : 'text-cdmuted hover:text-cdtext'
-                                }`}
+                                className={chartSegmentToggleClass(metric === m.id)}
                             >
                                 {m.label}
                             </button>

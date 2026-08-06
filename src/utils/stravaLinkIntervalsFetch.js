@@ -2,7 +2,7 @@ import { stravaHttpErrorMessage } from './stravaHttp.js';
 import { isIncludedStravaType, matchStravaToSite } from './stravaMatch.js';
 import { climbingPatchFromStravaActivity } from './stravaElevation.js';
 
-const DEFAULT_MATCH_MS = 900000; // 15 minutes — same as SyncTab
+const DEFAULT_MATCH_MS = 900000; // 15 minutes — Strava/Intervals time-match window
 const MAX_DISTANCE_DIFF_RATIO = 0.25;
 
 function startTimeMs(activity) {

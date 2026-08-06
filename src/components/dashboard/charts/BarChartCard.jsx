@@ -4,7 +4,7 @@ import {
     ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 import { ChartTooltip } from '../../ui';
-import { getChartTheme, chartCardClass } from '../../../utils/chartTheme';
+import { getChartTheme, chartCardClass, chartSegmentToggleClass } from '../../../utils/chartTheme';
 import { seriesFromBarChartIndex } from '../../../utils/dashboardBarChartBuckets';
 import { barChartGoalLineValue } from '../../../utils/volumeGoals';
 import { formatNlNumber } from '../../../utils/formatters';
@@ -41,32 +41,38 @@ const BarChartCard = ({ barChartIndex, metric, title, unit, color, userSettings 
             <div className="flex items-start justify-between mb-4">
                 <h3 className="text-sm font-bold text-cdtext uppercase tracking-wider">{title}</h3>
                 <div className="flex flex-col items-end gap-2">
-                    <div className="flex bg-cdbg/60 border border-cdborder rounded overflow-hidden text-[11px] font-bold">
+                    <div className="flex bg-cdbg/60 border border-cdborder rounded overflow-hidden">
                         <button
+                            type="button"
                             onClick={() => setGroupBy('week')}
-                            className={`px-3 py-1 transition-colors ${groupBy === 'week' ? 'bg-cdaccent text-white' : 'text-cdmuted hover:text-cdtext'}`}
+                            className={chartSegmentToggleClass(groupBy === 'week')}
                         >Week</button>
                         <button
+                            type="button"
                             onClick={() => setGroupBy('month')}
-                            className={`px-3 py-1 transition-colors ${groupBy === 'month' ? 'bg-cdaccent text-white' : 'text-cdmuted hover:text-cdtext'}`}
+                            className={chartSegmentToggleClass(groupBy === 'month')}
                         >Month</button>
                          <button
+                            type="button"
                             onClick={() => setGroupBy('year')}
-                            className={`px-3 py-1 transition-colors ${groupBy === 'year' ? 'bg-cdaccent text-white' : 'text-cdmuted hover:text-cdtext'}`}
+                            className={chartSegmentToggleClass(groupBy === 'year')}
                         >Year</button>
                     </div>
-                     <div className="flex bg-cdbg/60 border border-cdborder rounded overflow-hidden text-[11px] font-bold">
+                     <div className="flex bg-cdbg/60 border border-cdborder rounded overflow-hidden">
                         <button
+                            type="button"
                             onClick={() => setRideType('all')}
-                            className={`px-3 py-1 transition-colors ${rideType === 'all' ? 'bg-cdborder text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}
+                            className={chartSegmentToggleClass(rideType === 'all', 'bg-cdborder text-cdtext shadow')}
                         >All</button>
                         <button
+                            type="button"
                             onClick={() => setRideType('outdoor')}
-                            className={`px-3 py-1 transition-colors ${rideType === 'outdoor' ? 'bg-cdborder text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}
+                            className={chartSegmentToggleClass(rideType === 'outdoor', 'bg-cdborder text-cdtext shadow')}
                         >Outdoor</button>
                          <button
+                            type="button"
                             onClick={() => setRideType('indoor')}
-                            className={`px-3 py-1 transition-colors ${rideType === 'indoor' ? 'bg-cdborder text-cdtext shadow' : 'text-cdmuted hover:text-cdtext'}`}
+                            className={chartSegmentToggleClass(rideType === 'indoor', 'bg-cdborder text-cdtext shadow')}
                         >Indoor</button>
                     </div>
                 </div>

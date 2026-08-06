@@ -209,7 +209,7 @@ export const Row = React.memo(React.forwardRef(({
             }
 
             const val = act[col.key];
-            if (val === null || val === undefined) return <span className="text-slate-600">-</span>;
+            if (val === null || val === undefined) return <span className="text-cdmuted">-</span>;
 
             switch (col.key) {
                 case 'date': return <span className="text-cdtext whitespace-nowrap">{formatDateDDMMYYYY(val)}</span>;
@@ -339,7 +339,7 @@ export const Row = React.memo(React.forwardRef(({
                 case 'norm_power': return <NormPowerCell watts={val} profileFtp={profileFtp} />;
                 case 'load': return <span className="font-bold text-blue-400">{Math.round(val || 0)}</span>;
                 case 'rpe': return <span className="text-cdmuted">{val || '-'}</span>;
-                default: return <span className={`text-${col.text || 'slate-500'}`}>{val ? Math.round(val) : '-'}</span>;
+                default: return <span className={`text-${col.text || 'cdmuted'}`}>{val ? Math.round(val) : '-'}</span>;
             }
         } catch (e) {
             console.error("Error rendering cell", col.key, e);
