@@ -18,6 +18,7 @@ import {
     fetchStravaAccessTokenViaCloud,
     disconnectStravaViaCloud,
 } from '../services/stravaCloudApi.js';
+import { notify } from '../utils/notify.js';
 
 const STRAVA_AUTH_BASE = 'https://www.strava.com/oauth/authorize';
 
@@ -46,7 +47,7 @@ const useStravaAuth = (stravaConfig, setStravaConfig) => {
         try {
             clientId = await resolveStravaClientId();
         } catch (err) {
-            alert(`Strava is not configured on the server yet: ${err.message}`);
+            notify(`Strava is not configured on the server yet: ${err.message}`, { variant: 'error' });
             return;
         }
 

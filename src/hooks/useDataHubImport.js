@@ -130,8 +130,11 @@ export function useDataHubImport({
         setShowModal(false);
         setFetchedActivities([]);
         onImportComplete?.();
-        alert(`Import Successful!\n\nImported: ${savedCount}\nReplaced Duplicates: ${cloudPersisted ? replacementPlan.replacedCount : 0}`);
-    }, [fetchedActivities, selectedActivities, activities, onImport, onDelete, onImportComplete]);
+        showToast(
+            `Imported ${savedCount} activit${savedCount === 1 ? 'y' : 'ies'}. Replaced ${cloudPersisted ? replacementPlan.replacedCount : 0} duplicate(s).`,
+            { variant: 'success', durationMs: 8000 },
+        );
+    }, [fetchedActivities, selectedActivities, activities, onImport, onDelete, onImportComplete, showToast]);
 
     const findDuplicates = useCallback(() => {
         if (!activities || activities.length === 0) return;
@@ -140,9 +143,11 @@ export function useDataHubImport({
             setDuplicates(foundDups);
             setShowDuplicateModal(true);
         } else {
-            alert('No duplicates found. Your activity list is clean (or earlier "keep both" choices are remembered).');
+            showToast('No duplicates found. Your activity list is clean (or earlier "keep both" choices are remembered).', {
+                variant: 'info',
+            });
         }
-    }, [activities]);
+    }, [activities, showToast]);
 
     const resolveDuplicate = useCallback(async (action, dup) => {
         const { a, b } = dup;

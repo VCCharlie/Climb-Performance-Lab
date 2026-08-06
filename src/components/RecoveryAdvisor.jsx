@@ -9,6 +9,7 @@ import {
     readTrainingPlanSnapshot,
     TRAINING_PLAN_UPDATED_EVENT,
 } from '../utils/trainingPlanSnapshot';
+import EmptyStateCard from './ui/EmptyStateCard';
 
 // ⚡ Bolt Optimization: Use array lookup instead of Date.toLocaleString() in loops
 const NL_SHORT_MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
@@ -30,7 +31,7 @@ const CustomTooltip = ({ active, payload }) => {
     return null;
 };
 
-const RecoveryAdvisor = ({ activities: activitiesProp, startDate, endDate }) => {
+const RecoveryAdvisor = ({ activities: activitiesProp, startDate, endDate, onGoToActivities }) => {
     const activitiesFromContext = useActivitiesList();
     const activities = activitiesProp ?? activitiesFromContext;
     const [planRevision, setPlanRevision] = useState(0);
@@ -211,14 +212,16 @@ const RecoveryAdvisor = ({ activities: activitiesProp, startDate, endDate }) => 
         return (
             <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl">
                 <h2 className="text-xl font-bold text-cdtext mb-4 flex items-center gap-2">
-                    <Activity className="text-purple-400" />
+                    <Activity className="text-purple-400" aria-hidden />
                     Training Load & Recovery Advisor
                 </h2>
-                <div className="text-center py-12 text-cdmuted">
-                    <Calendar size={48} className="mx-auto mb-4 opacity-50" />
-                    <p>No activities found in the selected period.</p>
-                    <p className="text-sm mt-2">Import your training data via the Data Hub tab or adjust the period selector.</p>
-                </div>
+                <EmptyStateCard
+                    icon={Calendar}
+                    title="No activities in this period"
+                    message="Import your training data to see CTL, ATL, and recovery recommendations. You can also widen the date range in the header."
+                    primaryLabel="Go to Activities"
+                    onPrimary={onGoToActivities}
+                />
             </div>
         );
     }

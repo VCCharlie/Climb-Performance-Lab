@@ -3,6 +3,8 @@ import { doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { stripUndefinedFields } from '../utils/mergeActivities';
 import { enrichActivityGearFromStrava } from '../utils/stravaGearEnrich';
+import { useConfirm } from '../context/ConfirmContext';
+import { useToast } from '../context/ToastContext';
 
 /**
  * Single-activity edit/delete, clear database, and no-power bulk delete flows.
@@ -14,6 +16,8 @@ export function useDataHubMaintenance({
     stravaGetToken,
     setIsDeleting,
 }) {
+    const { confirm } = useConfirm();
+    const { showToast } = useToast();
     const [showNoPowerModal, setShowNoPowerModal] = useState(false);
     const [noPowerSelected, setNoPowerSelected] = useState([]);
 
@@ -37,23 +41,35 @@ export function useDataHubMaintenance({
             onImport([toSave]);
             setEditingActivity(null);
         } catch (e) {
-            alert(`Could not save changes: ${e.message}`);
+            showToast(`Could not save changes: ${e.message}`, { variant: 'error' });
         }
-    }, [activities, onImport, stravaGetToken]);
+    }, [activities, onImport, stravaGetToken, showToast]);
 
     const handleDeleteSingle = useCallback(async (id) => {
         if (db) {
             try {
                 await deleteDoc(doc(db, 'activities', String(id)));
             } catch {
-                alert('Could not remove activity from the database.');
+                showToast('Could not remove activity from the database.', { variant: 'error' });
             }
         }
-    }, []);
+    }, [showToast]);
 
     const handleClearDatabase = useCallback(async () => {
-        if (!confirm('Are you sure?\n\nThis removes ALL activities from the database.')) return;
-        if (!confirm('Really sure? This cannot be undone.')) return;
+        const firstConfirmed = await confirm({
+            title: 'Clear all activities',
+            message: 'This removes ALL activities from the database.',
+            confirmLabel: 'Continue',
+            variant: 'danger',
+        });
+        if (!firstConfirmed) return;
+        const secondConfirmed = await confirm({
+            title: 'Really clear everything?',
+            message: 'This cannot be undone.',
+            confirmLabel: 'Delete all activities',
+            variant: 'danger',
+        });
+        if (!secondConfirmed) return;
         setIsDeleting(true);
         try {
             if (db && activities.length > 0) {
@@ -61,23 +77,23 @@ export function useDataHubMaintenance({
                 await Promise.all(promises);
             }
             if (onClear) onClear();
-            alert('Database cleared. Ready for a fresh start.');
+            showToast('Database cleared. Ready for a fresh start.', { variant: 'success' });
         } catch (e) {
-            alert(`Could not clear database: ${e.message}`);
+            showToast(`Could not clear database: ${e.message}`, { variant: 'error' });
         } finally {
             setIsDeleting(false);
         }
-    }, [activities, onClear, setIsDeleting]);
+    }, [activities, onClear, setIsDeleting, confirm, showToast]);
 
     const openNoPowerFilter = useCallback(() => {
         const noPower = (activities || []).filter((a) => !(Number(a.avg_power) > 0));
         if (noPower.length === 0) {
-            alert('All activities have power data. Nothing to filter.');
+            showToast('All activities have power data. Nothing to filter.', { variant: 'info' });
             return;
         }
         setNoPowerSelected(noPower.map((a) => a.id));
         setShowNoPowerModal(true);
-    }, [activities]);
+    }, [activities, showToast]);
 
     const deleteNoPowerSelected = useCallback(async () => {
         if (noPowerSelected.length === 0) return;
@@ -89,11 +105,11 @@ export function useDataHubMaintenance({
             setShowNoPowerModal(false);
             setNoPowerSelected([]);
         } catch (e) {
-            alert(`Could not delete: ${e.message}`);
+            showToast(`Could not delete: ${e.message}`, { variant: 'error' });
         } finally {
             setIsDeleting(false);
         }
-    }, [noPowerSelected, setIsDeleting]);
+    }, [noPowerSelected, setIsDeleting, showToast]);
 
     return {
         showNoPowerModal,

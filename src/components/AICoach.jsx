@@ -13,6 +13,7 @@ import CoachFluidWeekPlan from './coach/CoachFluidWeekPlan';
 import CoachFitnessForecast from './coach/CoachFitnessForecast';
 import CollapsibleSection from './ui/CollapsibleSection';
 import EmptyStateCard from './ui/EmptyStateCard';
+import { useToast } from '../context/ToastContext';
 import { buildFluidWeekPlan, buildProjectedWeek2Plan } from '../utils/coach/coachWeekPlan';
 import { todayYmd } from '../utils/coach/coachHelpers';
 import { COACH_WEEK_UPDATED_EVENT, readCoachWeek2Enabled, writeCoachWeek2Enabled } from '../utils/coach/coachWeekState';
@@ -47,6 +48,7 @@ function formatVsPrimaryPct(pct) {
 const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, startDate, endDate, isSignedIn = false, intervalsConfig, onGoToActivities, onOpenSettings }) => {
     const activitiesFromContext = useActivitiesList();
     const activities = activitiesProp ?? activitiesFromContext;
+    const { showToast } = useToast();
     const profileFtp = useProfileFtp();
     const effectiveFtp = profileFtp.ftp || Number(userSettings?.ftp) || 0;
 
@@ -440,7 +442,7 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
     // --- 2. ZWO DOWNLOAD HANDLER ---
     const handleDownloadZwo = (workout) => {
         if (!workout.zwoSteps || workout.zwoSteps.length === 0) {
-            alert("No workout file needed for this rest day. Enjoy the rest!");
+            showToast('No workout file needed for this rest day. Enjoy the rest!', { variant: 'info' });
             return;
         }
 

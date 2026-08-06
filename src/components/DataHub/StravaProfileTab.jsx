@@ -32,7 +32,9 @@ import { computeYtdYearOverYearFromActivities, percentChange } from '../../utils
 import { navigateToStravaSegment } from '../../utils/strava';
 import { mergeStravaVsLogUi } from '../../utils/stravaVsLogUi';
 import StravaVsLogGapPanel from './StravaVsLogGapPanel';
+import { useTabListKeyboard } from '../../hooks/useTabListKeyboard';
 
+const STRAVA_PROFILE_TAB_IDS = ['overview', 'ridestats', 'vslog'];
 const STRAVA_BASE = 'https://www.strava.com/api/v3';
 const LOCALE = 'nl-NL';
 
@@ -374,6 +376,7 @@ const ScanContextBlock = ({ title, agg, footnote }) => {
 
 const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChange, activities = [] }) => {
     const [subTab, setSubTab] = useState('overview');
+    const onStravaProfileTabKeyDown = useTabListKeyboard(STRAVA_PROFILE_TAB_IDS, subTab, setSubTab);
     const [isFetching, setIsFetching] = useState(false);
     const [fetchProgress, setFetchProgress] = useState('');
     const [error, setError] = useState(null);
@@ -699,7 +702,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
             )}
 
             {getStravaToken && (
-                <div className="flex border-b border-cdborder" role="tablist" aria-label="Strava Profile Sub-tabs">
+                <div className="flex border-b border-cdborder" role="tablist" aria-label="Strava Profile Sub-tabs" onKeyDown={onStravaProfileTabKeyDown}>
                     <button
                         type="button"
                         id="tab-strava-overview"

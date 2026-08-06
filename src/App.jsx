@@ -1057,6 +1057,7 @@ const App = () => {
                                                     <RecoveryAdvisor
                                                         startDate={globalStartDate}
                                                         endDate={globalEndDate}
+                                                        onGoToActivities={navigateToActivities}
                                                     />
                                                 )}
                                             </div>
