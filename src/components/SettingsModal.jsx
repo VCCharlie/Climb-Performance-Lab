@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { Settings, Activity, RefreshCw, Save, Moon, Sun, Shield, Target, Bell, Database, Download, Upload, Zap, X, Link, Unlink, List } from 'lucide-react';
+import { Settings, Activity, Save, Moon, Sun, Shield, Target, Bell, Database, Download, Upload, Zap, X, Link, Unlink, List } from 'lucide-react';
 import { calculatePowerZones } from '../utils';
 import { DEFAULT_RECOVERY_TSS } from '../config';
 import {
@@ -905,7 +905,7 @@ const SettingsModal = ({
                         disabled={isSaving}
                         loading={isSaving}
                     >
-                        {isSaving ? <RefreshCw size={18} className="animate-spin" /> : <Save size={18} />}
+                        <Save size={18} aria-hidden />
                         {isSaving ? 'Saving...' : 'Save All Changes'}
                     </Button>
                 </div>
