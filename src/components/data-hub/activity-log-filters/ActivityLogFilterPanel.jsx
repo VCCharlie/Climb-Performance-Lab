@@ -1,0 +1,112 @@
+import React from 'react';
+import { ChevronDown } from 'lucide-react';
+import QuickFilterChips from './QuickFilterChips';
+import MetricRangesSection from './MetricRangesSection';
+import BulkActionsSection from './BulkActionsSection';
+import { cn } from '../../ui';
+
+/**
+ * Unified Activity Log filter + bulk panel — one card, section dividers (no nested boxes).
+ */
+export default function ActivityLogFilterPanel({
+    collapsible = false,
+    collapsed = false,
+    onCollapsedChange,
+    activeFilterCount = 0,
+    ...sectionProps
+}) {
+    const body = (
+        <>
+            <div className="px-3 py-2.5">
+                <QuickFilterChips {...sectionProps} />
+            </div>
+            <MetricRangesSection
+                expanded={sectionProps.activityLogRangesExpanded}
+                onExpandedChange={sectionProps.onActivityLogRangesExpandedChange}
+                metricRangeActive={sectionProps.metricRangeActive}
+                clearMetricFilters={sectionProps.clearMetricFilters}
+                applyMetricPreset={sectionProps.applyMetricPreset}
+                filterDistMin={sectionProps.filterDistMin}
+                onFilterDistMinChange={sectionProps.onFilterDistMinChange}
+                filterDistMax={sectionProps.filterDistMax}
+                onFilterDistMaxChange={sectionProps.onFilterDistMaxChange}
+                filterSpeedMin={sectionProps.filterSpeedMin}
+                onFilterSpeedMinChange={sectionProps.onFilterSpeedMinChange}
+                filterSpeedMax={sectionProps.filterSpeedMax}
+                onFilterSpeedMaxChange={sectionProps.onFilterSpeedMaxChange}
+                filterPowerMin={sectionProps.filterPowerMin}
+                onFilterPowerMinChange={sectionProps.onFilterPowerMinChange}
+                filterPowerMax={sectionProps.filterPowerMax}
+                onFilterPowerMaxChange={sectionProps.onFilterPowerMaxChange}
+                filterDurMinMin={sectionProps.filterDurMinMin}
+                onFilterDurMinMinChange={sectionProps.onFilterDurMinMinChange}
+                filterDurMaxMin={sectionProps.filterDurMaxMin}
+                onFilterDurMaxMinChange={sectionProps.onFilterDurMaxMinChange}
+                filterElevMin={sectionProps.filterElevMin}
+                onFilterElevMinChange={sectionProps.onFilterElevMinChange}
+                filterElevMax={sectionProps.filterElevMax}
+                onFilterElevMaxChange={sectionProps.onFilterElevMaxChange}
+                filterKjMin={sectionProps.filterKjMin}
+                onFilterKjMinChange={sectionProps.onFilterKjMinChange}
+                filterKjMax={sectionProps.filterKjMax}
+                onFilterKjMaxChange={sectionProps.onFilterKjMaxChange}
+            />
+            <BulkActionsSection
+                bulkSelectedCount={sectionProps.bulkSelectedCount}
+                onBulkEdit={sectionProps.onBulkEdit}
+                onBulkSetGravelRide={sectionProps.onBulkSetGravelRide}
+                onBulkSetMtbRide={sectionProps.onBulkSetMtbRide}
+                onBulkSetEbikeRide={sectionProps.onBulkSetEbikeRide}
+                onExportCsv={sectionProps.onExportCsv}
+                onExportXlsx={sectionProps.onExportXlsx}
+                isExportingXlsx={sectionProps.isExportingXlsx}
+                onMarkRecovery={sectionProps.onMarkRecovery}
+                recoveryTss={sectionProps.recoveryTss}
+                stravaGetToken={sectionProps.stravaGetToken}
+                onStravaEnrich={sectionProps.onStravaEnrich}
+                onStravaDescriptionBackfill={sectionProps.onStravaDescriptionBackfill}
+                onMergePair={sectionProps.onMergePair}
+                onDeleteSelected={sectionProps.onDeleteSelected}
+                onClearSelection={sectionProps.onClearSelection}
+                isBulkSaving={sectionProps.isBulkSaving}
+                isStravaEnriching={sectionProps.isStravaEnriching}
+                isStravaDescBackfilling={sectionProps.isStravaDescBackfilling}
+                isDeleting={sectionProps.isDeleting}
+            />
+        </>
+    );
+
+    if (!collapsible) {
+        return (
+            <div className="rounded-lg border border-cdborder/60 bg-cdsurfacelow/30 overflow-hidden">
+                {body}
+            </div>
+        );
+    }
+
+    return (
+        <div className="rounded-lg border border-cdborder/60 bg-cdsurfacelow/30 overflow-hidden">
+            <button
+                type="button"
+                onClick={() => onCollapsedChange?.((v) => !v)}
+                className="w-full flex items-center justify-between gap-2 px-3 py-2.5 min-h-11 text-left text-xs font-semibold text-cdtext cd-transition hover:bg-cdborder/10 cd-focus-ring"
+                aria-expanded={!collapsed}
+            >
+                <span className="flex items-center gap-2 min-w-0">
+                    Filters & bulk
+                    {activeFilterCount > 0 ? (
+                        <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-cdprimarycontainer text-cdonprimarycontainer text-[10px] font-bold tabular-nums">
+                            {activeFilterCount}
+                        </span>
+                    ) : null}
+                </span>
+                <ChevronDown
+                    size={14}
+                    className={cn('text-cdmuted shrink-0 cd-transition', !collapsed && 'rotate-180')}
+                    aria-hidden
+                />
+            </button>
+            {!collapsed ? body : null}
+        </div>
+    );
+}
