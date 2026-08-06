@@ -16,6 +16,8 @@ import { buildStravaDescriptionBackfillUpdates } from '../utils/stravaDescriptio
 import { formatNlNumber } from '../utils/formatters';
 import { buildMarkRecoveryConfirmMessage, resolveRecoveryTss } from '../utils/recoveryTss';
 import { resolveDeviceProfileTitlesFromSettings } from '../utils/bikeComputerProfileTitles';
+import { useConfirm } from '../context/ConfirmContext';
+import { useToast } from '../context/ToastContext';
 
 /**
  * Bulk selection and batch operations for the Activity Log (edit, export, delete, merge, Strava enrich).
@@ -30,6 +32,8 @@ export function useDataHubBulkActions({
     recoveryTss,
     userSettings,
 }) {
+    const { confirm } = useConfirm();
+    const { showToast } = useToast();
     const deviceProfileTitles = resolveDeviceProfileTitlesFromSettings(userSettings);
     const [bulkSelectedIds, setBulkSelectedIds] = useState(() => new Set());
     const [showMergeModal, setShowMergeModal] = useState(false);
@@ -91,17 +95,23 @@ export function useDataHubBulkActions({
             await downloadActivitiesXlsx(selectedActivitiesForBulk);
         } catch (e) {
             console.error('[Activity export]', e);
-            alert(`Could not export Excel file: ${e.message || e}`);
+            showToast(`Could not export Excel file: ${e.message || e}`, { variant: 'error' });
         } finally {
             setIsExportingXlsx(false);
         }
-    }, [selectedActivitiesForBulk]);
+    }, [selectedActivitiesForBulk, showToast]);
 
     const confirmBulkDeleteSelected = useCallback(async () => {
         const ids = [...bulkSelectedIds];
         if (ids.length === 0) return;
         const n = ids.length;
-        if (!window.confirm(`Delete ${n} activit${n === 1 ? 'y' : 'ies'}? This cannot be undone.`)) return;
+        const confirmed = await confirm({
+            title: 'Delete activities',
+            message: `Delete ${n} activit${n === 1 ? 'y' : 'ies'}? This cannot be undone.`,
+            confirmLabel: 'Delete',
+            variant: 'danger',
+        });
+        if (!confirmed) return;
         setIsDeleting?.(true);
         try {
             ids.forEach((id) => onDelete(id));
@@ -110,11 +120,11 @@ export function useDataHubBulkActions({
             }
             setBulkSelectedIds(new Set());
         } catch (e) {
-            alert(`Could not delete: ${e.message || e}`);
+            showToast(`Could not delete: ${e.message || e}`, { variant: 'error' });
         } finally {
             setIsDeleting?.(false);
         }
-    }, [bulkSelectedIds, onDelete, setIsDeleting]);
+    }, [bulkSelectedIds, onDelete, setIsDeleting, confirm, showToast]);
 
     const mergePairPreview = useMemo(() => {
         if (selectedActivitiesForBulk.length !== 2) return null;
@@ -346,7 +356,12 @@ export function useDataHubBulkActions({
         if (selectedActivitiesForBulk.length === 0) return;
         const tss = resolveRecoveryTss({ recoveryTss });
         const n = selectedActivitiesForBulk.length;
-        if (!window.confirm(buildMarkRecoveryConfirmMessage(n, tss))) return;
+        const confirmed = await confirm({
+            title: 'Mark recovery',
+            message: buildMarkRecoveryConfirmMessage(n, tss),
+            confirmLabel: 'Mark recovery',
+        });
+        if (!confirmed) return;
         try {
             if (db) {
                 await Promise.all(
@@ -363,9 +378,9 @@ export function useDataHubBulkActions({
             );
             setBulkSelectedIds(new Set());
         } catch (e) {
-            alert('Could not update activities: ' + e.message);
+            showToast(`Could not update activities: ${e.message}`, { variant: 'error' });
         }
-    }, [selectedActivitiesForBulk, onImport, recoveryTss]);
+    }, [selectedActivitiesForBulk, onImport, recoveryTss, confirm, showToast]);
 
     const handleBulkApplyPatch = useCallback(async (patch) => {
         const list = selectedActivitiesForBulk;
@@ -405,21 +420,23 @@ export function useDataHubBulkActions({
             setBulkSelectedIds(new Set());
             setShowBulkEditModal(false);
         } catch (e) {
-            alert(`Could not apply bulk edit: ${e.message || e}`);
+            showToast(`Could not apply bulk edit: ${e.message || e}`, { variant: 'error' });
         } finally {
             setIsBulkSaving(false);
         }
-    }, [selectedActivitiesForBulk, activities, onImport, stravaGetToken]);
+    }, [selectedActivitiesForBulk, activities, onImport, stravaGetToken, showToast]);
 
     const applyBulkActivityType = useCallback(async (typeValue) => {
         const list = selectedActivitiesForBulk;
         if (!list.length || !typeValue) return;
-        const ok = window.confirm(
-            `Set activity type to "${typeValue}" for ${list.length} selected ${list.length === 1 ? 'activity' : 'activities'}?`,
-        );
-        if (!ok) return;
+        const confirmed = await confirm({
+            title: 'Set activity type',
+            message: `Set activity type to "${typeValue}" for ${list.length} selected ${list.length === 1 ? 'activity' : 'activities'}?`,
+            confirmLabel: 'Apply',
+        });
+        if (!confirmed) return;
         await handleBulkApplyPatch({ type: typeValue });
-    }, [selectedActivitiesForBulk, handleBulkApplyPatch]);
+    }, [selectedActivitiesForBulk, handleBulkApplyPatch, confirm]);
 
     const openMergeModal = useCallback(() => {
         setMergeError(null);

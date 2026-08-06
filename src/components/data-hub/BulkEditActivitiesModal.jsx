@@ -3,6 +3,8 @@ import { X, Save, Bike, Layers } from 'lucide-react';
 import { SPORT_TYPES } from '../../config';
 import { buildUnifiedBikesList } from '../../utils/unifiedBikesList';
 import ModalPortal from '../ui/ModalPortal';
+import { useToast } from '../../context/ToastContext';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 /**
  * Bulk-edit selected activities: type (indoor/outdoor), gear, optional load (TSS).
@@ -14,6 +16,9 @@ const BulkEditActivitiesModal = ({
     onClose,
     onApply,
 }) => {
+    const { showToast } = useToast();
+    const panelRef = useModalA11y({ isOpen: true, onClose });
+
     const unifiedBikesList = useMemo(() => buildUnifiedBikesList(allActivities), [allActivities]);
 
     const [applyType, setApplyType] = useState(false);
@@ -83,7 +88,7 @@ const BulkEditActivitiesModal = ({
             || (applyRpe && rpeValue !== '' && !Number.isNaN(Number(rpeValue)))
             || (applyFtp && ftpValue !== '' && !Number.isNaN(Number(ftpValue)));
         if (!hasAny) {
-            window.alert('Select at least one field to update and enter a value where needed.');
+            showToast('Select at least one field to update and enter a value where needed.', { variant: 'warning' });
             return;
         }
         onApply(patch);
@@ -92,9 +97,16 @@ const BulkEditActivitiesModal = ({
     return (
         <ModalPortal>
         <div className="fixed inset-0 bg-cdbg/95 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-cdsurface border border-cdborder rounded-xl shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh]">
+            <div
+                ref={panelRef}
+                className="bg-cdsurface border border-cdborder rounded-xl shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh]"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="bulk-edit-modal-title"
+                tabIndex={-1}
+            >
                 <div className="flex justify-between items-center p-4 border-b border-cdborder bg-cdbg rounded-t-xl">
-                    <h3 className="text-cdtext font-bold flex items-center gap-2 text-base">
+                    <h3 id="bulk-edit-modal-title" className="text-cdtext font-bold flex items-center gap-2 text-base">
                         <Layers size={18} className="text-yellow-400" />
                         Bulk edit ({count} activities)
                     </h3>

@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Download, X, Zap, Info } from 'lucide-react';
 import { TableHeader, Row } from './ActivityTable';
+import { useModalA11y } from '../../hooks/useModalA11y';
 import {
     Button,
     Chip,
@@ -31,6 +32,7 @@ const ImportModal = ({
     profileFtp,
 }) => {
     const [showDebug, setShowDebug] = useState(false);
+    const panelRef = useModalA11y({ isOpen: showModal, onClose });
 
     if (!showModal) return null;
 
@@ -44,7 +46,14 @@ const ImportModal = ({
 
     return (
         <div className={`${modalScrimClass} z-[100]`}>
-            <div className={modalPanelWideClass} role="dialog" aria-modal="true" aria-labelledby="import-modal-title">
+            <div
+                ref={panelRef}
+                className={modalPanelWideClass}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="import-modal-title"
+                tabIndex={-1}
+            >
                 <div className={modalHeaderClass}>
                     <h3 id="import-modal-title" className="font-semibold text-cdtext flex items-center gap-2 text-sm">
                         <Download size={16} className="text-cdgreen" aria-hidden />

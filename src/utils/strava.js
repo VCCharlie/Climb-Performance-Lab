@@ -3,6 +3,8 @@
  * Strava API utility functions
  */
 
+import { notify } from './notify.js';
+
 // Decode Google's Encoded Polyline Algorithm Format
 // Used by Strava's map.summary_polyline field
 export const decodePolyline = (encoded) => {
@@ -87,7 +89,10 @@ export function navigateToStravaSegment(segmentId) {
     const url = `https://www.strava.com/segments/${id}`;
     const w = window.open(url, '_blank', 'noopener,noreferrer');
     if (!w || w.closed) {
-        window.alert('Could not open a new tab (popup blocked?). Allow popups for this site, or open the segment manually:\n' + url);
+        notify(
+            `Could not open a new tab (popup blocked?). Allow popups for this site, or open the segment manually:\n${url}`,
+            { variant: 'warning', durationMs: 12000 },
+        );
     }
 }
 

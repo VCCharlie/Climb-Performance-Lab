@@ -6,8 +6,10 @@ import NlDateInput from '../NlDateInput';
 import { SPORT_TYPES } from '../../config';
 import { buildUnifiedBikesList } from '../../utils/unifiedBikesList';
 import ModalPortal from '../ui/ModalPortal';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFindOnStrava }) => {
+    const panelRef = useModalA11y({ isOpen: true, onClose });
     // Lokale state voor het formulier
     const [formData, setFormData] = useState(activity);
     const [isCustomGear, setIsCustomGear] = useState(false);
@@ -46,10 +48,17 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
     return (
         <ModalPortal>
         <div className="fixed inset-0 bg-cdbg/95 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-cdsurface border border-cdborder rounded-xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+            <div
+                ref={panelRef}
+                className="bg-cdsurface border border-cdborder rounded-xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="edit-activity-modal-title"
+                tabIndex={-1}
+            >
                 <div className="flex justify-between items-center p-4 border-b border-cdborder bg-cdbg rounded-t-xl">
                     <div className="flex items-center gap-2">
-                        <h3 className="text-cdtext font-bold flex items-center gap-2 text-base"><Edit2 size={18} className="text-yellow-400" /> Edit activity</h3>
+                        <h3 id="edit-activity-modal-title" className="text-cdtext font-bold flex items-center gap-2 text-base"><Edit2 size={18} className="text-yellow-400" /> Edit activity</h3>
                         
                         {/* Externe Links */}
                         <div className="flex items-center gap-2">

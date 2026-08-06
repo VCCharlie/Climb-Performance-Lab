@@ -14,6 +14,7 @@ import { SkeletonChartCard } from './ui/Skeleton';
 import DashboardTodaySyncButton from './dashboard/DashboardTodaySyncButton';
 import { useProfileFtp } from '../context/ProfileFtpContext';
 import { useTodayIntervalsSync } from '../context/TodayIntervalsSyncContext';
+import { useTabListKeyboard } from '../hooks/useTabListKeyboard';
 import OverviewTab from './dashboard/OverviewTab';
 
 const CompareTab = lazyWithRetry(() => import('./dashboard/CompareTab'), 'CompareTab');
@@ -24,6 +25,7 @@ const DistanceTab = lazyWithRetry(() => import('./dashboard/DistanceTab'), 'Dist
 const VolumeTotalsTab = lazyWithRetry(() => import('./dashboard/VolumeTotalsTab'), 'VolumeTotalsTab');
 
 const DASH_SUBTAB_STORAGE_KEY = 'cpl.dashboard.subTab.v1';
+const DASHBOARD_TAB_IDS = ['overview', 'form', 'power', 'distance', 'volume', 'compare'];
 
 function readDashboardSubTab() {
     if (typeof sessionStorage === 'undefined') return 'overview';
@@ -66,6 +68,8 @@ const Dashboard = ({
     const { syncTodayActivities, isTodaySyncBusy } = useTodayIntervalsSync();
 
     const [dashboardTab, setDashboardTab] = useState(readDashboardSubTab);
+
+    const onDashboardTabKeyDown = useTabListKeyboard(DASHBOARD_TAB_IDS, dashboardTab, setDashboardTab);
 
     const handleDashboardSubTabIntent = (tabId) => {
         prefetchDashboardSubTabChunk(tabId);
@@ -148,7 +152,7 @@ const Dashboard = ({
             </div>
 
             {/* SUB-TABS NAVIGATION */}
-            <div className="flex flex-wrap border-b border-cdborder mb-4" role="tablist" aria-label="Dashboard Tabs">
+            <div className="flex flex-wrap border-b border-cdborder mb-4" role="tablist" aria-label="Dashboard Tabs" onKeyDown={onDashboardTabKeyDown}>
                 <button
                     type="button"
                     id="tab-overview"
