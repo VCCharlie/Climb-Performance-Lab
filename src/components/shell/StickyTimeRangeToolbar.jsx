@@ -82,6 +82,7 @@ export default function StickyTimeRangeToolbar({ children, enabled = true }) {
                 <FixedLayerPortal>
                     <div
                         ref={pinnedBarRef}
+                        data-pinned-main-nav=""
                         className={PINNED_SHELL_CLASS}
                         style={{ top: headerOffset }}
                     >

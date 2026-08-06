@@ -81,10 +81,12 @@ import {
     syncCoachWeekToFirestore,
     fetchCoachWeekFromFirestore,
     resolveCoachWeekOnSync,
+    shouldApplyRemoteCoachWeek,
     COACH_WEEK_CLOUD_DEBOUNCE_MS,
 } from './utils/coach/coachWeekCloudSync';
 import {
     readRawCoachWeekForSync,
+    readRawCoachWeekForPush,
     applyCoachWeekStateToLocal,
     isoWeekKey,
     COACH_WEEK_UPDATED_EVENT,
@@ -703,7 +705,7 @@ const App = () => {
         const pushCoachWeek = () => {
             clearTimeout(timer);
             timer = setTimeout(() => {
-                const raw = readRawCoachWeekForSync();
+                const raw = readRawCoachWeekForPush();
                 if (raw?.weekKey) {
                     syncCoachWeekToFirestore(db, user.uid, raw);
                 }
@@ -728,19 +730,28 @@ const App = () => {
         const refresh = async () => {
             try {
                 const remote = await fetchCoachWeekFromFirestore(db, user.uid);
-                if (cancelled || !remote?.state) return;
+                if (cancelled) return;
 
                 const weekKey = isoWeekKey(todayYmd());
-                const resolved = resolveCoachWeekOnSync(
-                    readRawCoachWeekForSync(),
-                    remote.state,
-                    weekKey,
-                );
+                const localRaw = readRawCoachWeekForSync();
 
-                if (resolved.source === 'cloud') {
-                    applyCoachWeekStateToLocal(resolved.state);
-                    dispatchCoachWeekUpdated();
+                if (!remote?.state) {
+                    if (localRaw?.weekKey) {
+                        syncCoachWeekToFirestore(db, user.uid, readRawCoachWeekForPush());
+                    }
+                    return;
                 }
+
+                if (!shouldApplyRemoteCoachWeek(localRaw, remote.state, weekKey)) {
+                    if (localRaw?.weekKey) {
+                        syncCoachWeekToFirestore(db, user.uid, readRawCoachWeekForPush());
+                    }
+                    return;
+                }
+
+                const resolved = resolveCoachWeekOnSync(localRaw, remote.state, weekKey);
+                applyCoachWeekStateToLocal(resolved.state);
+                dispatchCoachWeekUpdated();
             } catch (err) {
                 console.warn('[Coach week] Could not refresh from cloud:', err);
             }

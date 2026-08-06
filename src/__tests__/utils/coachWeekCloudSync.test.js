@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveCoachWeekOnSync } from '../../utils/coach/coachWeekCloudSync';
+import { resolveCoachWeekOnSync, shouldApplyRemoteCoachWeek } from '../../utils/coach/coachWeekCloudSync';
 
 describe('coachWeekCloudSync', () => {
     const weekKey = '2026-W32';
@@ -48,5 +48,20 @@ describe('coachWeekCloudSync', () => {
         };
         const result = resolveCoachWeekOnSync(null, cloud, weekKey);
         expect(result.state.unavailableDates).toEqual([]);
+    });
+
+    it('shouldApplyRemoteCoachWeek respects local grace window', () => {
+        const now = Date.parse('2026-08-03T12:00:00.000Z');
+        const local = {
+            weekKey,
+            unavailableDates: ['2026-08-06'],
+            updatedAt: '2026-08-03T11:59:58.500Z',
+        };
+        const cloud = {
+            weekKey,
+            unavailableDates: ['2026-08-05'],
+            updatedAt: '2026-08-03T12:00:00.000Z',
+        };
+        expect(shouldApplyRemoteCoachWeek(local, cloud, weekKey, now)).toBe(false);
     });
 });
