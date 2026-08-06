@@ -9,7 +9,8 @@ import {
 } from '../../utils/powerDurationTable';
 import { formatDateDDMMYYYY } from '../../utils';
 import { activityExternalLinks } from '../../utils/dashboardActivityPeaks';
-import { chartCardClassLg } from '../../utils/chartTheme';
+import { Table2 } from 'lucide-react';
+import CollapsibleDashboardCard from './CollapsibleDashboardCard';
 
 const COL_STYLES = [
     { key: 'd42', label: '42 d', headerClass: 'bg-violet-600/90 text-white' },
@@ -150,20 +151,25 @@ const PowerDurationTable = ({
     };
 
     return (
-        <div className={`${chartCardClassLg} overflow-visible relative`}>
-            <h3 className="text-lg font-bold text-cdtext mb-1">Power-duration (intervals.icu-style)</h3>
-            <p className="text-xs text-cdmuted mb-4 max-w-3xl leading-relaxed">
-                Layout similar to{' '}
-                <a href="https://intervals.icu/power" target="_blank" rel="noopener noreferrer" className="text-cdaccent hover:underline">
-                    intervals.icu/power
-                </a>
-                : several time windows side by side. Per ride: max power, best 1/5/10/20/60 min (and 90/120 when the API provides them),
-                plus for long rides an anchor at ride duration with average/NP — intermediate
-                durations are <strong className="text-cdtext">estimated</strong> (log interpolation). Blue = best value in the table for that
-                duration. Without body weight in Settings we do not show W/kg. <strong className="text-cdtext">Click</strong> a cell for the
-                source ride; scroll in the popover for links. Close with a click outside or <kbd className="px-1 rounded bg-cdborder text-[10px]">Esc</kbd>.
-            </p>
-
+        <CollapsibleDashboardCard
+            title="Power-duration (intervals.icu-style)"
+            icon={Table2}
+            description={(
+                <>
+                    Layout similar to{' '}
+                    <a href="https://intervals.icu/power" target="_blank" rel="noopener noreferrer" className="text-cdaccent hover:underline">
+                        intervals.icu/power
+                    </a>
+                    : several time windows side by side. Per ride: max power, best 1/5/10/20/60 min (and 90/120 when the API provides them),
+                    plus for long rides an anchor at ride duration with average/NP — intermediate
+                    durations are <strong className="text-cdtext">estimated</strong> (log interpolation). Blue = best value in the table for that
+                    duration. <strong className="text-cdtext">Click</strong> a cell for the source ride.
+                </>
+            )}
+            defaultExpanded={false}
+            className="overflow-visible relative"
+            bodyClassName="overflow-visible relative"
+        >
             {popover?.activity && (
                 <div
                     ref={popoverRef}
@@ -307,7 +313,7 @@ const PowerDurationTable = ({
                     </tbody>
                 </table>
             </div>
-        </div>
+        </CollapsibleDashboardCard>
     );
 };
 
