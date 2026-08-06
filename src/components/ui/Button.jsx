@@ -1,4 +1,5 @@
 import React from 'react';
+import { Loader2 } from 'lucide-react';
 import { cn } from './cn';
 
 const VARIANT_CLASSES = {
@@ -14,6 +15,12 @@ const SIZE_CLASSES = {
   sm: 'h-8 px-3 text-xs gap-1.5',
   md: 'h-10 px-4 text-sm gap-2',
   lg: 'h-12 px-6 text-base gap-2',
+};
+
+const LOADER_SIZE = {
+  sm: 14,
+  md: 16,
+  lg: 18,
 };
 
 /**
@@ -38,6 +45,7 @@ const Button = React.forwardRef(function Button({
       ref={ref}
       type={type}
       disabled={isDisabled}
+      aria-busy={loading || undefined}
       className={cn(
         'inline-flex items-center justify-center font-semibold rounded-cdmd',
         'cd-transition cd-focus-ring',
@@ -49,6 +57,13 @@ const Button = React.forwardRef(function Button({
       )}
       {...rest}
     >
+      {loading && (
+        <Loader2
+          size={LOADER_SIZE[size] ?? LOADER_SIZE.md}
+          className="shrink-0 animate-spin"
+          aria-hidden
+        />
+      )}
       {children}
     </button>
   );
