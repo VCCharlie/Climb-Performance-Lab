@@ -27,17 +27,17 @@ export const ACTIVITY_COLUMNS = [
     /** UI-only: NP ÷ profile FTP; omitted from CSV export. */
     { key: 'intensity_factor', label: 'IF', align: 'right', width: 'w-9', omitFromExport: true, hideByDefault: true },
     { key: 'avg_power', label: 'Avg', pickerLabel: 'Avg Pwr', align: 'right', width: 'w-9', hideByDefault: true },
-    { key: 'avg_hr', label: 'HR', pickerLabel: 'Avg HR', align: 'right', width: 'w-9', text: 'slate-400', hideByDefault: true },
-    { key: 'max_hr', label: 'Max', pickerLabel: 'Max HR', align: 'right', width: 'w-9', text: 'slate-400', hideByDefault: true },
-    { key: 'work', label: 'kJ', align: 'right', width: 'w-10', text: 'slate-400', hideByDefault: true },
+    { key: 'avg_hr', label: 'HR', pickerLabel: 'Avg HR', align: 'right', width: 'w-9', hideByDefault: true },
+    { key: 'max_hr', label: 'Max', pickerLabel: 'Max HR', align: 'right', width: 'w-9', hideByDefault: true },
+    { key: 'work', label: 'kJ', align: 'right', width: 'w-10', hideByDefault: true },
     { key: 'load', label: 'Load', align: 'right', width: 'w-10', highlight: 'blue' },
     { key: 'rpe', label: 'RPE', align: 'right', width: 'w-8', hideByDefault: true },
     // Power Curve kolommen (1m, 5m, 10m, 20m, 60m)
-    { key: 'best_1min', label: '1m', align: 'right', width: 'w-10', text: 'slate-400', hideByDefault: true },
-    { key: 'best_5min', label: '5m', align: 'right', width: 'w-10', text: 'slate-400', hideByDefault: true },
-    { key: 'best_10min', label: '10m', align: 'right', width: 'w-10', text: 'slate-400', hideByDefault: true },
-    { key: 'best_20min', label: '20m', align: 'right', width: 'w-10', text: 'slate-400', hideByDefault: true },
-    { key: 'best_60min', label: '60m', align: 'right', width: 'w-10', text: 'slate-400', hideByDefault: true },
+    { key: 'best_1min', label: '1m', align: 'right', width: 'w-10', hideByDefault: true },
+    { key: 'best_5min', label: '5m', align: 'right', width: 'w-10', hideByDefault: true },
+    { key: 'best_10min', label: '10m', align: 'right', width: 'w-10', hideByDefault: true },
+    { key: 'best_20min', label: '20m', align: 'right', width: 'w-10', hideByDefault: true },
+    { key: 'best_60min', label: '60m', align: 'right', width: 'w-10', hideByDefault: true },
 ];
 
 /** Columns shown in Activity Log / Import preview tables (excludes hideInTable). */

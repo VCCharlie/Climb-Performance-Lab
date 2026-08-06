@@ -14,7 +14,7 @@ import { useTodayIntervalsSync } from '../../context/TodayIntervalsSyncContext';
 /**
  * App shell navigation — mobile menu + desktop primary nav bar with time-range toolbar.
  */
-export default function MainNav({
+function MainNav({
   activeTab,
   onTabChange,
   timeRange,
@@ -187,6 +187,7 @@ export default function MainNav({
                   onClick={() => selectTab(item.id)}
                   onMouseEnter={() => prefetchMainTabChunk(item.id)}
                   onFocus={() => prefetchMainTabChunk(item.id)}
+                  onPointerDown={() => prefetchMainTabChunk(item.id)}
                   className={cn(
                     'flex w-full items-center gap-3 px-4 min-h-11 py-3 text-sm font-medium cd-transition cd-focus-ring',
                     isActive
@@ -210,3 +211,5 @@ export default function MainNav({
     </div>
   );
 }
+
+export default React.memo(MainNav);
