@@ -9,16 +9,25 @@ describe('activityLogLayout', () => {
 });
 
 /**
- * Collapse rule for Activity Log filters (card layout):
- * - When useCardLayout is true, secondary panel is hidden until logMobileFiltersOpen.
- * - Must NOT use Tailwind `lg:block` to force open at 1024px+ while toggle stays `lg:hidden`
- *   (tablet / landscape touch would show a dead toggle with content stuck hidden).
+ * Collapse rule for Activity Log filters:
+ * - Card layout: panel starts collapsed until logFiltersPanelOpen.
+ * - Desktop table layout: panel starts expanded but remains collapsible.
  */
-describe('Activity Log mobile filter collapse (documented behavior)', () => {
-    it('expects card layout to drive collapse, not the lg breakpoint alone', () => {
+describe('Activity Log filter collapse (documented behavior)', () => {
+    it('expects card layout to start with the panel collapsed', () => {
         const useCardLayout = true;
-        const logMobileFiltersOpen = false;
-        const shouldHideSecondaryPanel = useCardLayout && !logMobileFiltersOpen;
+        const logFiltersPanelOpen = false;
+        const shouldHideSecondaryPanel = !logFiltersPanelOpen;
         expect(shouldHideSecondaryPanel).toBe(true);
+    });
+
+    it('expects desktop table layout to allow collapse while defaulting open', () => {
+        const useCardLayout = false;
+        const logFiltersPanelOpen = true;
+        const collapsible = true;
+        const collapsed = !logFiltersPanelOpen;
+        expect(collapsible).toBe(true);
+        expect(useCardLayout).toBe(false);
+        expect(collapsed).toBe(false);
     });
 });

@@ -30,8 +30,8 @@ const ActivityLogFilterBar = ({
     onApplyLogFilterPreset,
     onResetLogFilters,
     useCardLayout,
-    logMobileFiltersOpen,
-    onLogMobileFiltersOpenChange,
+    logFiltersPanelOpen,
+    onLogFiltersPanelOpenChange,
     showUtilMenu,
     onShowUtilMenuChange,
     utilMenuRef,
@@ -126,7 +126,7 @@ const ActivityLogFilterBar = ({
     isStravaDescBackfilling = false,
     filterBarRootRef,
 }) => {
-    const mobilePanelExpanded = useCardLayout && logMobileFiltersOpen;
+    const mobilePanelExpanded = useCardLayout && logFiltersPanelOpen;
 
     const activeFilterCount = useMemo(() => [
         thisWeekOnly,
@@ -308,9 +308,9 @@ const ActivityLogFilterBar = ({
         </div>
 
         <ActivityLogFilterPanel
-            collapsible={useCardLayout}
-            collapsed={useCardLayout && !logMobileFiltersOpen}
-            onCollapsedChange={onLogMobileFiltersOpenChange}
+            collapsible
+            collapsed={!logFiltersPanelOpen}
+            onCollapsedChange={onLogFiltersPanelOpenChange}
             activeFilterCount={activeFilterCount}
             thisWeekOnly={thisWeekOnly}
             onThisWeekOnlyChange={onThisWeekOnlyChange}

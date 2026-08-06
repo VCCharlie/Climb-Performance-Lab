@@ -132,6 +132,23 @@ describe('topNInterpolatedAtSec', () => {
         const top = topNInterpolatedAtSec([short, long], 250, 7200, 10, { requireAnchorBeyondSec: 7200 });
         expect(top.every((r) => r.activity.id === 'long')).toBe(true);
     });
+
+    it('excludes short rides from long duration buckets (no flat extrapolation)', () => {
+        const fiveMinRide = {
+            id: 'sprint',
+            date: '2026-01-01',
+            moving_time: '00:05:00',
+            max_power: 600,
+            best_1min: 500,
+            best_5min: 483,
+        };
+        const top5 = topNInterpolatedAtSec([fiveMinRide], 250, 300, 10);
+        expect(top5).toHaveLength(1);
+        expect(top5[0].watts).toBe(483);
+
+        const top60 = topNInterpolatedAtSec([fiveMinRide], 250, 3600, 10);
+        expect(top60).toHaveLength(0);
+    });
 });
 
 describe('buildAnchorsCache', () => {
