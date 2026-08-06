@@ -1,10 +1,12 @@
 import React, { useMemo } from 'react';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
-    ResponsiveContainer, ReferenceLine
+    ResponsiveContainer, ReferenceLine,
 } from 'recharts';
+import { LineChart } from 'lucide-react';
 import { ChartTooltip } from '../../ui';
-import { getChartTheme, chartCardClass, chartCardClassLg } from '../../../utils/chartTheme';
+import { getChartTheme } from '../../../utils/chartTheme';
+import CollapsibleDashboardCard from '../CollapsibleDashboardCard';
 
 /**
  * PowerCurveChart — Mean Maximal Power (MMP) curve.
@@ -23,14 +25,12 @@ const DURATIONS = [
     { key: 'best_60min', label: '60m', secs: 3600 },
 ];
 
-// Physiologically plausible max ratio vs FTP per effort duration.
-// Values above this ceiling are treated as data artefacts and ignored.
 const FTP_CAPS = {
-    best_1min:  4.0,  // Sprint: max 4× FTP
-    best_5min:  2.2,  // VO2max: max 2.2× FTP
-    best_10min: 1.6,  // Well above threshold
-    best_20min: 1.3,  // Just above FTP
-    best_60min: 1.1,  // At or slightly below FTP
+    best_1min:  4.0,
+    best_5min:  2.2,
+    best_10min: 1.6,
+    best_20min: 1.3,
+    best_60min: 1.1,
 };
 
 const PowerCurveChart = ({ data, manualFtp }) => {
@@ -38,99 +38,92 @@ const PowerCurveChart = ({ data, manualFtp }) => {
         if (!data || data.length === 0) return [];
 
         return DURATIONS.map(({ key, label }) => {
-            // Apply sanity cap when FTP is known; otherwise use absolute ceiling of 1500 W
             const cap = manualFtp > 0 ? manualFtp * FTP_CAPS[key] : 1500;
 
-            // ⚡ Bolt Optimization: Use single-pass reduce instead of Math.max(...array.map().filter())
-            // Prevents call stack exceeded errors on large datasets and avoids intermediate array allocations
             const peak = data.reduce((max, a) => {
                 const v = Number(a[key]) || 0;
                 return (v <= cap && v > max) ? v : max;
             }, 0);
 
             return { label, watts: peak > 0 ? peak : null };
-        }).filter(p => p.watts !== null);
+        }).filter((p) => p.watts !== null);
     }, [data, manualFtp]);
 
     const theme = getChartTheme();
+    const best20m = curveData.find((p) => p.label === '20m')?.watts;
+    const eFTP = best20m ? Math.round(best20m * 0.95) : null;
 
-    if (curveData.length === 0) {
-        return (
-            <div className={chartCardClassLg}>
-                <h3 className="text-lg font-bold text-cdtext mb-2">Power Curve (MMP)</h3>
+    const description = eFTP
+        ? `Mean maximal power from best efforts in the selected period. eFTP reference: ${eFTP} W.`
+        : 'Mean maximal power from best efforts in the selected period.';
+
+    return (
+        <CollapsibleDashboardCard
+            title="Power Curve (MMP)"
+            icon={LineChart}
+            description={description}
+            defaultExpanded={false}
+        >
+            {curveData.length === 0 ? (
                 <div className="h-48 flex items-center justify-center text-cdmuted text-sm">
                     No best-effort data available in this period.
                 </div>
-            </div>
-        );
-    }
-
-    // Show a horizontal line for 20-min power (eFTP reference)
-    const best20m = curveData.find(p => p.label === '20m')?.watts;
-    const eFTP = best20m ? Math.round(best20m * 0.95) : null;
-
-    return (
-        <div className={chartCardClassLg}>
-            <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-cdtext">Power Curve (MMP)</h3>
-                {eFTP && (
-                    <span className="text-xs text-cdmuted bg-cdborder/50 px-2 py-1 rounded">
-                        eFTP reference: <strong className="text-green-400">{eFTP} W</strong>
-                    </span>
-                )}
-            </div>
-            <div className="h-56">
-                <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={curveData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
-                        <defs>
-                            <linearGradient id="mmpGradient" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor={theme.primary} stopOpacity={0.35} />
-                                <stop offset="95%" stopColor={theme.primary} stopOpacity={0} />
-                            </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} opacity={0.65} vertical={false} />
-                        <XAxis dataKey="label" stroke={theme.axis} tick={theme.axisTick} />
-                        <YAxis
-                            stroke={theme.axis}
-                            tick={theme.axisTick}
-                            domain={['auto', 'auto']}
-                            tickFormatter={(v) => `${v}W`}
-                        />
-                        <Tooltip
-                            content={(props) => (
-                                <ChartTooltip
-                                    {...props}
-                                    hideLabel
-                                    formatter={(v) => [`${v} W`, 'MMP']}
+            ) : (
+                <>
+                    <div className="h-56">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={curveData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="mmpGradient" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor={theme.primary} stopOpacity={0.35} />
+                                        <stop offset="95%" stopColor={theme.primary} stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} opacity={0.65} vertical={false} />
+                                <XAxis dataKey="label" stroke={theme.axis} tick={theme.axisTick} />
+                                <YAxis
+                                    stroke={theme.axis}
+                                    tick={theme.axisTick}
+                                    domain={['auto', 'auto']}
+                                    tickFormatter={(v) => `${v}W`}
                                 />
-                            )}
-                            cursor={theme.cursor}
-                        />
-                        {eFTP && (
-                            <ReferenceLine
-                                y={eFTP}
-                                stroke={theme.green}
-                                strokeDasharray="6 3"
-                                label={{ value: `eFTP ${eFTP}W`, fill: theme.green, fontSize: 10, dy: -6 }}
-                            />
-                        )}
-                        <Area
-                            type="monotone"
-                            dataKey="watts"
-                            name="MMP"
-                            stroke={theme.primary}
-                            strokeWidth={2.5}
-                            fill="url(#mmpGradient)"
-                            dot={{ r: 5, fill: theme.primary, strokeWidth: 0 }}
-                            activeDot={{ r: 7 }}
-                        />
-                    </AreaChart>
-                </ResponsiveContainer>
-            </div>
-            <p className="text-xs text-cdmuted mt-2">
-                Based on best effort per activity in the selected period.
-            </p>
-        </div>
+                                <Tooltip
+                                    content={(props) => (
+                                        <ChartTooltip
+                                            {...props}
+                                            hideLabel
+                                            formatter={(v) => [`${v} W`, 'MMP']}
+                                        />
+                                    )}
+                                    cursor={theme.cursor}
+                                />
+                                {eFTP && (
+                                    <ReferenceLine
+                                        y={eFTP}
+                                        stroke={theme.green}
+                                        strokeDasharray="6 3"
+                                        label={{ value: `eFTP ${eFTP}W`, fill: theme.green, fontSize: 10, dy: -6 }}
+                                    />
+                                )}
+                                <Area
+                                    type="monotone"
+                                    dataKey="watts"
+                                    name="MMP"
+                                    stroke={theme.primary}
+                                    strokeWidth={2.5}
+                                    fill="url(#mmpGradient)"
+                                    dot={{ r: 5, fill: theme.primary, strokeWidth: 0 }}
+                                    activeDot={{ r: 7 }}
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                    <p className="text-xs text-cdmuted mt-2">
+                        Based on best effort per activity in the selected period.
+                    </p>
+                </>
+            )}
+        </CollapsibleDashboardCard>
     );
 };
 

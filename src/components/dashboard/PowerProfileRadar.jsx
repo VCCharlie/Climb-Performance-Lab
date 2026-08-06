@@ -7,17 +7,17 @@ import {
     Radar,
     Polygon,
 } from 'recharts';
-import { ExternalLink } from 'lucide-react';
+import { Activity, ExternalLink } from 'lucide-react';
 import { activityExternalLinks } from '../../utils/dashboardActivityPeaks';
-import { chartCardClassLg } from '../../utils/chartTheme';
+import { getChartTheme } from '../../utils/chartTheme';
 import useElementSize from '../../hooks/useElementSize';
 import useMediaQuery from '../../hooks/useMediaQuery';
+import CollapsibleDashboardCard from './CollapsibleDashboardCard';
+import { cn } from '../ui';
 
 const RADAR_MAX_FTP_PCT = 160;
-
-/** Dark green dashed “max / history” ring — distinct from orange period fill. */
-const RADAR_OUTER_STROKE = '#15803d';
-const RADAR_OUTER_FILL = 'rgba(22, 101, 52, 0.16)';
+const RADAR_GRADIENT_ID = 'power-profile-period-fill';
+const RADAR_GLOW_ID = 'power-profile-dot-glow';
 
 function rowByKey(rows, key) {
     return (rows || []).find((r) => r.key === key) || null;
@@ -34,7 +34,7 @@ function PowerRadarDetailPanel({ d, pinned, onDismissPin, onOpenActivityInLog })
     const linksH = d.activityMax ? activityExternalLinks(d.activityMax) : [];
 
     return (
-        <div className="rounded-lg border border-cdborder bg-cdsurface px-3 py-2 text-xs shadow-inner max-h-[min(280px,70vh)] overflow-y-auto custom-scrollbar">
+        <div className="rounded-lg border border-cdborder/70 bg-cdsurfacelow/80 px-3 py-2 text-xs shadow-sm">
             <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="font-bold text-cdtext leading-tight">{d.subject}</div>
                 {pinned && (
@@ -53,13 +53,13 @@ function PowerRadarDetailPanel({ d, pinned, onDismissPin, onOpenActivityInLog })
                 </p>
             )}
             <div className="space-y-2">
-                <div className="rounded-md border border-orange-500/30 bg-orange-500/10 px-2 py-1.5">
-                    <div className="text-[10px] uppercase tracking-wide text-orange-200/90 font-bold">
+                <div className="rounded-md border border-orange-500/25 bg-orange-500/10 px-2 py-1.5">
+                    <div className="text-[10px] uppercase tracking-wide text-orange-600 dark:text-orange-200/90 font-bold">
                         This period
                     </div>
                     <div className="text-cdtext font-mono font-bold tabular-nums">{d.wattsPeriod} W</div>
                     {d.activityPeriod?.title && (
-                        <div className="text-cdmuted mt-0.5 break-words" title={d.activityPeriod.title}>
+                        <div className="text-cdmuted mt-0.5 break-words line-clamp-2" title={d.activityPeriod.title}>
                             {d.activityPeriod.title}
                         </div>
                     )}
@@ -70,7 +70,7 @@ function PowerRadarDetailPanel({ d, pinned, onDismissPin, onOpenActivityInLog })
                                 onClick={() => onOpenActivityInLog(d.activityPeriod.id)}
                                 className="text-[10px] font-bold text-cdaccent hover:underline inline-flex items-center gap-0.5"
                             >
-                                <ExternalLink size={10} /> Log
+                                <ExternalLink size={10} aria-hidden /> Log
                             </button>
                         )}
                         {linksP.map((l) => (
@@ -86,13 +86,13 @@ function PowerRadarDetailPanel({ d, pinned, onDismissPin, onOpenActivityInLog })
                         ))}
                     </div>
                 </div>
-                <div className="rounded-md border border-emerald-800/45 bg-emerald-950/25 px-2 py-1.5">
-                    <div className="text-[10px] uppercase tracking-wide text-emerald-200/95 font-bold">
+                <div className="rounded-md border border-emerald-700/30 bg-emerald-500/10 px-2 py-1.5">
+                    <div className="text-[10px] uppercase tracking-wide text-emerald-700 dark:text-emerald-200/95 font-bold">
                         Best in history
                     </div>
                     <div className="text-cdtext font-mono font-bold tabular-nums">{d.wattsMax} W</div>
                     {d.activityMax?.title && (
-                        <div className="text-cdmuted mt-0.5 break-words" title={d.activityMax.title}>
+                        <div className="text-cdmuted mt-0.5 break-words line-clamp-2" title={d.activityMax.title}>
                             {d.activityMax.title}
                         </div>
                     )}
@@ -103,7 +103,7 @@ function PowerRadarDetailPanel({ d, pinned, onDismissPin, onOpenActivityInLog })
                                 onClick={() => onOpenActivityInLog(d.activityMax.id)}
                                 className="text-[10px] font-bold text-cdaccent hover:underline inline-flex items-center gap-0.5"
                             >
-                                <ExternalLink size={10} /> Log
+                                <ExternalLink size={10} aria-hidden /> Log
                             </button>
                         )}
                         {linksH.map((l) => (
@@ -124,6 +124,49 @@ function PowerRadarDetailPanel({ d, pinned, onDismissPin, onOpenActivityInLog })
     );
 }
 
+function DurationValueRow({
+    d,
+    active,
+    onActivate,
+    onOpenActivityInLog,
+}) {
+    return (
+        <button
+            type="button"
+            onClick={() => onActivate(d.key)}
+            onMouseEnter={() => onActivate(d.key, { hoverOnly: true })}
+            onMouseLeave={() => onActivate(null, { hoverOnly: true })}
+            className={cn(
+                'w-full flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-md px-2 py-1.5 text-left cd-transition',
+                active
+                    ? 'bg-cdprimarycontainer/50 ring-1 ring-cdprimary/30'
+                    : 'hover:bg-cdborder/25',
+            )}
+        >
+            <span className="font-semibold text-cdtext w-10 shrink-0 text-[11px]">{d.subject}</span>
+            <span className="font-mono text-orange-600 dark:text-orange-300 tabular-nums text-[11px] font-bold">
+                {d.wattsPeriod > 0 ? `${d.wattsPeriod} W` : '—'}
+            </span>
+            <span className="text-cdmuted text-[10px]">/</span>
+            <span className="font-mono text-emerald-600 dark:text-emerald-400 tabular-nums text-[11px]" title="Best in app history">
+                {d.wattsMax > 0 ? `${d.wattsMax} W` : '—'}
+            </span>
+            {d.activityPeriod && typeof onOpenActivityInLog === 'function' && d.activityPeriod.id != null && (
+                <span
+                    role="presentation"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenActivityInLog(d.activityPeriod.id);
+                    }}
+                    className="ml-auto text-cdaccent font-bold text-[10px] hover:underline inline-flex items-center gap-0.5"
+                >
+                    <ExternalLink size={10} aria-hidden /> Log
+                </span>
+            )}
+        </button>
+    );
+}
+
 /**
  * Best powers by duration: inner web = this period, outer ring = best over dashboard history.
  */
@@ -132,9 +175,14 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
     const sidePanelRef = useRef(null);
     const [chartRef, chartSize] = useElementSize();
     const isCoarsePointer = useMediaQuery('(pointer: coarse)');
+    const theme = getChartTheme();
 
     const [hoverKey, setHoverKey] = useState(null);
     const [pinnedKey, setPinnedKey] = useState(null);
+
+    const outerStroke = theme.green;
+    const outerFill = 'rgba(22, 101, 52, 0.14)';
+    const periodStroke = theme.primary;
 
     const data = useMemo(() => {
         const periodRows = powerPeakRows || [];
@@ -205,6 +253,14 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
         setHoverKey(key);
     }, []);
 
+    const handleRowActivate = useCallback((key, opts = {}) => {
+        if (opts.hoverOnly) {
+            if (!pinnedKey) setHoverKey(key);
+            return;
+        }
+        if (key) handleDotActivate(key);
+    }, [handleDotActivate, pinnedKey]);
+
     const renderPeriodDot = useCallback(
         (dotProps) => {
             const { cx, cy, payload } = dotProps;
@@ -215,13 +271,14 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
                 <circle
                     cx={cx}
                     cy={cy}
-                    r={hi ? 12 : 9}
-                    fill={hi ? 'rgba(249, 115, 22, 0.38)' : 'rgba(249, 115, 22, 0.14)'}
-                    stroke="#c2410c"
+                    r={hi ? 11 : 8}
+                    fill={hi ? 'rgba(249, 115, 22, 0.45)' : 'rgba(249, 115, 22, 0.2)'}
+                    stroke={periodStroke}
                     strokeWidth={hi ? 2.5 : 1.5}
+                    filter={hi ? `url(#${RADAR_GLOW_ID})` : undefined}
                     style={{ cursor: 'pointer', touchAction: 'manipulation' }}
                     onMouseEnter={() => setHoverKey(k)}
-                    onMouseLeave={() => setHoverKey(null)}
+                    onMouseLeave={() => { if (!pinnedKey) setHoverKey(null); }}
                     onClick={(e) => {
                         e.stopPropagation();
                         handleDotActivate(k);
@@ -234,7 +291,7 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
                 />
             );
         },
-        [displayKey, handleDotActivate],
+        [displayKey, handleDotActivate, periodStroke, pinnedKey],
     );
 
     const showHistoryRing = useMemo(() => {
@@ -255,8 +312,8 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
         [data],
     );
 
-    const chartHeight = isCoarsePointer ? 280 : 320;
-    const chartOuterRadius = chartSize.width > 0 && chartSize.width < 400 ? '68%' : '74%';
+    const chartHeight = isCoarsePointer ? 260 : 300;
+    const chartOuterRadius = chartSize.width > 0 && chartSize.width < 320 ? '70%' : '78%';
     const chartReady = chartSize.width > 0 && chartSize.height > 0;
 
     const hasData = data.some((d) => d.wattsPeriod > 0 || d.wattsMax > 0);
@@ -264,47 +321,37 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
 
     const scaleHint = manualFtp > 0
         ? `Both shapes use % of your FTP (${manualFtp} W), capped at ${RADAR_MAX_FTP_PCT}% on the chart.`
-        : `FTP not set — both shapes use % of the strongest value among these durations (max of period and history, ${noFtpScaleMaxW} W in this view), capped at ${RADAR_MAX_FTP_PCT}%.`;
+        : `FTP not set — both shapes use % of the strongest value among these durations (max ${noFtpScaleMaxW} W in this view).`;
 
     const interactionHint = isCoarsePointer
-        ? 'Tap a point on the orange web for details. Tap outside the chart to dismiss.'
-        : 'Hover a point on the orange web for details. Click a point to pin this panel; click outside the chart or press Esc to dismiss.';
+        ? 'Tap a duration row or chart point for details.'
+        : 'Hover a row or chart point; click to pin details.';
 
     return (
-        <div className={`${chartCardClassLg} space-y-4`}>
-            <div>
-                <h3 className="text-lg font-bold text-cdtext mb-1">Power profile (this period)</h3>
-                <p className="text-xs text-cdmuted leading-relaxed">{scaleHint}</p>
-            </div>
-
-            <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-[11px] text-cdmuted">
-                <span className="inline-flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 shrink-0 rounded-sm bg-orange-500 shadow-[0_0_0_1px_rgba(0,0,0,0.2)]" />
-                    <span>
-                        <span className="font-semibold text-cdtext">This period</span>
-                        {' — '}best in the selected date range
-                    </span>
+        <CollapsibleDashboardCard
+            title="Power profile (this period)"
+            icon={Activity}
+            description={scaleHint}
+            defaultExpanded
+        >
+            <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-[10px] text-cdmuted mb-3">
+                <span className="inline-flex items-center gap-1.5">
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-cdprimary shadow-sm" />
+                    <span><span className="font-semibold text-cdtext">This period</span> — selected date range</span>
                 </span>
-                <span className="inline-flex items-center gap-2">
-                    <span
-                        className="h-0 w-6 shrink-0 border-t-2 border-dashed border-emerald-700"
-                        style={{ borderColor: RADAR_OUTER_STROKE }}
-                    />
-                    <span>
-                        <span className="font-semibold text-cdtext">Outer ring</span>
-                        {' — '}best over all rides loaded in the app
-                        {!showHistoryRing && ' (matches period when identical)'}
-                    </span>
+                <span className="inline-flex items-center gap-1.5">
+                    <span className="h-0 w-5 shrink-0 border-t-2 border-dashed border-emerald-600" />
+                    <span><span className="font-semibold text-cdtext">Outer ring</span> — best in app history{!showHistoryRing && ' (same as period)'}</span>
                 </span>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 w-full max-w-3xl mx-auto items-stretch">
+            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(220px,280px)] gap-4 items-start">
                 <div
                     ref={(node) => {
                         chartWrapRef.current = node;
                         chartRef(node);
                     }}
-                    className="w-full min-w-0 shrink-0"
+                    className="w-full min-w-0 mx-auto lg:mx-0 max-w-sm lg:max-w-none"
                     style={{ height: chartHeight }}
                 >
                     {chartReady ? (
@@ -312,48 +359,69 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
                             width={chartSize.width}
                             height={chartHeight}
                             cx="50%"
-                            cy="52%"
+                            cy="50%"
                             outerRadius={chartOuterRadius}
                             data={data}
                         >
+                            <defs>
+                                <radialGradient id={RADAR_GRADIENT_ID} cx="50%" cy="50%" r="50%">
+                                    <stop offset="15%" stopColor={periodStroke} stopOpacity={0.5} />
+                                    <stop offset="85%" stopColor={periodStroke} stopOpacity={0.08} />
+                                </radialGradient>
+                                <filter id={RADAR_GLOW_ID} x="-50%" y="-50%" width="200%" height="200%">
+                                    <feGaussianBlur stdDeviation="2.5" result="blur" />
+                                    <feMerge>
+                                        <feMergeNode in="blur" />
+                                        <feMergeNode in="SourceGraphic" />
+                                    </feMerge>
+                                </filter>
+                            </defs>
                             <PolarGrid
-                                stroke="#64748b"
-                                strokeOpacity={0.4}
+                                stroke={theme.grid}
+                                strokeOpacity={0.55}
                                 gridType="polygon"
+                                radialLines={false}
                             />
                             <PolarAngleAxis
                                 dataKey="subject"
-                                tick={{ fill: '#94a3b8', fontSize: isCoarsePointer ? 10 : 11, fontWeight: 600 }}
+                                tick={{
+                                    fill: theme.axis,
+                                    fontSize: isCoarsePointer ? 10 : 11,
+                                    fontWeight: 600,
+                                }}
                             />
                             <PolarRadiusAxis
-                                angle={30}
+                                angle={90}
                                 domain={[0, domainMax]}
-                                tick={{ fill: '#94a3b8', fontSize: 10 }}
+                                tick={{ fill: theme.axis, fontSize: 9 }}
                                 tickFormatter={(v) => `${v}%`}
+                                axisLine={false}
                             />
                             <Radar
                                 name="Best in history"
                                 dataKey="pctMax"
-                                stroke={RADAR_OUTER_STROKE}
-                                fill={RADAR_OUTER_FILL}
+                                stroke={outerStroke}
+                                fill={outerFill}
                                 fillOpacity={1}
-                                strokeWidth={2.5}
-                                strokeDasharray="6 5"
+                                strokeWidth={2}
+                                strokeDasharray="5 4"
                                 dot={false}
-                                isAnimationActive={false}
+                                isAnimationActive
+                                animationDuration={450}
                                 pointerEvents="none"
                             />
                             <Radar
                                 name="This period"
                                 dataKey="pctPeriod"
-                                stroke="#ea580c"
-                                fill="rgba(249, 115, 22, 0.42)"
+                                stroke={periodStroke}
+                                fill={`url(#${RADAR_GRADIENT_ID})`}
                                 fillOpacity={1}
                                 strokeWidth={2}
                                 shape={PeriodRadarFillShape}
                                 dot={renderPeriodDot}
                                 activeDot={false}
-                                isAnimationActive={false}
+                                isAnimationActive
+                                animationDuration={500}
                             />
                         </RadarChart>
                     ) : (
@@ -364,10 +432,7 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
                     )}
                 </div>
 
-                <div
-                    ref={sidePanelRef}
-                    className="w-full sm:w-[240px] shrink-0 sm:border-l border-cdborder/50 sm:pl-3 flex flex-col justify-center min-h-[100px]"
-                >
+                <div ref={sidePanelRef} className="flex flex-col gap-3 min-w-0">
                     {displayDatum ? (
                         <PowerRadarDetailPanel
                             d={displayDatum}
@@ -376,37 +441,23 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
                             onOpenActivityInLog={onOpenActivityInLog}
                         />
                     ) : (
-                        <p className="text-[11px] text-cdmuted leading-relaxed">
-                            {interactionHint}
-                        </p>
+                        <p className="text-[11px] text-cdmuted leading-relaxed px-1">{interactionHint}</p>
                     )}
+
+                    <div className="rounded-lg border border-cdborder/50 bg-cdsurfacelow/40 divide-y divide-cdborder/30 overflow-hidden">
+                        {data.map((d) => (
+                            <DurationValueRow
+                                key={d.key}
+                                d={d}
+                                active={displayKey === d.key}
+                                onActivate={handleRowActivate}
+                                onOpenActivityInLog={onOpenActivityInLog}
+                            />
+                        ))}
+                    </div>
                 </div>
             </div>
-
-            <ul className="text-[11px] text-cdmuted space-y-2 border-t border-cdborder/50 pt-3">
-                {data.map((d) => (
-                    <li key={d.key} className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <span className="font-semibold text-cdtext w-12 shrink-0">{d.subject}</span>
-                        <span className="font-mono text-orange-200/95 tabular-nums">
-                            {d.wattsPeriod > 0 ? `${d.wattsPeriod} W` : '—'}
-                        </span>
-                        <span className="text-cdmuted">/</span>
-                        <span className="font-mono text-emerald-400/95 tabular-nums" title="Best in app history">
-                            {d.wattsMax > 0 ? `${d.wattsMax} W` : '—'}
-                        </span>
-                        {d.activityPeriod && typeof onOpenActivityInLog === 'function' && d.activityPeriod.id != null && (
-                            <button
-                                type="button"
-                                onClick={() => onOpenActivityInLog(d.activityPeriod.id)}
-                                className="text-cdaccent font-bold hover:underline inline-flex items-center gap-0.5"
-                            >
-                                <ExternalLink size={10} /> Log
-                            </button>
-                        )}
-                    </li>
-                ))}
-            </ul>
-        </div>
+        </CollapsibleDashboardCard>
     );
 };
 

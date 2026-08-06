@@ -12,7 +12,7 @@ import {
 } from 'recharts';
 import { TrendingUp } from 'lucide-react';
 import { ChartTooltip } from '../ui';
-import { getChartTheme, chartCardClass, chartSegmentToggleClass } from '../../utils/chartTheme';
+import { getChartTheme, chartSegmentToggleClass } from '../../utils/chartTheme';
 import { formatNlNumber } from '../../utils/formatters';
 import {
     computeYearlyPowerPeakRows,
@@ -20,6 +20,7 @@ import {
     chartRowsForPowerLongevity,
     normalizeBirthYear,
 } from '../../utils/powerTrendSeries';
+import CollapsibleDashboardCard from './CollapsibleDashboardCard';
 
 const METRICS = [
     { id: 'eftp20', label: 'eFTP (20m)', color: 'rgba(34,197,94,0.85)', unit: 'W' },
@@ -64,49 +65,41 @@ export default function PowerLongevitySection({
     const xAxisLabel = xMode === 'age' && birthYear ? 'Age' : 'Year';
 
     return (
-        <div className={chartCardClass}>
-            <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
-                <div className="flex items-start gap-2">
-                    <TrendingUp className="w-5 h-5 text-cdblue shrink-0 mt-0.5" aria-hidden />
-                    <div>
-                        <h3 className="text-sm font-bold text-cdtext uppercase tracking-wider">
-                            Long-term power trends
-                        </h3>
-                        <p className="text-[11px] text-cdmuted leading-snug">
-                            Best peak per calendar year from your full ride history (not the period filter above).
-                        </p>
-                    </div>
+        <CollapsibleDashboardCard
+            title="Long-term power trends"
+            icon={TrendingUp}
+            description="Best peak per calendar year from your full ride history (not the period filter above)."
+            defaultExpanded={false}
+        >
+            <div className="flex flex-wrap items-center justify-end gap-2 mb-4">
+                <div className="flex bg-cdbg/60 border border-cdborder rounded overflow-hidden">
+                    <button
+                        type="button"
+                        onClick={() => setXMode('year')}
+                        className={chartSegmentToggleClass(xMode === 'year')}
+                    >
+                        By year
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => birthYear && setXMode('age')}
+                        disabled={!birthYear}
+                        className={`${chartSegmentToggleClass(xMode === 'age')} disabled:opacity-40`}
+                    >
+                        By age
+                    </button>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                    <div className="flex bg-cdbg/60 border border-cdborder rounded overflow-hidden">
+                <div className="flex bg-cdbg/60 border border-cdborder rounded overflow-hidden">
+                    {METRICS.map((m) => (
                         <button
+                            key={m.id}
                             type="button"
-                            onClick={() => setXMode('year')}
-                            className={chartSegmentToggleClass(xMode === 'year')}
+                            onClick={() => setMetric(m.id)}
+                            className={chartSegmentToggleClass(metric === m.id)}
                         >
-                            By year
+                            {m.label}
                         </button>
-                        <button
-                            type="button"
-                            onClick={() => birthYear && setXMode('age')}
-                            disabled={!birthYear}
-                            className={`${chartSegmentToggleClass(xMode === 'age')} disabled:opacity-40`}
-                        >
-                            By age
-                        </button>
-                    </div>
-                    <div className="flex bg-cdbg/60 border border-cdborder rounded overflow-hidden">
-                        {METRICS.map((m) => (
-                            <button
-                                key={m.id}
-                                type="button"
-                                onClick={() => setMetric(m.id)}
-                                className={chartSegmentToggleClass(metric === m.id)}
-                            >
-                                {m.label}
-                            </button>
-                        ))}
-                    </div>
+                    ))}
                 </div>
             </div>
 
@@ -198,6 +191,6 @@ export default function PowerLongevitySection({
                     </tbody>
                 </table>
             </div>
-        </div>
+        </CollapsibleDashboardCard>
     );
 }

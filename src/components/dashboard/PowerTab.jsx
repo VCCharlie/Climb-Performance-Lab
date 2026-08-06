@@ -203,11 +203,9 @@ const PowerTab = ({
 
             {stats && (
                 <PowerTabDetails
-                    powerPeakRows={powerPeakRows}
                     monthlyBests={monthlyBests}
                     data={data}
                     manualFtp={manualFtp}
-                    onOpenActivityInLog={onOpenActivityInLog}
                 />
             )}
 
