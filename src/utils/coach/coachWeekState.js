@@ -112,7 +112,16 @@ export function readRawCoachWeekForSync() {
     return {
         ...state,
         weekKey,
-        updatedAt: state.updatedAt || new Date().toISOString(),
+        updatedAt: state.updatedAt || null,
+    };
+}
+
+/** Payload for Firestore push — always carries a write timestamp. */
+export function readRawCoachWeekForPush() {
+    const raw = readRawCoachWeekForSync();
+    return {
+        ...raw,
+        updatedAt: raw.updatedAt || new Date().toISOString(),
     };
 }
 

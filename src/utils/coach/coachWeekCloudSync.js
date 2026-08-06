@@ -6,6 +6,8 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { normalizeCoachWeekState } from './coachWeekState';
 
 export const COACH_WEEK_CLOUD_DEBOUNCE_MS = 1500;
+/** Skip cloud pull shortly after a local edit so debounced push can finish first. */
+export const COACH_WEEK_LOCAL_GRACE_MS = COACH_WEEK_CLOUD_DEBOUNCE_MS + 2000;
 
 /**
  * @param {string} uid
@@ -45,6 +47,17 @@ export function resolveCoachWeekOnSync(localRaw, cloudState, currentWeekKey) {
     }
 
     return { state: localValid, source: 'local' };
+}
+
+/**
+ * Whether a remote coach-week payload should replace local state (respects local grace window).
+ */
+export function shouldApplyRemoteCoachWeek(localRaw, cloudState, currentWeekKey, nowMs = Date.now()) {
+    const localMs = Date.parse(localRaw?.updatedAt || '') || 0;
+    if (localMs > 0 && (nowMs - localMs) < COACH_WEEK_LOCAL_GRACE_MS) {
+        return false;
+    }
+    return resolveCoachWeekOnSync(localRaw, cloudState, currentWeekKey).source === 'cloud';
 }
 
 /**

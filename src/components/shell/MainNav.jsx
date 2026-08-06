@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useId, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useId, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Menu, X, ChevronRight, RefreshCw } from 'lucide-react';
 import { Button, cn } from '../ui';
@@ -8,8 +8,17 @@ import StickyTimeRangeToolbar from './StickyTimeRangeToolbar';
 import { MAIN_NAV_TABS, TIME_RANGE_TAB_IDS } from '../../config/navTabs';
 import { prefetchMainTabChunk } from '../../utils/prefetchTabChunks';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
-import { computeAnchoredOverlayStyle } from '../../utils/anchoredOverlayPosition';
 import { useTodayIntervalsSync } from '../../context/TodayIntervalsSyncContext';
+
+const MOBILE_MENU_Z = 200;
+
+function measureMobileNavBottom() {
+    if (typeof document === 'undefined') return 0;
+    const pinned = document.querySelector('[data-pinned-main-nav]');
+    const chrome = pinned || document.querySelector('[data-mobile-nav-chrome]');
+    if (!chrome) return 0;
+    return chrome.getBoundingClientRect().bottom;
+}
 
 /**
  * App shell navigation — sticky mobile context row + desktop tabs with inline time presets.
@@ -60,52 +69,56 @@ function MainNav({
 
   const [mobilePanelStyle, setMobilePanelStyle] = useState(null);
 
+  const updateMobileMenuPosition = useCallback(() => {
+    const bottom = measureMobileNavBottom();
+    if (!bottom) return;
+    const top = bottom + 4;
+    setMobilePanelStyle({
+      position: 'fixed',
+      top: `${top}px`,
+      left: '12px',
+      right: '12px',
+      width: 'auto',
+      zIndex: MOBILE_MENU_Z,
+      maxHeight: `min(65vh, calc(100vh - ${Math.round(top + 12)}px))`,
+      overflowY: 'auto',
+    });
+  }, []);
+
   useEffect(() => {
     if (!isMobileMenuOpen) {
       setMobilePanelStyle(null);
       return undefined;
     }
 
-    const update = () => {
-      const el = menuTriggerRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const anchored = computeAnchoredOverlayStyle(rect, {
-        minWidth: Math.min(window.innerWidth - 16, 480),
-        align: 'start',
-        maxHeightCap: Math.round(window.innerHeight * 0.65),
-      });
-      const { placement: _placement, ...rest } = anchored;
-      setMobilePanelStyle({
-        ...rest,
-        left: '12px',
-        right: '12px',
-        width: 'auto',
-        zIndex: 150,
-      });
-    };
-
-    update();
-    window.addEventListener('resize', update);
-    window.addEventListener('scroll', update, true);
+    updateMobileMenuPosition();
+    window.addEventListener('resize', updateMobileMenuPosition);
+    window.addEventListener('scroll', updateMobileMenuPosition, true);
     return () => {
-      window.removeEventListener('resize', update);
-      window.removeEventListener('scroll', update, true);
+      window.removeEventListener('resize', updateMobileMenuPosition);
+      window.removeEventListener('scroll', updateMobileMenuPosition, true);
     };
-  }, [isMobileMenuOpen]);
+  }, [isMobileMenuOpen, updateMobileMenuPosition]);
+
+  const toggleMobileMenu = () => {
+    if (!isMobileMenuOpen) {
+      updateMobileMenuPosition();
+    }
+    onMobileMenuOpenChange(!isMobileMenuOpen);
+  };
 
   return (
     <div className="relative mb-4">
       <StickyTimeRangeToolbar enabled>
         {/* Mobile: menu trigger + optional time presets (sticky together) */}
-        <div className="md:hidden pb-2">
+        <div className="md:hidden pb-2" data-mobile-nav-chrome="">
           <div className="flex items-center gap-2 mb-2">
             <Button
               ref={menuTriggerRef}
               type="button"
               variant="tonal"
               className="flex-1 justify-start font-semibold min-h-11"
-              onClick={() => onMobileMenuOpenChange(!isMobileMenuOpen)}
+              onClick={toggleMobileMenu}
               aria-expanded={isMobileMenuOpen}
               aria-haspopup="true"
               aria-controls={menuPanelId}
@@ -174,7 +187,7 @@ function MainNav({
         <>
           <button
             type="button"
-            className="fixed inset-0 z-[140] bg-cdscrim md:hidden cd-transition"
+            className="fixed inset-0 z-[190] bg-cdscrim md:hidden cd-transition"
             aria-label="Close navigation menu"
             onClick={() => onMobileMenuOpenChange(false)}
           />
@@ -182,7 +195,7 @@ function MainNav({
           <nav
             id={menuPanelId}
             style={mobilePanelStyle}
-            className="md:hidden fixed z-[150] overflow-y-auto custom-scrollbar rounded-cdxl border border-cdborder/60 bg-cdsurface shadow-lg animate-in fade-in slide-in-from-top-2 duration-200"
+            className="md:hidden fixed overflow-y-auto custom-scrollbar rounded-cdxl border border-cdborder/60 bg-cdsurface shadow-lg animate-in fade-in slide-in-from-top-2 duration-200"
             aria-label="Main navigation"
           >
             {tabs.map((item) => {

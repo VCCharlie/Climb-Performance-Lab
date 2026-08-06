@@ -29,7 +29,7 @@ const CoachPeriodReview = ({ activities, userSettings, weeklyHoursTarget }) => {
             borderClassName={`border-2 ${gradeStyle.border}`}
             defaultExpanded={false}
             headerExtra={(
-                <div className="flex gap-1" onClick={(e) => e.stopPropagation()} role="presentation">
+                <>
                     {PERIOD_REVIEW_OPTIONS.map((opt) => (
                         <button
                             key={opt.weeks}
@@ -44,7 +44,7 @@ const CoachPeriodReview = ({ activities, userSettings, weeklyHoursTarget }) => {
                             {opt.label}
                         </button>
                     ))}
-                </div>
+                </>
             )}
         >
             <div className="space-y-5 -mt-1">
