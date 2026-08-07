@@ -6,6 +6,7 @@ import {
     computePowerLongevitySummary,
     normalizeBirthYear,
 } from '../../utils/powerTrendSeries';
+import { resolveHistoricalFtpMap } from '../../utils/historicalFtp';
 
 function pctLabel(pct) {
     if (pct == null || Number.isNaN(pct)) return '—';
@@ -24,9 +25,10 @@ export default function PowerLongevityCard({
     onGoToPowerTab,
 }) {
     const summary = useMemo(() => {
-        const rows = computeYearlyPowerPeakRows(activities, manualFtp, weightKg);
+        const historicalFtpByYear = resolveHistoricalFtpMap(userSettings, activities);
+        const rows = computeYearlyPowerPeakRows(activities, manualFtp, weightKg, historicalFtpByYear);
         return computePowerLongevitySummary(rows, new Date());
-    }, [activities, manualFtp, weightKg]);
+    }, [activities, manualFtp, weightKg, userSettings]);
 
     const birthYear = normalizeBirthYear(userSettings?.birthYear);
 

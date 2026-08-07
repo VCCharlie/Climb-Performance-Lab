@@ -45,30 +45,38 @@ export function normalizeBirthYear(birthYear, referenceDate = new Date()) {
 
 /**
  * Peak best_20min / best_60min per calendar year across all rides.
+ * When `historicalFtpByYear` is provided, each calendar year uses that FTP for sanity caps
+ * (falls back to manualFtp when a year has no historical entry).
+ *
  * @param {object[]} activities
  * @param {number} [manualFtp]
  * @param {number} [weightKg]
+ * @param {Record<number, number> | null} [historicalFtpByYear]
  */
-export function computeYearlyPowerPeakRows(activities, manualFtp = 0, weightKg = 0) {
-    const cap20 = capForKey('best_20min', manualFtp);
-    const cap60 = capForKey('best_60min', manualFtp);
+export function computeYearlyPowerPeakRows(activities, manualFtp = 0, weightKg = 0, historicalFtpByYear = null) {
     const buckets = new Map();
 
     for (const a of activities || []) {
         const year = calendarYearFromActivity(a);
         if (!year) continue;
 
-        if (!buckets.has(year)) {
-            buckets.set(year, {
+        const yearFtp = historicalFtpByYear?.[year] > 0 ? historicalFtpByYear[year] : manualFtp;
+        const cap20 = capForKey('best_20min', yearFtp);
+        const cap60 = capForKey('best_60min', yearFtp);
+
+        let bucket = buckets.get(year);
+        if (!bucket) {
+            bucket = {
                 year,
+                yearFtp,
                 best20: 0,
                 best60: 0,
                 rideCount: 0,
                 activity20: null,
                 activity60: null,
-            });
+            };
+            buckets.set(year, bucket);
         }
-        const bucket = buckets.get(year);
         bucket.rideCount += 1;
 
         const v20 = Number(a.best_20min) || 0;
@@ -116,6 +124,7 @@ export function computeYearlyPowerPeakRows(activities, manualFtp = 0, weightKg =
 
             return {
                 year: b.year,
+                yearFtp: b.yearFtp > 0 ? b.yearFtp : null,
                 best20min,
                 eftp20,
                 best60min,

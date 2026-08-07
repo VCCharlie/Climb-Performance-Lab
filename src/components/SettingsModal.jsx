@@ -29,6 +29,7 @@ import {
     parseBikeComputerProfileTitlesInput,
 } from '../utils/bikeComputerProfileTitles';
 import QuickLinksSettings from './settings/QuickLinksSettings';
+import HistoricalFtpSettings from './settings/HistoricalFtpSettings';
 import {
     TERRAIN_PROFILE_FLAT,
     TERRAIN_PROFILE_HILLY,
@@ -47,6 +48,7 @@ const SETTINGS_TABS = [
     { value: 'profile', label: 'Profile' },
     { value: 'integrations', label: 'Integrations' },
     { value: 'goals', label: 'Goals' },
+    { value: 'historical', label: 'Historical' },
     { value: 'backup', label: 'Backup' },
 ];
 
@@ -492,6 +494,14 @@ const SettingsModal = ({
                             </div>
                         )}
                     </>
+                    )}
+
+                    {settingsTab === 'historical' && (
+                        <HistoricalFtpSettings
+                            activities={activities}
+                            userSettings={userSettings}
+                            updateUserSettings={updateUserSettings}
+                        />
                     )}
 
                     {settingsTab === 'backup' && (
