@@ -20,6 +20,7 @@ import {
     chartRowsForPowerLongevity,
     normalizeBirthYear,
 } from '../../utils/powerTrendSeries';
+import { resolveHistoricalFtpMap } from '../../utils/historicalFtp';
 import CollapsibleDashboardCard from './CollapsibleDashboardCard';
 
 const METRICS = [
@@ -42,9 +43,16 @@ export default function PowerLongevitySection({
     const [metric, setMetric] = useState('eftp20');
     const [xMode, setXMode] = useState(birthYear ? 'age' : 'year');
 
+    const historicalFtpByYear = useMemo(
+        () => resolveHistoricalFtpMap(userSettings, activities),
+        [userSettings, activities],
+    );
+
+    const usesHistoricalFtp = Object.keys(historicalFtpByYear).length > 0;
+
     const yearlyRows = useMemo(
-        () => computeYearlyPowerPeakRows(activities, manualFtp, weightKg),
-        [activities, manualFtp, weightKg],
+        () => computeYearlyPowerPeakRows(activities, manualFtp, weightKg, historicalFtpByYear),
+        [activities, manualFtp, weightKg, historicalFtpByYear],
     );
 
     const enrichedRows = useMemo(
@@ -68,7 +76,11 @@ export default function PowerLongevitySection({
         <CollapsibleDashboardCard
             title="Long-term power trends"
             icon={TrendingUp}
-            description="Best peak per calendar year from your full ride history (not the period filter above)."
+            description={
+                usesHistoricalFtp
+                    ? 'Best peak per calendar year (full history). Sanity caps use per-year historical FTP from Settings → Historical.'
+                    : 'Best peak per calendar year from your full ride history (not the period filter above).'
+            }
             defaultExpanded={false}
         >
             <div className="flex flex-wrap items-center justify-end gap-2 mb-4">

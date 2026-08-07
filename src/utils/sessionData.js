@@ -6,6 +6,7 @@
 
 import { mergeVolumeGoals } from './volumeGoals.js';
 import { ACTIVITY_COLUMN_STORAGE_KEY } from './activityColumnVisibility.js';
+import { getDefaultHistoricalFtpSettings } from './historicalFtp.js';
 
 /** Keys removed on logout. Theme and PWA UI prefs are preserved. */
 export const SENSITIVE_LOCAL_STORAGE_KEYS = [
@@ -96,6 +97,8 @@ export function getDefaultUserSettings() {
         terrainProfile: 'hilly',
         /** Banner quick links (max 5): { id, label, href, icon } */
         quickLinks: null,
+        /** Per-year FTP for historical power caps — config + manual overrides */
+        historicalFtp: getDefaultHistoricalFtpSettings(),
     };
 }
 
