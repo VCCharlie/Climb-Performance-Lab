@@ -2,12 +2,12 @@ import React from 'react';
 import TimeRangeToolbar from './TimeRangeToolbar';
 import { TimeRangeCustomDates } from './TimeRangePresetPicker';
 import DashboardTodaySyncButton from '../dashboard/DashboardTodaySyncButton';
+import { TIME_RANGE_TAB_IDS } from '../../config/navTabs';
 
 /**
- * Mobile-only action row below the site header — time-range preset and today's sync.
- * Shown on tabs where at least one control applies; navigation uses bottom tabs instead.
+ * Build inline header chrome for mobile (preset + sync buttons, optional custom dates row).
  */
-export default function MobileContextToolbar({
+export function buildMobileHeaderToolbar({
     activeTab,
     timeRange,
     onTimeRangeChange,
@@ -15,49 +15,50 @@ export default function MobileContextToolbar({
     customEnd,
     onCustomStart,
     onCustomEnd,
-    showTimeRange,
     syncTodayActivities,
     isTodaySyncBusy,
 }) {
+    const showTimeRange = TIME_RANGE_TAB_IDS.has(activeTab);
     const showSync = activeTab === 'dashboard' && Boolean(syncTodayActivities);
     const visible = showTimeRange || showSync;
 
-    if (!visible) return null;
+    if (!visible) {
+        return null;
+    }
 
-    return (
-        <div className="md:hidden pb-2" data-mobile-nav-chrome="">
-            <div className="flex flex-col gap-1.5">
-                <div className="flex items-center justify-end gap-2">
-                    {showTimeRange ? (
-                        <TimeRangeToolbar
-                            layout="mobile-inline"
-                            timeRange={timeRange}
-                            onTimeRangeChange={onTimeRangeChange}
-                            customStart={customStart}
-                            customEnd={customEnd}
-                            onCustomStart={onCustomStart}
-                            onCustomEnd={onCustomEnd}
-                            compact
-                        />
-                    ) : null}
-                    {showSync ? (
-                        <DashboardTodaySyncButton
-                            onSync={syncTodayActivities}
-                            isBusy={isTodaySyncBusy}
-                            size="sm"
-                        />
-                    ) : null}
-                </div>
-                {showTimeRange && timeRange === 'Custom' ? (
-                    <TimeRangeCustomDates
-                        customStart={customStart}
-                        customEnd={customEnd}
-                        onCustomStart={onCustomStart}
-                        onCustomEnd={onCustomEnd}
-                        compact
-                    />
-                ) : null}
-            </div>
+    const actions = (
+        <div className="flex items-center gap-1.5 shrink-0">
+            {showTimeRange ? (
+                <TimeRangeToolbar
+                    layout="mobile-inline"
+                    timeRange={timeRange}
+                    onTimeRangeChange={onTimeRangeChange}
+                    customStart={customStart}
+                    customEnd={customEnd}
+                    onCustomStart={onCustomStart}
+                    onCustomEnd={onCustomEnd}
+                    compact
+                />
+            ) : null}
+            {showSync ? (
+                <DashboardTodaySyncButton
+                    onSync={syncTodayActivities}
+                    isBusy={isTodaySyncBusy}
+                    size="sm"
+                />
+            ) : null}
         </div>
     );
+
+    const footer = showTimeRange && timeRange === 'Custom' ? (
+        <TimeRangeCustomDates
+            customStart={customStart}
+            customEnd={customEnd}
+            onCustomStart={onCustomStart}
+            onCustomEnd={onCustomEnd}
+            compact
+        />
+    ) : null;
+
+    return { actions, footer };
 }

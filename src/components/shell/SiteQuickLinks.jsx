@@ -37,7 +37,7 @@ export default function SiteQuickLinks({ userSettings, iconOnly = false }) {
 
     return (
         <nav
-            className="border-b border-cdborder/25 bg-cdsurface/40"
+            className="hidden md:block border-b border-cdborder/25 bg-cdsurface/40"
             aria-label="Quick links"
         >
             <div className="max-w-7xl mx-auto px-3 py-1.5 flex items-center justify-center sm:justify-end gap-1.5 sm:gap-2 flex-wrap">

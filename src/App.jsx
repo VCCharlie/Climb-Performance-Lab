@@ -974,6 +974,13 @@ const App = () => {
                         userSettings={userSettings}
                         onOpenSettings={handleOpenSettings}
                         user={user}
+                        activeTab={user ? activeTab : null}
+                        timeRange={timeRange}
+                        onTimeRangeChange={setTimeRange}
+                        customStart={customStart}
+                        customEnd={customEnd}
+                        onCustomStart={setCustomStart}
+                        onCustomEnd={setCustomEnd}
                     />
 
                     <main id="main-content" className={`mx-auto p-3 space-y-4 transition-all duration-300 ${activeTab === 'activities' && user ? 'max-w-[95%]' : 'max-w-7xl'}`}>
