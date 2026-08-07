@@ -93,8 +93,6 @@ describe('Bolt Phase 1 smoke renders', () => {
           customEnd=""
           onCustomStart={() => {}}
           onCustomEnd={() => {}}
-          isMobileMenuOpen={false}
-          onMobileMenuOpenChange={() => {}}
         />,
       ),
     ).not.toThrow();
