@@ -5,6 +5,7 @@ import {
     persistMainTab,
     readPersistedMainTab,
     resolveInitialMainTab,
+    resolveInitialDashboardSubTab,
 } from '../../utils/sessionNavRestore';
 
 describe('sessionNavRestore', () => {
@@ -24,10 +25,15 @@ describe('sessionNavRestore', () => {
     });
 
     it('stash then consume returns payload once', () => {
-        stashNavRestoreBeforeExternalNav({ activeTab: 'activities', dataHubInternalTab: 'strava-profile' });
+        stashNavRestoreBeforeExternalNav({ activeTab: 'dashboard', dashboardSubTab: 'strava' });
         const a = consumeNavRestore();
-        expect(a).toEqual({ activeTab: 'activities', dataHubInternalTab: 'strava-profile' });
+        expect(a).toEqual({ activeTab: 'dashboard', dashboardSubTab: 'strava' });
         expect(consumeNavRestore()).toBeNull();
+    });
+
+    it('resolveInitialDashboardSubTab maps legacy strava-profile restore to dashboard strava', () => {
+        stashNavRestoreBeforeExternalNav({ activeTab: 'activities', dataHubInternalTab: 'strava-profile' });
+        expect(resolveInitialDashboardSubTab()).toBe('strava');
     });
 
     it('persistMainTab survives session reads', () => {

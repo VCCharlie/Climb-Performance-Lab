@@ -82,6 +82,7 @@ import {
     fetchCoachWeekFromFirestore,
     resolveCoachWeekOnSync,
     shouldApplyRemoteCoachWeek,
+    shouldPushLocalCoachWeek,
     COACH_WEEK_CLOUD_DEBOUNCE_MS,
 } from './utils/coach/coachWeekCloudSync';
 import {
@@ -704,10 +705,18 @@ const App = () => {
 
         const pushCoachWeek = () => {
             clearTimeout(timer);
-            timer = setTimeout(() => {
+            timer = setTimeout(async () => {
                 const raw = readRawCoachWeekForPush();
-                if (raw?.weekKey) {
-                    syncCoachWeekToFirestore(db, user.uid, raw);
+                if (!raw?.weekKey) return;
+
+                try {
+                    const remote = await fetchCoachWeekFromFirestore(db, user.uid);
+                    if (!shouldPushLocalCoachWeek(raw, remote?.state ?? null, raw.weekKey)) {
+                        return;
+                    }
+                    await syncCoachWeekToFirestore(db, user.uid, raw);
+                } catch (err) {
+                    console.warn('[Coach week] Could not push to Firestore:', err);
                 }
             }, COACH_WEEK_CLOUD_DEBOUNCE_MS);
         };
@@ -719,15 +728,15 @@ const App = () => {
         };
     }, [user]);
 
-    // Refresh coach week from cloud when opening Training tab (mobile → desktop).
+    // Pull coach week from cloud on sign-in, Training tab, and when the tab regains focus.
     useEffect(() => {
-        if (!user || !db || activeTab !== 'training' || !bucketListCloudReadyRef.current) {
-            return undefined;
-        }
+        if (!user || !db) return undefined;
 
         let cancelled = false;
 
-        const refresh = async () => {
+        const refreshCoachWeekFromCloud = async () => {
+            if (!bucketListCloudReadyRef.current || cancelled) return;
+
             try {
                 const remote = await fetchCoachWeekFromFirestore(db, user.uid);
                 if (cancelled) return;
@@ -736,15 +745,15 @@ const App = () => {
                 const localRaw = readRawCoachWeekForSync();
 
                 if (!remote?.state) {
-                    if (localRaw?.weekKey) {
-                        syncCoachWeekToFirestore(db, user.uid, readRawCoachWeekForPush());
+                    if (localRaw?.weekKey && shouldPushLocalCoachWeek(localRaw, null, weekKey)) {
+                        await syncCoachWeekToFirestore(db, user.uid, readRawCoachWeekForPush());
                     }
                     return;
                 }
 
                 if (!shouldApplyRemoteCoachWeek(localRaw, remote.state, weekKey)) {
-                    if (localRaw?.weekKey) {
-                        syncCoachWeekToFirestore(db, user.uid, readRawCoachWeekForPush());
+                    if (localRaw?.weekKey && shouldPushLocalCoachWeek(localRaw, remote.state, weekKey)) {
+                        await syncCoachWeekToFirestore(db, user.uid, readRawCoachWeekForPush());
                     }
                     return;
                 }
@@ -757,9 +766,23 @@ const App = () => {
             }
         };
 
-        refresh();
+        const onVisible = () => {
+            if (document.visibilityState === 'visible') {
+                refreshCoachWeekFromCloud();
+            }
+        };
+
+        if (activeTab === 'training') {
+            refreshCoachWeekFromCloud();
+        }
+
+        document.addEventListener('visibilitychange', onVisible);
+        window.addEventListener('focus', onVisible);
+
         return () => {
             cancelled = true;
+            document.removeEventListener('visibilitychange', onVisible);
+            window.removeEventListener('focus', onVisible);
         };
     }, [activeTab, user]);
 
@@ -997,6 +1020,10 @@ const App = () => {
                                         userSettings={userSettings}
                                         onOpenSettings={handleOpenSettings}
                                         onGoToActivities={navigateToActivities}
+                                        stravaGetToken={stravaAuth.isConnected ? stravaAuth.getValidToken : null}
+                                        stravaAthleteId={stravaConfig?.athlete_id}
+                                        stravaProfileData={stravaProfileData}
+                                        onStravaProfileData={handleStravaProfileData}
                                     />
                                 )}
 
@@ -1015,9 +1042,6 @@ const App = () => {
                                                 endDate={globalEndDate}
                                                 stravaEnrichResults={stravaEnrichResults}
                                                 onStravaEnrichResults={setStravaEnrichResults}
-                                                stravaAthleteId={stravaConfig?.athlete_id}
-                                                stravaProfileData={stravaProfileData}
-                                                onStravaProfileData={handleStravaProfileData}
                                                 onOpenProfilerFromActivity={handleOpenProfilerFromActivity}
                                                 climbDatabaseForMatch={climbDatabase}
                                                 initialInternalTab={dataHubMountTab}

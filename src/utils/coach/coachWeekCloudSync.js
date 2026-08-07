@@ -50,6 +50,29 @@ export function resolveCoachWeekOnSync(localRaw, cloudState, currentWeekKey) {
 }
 
 /**
+ * Whether local coach-week state should be pushed to Firestore (never overwrite newer cloud).
+ */
+export function shouldPushLocalCoachWeek(localRaw, cloudState, currentWeekKey, nowMs = Date.now()) {
+    if (!localRaw || localRaw.weekKey !== currentWeekKey) return false;
+
+    const local = normalizeCoachWeekState(localRaw);
+    const localMs = Date.parse(local.updatedAt || '') || 0;
+
+    if (!cloudState || cloudState.weekKey !== currentWeekKey) {
+        return localMs > 0;
+    }
+
+    const cloud = normalizeCoachWeekState(cloudState);
+    const cloudMs = Date.parse(cloud.updatedAt || '') || 0;
+
+    if (localMs > 0 && (nowMs - localMs) < COACH_WEEK_LOCAL_GRACE_MS) {
+        return localMs >= cloudMs;
+    }
+
+    return localMs >= cloudMs;
+}
+
+/**
  * Whether a remote coach-week payload should replace local state (respects local grace window).
  */
 export function shouldApplyRemoteCoachWeek(localRaw, cloudState, currentWeekKey, nowMs = Date.now()) {

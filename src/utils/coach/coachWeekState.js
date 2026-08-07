@@ -137,7 +137,7 @@ export function readRawCoachWeekForSyncFromRoot(raw) {
         return {
             ...state,
             weekKey,
-            updatedAt: state.updatedAt || new Date().toISOString(),
+            updatedAt: state.updatedAt || null,
         };
     }
     if (raw.weekKey) {
