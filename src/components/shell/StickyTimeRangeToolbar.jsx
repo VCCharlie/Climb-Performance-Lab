@@ -3,9 +3,18 @@ import FixedLayerPortal from '../ui/FixedLayerPortal';
 import useAppHeaderOffset from '../../hooks/useAppHeaderOffset';
 import { setPinnedTimeRangeHeight } from '../../utils/pinnedTimeRangeHeight';
 
+const DESKTOP_NAV_QUERY = '(min-width: 768px)';
+
 /** Solid shell matching the site header (opaque, no blur). */
 const PINNED_SHELL_CLASS =
-    'fixed left-0 right-0 z-[34] border-b border-cdborder/50 border-t border-cdsurface bg-cdsurface shadow-sm';
+    'hidden md:block fixed left-0 right-0 z-[34] border-b border-cdborder/50 border-t border-cdsurface bg-cdsurface shadow-sm';
+
+function isDesktopNavViewport() {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+        return false;
+    }
+    return window.matchMedia(DESKTOP_NAV_QUERY).matches;
+}
 
 function clonePinnedChild(children) {
     return Children.map(children, (child) => {
@@ -32,8 +41,16 @@ export default function StickyTimeRangeToolbar({ children, enabled = true }) {
         const sentinel = sentinelRef.current;
         if (!sentinel || typeof IntersectionObserver === 'undefined') return undefined;
 
+        const updatePinned = (entry) => {
+            if (!isDesktopNavViewport()) {
+                setPinned(false);
+                return;
+            }
+            setPinned(!entry.isIntersecting);
+        };
+
         const observer = new IntersectionObserver(
-            ([entry]) => setPinned(!entry.isIntersecting),
+            ([entry]) => updatePinned(entry),
             {
                 root: null,
                 rootMargin: `-${headerOffset}px 0px 0px 0px`,
@@ -41,12 +58,22 @@ export default function StickyTimeRangeToolbar({ children, enabled = true }) {
             },
         );
 
+        const onViewportChange = () => {
+            if (!isDesktopNavViewport()) {
+                setPinned(false);
+            }
+        };
+
         observer.observe(sentinel);
-        return () => observer.disconnect();
+        window.addEventListener('resize', onViewportChange);
+        return () => {
+            observer.disconnect();
+            window.removeEventListener('resize', onViewportChange);
+        };
     }, [enabled, headerOffset]);
 
     useEffect(() => {
-        if (!enabled || !pinned) {
+        if (!enabled || !pinned || !isDesktopNavViewport()) {
             setPinnedTimeRangeHeight(0);
             return undefined;
         }
@@ -70,15 +97,17 @@ export default function StickyTimeRangeToolbar({ children, enabled = true }) {
         if (!enabled) setPinnedTimeRangeHeight(0);
     }, [enabled]);
 
+    const showPinnedPortal = pinned && isDesktopNavViewport();
+
     if (!enabled) return null;
 
     return (
         <>
             <div ref={sentinelRef} className="h-px w-full -mb-px" aria-hidden />
-            <div className={pinned ? 'invisible' : undefined} aria-hidden={pinned}>
+            <div className={showPinnedPortal ? 'invisible' : undefined} aria-hidden={showPinnedPortal}>
                 {children}
             </div>
-            {pinned && (
+            {showPinnedPortal && (
                 <FixedLayerPortal>
                     <div
                         ref={pinnedBarRef}
