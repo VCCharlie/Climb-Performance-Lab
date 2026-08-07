@@ -25,24 +25,13 @@ export default function TimeRangeToolbar({
         onCustomEnd,
         compact,
         align: layout === 'desktop' ? 'end' : 'start',
+        hideCustomDates: layout === 'mobile-inline',
+        className: cn(
+            layout === 'desktop' && 'shrink-0',
+            layout === 'mobile-inline' && 'shrink-0',
+            className,
+        ),
     };
 
-    if (layout === 'mobile-full') {
-        return (
-            <TimeRangePresetPicker
-                {...pickerProps}
-                className={cn(compact ? 'pb-1' : 'pb-3', className)}
-            />
-        );
-    }
-
-    return (
-        <TimeRangePresetPicker
-            {...pickerProps}
-            className={cn(
-                layout === 'desktop' && 'flex justify-end',
-                className,
-            )}
-        />
-    );
+    return <TimeRangePresetPicker {...pickerProps} />;
 }

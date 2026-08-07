@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Activity, Settings, LogIn, LogOut, User, Cloud, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { safeLocalStorageSet } from '../utils/safeStorage.js';
 import { formatDateTimeNl } from '../utils/formatters';
@@ -43,6 +43,27 @@ function Header({ userSettings, onOpenSettings, user }) {
     const [lastSyncTime, setLastSyncTime] = useState(() => localStorage.getItem('app_last_sync_time'));
     const [authBusy, setAuthBusy] = useState(false);
     const [avatarImgFailed, setAvatarImgFailed] = useState(false);
+    const [desktopScrolled, setDesktopScrolled] = useState(false);
+    const scrollRafRef = useRef(null);
+
+    useEffect(() => {
+        const onScroll = () => {
+            if (scrollRafRef.current !== null) return;
+            scrollRafRef.current = window.requestAnimationFrame(() => {
+                scrollRafRef.current = null;
+                setDesktopScrolled(window.scrollY > 6);
+            });
+        };
+
+        onScroll();
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => {
+            window.removeEventListener('scroll', onScroll);
+            if (scrollRafRef.current !== null) {
+                window.cancelAnimationFrame(scrollRafRef.current);
+            }
+        };
+    }, []);
 
     useEffect(() => {
         if (syncStatus === 'synced' || syncStatus === 'success' || syncStatus === 'done') {
@@ -85,7 +106,13 @@ function Header({ userSettings, onOpenSettings, user }) {
     const showAppChrome = Boolean(user);
 
     return (
-        <header className="sticky top-0 z-40 border-b border-cdborder/50 bg-cdsurface/85 backdrop-blur-md supports-[backdrop-filter]:bg-cdsurface/75">
+        <header
+            className={cn(
+                'sticky top-0 z-40 border-b border-cdborder/50',
+                'bg-cdsurface/85 backdrop-blur-md supports-[backdrop-filter]:bg-cdsurface/75',
+                desktopScrolled && 'md:bg-cdsurface md:backdrop-blur-none md:supports-[backdrop-filter]:md:bg-cdsurface',
+            )}
+        >
             <SiteQuickLinks userSettings={userSettings} />
             <div className="max-w-7xl mx-auto flex justify-between items-center gap-3 px-3 py-2.5 md:px-4 md:py-3">
                 <div className="flex items-center gap-2.5 md:gap-3 min-w-0">

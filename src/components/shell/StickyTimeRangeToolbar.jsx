@@ -5,7 +5,7 @@ import { setPinnedTimeRangeHeight } from '../../utils/pinnedTimeRangeHeight';
 
 /** Solid shell matching the site header (opaque, no blur). */
 const PINNED_SHELL_CLASS =
-    'fixed left-0 right-0 z-[34] border-b border-cdborder/50 bg-cdsurface shadow-sm';
+    'fixed left-0 right-0 z-[34] border-b border-cdborder/50 border-t border-cdsurface bg-cdsurface shadow-sm';
 
 function clonePinnedChild(children) {
     return Children.map(children, (child) => {
@@ -84,9 +84,9 @@ export default function StickyTimeRangeToolbar({ children, enabled = true }) {
                         ref={pinnedBarRef}
                         data-pinned-main-nav=""
                         className={PINNED_SHELL_CLASS}
-                        style={{ top: headerOffset }}
+                        style={{ top: Math.max(0, headerOffset - 1) }}
                     >
-                        <div className="max-w-7xl mx-auto px-3 py-1.5">
+                        <div className="max-w-7xl mx-auto px-3 py-1">
                             {clonePinnedChild(children)}
                         </div>
                     </div>

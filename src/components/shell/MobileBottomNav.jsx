@@ -91,7 +91,7 @@ function MobileBottomNav({ activeTab, onTabChange }) {
                         role="menu"
                         aria-label="More navigation"
                     >
-                        <ul className="py-1 max-h-[50vh] overflow-y-auto custom-scrollbar">
+                        <ul className="grid grid-cols-2 py-1">
                             {MORE_TABS.map((tab) => {
                                 const Icon = tab.icon;
                                 const isActive = activeTab === tab.id;
@@ -104,14 +104,14 @@ function MobileBottomNav({ activeTab, onTabChange }) {
                                             onPointerDown={() => handlePrefetch(tab.id)}
                                             onFocus={() => handlePrefetch(tab.id)}
                                             className={cn(
-                                                'w-full flex items-center gap-3 px-4 min-h-11 py-3 text-sm font-medium cd-transition cd-focus-ring',
+                                                'w-full flex items-center gap-2.5 px-3 min-h-11 py-2.5 text-sm font-medium cd-transition cd-focus-ring',
                                                 isActive
                                                     ? 'bg-cdprimarycontainer text-cdonprimarycontainer'
                                                     : 'text-cdtext hover:bg-cdsurfacelow active:bg-cdsurfacehigh',
                                             )}
                                         >
                                             <Icon className={cn('w-4 h-4 shrink-0', isActive && 'text-cdprimary')} aria-hidden />
-                                            {tab.label}
+                                            <span className="truncate">{tab.label}</span>
                                         </button>
                                     </li>
                                 );
