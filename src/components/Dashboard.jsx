@@ -322,7 +322,12 @@ const Dashboard = ({
                     )}
 
                     {dashboardTab === 'strava' && stravaConnected && (
-                        <div role="tabpanel" id="tabpanel-strava" aria-labelledby="tab-strava" className="overflow-hidden flex flex-col">
+                        <div
+                            role="tabpanel"
+                            id="tabpanel-strava"
+                            aria-labelledby="tab-strava"
+                            className="bg-cdsurface rounded-xl border border-cdborder shadow-md overflow-hidden flex flex-col p-4"
+                        >
                             <StravaProfileTab
                                 getStravaToken={stravaGetToken}
                                 athleteId={stravaAthleteId}
