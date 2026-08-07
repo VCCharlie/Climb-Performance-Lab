@@ -6,7 +6,6 @@ import ActivityLogTab from './data-hub/ActivityLogTab';
 import DataHubModals from './data-hub/DataHubModals';
 import StravaEnrichOverlay from './data-hub/StravaEnrichOverlay';
 import ImportSection from './data-hub/ImportSection';
-import StravaProfileTab from './DataHub/StravaProfileTab';
 
 import useActivityFilter from '../hooks/useActivityFilter';
 import useActivityColumnVisibility from '../hooks/useActivityColumnVisibility';
@@ -32,9 +31,6 @@ const DataHub = ({
     endDate,
     stravaEnrichResults,
     onStravaEnrichResults,
-    stravaAthleteId,
-    stravaProfileData,
-    onStravaProfileData,
     onOpenProfilerFromActivity,
     climbDatabaseForMatch = getCoreClimbDatabase(),
     initialInternalTab = 'log',
@@ -74,15 +70,10 @@ const DataHub = ({
     } = useActivityLogNavigation();
 
     const [internalTab, setInternalTab] = useState(() => (
-        ['log', 'strava-profile', 'import'].includes(initialInternalTab) ? initialInternalTab : 'log'
+        ['log', 'import'].includes(initialInternalTab) ? initialInternalTab : 'log'
     ));
 
-    const dataHubTabIds = useMemo(() => {
-        const ids = ['log'];
-        if (stravaGetToken) ids.push('strava-profile');
-        ids.push('import');
-        return ids;
-    }, [stravaGetToken]);
+    const dataHubTabIds = useMemo(() => ['log', 'import'], []);
 
     const onDataHubTabKeyDown = useTabListKeyboard(dataHubTabIds, internalTab, setInternalTab);
     const [detailActivity, setDetailActivity] = useState(null);
@@ -292,12 +283,6 @@ const DataHub = ({
 
             <div className="flex border-b border-cdborder" role="tablist" aria-label="Data Hub Tabs" onKeyDown={onDataHubTabKeyDown}>
                 <button type="button" id="tab-log" role="tab" aria-selected={internalTab === 'log'} aria-controls="tabpanel-log" onClick={() => setInternalTab('log')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'log' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Activity Log</button>
-                {stravaGetToken && (
-                    <button type="button" id="tab-strava-profile" role="tab" aria-selected={internalTab === 'strava-profile'} aria-controls="tabpanel-strava-profile" onClick={() => setInternalTab('strava-profile')} className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-1.5 ${internalTab === 'strava-profile' ? 'bg-cdborder text-orange-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>
-                        <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" /></svg>
-                        Strava Profile
-                    </button>
-                )}
                 <button type="button" id="tab-import" role="tab" aria-selected={internalTab === 'import'} aria-controls="tabpanel-import" onClick={() => setInternalTab('import')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'import' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Import Data</button>
             </div>
 
@@ -358,18 +343,6 @@ const DataHub = ({
                             stravaGetToken={stravaGetToken}
                             onDataDetected={dataImport.handleDataDetected}
                             onFetchedActivityFromUrl={dataImport.handleManualFetchedActivity}
-                        />
-                    </div>
-                )}
-
-                {internalTab === 'strava-profile' && (
-                    <div role="tabpanel" id="tabpanel-strava-profile" aria-labelledby="tab-strava-profile" className="flex-1 overflow-hidden flex flex-col p-4">
-                        <StravaProfileTab
-                            getStravaToken={stravaGetToken}
-                            athleteId={stravaAthleteId}
-                            persistedData={stravaProfileData}
-                            onDataChange={onStravaProfileData}
-                            activities={activities}
                         />
                     </div>
                 )}

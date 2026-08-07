@@ -1,6 +1,7 @@
 ﻿import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import { safeSessionStorageSet } from '../utils/safeStorage.js';
 import { lazyWithRetry } from '../utils/lazyWithRetry.js';
+import { resolveInitialDashboardSubTab } from '../utils/sessionNavRestore.js';
 import {
     getDashboardWindowBounds,
     previousWindowBounds,
@@ -23,19 +24,13 @@ const FormTab = lazyWithRetry(() => import('./dashboard/FormTab'), 'FormTab');
 const PowerTab = lazyWithRetry(() => import('./dashboard/PowerTab'), 'PowerTab');
 const DistanceTab = lazyWithRetry(() => import('./dashboard/DistanceTab'), 'DistanceTab');
 const VolumeTotalsTab = lazyWithRetry(() => import('./dashboard/VolumeTotalsTab'), 'VolumeTotalsTab');
+const StravaProfileTab = lazyWithRetry(() => import('./DataHub/StravaProfileTab'), 'StravaProfileTab');
 
 const DASH_SUBTAB_STORAGE_KEY = 'cpl.dashboard.subTab.v1';
-const DASHBOARD_TAB_IDS = ['overview', 'form', 'power', 'distance', 'volume', 'compare'];
+const BASE_DASHBOARD_TAB_IDS = ['overview', 'form', 'power', 'distance', 'volume', 'compare'];
 
 function readDashboardSubTab() {
-    if (typeof sessionStorage === 'undefined') return 'overview';
-    try {
-        const v = sessionStorage.getItem(DASH_SUBTAB_STORAGE_KEY);
-        if (['overview', 'form', 'power', 'distance', 'volume', 'compare'].includes(v)) return v;
-    } catch {
-        /* ignore */
-    }
-    return 'overview';
+    return resolveInitialDashboardSubTab();
 }
 
 function shiftDashboardBoundsByYears(bounds, deltaYears) {
@@ -60,16 +55,32 @@ const Dashboard = ({
     onOpenSettings,
     onOpenActivityLogDateRange,
     onGoToActivities,
+    stravaGetToken = null,
+    stravaAthleteId = null,
+    stravaProfileData = null,
+    onStravaProfileData,
 }) => {
     const activitiesFromContext = useActivitiesList();
     const firestoreActivities = activitiesProp ?? activitiesFromContext;
     const profileFtp = useProfileFtp();
     const manualFtp = profileFtp.ftp || manualFtpProp || 0;
     const { syncTodayActivities, isTodaySyncBusy } = useTodayIntervalsSync();
+    const stravaConnected = Boolean(stravaGetToken);
+
+    const dashboardTabIds = useMemo(
+        () => (stravaConnected ? [...BASE_DASHBOARD_TAB_IDS, 'strava'] : BASE_DASHBOARD_TAB_IDS),
+        [stravaConnected],
+    );
 
     const [dashboardTab, setDashboardTab] = useState(readDashboardSubTab);
 
-    const onDashboardTabKeyDown = useTabListKeyboard(DASHBOARD_TAB_IDS, dashboardTab, setDashboardTab);
+    const onDashboardTabKeyDown = useTabListKeyboard(dashboardTabIds, dashboardTab, setDashboardTab);
+
+    useEffect(() => {
+        if (!stravaConnected && dashboardTab === 'strava') {
+            setDashboardTab('overview');
+        }
+    }, [stravaConnected, dashboardTab]);
 
     const handleDashboardSubTabIntent = (tabId) => {
         prefetchDashboardSubTabChunk(tabId);
@@ -217,6 +228,21 @@ const Dashboard = ({
                     onFocus={() => handleDashboardSubTabIntent('compare')}
                     className={`flex-1 min-w-[5.5rem] py-3 text-sm font-bold ${dashboardTab === 'compare' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
                 >Compare</button>
+                {stravaConnected && (
+                    <button
+                        type="button"
+                        id="tab-strava"
+                        role="tab"
+                        aria-selected={dashboardTab === 'strava'}
+                        aria-controls="tabpanel-strava"
+                        onClick={() => setDashboardTab('strava')}
+                        onMouseEnter={() => handleDashboardSubTabIntent('strava')}
+                        onFocus={() => handleDashboardSubTabIntent('strava')}
+                        className={`flex-1 min-w-[5.5rem] py-3 text-sm font-bold flex items-center justify-center gap-1.5 ${dashboardTab === 'strava' ? 'bg-cdborder text-orange-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
+                    >
+                        Strava
+                    </button>
+                )}
             </div>
 
             {/* TAB CONTENT */}
@@ -291,6 +317,18 @@ const Dashboard = ({
                                 comparePrevPeriodActivities={volumeComparePrevPeriodActivities}
                                 comparePrevYearActivities={volumeComparePrevYearActivities}
                                 onOpenActivityLogDateRange={onOpenActivityLogDateRange}
+                            />
+                        </div>
+                    )}
+
+                    {dashboardTab === 'strava' && stravaConnected && (
+                        <div role="tabpanel" id="tabpanel-strava" aria-labelledby="tab-strava" className="overflow-hidden flex flex-col">
+                            <StravaProfileTab
+                                getStravaToken={stravaGetToken}
+                                athleteId={stravaAthleteId}
+                                persistedData={stravaProfileData}
+                                onDataChange={onStravaProfileData}
+                                activities={firestoreActivities}
                             />
                         </div>
                     )}

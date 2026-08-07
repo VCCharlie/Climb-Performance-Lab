@@ -11,7 +11,9 @@ const MAIN_TAB_IDS = new Set([
     'profiler', 'bucketlist', 'climbmap', 'weather',
 ]);
 
-const DATAHUB_INTERNAL_TABS = new Set(['log', 'strava-profile', 'import']);
+const DASHBOARD_SUB_TABS = new Set(['overview', 'form', 'power', 'distance', 'volume', 'compare', 'strava']);
+
+const DATAHUB_INTERNAL_TABS = new Set(['log', 'import']);
 
 let cachedNavRestorePayload = null;
 
@@ -69,12 +71,36 @@ export function resolveInitialMainTab() {
 }
 
 /**
+ * Dashboard sub-tab from nav restore payload (legacy strava-profile → dashboard strava).
+ * @returns {string}
+ */
+export function resolveInitialDashboardSubTab() {
+    const restored = consumeNavRestoreOnce();
+    if (restored?.dashboardSubTab && DASHBOARD_SUB_TABS.has(restored.dashboardSubTab)) {
+        return restored.dashboardSubTab;
+    }
+    if (restored?.dataHubInternalTab === 'strava-profile') {
+        return 'strava';
+    }
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+        try {
+            const v = window.sessionStorage.getItem('cpl.dashboard.subTab.v1');
+            if (v && DASHBOARD_SUB_TABS.has(v)) return v;
+        } catch {
+            /* ignore */
+        }
+    }
+    return 'overview';
+}
+
+/**
  * DataHub sub-tab from the same one-shot nav restore payload.
  * @returns {string}
  */
 export function resolveInitialDataHubInternalTab() {
     const restored = consumeNavRestoreOnce();
     const t = restored?.dataHubInternalTab;
+    if (t === 'strava-profile') return 'log';
     return t && DATAHUB_INTERNAL_TABS.has(t) ? t : 'log';
 }
 
@@ -85,8 +111,8 @@ export function stashNavRestoreBeforeExternalNav(payload = {}) {
     if (typeof window === 'undefined' || !window.sessionStorage) return;
     try {
         const data = {
-            activeTab: 'activities',
-            dataHubInternalTab: 'strava-profile',
+            activeTab: 'dashboard',
+            dashboardSubTab: 'strava',
             ...payload,
         };
         window.sessionStorage.setItem(SESSION_NAV_RESTORE_KEY, JSON.stringify(data));

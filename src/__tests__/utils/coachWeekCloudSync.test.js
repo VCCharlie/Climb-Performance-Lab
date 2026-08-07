@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { resolveCoachWeekOnSync, shouldApplyRemoteCoachWeek } from '../../utils/coach/coachWeekCloudSync';
+import {
+    resolveCoachWeekOnSync,
+    shouldApplyRemoteCoachWeek,
+    shouldPushLocalCoachWeek,
+} from '../../utils/coach/coachWeekCloudSync';
 
 describe('coachWeekCloudSync', () => {
     const weekKey = '2026-W32';
@@ -63,5 +67,33 @@ describe('coachWeekCloudSync', () => {
             updatedAt: '2026-08-03T12:00:00.000Z',
         };
         expect(shouldApplyRemoteCoachWeek(local, cloud, weekKey, now)).toBe(false);
+    });
+
+    it('shouldPushLocalCoachWeek blocks stale local from overwriting newer cloud', () => {
+        const local = {
+            weekKey,
+            unavailableDates: ['2026-08-06'],
+            updatedAt: '2026-08-03T08:00:00.000Z',
+        };
+        const cloud = {
+            weekKey,
+            unavailableDates: ['2026-08-05'],
+            updatedAt: '2026-08-03T10:00:00.000Z',
+        };
+        expect(shouldPushLocalCoachWeek(local, cloud, weekKey)).toBe(false);
+    });
+
+    it('shouldPushLocalCoachWeek allows push when local is newer', () => {
+        const local = {
+            weekKey,
+            unavailableDates: ['2026-08-06'],
+            updatedAt: '2026-08-03T12:00:00.000Z',
+        };
+        const cloud = {
+            weekKey,
+            unavailableDates: ['2026-08-05'],
+            updatedAt: '2026-08-03T10:00:00.000Z',
+        };
+        expect(shouldPushLocalCoachWeek(local, cloud, weekKey)).toBe(true);
     });
 });
