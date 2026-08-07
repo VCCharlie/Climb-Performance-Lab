@@ -4,6 +4,7 @@ import { Menu, X, ChevronRight, RefreshCw } from 'lucide-react';
 import { Button, cn } from '../ui';
 import NavTab from './NavTab';
 import TimeRangeToolbar from './TimeRangeToolbar';
+import { TimeRangeCustomDates } from './TimeRangePresetPicker';
 import StickyTimeRangeToolbar from './StickyTimeRangeToolbar';
 import { MAIN_NAV_TABS, TIME_RANGE_TAB_IDS } from '../../config/navTabs';
 import { prefetchMainTabChunk } from '../../utils/prefetchTabChunks';
@@ -110,71 +111,82 @@ function MainNav({
   return (
     <div className="relative mb-4">
       <StickyTimeRangeToolbar enabled>
-        {/* Mobile: menu trigger + optional time presets (sticky together) */}
+        {/* Mobile: menu trigger + optional time presets on one row */}
         <div className="md:hidden pb-2" data-mobile-nav-chrome="">
-          <div className="flex items-center gap-2 mb-2">
-            <Button
-              ref={menuTriggerRef}
-              type="button"
-              variant="tonal"
-              className="flex-1 justify-start font-semibold min-h-11"
-              onClick={toggleMobileMenu}
-              aria-expanded={isMobileMenuOpen}
-              aria-haspopup="true"
-              aria-controls={menuPanelId}
-            >
-              {isMobileMenuOpen ? <X size={18} aria-hidden /> : <Menu size={18} aria-hidden />}
-              {mobileLabel}
-            </Button>
-            {activeTab === 'dashboard' && syncTodayActivities && (
-              <button
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2">
+              <Button
+                ref={menuTriggerRef}
                 type="button"
-                onClick={syncTodayActivities}
-                disabled={isTodaySyncBusy}
-                className="flex items-center justify-center w-11 h-11 shrink-0 rounded-lg border border-cdborder bg-cdsurface text-cdmuted hover:text-green-400 hover:border-green-500/50 cd-transition focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none disabled:opacity-50"
-                title="Sync today's activities from Intervals.icu"
-                aria-label="Sync today's activities from Intervals.icu"
+                variant="tonal"
+                className="flex-1 min-w-0 justify-start font-semibold min-h-11"
+                onClick={toggleMobileMenu}
+                aria-expanded={isMobileMenuOpen}
+                aria-haspopup="true"
+                aria-controls={menuPanelId}
               >
-                <RefreshCw size={18} className={isTodaySyncBusy ? 'animate-spin' : ''} aria-hidden />
-              </button>
-            )}
+                {isMobileMenuOpen ? <X size={18} aria-hidden /> : <Menu size={18} aria-hidden />}
+                {mobileLabel}
+              </Button>
+              {showTimeRange ? (
+                <TimeRangeToolbar
+                  layout="mobile-inline"
+                  {...timeRangeProps}
+                  compact
+                />
+              ) : null}
+              {activeTab === 'dashboard' && syncTodayActivities && (
+                <button
+                  type="button"
+                  onClick={syncTodayActivities}
+                  disabled={isTodaySyncBusy}
+                  className="flex items-center justify-center w-11 h-11 shrink-0 rounded-lg border border-cdborder bg-cdsurface text-cdmuted hover:text-green-400 hover:border-green-500/50 cd-transition focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none disabled:opacity-50"
+                  title="Sync today's activities from Intervals.icu"
+                  aria-label="Sync today's activities from Intervals.icu"
+                >
+                  <RefreshCw size={18} className={isTodaySyncBusy ? 'animate-spin' : ''} aria-hidden />
+                </button>
+              )}
+            </div>
+            {showTimeRange && timeRange === 'Custom' ? (
+              <TimeRangeCustomDates
+                customStart={customStart}
+                customEnd={customEnd}
+                onCustomStart={onCustomStart}
+                onCustomEnd={onCustomEnd}
+                compact
+              />
+            ) : null}
           </div>
-          {showTimeRange ? (
-            <TimeRangeToolbar
-              layout="mobile-full"
-              {...timeRangeProps}
-              compact
-            />
-          ) : null}
         </div>
 
-        {/* Desktop: primary tabs (full width); time presets on row below when active */}
+        {/* Desktop: tabs and time preset on the same row */}
         <div className="hidden md:block border-b border-cdborder/40 pb-1" data-pinned-main-nav="">
-          <nav
-            className="flex flex-wrap items-center gap-x-0.5 gap-y-0"
-            role="tablist"
-            aria-label="Main navigation"
-          >
-            {tabs.map((item) => (
-              <NavTab
-                key={item.id}
-                icon={item.icon}
-                label={item.label}
-                isActive={activeTab === item.id}
-                onClick={() => onTabChange(item.id)}
-                onPrefetch={() => prefetchMainTabChunk(item.id)}
-              />
-            ))}
-          </nav>
-          {showTimeRange ? (
-            <div className="pt-1.5 pb-0.5">
+          <div className="flex items-center gap-2">
+            <nav
+              className="flex flex-1 flex-wrap items-center gap-x-0.5 gap-y-0 min-w-0"
+              role="tablist"
+              aria-label="Main navigation"
+            >
+              {tabs.map((item) => (
+                <NavTab
+                  key={item.id}
+                  icon={item.icon}
+                  label={item.label}
+                  isActive={activeTab === item.id}
+                  onClick={() => onTabChange(item.id)}
+                  onPrefetch={() => prefetchMainTabChunk(item.id)}
+                />
+              ))}
+            </nav>
+            {showTimeRange ? (
               <TimeRangeToolbar
                 layout="desktop"
                 {...timeRangeProps}
                 compact
               />
-            </div>
-          ) : null}
+            ) : null}
+          </div>
         </div>
       </StickyTimeRangeToolbar>
 

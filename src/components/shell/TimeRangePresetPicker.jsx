@@ -6,6 +6,42 @@ import { inputBaseClass, cn } from '../ui';
 import { TIME_RANGE_OPTIONS } from '../../config/navTabs';
 
 /**
+ * Start/end date inputs for the Custom time-range preset.
+ */
+export function TimeRangeCustomDates({
+    customStart,
+    customEnd,
+    onCustomStart,
+    onCustomEnd,
+    compact = false,
+    className,
+}) {
+    return (
+        <div
+            className={cn(
+                'flex items-center gap-2 bg-cdsurfacelow rounded-cdmd border border-cdborder/60 animate-in fade-in slide-in-from-top-1',
+                compact ? 'p-1.5' : 'p-1.5',
+                className,
+            )}
+        >
+            <NlDateInput
+                value={customStart}
+                onChange={onCustomStart}
+                className={`${inputBaseClass} text-[10px] ${compact ? 'py-0.5' : 'py-1'} flex-1`}
+                aria-label="Start date (dd-mm-jjjj)"
+            />
+            <span className="text-cdmuted text-[10px]">–</span>
+            <NlDateInput
+                value={customEnd}
+                onChange={onCustomEnd}
+                className={`${inputBaseClass} text-[10px] ${compact ? 'py-0.5' : 'py-1'} flex-1`}
+                aria-label="End date (dd-mm-jjjj)"
+            />
+        </div>
+    );
+}
+
+/**
  * Collapsed time-range control — shows the active preset; opens a menu to pick another.
  */
 export default function TimeRangePresetPicker({
@@ -18,6 +54,7 @@ export default function TimeRangePresetPicker({
     compact = false,
     className,
     align = 'start',
+    hideCustomDates = false,
 }) {
     const [open, setOpen] = useState(false);
     const anchorRef = useRef(null);
@@ -81,27 +118,15 @@ export default function TimeRangePresetPicker({
                 </div>
             </AnchoredDropdownPortal>
 
-            {timeRange === 'Custom' && (
-                <div
-                    className={cn(
-                        'flex items-center gap-2 bg-cdsurfacelow rounded-cdmd border border-cdborder/60 animate-in fade-in slide-in-from-top-1',
-                        compact ? 'p-1.5 mt-1.5' : 'p-1.5 mt-2',
-                    )}
-                >
-                    <NlDateInput
-                        value={customStart}
-                        onChange={onCustomStart}
-                        className={`${inputBaseClass} text-[10px] ${compact ? 'py-0.5' : 'py-1'} flex-1`}
-                        aria-label="Start date (dd-mm-jjjj)"
-                    />
-                    <span className="text-cdmuted text-[10px]">–</span>
-                    <NlDateInput
-                        value={customEnd}
-                        onChange={onCustomEnd}
-                        className={`${inputBaseClass} text-[10px] ${compact ? 'py-0.5' : 'py-1'} flex-1`}
-                        aria-label="End date (dd-mm-jjjj)"
-                    />
-                </div>
+            {!hideCustomDates && timeRange === 'Custom' && (
+                <TimeRangeCustomDates
+                    customStart={customStart}
+                    customEnd={customEnd}
+                    onCustomStart={onCustomStart}
+                    onCustomEnd={onCustomEnd}
+                    compact={compact}
+                    className={compact ? 'mt-1.5' : 'mt-2'}
+                />
             )}
         </div>
     );
