@@ -157,7 +157,9 @@ function Header({
                     </div>
                 </div>
 
-                {mobileToolbar?.actions}
+                {mobileToolbar?.actions ? (
+                    <div className="md:hidden shrink-0">{mobileToolbar.actions}</div>
+                ) : null}
 
                 <div className="flex items-center gap-1 md:gap-2 shrink-0">
                     {showAppChrome && (
