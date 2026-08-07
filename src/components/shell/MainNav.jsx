@@ -148,37 +148,33 @@ function MainNav({
           ) : null}
         </div>
 
-        {/* Desktop: tabs left, time presets right on one row (sticky together) */}
-        <div className="hidden md:block border-b border-cdborder/40 pb-1">
-          <div className="flex items-center gap-3 min-h-[2.75rem]">
-            <nav
-              className="flex flex-1 min-w-0 overflow-x-auto gap-0.5 no-scrollbar"
-              role="tablist"
-              aria-label="Main navigation"
-            >
-              {tabs.map((item) => (
-                <NavTab
-                  key={item.id}
-                  icon={item.icon}
-                  label={item.label}
-                  isActive={activeTab === item.id}
-                  onClick={() => onTabChange(item.id)}
-                  onPrefetch={() => prefetchMainTabChunk(item.id)}
-                />
-              ))}
-            </nav>
-            {showTimeRange ? (
-              <>
-                <div className="w-px self-stretch bg-cdborder/50 shrink-0" aria-hidden />
-                <TimeRangeToolbar
-                  layout="desktop"
-                  {...timeRangeProps}
-                  compact
-                  className="shrink-0 max-w-[min(100%,32rem)]"
-                />
-              </>
-            ) : null}
-          </div>
+        {/* Desktop: primary tabs (full width); time presets on row below when active */}
+        <div className="hidden md:block border-b border-cdborder/40 pb-1" data-pinned-main-nav="">
+          <nav
+            className="flex flex-wrap items-center gap-x-0.5 gap-y-0"
+            role="tablist"
+            aria-label="Main navigation"
+          >
+            {tabs.map((item) => (
+              <NavTab
+                key={item.id}
+                icon={item.icon}
+                label={item.label}
+                isActive={activeTab === item.id}
+                onClick={() => onTabChange(item.id)}
+                onPrefetch={() => prefetchMainTabChunk(item.id)}
+              />
+            ))}
+          </nav>
+          {showTimeRange ? (
+            <div className="pt-1.5 pb-0.5">
+              <TimeRangeToolbar
+                layout="desktop"
+                {...timeRangeProps}
+                compact
+              />
+            </div>
+          ) : null}
         </div>
       </StickyTimeRangeToolbar>
 
