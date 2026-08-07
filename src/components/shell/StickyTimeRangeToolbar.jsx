@@ -17,7 +17,7 @@ function clonePinnedChild(children) {
 /**
  * Pins children (main nav + time-range toolbar) below the site header while scrolling.
  */
-export default function StickyTimeRangeToolbar({ children, enabled = true }) {
+export default function StickyTimeRangeToolbar({ children, enabled = true, mobileEnabled = true }) {
     const headerOffset = useAppHeaderOffset();
     const sentinelRef = useRef(null);
     const pinnedBarRef = useRef(null);
@@ -32,8 +32,18 @@ export default function StickyTimeRangeToolbar({ children, enabled = true }) {
         const sentinel = sentinelRef.current;
         if (!sentinel || typeof IntersectionObserver === 'undefined') return undefined;
 
+        const updatePinned = (entry) => {
+            const isMobile = typeof window !== 'undefined'
+                && window.matchMedia('(max-width: 767px)').matches;
+            if (isMobile && !mobileEnabled) {
+                setPinned(false);
+                return;
+            }
+            setPinned(!entry.isIntersecting);
+        };
+
         const observer = new IntersectionObserver(
-            ([entry]) => setPinned(!entry.isIntersecting),
+            ([entry]) => updatePinned(entry),
             {
                 root: null,
                 rootMargin: `-${headerOffset}px 0px 0px 0px`,
@@ -41,9 +51,20 @@ export default function StickyTimeRangeToolbar({ children, enabled = true }) {
             },
         );
 
+        const onResize = () => {
+            if (!sentinel) return;
+            const rect = sentinel.getBoundingClientRect();
+            const intersecting = rect.top >= headerOffset && rect.bottom > headerOffset;
+            updatePinned({ isIntersecting: intersecting });
+        };
+
         observer.observe(sentinel);
-        return () => observer.disconnect();
-    }, [enabled, headerOffset]);
+        window.addEventListener('resize', onResize);
+        return () => {
+            observer.disconnect();
+            window.removeEventListener('resize', onResize);
+        };
+    }, [enabled, headerOffset, mobileEnabled]);
 
     useEffect(() => {
         if (!enabled || !pinned) {

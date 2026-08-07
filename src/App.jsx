@@ -168,7 +168,6 @@ const App = () => {
     }, [theme]);
 
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const handleTabChange = useCallback((tab) => {
         if (tab && MAIN_TAB_IDS.has(tab)) {
@@ -176,10 +175,6 @@ const App = () => {
             setActiveTab(tab);
         }
     }, []);
-
-    useEffect(() => {
-        setIsMobileMenuOpen(false);
-    }, [activeTab]);
 
     const [userSettings, setUserSettings] = useState(() => {
         const saved = localStorage.getItem('userSettings');
@@ -992,8 +987,6 @@ const App = () => {
                                 customEnd={customEnd}
                                 onCustomStart={setCustomStart}
                                 onCustomEnd={setCustomEnd}
-                                isMobileMenuOpen={isMobileMenuOpen}
-                                onMobileMenuOpenChange={setIsMobileMenuOpen}
                             />
                         )}
 
