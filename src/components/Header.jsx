@@ -9,6 +9,8 @@ import { useProfileFtp } from '../context/ProfileFtpContext';
 import { useToast } from '../context/ToastContext';
 import { IconButton, cn } from './ui';
 import SiteQuickLinks from './shell/SiteQuickLinks';
+import { buildMobileHeaderToolbar } from './shell/MobileContextToolbar';
+import { useTodayIntervalsSync } from '../context/TodayIntervalsSyncContext';
 
 function initialsFromUser(user) {
     const n = user?.displayName?.trim() || user?.email?.trim() || '';
@@ -36,7 +38,18 @@ function formatUpdatedAt(dateToDisplay) {
     return formatDateTimeNl(d);
 }
 
-function Header({ userSettings, onOpenSettings, user }) {
+function Header({
+    userSettings,
+    onOpenSettings,
+    user,
+    activeTab = null,
+    timeRange = '1Y',
+    onTimeRangeChange,
+    customStart = '',
+    customEnd = '',
+    onCustomStart,
+    onCustomEnd,
+}) {
     const { showToast } = useToast();
     const { syncStatus, lastActivityDate } = useActivitiesSync();
     const profileFtp = useProfileFtp();
@@ -104,6 +117,21 @@ function Header({ userSettings, onOpenSettings, user }) {
 
     const showGooglePhoto = Boolean(user?.photoURL) && !avatarImgFailed;
     const showAppChrome = Boolean(user);
+    const { syncTodayActivities, isTodaySyncBusy } = useTodayIntervalsSync();
+
+    const mobileToolbar = user && activeTab
+        ? buildMobileHeaderToolbar({
+            activeTab,
+            timeRange,
+            onTimeRangeChange,
+            customStart,
+            customEnd,
+            onCustomStart,
+            onCustomEnd,
+            syncTodayActivities,
+            isTodaySyncBusy,
+        })
+        : null;
 
     return (
         <header
@@ -114,13 +142,13 @@ function Header({ userSettings, onOpenSettings, user }) {
             )}
         >
             <SiteQuickLinks userSettings={userSettings} />
-            <div className="max-w-7xl mx-auto flex justify-between items-center gap-3 px-3 py-2.5 md:px-4 md:py-3">
-                <div className="flex items-center gap-2.5 md:gap-3 min-w-0">
-                    <div className="bg-cdbrand p-2 rounded-cdmd shrink-0" aria-hidden>
-                        <Activity className="text-cdonbrand w-5 h-5 md:w-6 md:h-6" />
+            <div className="max-w-7xl mx-auto flex justify-between items-center gap-2 px-3 py-2 md:gap-3 md:px-4 md:py-3">
+                <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+                    <div className="bg-cdbrand p-1.5 md:p-2 rounded-cdmd shrink-0" aria-hidden>
+                        <Activity className="text-cdonbrand w-4 h-4 md:w-6 md:h-6" />
                     </div>
                     <div className="min-w-0">
-                        <h1 className="text-lg md:text-xl font-head font-bold tracking-tight text-cdtext truncate">
+                        <h1 className="text-base md:text-xl font-head font-bold tracking-tight text-cdtext truncate">
                             Climb Lab <span className="text-cdbrand">Pro</span>
                         </h1>
                         {showAppChrome && (
@@ -129,7 +157,9 @@ function Header({ userSettings, onOpenSettings, user }) {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
+                {mobileToolbar?.actions}
+
+                <div className="flex items-center gap-1 md:gap-2 shrink-0">
                     {showAppChrome && (
                         <div
                             className="hidden sm:flex items-center gap-1.5 rounded-full bg-cdsurfacelow px-2.5 py-1.5"
@@ -171,7 +201,7 @@ function Header({ userSettings, onOpenSettings, user }) {
                         variant="text"
                         onClick={handleAuth}
                         disabled={authBusy}
-                        className={cn('!w-auto !h-10 !rounded-cdmd px-1.5 gap-2', user && 'pr-2')}
+                        className={cn('!w-auto !h-9 md:!h-10 !rounded-cdmd px-1 gap-1.5 md:gap-2', user && 'pr-1.5 md:pr-2')}
                         title={user ? `Logged in as ${user.displayName || user.email || 'account'}` : 'Sign in with Google'}
                         aria-label={user ? `Sign out ${user.displayName || user.email || 'account'}` : 'Sign in with Google'}
                     >
@@ -182,12 +212,12 @@ function Header({ userSettings, onOpenSettings, user }) {
                                         src={user.photoURL}
                                         alt=""
                                         referrerPolicy="no-referrer"
-                                        className="w-8 h-8 rounded-full border border-cdborder object-cover bg-cdsurface"
+                                        className="w-7 h-7 md:w-8 md:h-8 rounded-full border border-cdborder object-cover bg-cdsurface"
                                         onError={() => setAvatarImgFailed(true)}
                                     />
                                 ) : (
                                     <div
-                                        className="w-8 h-8 rounded-full border border-cdborder bg-cdsurface flex items-center justify-center text-[11px] font-bold text-cdtext"
+                                        className="w-7 h-7 md:w-8 md:h-8 rounded-full border border-cdborder bg-cdsurface flex items-center justify-center text-[10px] md:text-[11px] font-bold text-cdtext"
                                         aria-hidden
                                     >
                                         {initialsFromUser(user)}
@@ -197,7 +227,7 @@ function Header({ userSettings, onOpenSettings, user }) {
                             </>
                         ) : (
                             <>
-                                <div className="w-8 h-8 rounded-full bg-cdsurfacelow flex items-center justify-center text-cdmuted" aria-hidden>
+                                <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-cdsurfacelow flex items-center justify-center text-cdmuted" aria-hidden>
                                     <User size={16} />
                                 </div>
                                 <LogIn size={16} className="hidden sm:block text-cdmuted" aria-hidden />
@@ -217,6 +247,11 @@ function Header({ userSettings, onOpenSettings, user }) {
                     )}
                 </div>
             </div>
+            {mobileToolbar?.footer ? (
+                <div className="md:hidden max-w-7xl mx-auto px-3 pb-2">
+                    {mobileToolbar.footer}
+                </div>
+            ) : null}
         </header>
     );
 }

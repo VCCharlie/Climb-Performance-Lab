@@ -17,7 +17,7 @@ function clonePinnedChild(children) {
 /**
  * Pins children (main nav + time-range toolbar) below the site header while scrolling.
  */
-export default function StickyTimeRangeToolbar({ children, enabled = true, mobileEnabled = true }) {
+export default function StickyTimeRangeToolbar({ children, enabled = true }) {
     const headerOffset = useAppHeaderOffset();
     const sentinelRef = useRef(null);
     const pinnedBarRef = useRef(null);
@@ -32,18 +32,8 @@ export default function StickyTimeRangeToolbar({ children, enabled = true, mobil
         const sentinel = sentinelRef.current;
         if (!sentinel || typeof IntersectionObserver === 'undefined') return undefined;
 
-        const updatePinned = (entry) => {
-            const isMobile = typeof window !== 'undefined'
-                && window.matchMedia('(max-width: 767px)').matches;
-            if (isMobile && !mobileEnabled) {
-                setPinned(false);
-                return;
-            }
-            setPinned(!entry.isIntersecting);
-        };
-
         const observer = new IntersectionObserver(
-            ([entry]) => updatePinned(entry),
+            ([entry]) => setPinned(!entry.isIntersecting),
             {
                 root: null,
                 rootMargin: `-${headerOffset}px 0px 0px 0px`,
@@ -51,20 +41,9 @@ export default function StickyTimeRangeToolbar({ children, enabled = true, mobil
             },
         );
 
-        const onResize = () => {
-            if (!sentinel) return;
-            const rect = sentinel.getBoundingClientRect();
-            const intersecting = rect.top >= headerOffset && rect.bottom > headerOffset;
-            updatePinned({ isIntersecting: intersecting });
-        };
-
         observer.observe(sentinel);
-        window.addEventListener('resize', onResize);
-        return () => {
-            observer.disconnect();
-            window.removeEventListener('resize', onResize);
-        };
-    }, [enabled, headerOffset, mobileEnabled]);
+        return () => observer.disconnect();
+    }, [enabled, headerOffset]);
 
     useEffect(() => {
         if (!enabled || !pinned) {
