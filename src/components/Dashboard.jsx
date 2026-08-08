@@ -17,6 +17,7 @@ import { useProfileFtp } from '../context/ProfileFtpContext';
 import { useTodayIntervalsSync } from '../context/TodayIntervalsSyncContext';
 import { useTabListKeyboard } from '../hooks/useTabListKeyboard';
 import OverviewTab from './dashboard/OverviewTab';
+import DashboardSubTabNav from './dashboard/DashboardSubTabNav';
 
 const CompareTab = lazyWithRetry(() => import('./dashboard/CompareTab'), 'CompareTab');
 
@@ -148,12 +149,12 @@ const Dashboard = ({
 
 
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="space-y-4 md:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* HEADER SECTION */}
-            <div className="bg-cdsurface p-4 rounded-xl border border-cdborder shadow-md flex items-start justify-between gap-3">
+            <div className="bg-cdsurface p-3 md:p-4 rounded-xl border border-cdborder shadow-md flex items-start justify-between gap-3">
                 <div>
-                    <h2 className="text-2xl font-bold text-yellow-500 tracking-tight">Dashboard</h2>
-                    <p className="text-cdmuted text-sm">Performance metrics overview</p>
+                    <h2 className="text-xl md:text-2xl font-bold text-yellow-500 tracking-tight">Dashboard</h2>
+                    <p className="hidden md:block text-cdmuted text-sm">Performance metrics overview</p>
                 </div>
                 <DashboardTodaySyncButton
                     onSync={syncTodayActivities}
@@ -162,88 +163,13 @@ const Dashboard = ({
                 />
             </div>
 
-            {/* SUB-TABS NAVIGATION */}
-            <div className="flex flex-wrap border-b border-cdborder mb-4" role="tablist" aria-label="Dashboard Tabs" onKeyDown={onDashboardTabKeyDown}>
-                <button
-                    type="button"
-                    id="tab-overview"
-                    role="tab"
-                    aria-selected={dashboardTab === 'overview'}
-                    aria-controls="tabpanel-overview"
-                    onClick={() => setDashboardTab('overview')}
-                    className={`flex-1 min-w-[5.5rem] py-3 text-sm font-bold ${dashboardTab === 'overview' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
-                >Overview</button>
-                <button
-                    type="button"
-                    id="tab-form"
-                    role="tab"
-                    aria-selected={dashboardTab === 'form'}
-                    aria-controls="tabpanel-form"
-                    onClick={() => setDashboardTab('form')}
-                    onMouseEnter={() => handleDashboardSubTabIntent('form')}
-                    onFocus={() => handleDashboardSubTabIntent('form')}
-                    className={`flex-1 min-w-[5.5rem] py-3 text-sm font-bold ${dashboardTab === 'form' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
-                >Form</button>
-                <button
-                    type="button"
-                    id="tab-power"
-                    role="tab"
-                    aria-selected={dashboardTab === 'power'}
-                    aria-controls="tabpanel-power"
-                    onClick={() => setDashboardTab('power')}
-                    onMouseEnter={() => handleDashboardSubTabIntent('power')}
-                    onFocus={() => handleDashboardSubTabIntent('power')}
-                    className={`flex-1 min-w-[5.5rem] py-3 text-sm font-bold ${dashboardTab === 'power' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
-                >Power</button>
-                <button
-                    type="button"
-                    id="tab-distance"
-                    role="tab"
-                    aria-selected={dashboardTab === 'distance'}
-                    aria-controls="tabpanel-distance"
-                    onClick={() => setDashboardTab('distance')}
-                    onMouseEnter={() => handleDashboardSubTabIntent('distance')}
-                    onFocus={() => handleDashboardSubTabIntent('distance')}
-                    className={`flex-1 min-w-[5.5rem] py-3 text-sm font-bold ${dashboardTab === 'distance' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
-                >Distance</button>
-                <button
-                    type="button"
-                    id="tab-volume"
-                    role="tab"
-                    aria-selected={dashboardTab === 'volume'}
-                    aria-controls="tabpanel-volume"
-                    onClick={() => setDashboardTab('volume')}
-                    onMouseEnter={() => handleDashboardSubTabIntent('volume')}
-                    onFocus={() => handleDashboardSubTabIntent('volume')}
-                    className={`flex-1 min-w-[5.5rem] py-3 text-sm font-bold ${dashboardTab === 'volume' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
-                >Volume</button>
-                <button
-                    type="button"
-                    id="tab-compare"
-                    role="tab"
-                    aria-selected={dashboardTab === 'compare'}
-                    aria-controls="tabpanel-compare"
-                    onClick={() => setDashboardTab('compare')}
-                    onMouseEnter={() => handleDashboardSubTabIntent('compare')}
-                    onFocus={() => handleDashboardSubTabIntent('compare')}
-                    className={`flex-1 min-w-[5.5rem] py-3 text-sm font-bold ${dashboardTab === 'compare' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
-                >Compare</button>
-                {stravaConnected && (
-                    <button
-                        type="button"
-                        id="tab-strava"
-                        role="tab"
-                        aria-selected={dashboardTab === 'strava'}
-                        aria-controls="tabpanel-strava"
-                        onClick={() => setDashboardTab('strava')}
-                        onMouseEnter={() => handleDashboardSubTabIntent('strava')}
-                        onFocus={() => handleDashboardSubTabIntent('strava')}
-                        className={`flex-1 min-w-[5.5rem] py-3 text-sm font-bold flex items-center justify-center gap-1.5 ${dashboardTab === 'strava' ? 'bg-cdborder text-orange-400' : 'text-cdmuted hover:bg-cdborder/50'}`}
-                    >
-                        Strava
-                    </button>
-                )}
-            </div>
+            <DashboardSubTabNav
+                activeTab={dashboardTab}
+                onTabChange={setDashboardTab}
+                onTabIntent={handleDashboardSubTabIntent}
+                onKeyDown={onDashboardTabKeyDown}
+                stravaConnected={stravaConnected}
+            />
 
             {/* TAB CONTENT */}
             {dashboardTab === 'overview' && (
