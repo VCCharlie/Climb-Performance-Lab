@@ -89,9 +89,9 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
     }, [goalDate, eventName, source, climbSearch, planResult]);
 
     return (
-        <div className="space-y-6 animate-in fade-in">
-            <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl">
-                <h2 className="text-xl font-bold text-cdtext flex items-center gap-2 mb-2">
+        <div className="space-y-4 md:space-y-6 animate-in fade-in min-w-0 max-w-full overflow-x-hidden">
+            <div className="bg-cdsurface p-3 md:p-6 rounded-xl border border-cdborder shadow-md">
+                <h2 className="text-xl md:text-2xl font-bold text-cdtext flex items-center gap-2 mb-2">
                     <Mountain className="text-cdaccent shrink-0" size={22} />
                     Goal & planning
                 </h2>

@@ -31,7 +31,7 @@ function MobileBottomNav({ activeTab, onTabChange }) {
     return (
         <>
             <nav
-                className="md:hidden fixed bottom-0 inset-x-0 z-50 border-t border-cdborder bg-cdsurface/95 backdrop-blur-md supports-[backdrop-filter]:bg-cdsurface/90"
+                className="md:hidden fixed bottom-0 inset-x-0 z-50 w-full max-w-[100vw] overflow-hidden border-t border-cdborder bg-cdsurface/95 backdrop-blur-md supports-[backdrop-filter]:bg-cdsurface/90"
                 style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
                 aria-label="Primary navigation"
             >

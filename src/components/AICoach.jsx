@@ -496,11 +496,14 @@ ${workout.zwoSteps.map(step => {
     };
 
     return (
-        <div className="space-y-6 animate-in fade-in">
+        <div className="space-y-4 md:space-y-6 animate-in fade-in min-w-0 max-w-full overflow-x-hidden">
             {/* Header */}
-            <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl flex items-center justify-between">
-                <div>
-                    <h2 className="text-xl font-bold text-cdtext flex items-center gap-2"><Brain className="text-purple-400" /> AI Performance Coach</h2>
+            <div className="bg-cdsurface p-3 md:p-6 rounded-xl border border-cdborder shadow-md flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                    <h2 className="text-xl md:text-2xl font-bold text-cdtext flex items-center gap-2">
+                        <Brain className="text-purple-400 shrink-0" />
+                        <span className="truncate">AI Performance Coach</span>
+                    </h2>
                     <p className="text-sm text-cdmuted">Based on your data from {swot.periodLabel}.</p>
                 </div>
                 <div className="text-right hidden md:block">
@@ -563,7 +566,7 @@ ${workout.zwoSteps.map(step => {
                         <option value={7}>7 h / week</option>
                     </select>
                 </label>
-                <p className="text-xs text-cdmuted flex-1 min-w-[200px]">
+                <p className="text-xs text-cdmuted flex-1 min-w-0">
                     Saved in Settings. Drives TSS targets, fluid workouts, and week rebalancing.
                 </p>
             </div>
