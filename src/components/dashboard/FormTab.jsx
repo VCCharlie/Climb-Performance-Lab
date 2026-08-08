@@ -1,12 +1,8 @@
 import React, { useMemo } from 'react';
-import {
-    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-    Legend, ResponsiveContainer, ReferenceLine
-} from 'recharts';
 import { formatDateDDMMYYYY } from '../../utils';
-import { ChartTooltip } from '../ui';
-import { getChartTheme, chartCardClassLg } from '../../utils/chartTheme';
+import { chartCardClassLg } from '../../utils/chartTheme';
 import { calculateFitnessMetrics } from '../../utils/formTabMetrics';
+import FormFitnessChart from './FormFitnessChart';
 
 /**
  * FormTab: Shows CTL, ATL and TSB (fitness / fatigue / form) progression over time.
@@ -43,8 +39,6 @@ const FormTab = ({
             ? 'text-yellow-400'
             : 'text-red-400';
 
-    const theme = getChartTheme();
-
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
             {latest ? (
@@ -57,43 +51,11 @@ const FormTab = ({
 
                     <div className={chartCardClassLg}>
                         <h3 className="text-lg font-bold text-cdtext mb-4">CTL / ATL / TSB</h3>
-                        <div className="h-72">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart
-                                    data={fitnessData}
-                                    margin={{ top: 5, right: 20, left: 0, bottom: 0 }}
-                                >
-                                    <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} opacity={0.65} vertical={false} />
-                                    <XAxis
-                                        dataKey="dateNum"
-                                        type="number"
-                                        domain={['dataMin', 'dataMax']}
-                                        scale="time"
-                                        ticks={axisTicks}
-                                        interval={0}
-                                        minTickGap={50}
-                                        stroke={theme.axis}
-                                        tick={{ fill: theme.axis, fontSize: 11 }}
-                                        tickFormatter={(ts) => formatDateDDMMYYYY(new Date(ts))}
-                                    />
-                                    <YAxis stroke={theme.axis} tick={{ fill: theme.axis, fontSize: 11 }} />
-                                    <Tooltip
-                                        content={(props) => (
-                                            <ChartTooltip
-                                                {...props}
-                                                labelFormatter={(ts) => formatDateDDMMYYYY(ts)}
-                                            />
-                                        )}
-                                        cursor={theme.cursor}
-                                    />
-                                    <Legend iconType="circle" wrapperStyle={{ paddingTop: '16px' }} />
-                                    <ReferenceLine y={0} stroke={theme.grid} />
-                                    <Line type="monotone" dataKey="ctl" name="CTL" stroke={theme.blue} strokeWidth={2} dot={false} />
-                                    <Line type="monotone" dataKey="atl" name="ATL" stroke={theme.primary} strokeWidth={2} dot={false} />
-                                    <Line type="monotone" dataKey="tsb" name="TSB" stroke={theme.green} strokeWidth={2} dot={false} />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
+                        <FormFitnessChart
+                            key={latest.date}
+                            fitnessData={fitnessData}
+                            axisTicks={axisTicks}
+                        />
                         <p className="text-xs text-cdmuted mt-3">
                             CTL (42-day) = fitness · ATL (7-day) = fatigue · TSB = CTL − ATL (form)
                         </p>
