@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react';
-import { Utensils, Brain, Route, Heart, Flag } from 'lucide-react';
+import { Utensils, Route } from 'lucide-react';
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged, reload } from "firebase/auth";
 import { db, auth } from './firebase';
@@ -103,6 +103,7 @@ import { useActivitiesList } from './hooks/useActivities';
 import { ActivityLogNavigationProvider, useActivityLogNavigation } from './context/ActivityLogNavigationContext';
 import { ProfileFtpProvider } from './context/ProfileFtpContext';
 import TrainingFtpContextNote from './components/coach/TrainingFtpContextNote';
+import TrainingSubTabNav from './components/training/TrainingSubTabNav';
 import { TodayIntervalsSyncProvider } from './context/TodayIntervalsSyncContext';
 
 function GetStartedStrip({ userSettings, intervalsConfig, onOpenSettings, onGoToActivities }) {
@@ -983,7 +984,7 @@ const App = () => {
                         onCustomEnd={setCustomEnd}
                     />
 
-                    <main id="main-content" className={`mx-auto p-3 space-y-4 transition-all duration-300 ${activeTab === 'activities' && user ? 'max-w-[95%]' : 'max-w-7xl'}`}>
+                    <main id="main-content" className={`mx-auto p-3 space-y-4 min-w-0 max-w-full overflow-x-hidden transition-all duration-300 ${activeTab === 'activities' && user ? 'max-w-[95%]' : 'max-w-7xl'}`}>
                         {user && (
                             <MainNav
                                 activeTab={activeTab}
@@ -1053,20 +1054,11 @@ const App = () => {
                                         )}
 
                                         {activeTab === 'training' && (
-                                            <div>
+                                            <div className="min-w-0 max-w-full overflow-x-hidden">
                                                 <TrainingFtpContextNote userSettings={userSettings} />
-                                                <SegmentedControl
-                                                    className="mb-4"
-                                                    size="lg"
-                                                    caps={false}
-                                                    value={trainingSubTab}
+                                                <TrainingSubTabNav
+                                                    activeTab={trainingSubTab}
                                                     onChange={setTrainingSubTab}
-                                                    aria-label="Training section"
-                                                    options={[
-                                                        { value: 'coach', label: 'AI Coach', icon: Brain },
-                                                        { value: 'goal', label: 'Goals & Planning', icon: Flag },
-                                                        { value: 'recovery', label: 'Recovery', icon: Heart },
-                                                    ]}
                                                 />
                                                 {trainingSubTab === 'coach' && (
                                                     <AICoach

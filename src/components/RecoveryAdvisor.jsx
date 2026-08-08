@@ -227,13 +227,13 @@ const RecoveryAdvisor = ({ activities: activitiesProp, startDate, endDate, onGoT
     }
 
     return (
-        <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl space-y-6">
-            <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-cdtext flex items-center gap-2">
-                    <Activity className="text-purple-400" />
-                    Training Load & Recovery Advisor
+        <div className="bg-cdsurface p-3 md:p-6 rounded-xl border border-cdborder shadow-md space-y-4 md:space-y-6 min-w-0 max-w-full overflow-x-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <h2 className="text-xl md:text-2xl font-bold text-cdtext flex items-center gap-2 min-w-0">
+                    <Activity className="text-purple-400 shrink-0" />
+                    <span className="truncate">Training Load & Recovery Advisor</span>
                 </h2>
-                <div className="text-xs text-cdmuted bg-cdbg px-3 py-1 rounded-full border border-cdborder">
+                <div className="hidden sm:block shrink-0 text-xs text-cdmuted bg-cdbg px-3 py-1 rounded-full border border-cdborder">
                     Performance Management Chart
                 </div>
             </div>
@@ -339,7 +339,7 @@ const RecoveryAdvisor = ({ activities: activitiesProp, startDate, endDate, onGoT
             )}
 
             {/* Chart */}
-            <div className="bg-cdbg p-4 rounded border border-cdborder">
+            <div className="bg-cdbg p-4 rounded border border-cdborder overflow-hidden min-w-0">
                 <h3 className="text-cdtext font-bold text-sm mb-4 uppercase tracking-wide">
                     {trainingMetrics.rangeLabel} — Performance Management Chart
                 </h3>
