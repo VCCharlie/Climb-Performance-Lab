@@ -21,7 +21,15 @@ import { boundsFromYmdRange } from '../../utils/dashboardActivityWindow';
 import PlaygroundVolumeChart from './playground/PlaygroundVolumeChart';
 import PlaygroundPowerPanel from './playground/PlaygroundPowerPanel';
 import PlaygroundExplorerPanel from './playground/PlaygroundExplorerPanel';
+import PlaygroundPeriodTable from './playground/PlaygroundPeriodTable';
+import PlaygroundResponsiveHeader from './playground/PlaygroundResponsiveHeader';
 import CollapsibleSection from '../ui/CollapsibleSection';
+import {
+    playgroundTdMonoClass,
+    playgroundTdMutedClass,
+    playgroundTdTextClass,
+    playgroundThClass,
+} from '../../utils/playgroundTableStyles';
 
 const RANGE_PRESETS = [
     { id: '1y', label: '1 year', years: 1 },
@@ -251,49 +259,59 @@ function TrendsPanel({ activities }) {
                 <p className="text-sm text-cdmuted">No rides in this range.</p>
             ) : (
                 <>
-                    <PlaygroundVolumeChart
-                        data={trendData.chartData}
-                        chartType={chartType}
-                        metricLabel={metric.label}
-                        metricUnit={metric.unit}
-                        metricDecimals={metric.decimals}
-                        showTrend
-                        showMax={showMax}
-                        showMaxTrend={showMaxTrend}
-                    />
-
-                    <div className="overflow-x-auto rounded-lg border border-cdborder max-h-64 overflow-y-auto custom-scrollbar">
-                        <table className="w-full text-left text-sm">
-                            <thead className="sticky top-0 bg-cdsurface">
-                                <tr className="bg-cdborder/40 text-cdmuted text-xs uppercase">
-                                    <th className="px-3 py-2">Period</th>
-                                    <th className="px-3 py-2">{metric.label}</th>
-                                    {compareMode !== 'none' && <th className="px-3 py-2">Compare</th>}
-                                    <th className="px-3 py-2">Trend</th>
-                                    {showMax && <th className="px-3 py-2">Max</th>}
-                                    {showMaxTrend && <th className="px-3 py-2">Max trend</th>}
-                                    <th className="px-3 py-2">Rides</th>
-                                </tr>
-                            </thead>
-                            <tbody className="text-cdtext">
-                                {trendData.chartData.map((row) => (
-                                    <tr key={row.key} className="border-t border-cdborder">
-                                        <td className="px-3 py-1.5 whitespace-nowrap">{row.label}</td>
-                                        <td className="px-3 py-1.5 font-mono">{row.value}{unitSuffix}</td>
-                                        {compareMode !== 'none' && (
-                                            <td className="px-3 py-1.5 font-mono text-cdmuted">
-                                                {row.compareValue ?? '—'}{row.compareValue != null ? unitSuffix : ''}
-                                            </td>
-                                        )}
-                                        <td className="px-3 py-1.5 font-mono text-blue-300">{row.trend}{unitSuffix}</td>
-                                        {showMax && <td className="px-3 py-1.5 font-mono text-purple-300">{row.maxValue}{unitSuffix}</td>}
-                                        {showMaxTrend && <td className="px-3 py-1.5 font-mono text-pink-300">{row.maxTrend}{unitSuffix}</td>}
-                                        <td className="px-3 py-1.5 text-cdmuted">{row.rideCount}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                    <div className="min-w-0 overflow-hidden">
+                        <PlaygroundVolumeChart
+                            data={trendData.chartData}
+                            chartType={chartType}
+                            metricLabel={metric.label}
+                            metricUnit={metric.unit}
+                            metricDecimals={metric.decimals}
+                            showTrend
+                            showMax={showMax}
+                            showMaxTrend={showMaxTrend}
+                        />
                     </div>
+
+                    <PlaygroundPeriodTable>
+                        <thead>
+                            <tr className="bg-cdborder/40">
+                                <th className={`${playgroundThClass} w-[18%]`}>Period</th>
+                                <PlaygroundResponsiveHeader label={metric.label} className={`${playgroundThClass} w-[18%]`} />
+                                {compareMode !== 'none' && (
+                                    <th className={`${playgroundThClass} w-[14%]`}>
+                                        <span className="sm:hidden">Cmp</span>
+                                        <span className="hidden sm:inline">Compare</span>
+                                    </th>
+                                )}
+                                <th className={`${playgroundThClass} w-[16%]`}>Trend</th>
+                                {showMax && <th className={`${playgroundThClass} w-[12%]`}>Max</th>}
+                                {showMaxTrend && (
+                                    <th className={`${playgroundThClass} w-[14%]`}>
+                                        <span className="sm:hidden">Mx tr</span>
+                                        <span className="hidden sm:inline">Max trend</span>
+                                    </th>
+                                )}
+                                <th className={`${playgroundThClass} w-[10%]`}>Rides</th>
+                            </tr>
+                        </thead>
+                        <tbody className="text-cdtext">
+                            {trendData.chartData.map((row) => (
+                                <tr key={row.key} className="border-t border-cdborder">
+                                    <td className={playgroundTdTextClass}>{row.label}</td>
+                                    <td className={playgroundTdMonoClass}>{row.value}{unitSuffix}</td>
+                                    {compareMode !== 'none' && (
+                                        <td className={`${playgroundTdMonoClass} text-cdmuted`}>
+                                            {row.compareValue ?? '—'}{row.compareValue != null ? unitSuffix : ''}
+                                        </td>
+                                    )}
+                                    <td className={`${playgroundTdMonoClass} text-blue-300`}>{row.trend}{unitSuffix}</td>
+                                    {showMax && <td className={`${playgroundTdMonoClass} text-purple-300`}>{row.maxValue}{unitSuffix}</td>}
+                                    {showMaxTrend && <td className={`${playgroundTdMonoClass} text-pink-300`}>{row.maxTrend}{unitSuffix}</td>}
+                                    <td className={playgroundTdMutedClass}>{row.rideCount}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </PlaygroundPeriodTable>
                 </>
             )}
         </div>

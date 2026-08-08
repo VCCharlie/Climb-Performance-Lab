@@ -25,6 +25,8 @@ import {
 import { todayYmd } from '../../../utils/coach/coachHelpers.js';
 import NlDateInput from '../../NlDateInput.jsx';
 import PlaygroundScatterChart from './PlaygroundScatterChart.jsx';
+import PlaygroundPeriodTable from './PlaygroundPeriodTable.jsx';
+import { playgroundTdMonoClass, playgroundTdMutedClass, playgroundTdTextClass, playgroundThClass } from '../../../utils/playgroundTableStyles.js';
 
 const RANGE_PRESETS = [
   { id: '1y', label: '1 year', years: 1 },
@@ -75,14 +77,14 @@ function SortHeader({ label, sortKey, activeKey, direction, onSort }) {
   const active = activeKey === sortKey;
   const Icon = active ? (direction === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown;
   return (
-    <th className="px-3 py-2">
+    <th className={playgroundThClass}>
       <button
         type="button"
         onClick={() => onSort(sortKey)}
-        className={`inline-flex items-center gap-1 uppercase text-xs font-semibold ${active ? 'text-cdaccent' : 'text-cdmuted hover:text-cdtext'}`}
+        className={`inline-flex items-center gap-0.5 sm:gap-1 uppercase font-semibold leading-tight ${active ? 'text-cdaccent' : 'text-cdmuted hover:text-cdtext'}`}
       >
         {label}
-        <Icon size={12} />
+        <Icon size={12} className="shrink-0" />
       </button>
     </th>
   );
@@ -362,32 +364,30 @@ export default function PlaygroundExplorerPanel({ activities }) {
         </ResponsiveContainer>
       )}
 
-      <div className="overflow-x-auto rounded-lg border border-cdborder max-h-56 overflow-y-auto custom-scrollbar">
-        <table className="w-full text-left text-sm">
-          <thead className="sticky top-0 bg-cdsurface">
-            <tr className="bg-cdborder/40">
-              <SortHeader label="Period" sortKey={SORT_KEYS.label} activeKey={sortKey} direction={sortDir} onSort={handleSort} />
-              <SortHeader label={explorer.xMeta.label} sortKey={SORT_KEYS.x} activeKey={sortKey} direction={sortDir} onSort={handleSort} />
-              <SortHeader label={explorer.yMeta.label} sortKey={SORT_KEYS.y} activeKey={sortKey} direction={sortDir} onSort={handleSort} />
-              {explorer.colorMeta && (
-                <SortHeader label={explorer.colorMeta.label} sortKey={SORT_KEYS.color} activeKey={sortKey} direction={sortDir} onSort={handleSort} />
-              )}
-              <SortHeader label="Rides" sortKey={SORT_KEYS.rideCount} activeKey={sortKey} direction={sortDir} onSort={handleSort} />
+      <PlaygroundPeriodTable>
+        <thead>
+          <tr className="bg-cdborder/40">
+            <SortHeader label="Period" sortKey={SORT_KEYS.label} activeKey={sortKey} direction={sortDir} onSort={handleSort} />
+            <SortHeader label={explorer.xMeta.label} sortKey={SORT_KEYS.x} activeKey={sortKey} direction={sortDir} onSort={handleSort} />
+            <SortHeader label={explorer.yMeta.label} sortKey={SORT_KEYS.y} activeKey={sortKey} direction={sortDir} onSort={handleSort} />
+            {explorer.colorMeta && (
+              <SortHeader label={explorer.colorMeta.label} sortKey={SORT_KEYS.color} activeKey={sortKey} direction={sortDir} onSort={handleSort} />
+            )}
+            <SortHeader label="Rides" sortKey={SORT_KEYS.rideCount} activeKey={sortKey} direction={sortDir} onSort={handleSort} />
+          </tr>
+        </thead>
+        <tbody className="text-cdtext">
+          {sortedPoints.map((row) => (
+            <tr key={row.key} className="border-t border-cdborder">
+              <td className={playgroundTdTextClass}>{row.label}</td>
+              <td className={playgroundTdMonoClass}>{row.x ?? '—'}</td>
+              <td className={playgroundTdMonoClass}>{row.y ?? '—'}</td>
+              {explorer.colorMeta && <td className={playgroundTdMutedClass}>{row.color ?? '—'}</td>}
+              <td className={playgroundTdMutedClass}>{row.rideCount}</td>
             </tr>
-          </thead>
-          <tbody className="text-cdtext">
-            {sortedPoints.map((row) => (
-              <tr key={row.key} className="border-t border-cdborder">
-                <td className="px-3 py-1.5 whitespace-nowrap">{row.label}</td>
-                <td className="px-3 py-1.5 font-mono">{row.x ?? '—'}</td>
-                <td className="px-3 py-1.5 font-mono">{row.y ?? '—'}</td>
-                {explorer.colorMeta && <td className="px-3 py-1.5 font-mono text-cdmuted">{row.color ?? '—'}</td>}
-                <td className="px-3 py-1.5 text-cdmuted">{row.rideCount}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </PlaygroundPeriodTable>
     </div>
   );
 }
