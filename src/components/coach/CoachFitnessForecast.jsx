@@ -12,7 +12,9 @@ import { buildFitnessForecast } from '../../utils/coach/coachFitnessForecast';
 import { todayYmd } from '../../utils/coach/coachHelpers';
 import { addDaysToYmd } from '../../utils/dashboardVolumeTotals';
 import useMediaQuery from '../../hooks/useMediaQuery';
-import { getScrubChartMargins } from '../../utils/chartTouchScrubber';
+
+const MOBILE_CHART_MARGINS = { top: 4, right: 6, left: 0, bottom: 0 };
+const DESKTOP_CHART_MARGINS = { top: 5, right: 20, left: 0, bottom: 0 };
 
 const StatBadge = ({ label, value, color }) => (
     <div className="bg-cdborder/20 border border-cdborder rounded-lg p-3 text-center">
@@ -30,7 +32,7 @@ const CoachFitnessForecast = ({
     const referenceYmd = todayYmd();
     const weeklyHours = Number(userSettings?.weeklyHoursTarget) || 5;
     const isMobile = useMediaQuery('(max-width: 767px)');
-    const chartMargins = getScrubChartMargins(isMobile);
+    const chartMargins = isMobile ? MOBILE_CHART_MARGINS : DESKTOP_CHART_MARGINS;
 
     const { chartData, summary } = useMemo(
         () => buildFitnessForecast({
@@ -82,7 +84,14 @@ const CoachFitnessForecast = ({
                 <StatBadge label="Planned sessions" value={summary.plannedSessions} color="text-cdtext" />
             </div>
 
-            <div className={cn(chartCardShellClass, 'p-2 sm:p-5 md:p-6 -mx-1 sm:mx-0')}>
+            <div
+                className={cn(
+                    chartCardShellClass,
+                    isMobile
+                        ? 'py-2 pl-0 pr-1 -mx-4 rounded-none border-x-0'
+                        : 'p-5 md:p-6',
+                )}
+            >
                 <div className={cn('w-full', isMobile ? 'h-[min(52vw,280px)]' : 'h-72')}>
                     <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={chartData} margin={chartMargins}>
@@ -108,9 +117,11 @@ const CoachFitnessForecast = ({
                             />
                             <YAxis
                                 stroke={theme.axis}
-                                tick={{ fill: theme.axis, fontSize: isMobile ? 10 : 11 }}
-                                width={isMobile ? 32 : 44}
+                                tick={{ fill: theme.axis, fontSize: isMobile ? 9 : 11 }}
+                                width={isMobile ? 26 : 44}
                                 tickCount={isMobile ? 5 : 6}
+                                axisLine={false}
+                                tickLine={false}
                             />
                             <Tooltip
                                 content={(props) => (
