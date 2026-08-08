@@ -5,12 +5,14 @@ import {
 } from 'recharts';
 import { Activity } from 'lucide-react';
 import { formatDateDDMMYYYY } from '../../utils/formatters';
-import { ChartTooltip } from '../ui';
-import { getChartTheme, chartCardClassLg } from '../../utils/chartTheme';
+import { ChartTooltip, cn } from '../ui';
+import { getChartTheme, chartCardShellClass } from '../../utils/chartTheme';
 import CollapsibleSection from '../ui/CollapsibleSection';
 import { buildFitnessForecast } from '../../utils/coach/coachFitnessForecast';
 import { todayYmd } from '../../utils/coach/coachHelpers';
 import { addDaysToYmd } from '../../utils/dashboardVolumeTotals';
+import useMediaQuery from '../../hooks/useMediaQuery';
+import { getScrubChartMargins } from '../../utils/chartTouchScrubber';
 
 const StatBadge = ({ label, value, color }) => (
     <div className="bg-cdborder/20 border border-cdborder rounded-lg p-3 text-center">
@@ -27,6 +29,8 @@ const CoachFitnessForecast = ({
 }) => {
     const referenceYmd = todayYmd();
     const weeklyHours = Number(userSettings?.weeklyHoursTarget) || 5;
+    const isMobile = useMediaQuery('(max-width: 767px)');
+    const chartMargins = getScrubChartMargins(isMobile);
 
     const { chartData, summary } = useMemo(
         () => buildFitnessForecast({
@@ -78,10 +82,10 @@ const CoachFitnessForecast = ({
                 <StatBadge label="Planned sessions" value={summary.plannedSessions} color="text-cdtext" />
             </div>
 
-            <div className={chartCardClassLg}>
-                <div className="h-72">
+            <div className={cn(chartCardShellClass, 'p-2 sm:p-5 md:p-6 -mx-1 sm:mx-0')}>
+                <div className={cn('w-full', isMobile ? 'h-[min(52vw,280px)]' : 'h-72')}>
                     <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 0 }}>
+                        <LineChart data={chartData} margin={chartMargins}>
                             <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} opacity={0.65} vertical={false} />
                             {projectionStart && (
                                 <ReferenceArea
@@ -97,11 +101,17 @@ const CoachFitnessForecast = ({
                                 domain={['dataMin', 'dataMax']}
                                 scale="time"
                                 stroke={theme.axis}
-                                tick={{ fill: theme.axis, fontSize: 10 }}
+                                tick={{ fill: theme.axis, fontSize: isMobile ? 10 : 10 }}
                                 tickFormatter={(ts) => formatDateDDMMYYYY(new Date(ts))}
-                                minTickGap={40}
+                                tickMargin={isMobile ? 4 : 8}
+                                minTickGap={isMobile ? 28 : 40}
                             />
-                            <YAxis stroke={theme.axis} tick={{ fill: theme.axis, fontSize: 11 }} />
+                            <YAxis
+                                stroke={theme.axis}
+                                tick={{ fill: theme.axis, fontSize: isMobile ? 10 : 11 }}
+                                width={isMobile ? 32 : 44}
+                                tickCount={isMobile ? 5 : 6}
+                            />
                             <Tooltip
                                 content={(props) => (
                                     <ChartTooltip
@@ -111,7 +121,10 @@ const CoachFitnessForecast = ({
                                 )}
                                 cursor={theme.cursor}
                             />
-                            <Legend iconType="circle" wrapperStyle={{ paddingTop: '12px' }} />
+                            <Legend
+                                iconType="circle"
+                                wrapperStyle={{ paddingTop: isMobile ? '8px' : '12px', fontSize: isMobile ? '10px' : '12px' }}
+                            />
                             <ReferenceLine y={0} stroke={theme.grid} />
                             <Line
                                 type="monotone"
