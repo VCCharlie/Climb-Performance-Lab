@@ -64,7 +64,12 @@ const CoachFluidWeekPlan = ({
     useEffect(() => {
         const matches = {};
         weekPlan.sessions.forEach((s) => {
-            if (s.matchedOnDate) {
+            if (
+                s.matchedOnDate
+                && s.plannedStimulus !== 'rest'
+                && !s.isUnavailable
+                && s.date <= today
+            ) {
                 matches[s.date] = {
                     activityId: s.matchedActivityId || null,
                     activityDate: s.matchedOnDate,
@@ -81,7 +86,12 @@ const CoachFluidWeekPlan = ({
         if (!week2Plan?.sessions) return;
         const matches = {};
         week2Plan.sessions.forEach((s) => {
-            if (s.matchedOnDate) {
+            if (
+                s.matchedOnDate
+                && s.plannedStimulus !== 'rest'
+                && !s.isUnavailable
+                && s.date <= today
+            ) {
                 matches[s.date] = {
                     activityId: s.matchedActivityId || null,
                     activityDate: s.matchedOnDate,
@@ -95,8 +105,10 @@ const CoachFluidWeekPlan = ({
     }, [week2Plan?.mondayYmd, week2Plan?.sessions]);
 
     const stats = useMemo(() => {
-        const planned = weekPlan.sessions.filter((s) => s.plannedStimulus !== 'rest').length;
-        const done = weekPlan.sessions.filter((s) => s.completed).length;
+        const planned = weekPlan.sessions.filter((s) => s.plannedStimulus !== 'rest' && !s.isUnavailable).length;
+        const done = weekPlan.sessions.filter(
+            (s) => s.completed && s.plannedStimulus !== 'rest' && !s.isUnavailable,
+        ).length;
         return { planned, done };
     }, [weekPlan.sessions]);
 

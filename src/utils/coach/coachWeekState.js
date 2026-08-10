@@ -305,6 +305,7 @@ export function toggleUnavailableDate(mondayYmd, dateYmd) {
         unavailableDates: [...set],
         availableDates: [...available],
         moves,
+        sessionMatches: {},
     });
 }
 

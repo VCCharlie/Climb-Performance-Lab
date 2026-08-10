@@ -83,31 +83,38 @@ describe('coachWeekPlan', () => {
         expect(tuesday.stimulus).toBe('rest');
     });
 
-    it('buildFluidWeekPlan auto-matches cross-day sweetspot ride', () => {
+    it('buildFluidWeekPlan auto-matches cross-day sweetspot ride once session day has passed', () => {
         const activities = [
             { id: 'ride-1', date: '2026-08-03', norm_power: 230, load: 70 },
         ];
-        const plan = buildFluidWeekPlan({
+        const planOnMonday = buildFluidWeekPlan({
             activities,
             userSettings: { weeklyHoursTarget: 5, ftp: 250 },
             coachContext: { athlete: { ftp: 250 }, fitness: { tsb: 0 } },
             referenceYmd: '2026-08-03',
         });
 
-        const monday = plan.sessions.find((s) => s.date === '2026-08-03');
+        const monday = planOnMonday.sessions.find((s) => s.date === '2026-08-03');
         expect(monday.plannedStimulus).toBe('rest');
         expect(monday.stimulus).toBe('completed');
         expect(monday.workoutName).toMatch(/Ride logged/i);
-        expect(monday.flexNote).toMatch(/matched/i);
 
-        const matched = plan.sessions.filter((s) => s.matchedOnDate);
-        expect(matched).toEqual([
-            expect.objectContaining({
-                date: '2026-08-06',
-                completed: true,
-                matchedOnDate: '2026-08-03',
-            }),
-        ]);
+        const thursdayOnMonday = planOnMonday.sessions.find((s) => s.date === '2026-08-06');
+        expect(thursdayOnMonday.completed).toBe(false);
+        expect(thursdayOnMonday.matchedOnDate).toBeNull();
+
+        const planOnThursday = buildFluidWeekPlan({
+            activities,
+            userSettings: { weeklyHoursTarget: 5, ftp: 250 },
+            coachContext: { athlete: { ftp: 250 }, fitness: { tsb: 0 } },
+            referenceYmd: '2026-08-07',
+            calendarYmd: '2026-08-07',
+        });
+
+        const thursday = planOnThursday.sessions.find((s) => s.date === '2026-08-06');
+        expect(thursday.completed).toBe(true);
+        expect(thursday.matchedOnDate).toBe('2026-08-03');
+        expect(thursday.flexNote).toMatch(/Completed via Monday ride/i);
     });
 
     it('buildFluidWeekPlan does not mark today done from yesterdays ride', () => {
@@ -142,7 +149,8 @@ describe('coachWeekPlan', () => {
             activities: [{ id: 'ride-1', date: '2026-08-03', norm_power: 230, load: 70 }],
             userSettings: { weeklyHoursTarget: 5, ftp: 250 },
             coachContext: { athlete: { ftp: 250 }, fitness: { tsb: 0 } },
-            referenceYmd: '2026-08-05',
+            referenceYmd: '2026-08-07',
+            calendarYmd: '2026-08-07',
         });
 
         const thursday = plan.sessions.find((s) => s.date === '2026-08-06');
@@ -220,6 +228,50 @@ describe('coachWeekPlan', () => {
         expect(tuesday.isExplicitlyAvailable).toBe(true);
         expect(tuesday.plannedStimulus).toBe('sweetspot');
         expect(tuesday.relocatedFromDate).toBe('2026-08-06');
+    });
+
+    it('buildFluidWeekPlan keeps future sessions open after blocking a day with an earlier ride', () => {
+        const activities = [
+            { id: 'ride-1', date: '2026-08-10', norm_power: 230, load: 70 },
+        ];
+        toggleUnavailableDate('2026-08-10', '2026-08-11');
+
+        const plan = buildFluidWeekPlan({
+            activities,
+            userSettings: { weeklyHoursTarget: 5, ftp: 250 },
+            coachContext: { athlete: { ftp: 250 }, fitness: { tsb: 0 } },
+            referenceYmd: '2026-08-10',
+            calendarYmd: '2026-08-10',
+        });
+
+        const monday = plan.sessions.find((s) => s.date === '2026-08-10');
+        const tuesday = plan.sessions.find((s) => s.date === '2026-08-11');
+        const wednesday = plan.sessions.find((s) => s.date === '2026-08-12');
+        const thursday = plan.sessions.find((s) => s.date === '2026-08-13');
+
+        expect(monday.stimulus).toBe('completed');
+        expect(tuesday.isUnavailable).toBe(true);
+        expect(wednesday.relocatedFromDate).toBe('2026-08-11');
+        expect(wednesday.completed).toBe(false);
+        expect(wednesday.stimulus).not.toBe('completed');
+        expect(thursday.completed).toBe(false);
+        expect(thursday.matchedOnDate).toBeNull();
+    });
+
+    it('toggleUnavailableDate clears persisted session matches', () => {
+        writeCoachWeekState('2026-08-10', {
+            sessionMatches: {
+                '2026-08-13': {
+                    activityId: 'ride-1',
+                    activityDate: '2026-08-10',
+                    matchedStimulus: 'sweetspot',
+                },
+            },
+        });
+
+        toggleUnavailableDate('2026-08-10', '2026-08-11');
+        const state = readCoachWeekState('2026-08-10');
+        expect(state.sessionMatches).toEqual({});
     });
 
     it('buildProjectedWeek2Plan marks only calendar today, not week-2 Monday', () => {
