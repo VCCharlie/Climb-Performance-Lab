@@ -87,11 +87,17 @@ export function matchSessionsToActivities(sessions, activities, ftp, options = {
         .filter((s) => {
             const planned = s.plannedStimulus || s.originalStimulus;
             if (!planned || planned === 'rest' || s.sameDayComplete) return false;
+            if (s.isUnavailable) return false;
+            // Future workouts stay open — a ride earlier in the week must not mark them done yet.
+            if (referenceYmd && s.date > referenceYmd) return false;
             // Today stays open until you ride today or mark it done — no backfill from yesterday.
             if (referenceYmd && s.date === referenceYmd) return false;
             return true;
         })
         .sort((a, b) => {
+            const aRelocated = a.relocatedFromDate ? 1 : 0;
+            const bRelocated = b.relocatedFromDate ? 1 : 0;
+            if (bRelocated !== aRelocated) return bRelocated - aRelocated;
             const pa = STIMULUS_RANK[a.plannedStimulus || a.originalStimulus] ?? 0;
             const pb = STIMULUS_RANK[b.plannedStimulus || b.originalStimulus] ?? 0;
             if (pb !== pa) return pb - pa;

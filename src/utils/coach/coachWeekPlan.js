@@ -233,8 +233,18 @@ export function buildFluidWeekPlan({
 
     // Merge persisted matches (cross-device) when live matching has no result yet.
     const weekActivities = filterActivitiesInRange(activities, mondayYmd, sundayYmd);
+    const isMatchableSession = (sessionDate) => {
+        const row = preliminary.find((s) => s.date === sessionDate);
+        if (!row) return false;
+        const planned = row.plannedStimulus || row.originalStimulus;
+        if (!planned || planned === 'rest' || row.isUnavailable) return false;
+        if (sessionDate > calendarYmd) return false;
+        return true;
+    };
+
     for (const [sessionDate, persisted] of Object.entries(weekState.sessionMatches || {})) {
         if (crossDayMatches.has(sessionDate)) continue;
+        if (!isMatchableSession(sessionDate)) continue;
         // Drop stale persisted matches that counted yesterday's ride as today's workout.
         if (sessionDate === calendarYmd && persisted.activityDate < calendarYmd) continue;
         const act = weekActivities.find(
@@ -260,8 +270,13 @@ export function buildFluidWeekPlan({
 
     const sessions = preliminary.map((row) => {
         const match = crossDayMatches.get(row.date);
-        const crossDayComplete = Boolean(match);
-        const completed = row.sameDayComplete || crossDayComplete;
+        const isActiveWorkout = row.plannedStimulus !== 'rest' && !row.isUnavailable;
+        const crossDayComplete = Boolean(match) && row.date <= calendarYmd;
+        const manualComplete = weekState.completedDates.includes(row.date);
+        const workoutSameDayComplete = row.sameDayComplete && isActiveWorkout;
+        const completed = row.plannedStimulus === 'rest' && row.sameDayComplete
+            ? true
+            : isActiveWorkout && (manualComplete || workoutSameDayComplete || crossDayComplete);
 
         let stimulus = row.stimulus;
         let loggedRideStimulus = null;
@@ -287,6 +302,10 @@ export function buildFluidWeekPlan({
                 || basePlan.get(row.relocatedFromDate)?.day
                 || 'another day';
             flexNote = `Rescheduled from ${fromDay} (day blocked).`;
+            if (crossDayComplete && match) {
+                const matchDay = preliminary.find((s) => s.date === match.activityDate)?.day || match.activityDate;
+                flexNote += ` Completed via ${matchDay} ride (${match.matchedStimulus} detected).`;
+            }
         } else if (row.movedToDate) {
             const toDay = effectivePlan.get(row.movedToDate)?.day || 'another day';
             flexNote = `Moved to ${toDay}.`;

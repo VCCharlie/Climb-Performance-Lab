@@ -186,9 +186,10 @@ function compareSlotPreference(a, b, fromDate, available = new Set()) {
     const aOpen = available.has(a) ? 0 : 1;
     const bOpen = available.has(b) ? 0 : 1;
     if (aOpen !== bOpen) return aOpen - bOpen;
-    const aBefore = a < fromDate ? 0 : 1;
-    const bBefore = b < fromDate ? 0 : 1;
-    if (aBefore !== bBefore) return aBefore - bBefore;
+    // Prefer moving forward in the week (blocked Tuesday → Wednesday, not Monday).
+    const aForward = a >= fromDate ? 0 : 1;
+    const bForward = b >= fromDate ? 0 : 1;
+    if (aForward !== bForward) return aForward - bForward;
 
     const distA = daysApartYmd(a, fromDate);
     const distB = daysApartYmd(b, fromDate);
