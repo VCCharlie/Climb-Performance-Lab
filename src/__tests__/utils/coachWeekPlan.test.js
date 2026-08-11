@@ -258,6 +258,33 @@ describe('coachWeekPlan', () => {
         expect(thursday.matchedOnDate).toBeNull();
     });
 
+    it('buildFluidWeekPlan does not reschedule blocked Tuesday endurance after it was ridden', () => {
+        const activities = [
+            { id: 'ride-mon', date: '2026-08-10', norm_power: 230, load: 90 },
+            { id: 'ride-tue', date: '2026-08-11', norm_power: 200, load: 80 },
+        ];
+        toggleUnavailableDate('2026-08-10', '2026-08-10');
+        toggleUnavailableDate('2026-08-10', '2026-08-11');
+
+        const plan = buildFluidWeekPlan({
+            activities,
+            userSettings: { weeklyHoursTarget: 5, ftp: 250 },
+            coachContext: { athlete: { ftp: 250 }, fitness: { tsb: 0 } },
+            referenceYmd: '2026-08-11',
+            calendarYmd: '2026-08-11',
+        });
+
+        const tuesday = plan.sessions.find((s) => s.date === '2026-08-11');
+        const friday = plan.sessions.find((s) => s.date === '2026-08-14');
+        const saturday = plan.sessions.find((s) => s.date === '2026-08-15');
+
+        expect(tuesday.fulfilledOnBlockedDay).toBe(true);
+        expect(tuesday.flexNote).toMatch(/already logged/i);
+        expect(friday.plannedStimulus).toBe('rest');
+        expect(friday.relocatedFromDate).toBeFalsy();
+        expect(saturday.plannedStimulus === 'rest' || saturday.plannedStimulus === 'endurance').toBe(true);
+    });
+
     it('toggleUnavailableDate clears persisted session matches', () => {
         writeCoachWeekState('2026-08-10', {
             sessionMatches: {
