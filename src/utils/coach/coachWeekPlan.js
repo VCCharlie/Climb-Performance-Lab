@@ -11,6 +11,7 @@ import { activityIF, filterActivitiesInRange, sumTss, todayYmd } from './coachHe
 import { readCoachWeekState } from './coachWeekState';
 import { matchSessionsToActivities, classifyActivityStimulus } from './coachSessionMatcher';
 import { applyAvailabilityRelocation } from './coachAvailability';
+import { trimPlannedVolume } from './coachWeekVolume';
 import { projectWeekEndTsb } from './coachFitnessForecast';
 
 /**
@@ -162,6 +163,10 @@ export function buildFluidWeekPlan({
         weekState.unavailableDates,
         referenceYmd,
         weekState.availableDates,
+        {
+            activities: filterActivitiesInRange(activities, mondayYmd, sundayYmd),
+            ftp,
+        },
     );
 
     const effectivePlan = new Map(planWithMoves);
@@ -174,14 +179,22 @@ export function buildFluidWeekPlan({
         }
     }
 
+    const volumeTrimmedPlan = trimPlannedVolume(effectivePlan, skeleton, {
+        actualTss: actuals.tssThisWeek,
+        targetTss,
+        calendarYmd,
+    });
+
     const preliminary = skeleton.map((row) => {
-        const base = effectivePlan.get(row.date);
+        const base = volumeTrimmedPlan.get(row.date);
         let plannedStimulus = base.plannedStimulus;
         let movedFromDate = null;
         let movedToDate = null;
         let relocatedFromDate = base.relocatedFromDate || null;
         let note = base.note;
         const isUnavailable = Boolean(base.unavailable);
+        const fulfilledOnBlockedDay = Boolean(base.fulfilledOnBlockedDay);
+        const volumeSkipped = Boolean(base.volumeSkipped);
         const isExplicitlyAvailable = (weekState.availableDates || []).includes(row.date);
 
         if (vacatedDates.has(row.date)) {
@@ -217,6 +230,10 @@ export function buildFluidWeekPlan({
             movedToDate,
             relocatedFromDate,
             isUnavailable,
+            fulfilledOnBlockedDay,
+            fulfilledStimulus: base.fulfilledStimulus || null,
+            volumeSkipped,
+            volumeSkipReason: base.volumeSkipReason || null,
             isExplicitlyAvailable,
             sameDayComplete,
             isToday: row.date === calendarYmd,
@@ -310,7 +327,11 @@ export function buildFluidWeekPlan({
             const toDay = effectivePlan.get(row.movedToDate)?.day || 'another day';
             flexNote = `Moved to ${toDay}.`;
         } else if (row.isUnavailable && row.plannedStimulus === 'rest') {
-            flexNote = 'Blocked — no training this day.';
+            flexNote = row.fulfilledOnBlockedDay
+                ? `Blocked day — ${row.fulfilledStimulus || 'session'} already logged, so it will not be rescheduled.`
+                : 'Blocked — no training this day.';
+        } else if (row.volumeSkipped && row.volumeSkipReason) {
+            flexNote = row.volumeSkipReason;
         } else if (row.isExplicitlyAvailable && row.plannedStimulus === 'rest') {
             flexNote = 'Open for training — sessions may be scheduled here.';
         } else if (crossDayComplete && match) {
@@ -346,6 +367,8 @@ export function buildFluidWeekPlan({
             loggedRideStimulus,
             flexNote,
             isUnavailable: row.isUnavailable,
+            fulfilledOnBlockedDay: row.fulfilledOnBlockedDay,
+            volumeSkipped: row.volumeSkipped,
             isExplicitlyAvailable: row.isExplicitlyAvailable,
             relocatedFromDate: row.relocatedFromDate,
             fluidWorkout,

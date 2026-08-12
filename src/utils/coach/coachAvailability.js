@@ -2,7 +2,8 @@
  * Reschedule week sessions when the athlete marks days as unavailable.
  */
 
-import { daysApartYmd } from './coachSessionMatcher';
+import { daysApartYmd, classifyActivityStimulus, stimulusMatches } from './coachSessionMatcher';
+import { normalizeDate } from '../formatters';
 
 const STIMULUS_RANK = {
     recovery: 0,
@@ -22,10 +23,20 @@ function isWorkout(stimulus) {
  * @param {string[]} unavailableDates
  * @param {string} referenceYmd
  * @param {string[]} [availableDates]
+ * @param {{ activities?: object[], ftp?: number }} [options]
  */
-export function applyAvailabilityRelocation(skeletonRows, basePlan, unavailableDates, referenceYmd, availableDates = []) {
+export function applyAvailabilityRelocation(
+    skeletonRows,
+    basePlan,
+    unavailableDates,
+    referenceYmd,
+    availableDates = [],
+    options = {},
+) {
     const unavailable = new Set((unavailableDates || []).filter(Boolean));
     const available = new Set((availableDates || []).filter(Boolean));
+    const activities = options.activities || [];
+    const ftp = options.ftp || 0;
     if (unavailable.size === 0) {
         return {
             assignment: null,
@@ -46,6 +57,20 @@ export function applyAvailabilityRelocation(skeletonRows, basePlan, unavailableD
 
         if (unavailable.has(row.date)) {
             if (isWorkout(stimulus)) {
+                const ride = activities.find((a) => normalizeDate(a.date) === row.date);
+                const rideStimulus = ride ? classifyActivityStimulus(ride, ftp) : null;
+                if (ride && stimulusMatches(stimulus, rideStimulus)) {
+                    assignment.set(row.date, {
+                        plannedStimulus: 'rest',
+                        unavailable: true,
+                        originalStimulus: base?.originalStimulus || row.stimulus,
+                        fulfilledOnBlockedDay: true,
+                        fulfilledStimulus: stimulus,
+                        note: null,
+                    });
+                    continue;
+                }
+
                 displaced.push({
                     fromDate: row.date,
                     fromDay: row.day,
