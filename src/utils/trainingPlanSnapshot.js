@@ -3,7 +3,8 @@
  * Persisted in localStorage so tabs stay linked without App.jsx state bloat.
  */
 
-import { safeLocalStorageSet } from './safeStorage';
+import { resolveTrainingGoalDisplayName } from './trainingGoalLink';
+import { safeLocalStorageSet } from './safeStorage.js';
 
 export const TRAINING_PLAN_STORAGE_KEY = 'cpl.trainingPlan.v1';
 export const TRAINING_PLAN_CLEARED_AT_KEY = 'cpl.trainingPlan.clearedAt.v1';
@@ -66,14 +67,24 @@ export function buildTrainingPlanSnapshot({ goalDate, eventName, goalInputs, pla
                 : Number(goalInputs.durationHours),
             targetPctFtp: Number(goalInputs.targetPctFtp) || 75,
             climbSearch: (goalInputs.climbSearch || '').trim(),
+            customEventName: (goalInputs.customEventName ?? eventName ?? '').trim(),
         }
         : null;
+
+    const displayName = resolveTrainingGoalDisplayName({
+        eventName,
+        source: normalizedInputs?.source,
+        climbSearch: normalizedInputs?.climbSearch,
+        distanceKm: normalizedInputs?.distanceKm,
+        elevationM: normalizedInputs?.elevationM,
+        goalInputs: normalizedInputs,
+    });
 
     return {
         version: 1,
         updatedAt: new Date().toISOString(),
         goalDate,
-        eventName: (eventName || '').trim() || 'Training goal',
+        eventName: displayName,
         goalInputs: normalizedInputs,
         weeksToEvent: planResult.weeksToEvent,
         recentWeeklyTss: planResult.recentWeeklyTss,
@@ -97,23 +108,25 @@ export function normalizeTrainingPlanSnapshot(raw) {
     if (!raw || typeof raw !== 'object' || !raw.goalDate) return null;
     if (!Array.isArray(raw.weeks) || raw.weeks.length === 0) return null;
 
-    return {
+    const goalInputs = raw.goalInputs && typeof raw.goalInputs === 'object'
+        ? {
+            source: raw.goalInputs.source === 'climb' ? 'climb' : 'custom',
+            distanceKm: Number(raw.goalInputs.distanceKm) || 0,
+            elevationM: Number(raw.goalInputs.elevationM) || 0,
+            durationHours: raw.goalInputs.durationHours == null || raw.goalInputs.durationHours === ''
+                ? null
+                : Number(raw.goalInputs.durationHours),
+            targetPctFtp: Number(raw.goalInputs.targetPctFtp) || 75,
+            climbSearch: (raw.goalInputs.climbSearch || '').trim(),
+            customEventName: (raw.goalInputs.customEventName || '').trim(),
+        }
+        : null;
+
+    const base = {
         version: raw.version ?? 1,
         updatedAt: raw.updatedAt || new Date().toISOString(),
         goalDate: String(raw.goalDate).slice(0, 10),
-        eventName: (raw.eventName || '').trim() || 'Training goal',
-        goalInputs: raw.goalInputs && typeof raw.goalInputs === 'object'
-            ? {
-                source: raw.goalInputs.source === 'climb' ? 'climb' : 'custom',
-                distanceKm: Number(raw.goalInputs.distanceKm) || 0,
-                elevationM: Number(raw.goalInputs.elevationM) || 0,
-                durationHours: raw.goalInputs.durationHours == null || raw.goalInputs.durationHours === ''
-                    ? null
-                    : Number(raw.goalInputs.durationHours),
-                targetPctFtp: Number(raw.goalInputs.targetPctFtp) || 75,
-                climbSearch: (raw.goalInputs.climbSearch || '').trim(),
-            }
-            : null,
+        goalInputs,
         weeksToEvent: Number(raw.weeksToEvent) || 0,
         recentWeeklyTss: Number(raw.recentWeeklyTss) || 0,
         estimatedEventTss: raw.estimatedEventTss == null ? null : Number(raw.estimatedEventTss),
@@ -124,6 +137,11 @@ export function normalizeTrainingPlanSnapshot(raw) {
         currentPhaseLabel: raw.currentPhaseLabel || '',
         currentPhaseKey: raw.currentPhaseKey || '',
         isTaperPhase: raw.currentPhaseKey === 'taper',
+    };
+
+    return {
+        ...base,
+        eventName: resolveTrainingGoalDisplayName({ snapshot: { ...base, eventName: raw.eventName } }),
     };
 }
 

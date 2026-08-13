@@ -529,7 +529,7 @@ ${workout.zwoSteps.map(step => {
                             Event goal drives this week
                         </p>
                         <p className="text-sm text-cdtext mt-1">
-                            <strong>{linkedEventGoal.eventName}</strong>
+                            <strong>{linkedEventGoal.displayName || linkedEventGoal.eventName}</strong>
                             {' '}on {formatDateDDMMYYYY(linkedEventGoal.goalDate)}
                             {linkedEventGoal.weeksToEvent > 0
                                 ? ` — ${linkedEventGoal.weeksToEvent} week(s) out`

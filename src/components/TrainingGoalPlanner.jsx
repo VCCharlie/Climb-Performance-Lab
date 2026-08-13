@@ -12,7 +12,7 @@ import {
     hydrateTrainingPlanSnapshot,
     TRAINING_PLAN_UPDATED_EVENT,
 } from '../utils/trainingPlanSnapshot';
-import { trainingGoalFormDefaultsFromSnapshot } from '../utils/trainingGoalLink';
+import { trainingGoalFormDefaultsFromSnapshot, resolveTrainingGoalDisplayName } from '../utils/trainingGoalLink';
 import { formatDateDDMMYYYY } from '../utils/formatters';
 import NlDateInput from './NlDateInput';
 
@@ -126,6 +126,7 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
                 goalInputs: {
                     source,
                     climbSearch,
+                    customEventName: eventName.trim(),
                     distanceKm: Number(distanceKm) || 0,
                     elevationM: Number(elevationM) || 0,
                     durationHours: durationHours === '' ? null : Number(durationHours),
@@ -158,13 +159,26 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
         setGoalDate(defaultGoalDate());
     };
 
+    const displayEventName = useMemo(
+        () => resolveTrainingGoalDisplayName({
+            eventName,
+            source,
+            climbSearch,
+            distanceKm: Number(distanceKm) || 0,
+            elevationM: Number(elevationM) || 0,
+            snapshot: activeGoalSnapshot,
+        }),
+        [eventName, source, climbSearch, distanceKm, elevationM, activeGoalSnapshot],
+    );
+
     useEffect(() => {
         const snapshot = buildTrainingPlanSnapshot({
             goalDate,
-            eventName: eventName || (source === 'climb' ? climbSearch : ''),
+            eventName,
             goalInputs: {
                 source,
                 climbSearch,
+                customEventName: eventName.trim(),
                 distanceKm: Number(distanceKm) || 0,
                 elevationM: Number(elevationM) || 0,
                 durationHours: durationHours === '' ? null : Number(durationHours),
@@ -215,7 +229,7 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
                             Active event goal
                         </p>
                         <p className="text-lg font-black text-cdtext mt-1 break-words">
-                            {activeGoalSnapshot.eventName}
+                            {displayEventName}
                         </p>
                         <p className="text-sm text-cdmuted mt-1">
                             {formatDateDDMMYYYY(activeGoalSnapshot.goalDate)}
@@ -411,7 +425,7 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
                         </h3>
                         {activeGoalSnapshot && (
                             <span className="text-xs text-cdmuted">
-                                <span className="font-semibold text-cdtext">{activeGoalSnapshot.eventName}</span>
+                                <span className="font-semibold text-cdtext">{displayEventName}</span>
                                 {' · '}
                                 {formatDateDDMMYYYY(activeGoalSnapshot.goalDate)}
                             </span>

@@ -1,19 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import {
-    CalendarDays,
-    CheckCircle2,
-    Circle,
-    RefreshCw,
-    Heart,
-    Bike,
-    Flame,
-    TrendingUp,
-    ArrowRight,
-    Undo2,
-    Sparkles,
-    Ban,
-    CircleCheck,
-} from 'lucide-react';
+import { CalendarDays } from 'lucide-react';
 import { buildFluidWeekPlan } from '../../utils/coach/coachWeekPlan';
 import {
     toggleSessionComplete,
@@ -30,9 +16,14 @@ import {
 } from '../../utils/coach/coachWeekState';
 import { formatDateDDMMYYYY } from '../../utils/formatters';
 import { todayYmd } from '../../utils/coach/coachHelpers';
-import { getStimulusStyle } from './coachStimulusStyles';
-import FluidWorkoutExpandable from './FluidWorkoutExpandable';
+import FluidWeekPanel, { FluidWeekSyncNote } from './FluidWeekPanel';
 import CollapsibleSection from '../ui/CollapsibleSection';
+
+function goalLabelFromWeekPlan(weekPlan) {
+    if (weekPlan.targetTssSource !== 'event-goal' || !weekPlan.trainingGoal) return '';
+    const name = weekPlan.trainingGoal.displayName || weekPlan.trainingGoal.eventName;
+    return name ? ` · ${name}` : '';
+}
 
 const CoachFluidWeekPlan = ({
     activities,
@@ -104,108 +95,51 @@ const CoachFluidWeekPlan = ({
         }
     }, [week2Plan?.mondayYmd, week2Plan?.sessions]);
 
-    const stats = useMemo(() => {
-        const planned = weekPlan.sessions.filter((s) => s.plannedStimulus !== 'rest' && !s.isUnavailable).length;
-        const done = weekPlan.sessions.filter(
-            (s) => s.completed && s.plannedStimulus !== 'rest' && !s.isUnavailable,
-        ).length;
-        return { planned, done };
-    }, [weekPlan.sessions]);
-
-    const progressColor = weekPlan.compliancePct > 115
-        ? 'bg-orange-400'
-        : weekPlan.compliancePct > 100
-            ? 'bg-yellow-400'
-            : 'bg-cdaccent';
-
-    const handleToggleDone = (dateYmd) => {
-        toggleSessionComplete(weekPlan.mondayYmd, dateYmd);
-        dispatchCoachWeekUpdated();
-    };
-
-    const handleSwapRecovery = (dateYmd) => {
-        setSessionOverride(weekPlan.mondayYmd, dateYmd, 'recovery');
-        dispatchCoachWeekUpdated();
-    };
-
-    const handleMoveToToday = (fromDateYmd) => {
-        moveSessionToToday(weekPlan.mondayYmd, fromDateYmd, today);
-        dispatchCoachWeekUpdated();
-    };
-
-    const handleUndoMove = (fromDateYmd) => {
-        clearSessionMove(weekPlan.mondayYmd, fromDateYmd);
-        dispatchCoachWeekUpdated();
-    };
-
-    const handleToggleUnavailable = (dateYmd) => {
-        toggleUnavailableDate(weekPlan.mondayYmd, dateYmd);
-        dispatchCoachWeekUpdated();
-    };
-
-    const handleToggleAvailable = (dateYmd) => {
-        toggleAvailableDate(weekPlan.mondayYmd, dateYmd);
-        dispatchCoachWeekUpdated();
-    };
-
-    const handleClearAvailability = () => {
-        clearUnavailableDates(weekPlan.mondayYmd);
-        clearAvailableDates(weekPlan.mondayYmd);
-        dispatchCoachWeekUpdated();
-    };
-
-    const handleToggleDoneWeek2 = (dateYmd) => {
-        if (!week2Plan) return;
-        toggleSessionComplete(week2Plan.mondayYmd, dateYmd);
-        dispatchCoachWeekUpdated();
-    };
-
-    const handleSwapRecoveryWeek2 = (dateYmd) => {
-        if (!week2Plan) return;
-        setSessionOverride(week2Plan.mondayYmd, dateYmd, 'recovery');
-        dispatchCoachWeekUpdated();
-    };
-
-    const handleMoveToTodayWeek2 = (fromDateYmd) => {
-        if (!week2Plan) return;
-        moveSessionToToday(week2Plan.mondayYmd, fromDateYmd, today);
-        dispatchCoachWeekUpdated();
-    };
-
-    const handleUndoMoveWeek2 = (fromDateYmd) => {
-        if (!week2Plan) return;
-        clearSessionMove(week2Plan.mondayYmd, fromDateYmd);
-        dispatchCoachWeekUpdated();
-    };
-
-    const handleToggleUnavailableWeek2 = (dateYmd) => {
-        if (!week2Plan) return;
-        toggleUnavailableDate(week2Plan.mondayYmd, dateYmd);
-        dispatchCoachWeekUpdated();
-    };
-
-    const handleToggleAvailableWeek2 = (dateYmd) => {
-        if (!week2Plan) return;
-        toggleAvailableDate(week2Plan.mondayYmd, dateYmd);
-        dispatchCoachWeekUpdated();
-    };
-
-    const handleClearAvailabilityWeek2 = () => {
-        if (!week2Plan) return;
-        clearUnavailableDates(week2Plan.mondayYmd);
-        clearAvailableDates(week2Plan.mondayYmd);
-        dispatchCoachWeekUpdated();
-    };
-
     const weekSubtitle = useMemo(() => {
         const dates = `${formatDateDDMMYYYY(weekPlan.mondayYmd)} – ${formatDateDDMMYYYY(weekPlan.sundayYmd)}`;
         const tss = `${weekPlan.actualTss}/${weekPlan.targetTss} TSS`;
         const phase = weekPlan.phaseLabel ? ` · ${weekPlan.phaseLabel}` : '';
-        const goal = weekPlan.targetTssSource === 'event-goal' && weekPlan.trainingGoal?.eventName
-            ? ` · ${weekPlan.trainingGoal.eventName}`
-            : '';
-        return `${dates} · ${tss}${phase}${goal}`;
+        return `${dates} · ${tss}${phase}${goalLabelFromWeekPlan(weekPlan)}`;
     }, [weekPlan]);
+
+    const makeWeekHandlers = (plan) => ({
+        onToggleDone: (dateYmd) => {
+            toggleSessionComplete(plan.mondayYmd, dateYmd);
+            dispatchCoachWeekUpdated();
+        },
+        onSwapRecovery: (dateYmd) => {
+            setSessionOverride(plan.mondayYmd, dateYmd, 'recovery');
+            dispatchCoachWeekUpdated();
+        },
+        onMoveToToday: (fromDateYmd) => {
+            moveSessionToToday(plan.mondayYmd, fromDateYmd, today);
+            dispatchCoachWeekUpdated();
+        },
+        onUndoMove: (fromDateYmd) => {
+            clearSessionMove(plan.mondayYmd, fromDateYmd);
+            dispatchCoachWeekUpdated();
+        },
+        onToggleUnavailable: (dateYmd) => {
+            toggleUnavailableDate(plan.mondayYmd, dateYmd);
+            dispatchCoachWeekUpdated();
+        },
+        onToggleAvailable: (dateYmd) => {
+            toggleAvailableDate(plan.mondayYmd, dateYmd);
+            dispatchCoachWeekUpdated();
+        },
+        onClearAvailability: () => {
+            clearUnavailableDates(plan.mondayYmd);
+            clearAvailableDates(plan.mondayYmd);
+            dispatchCoachWeekUpdated();
+        },
+    });
+
+    const week1Handlers = makeWeekHandlers(weekPlan);
+    const week2Handlers = week2Plan ? makeWeekHandlers(week2Plan) : null;
+
+    const toggleExpand = (key) => {
+        setExpandedDate((current) => (current === key ? null : key));
+    };
 
     return (
         <CollapsibleSection
@@ -226,386 +160,50 @@ const CoachFluidWeekPlan = ({
                             : 'border-cdborder text-cdmuted hover:text-cdtext'
                     }`}
                 >
-                    + Week 2
+                    {showNextWeek ? 'Hide week 2' : '+ Week 2'}
                 </button>
             ) : null}
         >
-            <div className="space-y-4 -mt-1">
-                <div className="rounded-xl border border-cdborder/50 bg-gradient-to-br from-cdaccent/5 to-transparent p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                        <div className="text-right ml-auto">
-                            <div className="text-2xl font-bold text-cdtext tabular-nums">
-                                {weekPlan.actualTss}
-                                <span className="text-cdmuted text-base font-normal"> / {weekPlan.targetTss}</span>
-                            </div>
-                            <div className="text-[10px] text-cdmuted uppercase tracking-wide">TSS this week</div>
-                        </div>
-                    </div>
+            <div className="-mt-1">
+                <FluidWeekSyncNote isSignedIn={isSignedIn} />
 
-                    <p className="text-xs text-cdmuted mt-3 flex items-start gap-2">
-                    <Sparkles size={13} className="shrink-0 mt-0.5 text-cdaccent" />
-                    {isSignedIn
-                        ? 'Blocked days and moves sync across devices when signed in. Sessions reschedule to your open days.'
-                        : 'Sign in to sync blocked days across mobile and desktop. Sessions reschedule to your open days.'}
-                </p>
-
-                <div className="mt-4 flex flex-wrap gap-2">
-                    <StatPill icon={TrendingUp} label={`${weekPlan.compliancePct}% target`} />
-                    <StatPill icon={Bike} label={`${stats.done}/${stats.planned} sessions`} />
-                    <StatPill icon={Flame} label={`${weekPlan.hardSessions} hard`} />
-                    <StatPill icon={Bike} label={`${weekPlan.rideCount} rides logged`} />
-                </div>
-
-                <div className="mt-3 h-2.5 rounded-full bg-cdborder/50 overflow-hidden">
-                    <div
-                        className={`h-full rounded-full transition-all duration-500 ${progressColor}`}
-                        style={{ width: `${Math.min(100, weekPlan.compliancePct)}%` }}
+                <div
+                    className={[
+                        'flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 -mx-1 px-1',
+                        showNextWeek && week2Plan?.sessions?.length ? 'scroll-smooth' : '',
+                    ].join(' ')}
+                >
+                    <FluidWeekPanel
+                        title="This week"
+                        weekPlan={weekPlan}
+                        expandedDate={expandedDate}
+                        onToggleExpand={toggleExpand}
+                        expandKeyPrefix=""
+                        className="min-w-[min(100%,340px)] max-w-full flex-shrink-0 snap-center"
+                        {...week1Handlers}
                     />
+
+                    {showNextWeek && week2Plan?.sessions?.length > 0 && week2Handlers && (
+                        <FluidWeekPanel
+                            title="Next week"
+                            weekPlan={week2Plan}
+                            expandedDate={expandedDate}
+                            onToggleExpand={toggleExpand}
+                            expandKeyPrefix="w2-"
+                            className="min-w-[min(100%,340px)] max-w-full flex-shrink-0 snap-center border-l border-cdborder/50 pl-4"
+                            {...week2Handlers}
+                        />
+                    )}
                 </div>
 
-                {weekPlan.availabilityNote && (
-                    <p className="text-xs text-orange-300 mt-3 flex items-start gap-2 bg-orange-500/10 rounded-lg px-3 py-2">
-                        <Ban size={13} className="shrink-0 mt-0.5" />
-                        {weekPlan.availabilityNote}
+                {showNextWeek && week2Plan?.sessions?.length > 0 && (
+                    <p className="text-[10px] text-cdmuted text-center mt-2 md:hidden">
+                        Swipe sideways to compare weeks
                     </p>
                 )}
-
-                {(weekPlan.hasAvailabilityBlocks || weekPlan.hasExplicitAvailability) && (
-                    <div className="mt-3 flex justify-end">
-                        <button
-                            type="button"
-                            onClick={handleClearAvailability}
-                            className="text-xs text-cdmuted hover:text-cdtext underline"
-                        >
-                            Clear availability overrides
-                        </button>
-                    </div>
-                )}
-
-                {weekPlan.rebalanceNote && (
-                    <p className="text-xs text-cdaccent mt-3 flex items-start gap-2 bg-cdaccent/10 rounded-lg px-3 py-2">
-                        <RefreshCw size={13} className="shrink-0 mt-0.5" />
-                        {weekPlan.rebalanceNote}
-                    </p>
-                )}
-            </div>
-
-            <div className="space-y-2">
-                {weekPlan.sessions.map((session) => (
-                    <WeekSessionRow
-                        key={session.date}
-                        session={session}
-                        today={today}
-                        expanded={expandedDate === session.date}
-                        onToggleExpand={() =>
-                            setExpandedDate((d) => (d === session.date ? null : session.date))
-                        }
-                        onToggleDone={() => handleToggleDone(session.date)}
-                        onSwapRecovery={() => handleSwapRecovery(session.date)}
-                        onMoveToToday={() => handleMoveToToday(session.movedFromDate || session.date)}
-                        onUndoMove={() => handleUndoMove(session.movedFromDate || session.date)}
-                        onToggleUnavailable={() => handleToggleUnavailable(session.date)}
-                        onToggleAvailable={() => handleToggleAvailable(session.date)}
-                    />
-                ))}
-            </div>
-
-            {showNextWeek && week2Plan?.sessions?.length > 0 && (
-                <div className="pt-4 border-t border-cdborder space-y-3">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                            <h4 className="text-sm font-bold text-cdtext">Next week</h4>
-                            <p className="text-xs text-cdmuted">
-                                {formatDateDDMMYYYY(week2Plan.mondayYmd)} – {formatDateDDMMYYYY(week2Plan.sundayYmd)}
-                                {' '}· same controls as this week (blocked days, moves, completions)
-                            </p>
-                        </div>
-                        <div className="text-right">
-                            <div className="text-lg font-bold text-cdtext tabular-nums">
-                                {week2Plan.actualTss}
-                                <span className="text-cdmuted text-sm font-normal"> / {week2Plan.targetTss}</span>
-                            </div>
-                            <div className="text-[10px] text-cdmuted uppercase">TSS target</div>
-                        </div>
-                    </div>
-
-                    {week2Plan.rebalanceNote && (
-                        <p className="text-xs text-cdaccent flex items-start gap-2 bg-cdaccent/10 rounded-lg px-3 py-2">
-                            <RefreshCw size={13} className="shrink-0 mt-0.5" />
-                            {week2Plan.rebalanceNote}
-                        </p>
-                    )}
-
-                    {(week2Plan.hasAvailabilityBlocks || week2Plan.hasExplicitAvailability) && (
-                        <div className="flex justify-end">
-                            <button
-                                type="button"
-                                onClick={handleClearAvailabilityWeek2}
-                                className="text-xs text-cdmuted hover:text-cdtext underline"
-                            >
-                                Clear availability overrides
-                            </button>
-                        </div>
-                    )}
-
-                    <div className="space-y-2">
-                        {week2Plan.sessions.map((session) => (
-                            <WeekSessionRow
-                                key={session.date}
-                                session={session}
-                                today={today}
-                                expanded={expandedDate === `w2-${session.date}`}
-                                onToggleExpand={() =>
-                                    setExpandedDate((d) => (d === `w2-${session.date}` ? null : `w2-${session.date}`))
-                                }
-                                onToggleDone={() => handleToggleDoneWeek2(session.date)}
-                                onSwapRecovery={() => handleSwapRecoveryWeek2(session.date)}
-                                onMoveToToday={() => handleMoveToTodayWeek2(session.movedFromDate || session.date)}
-                                onUndoMove={() => handleUndoMoveWeek2(session.movedFromDate || session.date)}
-                                onToggleUnavailable={() => handleToggleUnavailableWeek2(session.date)}
-                                onToggleAvailable={() => handleToggleAvailableWeek2(session.date)}
-                            />
-                        ))}
-                    </div>
-                </div>
-            )}
             </div>
         </CollapsibleSection>
     );
 };
-
-function StatPill({ icon: Icon, label }) {
-    return (
-        <span className="inline-flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1 rounded-full bg-cdborder/30 text-cdtext border border-cdborder/50">
-            <Icon size={11} className="text-cdaccent shrink-0" />
-            {label}
-        </span>
-    );
-}
-
-function WeekSessionRow({
-    session,
-    today,
-    expanded,
-    onToggleExpand,
-    onToggleDone,
-    onSwapRecovery,
-    onMoveToToday,
-    onUndoMove,
-    onToggleUnavailable,
-    onToggleAvailable,
-}) {
-    const styles = getStimulusStyle(session.stimulus);
-    const isBlocked = Boolean(session.isUnavailable);
-    const isExplicitlyAvailable = Boolean(session.isExplicitlyAvailable);
-    const isLoggedRestRide = session.plannedStimulus === 'rest' && session.sameDayComplete;
-    const isRest = (session.stimulus === 'rest' && !session.movedToDate && !isLoggedRestRide) || isBlocked;
-    const isOpenRestDay = session.plannedStimulus === 'rest'
-        && !isBlocked
-        && !session.movedFromDate
-        && !session.relocatedFromDate;
-    const isActionable = !isRest && !session.isPast;
-    const missed = session.isPast && !session.completed
-        && session.plannedStimulus !== 'rest'
-        && !session.movedToDate
-        && !isBlocked;
-
-    const canMarkUnavailable = !session.isPast && !isOpenRestDay;
-    const canMarkAvailable = !session.isPast && isOpenRestDay;
-
-    const canMoveToToday = !session.isToday
-        && !session.isPast
-        && !session.completed
-        && session.plannedStimulus !== 'rest'
-        && !session.movedFromDate;
-
-    const canUndoMove = Boolean(session.movedFromDate || session.movedToDate);
-
-    return (
-        <div
-            className={[
-                'rounded-xl border-l-4 transition-colors',
-                styles.border,
-                session.isToday ? 'ring-2 ring-cdaccent/40 ring-offset-1 ring-offset-cdsurface' : '',
-                session.completed ? 'opacity-80' : '',
-                missed ? 'border-dashed opacity-70' : '',
-                styles.rowBg || 'bg-cdborder/10',
-                'border border-cdborder/50',
-            ].join(' ')}
-        >
-            <div className="p-3 sm:p-4">
-                <div className="flex flex-col sm:flex-row sm:items-start gap-3">
-                    <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <button
-                            type="button"
-                            onClick={() => isActionable && onToggleDone()}
-                            disabled={isRest}
-                            className={`shrink-0 mt-0.5 ${isRest ? 'opacity-25 cursor-default' : 'hover:scale-105 transition-transform'}`}
-                            aria-label={session.completed ? 'Mark incomplete' : 'Mark done'}
-                        >
-                            {session.completed ? (
-                                <CheckCircle2 size={22} className="text-emerald-400" />
-                            ) : (
-                                <Circle size={22} className={session.isToday ? 'text-cdaccent' : 'text-cdmuted'} />
-                            )}
-                        </button>
-
-                        <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                                <span className={`font-bold text-sm ${session.completed ? 'text-cdmuted line-through' : 'text-cdtext'}`}>
-                                    {session.day}
-                                </span>
-                                <span className="text-[10px] text-cdmuted tabular-nums">
-                                    {formatDateDDMMYYYY(session.date)}
-                                </span>
-                                {session.isToday && (
-                                    <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-cdaccent text-slate-900">
-                                        Today
-                                    </span>
-                                )}
-                                {missed && (
-                                    <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-cdborder text-cdmuted">
-                                        Missed
-                                    </span>
-                                )}
-                                {session.movedFromDate && (
-                                    <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300">
-                                        Moved here
-                                    </span>
-                                )}
-                                {session.movedToDate && (
-                                    <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-cdborder text-cdmuted">
-                                        Rescheduled
-                                    </span>
-                                )}
-                                {session.relocatedFromDate && (
-                                    <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300">
-                                        Rescheduled here
-                                    </span>
-                                )}
-                                {isBlocked && (
-                                    <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-red-500/20 text-red-300">
-                                        Blocked
-                                    </span>
-                                )}
-                                {isExplicitlyAvailable && (
-                                    <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
-                                        Open for training
-                                    </span>
-                                )}
-                                <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${styles.badge}`}>
-                                    {styles.label}
-                                </span>
-                            </div>
-
-                            <p className={`text-sm mt-1 ${session.completed ? 'text-cdmuted' : 'text-cdtext font-medium'}`}>
-                                {session.workoutName}
-                            </p>
-
-                            {session.note && (
-                                <p className="text-xs text-cdaccent mt-1 flex items-start gap-1.5">
-                                    <RefreshCw size={11} className="shrink-0 mt-0.5" />
-                                    {session.note}
-                                </p>
-                            )}
-
-                            {session.flexNote && (
-                                <p className="text-xs text-blue-300 mt-1 flex items-start gap-1.5">
-                                    <Sparkles size={11} className="shrink-0 mt-0.5" />
-                                    {session.flexNote}
-                                </p>
-                            )}
-
-                            {session.fluidWorkout?.mainSet?.blocks?.length > 0 && !expanded && (
-                                <p className="text-xs text-cdmuted mt-1.5">
-                                    {session.fluidWorkout.mainSet.blocks.map((b) =>
-                                        `${b.reps}× ${b.workMin} min`
-                                    ).join(' · ')}
-                                    {session.fluidWorkout.mainSet.blocks[0]?.wattRange
-                                        ? ` · ${session.fluidWorkout.mainSet.blocks[0].wattRange}`
-                                        : ''}
-                                </p>
-                            )}
-
-                            {expanded && session.fluidWorkout && (
-                                <FluidWorkoutExpandable workout={session.fluidWorkout} />
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-1.5 shrink-0 w-full sm:w-[13.5rem]">
-                        {session.fluidWorkout && !isRest && (
-                            <button
-                                type="button"
-                                onClick={onToggleExpand}
-                                className="text-xs font-medium px-2 py-1.5 rounded-lg border border-cdborder text-cdmuted hover:text-cdaccent hover:border-cdaccent/50 w-full justify-center"
-                            >
-                                {expanded ? 'Hide details' : 'Show details'}
-                            </button>
-                        )}
-                        {canMarkUnavailable && (
-                            <button
-                                type="button"
-                                onClick={onToggleUnavailable}
-                                className={`text-xs font-medium px-2 py-1.5 rounded-lg border flex items-center justify-center gap-1.5 w-full ${
-                                    isBlocked
-                                        ? 'border-orange-500/40 text-orange-300 bg-orange-500/10'
-                                        : 'border-cdborder text-cdmuted hover:text-orange-300 hover:border-orange-500/40'
-                                }`}
-                            >
-                                <Ban size={12} className="shrink-0" />
-                                {isBlocked ? 'Can train' : "Can't train"}
-                            </button>
-                        )}
-                        {canMarkAvailable && (
-                            <button
-                                type="button"
-                                onClick={onToggleAvailable}
-                                className={`text-xs font-medium px-2 py-1.5 rounded-lg border flex items-center justify-center gap-1.5 w-full ${
-                                    isExplicitlyAvailable
-                                        ? 'border-emerald-500/40 text-emerald-300 bg-emerald-500/10'
-                                        : 'border-cdborder text-cdmuted hover:text-emerald-300 hover:border-emerald-500/40'
-                                }`}
-                            >
-                                <CircleCheck size={12} className="shrink-0" />
-                                {isExplicitlyAvailable ? 'Not open' : 'Available'}
-                            </button>
-                        )}
-                        {canMoveToToday && (
-                            <button
-                                type="button"
-                                onClick={onMoveToToday}
-                                className="text-xs font-medium px-2 py-1.5 rounded-lg border border-cdborder text-cdmuted hover:text-blue-300 hover:border-blue-500/40 flex items-center justify-center gap-1.5 w-full"
-                            >
-                                <ArrowRight size={12} className="shrink-0" />
-                                Move to today
-                            </button>
-                        )}
-                        {canUndoMove && (
-                            <button
-                                type="button"
-                                onClick={onUndoMove}
-                                className="text-xs font-medium px-2 py-1.5 rounded-lg border border-cdborder text-cdmuted hover:text-cdtext hover:border-cdborder flex items-center justify-center gap-1.5 w-full"
-                            >
-                                <Undo2 size={12} className="shrink-0" />
-                                Undo move
-                            </button>
-                        )}
-                        {isActionable && session.stimulus !== 'recovery' && session.stimulus !== 'completed' && (
-                            <button
-                                type="button"
-                                onClick={onSwapRecovery}
-                                className="text-xs font-medium px-2 py-1.5 rounded-lg border border-cdborder text-cdmuted hover:text-green-400 hover:border-green-500/40 flex items-center justify-center gap-1.5 w-full"
-                            >
-                                <Heart size={12} className="shrink-0" />
-                                Recovery
-                            </button>
-                        )}
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-}
 
 export default CoachFluidWeekPlan;
