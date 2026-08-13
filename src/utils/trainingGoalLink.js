@@ -46,8 +46,12 @@ export function getActiveTrainingGoal(referenceYmd) {
     const planWeek = resolveCurrentPlanWeek(hydrated.weeks, hydrated.goalDate, refDate);
     if (!planWeek) return null;
 
+    const displayName = trainingGoalDisplayNameFromSnapshot(hydrated);
+
     return {
         ...hydrated,
+        displayName,
+        eventName: displayName,
         currentWeekNum: planWeek.weekNum,
         currentWeekTargetTss: planWeek.targetTss,
         currentPhaseLabel: planWeek.phaseLabel,
@@ -94,9 +98,59 @@ export function resolveFluidWeekTarget({ userSettings, referenceYmd }) {
         source: 'event-goal',
         phaseKey: trainingGoal.currentPhaseKey || null,
         phaseLabel: trainingGoal.currentPhaseLabel || null,
-        trainingGoal,
+        trainingGoal: {
+            ...trainingGoal,
+            displayName: trainingGoalDisplayNameFromSnapshot(trainingGoal),
+        },
         hoursBudgetTss,
     };
+}
+
+/**
+ * Human-readable event goal title (custom name, climb, or distance fallback).
+ * @param {object} params
+ */
+export function resolveTrainingGoalDisplayName({
+    eventName,
+    source,
+    climbSearch,
+    distanceKm,
+    elevationM,
+    goalInputs,
+    snapshot,
+} = {}) {
+    const inputs = goalInputs || snapshot?.goalInputs || {};
+    const customRaw = (
+        eventName
+        ?? inputs.customEventName
+        ?? snapshot?.goalInputs?.customEventName
+        ?? ''
+    ).trim();
+    const storedName = (snapshot?.eventName || '').trim();
+    const custom = customRaw || (storedName && !/^training goal$/i.test(storedName) ? storedName : '');
+
+    if (custom && !/^training goal$/i.test(custom)) {
+        return custom;
+    }
+
+    const climb = (climbSearch ?? inputs.climbSearch ?? '').trim();
+    if (climb) return climb;
+
+    const km = Number(distanceKm ?? inputs.distanceKm) || 0;
+    const elev = Number(elevationM ?? inputs.elevationM) || 0;
+    if (km > 0 && elev > 0) return `${km} km · ${elev} m`;
+    if (km > 0) return `${km} km event`;
+
+    return storedName || custom || 'Training goal';
+}
+
+/**
+ * @param {object | null} snapshot
+ * @returns {string}
+ */
+export function trainingGoalDisplayNameFromSnapshot(snapshot) {
+    if (!snapshot) return 'Training goal';
+    return resolveTrainingGoalDisplayName({ snapshot });
 }
 
 /**
@@ -108,7 +162,9 @@ export function trainingGoalFormDefaultsFromSnapshot(snapshot) {
     if (!snapshot?.goalDate) return null;
 
     const inputs = snapshot.goalInputs || {};
-    const eventName = snapshot.eventName === 'Training goal' ? '' : (snapshot.eventName || '');
+    const customEventName = (inputs.customEventName || '').trim();
+    const eventName = customEventName
+        || (snapshot.eventName === 'Training goal' ? '' : (snapshot.eventName || ''));
 
     return {
         goalDate: snapshot.goalDate,

@@ -86,6 +86,20 @@ import {
     COACH_WEEK_CLOUD_DEBOUNCE_MS,
 } from './utils/coach/coachWeekCloudSync';
 import {
+    syncTrainingPlanToFirestore,
+    fetchTrainingPlanFromFirestore,
+    resolveTrainingPlanOnSync,
+    shouldApplyRemoteTrainingPlan,
+    shouldPushLocalTrainingPlan,
+    TRAINING_PLAN_CLOUD_DEBOUNCE_MS,
+} from './utils/trainingPlanCloudSync';
+import {
+    readTrainingPlanSnapshot,
+    readTrainingPlanClearedAt,
+    applyTrainingPlanToLocal,
+    TRAINING_PLAN_UPDATED_EVENT,
+} from './utils/trainingPlanSnapshot';
+import {
     readRawCoachWeekForSync,
     readRawCoachWeekForPush,
     applyCoachWeekStateToLocal,
@@ -668,7 +682,8 @@ const App = () => {
                 }
 
                 const weekKey = isoWeekKey(todayYmd());
-                const cloudWeek = docSnap.exists() ? docSnap.data()?.coachWeekState : null;
+                const cloudData = docSnap.exists() ? docSnap.data() : {};
+                const cloudWeek = cloudData.coachWeekState ?? null;
                 const resolvedWeek = resolveCoachWeekOnSync(
                     readRawCoachWeekForSync(),
                     cloudWeek,
@@ -677,6 +692,32 @@ const App = () => {
                 applyCoachWeekStateToLocal(resolvedWeek.state);
                 if (resolvedWeek.source === 'cloud') {
                     dispatchCoachWeekUpdated();
+                }
+
+                const resolvedTrainingPlan = resolveTrainingPlanOnSync(
+                    readTrainingPlanSnapshot(),
+                    readTrainingPlanClearedAt(),
+                    cloudData.trainingPlanSnapshot ?? null,
+                    cloudData.trainingPlanUpdatedAt ?? null,
+                );
+                if (resolvedTrainingPlan.source === 'cloud') {
+                    applyTrainingPlanToLocal(resolvedTrainingPlan.snapshot);
+                } else if (resolvedTrainingPlan.source === 'local') {
+                    const remotePlan = {
+                        snapshot: cloudData.trainingPlanSnapshot ?? null,
+                        updatedAt: cloudData.trainingPlanUpdatedAt ?? null,
+                    };
+                    if (shouldPushLocalTrainingPlan(
+                        readTrainingPlanSnapshot(),
+                        readTrainingPlanClearedAt(),
+                        remotePlan,
+                    )) {
+                        await syncTrainingPlanToFirestore(
+                            db,
+                            user.uid,
+                            readTrainingPlanSnapshot(),
+                        );
+                    }
                 }
             } catch (e) {
                 console.error("Error loading settings", e);
@@ -724,6 +765,37 @@ const App = () => {
         };
     }, [user]);
 
+    // Push event training goal edits to Firestore when signed in.
+    useEffect(() => {
+        if (!user || !db || !bucketListCloudReadyRef.current) return undefined;
+
+        let timer = null;
+
+        const pushTrainingPlan = () => {
+            clearTimeout(timer);
+            timer = setTimeout(async () => {
+                const local = readTrainingPlanSnapshot();
+                const clearedAt = readTrainingPlanClearedAt();
+
+                try {
+                    const remote = await fetchTrainingPlanFromFirestore(db, user.uid);
+                    if (!shouldPushLocalTrainingPlan(local, clearedAt, remote)) {
+                        return;
+                    }
+                    await syncTrainingPlanToFirestore(db, user.uid, local);
+                } catch (err) {
+                    console.warn('[Training goal] Could not push to Firestore:', err);
+                }
+            }, TRAINING_PLAN_CLOUD_DEBOUNCE_MS);
+        };
+
+        window.addEventListener(TRAINING_PLAN_UPDATED_EVENT, pushTrainingPlan);
+        return () => {
+            window.removeEventListener(TRAINING_PLAN_UPDATED_EVENT, pushTrainingPlan);
+            clearTimeout(timer);
+        };
+    }, [user]);
+
     // Pull coach week from cloud on sign-in, Training tab, and when the tab regains focus.
     useEffect(() => {
         if (!user || !db) return undefined;
@@ -762,14 +834,50 @@ const App = () => {
             }
         };
 
+        const refreshTrainingPlanFromCloud = async () => {
+            if (!bucketListCloudReadyRef.current || cancelled) return;
+
+            try {
+                const remote = await fetchTrainingPlanFromFirestore(db, user.uid);
+                if (cancelled) return;
+
+                const local = readTrainingPlanSnapshot();
+                const clearedAt = readTrainingPlanClearedAt();
+
+                if (!remote && !local && !clearedAt) return;
+
+                if (!shouldApplyRemoteTrainingPlan(local, clearedAt, remote)) {
+                    if (shouldPushLocalTrainingPlan(local, clearedAt, remote)) {
+                        await syncTrainingPlanToFirestore(db, user.uid, local);
+                    }
+                    return;
+                }
+
+                const resolved = resolveTrainingPlanOnSync(
+                    local,
+                    clearedAt,
+                    remote?.snapshot ?? null,
+                    remote?.updatedAt ?? null,
+                );
+                applyTrainingPlanToLocal(resolved.snapshot);
+            } catch (err) {
+                console.warn('[Training goal] Could not refresh from cloud:', err);
+            }
+        };
+
+        const refreshTrainingFromCloud = async () => {
+            await refreshCoachWeekFromCloud();
+            await refreshTrainingPlanFromCloud();
+        };
+
         const onVisible = () => {
             if (document.visibilityState === 'visible') {
-                refreshCoachWeekFromCloud();
+                refreshTrainingFromCloud();
             }
         };
 
         if (activeTab === 'training') {
-            refreshCoachWeekFromCloud();
+            refreshTrainingFromCloud();
         }
 
         document.addEventListener('visibilitychange', onVisible);
@@ -1077,6 +1185,7 @@ const App = () => {
                                                         userSettings={userSettings}
                                                         startDate={globalStartDate}
                                                         endDate={globalEndDate}
+                                                        isSignedIn={Boolean(user)}
                                                         onOpenRecovery={() => setTrainingSubTab('recovery')}
                                                     />
                                                 )}
