@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Mountain, CalendarDays, ChevronRight, Heart } from 'lucide-react';
+import { Mountain, CalendarDays, ChevronRight, Heart, Target, X } from 'lucide-react';
 import { useClimbDatabase } from '../hooks/useClimbDatabase';
 import { computeTrainingGoalPlan } from '../utils/trainingGoalPlan';
 import { calculatePowerZones } from '../utils/calculations';
@@ -8,7 +8,11 @@ import { useProfileFtp } from '../context/ProfileFtpContext';
 import {
     buildTrainingPlanSnapshot,
     writeTrainingPlanSnapshot,
+    readTrainingPlanSnapshot,
+    hydrateTrainingPlanSnapshot,
 } from '../utils/trainingPlanSnapshot';
+import { trainingGoalFormDefaultsFromSnapshot } from '../utils/trainingGoalLink';
+import { formatDateDDMMYYYY } from '../utils/formatters';
 import NlDateInput from './NlDateInput';
 
 const defaultGoalDate = () => {
@@ -16,6 +20,10 @@ const defaultGoalDate = () => {
     d.setMonth(d.getMonth() + 2);
     return d.toISOString().split('T')[0];
 };
+
+function readStoredGoalFormDefaults() {
+    return trainingGoalFormDefaultsFromSnapshot(readTrainingPlanSnapshot());
+}
 
 const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDate, endDate, onOpenRecovery }) => {
     const activitiesFromContext = useActivitiesList();
@@ -30,14 +38,14 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
 
     const zones = useMemo(() => (ftp > 0 ? calculatePowerZones(ftp) : []), [ftp]);
 
-    const [goalDate, setGoalDate] = useState(defaultGoalDate);
-    const [eventName, setEventName] = useState('');
-    const [source, setSource] = useState('custom');
-    const [climbSearch, setClimbSearch] = useState('');
-    const [distanceKm, setDistanceKm] = useState('');
-    const [elevationM, setElevationM] = useState('');
-    const [durationHours, setDurationHours] = useState('');
-    const [targetPctFtp, setTargetPctFtp] = useState(75);
+    const [goalDate, setGoalDate] = useState(() => readStoredGoalFormDefaults()?.goalDate ?? defaultGoalDate());
+    const [eventName, setEventName] = useState(() => readStoredGoalFormDefaults()?.eventName ?? '');
+    const [source, setSource] = useState(() => readStoredGoalFormDefaults()?.source ?? 'custom');
+    const [climbSearch, setClimbSearch] = useState(() => readStoredGoalFormDefaults()?.climbSearch ?? '');
+    const [distanceKm, setDistanceKm] = useState(() => readStoredGoalFormDefaults()?.distanceKm ?? '');
+    const [elevationM, setElevationM] = useState(() => readStoredGoalFormDefaults()?.elevationM ?? '');
+    const [durationHours, setDurationHours] = useState(() => readStoredGoalFormDefaults()?.durationHours ?? '');
+    const [targetPctFtp, setTargetPctFtp] = useState(() => readStoredGoalFormDefaults()?.targetPctFtp ?? 75);
 
     const filteredClimbs = useMemo(() => {
         const q = climbSearch.trim().toLowerCase();
@@ -79,14 +87,73 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
 
     const expectedAvgWatts = ftp > 0 ? Math.round((ftp * targetPctFtp) / 100) : null;
 
+    const activeGoalSnapshot = useMemo(() => {
+        if (planResult.error || !planResult.plan?.weeks?.length) return null;
+        return hydrateTrainingPlanSnapshot(
+            buildTrainingPlanSnapshot({
+                goalDate,
+                eventName: eventName || (source === 'climb' ? climbSearch : ''),
+                goalInputs: {
+                    source,
+                    climbSearch,
+                    distanceKm: Number(distanceKm) || 0,
+                    elevationM: Number(elevationM) || 0,
+                    durationHours: durationHours === '' ? null : Number(durationHours),
+                    targetPctFtp,
+                },
+                planResult,
+            }),
+        );
+    }, [
+        goalDate,
+        eventName,
+        source,
+        climbSearch,
+        distanceKm,
+        elevationM,
+        durationHours,
+        targetPctFtp,
+        planResult,
+    ]);
+
+    const handleClearGoal = () => {
+        writeTrainingPlanSnapshot(null);
+        setEventName('');
+        setDistanceKm('');
+        setElevationM('');
+        setDurationHours('');
+        setTargetPctFtp(75);
+        setSource('custom');
+        setClimbSearch('');
+        setGoalDate(defaultGoalDate());
+    };
+
     useEffect(() => {
         const snapshot = buildTrainingPlanSnapshot({
             goalDate,
             eventName: eventName || (source === 'climb' ? climbSearch : ''),
+            goalInputs: {
+                source,
+                climbSearch,
+                distanceKm: Number(distanceKm) || 0,
+                elevationM: Number(elevationM) || 0,
+                durationHours: durationHours === '' ? null : Number(durationHours),
+                targetPctFtp,
+            },
             planResult,
         });
         writeTrainingPlanSnapshot(snapshot);
-    }, [goalDate, eventName, source, climbSearch, planResult]);
+    }, [
+        goalDate,
+        eventName,
+        source,
+        climbSearch,
+        distanceKm,
+        elevationM,
+        durationHours,
+        targetPctFtp,
+        planResult,
+    ]);
 
     return (
         <div className="space-y-4 md:space-y-6 animate-in fade-in min-w-0 max-w-full overflow-x-hidden">
@@ -100,6 +167,41 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
                     We estimate <strong className="text-cdtext font-medium">event-day TSS</strong> and provide a <strong className="text-cdtext font-medium">weekly schedule</strong> with rising load and taper — aligned with your recent TSS (last 4 weeks in your selected dashboard period).
                 </p>
             </div>
+
+            {activeGoalSnapshot && !planResult.error && (
+                <div className="bg-cdsurface p-4 rounded-xl border border-cdborder border-l-4 border-l-cdaccent flex flex-wrap items-start justify-between gap-4">
+                    <div className="min-w-0">
+                        <p className="text-xs font-bold uppercase tracking-wide text-cdmuted flex items-center gap-1.5">
+                            <Target size={14} className="text-cdaccent shrink-0" aria-hidden />
+                            Active event goal
+                        </p>
+                        <p className="text-lg font-black text-cdtext mt-1 break-words">
+                            {activeGoalSnapshot.eventName}
+                        </p>
+                        <p className="text-sm text-cdmuted mt-1">
+                            {formatDateDDMMYYYY(activeGoalSnapshot.goalDate)}
+                            {activeGoalSnapshot.weeksToEvent > 0
+                                ? ` · ${activeGoalSnapshot.weeksToEvent} week(s) to go`
+                                : ' · event week'}
+                        </p>
+                        <p className="text-xs text-cdmuted mt-2">
+                            Week {activeGoalSnapshot.currentWeekNum}: {activeGoalSnapshot.currentPhaseLabel}
+                            {activeGoalSnapshot.isTaperPhase ? ' (taper)' : ''}
+                            {' · '}
+                            <span className="font-mono font-bold text-cdtext">{activeGoalSnapshot.currentWeekTargetTss} TSS</span>
+                            {' '}this week — also drives your fluid week plan in Coach.
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={handleClearGoal}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-cdmuted hover:text-red-400 cd-min-touch-y cd-focus-ring shrink-0"
+                    >
+                        <X size={14} aria-hidden />
+                        Clear goal
+                    </button>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-cdsurface p-5 rounded-xl border border-cdborder space-y-4">
@@ -264,7 +366,18 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
 
             {!planResult.error && planResult.plan?.weeks?.length > 0 && (
                 <div className="bg-cdsurface p-5 rounded-xl border border-cdborder space-y-4">
-                    <h3 className="text-sm font-bold text-cdtext uppercase tracking-wide">Weekly plan toward your goal</h3>
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                        <h3 className="text-sm font-bold text-cdtext uppercase tracking-wide">
+                            Weekly plan toward your goal
+                        </h3>
+                        {activeGoalSnapshot && (
+                            <span className="text-xs text-cdmuted">
+                                <span className="font-semibold text-cdtext">{activeGoalSnapshot.eventName}</span>
+                                {' · '}
+                                {formatDateDDMMYYYY(activeGoalSnapshot.goalDate)}
+                            </span>
+                        )}
+                    </div>
                     <p className="text-sm text-cdmuted">{planResult.plan.summary}</p>
                     <div className="overflow-x-auto rounded-lg border border-cdborder">
                         <table className="w-full text-sm text-left min-w-[520px]">

@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { buildWeekSkeleton, rebalanceWeek, downgradeStimulus } from '../../utils/coach/coachRebalancer';
+import { buildWeekSkeleton, rebalanceWeek, downgradeStimulus, applyPhaseToWeekSkeleton } from '../../utils/coach/coachRebalancer';
 import { buildFluidWeekPlan, buildProjectedWeek2Plan, getMondayYmd, computeWeekActuals, applySessionMoves } from '../../utils/coach/coachWeekPlan';
 import { readCoachWeekState, writeCoachWeekState, moveSession, toggleUnavailableDate, toggleAvailableDate } from '../../utils/coach/coachWeekState';
+import { buildTrainingPlanSnapshot, writeTrainingPlanSnapshot, TRAINING_PLAN_STORAGE_KEY } from '../../utils/trainingPlanSnapshot';
+import { computeTrainingGoalPlan } from '../../utils/trainingGoalPlan';
 
 describe('coachRebalancer', () => {
     it('downgradeStimulus steps down the ladder', () => {
@@ -29,6 +31,12 @@ describe('coachRebalancer', () => {
         expect(week[0].day).toBe('Monday');
         expect(week[0].date).toBe('2026-08-03');
         expect(week.find((d) => d.day === 'Thursday')?.stimulus).toBe('sweetspot');
+    });
+
+    it('applyPhaseToWeekSkeleton eases intensity in taper', () => {
+        const week = buildWeekSkeleton(7, '2026-08-03');
+        const tapered = applyPhaseToWeekSkeleton(week, 'taper');
+        expect(tapered.find((d) => d.day === 'Sunday')?.stimulus).toBe('endurance');
     });
 });
 
@@ -61,8 +69,45 @@ describe('coachWeekPlan', () => {
             referenceYmd: '2026-08-06',
         });
         expect(plan.targetTss).toBe(250);
+        expect(plan.targetTssSource).toBe('hours-budget');
         expect(plan.actualTss).toBe(80);
         expect(plan.sessions).toHaveLength(7);
+    });
+
+    it('buildFluidWeekPlan uses active event goal TSS when snapshot exists', () => {
+        const planResult = computeTrainingGoalPlan({
+            goalDateStr: '2026-09-15',
+            activities: [{ date: '2026-07-01', load: 100 }],
+            today: new Date('2026-08-06'),
+            goalInputs: { distanceKm: 80, elevationM: 1200, durationHours: 4, targetPctFtp: 75 },
+        });
+
+        writeTrainingPlanSnapshot(buildTrainingPlanSnapshot({
+            goalDate: '2026-09-15',
+            eventName: 'Test event',
+            goalInputs: {
+                source: 'custom',
+                distanceKm: 80,
+                elevationM: 1200,
+                durationHours: 4,
+                targetPctFtp: 75,
+            },
+            planResult,
+        }));
+
+        const plan = buildFluidWeekPlan({
+            activities: [],
+            userSettings: { weeklyHoursTarget: 5, ftp: 250 },
+            coachContext: { athlete: { ftp: 250 }, fitness: { tsb: 0 } },
+            referenceYmd: '2026-08-06',
+        });
+
+        expect(plan.targetTssSource).toBe('event-goal');
+        expect(plan.targetTss).toBe(plan.trainingGoal.currentWeekTargetTss);
+        expect(plan.trainingGoal?.eventName).toBe('Test event');
+        expect(plan.phaseKey).toBeTruthy();
+
+        localStorage.removeItem(TRAINING_PLAN_STORAGE_KEY);
     });
 
     it('buildFluidWeekPlan moves session to another day', () => {

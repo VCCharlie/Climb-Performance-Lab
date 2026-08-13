@@ -44,9 +44,10 @@ export function resolveCurrentPlanWeek(planWeeks, goalDateStr, today = new Date(
  * @param {object} params
  * @param {string} params.goalDate
  * @param {string} [params.eventName]
+ * @param {object} [params.goalInputs] — form fields for hydration (distance, elevation, …)
  * @param {object} planResult output of computeTrainingGoalPlan
  */
-export function buildTrainingPlanSnapshot({ goalDate, eventName, planResult }) {
+export function buildTrainingPlanSnapshot({ goalDate, eventName, goalInputs, planResult }) {
     if (!goalDate || planResult?.error || !planResult?.plan?.weeks?.length) {
         return null;
     }
@@ -54,11 +55,25 @@ export function buildTrainingPlanSnapshot({ goalDate, eventName, planResult }) {
     const weeks = planResult.plan.weeks;
     const currentWeek = resolveCurrentPlanWeek(weeks, goalDate);
 
+    const normalizedInputs = goalInputs
+        ? {
+            source: goalInputs.source === 'climb' ? 'climb' : 'custom',
+            distanceKm: Number(goalInputs.distanceKm) || 0,
+            elevationM: Number(goalInputs.elevationM) || 0,
+            durationHours: goalInputs.durationHours === '' || goalInputs.durationHours == null
+                ? null
+                : Number(goalInputs.durationHours),
+            targetPctFtp: Number(goalInputs.targetPctFtp) || 75,
+            climbSearch: (goalInputs.climbSearch || '').trim(),
+        }
+        : null;
+
     return {
         version: 1,
         updatedAt: new Date().toISOString(),
         goalDate,
         eventName: (eventName || '').trim() || 'Training goal',
+        goalInputs: normalizedInputs,
         weeksToEvent: planResult.weeksToEvent,
         recentWeeklyTss: planResult.recentWeeklyTss,
         estimatedEventTss: planResult.demand?.estimatedEventTss ?? null,
