@@ -4,9 +4,9 @@
 
 import { normalizeDate } from '../formatters';
 import { addDaysToYmd } from '../dashboardVolumeTotals';
-import { buildWeekSkeleton, rebalanceWeek } from './coachRebalancer';
+import { buildWeekSkeleton, rebalanceWeek, applyPhaseToWeekSkeleton } from './coachRebalancer';
 import { buildFluidWorkout } from './fluidWorkoutTemplates';
-import { weeklyTssTarget } from './coachHelpers';
+import { resolveFluidWeekTarget } from '../trainingGoalLink';
 import { activityIF, filterActivitiesInRange, sumTss, todayYmd } from './coachHelpers';
 import { readCoachWeekState } from './coachWeekState';
 import { matchSessionsToActivities, classifyActivityStimulus } from './coachSessionMatcher';
@@ -98,11 +98,15 @@ export function buildFluidWeekPlan({
     const ftp = coachContext?.athlete?.ftp || Number(userSettings?.ftp) || 0;
     const mondayYmd = getMondayYmd(referenceYmd);
     const sundayYmd = addDaysToYmd(mondayYmd, 6);
-    const targetTss = weeklyTssTarget(weeklyHours);
+
+    const weekTarget = resolveFluidWeekTarget({ userSettings, referenceYmd });
+    const targetTss = weekTarget.targetTss;
+    const goalProfile = weekTarget.trainingGoal?.goalInputs || {};
+
+    let skeleton = buildWeekSkeleton(weeklyHours, mondayYmd);
+    skeleton = applyPhaseToWeekSkeleton(skeleton, weekTarget.phaseKey, goalProfile);
     const actuals = computeWeekActuals(activities, mondayYmd, ftp);
     const weekState = readCoachWeekState(mondayYmd);
-
-    const skeleton = buildWeekSkeleton(weeklyHours, mondayYmd);
     const originalStimulusByDate = new Map(skeleton.map((s) => [s.date, s.stimulus]));
     const skeletonForRebalance = skeleton.map((s) => ({ ...s }));
     const currentTsb = coachContext?.fitness?.tsb ?? 0;
@@ -398,6 +402,11 @@ export function buildFluidWeekPlan({
         sundayYmd,
         weeklyHours,
         targetTss,
+        targetTssSource: weekTarget.source,
+        phaseKey: weekTarget.phaseKey,
+        phaseLabel: weekTarget.phaseLabel,
+        trainingGoal: weekTarget.trainingGoal,
+        hoursBudgetTss: weekTarget.hoursBudgetTss,
         actualTss: actuals.tssThisWeek,
         compliancePct,
         hardSessions: actuals.hardSessionsThisWeek,

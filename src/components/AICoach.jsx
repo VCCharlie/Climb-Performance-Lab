@@ -18,8 +18,6 @@ import { buildFluidWeekPlan, buildProjectedWeek2Plan } from '../utils/coach/coac
 import { todayYmd } from '../utils/coach/coachHelpers';
 import { COACH_WEEK_UPDATED_EVENT, readCoachWeek2Enabled, writeCoachWeek2Enabled } from '../utils/coach/coachWeekState';
 import {
-    hydrateTrainingPlanSnapshot,
-    readTrainingPlanSnapshot,
     TRAINING_PLAN_UPDATED_EVENT,
 } from '../utils/trainingPlanSnapshot';
 import { useProfileFtp } from '../context/ProfileFtpContext';
@@ -69,11 +67,6 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
         window.addEventListener(TRAINING_PLAN_UPDATED_EVENT, onPlanUpdate);
         return () => window.removeEventListener(TRAINING_PLAN_UPDATED_EVENT, onPlanUpdate);
     }, []);
-
-    const trainingPlan = useMemo(() => {
-        const raw = readTrainingPlanSnapshot();
-        return raw ? hydrateTrainingPlanSnapshot(raw) : null;
-    }, [planRevision]);
 
     // --- 1. SWOT ENGINE (Expanded Context) ---
     const swot = useMemo(() => {
@@ -417,8 +410,12 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
             coachContext,
             referenceYmd,
         }),
-        [activities, userSettings, coachContext, referenceYmd, coachWeekRevision],
+        [activities, userSettings, coachContext, referenceYmd, coachWeekRevision, planRevision],
     );
+
+    const linkedEventGoal = fluidWeekPlan?.targetTssSource === 'event-goal'
+        ? fluidWeekPlan.trainingGoal
+        : null;
 
     const week2Plan = useMemo(() => {
         if (!showNextWeek) return null;
@@ -524,28 +521,30 @@ ${workout.zwoSteps.map(step => {
                 />
             )}
 
-            {trainingPlan?.currentWeekTargetTss != null && (
+            {linkedEventGoal?.currentWeekTargetTss != null && (
                 <div className="bg-cdsurface p-4 rounded-xl border border-cdborder border-l-4 border-l-cdaccent flex flex-wrap items-start justify-between gap-3">
                     <div>
                         <p className="text-xs font-bold uppercase tracking-wide text-cdmuted flex items-center gap-1.5">
                             <Mountain size={14} className="text-cdaccent" aria-hidden />
-                            Linked goal plan
+                            Event goal drives this week
                         </p>
                         <p className="text-sm text-cdtext mt-1">
-                            <strong>{trainingPlan.eventName}</strong>
-                            {' '}on {formatDateDDMMYYYY(trainingPlan.goalDate)}
-                            {trainingPlan.weeksToEvent > 0
-                                ? ` — ${trainingPlan.weeksToEvent} week(s) out`
+                            <strong>{linkedEventGoal.eventName}</strong>
+                            {' '}on {formatDateDDMMYYYY(linkedEventGoal.goalDate)}
+                            {linkedEventGoal.weeksToEvent > 0
+                                ? ` — ${linkedEventGoal.weeksToEvent} week(s) out`
                                 : ''}
                         </p>
                         <p className="text-xs text-cdmuted mt-1">
-                            Week {trainingPlan.currentWeekNum}: {trainingPlan.currentPhaseLabel}
-                            {trainingPlan.isTaperPhase ? ' (taper)' : ''}
+                            Week {linkedEventGoal.currentWeekNum}: {linkedEventGoal.currentPhaseLabel}
+                            {linkedEventGoal.isTaperPhase ? ' (taper)' : ''}
+                            {' · '}
+                            Sessions and weekly TSS follow this phase.
                         </p>
                     </div>
                     <div className="text-right">
                         <div className="text-2xl font-bold text-cdaccent tabular-nums">
-                            {trainingPlan.currentWeekTargetTss}
+                            {fluidWeekPlan.targetTss}
                         </div>
                         <div className="text-[10px] text-cdmuted uppercase">Target TSS this week</div>
                     </div>
@@ -567,7 +566,9 @@ ${workout.zwoSteps.map(step => {
                     </select>
                 </label>
                 <p className="text-xs text-cdmuted flex-1 min-w-0">
-                    Saved in Settings. Drives TSS targets, fluid workouts, and week rebalancing.
+                    {linkedEventGoal
+                        ? `Shapes which days you train. Weekly TSS (${fluidWeekPlan.targetTss}) comes from your event goal in Goals & Planning — not the hours table (~${fluidWeekPlan.hoursBudgetTss} TSS at ${weeklyHoursTarget} h/wk). Yearly km/elevation goals on the Dashboard stay separate.`
+                        : 'Saved in Settings. Drives TSS targets, fluid workouts, and week rebalancing when no event goal is set.'}
                 </p>
             </div>
 

@@ -197,10 +197,20 @@ const CoachFluidWeekPlan = ({
         dispatchCoachWeekUpdated();
     };
 
+    const weekSubtitle = useMemo(() => {
+        const dates = `${formatDateDDMMYYYY(weekPlan.mondayYmd)} – ${formatDateDDMMYYYY(weekPlan.sundayYmd)}`;
+        const tss = `${weekPlan.actualTss}/${weekPlan.targetTss} TSS`;
+        const phase = weekPlan.phaseLabel ? ` · ${weekPlan.phaseLabel}` : '';
+        const goal = weekPlan.targetTssSource === 'event-goal' && weekPlan.trainingGoal?.eventName
+            ? ` · ${weekPlan.trainingGoal.eventName}`
+            : '';
+        return `${dates} · ${tss}${phase}${goal}`;
+    }, [weekPlan]);
+
     return (
         <CollapsibleSection
             title="This week — fluid plan"
-            subtitle={`${formatDateDDMMYYYY(weekPlan.mondayYmd)} – ${formatDateDDMMYYYY(weekPlan.sundayYmd)} · ${weekPlan.actualTss}/${weekPlan.targetTss} TSS`}
+            subtitle={weekSubtitle}
             icon={CalendarDays}
             defaultExpanded
             headerExtra={onToggleNextWeek ? (

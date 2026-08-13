@@ -57,11 +57,19 @@ describe('training plan snapshot storage', () => {
         const snapshot = buildTrainingPlanSnapshot({
             goalDate: '2026-09-15',
             eventName: 'Alpe test',
+            goalInputs: {
+                source: 'custom',
+                distanceKm: 80,
+                elevationM: 1200,
+                durationHours: 4,
+                targetPctFtp: 75,
+            },
             planResult,
         });
 
         expect(snapshot).not.toBeNull();
         expect(snapshot.eventName).toBe('Alpe test');
+        expect(snapshot.goalInputs?.distanceKm).toBe(80);
         expect(snapshot.weeks.length).toBeGreaterThan(0);
         expect(snapshot.currentWeekTargetTss).toBeGreaterThan(0);
 

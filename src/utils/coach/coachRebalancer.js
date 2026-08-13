@@ -5,6 +5,53 @@
 const STIMULUS_LADDER = ['vo2', 'threshold', 'sweetspot', 'endurance', 'recovery'];
 
 /**
+ * Cap session intensity for training phase (event goal periodisation).
+ * @param {object[]} sessions — week skeleton rows
+ * @param {string | null | undefined} phaseKey — base | build | specific | taper
+ * @param {{ elevationM?: number }} [goalProfile]
+ * @returns {object[]}
+ */
+export function applyPhaseToWeekSkeleton(sessions, phaseKey, goalProfile = {}) {
+    if (!sessions?.length || !phaseKey) return sessions;
+
+    const elevationM = Number(goalProfile.elevationM) || 0;
+
+    return sessions.map((row) => {
+        let stimulus = row.stimulus;
+
+        if (phaseKey === 'taper') {
+            if (stimulus === 'vo2' || stimulus === 'threshold') stimulus = 'endurance';
+            else if (stimulus === 'sweetspot') stimulus = 'endurance';
+        } else if (phaseKey === 'base') {
+            if (stimulus === 'vo2') stimulus = 'sweetspot';
+            else if (stimulus === 'threshold') stimulus = 'sweetspot';
+        } else if (phaseKey === 'specific') {
+            if (elevationM >= 800 && row.day === 'Saturday' && stimulus === 'endurance') {
+                stimulus = 'sweetspot';
+            }
+        }
+
+        if (stimulus === row.stimulus) return row;
+
+        const sessionLabel = {
+            endurance: 'Z2 base',
+            sweetspot: 'Sweetspot quality',
+            threshold: 'Threshold work',
+            vo2: 'VO2 intervals',
+            recovery: 'Recovery spin',
+            rest: 'Rest',
+        }[stimulus] || row.session;
+
+        return {
+            ...row,
+            stimulus,
+            session: sessionLabel,
+            phaseNote: `Adjusted for ${phaseKey} phase`,
+        };
+    });
+}
+
+/**
  * @param {string} stimulus
  * @returns {string}
  */
