@@ -10,6 +10,7 @@ import {
     writeTrainingPlanSnapshot,
     readTrainingPlanSnapshot,
     hydrateTrainingPlanSnapshot,
+    TRAINING_PLAN_UPDATED_EVENT,
 } from '../utils/trainingPlanSnapshot';
 import { trainingGoalFormDefaultsFromSnapshot } from '../utils/trainingGoalLink';
 import { formatDateDDMMYYYY } from '../utils/formatters';
@@ -25,7 +26,7 @@ function readStoredGoalFormDefaults() {
     return trainingGoalFormDefaultsFromSnapshot(readTrainingPlanSnapshot());
 }
 
-const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDate, endDate, onOpenRecovery }) => {
+const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDate, endDate, isSignedIn = false, onOpenRecovery }) => {
     const activitiesFromContext = useActivitiesList();
     const activities = activitiesProp ?? activitiesFromContext;
     const profileFtp = useProfileFtp();
@@ -46,6 +47,35 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
     const [elevationM, setElevationM] = useState(() => readStoredGoalFormDefaults()?.elevationM ?? '');
     const [durationHours, setDurationHours] = useState(() => readStoredGoalFormDefaults()?.durationHours ?? '');
     const [targetPctFtp, setTargetPctFtp] = useState(() => readStoredGoalFormDefaults()?.targetPctFtp ?? 75);
+
+    useEffect(() => {
+        const onCloudSync = (event) => {
+            if (event?.detail?.source !== 'cloud') return;
+            const defaults = trainingGoalFormDefaultsFromSnapshot(readTrainingPlanSnapshot());
+            if (!defaults) {
+                setEventName('');
+                setDistanceKm('');
+                setElevationM('');
+                setDurationHours('');
+                setTargetPctFtp(75);
+                setSource('custom');
+                setClimbSearch('');
+                setGoalDate(defaultGoalDate());
+                return;
+            }
+            setGoalDate(defaults.goalDate);
+            setEventName(defaults.eventName);
+            setSource(defaults.source);
+            setClimbSearch(defaults.climbSearch);
+            setDistanceKm(defaults.distanceKm);
+            setElevationM(defaults.elevationM);
+            setDurationHours(defaults.durationHours);
+            setTargetPctFtp(defaults.targetPctFtp);
+        };
+
+        window.addEventListener(TRAINING_PLAN_UPDATED_EVENT, onCloudSync);
+        return () => window.removeEventListener(TRAINING_PLAN_UPDATED_EVENT, onCloudSync);
+    }, []);
 
     const filteredClimbs = useMemo(() => {
         const q = climbSearch.trim().toLowerCase();
@@ -165,6 +195,15 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
                 <p className="text-sm text-cdmuted leading-relaxed max-w-3xl">
                     Set a <strong className="text-cdtext font-medium">date</strong> and the <strong className="text-cdtext font-medium">profile</strong> of your target (distance, elevation, optional duration, expected average intensity as % FTP).
                     We estimate <strong className="text-cdtext font-medium">event-day TSS</strong> and provide a <strong className="text-cdtext font-medium">weekly schedule</strong> with rising load and taper — aligned with your recent TSS (last 4 weeks in your selected dashboard period).
+                    {isSignedIn ? (
+                        <span className="block mt-2 text-xs">
+                            Signed in — your event goal syncs across devices via Firebase (separate from yearly km/elevation goals on the Dashboard).
+                        </span>
+                    ) : (
+                        <span className="block mt-2 text-xs">
+                            Sign in to sync this event goal across mobile and desktop.
+                        </span>
+                    )}
                 </p>
             </div>
 
