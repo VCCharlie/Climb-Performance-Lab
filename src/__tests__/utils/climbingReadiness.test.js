@@ -1,7 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { computeClimbingReadiness, computeClimbingReadinessHistory } from '../../utils/climbingReadiness';
-import { calculateFitnessMetrics } from '../../utils/formTabMetrics';
+import { getFitnessAtDate } from '../../utils/formTabMetrics';
+import { todayYmd } from '../../utils/coach/coachHelpers';
+import { currentWeekRange } from '../../utils/volumeGoals';
 import { TERRAIN_PROFILE_FLAT, TERRAIN_PROFILE_HILLY } from '../../utils/climbingTerrainProfile';
+
+function expectedReadinessTsb(activities, referenceDate) {
+    const week = currentWeekRange(referenceDate);
+    const today = todayYmd();
+    const asOfYmd = week.endYmd < today ? week.endYmd : today;
+    return getFitnessAtDate(activities, asOfYmd)?.tsb;
+}
 
 describe('computeClimbingReadiness', () => {
     const baseDate = new Date('2026-07-23T12:00:00');
@@ -48,7 +57,7 @@ describe('computeClimbingReadiness', () => {
         expect(result.badge.key).toBeTruthy();
     });
 
-    it('uses TSB from fitness metrics', () => {
+    it('uses TSB from fitness metrics as of today', () => {
         const activities = [];
         for (let i = 0; i < 14; i += 1) {
             const d = new Date(baseDate);
@@ -57,8 +66,7 @@ describe('computeClimbingReadiness', () => {
             activities.push({ date: ymd, load: 80 });
         }
 
-        const fitness = calculateFitnessMetrics(activities);
-        const latestTsb = fitness[fitness.length - 1]?.tsb;
+        const expectedTsb = expectedReadinessTsb(activities, baseDate);
 
         const result = computeClimbingReadiness({
             activities,
@@ -66,7 +74,24 @@ describe('computeClimbingReadiness', () => {
             referenceDate: baseDate,
         });
 
-        expect(result.metrics.tsb).toBe(latestTsb);
+        expect(result.metrics.tsb).toBe(expectedTsb);
+    });
+
+    it('matches Coach/Recovery TSB when last ride was before reference day', () => {
+        const activities = [
+            { date: '2026-08-10', load: 150 },
+            { date: '2026-08-12', load: 140 },
+        ];
+        const referenceDate = new Date('2026-08-14T12:00:00');
+        const coachTsb = getFitnessAtDate(activities, '2026-08-14')?.tsb;
+
+        const result = computeClimbingReadiness({
+            activities,
+            ftp: 250,
+            referenceDate,
+        });
+
+        expect(result.metrics.tsb).toBe(coachTsb);
     });
 
     it('flags recovery when TSB is very negative', () => {
