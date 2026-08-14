@@ -86,6 +86,7 @@ export function buildFitnessForecast({
     activities,
     week1Sessions,
     week2Sessions = [],
+    horizonSessions = null,
     weeklyHours = 5,
     referenceYmd = todayYmd(),
     historyDays = 28,
@@ -107,7 +108,9 @@ export function buildFitnessForecast({
         ? actualHistory[actualHistory.length - 1]
         : historical[historical.length - 1] || { ctl: 0, atl: 0, tsb: 0 };
 
-    const allSessions = [...(week1Sessions || []), ...(week2Sessions || [])];
+    const allSessions = horizonSessions?.length
+        ? horizonSessions
+        : [...(week1Sessions || []), ...(week2Sessions || [])];
     const forecastEnd = addDaysToYmd(referenceYmd, forecastDays);
     const plannedTssByDate = {};
 

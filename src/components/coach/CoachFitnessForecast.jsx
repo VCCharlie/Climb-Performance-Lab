@@ -28,23 +28,29 @@ const CoachFitnessForecast = ({
     userSettings,
     week1Sessions,
     week2Sessions = [],
+    horizonSessions = null,
 }) => {
     const referenceYmd = todayYmd();
     const weeklyHours = Number(userSettings?.weeklyHoursTarget) || 5;
     const isMobile = useMediaQuery('(max-width: 767px)');
     const chartMargins = isMobile ? MOBILE_CHART_MARGINS : DESKTOP_CHART_MARGINS;
 
+    const plannedSessionCount = horizonSessions?.length
+        ? horizonSessions.length
+        : week2Sessions.length;
+
     const { chartData, summary } = useMemo(
         () => buildFitnessForecast({
             activities,
             week1Sessions,
             week2Sessions,
+            horizonSessions,
             weeklyHours,
             referenceYmd,
             historyDays: 28,
-            forecastDays: week2Sessions.length > 0 ? 14 : 7,
+            forecastDays: plannedSessionCount > 7 ? 21 : plannedSessionCount > 0 ? 14 : 7,
         }),
-        [activities, week1Sessions, week2Sessions, weeklyHours, referenceYmd],
+        [activities, week1Sessions, week2Sessions, horizonSessions, weeklyHours, referenceYmd, plannedSessionCount],
     );
 
     const projectionStart = addDaysToYmd(referenceYmd, 1);

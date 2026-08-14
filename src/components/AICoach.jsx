@@ -14,7 +14,8 @@ import CoachFitnessForecast from './coach/CoachFitnessForecast';
 import CollapsibleSection from './ui/CollapsibleSection';
 import EmptyStateCard from './ui/EmptyStateCard';
 import { useToast } from '../context/ToastContext';
-import { buildFluidWeekPlan, buildProjectedWeek2Plan } from '../utils/coach/coachWeekPlan';
+import { buildFluidWeekPlan } from '../utils/coach/coachWeekPlan';
+import { buildEventHorizonFluidPlans } from '../utils/coach/coachHorizonPlan';
 import { todayYmd } from '../utils/coach/coachHelpers';
 import { COACH_WEEK_UPDATED_EVENT, readCoachWeek2Enabled, writeCoachWeek2Enabled } from '../utils/coach/coachWeekState';
 import {
@@ -53,7 +54,7 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
     const [coachGoalId, setCoachGoalId] = useState('auto');
     const weeklyHoursTarget = Number(userSettings?.weeklyHoursTarget) || 5;
     const [planRevision, setPlanRevision] = useState(0);
-    const [showNextWeek, setShowNextWeek] = useState(() => readCoachWeek2Enabled());
+    const [showHorizon, setShowHorizon] = useState(() => readCoachWeek2Enabled());
     const [coachWeekRevision, setCoachWeekRevision] = useState(0);
 
     const updateWeeklyHours = (hours) => {
@@ -391,9 +392,9 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
     const coachContext = useMemo(
         () => buildCoachContext(activities, userSettings, {
             weeklyHoursTarget,
-            includeWeek2: showNextWeek,
+            includeWeek2: showHorizon,
         }),
-        [activities, userSettings, weeklyHoursTarget, showNextWeek, coachWeekRevision],
+        [activities, userSettings, weeklyHoursTarget, showHorizon, coachWeekRevision],
     );
 
     useEffect(() => {
@@ -417,16 +418,23 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
         ? fluidWeekPlan.trainingGoal
         : null;
 
-    const week2Plan = useMemo(() => {
-        if (!showNextWeek) return null;
-        return buildProjectedWeek2Plan({
+    const horizonBundle = useMemo(
+        () => buildEventHorizonFluidPlans({
             activities,
             userSettings,
-            week1Plan: fluidWeekPlan,
             coachContext,
+            week1Plan: fluidWeekPlan,
             referenceYmd,
-        });
-    }, [showNextWeek, fluidWeekPlan, activities, userSettings, coachContext, referenceYmd, coachWeekRevision]);
+        }),
+        [fluidWeekPlan, activities, userSettings, coachContext, referenceYmd, coachWeekRevision],
+    );
+
+    const horizonSessions = useMemo(
+        () => (showHorizon
+            ? horizonBundle.horizonWeeks.flatMap((w) => w.sessions || [])
+            : fluidWeekPlan.sessions || []),
+        [showHorizon, horizonBundle.horizonWeeks, fluidWeekPlan.sessions],
+    );
 
     const opportunitiesForDisplay = useMemo(() => {
         return swot.opportunities.map((o) =>
@@ -580,22 +588,24 @@ ${workout.zwoSteps.map(step => {
                 coachContext={coachContext}
                 isSignedIn={isSignedIn}
                 weekPlan={fluidWeekPlan}
-                showNextWeek={showNextWeek}
-                onToggleNextWeek={() => {
-                    setShowNextWeek((current) => {
+                horizonWeeks={horizonBundle.horizonWeeks}
+                showHorizon={showHorizon}
+                eventHorizonActive={horizonBundle.eventHorizonActive}
+                horizonWeekCount={horizonBundle.horizonWeekCount}
+                onToggleHorizon={() => {
+                    setShowHorizon((current) => {
                         const next = !current;
                         writeCoachWeek2Enabled(next);
                         return next;
                     });
                 }}
-                week2Plan={week2Plan}
             />
 
             <CoachFitnessForecast
                 activities={activities}
                 userSettings={userSettings}
                 week1Sessions={fluidWeekPlan.sessions}
-                week2Sessions={week2Plan?.sessions || []}
+                horizonSessions={horizonSessions}
             />
 
             <CollapsibleSection

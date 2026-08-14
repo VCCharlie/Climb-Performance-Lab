@@ -467,40 +467,35 @@ export function buildFluidWeekPlan({
 
 /**
  * Build week 2 fluid plan using projected end-of-week TSB from week 1.
- * @param {object} params
- * @returns {object | null}
+ * @deprecated Prefer buildEventHorizonFluidPlans for multi-week horizons.
  */
-export function buildProjectedWeek2Plan({
-    activities,
-    userSettings,
-    week1Plan,
-    coachContext,
-    referenceYmd = todayYmd(),
-}) {
-    if (!week1Plan?.sessions?.length) return null;
+export function buildProjectedWeek2Plan(params) {
+    if (!params?.week1Plan?.sessions?.length) return null;
 
-    const nextMonday = addDaysToYmd(week1Plan.mondayYmd, 7);
-    const week2Reference = referenceYmd >= nextMonday ? referenceYmd : nextMonday;
-    const weeklyHours = Number(userSettings?.weeklyHoursTarget) || 5;
+    const nextMonday = addDaysToYmd(params.week1Plan.mondayYmd, 7);
+    const week2Reference = (params.referenceYmd || todayYmd()) >= nextMonday
+        ? params.referenceYmd
+        : nextMonday;
+    const weeklyHours = Number(params.userSettings?.weeklyHoursTarget) || 5;
     const projectedEndTsb = projectWeekEndTsb({
-        activities,
-        sessions: week1Plan.sessions,
+        activities: params.activities,
+        sessions: params.week1Plan.sessions,
         weeklyHours,
-        referenceYmd,
+        referenceYmd: params.referenceYmd || todayYmd(),
     });
     const week2CoachContext = {
-        ...coachContext,
+        ...params.coachContext,
         fitness: {
-            ...coachContext?.fitness,
+            ...params.coachContext?.fitness,
             tsb: projectedEndTsb,
         },
     };
 
     return buildFluidWeekPlan({
-        activities,
-        userSettings,
+        activities: params.activities,
+        userSettings: params.userSettings,
         coachContext: week2CoachContext,
         referenceYmd: week2Reference,
-        calendarYmd: referenceYmd,
+        calendarYmd: params.referenceYmd || todayYmd(),
     });
 }
