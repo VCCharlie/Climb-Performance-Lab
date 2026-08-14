@@ -199,8 +199,10 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
         planResult,
     ]);
 
+    const currentWeekNum = activeGoalSnapshot?.currentWeekNum ?? null;
+
     return (
-        <div className="space-y-4 md:space-y-6 animate-in fade-in min-w-0 max-w-full overflow-x-hidden">
+        <div className="space-y-4 md:space-y-6 animate-in fade-in min-w-0 max-w-full">
             <div className="bg-cdsurface p-3 md:p-6 rounded-xl border border-cdborder shadow-md">
                 <h2 className="text-xl md:text-2xl font-bold text-cdtext flex items-center gap-2 mb-2">
                     <Mountain className="text-cdaccent shrink-0" size={22} />
@@ -247,6 +249,11 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
                         {planResult.plan?.developmentMode === 'develop-aerobic' && (
                             <p className="text-xs text-cdaccent mt-2 leading-relaxed">
                                 Development focus: more Z2 and fewer hard rides than your habit — weekly TSS is intentionally below what you are used to to build FTP and endurance.
+                            </p>
+                        )}
+                        {planResult.plan?.developmentMode === 'event-prep' && planResult.plan?.developmentRationale && (
+                            <p className="text-xs text-cdaccent mt-2 leading-relaxed">
+                                {planResult.plan.developmentRationale}
                             </p>
                         )}
                     </div>
@@ -466,25 +473,72 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
                         )}
                     </div>
                     <p className="text-sm text-cdmuted">{planResult.plan.summary}</p>
-                    <div className="overflow-x-auto rounded-lg border border-cdborder">
-                        <table className="w-full text-sm text-left min-w-[520px]">
+
+                    {planResult.plan?.developmentMode !== 'progress' && (
+                        <p className="text-xs text-cdaccent leading-relaxed rounded-lg border border-cdaccent/30 bg-cdaccent/5 px-3 py-2">
+                            {planResult.plan.developmentRationale
+                                || 'This plan deliberately keeps weekly TSS below your recent habit so aerobic fitness can rebuild.'}
+                        </p>
+                    )}
+
+                    <div className="md:hidden space-y-2">
+                        {planResult.plan.weeks.map((w) => {
+                            const isCurrent = currentWeekNum === w.weekNum;
+                            return (
+                                <div
+                                    key={w.weekNum}
+                                    className={`rounded-lg border p-3 space-y-1 ${
+                                        isCurrent
+                                            ? 'border-cdaccent bg-cdaccent/5'
+                                            : 'border-cdborder bg-cdborder/10'
+                                    }`}
+                                >
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="text-xs font-bold uppercase tracking-wide text-cdmuted">
+                                            Week {w.weekNum}
+                                            {isCurrent ? ' · now' : ''}
+                                        </span>
+                                        <span className="font-mono font-bold text-cdtext">{w.targetTss} TSS</span>
+                                    </div>
+                                    <p className="text-sm font-semibold text-cdtext">{w.phaseLabel}</p>
+                                    <p className="text-xs text-cdmuted leading-relaxed">{w.focus}</p>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <div className="hidden md:block -mx-1 overflow-x-auto rounded-lg border border-cdborder overscroll-x-contain">
+                        <table className="w-full text-sm text-left min-w-[640px]">
                             <thead>
                                 <tr className="bg-cdborder/40 text-cdmuted text-xs uppercase">
                                     <th className="px-3 py-2 font-semibold">Week</th>
                                     <th className="px-3 py-2 font-semibold">Phase</th>
                                     <th className="px-3 py-2 font-semibold text-right">Target TSS/wk</th>
-                                    <th className="px-3 py-2 font-semibold">Focus</th>
+                                    <th className="px-3 py-2 font-semibold min-w-[280px]">Focus</th>
                                 </tr>
                             </thead>
                             <tbody className="text-cdtext">
-                                {planResult.plan.weeks.map((w) => (
-                                    <tr key={w.weekNum} className="border-t border-cdborder">
-                                        <td className="px-3 py-2 font-mono font-bold">{w.weekNum}</td>
-                                        <td className="px-3 py-2 text-cdmuted">{w.phaseLabel}</td>
-                                        <td className="px-3 py-2 text-right font-mono">{w.targetTss}</td>
-                                        <td className="px-3 py-2 text-xs text-cdmuted max-w-md">{w.focus}</td>
-                                    </tr>
-                                ))}
+                                {planResult.plan.weeks.map((w) => {
+                                    const isCurrent = currentWeekNum === w.weekNum;
+                                    return (
+                                        <tr
+                                            key={w.weekNum}
+                                            className={`border-t border-cdborder ${
+                                                isCurrent ? 'bg-cdaccent/10' : ''
+                                            }`}
+                                        >
+                                            <td className="px-3 py-2 font-mono font-bold">
+                                                {w.weekNum}
+                                                {isCurrent ? (
+                                                    <span className="ml-1 text-[10px] uppercase text-cdaccent">now</span>
+                                                ) : null}
+                                            </td>
+                                            <td className="px-3 py-2 text-cdmuted">{w.phaseLabel}</td>
+                                            <td className="px-3 py-2 text-right font-mono">{w.targetTss}</td>
+                                            <td className="px-3 py-2 text-xs text-cdmuted">{w.focus}</td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>

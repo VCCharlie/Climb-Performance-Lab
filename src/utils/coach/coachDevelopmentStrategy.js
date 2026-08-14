@@ -17,6 +17,25 @@ export function isIntensityHeavyHabit(pattern) {
 }
 
 /**
+ * Whether to prioritise FTP/endurance development over ramping habitual TSS.
+ * Uses recent 4-week TSS even when the activity log is sparse (e.g. mobile Goals tab).
+ *
+ * @param {object} pattern
+ * @param {number} recentWeeklyTss
+ * @returns {boolean}
+ */
+export function shouldPrioritizeDevelopment(pattern, recentWeeklyTss) {
+    const recent = Number(recentWeeklyTss) || 0;
+    const avgPerRide = pattern?.avgTssPerRide ?? 0;
+    const ridesPerWeek = pattern?.ridesPerWeek ?? 0;
+
+    if (recent >= 340) return true;
+    if (recent >= 300 && avgPerRide >= 80) return true;
+    if (recent >= 280 && ridesPerWeek >= 3.5) return true;
+    return isIntensityHeavyHabit(pattern);
+}
+
+/**
  * @param {object} pattern
  * @param {number} recentWeeklyTss — 4-week average from goal planner
  * @param {string | null | undefined} phaseKey — base | build | specific | taper
@@ -31,8 +50,7 @@ export function isIntensityHeavyHabit(pattern) {
  * }}
  */
 export function resolveDevelopmentStrategy(pattern, recentWeeklyTss, phaseKey) {
-    const intensityHeavy = isIntensityHeavyHabit(pattern)
-        || (recentWeeklyTss >= 350 && pattern?.intensityBias === 'intensity');
+    const intensityHeavy = shouldPrioritizeDevelopment(pattern, recentWeeklyTss);
 
     if (!intensityHeavy) {
         return {
@@ -51,7 +69,7 @@ export function resolveDevelopmentStrategy(pattern, recentWeeklyTss, phaseKey) {
             mode: 'event-prep',
             macroStartMultiplier: 0.55,
             macroPeakMultiplier: 0.35,
-            fluidSkeleton: 'default',
+            fluidSkeleton: 'aerobic-development',
             maxHardSessions: 0,
             rationale: null,
             showLowerTssNote: false,
@@ -61,12 +79,12 @@ export function resolveDevelopmentStrategy(pattern, recentWeeklyTss, phaseKey) {
     if (phaseKey === 'specific') {
         return {
             mode: 'event-prep',
-            macroStartMultiplier: 0.92,
-            macroPeakMultiplier: 1,
-            fluidSkeleton: 'default',
+            macroStartMultiplier: 0.88,
+            macroPeakMultiplier: 0.95,
+            fluidSkeleton: 'aerobic-development',
             maxHardSessions: 2,
             rationale:
-                'Event-specific phase: some harder work is fine, but the plan avoids stacking more intense days than you already habitually ride.',
+                'Event-specific phase: race-pace touches while keeping overall load below your recent habit.',
             showLowerTssNote: false,
         };
     }
@@ -74,8 +92,8 @@ export function resolveDevelopmentStrategy(pattern, recentWeeklyTss, phaseKey) {
     if (phaseKey === 'build') {
         return {
             mode: 'develop-aerobic',
-            macroStartMultiplier: 0.85,
-            macroPeakMultiplier: 0.92,
+            macroStartMultiplier: 0.82,
+            macroPeakMultiplier: 0.90,
             fluidSkeleton: 'aerobic-development',
             maxHardSessions: 1,
             rationale:
@@ -91,7 +109,7 @@ export function resolveDevelopmentStrategy(pattern, recentWeeklyTss, phaseKey) {
         fluidSkeleton: 'aerobic-development',
         maxHardSessions: 1,
         rationale:
-            'Your recent training is intense and frequent. To raise FTP and endurance, the plan uses more Z2 volume and fewer hard rides — weekly TSS is intentionally lower than what you are used to.',
+            'Your recent weekly load is high. To raise FTP and endurance, the plan uses more Z2 volume and fewer hard rides — weekly TSS is intentionally lower than what you are used to.',
         showLowerTssNote: true,
     };
 }
