@@ -539,7 +539,9 @@ ${workout.zwoSteps.map(step => {
                             Week {linkedEventGoal.currentWeekNum}: {linkedEventGoal.currentPhaseLabel}
                             {linkedEventGoal.isTaperPhase ? ' (taper)' : ''}
                             {' · '}
-                            Sessions and weekly TSS follow this phase.
+                            {fluidWeekPlan.developmentMode === 'develop-aerobic'
+                                ? 'Z2-first week — fewer hard rides than your habit; lower TSS is intentional.'
+                                : 'Sessions and weekly TSS follow this phase.'}
                         </p>
                     </div>
                     <div className="text-right">

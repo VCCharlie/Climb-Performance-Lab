@@ -5,6 +5,9 @@
 import { normalizeDate } from '../formatters';
 import { addDaysToYmd } from '../dashboardVolumeTotals';
 import { buildWeekSkeleton, rebalanceWeek, applyPhaseToWeekSkeleton } from './coachRebalancer';
+import { buildWeekSkeletonForStrategy, sumSkeletonPlannedTss } from './coachTargetSkeleton';
+import { analyzeRidingPattern } from './coachRidingPattern';
+import { resolveDevelopmentStrategy } from './coachDevelopmentStrategy';
 import { buildFluidWorkout } from './fluidWorkoutTemplates';
 import { resolveFluidWeekTarget } from '../trainingGoalLink';
 import { activityIF, filterActivitiesInRange, sumTss, todayYmd } from './coachHelpers';
@@ -104,7 +107,29 @@ export function buildFluidWeekPlan({
     const goalProfile = weekTarget.trainingGoal?.goalInputs || {};
 
     let skeleton = buildWeekSkeleton(weeklyHours, mondayYmd);
-    skeleton = applyPhaseToWeekSkeleton(skeleton, weekTarget.phaseKey, goalProfile);
+    const ridingPattern = analyzeRidingPattern(activities, referenceYmd || mondayYmd);
+    const developmentStrategy = resolveDevelopmentStrategy(
+        ridingPattern,
+        ridingPattern.avgWeeklyTss || targetTss,
+        weekTarget.phaseKey,
+    );
+
+    const skeletonAlign = buildWeekSkeletonForStrategy({
+        strategy: developmentStrategy,
+        weeklyHours,
+        startYmd: mondayYmd,
+        phaseKey: weekTarget.phaseKey,
+        activities,
+        referenceYmd,
+        recentWeeklyTss: ridingPattern.avgWeeklyTss,
+        baseSkeleton: skeleton,
+    });
+    skeleton = skeletonAlign.sessions;
+    const plannedSkeletonTss = skeletonAlign.plannedTss;
+
+    skeleton = applyPhaseToWeekSkeleton(skeleton, weekTarget.phaseKey, goalProfile, {
+        preserveIntensity: developmentStrategy.mode === 'event-prep',
+    });
     const actuals = computeWeekActuals(activities, mondayYmd, ftp);
     const weekState = readCoachWeekState(mondayYmd);
     const originalStimulusByDate = new Map(skeleton.map((s) => [s.date, s.stimulus]));
@@ -117,6 +142,7 @@ export function buildFluidWeekPlan({
             tssThisWeek: actuals.tssThisWeek,
             hardSessionsThisWeek: actuals.hardSessionsThisWeek,
             currentTsb,
+            intensityBias: developmentStrategy?.mode === 'develop-aerobic' ? 'volume' : ridingPattern?.intensityBias,
         },
         referenceYmd,
     );
@@ -390,7 +416,18 @@ export function buildFluidWeekPlan({
     } else if (actuals.hardSessionsThisWeek >= 2) {
         rebalanceNote = 'Quality already banked — extra intensity sessions shifted to endurance.';
     } else if (actuals.tssThisWeek < targetTss * 0.7 && currentTsb > -10) {
-        rebalanceNote = 'Below weekly TSS target — room for an extra easy ride if you feel good.';
+        rebalanceNote = developmentStrategy?.mode === 'develop-aerobic'
+            ? 'Below target — prioritise Z2 duration over adding another hard ride.'
+            : 'Below weekly TSS target — room for an extra easy ride if you feel good.';
+    }
+
+    if (skeletonAlign.developmentRationale) {
+        rebalanceNote = rebalanceNote
+            ? `${rebalanceNote} ${skeletonAlign.developmentRationale}`
+            : skeletonAlign.developmentRationale;
+    } else if (plannedSkeletonTss > 0 && developmentStrategy.mode === 'progress') {
+        const gapNote = `Plan targets ~${plannedSkeletonTss} TSS across scheduled sessions.`;
+        rebalanceNote = rebalanceNote ? `${rebalanceNote} ${gapNote}` : gapNote;
     }
 
     const hasMoves = Object.keys(weekState.moves || {}).length > 0;
@@ -407,6 +444,11 @@ export function buildFluidWeekPlan({
         phaseLabel: weekTarget.phaseLabel,
         trainingGoal: weekTarget.trainingGoal,
         hoursBudgetTss: weekTarget.hoursBudgetTss,
+        plannedSkeletonTss: sumSkeletonPlannedTss(skeleton, weeklyHours),
+        ridingPattern,
+        developmentMode: skeletonAlign.developmentMode,
+        developmentRationale: skeletonAlign.developmentRationale,
+        skeletonTargetAligned: skeletonAlign.targetAligned,
         actualTss: actuals.tssThisWeek,
         compliancePct,
         hardSessions: actuals.hardSessionsThisWeek,

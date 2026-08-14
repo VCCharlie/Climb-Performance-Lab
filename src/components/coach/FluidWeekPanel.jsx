@@ -55,6 +55,14 @@ export default function FluidWeekPanel({
                 <p className="text-[11px] text-cdmuted mt-0.5">
                     {formatDateDDMMYYYY(weekPlan.mondayYmd)} – {formatDateDDMMYYYY(weekPlan.sundayYmd)}
                     {weekPlan.phaseLabel ? ` · ${weekPlan.phaseLabel}` : ''}
+                    {weekPlan.plannedSkeletonTss > 0 && (
+                        <>
+                            {' · '}
+                            <span title="Estimated TSS if you complete all planned sessions">
+                                ~{weekPlan.plannedSkeletonTss} TSS planned
+                            </span>
+                        </>
+                    )}
                 </p>
             </header>
 
