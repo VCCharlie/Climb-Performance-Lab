@@ -2,6 +2,9 @@
 import { Activity, TrendingUp, TrendingDown, Calendar, AlertTriangle, CheckCircle, Zap, Info, Lightbulb } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts';
 import { formatDateDDMMYYYY } from '../utils/formatters';
+import { buildFitnessSeriesForRange } from '../utils/formTabMetrics';
+import { todayYmd } from '../utils/coach/coachHelpers';
+import { addDaysToYmd } from '../utils/dashboardVolumeTotals';
 import { useActivitiesList } from '../hooks/useActivities';
 import {
     buildTaperRecoveryWarning,
@@ -48,72 +51,22 @@ const RecoveryAdvisor = ({ activities: activitiesProp, startDate, endDate, onGoT
             return { chartData: [], current: null, recommendations: [], rangeLabel: '' };
         }
 
-        // Sort activities by date
-        // Optimization: use string comparison for ISO dates to speed up sort
-        const sortedActivities = [...activities].sort((a, b) => a.date < b.date ? -1 : (a.date > b.date ? 1 : 0));
+        const asOfYmd = todayYmd();
+        const displayEndYmd = endDate ? String(endDate).slice(0, 10) : asOfYmd;
+        const displayStartYmd = startDate
+            ? String(startDate).slice(0, 10)
+            : addDaysToYmd(displayEndYmd, -90);
 
-        // Calculate rolling metrics
-        const CTL_DAYS = 42; // Chronic Training Load (fitness) - 42 day exponential average
-        const ATL_DAYS = 7;  // Acute Training Load (fatigue) - 7 day exponential average
-        const ctlAlpha = 2 / (CTL_DAYS + 1);
-        const atlAlpha = 2 / (ATL_DAYS + 1);
-
-        let ctl = 0;
-        let atl = 0;
-        const chartData = [];
-
-        // Group activities by date
-        const activitiesByDate = {};
-        sortedActivities.forEach(activity => {
-            const dateKey = new Date(activity.date).toISOString().split('T')[0];
-            if (!activitiesByDate[dateKey]) {
-                activitiesByDate[dateKey] = [];
-            }
-            activitiesByDate[dateKey].push(activity);
+        const { chartData, current } = buildFitnessSeriesForRange(activities, {
+            displayStartYmd,
+            displayEndYmd,
+            asOfYmd,
         });
 
-        // Determine display range from props (default: last 90 days)
-        const endD = endDate ? new Date(endDate) : new Date();
-        const startD = startDate ? new Date(startDate) : (() => {
-            const d = new Date(endD);
-            d.setDate(d.getDate() - 90);
-            return d;
-        })();
-
-        // Warmup: begin CTL/ATL computation 42 days before display range
-        const warmupStart = new Date(startD);
-        warmupStart.setDate(warmupStart.getDate() - CTL_DAYS);
-
-        // Calculate CTL/ATL for each day; add to chartData only within display range
-        for (let d = new Date(warmupStart); d <= endD; d.setDate(d.getDate() + 1)) {
-            const dateKey = d.toISOString().split('T')[0];
-            const dayActivities = activitiesByDate[dateKey] || [];
-            const dailyLoad = dayActivities.reduce((sum, act) => sum + (act.load || 0), 0);
-
-            ctl = (dailyLoad * ctlAlpha) + (ctl * (1 - ctlAlpha));
-            atl = (dailyLoad * atlAlpha) + (atl * (1 - atlAlpha));
-            const tsb = ctl - atl;
-
-            if (d >= startD) {
-                chartData.push({
-                    date: dateKey,
-                    ctl: Math.round(ctl * 10) / 10,
-                    atl: Math.round(atl * 10) / 10,
-                    tsb: Math.round(tsb * 10) / 10,
-                    load: dailyLoad
-                });
-            }
-        }
-
-        // Label for chart heading
         const rangeLabel = startDate || endDate
-            ? `${formatDateDDMMYYYY(startD)} – ${formatDateDDMMYYYY(endD)}`
+            ? `${formatDateDDMMYYYY(displayStartYmd)} – ${formatDateDDMMYYYY(displayEndYmd)}`
             : 'Last 90 days';
 
-        // Current metrics (last data point in display range)
-        const current = chartData[chartData.length - 1];
-
-        // Guard: no data points in range (e.g. custom range with no activities)
         if (!current) {
             return { chartData: [], current: null, recommendations: [], rangeLabel };
         }
@@ -263,6 +216,9 @@ const RecoveryAdvisor = ({ activities: activitiesProp, startDate, endDate, onGoT
             </div>
 
             {/* Current Metrics */}
+            <p className="text-xs text-cdmuted -mt-2">
+                CTL / ATL / TSB below are as of today ({formatDateDDMMYYYY(todayYmd())}) — same formula as Coach → Fitness forecast.
+            </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-cdbg p-4 rounded border border-cdborder">
                     <div className="flex items-center justify-between mb-2">

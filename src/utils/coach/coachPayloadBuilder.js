@@ -97,7 +97,7 @@ export function buildCoachContext(activities, userSettings, options = {}) {
     const startYmd28 = addDaysToYmd(endYmd, -28);
     const startYmd7 = addDaysToYmd(endYmd, -7);
 
-    const fitnessSeries = calculateFitnessMetrics(activities);
+    const fitnessSeries = calculateFitnessMetrics(activities, { endYmd: endYmd });
     const latestFitness = fitnessSeries.length > 0 ? fitnessSeries[fitnessSeries.length - 1] : null;
 
     let fitness7dAgo = fitnessSeries[0] || null;

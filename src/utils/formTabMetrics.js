@@ -1,10 +1,12 @@
 /**
- * CTL / ATL / TSB progression for Dashboard Form tab.
+ * CTL / ATL / TSB progression for Dashboard Form tab, Coach forecast, and Recovery.
  * Uses YMD string iteration (no per-day Date allocation in the hot loop).
+ * Single source of truth: exponential decay (42d CTL / 7d ATL).
  */
 
 import { normalizeDate } from './formatters';
 import { addDaysToYmd } from './dashboardVolumeTotals';
+import { todayYmd } from './coach/coachHelpers';
 
 const CTL_DAYS = 42;
 const ATL_DAYS = 7;
@@ -16,26 +18,32 @@ function ymdToLocalTime(ymd) {
     return new Date(y, m - 1, d).getTime();
 }
 
-/**
- * @param {object[]} activities — dashboard-filtered activities with load/TSS
- * @returns {Array<{ date: string, dateNum: number, ctl: number, atl: number, tsb: number }>}
- */
-export function calculateFitnessMetrics(activities) {
-    if (!activities?.length) return [];
+function round1(n) {
+    return Math.round(n * 10) / 10;
+}
 
+/**
+ * @param {object[]} activities
+ * @returns {Record<string, number>}
+ */
+export function buildTssByDate(activities) {
     const tssMap = {};
-    for (const a of activities) {
+    for (const a of activities || []) {
         const ymd = normalizeDate(a?.date);
         const load = Number(a?.load) || 0;
         if (!ymd || ymd.length < 10 || load <= 0) continue;
         tssMap[ymd] = (tssMap[ymd] || 0) + load;
     }
+    return tssMap;
+}
 
-    const sortedDates = Object.keys(tssMap).sort();
-    if (sortedDates.length === 0) return [];
-
-    const startYmd = sortedDates[0];
-    const endYmd = sortedDates[sortedDates.length - 1];
+/**
+ * @param {Record<string, number>} tssMap
+ * @param {string} startYmd
+ * @param {string} endYmd
+ * @returns {Array<{ date: string, dateNum: number, ctl: number, atl: number, tsb: number }>}
+ */
+function iterateFitnessRows(tssMap, startYmd, endYmd) {
     const ctlFactor = 1 - Math.exp(-1 / CTL_DAYS);
     const atlFactor = 1 - Math.exp(-1 / ATL_DAYS);
 
@@ -53,9 +61,9 @@ export function calculateFitnessMetrics(activities) {
         result.push({
             date: currentYmd,
             dateNum: ymdToLocalTime(currentYmd),
-            ctl: Math.round(ctl * 10) / 10,
-            atl: Math.round(atl * 10) / 10,
-            tsb: Math.round(tsb * 10) / 10,
+            ctl: round1(ctl),
+            atl: round1(atl),
+            tsb: round1(tsb),
         });
 
         const nextYmd = addDaysToYmd(currentYmd, 1);
@@ -64,4 +72,76 @@ export function calculateFitnessMetrics(activities) {
     }
 
     return result;
+}
+
+/**
+ * @param {object[]} activities — activities with load/TSS
+ * @param {{ endYmd?: string, startYmd?: string }} [options]
+ *   endYmd — extend through this date with 0 TSS on rest days (e.g. today)
+ *   startYmd — filter output rows from this date onward (computation still warms from first activity)
+ * @returns {Array<{ date: string, dateNum: number, ctl: number, atl: number, tsb: number }>}
+ */
+export function calculateFitnessMetrics(activities, options = {}) {
+    if (!activities?.length) return [];
+
+    const tssMap = buildTssByDate(activities);
+    const sortedDates = Object.keys(tssMap).sort();
+    if (sortedDates.length === 0) return [];
+
+    const firstYmd = sortedDates[0];
+    const lastActivityYmd = sortedDates[sortedDates.length - 1];
+    const endYmd = options.endYmd && options.endYmd >= firstYmd
+        ? options.endYmd
+        : lastActivityYmd;
+
+    const rows = iterateFitnessRows(tssMap, firstYmd, endYmd);
+
+    if (options.startYmd) {
+        return rows.filter((row) => row.date >= options.startYmd);
+    }
+
+    return rows;
+}
+
+/**
+ * CTL/ATL/TSB on a specific calendar day (extends through asOfYmd with 0 TSS rest days).
+ * @param {object[]} activities
+ * @param {string} [asOfYmd]
+ * @returns {{ date: string, ctl: number, atl: number, tsb: number } | null}
+ */
+export function getFitnessAtDate(activities, asOfYmd = todayYmd()) {
+    const rows = calculateFitnessMetrics(activities, { endYmd: asOfYmd });
+    if (!rows.length) return null;
+    return rows.find((row) => row.date === asOfYmd) || rows[rows.length - 1];
+}
+
+/**
+ * Chart series for a date window plus a consistent "current" snapshot (usually today).
+ * @param {object[]} activities
+ * @param {{ displayStartYmd?: string, displayEndYmd?: string, asOfYmd?: string }} [options]
+ */
+export function buildFitnessSeriesForRange(activities, options = {}) {
+    const tssMap = buildTssByDate(activities);
+    const sortedDates = Object.keys(tssMap).sort();
+    if (!sortedDates.length) {
+        return { chartData: [], current: null };
+    }
+
+    const firstYmd = sortedDates[0];
+    const asOfYmd = options.asOfYmd || todayYmd();
+    const displayEndYmd = options.displayEndYmd || asOfYmd;
+    const displayStartYmd = options.displayStartYmd || addDaysToYmd(displayEndYmd, -90);
+    const computeEndYmd = asOfYmd >= displayEndYmd ? asOfYmd : displayEndYmd;
+
+    const allRows = iterateFitnessRows(tssMap, firstYmd, computeEndYmd);
+    const chartData = allRows
+        .filter((row) => row.date >= displayStartYmd && row.date <= displayEndYmd)
+        .map((row) => ({
+            ...row,
+            load: tssMap[row.date] || 0,
+        }));
+
+    const current = allRows.find((row) => row.date === asOfYmd) || allRows[allRows.length - 1];
+
+    return { chartData, current };
 }

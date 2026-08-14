@@ -17,8 +17,8 @@ const MOBILE_CHART_MARGINS = { top: 4, right: 6, left: 0, bottom: 0 };
 const DESKTOP_CHART_MARGINS = { top: 5, right: 20, left: 0, bottom: 0 };
 
 const StatBadge = ({ label, value, color }) => (
-    <div className="bg-cdborder/20 border border-cdborder rounded-lg p-3 text-center">
-        <div className="text-[10px] uppercase text-cdmuted font-bold tracking-wider mb-1">{label}</div>
+    <div className="bg-cdborder/20 border border-cdborder rounded-lg px-4 py-4 text-center min-w-0">
+        <div className="text-[10px] uppercase text-cdmuted font-bold tracking-wider mb-2">{label}</div>
         <div className={`text-xl font-black tabular-nums ${color}`}>{value ?? '—'}</div>
     </div>
 );
@@ -212,13 +212,15 @@ const CoachFitnessForecast = ({
                         </LineChart>
                     </ResponsiveContainer>
                 </div>
-                <p className="text-xs text-cdmuted mt-3 leading-relaxed">
-                    Shaded area = forecast window. Projections assume planned sessions are completed as prescribed
-                    (estimated TSS). Logged rides override estimates for past and completed days.
-                    {summary.minTsb != null && summary.maxTsb != null
-                        ? ` Forecast TSB range: ${summary.minTsb} to ${summary.maxTsb}.`
-                        : ''}
-                </p>
+                <div className="rounded-lg border border-cdborder/60 bg-cdborder/10 px-4 py-3.5 mt-3">
+                    <p className="text-xs text-cdmuted leading-relaxed">
+                        Shaded area = forecast window. Projections assume planned sessions are completed as prescribed
+                        (estimated TSS). Logged rides override estimates for past and completed days.
+                        {summary.minTsb != null && summary.maxTsb != null
+                            ? ` Forecast TSB range: ${summary.minTsb} to ${summary.maxTsb}.`
+                            : ''}
+                    </p>
+                </div>
             </div>
         </CollapsibleSection>
     );
