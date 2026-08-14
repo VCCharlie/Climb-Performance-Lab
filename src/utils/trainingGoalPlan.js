@@ -103,6 +103,62 @@ function phaseForWeek(weekIndex, totalWeeks) {
 }
 
 /**
+ * Distinct focus line per week (avoids copy-paste rows in the macro table).
+ */
+export function weekPlanFocus({
+    weekNum,
+    phaseKey,
+    phaseLabel,
+    weekStrategy,
+    eventDemand,
+    isTaper,
+    phaseWeekIndex,
+}) {
+    const km = eventDemand?.distanceKm ? `~${Math.round(eventDemand.distanceKm)} km` : 'event distance';
+    const elev = eventDemand?.elevationM ? ` · ~${Math.round(eventDemand.elevationM)} m` : '';
+
+    if (isTaper) {
+        return phaseWeekIndex === 0
+            ? 'Taper week 1: cut duration 40–50%, keep legs open with easy spins.'
+            : 'Taper week 2: minimal load, short openers optional — arrive fresh.';
+    }
+
+    if (weekStrategy.mode === 'develop-aerobic' || weekStrategy.mode === 'event-prep') {
+        if (phaseKey === 'base') {
+            return phaseWeekIndex === 0
+                ? 'Base A: long Z2 priority, max 1 sweetspot — lower TSS than your habit is intentional.'
+                : 'Base B: extend Z2 time on the long ride; still only one quality day.';
+        }
+        if (phaseKey === 'build') {
+            return phaseWeekIndex === 0
+                ? 'Build A: Z2 volume + one structured sweetspot/threshold session.'
+                : 'Build B: slightly more quality, but keep easy days truly easy.';
+        }
+        if (phaseKey === 'specific') {
+            return phaseWeekIndex === 0
+                ? `Specific A: ${km}${elev} — shorter blocks at target pace.`
+                : `Specific B: ${km} rehearsal — reduce volume, keep intensity touches.`;
+        }
+    }
+
+    if (phaseKey === 'base') {
+        return phaseWeekIndex === 0
+            ? 'Mostly Z2 endurance; optional 1× sweetspot — cap hard days at 1.'
+            : 'Continue Z2 base; add duration before adding intensity.';
+    }
+    if (phaseKey === 'build') {
+        return phaseWeekIndex === 0
+            ? 'Gradually increase load; 1–2 quality days (sweetspot/VO2) if recovery allows.'
+            : 'Consolidate build week; monitor fatigue before event-specific work.';
+    }
+    if (phaseKey === 'specific') {
+        return `Event-specific (week ${weekNum}): ${km}${elev} — shorter versions or repeats.`;
+    }
+
+    return `${phaseLabel} — week ${weekNum}.`;
+}
+
+/**
  * Builds week list with target TSS and short focus notes.
  */
 export function buildWeeklyGoalPlan({
@@ -131,12 +187,16 @@ export function buildWeeklyGoalPlan({
     const buildWeeks = Math.max(0, W - TAPER_WEEKS);
     const weeks = [];
     let primaryStrategy = null;
+    const phaseWeekCounters = {};
 
     for (let i = 0; i < W; i++) {
         const weekNum = i + 1;
         const isTaper = i >= W - TAPER_WEEKS;
         const phase = phaseForWeek(i, W);
         const phaseKey = isTaper ? 'taper' : phase.key;
+        const phaseWeekIndex = phaseWeekCounters[phaseKey] ?? 0;
+        phaseWeekCounters[phaseKey] = phaseWeekIndex + 1;
+
         const weekStrategy = resolveDevelopmentStrategy(
             ridingPattern || {},
             recentWeeklyTss,
@@ -165,20 +225,15 @@ export function buildWeeklyGoalPlan({
             targetTss = Math.round(start + (peakTarget - start) * t);
         }
 
-        let focus = '';
-        if (weekStrategy.mode === 'develop-aerobic' && !isTaper) {
-            focus = phase.key === 'base'
-                ? 'Rebuild aerobic base: mostly Z2, max 1 sweetspot day — lower TSS than your habit is intentional.'
-                : 'Gradually add quality while keeping Z2 volume — FTP gains need easy miles, not more stacked intensity.';
-        } else if (phase.key === 'base') {
-            focus = 'Mostly Z2 endurance, optional 1× sweetspot; cap hard days at 1.';
-        } else if (phase.key === 'build') {
-            focus = 'Increase weekly TSS gradually; 1–2 quality days (sweetspot/VO2) depending on recovery.';
-        } else if (phase.key === 'specific') {
-            focus = `Approach event profile: ${eventDemand.distanceKm ? `~${Math.round(eventDemand.distanceKm)} km` : 'distance'}, ${eventDemand.elevationM ? `~${Math.round(eventDemand.elevationM)} m elev` : 'elevation'} — shorter versions or repeated climbs.`;
-        } else {
-            focus = 'Reduce volume, sleep, no new stimuli; easy spins before the event.';
-        }
+        const focus = weekPlanFocus({
+            weekNum,
+            phaseKey,
+            phaseLabel: isTaper ? 'Taper' : phase.label,
+            weekStrategy,
+            eventDemand,
+            isTaper,
+            phaseWeekIndex,
+        });
 
         weeks.push({
             weekNum,

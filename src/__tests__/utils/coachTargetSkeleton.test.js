@@ -5,6 +5,7 @@ import {
     resolveDevelopmentStrategy,
     developmentAdjustedWeekTss,
     isIntensityHeavyHabit,
+    shouldPrioritizeDevelopment,
 } from '../../utils/coach/coachDevelopmentStrategy';
 import {
     buildAerobicDevelopmentSkeleton,
@@ -13,6 +14,7 @@ import {
 } from '../../utils/coach/coachTargetSkeleton';
 import { buildWeekSkeleton } from '../../utils/coach/coachRebalancer';
 import { buildWeeklyGoalPlan } from '../../utils/trainingGoalPlan';
+import { weekPlanFocus } from '../../utils/trainingGoalPlan';
 
 function makeIntensityActivities() {
     const rides = [];
@@ -53,6 +55,15 @@ describe('coachDevelopmentStrategy', () => {
         expect(week1).toBeLessThan(397);
         expect(peak).toBeLessThan(397);
         expect(peak).toBeGreaterThan(week1);
+    });
+
+    it('triggers development from high recent TSS even without activity log', () => {
+        expect(shouldPrioritizeDevelopment({}, 428)).toBe(true);
+        const strategy = resolveDevelopmentStrategy({}, 428, 'base');
+        expect(strategy.mode).toBe('develop-aerobic');
+        const week1 = developmentAdjustedWeekTss(428, strategy, 'base', 0, 6);
+        expect(week1).toBe(Math.round(428 * 0.78));
+        expect(week1).toBeLessThan(428);
     });
 });
 
@@ -104,5 +115,42 @@ describe('trainingGoalPlan — development macro', () => {
         expect(plan.developmentMode).toBe('develop-aerobic');
         expect(plan.weeks[0].targetTss).toBeLessThan(397);
         expect(plan.peakTarget).toBeLessThan(397);
+    });
+
+    it('uses development mode for 428 TSS with sparse activity log', () => {
+        const plan = buildWeeklyGoalPlan({
+            weeksToEvent: 8,
+            recentWeeklyTss: 428,
+            eventDemand: { distanceKm: 150, elevationM: 0 },
+            eventTss: 387,
+            ridingPattern: {},
+        });
+
+        expect(plan.developmentMode).toBe('develop-aerobic');
+        expect(plan.weeks[0].targetTss).toBe(Math.round(428 * 0.78));
+        expect(plan.summary).toContain('Development focus');
+        expect(plan.weeks[0].focus).not.toBe(plan.weeks[1].focus);
+    });
+
+    it('weekPlanFocus alternates within the same phase', () => {
+        const a = weekPlanFocus({
+            weekNum: 1,
+            phaseKey: 'base',
+            phaseLabel: 'Base / volume',
+            weekStrategy: { mode: 'develop-aerobic' },
+            eventDemand: { distanceKm: 150, elevationM: 0 },
+            isTaper: false,
+            phaseWeekIndex: 0,
+        });
+        const b = weekPlanFocus({
+            weekNum: 2,
+            phaseKey: 'base',
+            phaseLabel: 'Base / volume',
+            weekStrategy: { mode: 'develop-aerobic' },
+            eventDemand: { distanceKm: 150, elevationM: 0 },
+            isTaper: false,
+            phaseWeekIndex: 1,
+        });
+        expect(a).not.toBe(b);
     });
 });

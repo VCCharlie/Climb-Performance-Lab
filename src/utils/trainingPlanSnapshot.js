@@ -81,7 +81,7 @@ export function buildTrainingPlanSnapshot({ goalDate, eventName, goalInputs, pla
     });
 
     return {
-        version: 1,
+        version: 2,
         updatedAt: new Date().toISOString(),
         goalDate,
         eventName: displayName,
@@ -90,6 +90,8 @@ export function buildTrainingPlanSnapshot({ goalDate, eventName, goalInputs, pla
         recentWeeklyTss: planResult.recentWeeklyTss,
         estimatedEventTss: planResult.demand?.estimatedEventTss ?? null,
         planSummary: planResult.plan.summary || '',
+        developmentMode: planResult.plan.developmentMode || 'progress',
+        developmentRationale: planResult.plan.developmentRationale || null,
         weeks,
         currentWeekNum: currentWeek?.weekNum ?? 1,
         currentWeekTargetTss: currentWeek?.targetTss ?? null,
@@ -131,6 +133,8 @@ export function normalizeTrainingPlanSnapshot(raw) {
         recentWeeklyTss: Number(raw.recentWeeklyTss) || 0,
         estimatedEventTss: raw.estimatedEventTss == null ? null : Number(raw.estimatedEventTss),
         planSummary: raw.planSummary || '',
+        developmentMode: raw.developmentMode || 'progress',
+        developmentRationale: raw.developmentRationale || null,
         weeks: raw.weeks,
         currentWeekNum: raw.currentWeekNum ?? 1,
         currentWeekTargetTss: raw.currentWeekTargetTss ?? null,

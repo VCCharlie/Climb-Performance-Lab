@@ -108,9 +108,14 @@ export function buildFluidWeekPlan({
 
     let skeleton = buildWeekSkeleton(weeklyHours, mondayYmd);
     const ridingPattern = analyzeRidingPattern(activities, referenceYmd || mondayYmd);
+    const goalRecentTss = weekTarget.trainingGoal?.recentWeeklyTss;
+    const recentTssForStrategy = goalRecentTss > 0
+        ? goalRecentTss
+        : (ridingPattern.avgWeeklyTss || targetTss);
+
     const developmentStrategy = resolveDevelopmentStrategy(
         ridingPattern,
-        ridingPattern.avgWeeklyTss || targetTss,
+        recentTssForStrategy,
         weekTarget.phaseKey,
     );
 
@@ -121,7 +126,7 @@ export function buildFluidWeekPlan({
         phaseKey: weekTarget.phaseKey,
         activities,
         referenceYmd,
-        recentWeeklyTss: ridingPattern.avgWeeklyTss,
+        recentWeeklyTss: recentTssForStrategy,
         baseSkeleton: skeleton,
     });
     skeleton = skeletonAlign.sessions;

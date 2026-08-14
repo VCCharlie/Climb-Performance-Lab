@@ -30,24 +30,51 @@ function addDay(ymd, days) {
  * @returns {object[]}
  */
 export function buildAerobicDevelopmentSkeleton(weeklyHours, startYmd, phaseKey, maxHardSessions = 1) {
-    const hardStimulus = phaseKey === 'build' && maxHardSessions >= 2 ? 'sweetspot' : 'sweetspot';
     const includeSundayRecovery = weeklyHours >= 5;
+    let workoutRows;
 
-    const workoutRows = [
-        { day: 'Tuesday', stimulus: 'endurance', session: 'Z2 aerobic base' },
-        { day: 'Thursday', stimulus: hardStimulus, session: SESSION_LABELS[hardStimulus] },
-        { day: 'Saturday', stimulus: 'endurance', session: 'Long Z2 ride' },
-    ];
-
-    if (weeklyHours >= 5) {
-        workoutRows.push({
-            day: 'Wednesday',
-            stimulus: 'recovery',
-            session: 'Easy spin or rest',
-        });
+    if (phaseKey === 'taper') {
+        workoutRows = [
+            { day: 'Tuesday', stimulus: 'recovery', session: 'Easy spin' },
+            { day: 'Thursday', stimulus: 'endurance', session: 'Short Z2 opener' },
+            { day: 'Saturday', stimulus: 'recovery', session: 'Very easy spin or rest' },
+        ];
+    } else if (phaseKey === 'specific') {
+        workoutRows = [
+            { day: 'Tuesday', stimulus: 'endurance', session: 'Steady aerobic' },
+            { day: 'Thursday', stimulus: 'sweetspot', session: 'Sweetspot blocks (race pace)' },
+            { day: 'Saturday', stimulus: 'endurance', session: 'Shorter event rehearsal' },
+        ];
+    } else if (phaseKey === 'build') {
+        const hardStimulus = maxHardSessions >= 2 ? 'threshold' : 'sweetspot';
+        workoutRows = [
+            { day: 'Tuesday', stimulus: 'endurance', session: 'Endurance base' },
+            { day: 'Thursday', stimulus: hardStimulus, session: SESSION_LABELS[hardStimulus] },
+            { day: 'Saturday', stimulus: 'endurance', session: 'Long Z2 ride' },
+        ];
+        if (weeklyHours >= 5) {
+            workoutRows.push({
+                day: 'Wednesday',
+                stimulus: 'recovery',
+                session: 'Easy spin between quality days',
+            });
+        }
+    } else {
+        workoutRows = [
+            { day: 'Tuesday', stimulus: 'endurance', session: 'Z2 aerobic base' },
+            { day: 'Thursday', stimulus: 'sweetspot', session: SESSION_LABELS.sweetspot },
+            { day: 'Saturday', stimulus: 'endurance', session: 'Long Z2 ride' },
+        ];
+        if (weeklyHours >= 5) {
+            workoutRows.push({
+                day: 'Wednesday',
+                stimulus: 'recovery',
+                session: 'Easy spin or rest',
+            });
+        }
     }
 
-    if (includeSundayRecovery) {
+    if (includeSundayRecovery && phaseKey !== 'taper') {
         workoutRows.push({
             day: 'Sunday',
             stimulus: 'recovery',
