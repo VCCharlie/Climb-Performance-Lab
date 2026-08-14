@@ -1,12 +1,18 @@
 import { describe, it, expect } from 'vitest';
 import { addDaysToYmd } from '../../utils/dashboardVolumeTotals';
-import { analyzeRidingPattern, sessionCountForTarget } from '../../utils/coach/coachRidingPattern';
+import { analyzeRidingPattern } from '../../utils/coach/coachRidingPattern';
 import {
-    buildTargetAlignedSkeleton,
+    resolveDevelopmentStrategy,
+    developmentAdjustedWeekTss,
+    isIntensityHeavyHabit,
+} from '../../utils/coach/coachDevelopmentStrategy';
+import {
+    buildAerobicDevelopmentSkeleton,
+    buildWeekSkeletonForStrategy,
     sumSkeletonPlannedTss,
-    intensityBiasedSessionTss,
 } from '../../utils/coach/coachTargetSkeleton';
 import { buildWeekSkeleton } from '../../utils/coach/coachRebalancer';
+import { buildWeeklyGoalPlan } from '../../utils/trainingGoalPlan';
 
 function makeIntensityActivities() {
     const rides = [];
@@ -25,67 +31,78 @@ function makeIntensityActivities() {
     return rides;
 }
 
-describe('coachRidingPattern', () => {
-    it('detects intensity-biased riding when avg TSS per ride is high', () => {
+describe('coachDevelopmentStrategy', () => {
+    it('detects intensity-heavy habitual load', () => {
         const pattern = analyzeRidingPattern(makeIntensityActivities(), '2026-08-06', 8);
-        expect(pattern.intensityBias).toBe('intensity');
-        expect(pattern.avgTssPerRide).toBeGreaterThanOrEqual(100);
-        expect(pattern.ridesPerWeek).toBeGreaterThan(3);
+        expect(isIntensityHeavyHabit(pattern)).toBe(true);
     });
 
-    it('sessionCountForTarget blends habit and target math', () => {
+    it('recommends aerobic development in base phase instead of matching habit', () => {
         const pattern = analyzeRidingPattern(makeIntensityActivities(), '2026-08-06', 8);
-        const count = sessionCountForTarget(428, pattern, 6);
-        expect(count).toBeGreaterThanOrEqual(3);
-        expect(count).toBeLessThanOrEqual(6);
+        const strategy = resolveDevelopmentStrategy(pattern, 397, 'base');
+        expect(strategy.mode).toBe('develop-aerobic');
+        expect(strategy.fluidSkeleton).toBe('aerobic-development');
+        expect(strategy.maxHardSessions).toBe(1);
+    });
+
+    it('lowers macro TSS below recent load for development', () => {
+        const pattern = analyzeRidingPattern(makeIntensityActivities(), '2026-08-06', 8);
+        const strategy = resolveDevelopmentStrategy(pattern, 397, 'base');
+        const week1 = developmentAdjustedWeekTss(397, strategy, 'base', 0, 6);
+        const peak = developmentAdjustedWeekTss(397, strategy, 'base', 5, 6);
+        expect(week1).toBeLessThan(397);
+        expect(peak).toBeLessThan(397);
+        expect(peak).toBeGreaterThan(week1);
     });
 });
 
-describe('coachTargetSkeleton', () => {
-    it('scales skeleton when event goal TSS exceeds hours-based plan', () => {
+describe('coachTargetSkeleton — aerobic development', () => {
+    it('builds Z2-first skeleton instead of scaling up intensity', () => {
         const monday = '2026-08-03';
+        const pattern = analyzeRidingPattern(makeIntensityActivities(), '2026-08-06', 8);
+        const strategy = resolveDevelopmentStrategy(pattern, 397, 'base');
         const base = buildWeekSkeleton(6, monday);
-        const baseTss = sumSkeletonPlannedTss(base, 6, 'volume');
-        expect(baseTss).toBeLessThan(300);
 
-        const aligned = buildTargetAlignedSkeleton({
+        const aligned = buildWeekSkeletonForStrategy({
+            strategy,
             weeklyHours: 6,
             startYmd: monday,
-            targetTss: 428,
+            phaseKey: 'base',
             activities: makeIntensityActivities(),
             referenceYmd: '2026-08-06',
-            phaseKey: 'base',
+            recentWeeklyTss: 397,
             baseSkeleton: base,
         });
 
-        expect(aligned.targetAligned).toBe(true);
-        expect(aligned.plannedTss).toBeGreaterThan(350);
-        expect(aligned.pattern.intensityBias).toBe('intensity');
-
-        const workoutDays = aligned.sessions.filter((s) => s.stimulus !== 'rest');
-        expect(workoutDays.length).toBeGreaterThanOrEqual(3);
-        const z2Only = workoutDays.every((s) => s.stimulus === 'endurance');
-        expect(z2Only).toBe(false);
+        expect(aligned.developmentMode).toBe('develop-aerobic');
+        const workouts = aligned.sessions.filter((s) => s.stimulus !== 'rest');
+        const hardDays = workouts.filter((s) => ['sweetspot', 'threshold', 'vo2'].includes(s.stimulus));
+        expect(hardDays.length).toBeLessThanOrEqual(1);
+        expect(workouts.filter((s) => s.stimulus === 'endurance').length).toBeGreaterThanOrEqual(2);
+        expect(aligned.plannedTss).toBeLessThan(350);
     });
 
-    it('keeps hours skeleton when target is close to default plan', () => {
-        const monday = '2026-08-03';
-        const base = buildWeekSkeleton(5, monday);
-        const aligned = buildTargetAlignedSkeleton({
-            weeklyHours: 5,
-            startYmd: monday,
-            targetTss: 250,
-            activities: [],
-            referenceYmd: '2026-08-06',
-            phaseKey: null,
-            baseSkeleton: base,
+    it('aerobic development skeleton has long Z2 emphasis', () => {
+        const sessions = buildAerobicDevelopmentSkeleton(6, '2026-08-03', 'base', 1);
+        expect(sessions.find((s) => s.day === 'Saturday')?.stimulus).toBe('endurance');
+        expect(sessions.find((s) => s.day === 'Thursday')?.stimulus).toBe('sweetspot');
+        expect(sumSkeletonPlannedTss(sessions, 6)).toBeGreaterThan(200);
+    });
+});
+
+describe('trainingGoalPlan — development macro', () => {
+    it('lowers weekly targets for intensity-heavy athletes', () => {
+        const pattern = analyzeRidingPattern(makeIntensityActivities(), '2026-08-06', 8);
+        const plan = buildWeeklyGoalPlan({
+            weeksToEvent: 8,
+            recentWeeklyTss: 397,
+            eventDemand: { distanceKm: 100, elevationM: 0 },
+            eventTss: 201,
+            ridingPattern: pattern,
         });
-        expect(aligned.targetAligned).toBe(false);
-        expect(aligned.sessions).toEqual(base);
-    });
 
-    it('intensityBiasedSessionTss reflects harder rides', () => {
-        expect(intensityBiasedSessionTss('sweetspot')).toBeGreaterThan(95);
-        expect(intensityBiasedSessionTss('threshold')).toBeGreaterThan(115);
+        expect(plan.developmentMode).toBe('develop-aerobic');
+        expect(plan.weeks[0].targetTss).toBeLessThan(397);
+        expect(plan.peakTarget).toBeLessThan(397);
     });
 });

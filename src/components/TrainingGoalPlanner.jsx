@@ -244,6 +244,11 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
                             <span className="font-mono font-bold text-cdtext">{activeGoalSnapshot.currentWeekTargetTss} TSS</span>
                             {' '}this week — also drives your fluid week plan in Coach.
                         </p>
+                        {planResult.plan?.developmentMode === 'develop-aerobic' && (
+                            <p className="text-xs text-cdaccent mt-2 leading-relaxed">
+                                Development focus: more Z2 and fewer hard rides than your habit — weekly TSS is intentionally below what you are used to to build FTP and endurance.
+                            </p>
+                        )}
                     </div>
                     <button
                         type="button"

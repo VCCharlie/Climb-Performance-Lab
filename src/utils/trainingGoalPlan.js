@@ -3,6 +3,12 @@
  * weekly TSS guidance and phases (base / build / specific / taper).
  */
 
+import { analyzeRidingPattern } from './coach/coachRidingPattern';
+import {
+    resolveDevelopmentStrategy,
+    developmentAdjustedWeekTss,
+} from './coach/coachDevelopmentStrategy';
+
 const MS_DAY = 86400000;
 
 /**
@@ -104,6 +110,7 @@ export function buildWeeklyGoalPlan({
     recentWeeklyTss,
     eventDemand,
     eventTss,
+    ridingPattern,
 }) {
     const W = Math.max(0, Math.floor(weeksToEvent));
     if (W <= 0) {
@@ -123,14 +130,32 @@ export function buildWeeklyGoalPlan({
 
     const buildWeeks = Math.max(0, W - TAPER_WEEKS);
     const weeks = [];
+    let primaryStrategy = null;
 
     for (let i = 0; i < W; i++) {
         const weekNum = i + 1;
         const isTaper = i >= W - TAPER_WEEKS;
         const phase = phaseForWeek(i, W);
+        const phaseKey = isTaper ? 'taper' : phase.key;
+        const weekStrategy = resolveDevelopmentStrategy(
+            ridingPattern || {},
+            recentWeeklyTss,
+            phaseKey,
+        );
+        if (!primaryStrategy && weekStrategy.mode !== 'progress') {
+            primaryStrategy = weekStrategy;
+        }
 
         let targetTss;
-        if (isTaper) {
+        if (weekStrategy.mode !== 'progress') {
+            targetTss = developmentAdjustedWeekTss(
+                recentWeeklyTss,
+                weekStrategy,
+                phaseKey,
+                i,
+                buildWeeks,
+            );
+        } else if (isTaper) {
             const taperIdx = i - (W - TAPER_WEEKS);
             targetTss = taperIdx === 0 ? Math.round(peakTarget * 0.55) : Math.round(peakTarget * 0.35);
         } else if (buildWeeks <= 1) {
@@ -141,7 +166,11 @@ export function buildWeeklyGoalPlan({
         }
 
         let focus = '';
-        if (phase.key === 'base') {
+        if (weekStrategy.mode === 'develop-aerobic' && !isTaper) {
+            focus = phase.key === 'base'
+                ? 'Rebuild aerobic base: mostly Z2, max 1 sweetspot day — lower TSS than your habit is intentional.'
+                : 'Gradually add quality while keeping Z2 volume — FTP gains need easy miles, not more stacked intensity.';
+        } else if (phase.key === 'base') {
             focus = 'Mostly Z2 endurance, optional 1× sweetspot; cap hard days at 1.';
         } else if (phase.key === 'build') {
             focus = 'Increase weekly TSS gradually; 1–2 quality days (sweetspot/VO2) depending on recovery.';
@@ -160,12 +189,23 @@ export function buildWeeklyGoalPlan({
         });
     }
 
-    const summary =
-        W <= TAPER_WEEKS
+    const usesDevelopment = Boolean(primaryStrategy);
+    const summary = usesDevelopment && primaryStrategy?.rationale
+        ? `Development focus: ${primaryStrategy.rationale} Peak ~${Math.round(start * (primaryStrategy.macroPeakMultiplier || 1))} TSS/week (below recent ${Math.round(start)}), then taper toward event day (~${eventDayTss} TSS).`
+        : W <= TAPER_WEEKS
             ? `Only ${W} week(s) left: focus on rest and light work — no heavy blocks anymore.`
             : `From ~${Math.round(start)} to ~${peakTarget} TSS/week peak, then ${TAPER_WEEKS} taper weeks toward ~${eventDayTss} TSS on event day (estimate).`;
 
-    return { weeks, summary, peakTarget, taperWeeks: TAPER_WEEKS };
+    return {
+        weeks,
+        summary,
+        peakTarget: usesDevelopment
+            ? Math.round(start * (primaryStrategy?.macroPeakMultiplier || 1))
+            : peakTarget,
+        taperWeeks: TAPER_WEEKS,
+        developmentMode: primaryStrategy?.mode || 'progress',
+        developmentRationale: primaryStrategy?.rationale || null,
+    };
 }
 
 /**
@@ -197,6 +237,11 @@ export function computeTrainingGoalPlan({
         targetPctFtp: goalInputs.targetPctFtp,
     });
 
+    const referenceYmd = today instanceof Date
+        ? today.toISOString().slice(0, 10)
+        : String(today).slice(0, 10);
+    const ridingPattern = analyzeRidingPattern(activities, referenceYmd, 8);
+
     const plan = buildWeeklyGoalPlan({
         weeksToEvent,
         recentWeeklyTss,
@@ -205,9 +250,15 @@ export function computeTrainingGoalPlan({
             elevationM: goalInputs.elevationM,
         },
         eventTss: demand.estimatedEventTss,
+        ridingPattern,
     });
 
     const tips = [];
+    if (plan.developmentMode === 'develop-aerobic') {
+        tips.push(
+            'Your recent training is intense and frequent. This plan deliberately uses more Z2 and fewer hard rides — weekly TSS may be lower than your habit while FTP and endurance rebuild.',
+        );
+    }
     if (recentWeeklyTss > 400 && weeksToEvent < 3) {
         tips.push('Your recent weekly load is high and the event is soon: check Recovery (TSB) and consider a rest week before the event.');
     }
@@ -221,6 +272,7 @@ export function computeTrainingGoalPlan({
     return {
         weeksToEvent: Math.max(0, Math.floor(weeksToEvent)),
         recentWeeklyTss: Math.round(recentWeeklyTss),
+        ridingPattern,
         demand,
         plan,
         tips,
