@@ -92,7 +92,7 @@ export function buildFitnessForecast({
     historyDays = 28,
     forecastDays = 14,
 }) {
-    const historical = calculateFitnessMetrics(activities);
+    const historical = calculateFitnessMetrics(activities, { endYmd: referenceYmd });
     const actualTssByDate = buildActualTssByDate(activities);
 
     const historyStart = addDaysToYmd(referenceYmd, -(historyDays - 1));

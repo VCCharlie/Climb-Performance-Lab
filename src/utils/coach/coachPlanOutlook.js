@@ -185,7 +185,7 @@ export function projectFitnessMilestones({
     weeksList = OUTLOOK_WEEKS,
     compliance = 0.85,
 }) {
-    const historical = calculateFitnessMetrics(activities);
+    const historical = calculateFitnessMetrics(activities, { endYmd: referenceYmd });
     const latest = historical[historical.length - 1] || { ctl: 0, atl: 0, tsb: 0 };
     const projectionStart = addDaysToYmd(referenceYmd, 1);
     const pattern = summarizeAlternatingWeekPattern(templateSessions, week2TemplateSessions, weeklyHours);
