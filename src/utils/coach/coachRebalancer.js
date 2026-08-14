@@ -9,12 +9,14 @@ const STIMULUS_LADDER = ['vo2', 'threshold', 'sweetspot', 'endurance', 'recovery
  * @param {object[]} sessions — week skeleton rows
  * @param {string | null | undefined} phaseKey — base | build | specific | taper
  * @param {{ elevationM?: number }} [goalProfile]
+ * @param {{ preserveIntensity?: boolean }} [options]
  * @returns {object[]}
  */
-export function applyPhaseToWeekSkeleton(sessions, phaseKey, goalProfile = {}) {
+export function applyPhaseToWeekSkeleton(sessions, phaseKey, goalProfile = {}, options = {}) {
     if (!sessions?.length || !phaseKey) return sessions;
 
     const elevationM = Number(goalProfile.elevationM) || 0;
+    const preserveIntensity = Boolean(options.preserveIntensity);
 
     return sessions.map((row) => {
         let stimulus = row.stimulus;
@@ -24,7 +26,7 @@ export function applyPhaseToWeekSkeleton(sessions, phaseKey, goalProfile = {}) {
             else if (stimulus === 'sweetspot') stimulus = 'endurance';
         } else if (phaseKey === 'base') {
             if (stimulus === 'vo2') stimulus = 'sweetspot';
-            else if (stimulus === 'threshold') stimulus = 'sweetspot';
+            else if (stimulus === 'threshold' && !preserveIntensity) stimulus = 'sweetspot';
         } else if (phaseKey === 'specific') {
             if (elevationM >= 800 && row.day === 'Saturday' && stimulus === 'endurance') {
                 stimulus = 'sweetspot';
@@ -84,8 +86,11 @@ export function rebalanceWeek(plan, actual, todayYmd) {
         const updated = [...remainingDays];
         const restSlot = updated.find((s) => s.stimulus === 'rest' || s.stimulus === 'recovery');
         if (restSlot) {
-            restSlot.stimulus = 'endurance';
-            restSlot.note = 'Room for an extra Z2 ride if you feel good.';
+            const intensityBiased = actual.intensityBias === 'intensity';
+            restSlot.stimulus = intensityBiased ? 'sweetspot' : 'endurance';
+            restSlot.note = intensityBiased
+                ? 'Room for an extra quality ride if recovery allows.'
+                : 'Room for an extra Z2 ride if you feel good.';
         }
         return updated;
     }

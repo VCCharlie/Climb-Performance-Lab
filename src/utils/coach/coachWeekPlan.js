@@ -5,6 +5,7 @@
 import { normalizeDate } from '../formatters';
 import { addDaysToYmd } from '../dashboardVolumeTotals';
 import { buildWeekSkeleton, rebalanceWeek, applyPhaseToWeekSkeleton } from './coachRebalancer';
+import { buildTargetAlignedSkeleton, sumSkeletonPlannedTss } from './coachTargetSkeleton';
 import { buildFluidWorkout } from './fluidWorkoutTemplates';
 import { resolveFluidWeekTarget } from '../trainingGoalLink';
 import { activityIF, filterActivitiesInRange, sumTss, todayYmd } from './coachHelpers';
@@ -104,7 +105,22 @@ export function buildFluidWeekPlan({
     const goalProfile = weekTarget.trainingGoal?.goalInputs || {};
 
     let skeleton = buildWeekSkeleton(weeklyHours, mondayYmd);
-    skeleton = applyPhaseToWeekSkeleton(skeleton, weekTarget.phaseKey, goalProfile);
+    const skeletonAlign = buildTargetAlignedSkeleton({
+        weeklyHours,
+        startYmd: mondayYmd,
+        targetTss,
+        activities,
+        referenceYmd,
+        phaseKey: weekTarget.phaseKey,
+        baseSkeleton: skeleton,
+    });
+    skeleton = skeletonAlign.sessions;
+    const ridingPattern = skeletonAlign.pattern;
+    const plannedSkeletonTss = skeletonAlign.plannedTss;
+
+    skeleton = applyPhaseToWeekSkeleton(skeleton, weekTarget.phaseKey, goalProfile, {
+        preserveIntensity: skeletonAlign.targetAligned,
+    });
     const actuals = computeWeekActuals(activities, mondayYmd, ftp);
     const weekState = readCoachWeekState(mondayYmd);
     const originalStimulusByDate = new Map(skeleton.map((s) => [s.date, s.stimulus]));
@@ -117,6 +133,7 @@ export function buildFluidWeekPlan({
             tssThisWeek: actuals.tssThisWeek,
             hardSessionsThisWeek: actuals.hardSessionsThisWeek,
             currentTsb,
+            intensityBias: ridingPattern?.intensityBias,
         },
         referenceYmd,
     );
@@ -390,7 +407,15 @@ export function buildFluidWeekPlan({
     } else if (actuals.hardSessionsThisWeek >= 2) {
         rebalanceNote = 'Quality already banked — extra intensity sessions shifted to endurance.';
     } else if (actuals.tssThisWeek < targetTss * 0.7 && currentTsb > -10) {
-        rebalanceNote = 'Below weekly TSS target — room for an extra easy ride if you feel good.';
+        rebalanceNote = ridingPattern?.intensityBias === 'intensity'
+            ? 'Below weekly TSS target — room for another quality ride if recovery allows.'
+            : 'Below weekly TSS target — room for an extra easy ride if you feel good.';
+    }
+
+    if (skeletonAlign.targetAligned && plannedSkeletonTss > 0) {
+        const gapNote = `Plan shaped for ~${plannedSkeletonTss} TSS across ${ridingPattern.ridesPerWeek || 'your typical'} rides/week`
+            + (ridingPattern.intensityBias === 'intensity' ? ' (intensity-biased — fewer, harder sessions).' : '.');
+        rebalanceNote = rebalanceNote ? `${rebalanceNote} ${gapNote}` : gapNote;
     }
 
     const hasMoves = Object.keys(weekState.moves || {}).length > 0;
@@ -407,6 +432,13 @@ export function buildFluidWeekPlan({
         phaseLabel: weekTarget.phaseLabel,
         trainingGoal: weekTarget.trainingGoal,
         hoursBudgetTss: weekTarget.hoursBudgetTss,
+        plannedSkeletonTss: sumSkeletonPlannedTss(
+            skeleton,
+            weeklyHours,
+            ridingPattern?.effectiveBias || ridingPattern?.intensityBias || 'volume',
+        ),
+        ridingPattern,
+        skeletonTargetAligned: skeletonAlign.targetAligned,
         actualTss: actuals.tssThisWeek,
         compliancePct,
         hardSessions: actuals.hardSessionsThisWeek,
