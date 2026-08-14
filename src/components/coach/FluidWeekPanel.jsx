@@ -25,6 +25,7 @@ export default function FluidWeekPanel({
     onToggleAvailable,
     onClearAvailability,
     expandKeyPrefix = '',
+    isPreview = false,
     className = '',
 }) {
     const stats = React.useMemo(() => {
@@ -45,7 +46,14 @@ export default function FluidWeekPanel({
         <section className={`flex flex-col min-h-0 ${className}`}>
             <header className="mb-3">
                 <div className="flex items-baseline justify-between gap-2">
-                    <h4 className="text-sm font-bold text-cdtext">{title}</h4>
+                    <div className="min-w-0">
+                        <h4 className="text-sm font-bold text-cdtext">{title}</h4>
+                        {isPreview && (
+                            <span className="text-[9px] font-bold uppercase tracking-wide text-cdmuted">
+                                Preview
+                            </span>
+                        )}
+                    </div>
                     <div className="text-right tabular-nums">
                         <span className="text-lg font-bold text-cdtext">{weekPlan.actualTss}</span>
                         <span className="text-cdmuted text-sm"> / {weekPlan.targetTss}</span>
