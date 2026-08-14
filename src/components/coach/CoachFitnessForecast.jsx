@@ -6,7 +6,7 @@ import {
 import { Activity } from 'lucide-react';
 import { formatDateDDMMYYYY } from '../../utils/formatters';
 import { ChartTooltip, cn } from '../ui';
-import { getChartTheme, chartCardShellClass } from '../../utils/chartTheme';
+import { getChartTheme } from '../../utils/chartTheme';
 import CollapsibleSection from '../ui/CollapsibleSection';
 import { buildFitnessForecast } from '../../utils/coach/coachFitnessForecast';
 import { todayYmd } from '../../utils/coach/coachHelpers';
@@ -92,10 +92,9 @@ const CoachFitnessForecast = ({
 
             <div
                 className={cn(
-                    chartCardShellClass,
                     isMobile
-                        ? 'py-2 pl-0 pr-1 -mx-4 rounded-none border-x-0'
-                        : 'p-5 md:p-6',
+                        ? 'py-2 pl-0 pr-1 -mx-4'
+                        : 'rounded-cdlg border border-cdborder/60 bg-cdsurface p-5 md:p-6',
                 )}
             >
                 <div className={cn('w-full', isMobile ? 'h-[min(52vw,280px)]' : 'h-72')}>
@@ -212,15 +211,15 @@ const CoachFitnessForecast = ({
                         </LineChart>
                     </ResponsiveContainer>
                 </div>
-                <div className="rounded-lg border border-cdborder/60 bg-cdborder/10 px-4 py-3.5 mt-3">
-                    <p className="text-xs text-cdmuted leading-relaxed">
-                        Shaded area = forecast window. Projections assume planned sessions are completed as prescribed
-                        (estimated TSS). Logged rides override estimates for past and completed days.
-                        {summary.minTsb != null && summary.maxTsb != null
-                            ? ` Forecast TSB range: ${summary.minTsb} to ${summary.maxTsb}.`
-                            : ''}
-                    </p>
-                </div>
+            </div>
+            <div className="rounded-lg bg-cdborder/10 px-4 py-3.5">
+                <p className="text-xs text-cdmuted leading-relaxed">
+                    Shaded area = forecast window. Projections assume planned sessions are completed as prescribed
+                    (estimated TSS). Logged rides override estimates for past and completed days.
+                    {summary.minTsb != null && summary.maxTsb != null
+                        ? ` Forecast TSB range: ${summary.minTsb} to ${summary.maxTsb}.`
+                        : ''}
+                </p>
             </div>
         </CollapsibleSection>
     );

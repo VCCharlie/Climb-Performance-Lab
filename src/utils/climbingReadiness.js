@@ -6,7 +6,8 @@
 import { normalizeDate } from './formatters';
 import { activityMovingTimeSec } from './activityFilterMetrics';
 import { currentWeekRange, currentMonthRange } from './volumeGoals';
-import { calculateFitnessMetrics } from './formTabMetrics';
+import { getFitnessAtDate } from './formTabMetrics';
+import { todayYmd } from './coach/coachHelpers';
 import { z2PowerBandFromFtp } from './profileFtp';
 import {
     normalizeTerrainProfile,
@@ -45,7 +46,7 @@ export const CLIMBING_READINESS_EXPLANATION = {
         'Peak climb readiness — high score with fresh TSB (+0 to +22)',
     ],
     historyNote:
-        'Weekly and monthly history below re-runs the same formula on past calendar windows. TSB uses your form at the end of each window.',
+        'Weekly and monthly history below re-runs the same formula on past calendar windows. TSB uses your form as of today for the current period, or the last day of past weeks/months.',
 };
 
 /** @typedef {'recover' | 'building' | 'good' | 'peak'} ReadinessBadgeKey */
@@ -173,19 +174,14 @@ function scorePeriodTss(totalTss, periodDays) {
 }
 
 /**
+ * TSB at end of period — for the current week/month uses today (matches Coach / Recovery).
  * @param {object[]} activities
  * @param {string} endYmd
  */
 function fitnessSnapshotAtOrBefore(activities, endYmd) {
-    const fitness = calculateFitnessMetrics(activities);
-    if (!fitness.length) return null;
-    let match = null;
-    for (const row of fitness) {
-        const d = normalizeDate(row?.date);
-        if (!d || d.length < 10) continue;
-        if (d <= endYmd) match = row;
-    }
-    return match ?? fitness[fitness.length - 1];
+    const today = todayYmd();
+    const asOfYmd = endYmd < today ? endYmd : today;
+    return getFitnessAtDate(activities, asOfYmd);
 }
 
 /**
