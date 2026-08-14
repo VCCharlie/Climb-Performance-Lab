@@ -8,6 +8,7 @@ import {
     hydrateTrainingPlanSnapshot,
     buildTaperRecoveryWarning,
     TRAINING_PLAN_STORAGE_KEY,
+    readTrainingPlanClearedAt,
 } from '../../utils/trainingPlanSnapshot';
 import { computeTrainingGoalPlan } from '../../utils/trainingGoalPlan';
 
@@ -76,6 +77,29 @@ describe('training plan snapshot storage', () => {
         writeTrainingPlanSnapshot(snapshot);
         const read = readTrainingPlanSnapshot();
         expect(read?.goalDate).toBe('2026-09-15');
+    });
+
+    it('clearing snapshot removes storage and records cleared timestamp', () => {
+        const planResult = computeTrainingGoalPlan({
+            goalDateStr: '2026-09-15',
+            activities: [],
+            today: new Date('2026-07-23'),
+            goalInputs: { distanceKm: 80, elevationM: 1200, durationHours: 4, targetPctFtp: 75 },
+        });
+
+        const snapshot = buildTrainingPlanSnapshot({
+            goalDate: '2026-09-15',
+            eventName: 'Test',
+            goalInputs: { source: 'custom', distanceKm: 80, elevationM: 1200, durationHours: 4, targetPctFtp: 75 },
+            planResult,
+        });
+
+        writeTrainingPlanSnapshot(snapshot);
+        expect(readTrainingPlanSnapshot()).not.toBeNull();
+
+        writeTrainingPlanSnapshot(null);
+        expect(readTrainingPlanSnapshot()).toBeNull();
+        expect(readTrainingPlanClearedAt()).toBeTruthy();
     });
 
     it('hydrates current week after time passes', () => {

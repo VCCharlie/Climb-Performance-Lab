@@ -47,12 +47,21 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
     const [elevationM, setElevationM] = useState(() => readStoredGoalFormDefaults()?.elevationM ?? '');
     const [durationHours, setDurationHours] = useState(() => readStoredGoalFormDefaults()?.durationHours ?? '');
     const [targetPctFtp, setTargetPctFtp] = useState(() => readStoredGoalFormDefaults()?.targetPctFtp ?? 75);
+    const [goalRevision, setGoalRevision] = useState(0);
+    const [goalPersistEnabled, setGoalPersistEnabled] = useState(() => Boolean(readTrainingPlanSnapshot()));
+
+    const touchGoalPersist = () => {
+        setGoalPersistEnabled(true);
+    };
 
     useEffect(() => {
-        const onCloudSync = (event) => {
-            if (event?.detail?.source !== 'cloud') return;
-            const defaults = trainingGoalFormDefaultsFromSnapshot(readTrainingPlanSnapshot());
-            if (!defaults) {
+        const onPlanUpdate = (event) => {
+            setGoalRevision((n) => n + 1);
+            const snapshot = readTrainingPlanSnapshot();
+
+            if (!snapshot) {
+                setGoalPersistEnabled(false);
+                if (event?.detail?.source !== 'cloud') return;
                 setEventName('');
                 setDistanceKm('');
                 setElevationM('');
@@ -63,6 +72,14 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
                 setGoalDate(defaultGoalDate());
                 return;
             }
+
+            setGoalPersistEnabled(true);
+
+            if (event?.detail?.source !== 'cloud') return;
+
+            const defaults = trainingGoalFormDefaultsFromSnapshot(snapshot);
+            if (!defaults) return;
+
             setGoalDate(defaults.goalDate);
             setEventName(defaults.eventName);
             setSource(defaults.source);
@@ -73,8 +90,8 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
             setTargetPctFtp(defaults.targetPctFtp);
         };
 
-        window.addEventListener(TRAINING_PLAN_UPDATED_EVENT, onCloudSync);
-        return () => window.removeEventListener(TRAINING_PLAN_UPDATED_EVENT, onCloudSync);
+        window.addEventListener(TRAINING_PLAN_UPDATED_EVENT, onPlanUpdate);
+        return () => window.removeEventListener(TRAINING_PLAN_UPDATED_EVENT, onPlanUpdate);
     }, []);
 
     const filteredClimbs = useMemo(() => {
@@ -88,6 +105,7 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
     }, [climbSearch, climbDatabase]);
 
     const applyClimb = (c) => {
+        touchGoalPersist();
         setEventName(c.name);
         setDistanceKm(String(c.lengthKm ?? ''));
         setElevationM(String(c.elevation ?? ''));
@@ -118,36 +136,14 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
     const expectedAvgWatts = ftp > 0 ? Math.round((ftp * targetPctFtp) / 100) : null;
 
     const activeGoalSnapshot = useMemo(() => {
-        if (planResult.error || !planResult.plan?.weeks?.length) return null;
-        return hydrateTrainingPlanSnapshot(
-            buildTrainingPlanSnapshot({
-                goalDate,
-                eventName: eventName || (source === 'climb' ? climbSearch : ''),
-                goalInputs: {
-                    source,
-                    climbSearch,
-                    customEventName: eventName.trim(),
-                    distanceKm: Number(distanceKm) || 0,
-                    elevationM: Number(elevationM) || 0,
-                    durationHours: durationHours === '' ? null : Number(durationHours),
-                    targetPctFtp,
-                },
-                planResult,
-            }),
-        );
-    }, [
-        goalDate,
-        eventName,
-        source,
-        climbSearch,
-        distanceKm,
-        elevationM,
-        durationHours,
-        targetPctFtp,
-        planResult,
-    ]);
+        if (!goalPersistEnabled) return null;
+        const stored = readTrainingPlanSnapshot();
+        if (!stored) return null;
+        return hydrateTrainingPlanSnapshot(stored);
+    }, [goalPersistEnabled, goalRevision]);
 
     const handleClearGoal = () => {
+        setGoalPersistEnabled(false);
         writeTrainingPlanSnapshot(null);
         setEventName('');
         setDistanceKm('');
@@ -172,6 +168,8 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
     );
 
     useEffect(() => {
+        if (!goalPersistEnabled) return;
+
         const snapshot = buildTrainingPlanSnapshot({
             goalDate,
             eventName,
@@ -186,8 +184,10 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
             },
             planResult,
         });
+        if (!snapshot) return;
         writeTrainingPlanSnapshot(snapshot);
     }, [
+        goalPersistEnabled,
         goalDate,
         eventName,
         source,
@@ -270,7 +270,12 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
                     <label className="block text-xs text-cdmuted font-semibold">Target date</label>
                     <NlDateInput
                         value={goalDate}
-                        onChange={(v) => v && setGoalDate(v)}
+                        onChange={(v) => {
+                            if (v) {
+                                touchGoalPersist();
+                                setGoalDate(v);
+                            }
+                        }}
                         className="w-full bg-cdborder border border-cdborder rounded-lg px-3 py-2 text-cdtext"
                         aria-label="Target date (dd-mm-jjjj)"
                     />
@@ -278,14 +283,20 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
                     <div className="flex gap-2">
                         <button
                             type="button"
-                            onClick={() => setSource('custom')}
+                            onClick={() => {
+                                touchGoalPersist();
+                                setSource('custom');
+                            }}
                             className={`flex-1 py-2 px-3 rounded-lg text-sm font-bold border ${source === 'custom' ? 'border-cdaccent text-cdaccent bg-cdaccent/10' : 'border-cdborder text-cdmuted'}`}
                         >
                             Custom distance
                         </button>
                         <button
                             type="button"
-                            onClick={() => setSource('climb')}
+                            onClick={() => {
+                                touchGoalPersist();
+                                setSource('climb');
+                            }}
                             className={`flex-1 py-2 px-3 rounded-lg text-sm font-bold border ${source === 'climb' ? 'border-cdaccent text-cdaccent bg-cdaccent/10' : 'border-cdborder text-cdmuted'}`}
                         >
                             From climb database
@@ -298,7 +309,10 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
                             <input
                                 type="text"
                                 value={climbSearch}
-                                onChange={(e) => setClimbSearch(e.target.value)}
+                                onChange={(e) => {
+                                    touchGoalPersist();
+                                    setClimbSearch(e.target.value);
+                                }}
                                 placeholder="e.g. Galibier, Stelvio…"
                                 className="w-full bg-cdborder border border-cdborder rounded-lg px-3 py-2 text-cdtext text-sm"
                             />
@@ -322,7 +336,10 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
                     <input
                         type="text"
                         value={eventName}
-                        onChange={(e) => setEventName(e.target.value)}
+                        onChange={(e) => {
+                            touchGoalPersist();
+                            setEventName(e.target.value);
+                        }}
                         placeholder="e.g. Marmotte, local gran fondo…"
                         className="w-full bg-cdborder border border-cdborder rounded-lg px-3 py-2 text-cdtext"
                     />
@@ -335,7 +352,10 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
                                 min="0"
                                 step="0.1"
                                 value={distanceKm}
-                                onChange={(e) => setDistanceKm(e.target.value)}
+                                onChange={(e) => {
+                                    touchGoalPersist();
+                                    setDistanceKm(e.target.value);
+                                }}
                                 className="w-full bg-cdborder border border-cdborder rounded-lg px-3 py-2 text-cdtext"
                             />
                         </div>
@@ -345,7 +365,10 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
                                 type="number"
                                 min="0"
                                 value={elevationM}
-                                onChange={(e) => setElevationM(e.target.value)}
+                                onChange={(e) => {
+                                    touchGoalPersist();
+                                    setElevationM(e.target.value);
+                                }}
                                 className="w-full bg-cdborder border border-cdborder rounded-lg px-3 py-2 text-cdtext"
                             />
                         </div>
@@ -360,7 +383,10 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
                             min="0.5"
                             step="0.25"
                             value={durationHours}
-                            onChange={(e) => setDurationHours(e.target.value)}
+                            onChange={(e) => {
+                                touchGoalPersist();
+                                setDurationHours(e.target.value);
+                            }}
                             placeholder="e.g. 5.5"
                             className="w-full bg-cdborder border border-cdborder rounded-lg px-3 py-2 text-cdtext"
                         />
@@ -378,7 +404,10 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
                             min="55"
                             max="95"
                             value={targetPctFtp}
-                            onChange={(e) => setTargetPctFtp(Number(e.target.value))}
+                            onChange={(e) => {
+                                touchGoalPersist();
+                                setTargetPctFtp(Number(e.target.value));
+                            }}
                             className="w-full accent-cdaccent"
                         />
                         <div className="flex justify-between text-[10px] text-cdmuted mt-1">
