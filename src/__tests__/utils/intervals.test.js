@@ -51,6 +51,28 @@ describe('normalizeIntervalsActivity - field extraction', () => {
     expect(norm.max_altitude).toBe(350);
   });
 
+  it('maps icu_rolling_ftp and icu_eftp fallbacks', () => {
+    const rolling = normalizeIntervalsActivity({
+      id: 'ftp-fallback',
+      startDate: '2025-06-20',
+      name: 'FTP fallback ride',
+      type: 'Ride',
+      movingTime: 3600,
+      icu_rolling_ftp: 265,
+    });
+    expect(rolling.ftp).toBe(265);
+
+    const fromEftp = normalizeIntervalsActivity({
+      id: 'eftp-fallback',
+      startDate: '2025-06-21',
+      name: 'eFTP ride',
+      type: 'Ride',
+      movingTime: 3600,
+      icu_eftp: 255,
+    });
+    expect(fromEftp.ftp).toBe(255);
+  });
+
   it('uses activity_id when id is missing', () => {
     const norm = normalizeIntervalsActivity(fixture[3]);
     expect(norm.id).toBe('i12348');
@@ -96,6 +118,20 @@ describe('normalizeIntervalsActivity - best power', () => {
     expect(norm.best_10min).toBe(170);
     expect(norm.best_20min).toBe(155);
     expect(norm.best_60min).toBe(0);
+  });
+
+  it('extracts icu_power_90min and icu_power_120min aliases', () => {
+    const norm = normalizeIntervalsActivity({
+      id: 'long-ride',
+      startDate: '2025-06-22',
+      name: 'Gran fondo',
+      type: 'Ride',
+      movingTime: 8000,
+      icu_power_90min: 218,
+      icu_power_120min: 205,
+    });
+    expect(norm.best_90min).toBe(218);
+    expect(norm.best_120min).toBe(205);
   });
 });
 

@@ -77,7 +77,7 @@ export function cloudPayloadToRawShape(item) {
         icu_average_heartrate: item.avg_hr,
         max_heartrate: item.max_hr,
         work: item.work,
-        icu_ftp: item.ftp || item.eFTP,
+        icu_ftp: item.ftp || item.eFTP || item.icu_ftp,
         icu_max_watts: item.max_power,
         Best1minpower: item.best_1min,
         Best5minpower: item.best_5min,
@@ -158,7 +158,16 @@ export const normalizeIntervalsActivity = (item) => {
     }
 
     const rpe = getNum(getVal('rpe', 'icu_rpe', 'perceived_exertion', 'feel', 'session_rpe', 'feeling', 'rating'));
-    const ftp = getNum(getVal('ftp', 'icu_ftp', 'icu_pm_ftp', 'cp'));
+    const ftp = getNum(getVal(
+        'ftp',
+        'icu_ftp',
+        'icu_eftp',
+        'icu_rolling_ftp',
+        'icu_pm_ftp',
+        'icu_pm_ftp_watts',
+        'cp',
+        'eFTP',
+    ));
 
     // Max Power: Try root keys first
     let maxPower = getNum(getVal('max_power', 'maxWatts', 'icu_max_watts', 'max_watts', 'p_max', 'icu_pm_p_max'));
@@ -194,8 +203,20 @@ export const normalizeIntervalsActivity = (item) => {
     const best10min = getNum(getVal('best_10min', 'Best10minpower', 'best_10min_power', 'w10min'));
     const best20min = getNum(getVal('best_20min', 'Best20minpower', 'best_20min_power', 'w20min'));
     const best60min = getNum(getVal('best_60min', 'Best60minpower', 'best_60min_power', 'w60min'));
-    const best90min = getNum(getVal('best_90min', 'Best90minpower', 'best_90min_power', 'w90min'));
-    const best120min = getNum(getVal('best_120min', 'Best120minpower', 'best_120min_power', 'w120min'));
+    const best90min = getNum(getVal(
+        'best_90min',
+        'Best90minpower',
+        'best_90min_power',
+        'icu_power_90min',
+        'w90min',
+    ));
+    const best120min = getNum(getVal(
+        'best_120min',
+        'Best120minpower',
+        'best_120min_power',
+        'icu_power_120min',
+        'w120min',
+    ));
 
     const avgAltitude = getNum(getVal('avgAltitude', 'average_altitude', 'avg_altitude'));
     const maxAltitude = getNum(getVal('maxAltitude', 'maximum_altitude', 'max_altitude'));
