@@ -47,21 +47,21 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
 
     return (
         <ModalPortal>
-        <div className="fixed inset-0 bg-cdbg/95 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
+        <div className="fixed inset-0 bg-cdbg/95 z-[100] flex items-end sm:items-center justify-center p-2 sm:p-4 backdrop-blur-sm animate-in fade-in">
             <div
                 ref={panelRef}
-                className="bg-cdsurface border border-cdborder rounded-xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]"
+                className="bg-cdsurface border border-cdborder rounded-xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[92vh] sm:max-h-[90vh] min-h-0 overflow-hidden"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="edit-activity-modal-title"
                 tabIndex={-1}
             >
-                <div className="flex justify-between items-center p-4 border-b border-cdborder bg-cdbg rounded-t-xl">
-                    <div className="flex items-center gap-2">
-                        <h3 id="edit-activity-modal-title" className="text-cdtext font-bold flex items-center gap-2 text-base"><Edit2 size={18} className="text-yellow-400" /> Edit activity</h3>
-                        
-                        {/* Externe Links */}
-                        <div className="flex items-center gap-2">
+                <div className="flex items-start justify-between gap-3 p-3 sm:p-4 border-b border-cdborder bg-cdbg rounded-t-xl shrink-0">
+                    <div className="min-w-0 flex-1">
+                        <h3 id="edit-activity-modal-title" className="text-cdtext font-bold flex items-center gap-2 text-base">
+                            <Edit2 size={18} className="text-yellow-400 shrink-0" /> Edit activity
+                        </h3>
+                        <div className="flex flex-wrap items-center gap-2 mt-2">
                             {activity.id && (
                                 <a
                                     href={`https://intervals.icu/activities/${activity.id}`}
@@ -97,18 +97,25 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                             )}
                         </div>
                     </div>
-                    <button onClick={onClose} aria-label="Close modal" className="text-cdmuted hover:text-cdtext focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"><X size={20} /></button>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        aria-label="Close modal"
+                        className="shrink-0 rounded p-1.5 text-cdmuted hover:text-cdtext hover:bg-cdsurfacehigh/40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                    >
+                        <X size={20} />
+                    </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 overflow-y-auto custom-scrollbar space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <form onSubmit={handleSubmit} className="p-4 sm:p-6 overflow-y-auto custom-scrollbar min-h-0 flex-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 [&>*]:min-w-0">
                         {/* BASIS GEGEVENS */}
-                        <div className="col-span-2">
+                        <div className="col-span-full min-w-0">
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Title</label>
                             <input name="title" type="text" value={formData.title || ''} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
                         </div>
 
-                        <div>
+                        <div className="min-w-0">
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Date</label>
                             <NlDateInput
                                 name="date"
@@ -127,7 +134,7 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                         </div>
 
                         {/* FIETS */}
-                        <div className="col-span-2">
+                        <div className="col-span-full">
                             <label className="text-xs text-cdmuted uppercase font-bold flex items-center justify-between mb-1">
                                 <span className="flex items-center gap-1.5"><Bike size={12} /> Bike</span>
                                 {isCustomGear && (
@@ -197,7 +204,7 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                         </div>
 
                         {/* METRICS */}
-                        <div className="col-span-2 h-px bg-cdborder my-2"></div>
+                        <div className="col-span-full h-px bg-cdborder my-2"></div>
 
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Distance (km)</label>
@@ -218,7 +225,7 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                         </div>
 
                         {/* POWER & HR */}
-                        <div className="col-span-2 h-px bg-cdborder my-2"></div>
+                        <div className="col-span-full h-px bg-cdborder my-2"></div>
 
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Avg Power (W)</label>
@@ -246,7 +253,7 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                         </div>
 
                         {/* EXTRA METRICS */}
-                        <div className="col-span-2 h-px bg-cdborder my-2"></div>
+                        <div className="col-span-full h-px bg-cdborder my-2"></div>
 
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">RPE (1-10)</label>
@@ -255,7 +262,7 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">FTP (W)</label>
                             <input name="ftp" type="number" value={formData.ftp || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
-                            <p className="text-[10px] text-cdmuted mt-1 leading-snug">
+                            <p className="hidden sm:block text-[10px] text-cdmuted mt-1 leading-snug">
                                 FTP snapshot from Intervals.icu for this ride (icu_ftp). Your profile FTP lives in Settings → Profile.
                             </p>
                         </div>
@@ -265,10 +272,10 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                         </div>
 
                         {/* BEST EFFORTS — gebruikt voor MMP curve */}
-                        <div className="col-span-2 h-px bg-cdborder my-2"></div>
-                        <div className="col-span-2">
+                        <div className="col-span-full h-px bg-cdborder my-2"></div>
+                        <div className="col-span-full">
                             <p className="text-xs text-cdmuted uppercase font-bold mb-2">Best efforts (W) — used for MMP curve</p>
-                            <p className="text-[10px] text-cdmuted mb-2 leading-snug">
+                            <p className="hidden sm:block text-[10px] text-cdmuted mb-2 leading-snug">
                                 1–60 min values come from Intervals.icu list fields. Rides over 90 min get 90/120 min from the power curve on sync (direct API key) or a custom Intervals computed field.
                             </p>
                         </div>
@@ -302,9 +309,9 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                         </div>
                     </div>
 
-                    <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-cdborder">
-                        <button type="button" onClick={onClose} className="px-4 py-2 text-cdmuted hover:text-cdtext font-bold text-sm">Cancel</button>
-                        <button type="submit" className="px-6 py-2 bg-yellow-500 hover:bg-yellow-400 text-cdonbrand font-bold rounded shadow-lg shadow-yellow-500/20 flex items-center gap-2">
+                    <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 mt-6 pt-4 border-t border-cdborder">
+                        <button type="button" onClick={onClose} className="w-full sm:w-auto px-4 py-2 text-cdmuted hover:text-cdtext font-bold text-sm">Cancel</button>
+                        <button type="submit" className="w-full sm:w-auto px-6 py-2 bg-yellow-500 hover:bg-yellow-400 text-cdonbrand font-bold rounded shadow-lg shadow-yellow-500/20 flex items-center justify-center gap-2">
                             <Save size={16} /> Save
                         </button>
                     </div>
