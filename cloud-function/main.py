@@ -289,13 +289,26 @@ def transform_activity(activity: dict) -> dict:
     best_90min = safe_int(get_first_valid(
         activity.get("Best90minpower"),
         activity.get("best_90min_power"),
+        activity.get("icu_power_90min"),
         activity.get("w90min"),
         default=0
     ))
     best_120min = safe_int(get_first_valid(
         activity.get("Best120minpower"),
         activity.get("best_120min_power"),
+        activity.get("icu_power_120min"),
         activity.get("w120min"),
+        default=0
+    ))
+
+    # === FTP (snapshot on this activity — not the athlete profile FTP) ===
+    ftp = safe_int(get_first_valid(
+        activity.get("icu_ftp"),
+        activity.get("icu_rolling_ftp"),
+        activity.get("icu_pm_ftp"),
+        activity.get("icu_pm_ftp_watts"),
+        activity.get("icu_eftp"),
+        activity.get("ftp"),
         default=0
     ))
 
@@ -326,7 +339,8 @@ def transform_activity(activity: dict) -> dict:
         "best_60min": best_60min,
         "best_90min": best_90min,
         "best_120min": best_120min,
-        "eFTP": safe_int(activity.get("icu_eftp"), 0) # Add eFTP
+        "ftp": ftp,
+        "eFTP": safe_int(activity.get("icu_eftp"), 0),
     }
 
 

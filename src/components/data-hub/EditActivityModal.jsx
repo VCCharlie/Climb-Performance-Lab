@@ -255,6 +255,9 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">FTP (W)</label>
                             <input name="ftp" type="number" value={formData.ftp || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                            <p className="text-[10px] text-cdmuted mt-1 leading-snug">
+                                FTP snapshot from Intervals.icu for this ride (icu_ftp). Your profile FTP lives in Settings → Profile.
+                            </p>
                         </div>
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Avg Speed (km/h)</label>
@@ -265,6 +268,9 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                         <div className="col-span-2 h-px bg-cdborder my-2"></div>
                         <div className="col-span-2">
                             <p className="text-xs text-cdmuted uppercase font-bold mb-2">Best efforts (W) — used for MMP curve</p>
+                            <p className="text-[10px] text-cdmuted mb-2 leading-snug">
+                                1–60 min values come from Intervals.icu list fields. Rides over 90 min get 90/120 min from the power curve on sync (direct API key) or a custom Intervals computed field.
+                            </p>
                         </div>
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Best 1 min (W)</label>

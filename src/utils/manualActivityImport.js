@@ -3,6 +3,7 @@
  */
 
 import { normalizeIntervalsActivity } from './intervals';
+import { enrichActivitiesWithLongDurationBests } from './intervalsPowerCurveEnrich';
 import { normalizeStravaActivity } from './stravaMatch';
 import { normalizeStravaActivityId } from './strava';
 import { enrichActivityGearFromStrava } from './stravaGearEnrich';
@@ -99,7 +100,9 @@ export async function fetchIntervalsActivityAsSiteActivity(intervalsActivityId, 
     }
 
     const json = await resp.json();
-    return normalizeIntervalsActivity(json);
+    let act = normalizeIntervalsActivity(json);
+    [act] = await enrichActivitiesWithLongDurationBests([act], intervalsConfig, { maxFetches: 1, delayMs: 0 });
+    return act;
 }
 
 /**

@@ -3,6 +3,7 @@ import {
     normalizeIntervalsActivityFromAny,
     filterNonEmptyIntervalsActivities,
 } from '../utils/intervals';
+import { enrichActivitiesWithLongDurationBests } from '../utils/intervalsPowerCurveEnrich';
 import { fetchWithTimeout } from '../utils/fetchWithTimeout';
 import { devLog } from '../utils/safeLog';
 import {
@@ -43,7 +44,11 @@ const useIntervalsSync = (intervalsConfig) => {
         if (allowedTypes?.length > 0) {
             transformed = transformed.filter((act) => allowedTypes.includes(act.type));
         }
-        return filterNonEmptyIntervalsActivities(transformed);
+        transformed = filterNonEmptyIntervalsActivities(transformed);
+
+        setSyncProgress('Enriching long power bests (90/120 min)...');
+        transformed = await enrichActivitiesWithLongDurationBests(transformed, intervalsConfig);
+        return transformed;
     };
 
     const syncViaCloud = async (startDate, endDate, allowedTypes) => {
