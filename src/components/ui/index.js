@@ -27,5 +27,6 @@ export {
   modalBodyScrollClass,
   modalFooterClass,
 } from './modalStyles';
+export { default as SubTabNav, subTabButtonClass, SUB_TAB_ACTIVE_TEXT_CLASS } from './SubTabNav';
 export { default as ChartTooltip } from './ChartTooltip';
 export { Skeleton, SkeletonText, SkeletonChartCard, LoadingPanel } from './Skeleton';

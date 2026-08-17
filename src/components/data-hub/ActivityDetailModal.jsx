@@ -6,8 +6,8 @@ import {
     activityEfficiencyFactor,
     activityVariabilityIndex,
 } from '../../utils/rideInsights';
-import ZoneMetricCell from '../data-hub/ZoneMetricCell';
-import NormPowerCell from '../data-hub/NormPowerCell';
+import ZoneMetricCell from './ZoneMetricCell';
+import NormPowerCell from './NormPowerCell';
 import ModalPortal from '../ui/ModalPortal';
 import { useModalA11y } from '../../hooks/useModalA11y';
 

@@ -50,6 +50,19 @@ Grote thema’s uit gebruikersfeedback; uitrol in deel-fases (A–F).
 
 ---
 
+## Strategische audit — rollout (aug 2026)
+
+Parallel aan de product-fases hierboven loopt een UX/design rollout:
+
+| Fase | Thema | Status |
+|------|--------|--------|
+| **Audit 1** | Quick wins (CSV weg, sync-toasts, a11y tabpanels) | Done |
+| **Audit 2** | Daily Home, ride insights, sync-pariteit, import-guard | Done |
+| **Audit 3** | Design system: `SubTabNav`, `cd*` tokens, DataHub-consolidatie | In progress |
+| **Later** | Mobile filter UX, nav 10→4 hubs, training calendar / decoupling | Backlog |
+
+---
+
 ## Fase 4 — Physics & export
 
 | # | Onderdeel |

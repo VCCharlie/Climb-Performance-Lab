@@ -797,7 +797,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                         aria-selected={subTab === 'overview'}
                         aria-controls="tabpanel-strava-overview"
                         onClick={() => setSubTab('overview')}
-                        className={`flex-1 py-2.5 text-xs font-bold ${subTab === 'overview' ? 'text-orange-400 border-b-2 border-orange-400 -mb-px' : 'text-cdmuted hover:text-cdtext'}`}
+                        className={`flex-1 py-2.5 text-xs font-bold ${subTab === 'overview' ? 'text-cdprimary border-b-2 border-cdprimary -mb-px' : 'text-cdmuted hover:text-cdtext'}`}
                     >
                         Overview
                     </button>
@@ -808,7 +808,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                         aria-selected={subTab === 'ridestats'}
                         aria-controls="tabpanel-strava-ridestats"
                         onClick={() => setSubTab('ridestats')}
-                        className={`flex-1 py-2.5 text-xs font-bold ${subTab === 'ridestats' ? 'text-orange-400 border-b-2 border-orange-400 -mb-px' : 'text-cdmuted hover:text-cdtext'}`}
+                        className={`flex-1 py-2.5 text-xs font-bold ${subTab === 'ridestats' ? 'text-cdprimary border-b-2 border-cdprimary -mb-px' : 'text-cdmuted hover:text-cdtext'}`}
                     >
                         Ride stats
                     </button>
@@ -819,7 +819,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                         aria-selected={subTab === 'vslog'}
                         aria-controls="tabpanel-strava-vslog"
                         onClick={() => setSubTab('vslog')}
-                        className={`flex-1 py-2.5 text-xs font-bold ${subTab === 'vslog' ? 'text-orange-400 border-b-2 border-orange-400 -mb-px' : 'text-cdmuted hover:text-cdtext'}`}
+                        className={`flex-1 py-2.5 text-xs font-bold ${subTab === 'vslog' ? 'text-cdprimary border-b-2 border-cdprimary -mb-px' : 'text-cdmuted hover:text-cdtext'}`}
                     >
                         Vs log
                     </button>

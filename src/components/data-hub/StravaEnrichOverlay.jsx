@@ -1,5 +1,5 @@
 import React from 'react';
-import StravaEnrichTab from '../DataHub/StravaEnrichTab';
+import StravaEnrichTab from './StravaEnrichTab';
 
 /**
  * Full-screen Strava link/enrich overlay from DataHub.

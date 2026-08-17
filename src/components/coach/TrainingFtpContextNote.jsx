@@ -12,8 +12,8 @@ const TrainingFtpContextNote = ({ userSettings }) => {
 
     if (!ftp) {
         return (
-            <div className="mb-4 px-4 py-3 rounded-lg border border-yellow-500/40 bg-yellow-500/10 text-xs text-cdtext">
-                <Gauge size={14} className="inline mr-1.5 text-yellow-400 align-text-bottom" />
+            <div className="mb-4 px-4 py-3 rounded-lg border border-cdprimary/30 bg-cdprimarycontainer/15 text-xs text-cdtext">
+                <Gauge size={14} className="inline mr-1.5 text-cdprimary align-text-bottom" />
                 Set your FTP in Settings (manual or estimated from 20/60 min peaks) to unlock zone-based coach analysis.
             </div>
         );
