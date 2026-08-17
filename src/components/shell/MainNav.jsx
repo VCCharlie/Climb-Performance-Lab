@@ -43,6 +43,8 @@ function MainNav({
               {tabs.map((item) => (
                 <NavTab
                   key={item.id}
+                  id={`main-tab-${item.id}`}
+                  ariaControls={`main-tabpanel-${item.id}`}
                   icon={item.icon}
                   label={item.label}
                   isActive={activeTab === item.id}

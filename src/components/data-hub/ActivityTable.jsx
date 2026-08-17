@@ -3,7 +3,7 @@ import React, { useMemo, useRef, useEffect, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import {
     ArrowUpDown, ChevronUp, ChevronDown, ChevronRight,
-    Edit2, Trash2, ExternalLink, Route, Trophy, Crown, Play,
+    Edit2, Trash2, ExternalLink, Route, Trophy, Crown, Play, TrendingUp, Zap,
 } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
 import { resolveStravaGearDisplay } from '../../utils/stravaBikesLocalMap';
@@ -337,8 +337,24 @@ export const Row = React.memo(React.forwardRef(({
                 case 'avg_power': return <ZoneMetricCell metric="power" value={val} profileFtp={profileFtp} />;
                 case 'avg_hr':
                 case 'max_hr': return <ZoneMetricCell metric="hr" value={val} profileMaxHr={profileMaxHr} />;
-                case 'norm_power': return <NormPowerCell watts={val} profileFtp={profileFtp} />;
-                case 'load': return <span className="font-bold text-blue-400">{Math.round(val || 0)}</span>;
+                case 'norm_power': return (
+                    <span className="inline-flex items-center gap-0.5 justify-end">
+                        <Zap size={10} className="text-cdprimary shrink-0" aria-hidden />
+                        <NormPowerCell watts={val} profileFtp={profileFtp} />
+                    </span>
+                );
+                case 'load': {
+                    const loadVal = Math.round(val || 0);
+                    return (
+                        <span
+                            className="inline-flex items-center gap-0.5 font-bold text-cdblue tabular-nums"
+                            title={`Training load: ${loadVal} TSS`}
+                        >
+                            <TrendingUp size={10} aria-hidden />
+                            <span>{loadVal}</span>
+                        </span>
+                    );
+                }
                 case 'rpe': return <span className="text-cdmuted">{val || '-'}</span>;
                 default: return <span className={`text-${col.text || 'cdmuted'}`}>{val ? Math.round(val) : '-'}</span>;
             }

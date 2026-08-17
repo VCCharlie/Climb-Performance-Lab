@@ -217,7 +217,7 @@ export default function ActivityLogTab({
                         <AlertTriangle size={32} className="text-cdmuted" aria-hidden />
                         <div className="text-center space-y-1">
                             <p className="text-sm font-semibold text-cdtext">No activities in your log</p>
-                            <p className="text-xs text-cdmuted">Sync from Intervals.icu above, or import a CSV file.</p>
+                            <p className="text-xs text-cdmuted">Sync from Intervals.icu above, or import a JSON backup on the Import tab.</p>
                         </div>
                         {typeof onOpenImportTab === 'function' && (
                             <button

@@ -13,11 +13,11 @@ const WMO_ICONS = {
     95: '⛈️', 96: '⛈️', 99: '⛈️',
 };
 
-const NL_DAYS = ['zo', 'ma', 'di', 'wo', 'do', 'vr', 'za'];
+const DAY_ABBR = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-// Wind direction degrees → Dutch compass abbreviation
-const NL_WIND_DIR = ['N', 'NO', 'O', 'ZO', 'Z', 'ZW', 'W', 'NW'];
-const windAbbr = (deg) => NL_WIND_DIR[Math.round((deg ?? 0) / 45) % 8];
+// Wind direction degrees → compass abbreviation
+const WIND_DIR = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+const windAbbr = (deg) => WIND_DIR[Math.round((deg ?? 0) / 45) % 8];
 
 const wmoIcon = (code) =>
     WMO_ICONS[code] ??
@@ -46,7 +46,7 @@ const WeatherForecastStrip = ({ forecastData, locationLabel }) => {
         <div className="space-y-2 pt-1">
             <div className="flex items-center justify-between flex-wrap gap-1">
                 <span className="text-s font-bold text-cdmuted uppercase tracking-wide">
-                    14-daagse prognose
+                    14-day forecast
                     {locationLabel && (
                         <span className="ml-1 font-normal normal-case text-cdmuted/60">
                             — {locationLabel}
@@ -79,7 +79,7 @@ const WeatherForecastStrip = ({ forecastData, locationLabel }) => {
                         >
                             {/* Day name */}
                             <span className={`text-s font-semibold leading-none ${isToday ? 'text-cyan-500' : 'text-cdtext'}`}>
-                                {isToday ? 'nu' : NL_DAYS[d.getDay()]}
+                                {isToday ? 'now' : DAY_ABBR[d.getDay()]}
                             </span>
 
                             {/* Short date */}
@@ -91,7 +91,7 @@ const WeatherForecastStrip = ({ forecastData, locationLabel }) => {
                             <div className="relative mt-0.5">
                                 <span className="text-xl leading-none">{icon}</span>
                                 {good && (
-                                    <span className="absolute -top-1 -right-2 text-green-500 text-[10px] font-bold">✓</span>
+                                    <span className="absolute -top-1 -right-2 text-green-500 text-[10px] font-bold" aria-hidden>✓</span>
                                 )}
                             </div>
 
@@ -108,7 +108,7 @@ const WeatherForecastStrip = ({ forecastData, locationLabel }) => {
                             {/* Precipitation */}
                             <span className={`text-s leading-none flex items-center gap-px mt-0.5
                                 ${precip >= 2 ? 'text-blue-500' : precip > 0 ? 'text-blue-500' : 'text-cdmuted/25'}`}>
-                                <Droplets size={10} />
+                                <Droplets size={10} aria-hidden />
                                 <span>{precip > 0 ? (precip < 1 ? '<1' : Math.round(precip)) : '—'}</span>
                             </span>
 
@@ -123,8 +123,8 @@ const WeatherForecastStrip = ({ forecastData, locationLabel }) => {
 
             {/* Legend */}
             <div className="flex flex-wrap gap-x-3 text-s text-cdmuted/40">
-                <span>💧 neerslag (mm) · wind: richting + km/h</span>
-                <span className="text-green-500">✓ goede klimdag (5-25°C, droog, rustig)</span>
+                <span>💧 precipitation (mm) · wind: direction + km/h</span>
+                <span className="text-green-500">✓ good climb day (5–25°C, dry, calm)</span>
             </div>
         </div>
     );

@@ -209,14 +209,14 @@ const SettingsModal = ({
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-sm font-bold text-cdtext">Black/White Mode</p>
+                                        <p className="text-sm font-bold text-cdtext">Dark mode</p>
                                         <p className="text-xs text-cdmuted">Switch between light and dark themes.</p>
                                     </div>
                                     <button
                                         type="button"
                                         role="switch"
                                         aria-checked={isDark}
-                                        aria-label="Toggle Black/White Mode"
+                                        aria-label="Toggle dark mode"
                                         onClick={() => setTheme(isDark ? 'light' : 'dark')}
                                         className={`relative inline-flex h-6 w-11 items-center rounded-full cd-transition cd-focus-ring ${isDark ? 'bg-cdsurfacehigh' : 'bg-cdbrand'}`}
                                     >

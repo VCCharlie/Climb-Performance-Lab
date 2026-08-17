@@ -13,7 +13,7 @@ import {
 import { useToast } from '../context/ToastContext';
 
 /**
- * CSV import preview, confirm flow, and duplicate resolution (Bolt 3d-bis follow-up).
+ * JSON import preview, confirm flow, and duplicate resolution (Bolt 3d-bis follow-up).
  */
 export function useDataHubImport({
     activities,

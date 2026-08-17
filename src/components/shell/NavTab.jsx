@@ -4,12 +4,14 @@ import { cn } from '../ui';
 /**
  * MD3 primary navigation tab with bottom pill indicator.
  */
-export default function NavTab({ icon, label, isActive, onClick, onPrefetch }) {
+export default function NavTab({ id, ariaControls, icon, label, isActive, onClick, onPrefetch }) {
   return (
     <button
       type="button"
+      id={id}
       role="tab"
       aria-selected={isActive}
+      aria-controls={ariaControls}
       onClick={onClick}
       onMouseEnter={onPrefetch}
       onFocus={onPrefetch}
