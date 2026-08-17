@@ -31,6 +31,10 @@ import { stravaHttpErrorMessage } from '../../utils/stravaHttp';
 import { computeYtdYearOverYearFromActivities, percentChange } from '../../utils/stravaYtdCompare';
 import { navigateToStravaSegment } from '../../utils/strava';
 import { mergeStravaVsLogUi } from '../../utils/stravaVsLogUi';
+import {
+    fetchStravaAthleteAndStats,
+    mergeStravaProfileStatsOnly,
+} from '../../utils/stravaProfileLightFetch';
 import StravaVsLogGapPanel from './StravaVsLogGapPanel';
 import { useTabListKeyboard } from '../../hooks/useTabListKeyboard';
 
@@ -218,23 +222,35 @@ const MilestonesBlock = ({ totals, periodLabel }) => {
 };
 
 /** One line: when data was fetched + what the next Refresh will re-pull (scan cap context). */
-const ProfileDataFreshnessLine = ({ fetchedAt, scanMeta }) => {
+const ProfileDataFreshnessLine = ({ fetchedAt, statsFetchedAt, scanMeta }) => {
     if (!fetchedAt) return null;
     const when = new Date(fetchedAt);
     if (Number.isNaN(when.getTime())) return null;
     const dateStr = when.toLocaleString(LOCALE, { dateStyle: 'medium', timeStyle: 'short' });
+    const statsWhen = statsFetchedAt && statsFetchedAt !== fetchedAt
+        ? new Date(statsFetchedAt)
+        : null;
+    const statsDateStr = statsWhen && !Number.isNaN(statsWhen.getTime())
+        ? statsWhen.toLocaleString(LOCALE, { dateStyle: 'medium', timeStyle: 'short' })
+        : null;
     const listCap = getStravaRawActivityListFetchCap();
     let nextRefresh = '';
     if (scanMeta && scanMeta.historyComplete === false) {
-        nextRefresh = `Next refresh fetches up to ${fmt.int(listCap)} activities from Strava; record links and scan tables may miss older rides.`;
+        nextRefresh = `Full refresh fetches up to ${fmt.int(listCap)} activities from Strava; record links and scan tables may miss older rides.`;
     } else if (scanMeta && scanMeta.historyComplete === true) {
-        nextRefresh = 'Next refresh re-fetches Strava stats, KOMs, starred segments, and your full scanned ride history (within the same API limits).';
+        nextRefresh = 'Full refresh re-fetches KOMs, starred segments, and your scanned ride history (within the same API limits).';
     } else {
-        nextRefresh = 'Next refresh updates Strava stats and lists; use Refresh after connecting to load the activity scan (record links / indoor-outdoor).';
+        nextRefresh = 'Full refresh loads the activity scan (record links / indoor-outdoor). Use Refresh stats only for official totals (~2 API calls).';
     }
     return (
         <p className="text-[10px] text-cdmuted leading-relaxed">
             <span className="text-cdtext font-medium">Profile data from {dateStr}</span>
+            {statsDateStr && (
+                <>
+                    <span className="mx-1.5 text-cdborder">·</span>
+                    <span>Stats updated {statsDateStr}</span>
+                </>
+            )}
             <span className="mx-1.5 text-cdborder">·</span>
             {nextRefresh}
         </p>
@@ -374,10 +390,52 @@ const ScanContextBlock = ({ title, agg, footnote }) => {
     );
 };
 
+/** Full refresh vs lightweight stats-only (~2 Strava API calls). */
+const StravaRefreshActions = ({
+    onFullRefresh,
+    onStatsOnlyRefresh,
+    isFetching,
+    fetchMode,
+    fetchProgress,
+    hasData,
+    athleteId,
+    className = '',
+}) => {
+    const busy = isFetching;
+    const fullBusy = busy && fetchMode === 'full';
+    const statsBusy = busy && fetchMode === 'stats';
+
+    return (
+        <div className={`flex flex-col sm:flex-row gap-2 shrink-0 w-full sm:w-auto ${className}`}>
+            <button
+                type="button"
+                onClick={onStatsOnlyRefresh}
+                disabled={busy || !athleteId}
+                title="Updates official Strava ride totals (all-time, YTD, last 4 weeks) with about 2 API calls. Keeps existing KOMs and activity scan."
+                className="flex items-center justify-center gap-2 px-4 py-2.5 border border-orange-500/40 bg-orange-500/10 hover:bg-orange-500/20 disabled:opacity-50 disabled:cursor-not-allowed text-orange-300 font-bold rounded-lg text-sm transition-colors w-full sm:w-auto"
+            >
+                {statsBusy ? <Loader2 size={14} className="animate-spin" /> : <TrendingUp size={14} />}
+                {statsBusy ? fetchProgress || 'Updating stats…' : 'Refresh stats only'}
+            </button>
+            <button
+                type="button"
+                onClick={onFullRefresh}
+                disabled={busy || !athleteId}
+                title="Full sync: stats, KOMs, starred segments, and activity history scan (many API calls)."
+                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-lg text-sm transition-colors w-full sm:w-auto"
+            >
+                {fullBusy ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                {fullBusy ? fetchProgress || 'Loading…' : (hasData ? 'Full refresh' : 'Load from Strava')}
+            </button>
+        </div>
+    );
+};
+
 const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChange, activities = [] }) => {
     const [subTab, setSubTab] = useState('overview');
     const onStravaProfileTabKeyDown = useTabListKeyboard(STRAVA_PROFILE_TAB_IDS, subTab, setSubTab);
     const [isFetching, setIsFetching] = useState(false);
+    const [fetchMode, setFetchMode] = useState(null);
     const [fetchProgress, setFetchProgress] = useState('');
     const [error, setError] = useState(null);
     const [data, setData] = useState(persistedData ?? null);
@@ -421,6 +479,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
     const fetchAll = useCallback(async () => {
         if (!getStravaToken || !athleteId) return;
         setIsFetching(true);
+        setFetchMode('full');
         setError(null);
 
         try {
@@ -486,13 +545,40 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                 recordRides,
                 activityScan,
                 scannedBikeActivities,
-                fetchedAt: new Date().toISOString()
+                fetchedAt: new Date().toISOString(),
+                statsFetchedAt: new Date().toISOString(),
             });
         } catch (e) {
             const msg = e?.message != null ? String(e.message).trim() : '';
             setError(msg || 'Strava profile refresh failed');
         } finally {
             setIsFetching(false);
+            setFetchMode(null);
+            setFetchProgress('');
+        }
+    }, [getStravaToken, athleteId, applyData]);
+
+    const fetchStatsOnly = useCallback(async () => {
+        if (!getStravaToken || !athleteId) return;
+        setIsFetching(true);
+        setFetchMode('stats');
+        setError(null);
+
+        try {
+            const token = await getStravaToken();
+            setFetchProgress('Updating ride statistics…');
+            const { athlete, stats } = await fetchStravaAthleteAndStats(token, athleteId);
+            applyData(mergeStravaProfileStatsOnly(dataRef.current, {
+                athlete,
+                stats,
+                fetchedAt: new Date().toISOString(),
+            }));
+        } catch (e) {
+            const msg = e?.message != null ? String(e.message).trim() : '';
+            setError(msg || 'Strava stats refresh failed');
+        } finally {
+            setIsFetching(false);
+            setFetchMode(null);
             setFetchProgress('');
         }
     }, [getStravaToken, athleteId, applyData]);
@@ -638,40 +724,41 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                             </div>
                         </div>
                     </div>
-                    <button
-                        type="button"
-                        onClick={fetchAll}
-                        disabled={isFetching || !athleteId}
-                        className="flex items-center justify-center gap-2 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-lg text-sm transition-colors shrink-0 w-full sm:w-auto"
-                    >
-                        {isFetching ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-                        {isFetching ? fetchProgress || 'Loading…' : (data ? 'Refresh' : 'Load from Strava')}
-                    </button>
+                    <StravaRefreshActions
+                        onFullRefresh={fetchAll}
+                        onStatsOnlyRefresh={fetchStatsOnly}
+                        isFetching={isFetching}
+                        fetchMode={fetchMode}
+                        fetchProgress={fetchProgress}
+                        hasData={Boolean(data)}
+                        athleteId={athleteId}
+                    />
                 </div>
             )}
 
             {!athlete && (
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div>
                         <p className="text-xs text-cdmuted">
                             All-time ride stats, KOMs / CRs, and starred segments from your Strava account.
                         </p>
                     </div>
-                    <button
-                        type="button"
-                        onClick={fetchAll}
-                        disabled={isFetching || !athleteId}
-                        className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded text-sm transition-colors shrink-0"
-                    >
-                        {isFetching ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-                        {isFetching ? fetchProgress || 'Loading…' : (data ? 'Refresh' : 'Load from Strava')}
-                    </button>
+                    <StravaRefreshActions
+                        onFullRefresh={fetchAll}
+                        onStatsOnlyRefresh={fetchStatsOnly}
+                        isFetching={isFetching}
+                        fetchMode={fetchMode}
+                        fetchProgress={fetchProgress}
+                        hasData={Boolean(data)}
+                        athleteId={athleteId}
+                    />
                 </div>
             )}
 
             {data?.fetchedAt && !isFetching && (
                 <ProfileDataFreshnessLine
                     fetchedAt={data.fetchedAt}
+                    statsFetchedAt={data.statsFetchedAt}
                     scanMeta={
                         data.activityScan != null
                             ? { historyComplete: data.activityScan.historyComplete }
@@ -691,7 +778,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
 
             {getStravaToken && athleteId && (
                 <p className="text-[10px] text-cdmuted leading-relaxed border border-cdborder/50 rounded-lg px-3 py-2 bg-cdbg/30">
-                    After <strong className="text-cdtext">Load / Refresh</strong>, this profile is saved to your account (Firestore) and this browser — other PCs see the last synced copy until you refresh there too. For live Strava data, tap Refresh while signed in with Strava.
+                    After a sync, this profile is saved to your account (Firestore) and this browser. Use <strong className="text-cdtext">Refresh stats only</strong> for official Strava totals (~2 API calls). Use <strong className="text-cdtext">Full refresh</strong> when you need KOMs, segments, or outdoor/indoor scan splits.
                 </p>
             )}
 
@@ -878,8 +965,11 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                         <h3 className="text-xs font-bold text-cdtext uppercase tracking-wide flex items-center gap-2">
                             <TrendingUp size={13} className="text-orange-400" /> Strava API — ride totals & averages
                         </h3>
-                        <StravaApiRideTable stats={stats} />
-                    </section>
+                            <StravaApiRideTable stats={stats} />
+                            <p className="text-[10px] text-cdmuted">
+                                Updated via <strong className="text-cdtext">Refresh stats only</strong> or full refresh. No activity scan required for this table.
+                            </p>
+                        </section>
 
                     {activityScan?.periods && (
                         <section className="space-y-3">
