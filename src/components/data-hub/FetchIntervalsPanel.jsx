@@ -31,7 +31,7 @@ const FetchIntervalsPanel = ({
                 onClick={onOpenImportTab}
                 className="shrink-0 text-[10px] font-bold px-2 py-1 rounded border border-cdborder text-cdaccent hover:bg-cdborder/40 self-start sm:self-auto"
             >
-                Import tab (CSV / URL)
+                Import tab (JSON / URL)
             </button>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 sm:items-end">

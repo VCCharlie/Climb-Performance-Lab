@@ -288,6 +288,7 @@ const DataHub = ({
 
             <div className="flex-1 overflow-hidden flex flex-col">
                 {internalTab === 'log' && (
+                    <div role="tabpanel" id="tabpanel-log" aria-labelledby="tab-log" className="flex-1 overflow-hidden flex flex-col min-h-0">
                     <ActivityLogTab
                         intervalsSync={intervalsSync}
                         isSignedIn={isSignedIn}
@@ -334,6 +335,7 @@ const DataHub = ({
                         visibleColumns={visibleColumns}
                         onFilterByGearId={filter.filterByGearId}
                     />
+                    </div>
                 )}
 
                 {internalTab === 'import' && (

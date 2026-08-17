@@ -3,7 +3,7 @@ import { Link2, Loader2 } from 'lucide-react';
 import { fetchMergedActivityFromPrimaryAndOptionalUrl } from '../../utils/manualActivityImport';
 
 /**
- * Paste Strava and/or Intervals.icu activity URLs → fetch → open import preview (same as CSV flow).
+ * Paste Strava and/or Intervals.icu activity URLs → fetch → open import preview.
  * Optional second URL: must be the other service; result uses Intervals id + merged Strava fields.
  */
 const ManualActivityImportBlock = ({
@@ -47,7 +47,7 @@ const ManualActivityImportBlock = ({
             </h4>
             <p className="text-xs text-cdmuted leading-relaxed">
                 <strong className="text-cdtext">Primary URL:</strong> Strava or Intervals.icu activity link.
-                <strong className="text-cdtext"> Optional second URL:</strong> the <strong className="text-cdtext">other</strong> service — no CSV or JSON required here (file import is separate below).
+                <strong className="text-cdtext"> Optional second URL:</strong> the <strong className="text-cdtext">other</strong> service.
                 The merged row keeps your <strong className="text-cdtext">Intervals activity id</strong> and adds Strava route/gear and fills gaps (same rules as merge pair).
                 Strava connection + Intervals API key in Settings when both sides are used.
             </p>

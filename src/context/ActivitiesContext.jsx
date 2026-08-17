@@ -17,6 +17,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { devLog } from '../utils/safeLog';
+import { notify } from '../utils/notify';
 import {
     mergeActivitiesPreservingEnrichment,
     prepareProtectedActivityUpsertsFromCurrent,
@@ -96,6 +97,7 @@ export function ActivitiesProvider({ user, children }) {
             }
         } catch (e) {
             console.error('Fout tijdens handmatig vernieuwen:', e);
+            notify('Could not refresh activities from the cloud.', { variant: 'error', durationMs: 8000 });
         }
     }, [setActivitiesState]);
 
@@ -154,6 +156,7 @@ export function ActivitiesProvider({ user, children }) {
             setIsLoading(false);
         }, (error) => {
             console.error('Real-time sync error:', error);
+            notify('Activity sync failed. Check your connection and try again.', { variant: 'error', durationMs: 10000 });
             setSyncStatus('error');
             setIsLoading(false);
         });

@@ -244,7 +244,7 @@ describe('normalizeIntervalsActivity - speed', () => {
   it('converts m/s to km/h when < 15', () => {
     const norm = normalizeIntervalsActivity(fixture[0]);
     // avg_speed: 11.8 m/s → 42.48 km/h
-    expect(parseFloat(norm.avg_speed)).toBeCloseTo(42.5, 0);
+    expect(norm.avg_speed).toBe(42.5);
   });
 
   it('leaves high values (already km/h) as-is', () => {

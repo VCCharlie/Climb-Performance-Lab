@@ -70,7 +70,7 @@ const IntervalsSyncPanel = ({
                     onClick={onOpenImportTab}
                     className="shrink-0 self-start sm:self-auto text-[10px] h-8"
                 >
-                    Import tab (CSV / URL)
+                    Import tab (JSON / URL)
                 </Button>
             </div>
 

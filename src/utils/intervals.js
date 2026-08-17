@@ -237,7 +237,9 @@ export const normalizeIntervalsActivity = (item) => {
         moving_time: movingTime,
         distance: distanceMeters > 0 ? Math.round((distanceMeters / 1000) * 100) / 100 : 0,
         climbing: Math.round(climbing),
-        avg_speed: (avgSpeedMs > 0 && avgSpeedMs < 15) ? (avgSpeedMs * 3.6).toFixed(1) : avgSpeedMs,
+        avg_speed: avgSpeedMs > 0
+            ? Math.round((avgSpeedMs < 15 ? avgSpeedMs * 3.6 : avgSpeedMs) * 10) / 10
+            : 0,
         norm_power: Math.round(normPower > 0 ? normPower : (avgPower > 0 ? avgPower : 0)),
         avg_power: Math.round(avgPower),
         avg_hr: Math.round(avgHr),

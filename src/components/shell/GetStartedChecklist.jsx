@@ -50,7 +50,7 @@ export default function GetStartedChecklist({
             {
                 id: 'sync',
                 label: 'Import your first activities',
-                detail: 'Go to Activities → Fetch & merge (or import CSV).',
+                detail: 'Go to Activities → Fetch & merge (or import JSON backup).',
                 done: syncDone,
                 actionLabel: 'Go to Activities',
                 onAction: onGoToActivities,

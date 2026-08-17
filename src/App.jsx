@@ -349,6 +349,7 @@ const App = () => {
         const settingsId = user ? `user_${user.uid}` : 'user_prefs';
         setDoc(doc(db, 'settings', settingsId), { stravaProfile: forPersistence }, { merge: true }).catch((e) => {
             console.warn('[Strava profile] Could not sync to Firestore:', e);
+            notify('Could not sync Strava profile to the cloud.', { variant: 'warning', durationMs: 6000 });
         });
     }, [user]);
 
@@ -721,6 +722,7 @@ const App = () => {
                 }
             } catch (e) {
                 console.error("Error loading settings", e);
+                notify('Could not load settings from the cloud.', { variant: 'error', durationMs: 10000 });
             } finally {
                 if (!cancelled) {
                     bucketListCloudReadyRef.current = true;
@@ -754,6 +756,7 @@ const App = () => {
                     await syncCoachWeekToFirestore(db, user.uid, raw);
                 } catch (err) {
                     console.warn('[Coach week] Could not push to Firestore:', err);
+                    notify('Could not save coach week to the cloud.', { variant: 'error', durationMs: 8000 });
                 }
             }, COACH_WEEK_CLOUD_DEBOUNCE_MS);
         };
@@ -785,6 +788,7 @@ const App = () => {
                     await syncTrainingPlanToFirestore(db, user.uid, local);
                 } catch (err) {
                     console.warn('[Training goal] Could not push to Firestore:', err);
+                    notify('Could not save training goal to the cloud.', { variant: 'error', durationMs: 8000 });
                 }
             }, TRAINING_PLAN_CLOUD_DEBOUNCE_MS);
         };
@@ -831,6 +835,7 @@ const App = () => {
                 dispatchCoachWeekUpdated();
             } catch (err) {
                 console.warn('[Coach week] Could not refresh from cloud:', err);
+                notify('Could not refresh coach week from the cloud.', { variant: 'warning', durationMs: 6000 });
             }
         };
 
@@ -862,6 +867,7 @@ const App = () => {
                 applyTrainingPlanToLocal(resolved.snapshot);
             } catch (err) {
                 console.warn('[Training goal] Could not refresh from cloud:', err);
+                notify('Could not refresh training goal from the cloud.', { variant: 'warning', durationMs: 6000 });
             }
         };
 
@@ -926,6 +932,7 @@ const App = () => {
                 });
             } catch (err) {
                 console.warn('[Bucket list] Could not refresh from cloud:', err);
+                notify('Could not refresh bucket list from the cloud.', { variant: 'warning', durationMs: 6000 });
             }
         };
 
@@ -1118,7 +1125,13 @@ const App = () => {
                         <AppLoadingGate authReady={authReady} user={user} authBusy={authBusy} authError={authError} onSignIn={handleSignIn}>
                             <div className="cd-enter">
                                 {activeTab === 'dashboard' && (
-                                    <DashboardWithNavigation
+                                    <div
+                                        id="main-tabpanel-dashboard"
+                                        role="tabpanel"
+                                        aria-labelledby="main-tab-dashboard"
+                                        className="min-w-0"
+                                    >
+                                        <DashboardWithNavigation
                                         theme={theme}
                                         manualFtp={userSettings.ftp}
                                         timeRange={timeRange}
@@ -1134,15 +1147,19 @@ const App = () => {
                                         stravaProfileData={stravaProfileData}
                                         onStravaProfileData={handleStravaProfileData}
                                     />
+                                    </div>
                                 )}
 
                                 {activeTab !== 'dashboard' && (
                                     <Suspense fallback={<LoadingPanel message="Loading tab…" />}>
                                         {activeTab === 'physics' && (
-                                            <PhysicsEngine userSettings={userSettings} setUserSettings={setUserSettings} selectedClimb={selectedClimb} onUpdateClimb={setSelectedClimb} />
+                                            <div id="main-tabpanel-physics" role="tabpanel" aria-labelledby="main-tab-physics" className="min-w-0">
+                                                <PhysicsEngine userSettings={userSettings} setUserSettings={setUserSettings} selectedClimb={selectedClimb} onUpdateClimb={setSelectedClimb} />
+                                            </div>
                                         )}
 
                                         {activeTab === 'activities' && (
+                                            <div id="main-tabpanel-activities" role="tabpanel" aria-labelledby="main-tab-activities" className="min-w-0">
                                             <DataHub
                                                 key={dataHubMountKey}
                                                 intervalsConfig={intervalsConfig}
@@ -1159,10 +1176,11 @@ const App = () => {
                                                 userSettings={userSettings}
                                                 isSignedIn={!!user}
                                             />
+                                            </div>
                                         )}
 
                                         {activeTab === 'training' && (
-                                            <div className="min-w-0 max-w-full overflow-x-hidden">
+                                            <div id="main-tabpanel-training" role="tabpanel" aria-labelledby="main-tab-training" className="min-w-0 max-w-full overflow-x-hidden">
                                                 <TrainingFtpContextNote userSettings={userSettings} />
                                                 <TrainingSubTabNav
                                                     activeTab={trainingSubTab}
@@ -1200,7 +1218,7 @@ const App = () => {
                                         )}
 
                                         {activeTab === 'race' && (
-                                    <div>
+                                    <div id="main-tabpanel-race" role="tabpanel" aria-labelledby="main-tab-race" className="min-w-0">
                                         <SegmentedControl
                                             className="mb-4"
                                             size="lg"
@@ -1246,16 +1264,18 @@ const App = () => {
                                 )}
 
                                 {activeTab === 'gearoptimizer' && (
+                                    <div id="main-tabpanel-gearoptimizer" role="tabpanel" aria-labelledby="main-tab-gearoptimizer" className="min-w-0">
                                     <GearOptimizer
                                         userSettings={userSettings}
                                         initialState={gearOptimizerState}
                                         onStateChange={setGearOptimizerState}
                                     />
+                                    </div>
                                 )}
 
                                 {/* Profiler: ClimbProfiler + ClimbProfileCard side by side */}
                                 {activeTab === 'profiler' && (
-                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                    <div id="main-tabpanel-profiler" role="tabpanel" aria-labelledby="main-tab-profiler" className="min-w-0 grid grid-cols-1 lg:grid-cols-3 gap-4">
                                         <div className="lg:col-span-2">
                                             <ClimbProfiler
                                                 userSettings={userSettings}
@@ -1272,6 +1292,7 @@ const App = () => {
                                 )}
 
                                 {activeTab === 'bucketlist' && (
+                                    <div id="main-tabpanel-bucketlist" role="tabpanel" aria-labelledby="main-tab-bucketlist" className="min-w-0">
                                     <BucketListWithNavigation
                                         initialState={bucketListState}
                                         remoteRevision={bucketListRemoteRevision}
@@ -1288,9 +1309,11 @@ const App = () => {
                                         onOpenProfilerForClimb={handleOpenProfilerForClimb}
                                         onOpenMapTab={() => handleTabChange('climbmap')}
                                     />
+                                    </div>
                                 )}
 
                                 {activeTab === 'climbmap' && (
+                                    <div id="main-tabpanel-climbmap" role="tabpanel" aria-labelledby="main-tab-climbmap" className="min-w-0">
                                     <ClimbMap
                                         bucketListState={bucketListState}
                                         onUpdateBucketList={(action, climbId) => {
@@ -1299,14 +1322,17 @@ const App = () => {
                                             ));
                                         }}
                                     />
+                                    </div>
                                 )}
 
                                 {activeTab === 'weather' && (
+                                    <div id="main-tabpanel-weather" role="tabpanel" aria-labelledby="main-tab-weather" className="min-w-0">
                                     <WeatherClimb
                                         userSettings={userSettings}
                                         initialState={weatherClimbState}
                                         onStateChange={setWeatherClimbState}
                                     />
+                                    </div>
                                 )}
                             </Suspense>
                         )}

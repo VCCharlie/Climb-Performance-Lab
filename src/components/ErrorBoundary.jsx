@@ -10,6 +10,21 @@ import {
 
 const IS_PROD = import.meta.env.PROD;
 
+const THEME_VARS = {
+    pageBg: 'var(--cd-surface-dim)',
+    pageText: 'var(--cd-muted)',
+    cardBg: 'var(--cd-surface-bright)',
+    cardBorder: 'var(--cd-border)',
+    heading: 'var(--cd-text)',
+    body: 'var(--cd-muted)',
+    error: 'var(--cd-red)',
+    preBg: 'var(--cd-surface)',
+    preText: 'var(--cd-red)',
+    stackText: 'var(--cd-muted)',
+    primaryBtn: 'var(--cd-primary)',
+    primaryBtnText: 'var(--cd-on-primary)',
+};
+
 async function clearSiteCacheAndReload() {
     await clearDeployCaches();
     window.location.reload();
@@ -26,9 +41,9 @@ function RecoveringFallback() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: '#f0f2f5',
+                backgroundColor: THEME_VARS.pageBg,
                 fontFamily: 'Barlow, sans-serif',
-                color: '#64748b',
+                color: THEME_VARS.pageText,
                 fontSize: '0.875rem',
             }}
             role="status"
@@ -105,14 +120,14 @@ class ErrorBoundary extends React.Component {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: '#f0f2f5',
+                    backgroundColor: THEME_VARS.pageBg,
                     fontFamily: 'Barlow, sans-serif',
                     padding: '2rem',
                 }}
                 >
                     <div style={{
-                        background: '#fff',
-                        border: '1px solid #e2e8f0',
+                        background: THEME_VARS.cardBg,
+                        border: `1px solid ${THEME_VARS.cardBorder}`,
                         borderRadius: '12px',
                         padding: '2rem',
                         maxWidth: '640px',
@@ -120,10 +135,10 @@ class ErrorBoundary extends React.Component {
                         boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
                     }}
                     >
-                        <h1 style={{ color: '#dc2626', fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+                        <h1 style={{ color: THEME_VARS.error, fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>
                             Application could not load
                         </h1>
-                        <p style={{ color: '#64748b', fontSize: '0.875rem', marginBottom: '1rem' }}>
+                        <p style={{ color: THEME_VARS.body, fontSize: '0.875rem', marginBottom: '1rem' }}>
                             {quotaError
                                 ? 'Browser storage is full (local cache). Use “Clear cache and reload” below — your activities stay in the cloud after sign-in.'
                                 : recoveryAlreadyTried
@@ -134,18 +149,18 @@ class ErrorBoundary extends React.Component {
                         </p>
 
                         <details open={!IS_PROD} style={{ marginBottom: '1rem' }}>
-                            <summary style={{ cursor: 'pointer', fontWeight: 600, color: '#1e2330', marginBottom: '0.5rem' }}>
+                            <summary style={{ cursor: 'pointer', fontWeight: 600, color: THEME_VARS.heading, marginBottom: '0.5rem' }}>
                                 Error message
                             </summary>
                             <pre style={{
-                                background: '#f8fafc',
-                                border: '1px solid #e2e8f0',
+                                background: THEME_VARS.preBg,
+                                border: `1px solid ${THEME_VARS.cardBorder}`,
                                 borderRadius: '6px',
                                 padding: '0.75rem',
                                 fontSize: '0.75rem',
                                 overflowX: 'auto',
                                 whiteSpace: 'pre-wrap',
-                                color: '#dc2626',
+                                color: THEME_VARS.preText,
                             }}
                             >
                                 {this.state.error?.toString()}
@@ -154,18 +169,18 @@ class ErrorBoundary extends React.Component {
 
                         {!IS_PROD && this.state.info?.componentStack && (
                             <details style={{ marginBottom: '1rem' }}>
-                                <summary style={{ cursor: 'pointer', fontWeight: 600, color: '#1e2330', marginBottom: '0.5rem' }}>
+                                <summary style={{ cursor: 'pointer', fontWeight: 600, color: THEME_VARS.heading, marginBottom: '0.5rem' }}>
                                     Component stack
                                 </summary>
                                 <pre style={{
-                                    background: '#f8fafc',
-                                    border: '1px solid #e2e8f0',
+                                    background: THEME_VARS.preBg,
+                                    border: `1px solid ${THEME_VARS.cardBorder}`,
                                     borderRadius: '6px',
                                     padding: '0.75rem',
                                     fontSize: '0.7rem',
                                     overflowX: 'auto',
                                     whiteSpace: 'pre-wrap',
-                                    color: '#475569',
+                                    color: THEME_VARS.stackText,
                                 }}
                                 >
                                     {this.state.info.componentStack}
@@ -178,8 +193,8 @@ class ErrorBoundary extends React.Component {
                                 type="button"
                                 onClick={() => window.location.reload()}
                                 style={{
-                                    background: '#f97316',
-                                    color: '#fff',
+                                    background: THEME_VARS.primaryBtn,
+                                    color: THEME_VARS.primaryBtnText,
                                     border: 'none',
                                     borderRadius: '6px',
                                     padding: '0.5rem 1rem',
@@ -194,9 +209,9 @@ class ErrorBoundary extends React.Component {
                                 type="button"
                                 onClick={() => { void clearSiteCacheAndReload(); }}
                                 style={{
-                                    background: '#fff',
-                                    color: '#1e2330',
-                                    border: '1px solid #e2e8f0',
+                                    background: THEME_VARS.cardBg,
+                                    color: THEME_VARS.heading,
+                                    border: `1px solid ${THEME_VARS.cardBorder}`,
                                     borderRadius: '6px',
                                     padding: '0.5rem 1rem',
                                     fontWeight: 700,
