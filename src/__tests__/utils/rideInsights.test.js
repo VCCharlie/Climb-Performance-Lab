@@ -25,6 +25,7 @@ describe('buildRideInsights', () => {
             type: 'Ride',
             norm_power: 180,
             avg_power: 175,
+            avg_hr: 140,
             load: 65,
             climbing: 400,
             moving_time: 5400,
@@ -32,6 +33,22 @@ describe('buildRideInsights', () => {
 
         expect(insight.summary).toMatch(/aerobic/i);
         expect(insight.bullets.some((b) => b.includes('TSS'))).toBe(true);
+        expect(insight.detail).toMatch(/steady|efficiency/i);
+    });
+
+    it('adds recovery note for high TSS rides', () => {
+        const insight = buildRideInsights({
+            id: '2',
+            date: '2026-08-11',
+            title: 'Long ride',
+            type: 'Ride',
+            norm_power: 220,
+            avg_power: 200,
+            load: 150,
+            moving_time: 7200,
+        }, { profileFtp: 250, allActivities: [] });
+
+        expect(insight.detail).toMatch(/demanding|tomorrow/i);
     });
 });
 

@@ -79,6 +79,7 @@ export function buildRideInsights(activity, options = {}) {
     const durationMin = Math.round((activityMovingTimeSec(activity) || 0) / 60);
 
     const narrativeParts = [];
+    const detailParts = [];
     const ifLine = classifyIfNarrative(ifVal);
     if (ifLine) narrativeParts.push(ifLine);
 
@@ -86,6 +87,28 @@ export function buildRideInsights(activity, options = {}) {
         narrativeParts.push(`Solid climbing load with ${elev} m elevation.`);
     } else if (elev >= 300) {
         narrativeParts.push(`Moderate climbing (${elev} m).`);
+    }
+
+    if (vi != null && durationMin >= 45) {
+        if (vi <= 1.03) {
+            detailParts.push('Very steady power delivery — good for aerobic conditioning.');
+        } else if (vi >= 1.08) {
+            detailParts.push('Spikey power (high variability) — normal for climbs, surges, or group rides.');
+        }
+    }
+
+    if (ef != null) {
+        if (ef >= 1.55) {
+            detailParts.push(`Strong cardiac efficiency at ${ef.toFixed(2)} W/bpm — NP held well relative to heart rate.`);
+        } else if (ef < 1.2 && durationMin >= 60) {
+            detailParts.push('Lower efficiency today — heat, fatigue, or incomplete recovery can pull EF down.');
+        }
+    }
+
+    if (tss >= 120) {
+        detailParts.push('A demanding day — prioritise sleep and easy riding tomorrow.');
+    } else if (tss > 0 && tss < 45 && durationMin >= 40) {
+        detailParts.push('Light stress — useful for stacking consistency without heavy fatigue.');
     }
 
     const bullets = [];
@@ -111,6 +134,7 @@ export function buildRideInsights(activity, options = {}) {
         date: formatDateDDMMYYYY(activity.date),
         type: activity.type,
         summary: narrativeParts.join(' ').trim() || 'Ride logged — open details for full metrics.',
+        detail: detailParts.join(' ').trim() || null,
         bullets,
         highlights,
         metrics: {

@@ -95,10 +95,10 @@ export default function FluidWeekPanel({
             )}
 
             {weekPlan.rebalanceNote && (
-                <p className="text-[11px] text-cdaccent mb-2 flex items-start gap-1.5 bg-cdaccent/10 rounded-md px-2 py-1.5">
-                    <RefreshCw size={11} className="shrink-0 mt-0.5" />
-                    {weekPlan.rebalanceNote}
-                </p>
+                <div className="text-[11px] text-cdaccent mb-2 flex items-start gap-1.5 bg-cdaccent/10 rounded-md px-2 py-1.5 leading-relaxed">
+                    <RefreshCw size={11} className="shrink-0 mt-0.5" aria-hidden />
+                    <p className="min-w-0">{weekPlan.rebalanceNote}</p>
+                </div>
             )}
 
             {(weekPlan.hasAvailabilityBlocks || weekPlan.hasExplicitAvailability) && onClearAvailability && (

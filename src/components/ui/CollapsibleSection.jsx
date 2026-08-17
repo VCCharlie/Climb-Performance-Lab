@@ -17,7 +17,7 @@ export default function CollapsibleSection({
     const [expanded, setExpanded] = useState(defaultExpanded);
 
     return (
-        <div className={`bg-cdsurface rounded-xl border ${borderClassName} shadow-xl overflow-hidden`}>
+        <div className={`bg-cdsurface rounded-xl border ${borderClassName} shadow-xl`}>
             <button
                 type="button"
                 onClick={() => setExpanded((v) => !v)}
