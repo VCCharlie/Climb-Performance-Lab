@@ -32,6 +32,10 @@ export default function PostRideInsightCard({ insight, onOpenActivity }) {
 
             <p className="text-sm text-cdtext leading-relaxed">{insight.summary}</p>
 
+            {insight.detail && (
+                <p className="text-sm text-cdmuted leading-relaxed mt-2">{insight.detail}</p>
+            )}
+
             {insight.highlights?.length > 0 && (
                 <ul className="mt-3 space-y-1">
                     {insight.highlights.map((line) => (

@@ -154,7 +154,7 @@ const CoachFluidWeekPlan = ({
                 </button>
             ) : null}
         >
-            <div className="-mt-1">
+            <div>
                 <FluidWeekSyncNote isSignedIn={isSignedIn} />
 
                 {showHorizon && horizonWeekCount > 1 && (
@@ -163,12 +163,13 @@ const CoachFluidWeekPlan = ({
                     </p>
                 )}
 
-                <div
-                    className={[
-                        'flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 -mx-1 px-1',
-                        visibleWeeks.length > 1 ? 'scroll-smooth' : '',
-                    ].join(' ')}
-                >
+                <div className="-mx-1 px-1 pt-1">
+                    <div
+                        className={[
+                            'flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2',
+                            visibleWeeks.length > 1 ? 'scroll-smooth' : '',
+                        ].join(' ')}
+                    >
                     {visibleWeeks.map((plan, index) => {
                         const expandKeyPrefix = index === 0 ? '' : `w${index}-`;
                         const handlers = makeWeekHandlers(plan);
@@ -191,6 +192,7 @@ const CoachFluidWeekPlan = ({
                             />
                         );
                     })}
+                    </div>
                 </div>
 
                 {visibleWeeks.length > 1 && (

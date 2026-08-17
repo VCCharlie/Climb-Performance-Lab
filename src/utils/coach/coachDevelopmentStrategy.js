@@ -89,18 +89,26 @@ export function resolveDevelopmentStrategy(pattern, recentWeeklyTss, phaseKey) {
         };
     }
 
+    const recentRounded = Math.round(Number(recentWeeklyTss) || 0);
+
     if (phaseKey === 'build') {
+        const rationale = recentRounded >= 280
+            ? `Build phase with ~${recentRounded} TSS/week in your log: one quality day plus longer Z2 blocks. This week's target stays below that habit so aerobic fitness can catch up before more intensity.`
+            : 'Build phase: one quality day per week plus longer Z2 — weekly TSS stays below your recent habit so aerobic fitness can catch up.';
         return {
             mode: 'develop-aerobic',
             macroStartMultiplier: 0.82,
             macroPeakMultiplier: 0.90,
             fluidSkeleton: 'aerobic-development',
             maxHardSessions: 1,
-            rationale:
-                'Build phase: one quality day per week plus longer Z2 — weekly TSS stays below your recent habit so aerobic fitness can catch up.',
+            rationale,
             showLowerTssNote: true,
         };
     }
+
+    const rationale = recentRounded >= 280
+        ? `Your recent load averages ~${recentRounded} TSS/week — high for sustainable aerobic development. The plan shifts time into steady Z2 (60–90 min sessions) and caps hard days at one, so FTP and endurance can rise without stacking fatigue.`
+        : 'Your recent weekly load is high. To raise FTP and endurance, the plan uses more Z2 volume and fewer hard rides — weekly TSS is intentionally lower than what you are used to.';
 
     return {
         mode: 'develop-aerobic',
@@ -108,8 +116,7 @@ export function resolveDevelopmentStrategy(pattern, recentWeeklyTss, phaseKey) {
         macroPeakMultiplier: 0.88,
         fluidSkeleton: 'aerobic-development',
         maxHardSessions: 1,
-        rationale:
-            'Your recent weekly load is high. To raise FTP and endurance, the plan uses more Z2 volume and fewer hard rides — weekly TSS is intentionally lower than what you are used to.',
+        rationale,
         showLowerTssNote: true,
     };
 }

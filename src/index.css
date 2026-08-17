@@ -24,6 +24,17 @@ body {
   overflow-x: hidden;
 }
 
+/* Sticky site header should not cover scrolled section tops (Training week plan, etc.) */
+html {
+  scroll-padding-top: calc(4.5rem + env(safe-area-inset-top, 0px));
+}
+
+@media (min-width: 768px) {
+  html {
+    scroll-padding-top: calc(5rem + env(safe-area-inset-top, 0px));
+  }
+}
+
 /* Themed scrollbars — accent thumb for visibility (Activity Log, modals, etc.) */
 .custom-scrollbar {
   scrollbar-width: thin;
