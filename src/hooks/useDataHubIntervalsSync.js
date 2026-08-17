@@ -14,6 +14,7 @@ import useIntervalsSync from './useIntervalsSync';
 import { resolveDeviceProfileTitlesFromSettings } from '../utils/bikeComputerProfileTitles';
 import { useToast } from '../context/ToastContext';
 import { safeLocalStorageSet } from '../utils/safeStorage';
+import { ACTIVITY_LOG_INTERVALS_LAST_SYNC_KEY, readLastIntervalsSyncAt } from '../utils/activityLogSyncLabel';
 import { countMergeCategories, formatIntervalsSyncSummary } from '../utils/importSyncStats';
 
 /**
