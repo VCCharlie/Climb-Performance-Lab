@@ -56,6 +56,7 @@ export default function ActivityLogTab({
     profileMaxHr,
     visibleColumns,
     onFilterByGearId,
+    onRunSync,
 }) {
     return (
         <div role="tabpanel" id="tabpanel-log" aria-labelledby="tab-log" className="p-4 flex-1 min-h-0 overflow-hidden flex flex-col">
@@ -95,7 +96,7 @@ export default function ActivityLogTab({
                 syncMode={intervalsSync.syncMode}
                 onSyncModeChange={intervalsSync.setSyncMode}
                 selectedCount={bulkSelectedCount}
-                onRunSync={intervalsSync.handleRunSync}
+                onRunSync={onRunSync ?? intervalsSync.handleRunSync}
                 isBusy={intervalsSync.isFetchingNewIntervals || intervalsSync.isSyncing}
                 syncProgress={intervalsSync.syncProgress}
                 stravaConnected={filterBarProps.stravaGetToken != null}

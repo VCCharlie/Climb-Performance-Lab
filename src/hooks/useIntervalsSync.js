@@ -38,17 +38,31 @@ const useIntervalsSync = (intervalsConfig) => {
 
         setSyncProgress('Processing activities...');
         const rawActivities = await response.json();
-        devLog(`Fetched ${rawActivities.length} activities from Intervals.icu (direct API)`);
+        const fetched = rawActivities.length;
+        devLog(`Fetched ${fetched} activities from Intervals.icu (direct API)`);
 
         let transformed = rawActivities.map(normalizeIntervalsActivityFromAny);
+        const afterNormalize = transformed.length;
         if (allowedTypes?.length > 0) {
             transformed = transformed.filter((act) => allowedTypes.includes(act.type));
         }
+        const afterSportFilter = transformed.length;
         transformed = filterNonEmptyIntervalsActivities(transformed);
+        const imported = transformed.length;
 
         setSyncProgress('Enriching long power bests (90/120 min)...');
         transformed = await enrichActivitiesWithLongDurationBests(transformed, intervalsConfig);
-        return transformed;
+        return {
+            activities: transformed,
+            stats: {
+                fetched,
+                afterNormalize,
+                afterSportFilter,
+                imported,
+                skippedEmpty: afterSportFilter - imported,
+                skippedSport: afterNormalize - afterSportFilter,
+            },
+        };
     };
 
     const syncViaCloud = async (startDate, endDate, allowedTypes) => {
@@ -60,10 +74,33 @@ const useIntervalsSync = (intervalsConfig) => {
             endDate,
             sportTypes: allowedTypes || [],
         });
-        devLog(`Fetched ${cloudPayload.length} activities via cloud sync`);
+        const fetched = cloudPayload.length;
+        devLog(`Fetched ${fetched} activities via cloud sync`);
 
-        const transformed = cloudPayload.map(normalizeIntervalsActivityFromAny);
-        return filterNonEmptyIntervalsActivities(transformed);
+        setSyncProgress('Processing activities...');
+        let transformed = cloudPayload.map(normalizeIntervalsActivityFromAny);
+        const afterNormalize = transformed.length;
+        if (allowedTypes?.length > 0) {
+            transformed = transformed.filter((act) => allowedTypes.includes(act.type));
+        }
+        const afterSportFilter = transformed.length;
+        transformed = filterNonEmptyIntervalsActivities(transformed);
+        const imported = transformed.length;
+
+        setSyncProgress('Enriching long power bests (90/120 min)...');
+        transformed = await enrichActivitiesWithLongDurationBests(transformed, intervalsConfig);
+
+        return {
+            activities: transformed,
+            stats: {
+                fetched,
+                afterNormalize,
+                afterSportFilter,
+                imported,
+                skippedEmpty: afterSportFilter - imported,
+                skippedSport: afterNormalize - afterSportFilter,
+            },
+        };
     };
 
     const syncIntervals = async (startDate, endDate, allowedTypes) => {
@@ -79,11 +116,11 @@ const useIntervalsSync = (intervalsConfig) => {
                 devLog(`Sport filters: ${allowedTypes.join(', ')}`);
             }
 
-            const transformed = useDirect
+            const { activities: transformed, stats } = useDirect
                 ? await syncViaDirectApi(startDate, endDate, allowedTypes)
                 : await syncViaCloud(startDate, endDate, allowedTypes);
 
-            return transformed;
+            return { activities: transformed, stats };
         } catch (err) {
             console.error('Intervals Sync Error:', err);
             let errMsg = err.message;

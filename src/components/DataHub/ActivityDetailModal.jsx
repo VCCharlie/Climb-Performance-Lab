@@ -2,8 +2,12 @@ import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { X, Calendar, Clock, MapPin, Zap, ExternalLink, Mountain, TrendingUp, Loader2, AlertCircle, Star, Bike, Trophy, Crown, Heart } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
 import { formatSegmentTime } from '../../utils/strava';
-import NormPowerCell from '../data-hub/NormPowerCell';
+import {
+    activityEfficiencyFactor,
+    activityVariabilityIndex,
+} from '../../utils/rideInsights';
 import ZoneMetricCell from '../data-hub/ZoneMetricCell';
+import NormPowerCell from '../data-hub/NormPowerCell';
 import ModalPortal from '../ui/ModalPortal';
 import { useModalA11y } from '../../hooks/useModalA11y';
 
@@ -188,6 +192,22 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
                                         className="text-base"
                                     />
                                 </div>
+                                {activityVariabilityIndex(activity.norm_power, activity.avg_power) != null && (
+                                    <div className="bg-cdborder/30 p-2 rounded text-center" title="Variability Index (NP ÷ avg power)">
+                                        <div className="text-xs text-cdmuted">VI</div>
+                                        <div className="font-bold text-cdtext text-base tabular-nums">
+                                            {activityVariabilityIndex(activity.norm_power, activity.avg_power).toFixed(2)}
+                                        </div>
+                                    </div>
+                                )}
+                                {activityEfficiencyFactor(activity.norm_power, activity.avg_hr) != null && (
+                                    <div className="bg-cdborder/30 p-2 rounded text-center" title="Efficiency Factor (NP ÷ avg HR, W/bpm)">
+                                        <div className="text-xs text-cdmuted">EF</div>
+                                        <div className="font-bold text-cdtext text-base tabular-nums">
+                                            {activityEfficiencyFactor(activity.norm_power, activity.avg_hr).toFixed(2)}
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="bg-cdborder/30 p-2 rounded text-center">
                                     <div className="text-xs text-cdmuted">Work</div>
                                     <div className="font-bold text-cdtext">{Math.round((activity.avg_power * activity.moving_time) / 1000)}kJ</div>

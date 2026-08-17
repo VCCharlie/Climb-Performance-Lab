@@ -14,7 +14,7 @@ import useIntervalsSync from './useIntervalsSync';
 import { resolveDeviceProfileTitlesFromSettings } from '../utils/bikeComputerProfileTitles';
 import { useToast } from '../context/ToastContext';
 import { safeLocalStorageSet } from '../utils/safeStorage';
-import { ACTIVITY_LOG_INTERVALS_LAST_SYNC_KEY, readLastIntervalsSyncAt } from '../utils/activityLogSyncLabel';
+import { countMergeCategories, formatIntervalsSyncSummary } from '../utils/importSyncStats';
 
 /**
  * Intervals.icu sync + fetch-new flows for DataHub (selected-row sync and date-range fetch).
@@ -64,16 +64,19 @@ export function useDataHubIntervalsSync({
         setSportFilters(SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: val }), {}));
     }, []);
 
-    const handleSync = useCallback(async () => {
-        if (bulkSelectedIds.size === 0) {
+    const handleSync = useCallback(async (overrideBulkIds, overrideSelectedActs) => {
+        const selectedIdSet = overrideBulkIds ?? bulkSelectedIds;
+        const selectedActs = overrideSelectedActs ?? selectedActivitiesForBulk;
+
+        if (selectedIdSet.size === 0) {
             setSyncStatus('error');
             setSyncErrorDetail('Select one or more activities (checkboxes), then use Refresh selected in the Intervals.icu sync panel.');
             setTimeout(() => setSyncStatus(null), 7000);
             return;
         }
 
-        const selectedActs = selectedActivitiesForBulk;
-        const dateParts = selectedActs
+        const selectedActsList = selectedActs;
+        const dateParts = selectedActsList
             .reduce((acc, a) => {
                 const dp = (a?.date && String(a.date).split('T')[0]) || '';
                 if (dp) acc.push(dp);
@@ -89,12 +92,12 @@ export function useDataHubIntervalsSync({
 
         const syncStart = dateParts[0];
         const syncEnd = dateParts[dateParts.length - 1];
-        const selectedIdSet = new Set([...bulkSelectedIds].map(String));
+        const bulkIdSet = new Set([...selectedIdSet].map(String));
 
-        let working = selectedActs.map((a) => ({ ...a }));
+        let working = selectedActsList.map((a) => ({ ...a }));
 
         setSyncStatus('started');
-        setSyncErrorDetail(`Step 1/2: Intervals.icu ${syncStart} → ${syncEnd} (${bulkSelectedIds.size} selected)…`);
+        setSyncErrorDetail(`Step 1/2: Intervals.icu ${syncStart} → ${syncEnd} (${selectedIdSet.size} selected)…`);
 
         try {
             const selectedTypes = getSelectedSportTypes();
@@ -106,8 +109,9 @@ export function useDataHubIntervalsSync({
                 return;
             }
 
-            const newActivitiesRaw = await syncIntervals(syncStart, syncEnd, selectedTypes);
-            const newActivities = newActivitiesRaw.filter((a) => selectedIdSet.has(String(a.id)));
+            const syncResult = await syncIntervals(syncStart, syncEnd, selectedTypes);
+            const newActivitiesRaw = syncResult.activities || [];
+            const newActivities = newActivitiesRaw.filter((a) => bulkIdSet.has(String(a.id)));
 
             const activitiesMap = new Map((activities || []).map((a) => [String(a.id), a]));
 
@@ -132,7 +136,7 @@ export function useDataHubIntervalsSync({
             setSyncErrorDetail(
                 mergedNews.length < newActivitiesRaw.length
                     ? `Step 2/2: ${mergedNews.length} of ${newActivitiesRaw.length} fetched id(s) match selection. Strava…`
-                    : `Step 2/2: Strava link + segment refresh for ${bulkSelectedIds.size} selected ride(s)…`,
+                    : `Step 2/2: Strava link + segment refresh for ${selectedIdSet.size} selected ride(s)…`,
             );
             setSyncStatus('enriching');
 
@@ -272,7 +276,10 @@ export function useDataHubIntervalsSync({
                 setTimeout(() => setSyncStatus(null), 7000);
                 return;
             }
-            const newActivitiesRaw = await syncIntervals(syncStart, syncEnd, selectedTypes);
+            const syncResult = await syncIntervals(syncStart, syncEnd, selectedTypes);
+            const newActivitiesRaw = syncResult.activities || [];
+            const syncStats = syncResult.stats;
+            const mergeCounts = countMergeCategories(newActivitiesRaw, activities);
 
             const activitiesMap = new Map((activities || []).map((a) => [String(a.id), a]));
 
@@ -366,8 +373,8 @@ export function useDataHubIntervalsSync({
 
             recordIntervalsSyncSuccess();
             setSyncStatus('done');
-            const parts = [];
-            if (merged.length > 0) parts.push(`${merged.length} from Intervals.icu`);
+            const summary = formatIntervalsSyncSummary(syncStats, mergeCounts);
+            const parts = [summary];
             if (stravaEnrichEnabled && stravaGetToken && merged.length > 0) {
                 parts.push('Strava link + enrich');
                 if (enrichCount > 0) parts.push(`${enrichCount} field update(s) from Strava`);
@@ -378,15 +385,12 @@ export function useDataHubIntervalsSync({
             } else if (merged.length > 0) {
                 parts.push('connect Strava in Settings for auto-link + details');
             }
-            setSyncErrorDetail(
-                merged.length > 0
-                    ? `✅ ${parts.join(' · ')}.`
-                    : 'No new activities returned from Intervals.icu for this range (or all filtered out).',
-            );
+            const detailText = merged.length > 0
+                ? `✅ ${parts.join(' · ')}.`
+                : summary;
+            setSyncErrorDetail(detailText);
             showToast(
-                merged.length > 0
-                    ? parts.join(' · ')
-                    : 'No new activities returned for this range.',
+                merged.length > 0 ? parts.join(' · ') : summary,
                 { variant: merged.length > 0 ? 'success' : 'info' },
             );
             setTimeout(() => setSyncStatus(null), 9000);
@@ -415,9 +419,9 @@ export function useDataHubIntervalsSync({
         return fetchAndMergeIntervalsRange(syncDates.start, syncDates.end);
     }, [fetchAndMergeIntervalsRange, syncDates.start, syncDates.end]);
 
-    const handleRunSync = useCallback(() => {
+    const handleRunSync = useCallback((overrideBulkIds, overrideSelectedActs) => {
         if (syncMode === 'refresh-selected') {
-            return handleSync();
+            return handleSync(overrideBulkIds, overrideSelectedActs);
         }
         return handleFetchNewFromIntervals();
     }, [syncMode, handleSync, handleFetchNewFromIntervals]);

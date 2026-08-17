@@ -6,6 +6,7 @@ import VolumeGoalsPanel from './VolumeGoalsPanel';
 import ClimbingReadinessCard from './ClimbingReadinessCard';
 import YtdCompareCard from './YtdCompareCard';
 import PowerLongevityCard from './PowerLongevityCard';
+import DailyHomePanel from './DailyHomePanel';
 import EmptyStateCard from '../ui/EmptyStateCard';
 import { buildOverviewBarChartIndex } from '../../utils/dashboardBarChartBuckets';
 import { BarChart3 } from 'lucide-react';
@@ -27,6 +28,7 @@ const OverviewTab = ({
     onOpenSettings,
     onGoToPowerTab,
     onGoToActivities,
+    onGoToTraining,
 }) => {
     const activitySource = allActivities || data || [];
     const hasFilteredData = data && data.length > 0;
@@ -52,6 +54,13 @@ const OverviewTab = ({
             <ClimbingReadinessCard
                 activities={activitySource}
                 userSettings={userSettings}
+            />
+
+            <DailyHomePanel
+                activities={activitySource}
+                userSettings={userSettings}
+                onOpenActivityInLog={onOpenActivityInLog}
+                onGoToTraining={onGoToTraining}
             />
 
             <YtdCompareCard activities={activitySource} manualFtp={manualFtp} />

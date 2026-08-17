@@ -10,7 +10,7 @@ import { useToast } from '../context/ToastContext';
 import { IconButton, cn } from './ui';
 import SiteQuickLinks from './shell/SiteQuickLinks';
 import { buildMobileHeaderToolbar } from './shell/MobileContextToolbar';
-import { useTodayIntervalsSync } from '../context/TodayIntervalsSyncContext';
+import { useTodayIntervalsSync } from '../context/IntervalsSyncContext';
 
 function initialsFromUser(user) {
     const n = user?.displayName?.trim() || user?.email?.trim() || '';
