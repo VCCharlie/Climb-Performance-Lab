@@ -10,9 +10,9 @@ import ImportSection from './data-hub/ImportSection';
 import useActivityFilter from '../hooks/useActivityFilter';
 import useActivityColumnVisibility from '../hooks/useActivityColumnVisibility';
 import { useDataHubBulkActions } from '../hooks/useDataHubBulkActions';
-import { useDataHubIntervalsSync } from '../hooks/useDataHubIntervalsSync';
 import { useDataHubStravaEnrich } from '../hooks/useDataHubStravaEnrich';
 import { useDataHubImport } from '../hooks/useDataHubImport';
+import { useIntervalsSync } from '../context/IntervalsSyncContext';
 import { useDataHubLogDerivations } from '../hooks/useDataHubLogDerivations';
 import { useDataHubFilterBar } from '../hooks/useDataHubFilterBar';
 import { useDataHubMaintenance } from '../hooks/useDataHubMaintenance';
@@ -134,15 +134,11 @@ const DataHub = ({
         userSettings,
     });
 
-    const intervalsSync = useDataHubIntervalsSync({
-        intervalsConfig,
-        activities,
-        onImport,
-        stravaGetToken,
-        bulkSelectedIds: bulk.bulkSelectedIds,
-        selectedActivitiesForBulk: bulk.selectedActivitiesForBulk,
-        userSettings,
-    });
+    const intervalsSync = useIntervalsSync();
+
+    const handleRunSyncWithBulk = useCallback(() => {
+        return intervalsSync.handleRunSync(bulk.bulkSelectedIds, bulk.selectedActivitiesForBulk);
+    }, [intervalsSync, bulk.bulkSelectedIds, bulk.selectedActivitiesForBulk]);
 
     const stravaEnrich = useDataHubStravaEnrich({
         stravaGetToken,
@@ -334,6 +330,7 @@ const DataHub = ({
                         profileMaxHr={profileMaxHr}
                         visibleColumns={visibleColumns}
                         onFilterByGearId={filter.filterByGearId}
+                        onRunSync={handleRunSyncWithBulk}
                     />
                     </div>
                 )}

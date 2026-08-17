@@ -14,7 +14,7 @@ import { useActivitiesList } from '../hooks/useActivities';
 import { SkeletonChartCard } from './ui/Skeleton';
 import DashboardTodaySyncButton from './dashboard/DashboardTodaySyncButton';
 import { useProfileFtp } from '../context/ProfileFtpContext';
-import { useTodayIntervalsSync } from '../context/TodayIntervalsSyncContext';
+import { useTodayIntervalsSync } from '../context/IntervalsSyncContext';
 import { useTabListKeyboard } from '../hooks/useTabListKeyboard';
 import OverviewTab from './dashboard/OverviewTab';
 import DashboardSubTabNav from './dashboard/DashboardSubTabNav';
@@ -56,6 +56,7 @@ const Dashboard = ({
     onOpenSettings,
     onOpenActivityLogDateRange,
     onGoToActivities,
+    onGoToTraining,
     stravaGetToken = null,
     stravaAthleteId = null,
     stravaProfileData = null,
@@ -184,6 +185,7 @@ const Dashboard = ({
                         onOpenSettings={onOpenSettings}
                         onGoToPowerTab={() => setDashboardTab('power')}
                         onGoToActivities={onGoToActivities}
+                        onGoToTraining={onGoToTraining}
                     />
                 </div>
             )}

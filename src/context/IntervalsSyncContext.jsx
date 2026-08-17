@@ -2,20 +2,21 @@ import React, { createContext, useCallback, useContext, useMemo } from 'react';
 import { useActivities } from '../hooks/useActivities';
 import { useDataHubIntervalsSync } from '../hooks/useDataHubIntervalsSync';
 
-const TodayIntervalsSyncContext = createContext(null);
+const IntervalsSyncContext = createContext(null);
 
 const EMPTY_BULK_SET = new Set();
 
 /**
- * Fetch & merge Intervals.icu activities for a date range (shared with Activity Log).
+ * Shared Intervals.icu sync state (single hook instance for Activity Log + Dashboard “sync today”).
  */
-export function TodayIntervalsSyncProvider({
+export function IntervalsSyncProvider({
     children,
     intervalsConfig,
     stravaGetToken,
     userSettings,
 }) {
     const { activities, importActivities } = useActivities();
+
     const intervalsSync = useDataHubIntervalsSync({
         intervalsConfig,
         activities,
@@ -32,25 +33,34 @@ export function TodayIntervalsSyncProvider({
     }, [intervalsSync.fetchAndMergeIntervalsRange]);
 
     const value = useMemo(() => ({
+        ...intervalsSync,
         syncTodayActivities,
         isTodaySyncBusy: intervalsSync.isFetchingNewIntervals || intervalsSync.isSyncing,
-    }), [
-        syncTodayActivities,
-        intervalsSync.isFetchingNewIntervals,
-        intervalsSync.isSyncing,
-    ]);
+    }), [intervalsSync, syncTodayActivities]);
 
     return (
-        <TodayIntervalsSyncContext.Provider value={value}>
+        <IntervalsSyncContext.Provider value={value}>
             {children}
-        </TodayIntervalsSyncContext.Provider>
+        </IntervalsSyncContext.Provider>
     );
 }
 
+export function useIntervalsSync() {
+    const ctx = useContext(IntervalsSyncContext);
+    if (!ctx) {
+        throw new Error('useIntervalsSync requires IntervalsSyncProvider');
+    }
+    return ctx;
+}
+
+/** Dashboard header sync — safe when provider missing. */
 export function useTodayIntervalsSync() {
-    const ctx = useContext(TodayIntervalsSyncContext);
+    const ctx = useContext(IntervalsSyncContext);
     if (!ctx) {
         return { syncTodayActivities: null, isTodaySyncBusy: false };
     }
-    return ctx;
+    return {
+        syncTodayActivities: ctx.syncTodayActivities,
+        isTodaySyncBusy: ctx.isTodaySyncBusy,
+    };
 }

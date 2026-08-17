@@ -118,7 +118,7 @@ import { ActivityLogNavigationProvider, useActivityLogNavigation } from './conte
 import { ProfileFtpProvider } from './context/ProfileFtpContext';
 import TrainingFtpContextNote from './components/coach/TrainingFtpContextNote';
 import TrainingSubTabNav from './components/training/TrainingSubTabNav';
-import { TodayIntervalsSyncProvider } from './context/TodayIntervalsSyncContext';
+import { IntervalsSyncProvider } from './context/IntervalsSyncContext';
 
 function GetStartedStrip({ userSettings, intervalsConfig, onOpenSettings, onGoToActivities }) {
     const activities = useActivitiesList();
@@ -1057,6 +1057,12 @@ const App = () => {
         setActiveTab('activities');
     }, []);
 
+    const navigateToTraining = useCallback(() => {
+        persistMainTab('training');
+        setActiveTab('training');
+        setTrainingSubTab('coach');
+    }, []);
+
     const [dataHubMountKey, setDataHubMountKey] = useState(0);
     const [dataHubMountTab, setDataHubMountTab] = useState(() => resolveInitialDataHubInternalTab());
 
@@ -1076,7 +1082,7 @@ const App = () => {
         <ActivitiesProvider key={user?.uid ?? 'signed-out'} user={user}>
             <ActivityLogNavigationProvider onNavigateToActivities={navigateToActivities}>
                 <ProfileFtpProvider userSettings={userSettings}>
-                    <TodayIntervalsSyncProvider
+                    <IntervalsSyncProvider
                         intervalsConfig={intervalsConfig}
                         stravaGetToken={stravaAuth.isConnected ? stravaAuth.getValidToken : null}
                         userSettings={userSettings}
@@ -1142,6 +1148,7 @@ const App = () => {
                                         userSettings={userSettings}
                                         onOpenSettings={handleOpenSettings}
                                         onGoToActivities={navigateToActivities}
+                                        onGoToTraining={navigateToTraining}
                                         stravaGetToken={stravaAuth.isConnected ? stravaAuth.getValidToken : null}
                                         stravaAthleteId={stravaConfig?.athlete_id}
                                         stravaProfileData={stravaProfileData}
@@ -1377,7 +1384,7 @@ const App = () => {
                     <PwaUpdateBanner />
                     <OrientationGuard />
                 </div>
-                    </TodayIntervalsSyncProvider>
+                    </IntervalsSyncProvider>
                 </ProfileFtpProvider>
             </ActivityLogNavigationProvider>
         </ActivitiesProvider>
