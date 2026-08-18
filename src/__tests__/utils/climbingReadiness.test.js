@@ -8,7 +8,9 @@ import { TERRAIN_PROFILE_FLAT, TERRAIN_PROFILE_HILLY } from '../../utils/climbin
 function expectedReadinessTsb(activities, referenceDate) {
     const week = currentWeekRange(referenceDate);
     const today = todayYmd();
-    const asOfYmd = week.endYmd < today ? week.endYmd : today;
+    const refYmd = referenceDate.toISOString().slice(0, 10);
+    const capYmd = refYmd <= today ? refYmd : today;
+    const asOfYmd = week.endYmd < capYmd ? week.endYmd : capYmd;
     return getFitnessAtDate(activities, asOfYmd)?.tsb;
 }
 

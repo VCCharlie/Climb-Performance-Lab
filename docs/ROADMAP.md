@@ -65,7 +65,7 @@ Parallel aan de product-fases hierboven loopt een UX/design rollout:
 | **Audit 3E** | `yellow-400` → `cd*` token sweep (Physics, Race, Bucket) | Done (PR #505) |
 | **Audit 3F** | `yellow-400` → `cd*` token sweep (Gear, Map, Dashboard, Coach, Settings) | Done (PR #506) |
 | **Hotfix** | Activity Detail peak power curve (`cdprimary` alpha) | Done (PR #508) |
-| **Later** | Training calendar / decoupling engine | Backlog |
+| **Later** | Training calendar / decoupling engine | → Fase 8 (ROADMAP) |
 
 ---
 
@@ -86,6 +86,28 @@ Parallel aan de product-fases hierboven loopt een UX/design rollout:
 | 5b | **Sync/component tests** (hooks rond DataHub) | Done (PR #510) |
 | 5c | **`App.jsx` opsplitsen** (providers) | Done (`AppProviders`, `AppShellHelpers`) |
 | 5d | Opruimen: dode `SettingsTab.jsx`, `DataHub/` vs `data-hub/` consolidatie | Done |
+
+---
+
+## Fase 7 — Performance (Bolt plan)
+
+Zie `.jules/bolt-plan.md` voor detail. Veel is al gedaan (lazy tabs, virtualized log, `ActivitiesProvider`).
+
+| Fase | Thema | Status |
+|------|--------|--------|
+| Bolt 1 | Quick wins (memo, cleanup) | Partial (lazy tabs, heatmap, Header memo al live) |
+| Bolt 2 | Data hot paths (climb match scope, power cache, filter vóór enrich) | Backlog |
+| Bolt 3 | Bundle (lazy climbs DB, manualChunks, Leaflet lazy) | Partial (tab lazy live) |
+| Bolt 4 | Advanced (workers, prefetch) | Backlog |
+
+---
+
+## Fase 8 — Training calendar (backlog)
+
+| # | Onderdeel | Status |
+|---|-----------|--------|
+| 8a | Week-plan kalenderweergave (Coach week → calendar UI) | Backlog |
+| 8b | Aerobic decoupling engine (HR drift / decoupling metrics) | Backlog |
 
 ---
 

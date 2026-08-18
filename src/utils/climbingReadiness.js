@@ -46,7 +46,7 @@ export const CLIMBING_READINESS_EXPLANATION = {
         'Peak climb readiness — high score with fresh TSB (+0 to +22)',
     ],
     historyNote:
-        'Weekly and monthly history below re-runs the same formula on past calendar windows. TSB uses your form as of today for the current period, or the last day of past weeks/months.',
+        'Weekly and monthly history below re-runs the same formula on past calendar windows. TSB uses your form on the reference day (or today when viewing the current week), or the last day of fully past weeks.',
 };
 
 /** @typedef {'recover' | 'building' | 'good' | 'peak'} ReadinessBadgeKey */
@@ -174,13 +174,19 @@ function scorePeriodTss(totalTss, periodDays) {
 }
 
 /**
- * TSB at end of period — for the current week/month uses today (matches Coach / Recovery).
+ * TSB at end of period — for the current week uses reference day (or today), not week-end
+ * when that would look past rides logged on the reference day. Past weeks use week/month end.
  * @param {object[]} activities
  * @param {string} endYmd
+ * @param {Date} [referenceDate]
  */
-function fitnessSnapshotAtOrBefore(activities, endYmd) {
+function fitnessSnapshotAtOrBefore(activities, endYmd, referenceDate) {
     const today = todayYmd();
-    const asOfYmd = endYmd < today ? endYmd : today;
+    const refYmd = referenceDate instanceof Date
+        ? referenceDate.toISOString().slice(0, 10)
+        : today;
+    const capYmd = refYmd <= today ? refYmd : today;
+    const asOfYmd = endYmd < capYmd ? endYmd : capYmd;
     return getFitnessAtDate(activities, asOfYmd);
 }
 
@@ -238,7 +244,7 @@ function computeClimbingReadinessForRange(
     }
 
     const z2Hours = z2Seconds / 3600;
-    const latestFitness = fitnessSnapshotAtOrBefore(activities, endYmd);
+    const latestFitness = fitnessSnapshotAtOrBefore(activities, endYmd, referenceDate);
     const tsb = latestFitness?.tsb ?? null;
 
     const elevTargets = elevationTargetsForProfile(terrainProfile, periodDays);

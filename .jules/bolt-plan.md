@@ -58,7 +58,7 @@
 | # | Optimalisatie | Locatie | Probleem | Fix | Verwachte winst |
 |---|---------------|---------|----------|-----|-----------------|
 | 1.1 | Verwijder ongebruikte dependency | `package.json` | `framer-motion` niet geïmporteerd in `src/` | Dependency verwijderen | Kleinere install + marginale bundle |
-| 1.2 | Verwijder dode code | `DataHub/ActivityLogTab.jsx` | Nergens geïmporteerd; oude niet-gevirtualiseerde tabel | Bestand verwijderen | Minder onderhoud, geen runtime-win |
+| 1.2 | Verwijder dode code | `DataHub/ActivityLogTab.jsx`, `FetchIntervalsPanel`, `SyncPanel` | Niet geïmporteerd / vervangen door `IntervalsSyncPanel` | Bestanden verwijderd (5d) | — |
 | 1.3 | Memo chart series | `PerformanceModule.jsx` L226, L271–272, L468 | `new Date()` + dubbele `filter` + inline `.map` elke render | `useMemo` voor `axisTicks`, `indoor/outdoor` split, `chartSeries` | Minder GC bij Overview met 200+ punten |
 | 1.4 | Heatmap max | `ActivityHeatmap.jsx` L48 | `Math.max(...Object.values())` | Single-pass `reduce` | Micro; consistent met journal |
 | 1.5 | Shell memo | `Header.jsx`, `shell/MainNav.jsx` | Re-render bij elke `activities` sync | `React.memo` | Minder werk buiten actieve tab |
