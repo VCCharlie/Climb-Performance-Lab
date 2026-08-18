@@ -1,39 +1,12 @@
 import React from 'react';
 import { Target, Wind, Clock, AlertTriangle, Zap } from 'lucide-react';
-
-const STIMULUS_STYLES = {
-    recovery: {
-        border: 'border-green-500/50',
-        badge: 'bg-green-500/15 text-green-400',
-        accent: 'text-green-400',
-    },
-    endurance: {
-        border: 'border-blue-500/50',
-        badge: 'bg-blue-500/15 text-blue-400',
-        accent: 'text-blue-400',
-    },
-    sweetspot: {
-        border: 'border-yellow-500/50',
-        badge: 'bg-yellow-500/15 text-yellow-400',
-        accent: 'text-yellow-400',
-    },
-    threshold: {
-        border: 'border-orange-500/50',
-        badge: 'bg-orange-500/15 text-orange-400',
-        accent: 'text-orange-400',
-    },
-    vo2: {
-        border: 'border-red-500/50',
-        badge: 'bg-red-500/15 text-red-400',
-        accent: 'text-red-400',
-    },
-};
+import { getStimulusStyle } from './coachStimulusStyles';
 
 const TodaysFocusCard = ({ coachContext }) => {
     if (!coachContext?.fluidWorkout) return null;
 
     const workout = coachContext.fluidWorkout;
-    const styles = STIMULUS_STYLES[workout.stimulus] || STIMULUS_STYLES.sweetspot;
+    const styles = getStimulusStyle(workout.stimulus);
     const { fitness, weeklyLoad } = coachContext;
 
     return (
@@ -71,9 +44,9 @@ const TodaysFocusCard = ({ coachContext }) => {
             </div>
 
             {coachContext.warnings?.length > 0 && (
-                <div className="px-5 py-3 bg-yellow-500/10 border-b border-cdborder">
+                <div className="px-5 py-3 bg-cdprimarycontainer/20 border-b border-cdborder">
                     {coachContext.warnings.map((w, i) => (
-                        <p key={i} className="text-xs text-yellow-400 flex items-start gap-2">
+                        <p key={i} className="text-xs text-cdprimary flex items-start gap-2">
                             <AlertTriangle size={13} className="shrink-0 mt-0.5" />
                             {w}
                         </p>

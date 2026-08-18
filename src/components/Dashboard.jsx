@@ -25,7 +25,7 @@ const FormTab = lazyWithRetry(() => import('./dashboard/FormTab'), 'FormTab');
 const PowerTab = lazyWithRetry(() => import('./dashboard/PowerTab'), 'PowerTab');
 const DistanceTab = lazyWithRetry(() => import('./dashboard/DistanceTab'), 'DistanceTab');
 const VolumeTotalsTab = lazyWithRetry(() => import('./dashboard/VolumeTotalsTab'), 'VolumeTotalsTab');
-const StravaProfileTab = lazyWithRetry(() => import('./DataHub/StravaProfileTab'), 'StravaProfileTab');
+const StravaProfileTab = lazyWithRetry(() => import('./data-hub/StravaProfileTab'), 'StravaProfileTab');
 
 const DASH_SUBTAB_STORAGE_KEY = 'cpl.dashboard.subTab.v1';
 const BASE_DASHBOARD_TAB_IDS = ['overview', 'form', 'power', 'distance', 'volume', 'compare'];
@@ -154,7 +154,7 @@ const Dashboard = ({
             {/* HEADER SECTION */}
             <div className="bg-cdsurface p-3 md:p-4 rounded-xl border border-cdborder shadow-md flex items-start justify-between gap-3">
                 <div>
-                    <h2 className="text-xl md:text-2xl font-bold text-yellow-500 tracking-tight">Dashboard</h2>
+                    <h2 className="text-xl md:text-2xl font-bold text-cdtext tracking-tight">Dashboard</h2>
                     <p className="hidden md:block text-cdmuted text-sm">Performance metrics overview</p>
                 </div>
                 <DashboardTodaySyncButton

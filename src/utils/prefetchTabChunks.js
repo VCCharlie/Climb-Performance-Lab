@@ -31,7 +31,7 @@ const DASHBOARD_SUBTAB_LOADERS = {
     distance: () => import('../components/dashboard/DistanceTab'),
     volume: () => import('../components/dashboard/VolumeTotalsTab'),
     compare: () => import('../components/dashboard/CompareTab'),
-    strava: () => import('../components/DataHub/StravaProfileTab'),
+    strava: () => import('../components/data-hub/StravaProfileTab'),
 };
 
 function runPrefetch(key, loader) {

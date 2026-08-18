@@ -5,7 +5,7 @@ import ImportModal from './ImportModal';
 import DuplicateResolver from './DuplicateResolver';
 import NoPowerModal from './NoPowerModal';
 import MergePairModal from './MergePairModal';
-import ActivityDetailModal from '../DataHub/ActivityDetailModal';
+import ActivityDetailModal from './ActivityDetailModal';
 import { db } from '../../firebase';
 
 /**

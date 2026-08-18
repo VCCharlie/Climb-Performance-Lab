@@ -6,6 +6,7 @@ import ActivityLogTab from './data-hub/ActivityLogTab';
 import DataHubModals from './data-hub/DataHubModals';
 import StravaEnrichOverlay from './data-hub/StravaEnrichOverlay';
 import ImportSection from './data-hub/ImportSection';
+import SubTabNav from './ui/SubTabNav';
 
 import useActivityFilter from '../hooks/useActivityFilter';
 import useActivityColumnVisibility from '../hooks/useActivityColumnVisibility';
@@ -258,6 +259,11 @@ const DataHub = ({
         [maintenance],
     );
 
+    const dataHubTabs = useMemo(() => [
+        { id: 'log', label: 'Activity Log', ariaControls: 'tabpanel-log' },
+        { id: 'import', label: 'Import Data', ariaControls: 'tabpanel-import' },
+    ], []);
+
     return (
         <div className="bg-cdsurface rounded-xl border border-cdborder shadow-xl overflow-hidden min-h-[500px] flex flex-col relative animate-in fade-in">
             <DataHubModals
@@ -277,10 +283,15 @@ const DataHub = ({
                 isDeleting={isDeleting}
             />
 
-            <div className="flex border-b border-cdborder" role="tablist" aria-label="Data Hub Tabs" onKeyDown={onDataHubTabKeyDown}>
-                <button type="button" id="tab-log" role="tab" aria-selected={internalTab === 'log'} aria-controls="tabpanel-log" onClick={() => setInternalTab('log')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'log' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Activity Log</button>
-                <button type="button" id="tab-import" role="tab" aria-selected={internalTab === 'import'} aria-controls="tabpanel-import" onClick={() => setInternalTab('import')} className={`flex-1 py-3 text-sm font-bold ${internalTab === 'import' ? 'bg-cdborder text-yellow-400' : 'text-cdmuted hover:bg-cdborder/50'}`}>Import Data</button>
-            </div>
+            <SubTabNav
+                tabs={dataHubTabs}
+                activeTab={internalTab}
+                onTabChange={setInternalTab}
+                onKeyDown={onDataHubTabKeyDown}
+                ariaLabel="Data Hub Tabs"
+                idPrefix="tab"
+                layout="equal"
+            />
 
             <div className="flex-1 overflow-hidden flex flex-col">
                 {internalTab === 'log' && (
