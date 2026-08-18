@@ -172,7 +172,7 @@ const ActivityLogFilterBar = ({
                     showUtilMenu ? 'overflow-visible' : 'overflow-y-auto',
                     mobilePanelExpanded
                         ? 'max-h-[min(85vh,100%)] landscape:max-h-[min(92vh,100%)]'
-                        : 'max-h-[min(38vh,100%)] landscape:max-h-[min(52vh,100%)]',
+                        : 'max-h-none',
                 )
                 : 'lg:max-h-none lg:overflow-visible',
         )}
@@ -192,7 +192,7 @@ const ActivityLogFilterBar = ({
                         onChange={(e) => onSearchChange(e.target.value)}
                         placeholder="Search (name, description, or 4-2-2024)..."
                         aria-label="Search activities by name, description, or date"
-                        className="w-full min-h-9 bg-cdbg border border-cdborder rounded pl-10 pr-4 py-2 text-sm text-cdtext outline-none focus:border-yellow-400"
+                        className="w-full min-h-9 bg-cdbg border border-cdborder rounded pl-10 pr-4 py-2 text-sm text-cdtext outline-none focus:border-cdprimary/60 focus:ring-2 focus:ring-cdprimary/15"
                     />
                 </div>
                 <div className={cn('flex flex-wrap items-center gap-2', useCardLayout && 'w-full')}>
@@ -244,7 +244,7 @@ const ActivityLogFilterBar = ({
                         type="button"
                         onClick={onManualRefresh}
                         disabled={isManualRefreshing}
-                        className="flex items-center justify-center w-9 h-9 rounded border bg-cdsurface border-cdborder text-cdmuted hover:text-green-400 hover:border-green-500/50 transition-colors group disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                        className="flex items-center justify-center w-9 h-9 rounded border bg-cdsurface border-cdborder text-cdmuted hover:text-green-400 hover:border-green-500/50 transition-colors group disabled:opacity-50 cd-focus-ring focus:outline-none"
                         title="Refresh data"
                         aria-label="Refresh data"
                     >
@@ -258,7 +258,7 @@ const ActivityLogFilterBar = ({
                         onClick={() => onShowUtilMenuChange((v) => !v)}
                         aria-expanded={showUtilMenu}
                         aria-haspopup="menu"
-                        className="flex items-center justify-center gap-1.5 px-3 h-9 w-full md:w-auto rounded text-sm font-bold border bg-cdsurface border-cdborder text-cdtext hover:border-yellow-400 transition-all focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                        className="flex items-center justify-center gap-1.5 px-3 h-9 w-full md:w-auto rounded text-sm font-bold border bg-cdsurface border-cdborder text-cdtext hover:border-cdprimary/50 transition-all cd-focus-ring focus:outline-none"
                     >
                         Tools <ChevronDown size={14} className={showUtilMenu ? 'rotate-180 transition-transform' : 'transition-transform'} aria-hidden="true" />
                     </button>
@@ -272,7 +272,7 @@ const ActivityLogFilterBar = ({
                             type="button"
                             onClick={onFindDuplicates}
                             disabled={!activitiesCount}
-                            className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-orange-400 hover:bg-cdborder disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                            className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-orange-400 hover:bg-cdborder disabled:opacity-40 cd-focus-ring focus:outline-none"
                             role="menuitem"
                         >
                             <Split size={14} aria-hidden="true" /> Duplicates
@@ -286,7 +286,7 @@ const ActivityLogFilterBar = ({
                                     onShowUtilMenuChange(false);
                                 }}
                                 disabled={isStravaDescBackfilling}
-                                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-cdtext hover:bg-cdborder disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-cdtext hover:bg-cdborder disabled:opacity-40 cd-focus-ring focus:outline-none"
                             >
                                 {isStravaDescBackfilling ? <Loader2 className="animate-spin" size={14} aria-hidden="true" /> : <Link2 size={14} aria-hidden="true" />}
                                 Strava descriptions
@@ -297,7 +297,7 @@ const ActivityLogFilterBar = ({
                             type="button"
                             onClick={onClearDatabase}
                             disabled={isDeleting || !activitiesCount}
-                            className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-cdborder disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                            className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-cdborder disabled:opacity-40 cd-focus-ring focus:outline-none"
                         >
                             {isDeleting ? <Loader2 className="animate-spin" size={14} aria-hidden="true" /> : <Trash size={14} aria-hidden="true" />}
                             Clear DB
@@ -312,6 +312,7 @@ const ActivityLogFilterBar = ({
             collapsed={!logFiltersPanelOpen}
             onCollapsedChange={onLogFiltersPanelOpenChange}
             activeFilterCount={activeFilterCount}
+            compact={useCardLayout}
             thisWeekOnly={thisWeekOnly}
             onThisWeekOnlyChange={onThisWeekOnlyChange}
             rollingDays={rollingDays}

@@ -2,14 +2,12 @@ import React, { useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { MoreHorizontal } from 'lucide-react';
 import { cn } from '../ui';
-import { MAIN_NAV_TABS } from '../../config/navTabs';
+import { PRIMARY_NAV_TABS, MORE_NAV_TABS } from '../../config/navTabs';
 import { prefetchMainTabChunk } from '../../utils/prefetchTabChunks';
 
-const BOTTOM_NAV_IDS = new Set(['dashboard', 'activities', 'training', 'physics']);
+const BOTTOM_NAV_TABS = PRIMARY_NAV_TABS;
 
-const BOTTOM_NAV_TABS = MAIN_NAV_TABS.filter((tab) => BOTTOM_NAV_IDS.has(tab.id));
-
-const MORE_TABS = MAIN_NAV_TABS.filter((tab) => !BOTTOM_NAV_IDS.has(tab.id));
+const MORE_TABS = MORE_NAV_TABS;
 
 /**
  * Mobile bottom navigation — four primary tabs plus a "More" menu for the rest.

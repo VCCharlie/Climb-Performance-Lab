@@ -13,12 +13,13 @@ export default function ActivityLogFilterPanel({
     collapsed = false,
     onCollapsedChange,
     activeFilterCount = 0,
+    compact = false,
     ...sectionProps
 }) {
     const body = (
         <>
             <div className="px-3 py-2.5">
-                <QuickFilterChips {...sectionProps} />
+                <QuickFilterChips compact={compact} {...sectionProps} />
             </div>
             <MetricRangesSection
                 expanded={sectionProps.activityLogRangesExpanded}

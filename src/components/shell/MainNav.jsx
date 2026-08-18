@@ -1,12 +1,13 @@
 import React from 'react';
 import NavTab from './NavTab';
+import NavMoreMenu from './NavMoreMenu';
 import TimeRangeToolbar from './TimeRangeToolbar';
 import StickyTimeRangeToolbar from './StickyTimeRangeToolbar';
-import { MAIN_NAV_TABS, TIME_RANGE_TAB_IDS } from '../../config/navTabs';
+import { PRIMARY_NAV_TABS, TIME_RANGE_TAB_IDS } from '../../config/navTabs';
 import { prefetchMainTabChunk } from '../../utils/prefetchTabChunks';
 
 /**
- * Desktop main navigation — mobile uses bottom tabs and header-inline context actions.
+ * Desktop main navigation — four primary hubs + More menu (parity with mobile bottom nav).
  */
 function MainNav({
   activeTab,
@@ -17,7 +18,6 @@ function MainNav({
   customEnd,
   onCustomStart,
   onCustomEnd,
-  tabs = MAIN_NAV_TABS,
 }) {
   const showTimeRange = TIME_RANGE_TAB_IDS.has(activeTab);
 
@@ -40,7 +40,7 @@ function MainNav({
               role="tablist"
               aria-label="Main navigation"
             >
-              {tabs.map((item) => (
+              {PRIMARY_NAV_TABS.map((item) => (
                 <NavTab
                   key={item.id}
                   id={`main-tab-${item.id}`}
@@ -52,6 +52,7 @@ function MainNav({
                   onPrefetch={() => prefetchMainTabChunk(item.id)}
                 />
               ))}
+              <NavMoreMenu activeTab={activeTab} onTabChange={onTabChange} />
             </nav>
             {showTimeRange ? (
               <TimeRangeToolbar
