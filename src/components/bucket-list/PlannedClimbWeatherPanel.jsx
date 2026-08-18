@@ -2,7 +2,7 @@ import React from 'react';
 import { Cloud, MapPin, Route } from 'lucide-react';
 import FlagIcon from '../FlagIcon';
 import { climbsByStatus } from '../../utils/bucketListState';
-import { WEATHER_CLIMB_LOCATIONS } from '../../utils/weatherClimbLocations';
+import { canResolveWeatherForClimb } from '../../utils/weatherClimbLocations';
 
 /**
  * Planned climbs with quick link to Weather tab.
@@ -38,9 +38,7 @@ const PlannedClimbWeatherPanel = ({
             </div>
             <ul className="space-y-2">
                 {planned.slice(0, 8).map((climb) => {
-                    const hasWeatherHint = !!WEATHER_CLIMB_LOCATIONS[climb.id]
-                        || (climb.lat != null && climb.lon != null)
-                        || climb.country !== 'ZWIFT';
+                    const hasWeatherHint = canResolveWeatherForClimb(climb);
                     return (
                         <li
                             key={climb.id}

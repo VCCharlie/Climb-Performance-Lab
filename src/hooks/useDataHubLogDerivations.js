@@ -45,9 +45,9 @@ export function useDataHubLogDerivations({
             const el = document.getElementById(`activity-row-${focusActivityId}`);
             if (el) {
                 el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                el.classList.add('ring-2', 'ring-yellow-400', 'ring-inset', 'bg-cdborder/40');
+                el.classList.add('ring-2', 'ring-cdprimary', 'ring-inset', 'bg-cdborder/40');
                 setTimeout(() => {
-                    el.classList.remove('ring-2', 'ring-yellow-400', 'ring-inset', 'bg-cdborder/40');
+                    el.classList.remove('ring-2', 'ring-cdprimary', 'ring-inset', 'bg-cdborder/40');
                     onFocusActivityCleared?.();
                 }, 4500);
             } else {
