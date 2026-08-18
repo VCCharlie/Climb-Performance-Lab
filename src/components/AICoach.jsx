@@ -22,6 +22,7 @@ import {
     TRAINING_PLAN_UPDATED_EVENT,
 } from '../utils/trainingPlanSnapshot';
 import { useProfileFtp } from '../context/ProfileFtpContext';
+import { downloadZwoWorkout } from '../utils/zwoExport';
 
 /** moving_time: seconden (number) of "H:MM:SS" uit CSV */
 function movingTimeToSeconds(val) {
@@ -446,40 +447,9 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
 
     // --- 2. ZWO DOWNLOAD HANDLER ---
     const handleDownloadZwo = (workout) => {
-        if (!workout.zwoSteps || workout.zwoSteps.length === 0) {
+        if (!downloadZwoWorkout(workout)) {
             showToast('No workout file needed for this rest day. Enjoy the rest!', { variant: 'info' });
-            return;
         }
-
-        const xml = `
-<workout_file>
-    <author>Climb Lab Pro</author>
-    <name>${workout.title}</name>
-    <description>${workout.description}</description>
-    <sportType>bike</sportType>
-    <tags><tag name="Intervals"/></tags>
-    <workout>
-${workout.zwoSteps.map(step => {
-            if (step.type === 'IntervalsT') {
-                return `        <IntervalsT Repeat="${step.repeat}" OnDuration="${step.onDuration}" OffDuration="${step.offDuration}" OnPower="${step.onPower}" OffPower="${step.offPower}"/>`;
-            }
-            if (step.type === 'Warmup' || step.type === 'Cooldown') {
-                return `        <${step.type} Duration="${step.duration}" PowerLow="${step.powerLow}" PowerHigh="${step.powerHigh}"/>`;
-            }
-            return `        <SteadyState Duration="${step.duration}" Power="${step.power}"/>`;
-        }).join('\n')}
-    </workout>
-</workout_file>`.trim();
-
-        const blob = new Blob([xml], { type: 'application/xml' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `CPL_${workout.title.replace(/\s+/g, '_')}.zwo`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
     };
 
     const getCardStyles = (t) => {
