@@ -42,7 +42,7 @@ const BucketListClimbRow = ({
                 : status === 'planned'
                     ? 'bg-blue-50 border-blue-200'
                     : status === 'want'
-                        ? 'bg-yellow-50 border-yellow-200'
+                        ? 'bg-cdprimarycontainer/40 border-cdprimary/30'
                         : 'bg-cdsurface border-cdborder hover:border-cdborder'
             }`}
         >
@@ -138,8 +138,8 @@ const BucketListClimbRow = ({
                         type="button"
                         onClick={() => onToggleStatus(climb.id, 'want')}
                         className={`p-1.5 rounded transition-colors ${status === 'want'
-                            ? 'bg-yellow-500 text-white'
-                            : 'bg-cdborder text-cdmuted hover:bg-yellow-100 hover:text-yellow-600'
+                            ? 'bg-cdprimary text-cdonprimary'
+                            : 'bg-cdborder text-cdmuted hover:bg-cdprimarycontainer hover:text-cdprimary'
                         }`}
                         title="Want to do"
                     >

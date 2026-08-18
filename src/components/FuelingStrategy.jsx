@@ -194,14 +194,14 @@ const FuelingStrategy = ({
                         <div>
                             <div className="flex justify-between text-xs text-cdtext mb-1">
                                 <span>Duration</span>
-                                <span className="font-mono text-yellow-400">{Math.floor(duration / 60)}h {duration % 60}m</span>
+                                <span className="font-mono text-cdprimary">{Math.floor(duration / 60)}h {duration % 60}m</span>
                             </div>
-                            <input type="range" min="30" max="600" step="15" value={duration} onChange={e => setDuration(parseInt(e.target.value))} className="w-full h-2 bg-cdborder rounded-lg appearance-none cursor-pointer accent-yellow-400" />
+                            <input type="range" min="30" max="600" step="15" value={duration} onChange={e => setDuration(parseInt(e.target.value))} className="w-full h-2 bg-cdborder rounded-lg appearance-none cursor-pointer accent-cdprimary" />
                         </div>
                         <div>
                             <div className="flex justify-between text-xs text-cdtext mb-1">
                                 <span>Intensity (IF)</span>
-                                <span className="font-mono text-yellow-400">{(intensity * 100).toFixed(0)}%</span>
+                                <span className="font-mono text-cdprimary">{(intensity * 100).toFixed(0)}%</span>
                             </div>
                             <input type="range" min="0.5" max="1.1" step="0.01" value={intensity} onChange={e => setIntensity(parseFloat(e.target.value))} className="w-full h-2 bg-cdborder rounded-lg appearance-none cursor-pointer accent-red-500" />
                         </div>
@@ -214,11 +214,11 @@ const FuelingStrategy = ({
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="text-[10px] text-cdmuted uppercase">Temp (°C)</label>
-                                <input type="number" value={temp} onChange={e => setTemp(parseInt(e.target.value))} className="w-full bg-cdsurface border-cdborder rounded text-sm text-cdtext px-2 py-1 mt-1 focus:border-yellow-400 outline-none" />
+                                <input type="number" value={temp} onChange={e => setTemp(parseInt(e.target.value))} className="w-full bg-cdsurface border-cdborder rounded text-sm text-cdtext px-2 py-1 mt-1 focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none" />
                             </div>
                             <div>
                                 <label className="text-[10px] text-cdmuted uppercase">Altitude (m)</label>
-                                <input type="number" step="100" value={altitude} onChange={e => setAltitude(parseInt(e.target.value))} className="w-full bg-cdsurface border-cdborder rounded text-sm text-cdtext px-2 py-1 mt-1 focus:border-yellow-400 outline-none" />
+                                <input type="number" step="100" value={altitude} onChange={e => setAltitude(parseInt(e.target.value))} className="w-full bg-cdsurface border-cdborder rounded text-sm text-cdtext px-2 py-1 mt-1 focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none" />
                             </div>
                         </div>
 
@@ -271,7 +271,7 @@ const FuelingStrategy = ({
                     {/* KPI Cards */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="bg-cdborder/50 p-4 rounded-lg border border-cdborder text-center">
-                            <Zap className="w-5 h-5 text-yellow-500 mx-auto mb-2" />
+                            <Zap className="w-5 h-5 text-cdprimary mx-auto mb-2" />
                             <div className="text-2xl font-bold text-cdtext">{calculateStrategy.carbsPerHour}g</div>
                             <div className="text-xs text-cdmuted uppercase">Carbs / Hour</div>
                         </div>
@@ -304,7 +304,7 @@ const FuelingStrategy = ({
                                 </div>
                             </div>
                             <div className="flex items-center gap-3 bg-cdsurface px-4 py-3 rounded border border-cdborder flex-1 min-w-[150px]">
-                                <div className="bg-yellow-500/20 p-2 rounded text-yellow-400 font-bold text-xl">{calculateStrategy.packing.gels}</div>
+                                <div className="bg-cdprimary/20 p-2 rounded text-cdprimary font-bold text-xl">{calculateStrategy.packing.gels}</div>
                                 <div>
                                     <div className="text-sm font-bold text-cdtext">Gels</div>
                                     <div className="text-[10px] text-cdmuted">{calculateStrategy.packing.gelName}</div>
@@ -331,8 +331,8 @@ const FuelingStrategy = ({
                             </div>
 
                             {timeline.map((event, idx) => (
-                                <div key={idx} className="flex items-center gap-4 text-cdtext border-l-2 border-yellow-500/50 pl-4 py-1">
-                                    <span className="font-mono text-sm w-12 text-yellow-400">{Math.floor(event.time / 60)}h{event.time % 60 > 0 ? event.time % 60 : '00'}</span>
+                                <div key={idx} className="flex items-center gap-4 text-cdtext border-l-2 border-cdprimary/50 pl-4 py-1">
+                                    <span className="font-mono text-sm w-12 text-cdprimary">{Math.floor(event.time / 60)}h{event.time % 60 > 0 ? event.time % 60 : '00'}</span>
                                     <div className="flex items-center gap-2 bg-cdsurface px-3 py-2 rounded text-sm w-full">
                                         <event.icon size={14} className="text-cdmuted" />
                                         {event.action}

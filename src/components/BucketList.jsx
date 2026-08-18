@@ -551,7 +551,7 @@ const BucketList = ({
                 {/* Stats */}
                 <div className="bg-cdbg p-4 rounded border border-cdborder">
                     <h3 className="text-cdtext font-bold text-sm mb-3 flex items-center gap-2">
-                        <Trophy className="text-yellow-400" size={16} />
+                        <Trophy className="text-cdprimary" size={16} />
                         Statistics
                     </h3>
                     <div className="grid grid-cols-2 gap-3 text-sm">
@@ -582,7 +582,7 @@ const BucketList = ({
                 {/* Achievements */}
                 <div className="bg-cdbg p-4 rounded border border-cdborder">
                     <h3 className="text-cdtext font-bold text-sm mb-3 flex items-center gap-2">
-                        <Star className="text-yellow-400" size={16} />
+                        <Star className="text-cdprimary" size={16} />
                         Achievements ({achievements.badges.length})
                     </h3>
                     <div className="space-y-2 max-h-32 overflow-y-auto custom-scrollbar">
@@ -591,7 +591,7 @@ const BucketList = ({
                         ) : (
                             achievements.badges.map((badge, idx) => (
                                 <div key={idx} className="bg-cdsurface p-2 rounded text-xs">
-                                    <p className="font-bold text-yellow-400">{badge.title}</p>
+                                    <p className="font-bold text-cdprimary">{badge.title}</p>
                                     <p className="text-cdmuted">{badge.description}</p>
                                 </div>
                             ))
@@ -683,7 +683,7 @@ const BucketList = ({
                         placeholder="Search climb..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-3 py-2 bg-cdborder border border-cdborder rounded text-cdtext text-sm focus:border-yellow-400 outline-none"
+                        className="w-full pl-10 pr-3 py-2 bg-cdborder border border-cdborder rounded text-cdtext text-sm focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none"
                     />
                 </div>
 
@@ -692,7 +692,7 @@ const BucketList = ({
                     <select
                         value={filterStatus}
                         onChange={(e) => setFilterStatus(e.target.value)}
-                        className="w-full px-3 py-2 bg-cdborder border border-cdborder rounded text-cdtext text-sm focus:border-yellow-400 outline-none"
+                        className="w-full px-3 py-2 bg-cdborder border border-cdborder rounded text-cdtext text-sm focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none"
                     >
                         <option value="all">All ({climbDatabase.length})</option>
                         <option value="done">Completed ({statusCounts.done})</option>
@@ -709,7 +709,7 @@ const BucketList = ({
                     <select
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value)}
-                        className="w-full px-3 py-2 bg-cdborder border border-cdborder rounded text-cdtext text-sm focus:border-yellow-400 outline-none"
+                        className="w-full px-3 py-2 bg-cdborder border border-cdborder rounded text-cdtext text-sm focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none"
                     >
                         <option value="name">Sort: Name</option>
                         <option value="difficulty">Sort: Difficulty</option>

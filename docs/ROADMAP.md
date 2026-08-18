@@ -61,8 +61,9 @@ Parallel aan de product-fases hierboven loopt een UX/design rollout:
 | **Audit 3** | Design system: `SubTabNav`, `cd*` tokens, DataHub-consolidatie | Done |
 | **Audit 3B** | Mobile Activity Log filters + desktop 4-hub nav | Done |
 | **Audit 3C** | Filters & Bulk typography (dense chips) | Done (PR #503) |
-| **Audit 3D** | `yellow-400` → `cd*` token sweep (DataHub) | In progress |
-| **Later** | Remaining `yellow-400` sweep (Physics, Race, Bucket), training calendar / decoupling | Backlog |
+| **Audit 3D** | `yellow-400` → `cd*` token sweep (DataHub) | Done (PR #504) |
+| **Audit 3E** | `yellow-400` → `cd*` token sweep (Physics, Race, Bucket) | In progress |
+| **Later** | Remaining `yellow-400` sweep (Gear, Map, Dashboard, Coach), training calendar / decoupling | Backlog |
 
 ---
 
