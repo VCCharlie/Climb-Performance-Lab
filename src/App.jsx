@@ -28,14 +28,12 @@ import {
 
 // Shell components (eager — needed for first paint and navigation)
 import Header from './components/Header';
-import Dashboard from './components/Dashboard';
 import SettingsModal from './components/SettingsModal';
 import PwaInstallBanner from './components/PwaInstallBanner';
 import PwaUpdateBanner from './components/PwaUpdateBanner';
 import OrientationGuard from './components/OrientationGuard';
 import { LoadingPanel, SegmentedControl } from './components/ui';
-import { MainNav, MobileBottomNav, GetStartedChecklist } from './components/shell';
-import SignInGate from './components/SignInGate';
+import { MainNav, MobileBottomNav } from './components/shell';
 import { lazyWithRetry } from './utils/lazyWithRetry.js';
 
 // Main tabs (lazy — loaded on first visit; Dashboard stays eager as default tab)
@@ -49,7 +47,6 @@ const RacePacing = lazyWithRetry(() => import('./components/RacePacing'), 'RaceP
 const GearOptimizer = lazyWithRetry(() => import('./components/GearOptimizer'), 'GearOptimizer');
 const ClimbProfiler = lazyWithRetry(() => import('./components/ClimbProfiler'), 'ClimbProfiler');
 const RecoveryAdvisor = lazyWithRetry(() => import('./components/RecoveryAdvisor'), 'RecoveryAdvisor');
-const BucketList = lazyWithRetry(() => import('./components/BucketList'), 'BucketList');
 const WeatherClimb = lazyWithRetry(() => import('./components/WeatherClimb'), 'WeatherClimb');
 const ClimbMap = lazyWithRetry(() => import('./components/ClimbMap'), 'ClimbMap');
 
@@ -110,60 +107,15 @@ import {
 import { todayYmd } from './utils/coach/coachHelpers';
 import { runGoogleSignIn, isGoogleSignInInProgress, googleSignInErrorMessage, completeGoogleRedirectIfNeeded } from './utils/googleSignIn';
 import { notify } from './utils/notify';
-import { ToastProvider } from './context/ToastContext';
-import { ConfirmProvider } from './context/ConfirmContext';
-import { ActivitiesProvider, useActivitiesState } from './context/ActivitiesContext';
-import { useActivitiesList } from './hooks/useActivities';
-import { ActivityLogNavigationProvider, useActivityLogNavigation } from './context/ActivityLogNavigationContext';
-import { ProfileFtpProvider } from './context/ProfileFtpContext';
+import { AppProviders } from './app/AppProviders';
+import {
+    GetStartedStrip,
+    AppLoadingGate,
+    DashboardWithNavigation,
+    BucketListWithNavigation,
+} from './app/AppShellHelpers';
 import TrainingFtpContextNote from './components/coach/TrainingFtpContextNote';
 import TrainingSubTabNav from './components/training/TrainingSubTabNav';
-import { IntervalsSyncProvider } from './context/IntervalsSyncContext';
-
-function GetStartedStrip({ userSettings, intervalsConfig, onOpenSettings, onGoToActivities }) {
-    const activities = useActivitiesList();
-    return (
-        <GetStartedChecklist
-            userSettings={userSettings}
-            intervalsConfig={intervalsConfig}
-            activityCount={activities.length}
-            onOpenSettings={onOpenSettings}
-            onGoToActivities={onGoToActivities}
-        />
-    );
-}
-
-function AppLoadingGate({ authReady, user, authBusy, authError, onSignIn, children }) {
-    const { isLoading: activitiesLoading, activities } = useActivitiesState();
-    const waitingForInitialActivities = Boolean(user) && activitiesLoading && activities.length === 0;
-    if (!authReady || authBusy || waitingForInitialActivities) {
-        return <LoadingPanel />;
-    }
-    if (!user) {
-        return <SignInGate onSignIn={onSignIn} authBusy={authBusy} authError={authError} />;
-    }
-    return children;
-}
-
-function DashboardWithNavigation(props) {
-    const { openActivityInLog, openActivityLogDateRange } = useActivityLogNavigation();
-    return (
-        <Dashboard
-            {...props}
-            onOpenActivityInLog={openActivityInLog}
-            onOpenActivityLogDateRange={openActivityLogDateRange}
-        />
-    );
-}
-function BucketListWithNavigation(props) {
-    const { openActivityInLog } = useActivityLogNavigation();
-    return (
-        <BucketList
-            {...props}
-            onOpenActivityInLog={openActivityInLog}
-        />
-    );
-}
 
 const CLIMB_HEAVY_TABS = new Set([
     'profiler', 'bucketlist', 'climbmap', 'weather', 'gearoptimizer', 'physics', 'activities',
@@ -1077,16 +1029,13 @@ const App = () => {
     const mainClass = isDark ? 'bg-cdbg text-cdtext' : 'bg-cdbg text-cdtext';
 
     return (
-        <ToastProvider>
-        <ConfirmProvider>
-        <ActivitiesProvider key={user?.uid ?? 'signed-out'} user={user}>
-            <ActivityLogNavigationProvider onNavigateToActivities={navigateToActivities}>
-                <ProfileFtpProvider userSettings={userSettings}>
-                    <IntervalsSyncProvider
-                        intervalsConfig={intervalsConfig}
-                        stravaGetToken={stravaAuth.isConnected ? stravaAuth.getValidToken : null}
-                        userSettings={userSettings}
-                    >
+        <AppProviders
+            user={user}
+            userSettings={userSettings}
+            intervalsConfig={intervalsConfig}
+            stravaGetToken={stravaAuth.isConnected ? stravaAuth.getValidToken : null}
+            onNavigateToActivities={navigateToActivities}
+        >
                 <div className={`min-h-screen font-sans pb-20 md:pb-20 transition-colors duration-300 ${mainClass}`}>
                     <a href="#main-content" className="cd-skip-link">
                         Skip to main content
@@ -1385,12 +1334,7 @@ const App = () => {
                     <PwaUpdateBanner />
                     <OrientationGuard />
                 </div>
-                    </IntervalsSyncProvider>
-                </ProfileFtpProvider>
-            </ActivityLogNavigationProvider>
-        </ActivitiesProvider>
-        </ConfirmProvider>
-        </ToastProvider>
+        </AppProviders>
     );
 };
 
