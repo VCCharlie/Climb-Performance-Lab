@@ -37,25 +37,16 @@ Climb-Performance-Lab/
 │   │   ├── Header.jsx                # App header with branding & version badge
 │   │   ├── Dashboard.jsx             # Performance trend visualization (area chart)
 │   │   ├── PhysicsEngine.jsx         # Climb calculation engine (Newton-Raphson solver)
-│   │   ├── DataHub.jsx               # Entry point for DataHub (imports from DataHub/)
-│   │   ├── DataHub/                  # Modular DataHub sub-components
+│   │   ├── DataHub.jsx               # Activity import, log, sync (entry point)
+│   │   ├── data-hub/                 # DataHub sub-components (activity log, import, Strava)
+│   │   │   ├── ActivityLogTab.jsx    # Log tab shell (filters, table/cards, sync panel)
+│   │   │   ├── ActivityTable.jsx     # Virtualized table (+ TableHeader/Row exports)
 │   │   │   ├── ActivityDetailModal.jsx
-│   │   │   ├── ActivityLogTab.jsx
-│   │   │   ├── ActivityRow.jsx
-│   │   │   ├── DuplicateReviewModal.jsx
-│   │   │   ├── ImportTab.jsx
-│   │   │   ├── ReviewModal.jsx
-│   │   │   ├── SortIcon.jsx
-│   │   │   ├── SyncTab.jsx
-│   │   │   └── TableHeader.jsx
-│   │   ├── data-hub/                 # Additional DataHub helpers
-│   │   │   ├── ActivityTable.jsx
-│   │   │   ├── DuplicateResolver.jsx
-│   │   │   ├── EditActivityModal.jsx
-│   │   │   ├── ImportModal.jsx
-│   │   │   ├── ImportSection.jsx
-│   │   │   ├── QuickNav.jsx
-│   │   │   └── SyncPanel.jsx
+│   │   │   ├── DataHubModals.jsx     # Modal orchestration
+│   │   │   ├── ImportSection.jsx     # Import tab content
+│   │   │   ├── IntervalsSyncPanel.jsx# Unified Intervals fetch / refresh UI
+│   │   │   ├── DuplicateResolver.jsx # Duplicate review (replaces DuplicateReviewModal)
+│   │   │   └── activity-log-filters/ # Filter panel chips and metric ranges
 │   │   ├── dashboard/                # Dashboard sub-components
 │   │   ├── FuelingStrategy.jsx       # Race fueling calculator (sub-tab under Race)
 │   │   ├── RacePacing.jsx            # Multi-climb race pacing planner (sub-tab under Race)
@@ -72,10 +63,11 @@ Climb-Performance-Lab/
 │   ├── hooks/                        # Custom React hooks
 │   │   ├── useActivityFilter.js      # Activity search/sort/filter logic
 │   │   ├── useIntervalsSync.js       # Direct Intervals.icu API sync
-│   │   └── useSortableData.js        # Generic table sort hook
+│   │   └── useDataHub*.js            # DataHub bulk, import, maintenance, …
 │   │
 │   ├── services/                     # External service integrations
-│   │   └── intervalsService.js       # Intervals.icu data fetcher (with LocalStorage cache)
+│   │   ├── intervalsCloudApi.js      # Cloud Function client (optional sync)
+│   │   └── climbDatabase.js          # Climb DB service
 │   │
 │   ├── utils/                        # Modular utility files
 │   │   ├── analytics.js              # Training analytics calculations
@@ -181,12 +173,12 @@ The app has **9 main tabs**, some with sub-tabs:
 - Accounts for: gravity, rolling resistance, air drag, drivetrain losses
 - Requires: rider weight, bike weight, FTP, climb gradient/length
 
-### DataHub.jsx / DataHub/
+### DataHub.jsx / data-hub/
 - Modular activity management system
 - Imports training data from CSV files (handles multiple delimiter formats)
 - Displays activity log with sorting, filtering, and duplicate detection
 - Integrates with Intervals.icu API directly (see `useIntervalsSync` hook)
-- Sub-components split across `DataHub/` and `data-hub/` directories
+- Sub-components live under `src/components/data-hub/` (legacy `DataHub/` folder removed)
 
 ### AICoach.jsx
 - SWOT analysis engine for training feedback
@@ -229,10 +221,10 @@ The app has **9 main tabs**, some with sub-tabs:
 - Uses Basic Auth: `API_KEY:{apiKey}` (base64 encoded)
 - Normalizes activities via `src/utils/intervals.js`
 
-### services/intervalsService.js
-- Alternative service layer for fetching eFTP/fitness data
+### services/intervalsCloudApi.js
+- Optional cloud sync when local Intervals API credentials are not set
 - Calls cloud function: `https://europe-west1-climb-performance-lab.cloudfunctions.net/sync-intervals-v2`
-- Implements 1-hour LocalStorage caching
+- Used by `useIntervalsSync` and coach/wellness helpers
 
 ### climbs.js
 - Database of 150+ climbs from France, Italy, Switzerland, Netherlands
@@ -362,7 +354,7 @@ The app has **9 main tabs**, some with sub-tabs:
 
 ### Intervals.icu (Cloud Function)
 
-**Architecture**: `intervalsService.js` → Cloud Function → Intervals.icu API
+**Architecture**: `intervalsCloudApi.js` → Cloud Function → Intervals.icu API (when not using direct browser API key)
 
 - **Endpoint**: `https://europe-west1-climb-performance-lab.cloudfunctions.net/sync-intervals-v2`
 - **Caching**: 1-hour LocalStorage cache per date range
@@ -450,7 +442,7 @@ src/__tests__/
 - Do not remove Tailwind CDN link from `index.html`
 - Do not modify Firebase config unless credentials need updating
 - Do not hardcode slate color classes for themed elements — use `cd*` variables
-- Do not create monolithic components; prefer splitting into `DataHub/` style subdirectories
+- Do not create monolithic components; prefer splitting into `data-hub/` style subdirectories
 
 ## Deployment
 
