@@ -87,8 +87,8 @@ export function navigateToStravaSegment(segmentId) {
     const id = segmentId != null ? String(segmentId).replace(/\D/g, '') : '';
     if (!id) return;
     const url = `https://www.strava.com/segments/${id}`;
-    const w = window.open(url, '_blank', 'noopener,noreferrer');
-    if (!w || w.closed) {
+    const opened = openExternalUrl(url, { allowSameTabFallback: false });
+    if (!opened) {
         notify(
             `Could not open a new tab (popup blocked?). Allow popups for this site, or open the segment manually:\n${url}`,
             { variant: 'warning', durationMs: 12000 },
@@ -100,9 +100,11 @@ export function navigateToStravaSegment(segmentId) {
  * Open a URL in a new tab without relying on anchor default navigation.
  * Use from menus that unmount on click (portal dropdowns) so the href is not dropped mid-click.
  * @param {string} url
+ * @param {{ allowSameTabFallback?: boolean }} [options]
  * @returns {boolean} whether a new tab likely opened
  */
-export function openExternalUrl(url) {
+export function openExternalUrl(url, options = {}) {
+    const { allowSameTabFallback = true } = options;
     if (!url || typeof url !== 'string') return false;
     const trimmed = url.trim();
     if (!trimmed) return false;
@@ -118,12 +120,19 @@ export function openExternalUrl(url) {
     }
     const w = window.open(trimmed, '_blank', 'noopener,noreferrer');
     if (w && !w.closed) return true;
-    try {
-        window.location.assign(trimmed);
-        return true;
-    } catch {
-        return false;
+    if (allowSameTabFallback) {
+        try {
+            window.location.assign(trimmed);
+            return true;
+        } catch {
+            return false;
+        }
     }
+    notify(
+        `Could not open a new tab (popup blocked?). Allow popups for this site, or open the link manually:\n${trimmed}`,
+        { variant: 'warning', durationMs: 12000 },
+    );
+    return false;
 }
 
 // Format seconds to M:SS or H:MM:SS

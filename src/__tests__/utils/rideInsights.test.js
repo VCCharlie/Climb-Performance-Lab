@@ -53,7 +53,16 @@ describe('buildRideInsights', () => {
 });
 
 describe('getLatestRideActivity', () => {
-    it('returns first ride-like activity in list order', () => {
+    it('returns the ride with the most recent date', () => {
+        const acts = [
+            { id: 'old', type: 'Ride', date: '2026-08-10' },
+            { id: 'new', type: 'Ride', date: '2026-08-12' },
+            { id: 'walk', type: 'Walk', date: '2026-08-13' },
+        ];
+        expect(getLatestRideActivity(acts)?.id).toBe('new');
+    });
+
+    it('falls back to first ride-like activity when dates are missing', () => {
         const acts = [
             { id: 'w', type: 'Walk', date: '2026-08-11' },
             { id: 'r', type: 'Ride', date: '2026-08-10' },

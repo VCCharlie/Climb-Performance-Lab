@@ -279,7 +279,7 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                   <input
                     value={compareTimeStr}
                     onChange={e => setCompareTimeStr(e.target.value)}
-                    className="w-full bg-cdsurface text-cdtext font-mono text-lg text-center rounded p-2 border border-cdborder focus:border-cdaccent outline-none"
+                    className="w-full bg-cdsurface text-cdtext tabular-nums text-lg text-center rounded p-2 border border-cdborder focus:border-cdaccent outline-none"
                   />
                 </div>
                 <div className="flex gap-2 flex-wrap">
@@ -313,20 +313,20 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                   type="number"
                   value={compareWattsStr}
                   onChange={e => setCompareWattsStr(e.target.value)}
-                  className="w-full max-w-xs bg-cdsurface text-cdtext font-mono text-lg text-center rounded p-2 border border-cdborder focus:border-cdaccent outline-none"
+                  className="w-full max-w-xs bg-cdsurface text-cdtext tabular-nums text-lg text-center rounded p-2 border border-cdborder focus:border-cdaccent outline-none"
                 />
               </div>
             )}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 text-[11px]">
               <div className="bg-cdsurface/80 border border-cdborder rounded-lg p-2">
                 <span className="text-cdmuted uppercase text-[9px] font-bold">Δ Power</span>
-                <div className="text-cdtext font-mono font-bold">
+                <div className="text-cdtext tabular-nums font-bold">
                   {formatSignedInt(compareCalc.watts - calc.watts)} W
                 </div>
               </div>
               <div className="bg-cdsurface/80 border border-cdborder rounded-lg p-2">
                 <span className="text-cdmuted uppercase text-[9px] font-bold">Δ Time</span>
-                <div className="text-cdtext font-mono font-bold">
+                <div className="text-cdtext tabular-nums font-bold">
                   {compareCalc.seconds > 0 && calc.seconds > 0
                     ? formatSignedDuration(compareCalc.seconds - calc.seconds)
                     : '—'}
@@ -335,7 +335,7 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
               </div>
               <div className="bg-cdsurface/80 border border-cdborder rounded-lg p-2">
                 <span className="text-cdmuted uppercase text-[9px] font-bold flex items-center gap-1"><Ruler size={10} /> Δ Road (A’s time)</span>
-                <div className="text-cdtext font-mono font-bold leading-tight">
+                <div className="text-cdtext tabular-nums font-bold leading-tight">
                   {calc.seconds > 0 && compareCalc.seconds > 0
                     ? formatSignedHorizontalDelta(distDeltaInATime)
                     : '—'}
@@ -344,7 +344,7 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
               </div>
               <div className="bg-cdsurface/80 border border-cdborder rounded-lg p-2">
                 <span className="text-cdmuted uppercase text-[9px] font-bold flex items-center gap-1"><Ruler size={10} /> Δ Road (B’s time)</span>
-                <div className="text-cdtext font-mono font-bold leading-tight">
+                <div className="text-cdtext tabular-nums font-bold leading-tight">
                   {calc.seconds > 0 && compareCalc.seconds > 0
                     ? formatSignedHorizontalDelta(distDeltaInBTime)
                     : '—'}
@@ -353,25 +353,25 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
               </div>
               <div className="bg-cdsurface/80 border border-cdborder rounded-lg p-2">
                 <span className="text-cdmuted uppercase text-[9px] font-bold flex items-center gap-1"><Flame size={10} /> Δ VAM</span>
-                <div className="text-cdtext font-mono font-bold">{formatSignedInt(compareCalc.vam - calc.vam)} m/h</div>
+                <div className="text-cdtext tabular-nums font-bold">{formatSignedInt(compareCalc.vam - calc.vam)} m/h</div>
               </div>
               <div className="bg-cdsurface/80 border border-cdborder rounded-lg p-2">
                 <span className="text-cdmuted uppercase text-[9px] font-bold">Δ Work</span>
-                <div className="text-cdtext font-mono font-bold">{formatSignedInt(kJ(compareCalc) - kJ(calc))} kJ</div>
+                <div className="text-cdtext tabular-nums font-bold">{formatSignedInt(kJ(compareCalc) - kJ(calc))} kJ</div>
               </div>
             </div>
             <div className="flex flex-wrap gap-4 text-xs text-cdmuted">
               <span>
-                Est. steady TSS: <span className="text-cdtext font-mono font-bold">{tssA}</span> (A) vs{' '}
-                <span className="text-cdtext font-mono font-bold">{tssB}</span> (B)
+                Est. steady TSS: <span className="text-cdtext tabular-nums font-bold">{tssA}</span> (A) vs{' '}
+                <span className="text-cdtext tabular-nums font-bold">{tssB}</span> (B)
                 {userSettings.ftp > 0 && (
                   <span className="text-cdmuted"> ({formatSignedInt(tssB - tssA)} TSS)</span>
                 )}
               </span>
               <span>
                 IF:{' '}
-                <span className="text-cdtext font-mono">{(calc.ifRatio * 100).toFixed(1)}%</span> vs{' '}
-                <span className="text-cdtext font-mono">{(compareCalc.ifRatio * 100).toFixed(1)}%</span> FTP
+                <span className="text-cdtext tabular-nums">{(calc.ifRatio * 100).toFixed(1)}%</span> vs{' '}
+                <span className="text-cdtext tabular-nums">{(compareCalc.ifRatio * 100).toFixed(1)}%</span> FTP
               </span>
             </div>
             <div className="pt-1">
@@ -504,8 +504,8 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
             </div>
             {climbInsights.wkg != null && (
               <p className="text-xs text-cdmuted">
-                Rider power: <span className="text-cdtext font-mono font-bold">{calc.watts} W</span> (
-                {climbInsights.wkg.toFixed(2)} W/kg) · VAM <span className="text-cdtext font-mono">{calc.vam}</span> m/h
+                Rider power: <span className="text-cdtext tabular-nums font-bold">{calc.watts} W</span> (
+                {climbInsights.wkg.toFixed(2)} W/kg) · VAM <span className="text-cdtext tabular-nums">{calc.vam}</span> m/h
               </p>
             )}
             {climbInsights.gradientNote && (
@@ -534,7 +534,7 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                 <button type="button" onClick={() => updateWeight('body', -0.1)} className="p-1 bg-cdborder rounded hover:bg-slate-600">
                   <Minus size={14} />
                 </button>
-                <span className="font-mono w-16 text-center text-cdprimary">{userSettings.weight.toFixed(1)} kg</span>
+                <span className="tabular-nums w-16 text-center text-cdprimary">{userSettings.weight.toFixed(1)} kg</span>
                 <button type="button" onClick={() => updateWeight('body', 0.1)} className="p-1 bg-cdborder rounded hover:bg-slate-600">
                   <Plus size={14} />
                 </button>
@@ -546,7 +546,7 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                 <button type="button" onClick={() => updateWeight('bike', -0.1)} className="p-1 bg-cdborder rounded hover:bg-slate-600">
                   <Minus size={14} />
                 </button>
-                <span className="font-mono w-16 text-center text-cdprimary">{userSettings.bikeWeight.toFixed(1)} kg</span>
+                <span className="tabular-nums w-16 text-center text-cdprimary">{userSettings.bikeWeight.toFixed(1)} kg</span>
                 <button type="button" onClick={() => updateWeight('bike', 0.1)} className="p-1 bg-cdborder rounded hover:bg-slate-600">
                   <Plus size={14} />
                 </button>
@@ -588,14 +588,14 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                 <input
                   value={targetTimeStr}
                   onChange={e => setTargetTimeStr(e.target.value)}
-                  className="w-full bg-transparent text-3xl font-mono text-center text-cdtext outline-none border-b border-transparent focus:border-cdprimary/50"
+                  className="w-full bg-transparent text-3xl tabular-nums text-center text-cdtext outline-none border-b border-transparent focus:border-cdprimary/50"
                 />
               ) : (
                 <input
                   type="number"
                   value={targetWatts}
                   onChange={e => setTargetWatts(e.target.value)}
-                  className="w-full bg-transparent text-3xl font-mono text-center text-cdtext outline-none border-b border-transparent focus:border-cdprimary/50"
+                  className="w-full bg-transparent text-3xl tabular-nums text-center text-cdtext outline-none border-b border-transparent focus:border-cdprimary/50"
                 />
               )}
 
@@ -625,7 +625,7 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
           </div>
           <div className="bg-cdborder/50 p-4 rounded-lg flex flex-col items-center justify-center border border-cdborder">
             <span className="text-xs text-cdmuted uppercase mb-1">Est. Time</span>
-            <span className="text-3xl font-bold text-cdtext font-mono">{calc.time}</span>
+            <span className="text-2xl sm:text-3xl font-bold text-cdtext tabular-nums leading-none tracking-tight">{calc.time}</span>
           </div>
           <div className="bg-cdborder/50 p-4 rounded-lg flex flex-col items-center justify-center border border-cdborder">
             <span className="text-xs text-cdmuted uppercase mb-1">VAM</span>

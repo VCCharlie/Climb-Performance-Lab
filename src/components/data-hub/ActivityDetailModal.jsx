@@ -1,7 +1,7 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { X, Calendar, Clock, MapPin, Zap, ExternalLink, Mountain, TrendingUp, Loader2, AlertCircle, Star, Bike, Trophy, Crown, Heart } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
-import { formatSegmentTime } from '../../utils/strava';
+import { formatSegmentTime, navigateToStravaSegment, stravaActivityUrl, openExternalUrl } from '../../utils/strava';
 import {
     activityEfficiencyFactor,
     activityVariabilityIndex,
@@ -113,10 +113,14 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
                                     Intervals.icu <ExternalLink size={10} />
                                 </a>
                             )}
-                            {activity.strava_id && (
-                                <a href={`https://www.strava.com/activities/${activity.strava_id}`} target="_blank" rel="noopener noreferrer" className="text-xs text-orange-400 hover:text-orange-300 flex items-center gap-1 cd-focus-ring rounded-sm px-1 py-0.5 -ml-1">
+                            {activity.strava_id && stravaActivityUrl(activity.strava_id) && (
+                                <button
+                                    type="button"
+                                    onClick={() => openExternalUrl(stravaActivityUrl(activity.strava_id), { allowSameTabFallback: false })}
+                                    className="text-xs text-orange-400 hover:text-orange-300 flex items-center gap-1 cd-focus-ring rounded-sm px-1 py-0.5 -ml-1"
+                                >
                                     <StravaIcon size={12} /> Strava <ExternalLink size={10} />
-                                </a>
+                                </button>
                             )}
                         </div>
                     </div>
@@ -201,8 +205,8 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
                                     </div>
                                 )}
                                 {activityEfficiencyFactor(activity.norm_power, activity.avg_hr) != null && (
-                                    <div className="bg-cdborder/30 p-2 rounded text-center" title="Efficiency Factor (NP ÷ avg HR, W/bpm)">
-                                        <div className="text-xs text-cdmuted">EF</div>
+                                    <div className="bg-cdborder/30 p-2 rounded text-center" title="Efficiency Factor (NP ÷ avg HR)">
+                                        <div className="text-xs text-cdmuted">EF (W/bpm)</div>
                                         <div className="font-bold text-cdtext text-base tabular-nums">
                                             {activityEfficiencyFactor(activity.norm_power, activity.avg_hr).toFixed(2)}
                                         </div>
@@ -329,15 +333,16 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
                                                             {seg.segment?.starred && (
                                                                 <Star size={11} className="text-cdprimary fill-cdprimary shrink-0" />
                                                             )}
-                                                            <a
-                                                                href={`https://www.strava.com/segments/${seg.segment?.id}`}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="text-cdtext hover:text-orange-400 font-medium transition-colors truncate cd-focus-ring rounded-sm px-1 -ml-1"
-                                                                onClick={e => e.stopPropagation()}
+                                                            <button
+                                                                type="button"
+                                                                className="text-cdtext hover:text-orange-400 font-medium transition-colors truncate cd-focus-ring rounded-sm px-1 -ml-1 text-left max-w-full"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    navigateToStravaSegment(seg.segment?.id);
+                                                                }}
                                                             >
                                                                 {seg.name}
-                                                            </a>
+                                                            </button>
                                                         </div>
                                                         <span className="text-cdmuted font-mono shrink-0">{formatSegmentTime(seg.elapsed_time)}</span>
                                                         {seg.average_watts > 0 && (
