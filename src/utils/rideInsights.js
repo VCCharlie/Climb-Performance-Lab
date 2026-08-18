@@ -98,10 +98,13 @@ export function buildRideInsights(activity, options = {}) {
     }
 
     if (ef != null) {
+        const np = Math.round(Number(activity.norm_power) || 0);
+        const hr = Math.round(Number(activity.avg_hr) || 0);
+        const efContext = hr > 0 && np > 0 ? ` (${np} W NP ÷ ${hr} bpm)` : '';
         if (ef >= 1.55) {
-            detailParts.push(`Strong cardiac efficiency at ${ef.toFixed(2)} W/bpm — NP held well relative to heart rate.`);
+            detailParts.push(`Strong cardiac efficiency at ${ef.toFixed(2)} W/bpm${efContext} — NP held well relative to heart rate.`);
         } else if (ef < 1.2 && durationMin >= 60) {
-            detailParts.push('Lower efficiency today — heat, fatigue, or incomplete recovery can pull EF down.');
+            detailParts.push(`Lower efficiency today (${ef.toFixed(2)} W/bpm${efContext}) — heat, fatigue, or incomplete recovery can pull EF down.`);
         }
     }
 
@@ -116,7 +119,7 @@ export function buildRideInsights(activity, options = {}) {
     if (tss > 0) bullets.push(`${tss} TSS`);
     if (elev > 0) bullets.push(`${elev} m elev`);
     if (vi != null) bullets.push(`VI ${vi.toFixed(2)}`);
-    if (ef != null) bullets.push(`EF ${ef.toFixed(2)}`);
+    if (ef != null) bullets.push(`EF ${ef.toFixed(2)} W/bpm`);
 
     const highlights = [];
     if (isPowerPr(activity, 'best_20min', allActivities)) {
@@ -148,9 +151,25 @@ export function buildRideInsights(activity, options = {}) {
     };
 }
 
-/** Most recent ride-like activity (activities assumed newest-first). */
+/** Most recent ride-like activity by calendar date (not list order). */
 export function getLatestRideActivity(activities) {
     if (!activities?.length) return null;
+
+    let latestRide = null;
+    let latestYmd = null;
+
+    for (const act of activities) {
+        if (!RIDE_TYPES.has(act?.type)) continue;
+        const ymd = normalizeDate(act.date);
+        if (!ymd) continue;
+        if (!latestYmd || ymd > latestYmd) {
+            latestYmd = ymd;
+            latestRide = act;
+        }
+    }
+
+    if (latestRide) return latestRide;
+
     for (const act of activities) {
         if (RIDE_TYPES.has(act?.type)) return act;
     }
