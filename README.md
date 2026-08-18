@@ -47,7 +47,7 @@ Two related paths exist in the codebase:
 
 1. **Activity sync (Data Hub)** — The app calls the [Intervals.icu API](https://intervals.icu) **directly from the browser** using your athlete ID and API key from **Settings**. Implementation: `src/hooks/useIntervalsSync.js` (GET with Basic auth, activities normalized in `src/utils/intervals.js`). Credentials stay in the client (localStorage / Firebase user payload when you use cloud backup); they are not sent through a proxy for this flow.
 
-2. **Dashboard chart data** — `src/services/intervalsService.js` can fetch eFTP / fitness-style series via a **Google Cloud Function** (`sync-intervals-v2`), with one-hour LocalStorage caching. Deploy and operate your own function if you use this path; see [cloud-function/README.md](./cloud-function/README.md).
+2. **Optional cloud sync (signed-in users)** — `src/services/intervalsCloudApi.js` can call the **Google Cloud Function** (`sync-intervals-v2`) when local API credentials are not set. Deploy and operate your own function if you use this path; see [cloud-function/README.md](./cloud-function/README.md).
 
 `src/config.js` exports `CLOUD_SYNC_URL` for an optional Cloud Run–style endpoint; it is not wired into the main activity sync hook. Update it if you deploy a server-side sync service and connect it from the app.
 
@@ -61,7 +61,7 @@ The **MCP server** lets supported AI clients call tools (e.g. Strava) using your
 ├── src/
 │   ├── components/     # UI (DataHub, Dashboard, Physics, Race, Training, …)
 │   ├── hooks/          # e.g. useIntervalsSync
-│   ├── services/       # e.g. intervalsService (cloud function client)
+│   ├── services/       # e.g. intervalsCloudApi (cloud function client)
 │   ├── utils/          # Parsers, intervals normalizer, analytics, …
 │   └── __tests__/      # Vitest tests (utils, etc.)
 ├── cloud-function/     # Python Intervals sync (deployment docs)

@@ -24,10 +24,10 @@ Als je niet zeker bent: Settings → Intervals.icu → staat er een API-key? **J
 |----------|----------------|-------------|
 | Verkeerde sorteervolgorde (afstand, datum, TSS) | **React** | `src/utils/activitySort.js`, `useActivityFilter.js` |
 | Export Excel/CSV: tijd of afstand ziet er raar uit | **React** | `src/utils/activityCsvExport.js` |
-| Kolommen tonen `-` terwijl data er wél is | **React** | `ActivityRow.jsx`, `config.js` (`activityColumns`) |
+| Kolommen tonen `-` terwijl data er wél is | **React** | `ActivityTable.jsx`, `config.js` (`activityColumns`) |
 | Filter “Strava linked” / chips werken niet | **React** | `useActivityFilter.js` |
 | Duplicaten in de lijst | **React** | `src/utils/dedup.js`, `duplicateDetection.js` |
-| CSV-import uit Garmin/Intervals-bestand mis | **React** | `src/utils/parsers.js`, `ImportTab.jsx` |
+| CSV-import uit Garmin/Intervals-bestand mis | **React** | `src/utils/parsers.js`, `ImportSection.jsx` |
 | Thema, layout, teksten, navigatie | **React** | `src/components/` |
 
 **Deploy:** push naar `main` → GitHub Actions **Deploy Vite App** (GitHub Pages). Geen Cloud Run.
@@ -71,7 +71,7 @@ Als je niet zeker bent: Settings → Intervals.icu → staat er een API-key? **J
 | Symptoom | Waarschijnlijk |
 |----------|----------------|
 | Grafieken, eFTP-trend, berekeningen in tabs | **React** (`src/components/`, `src/utils/analytics.js`) |
-| eFTP via cloud service (zonder lokale key) | **React** service + **Python** `sync-intervals` / `intervalsService.js` |
+| eFTP via cloud service (zonder lokale key) | **React** `intervalsCloudApi.js` + **Python** `sync-intervals` | Cloud Run / `cloud-function/main.py` |
 
 ---
 

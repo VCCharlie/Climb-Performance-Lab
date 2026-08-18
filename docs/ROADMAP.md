@@ -85,7 +85,7 @@ Parallel aan de product-fases hierboven loopt een UX/design rollout:
 | 5a | **Weather voor alle klimmen** (geocode uit `climbs.js`) | Done (PR #509) |
 | 5b | **Sync/component tests** (hooks rond DataHub) | Done (PR #510) |
 | 5c | **`App.jsx` opsplitsen** (providers) | Done (`AppProviders`, `AppShellHelpers`) |
-| 5d | Opruimen: dode `SettingsTab.jsx`, `DataHub/` vs `data-hub/` consolidatie | Backlog (`SettingsTab` removed) |
+| 5d | Opruimen: dode `SettingsTab.jsx`, `DataHub/` vs `data-hub/` consolidatie | Done |
 
 ---
 
