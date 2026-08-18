@@ -59,7 +59,7 @@ export default function SegmentedControl({
               'inline-flex items-center justify-center font-semibold whitespace-nowrap',
               caps && 'uppercase tracking-wide',
               'rounded-cdsm cd-transition cd-focus-ring',
-              dense ? 'px-2 py-0.5 min-h-8' : 'px-2.5 py-1.5 cd-min-touch-y',
+              dense ? (size === 'sm' ? 'px-2 py-0 min-h-[24px]' : 'px-2 py-0.5 min-h-8') : 'px-2.5 py-1.5 cd-min-touch-y',
               'active:scale-[0.98]',
               SIZE_CLASSES[size],
               fullWidth && 'flex-1',
