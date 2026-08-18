@@ -30,3 +30,14 @@ export const MAIN_NAV_TABS = [
     { id: 'climbmap', label: 'Map', icon: MapIcon },
     { id: 'weather', label: 'Weather', icon: Cloud },
 ];
+
+/** Bottom bar + desktop header: four primary hubs (matches mobile muscle memory). */
+export const PRIMARY_NAV_TAB_IDS = new Set(['dashboard', 'activities', 'training', 'physics']);
+
+export const PRIMARY_NAV_TABS = MAIN_NAV_TABS.filter((tab) => PRIMARY_NAV_TAB_IDS.has(tab.id));
+
+export const MORE_NAV_TABS = MAIN_NAV_TABS.filter((tab) => !PRIMARY_NAV_TAB_IDS.has(tab.id));
+
+export function isMoreNavTab(tabId) {
+    return MORE_NAV_TABS.some((tab) => tab.id === tabId);
+}
