@@ -22,6 +22,7 @@
 
   /* ── Primary (interaction accent) ── */
   --cd-primary: #ea580c;
+  --cd-primary-rgb: 234 88 12;
   --cd-on-primary: #ffffff;
   --cd-primary-container: #ffedd5;
   --cd-on-primary-container: #7c2d12;
@@ -71,6 +72,7 @@
   --cd-border: #2f3848;
 
   --cd-primary: #fb923c;
+  --cd-primary-rgb: 251 146 60;
   --cd-on-primary: #1a0f08;
   --cd-primary-container: #3d2010;
   --cd-on-primary-container: #ffedd5;

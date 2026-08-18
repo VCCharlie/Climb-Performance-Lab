@@ -85,7 +85,7 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
         { label: '10m', val: activity.best_10min },
         { label: '20m', val: activity.best_20min },
         { label: '60m', val: activity.best_60min },
-    ].filter(p => p.val > 0);
+    ].filter((p) => Number(p.val) > 0);
 
     return (
         <ModalPortal>
@@ -216,30 +216,31 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
 
                             {/* Power Curve */}
                             {powerCurve.length > 0 && (() => {
-                                // ⚡ Bolt Optimization: Calculate max outside the map loop to prevent redundant iterations
-                                const maxVal = powerCurve.reduce((max, i) => Math.max(max, i.val), 0);
+                                const maxVal = powerCurve.reduce((max, i) => Math.max(max, Number(i.val) || 0), 0);
                                 return (
                                 <div className="bg-cdbg/50 rounded-lg p-3 border border-cdborder/50">
                                     <div className="text-[10px] text-cdmuted mb-2 uppercase font-bold text-center">Peak Power Curve</div>
-                                    <div className="flex justify-between items-end h-28 gap-2 px-2">
+                                    <div className="flex justify-between items-end h-32 gap-2 px-2">
                                         {powerCurve.map((p, idx) => {
-                                            const heightPct = (p.val / maxVal) * 100;
+                                            const watts = Math.round(Number(p.val) || 0);
+                                            const heightPct = maxVal > 0 ? (watts / maxVal) * 100 : 0;
                                             return (
                                                 <div
                                                     key={idx}
-                                                    tabIndex="0"
-                                                    aria-label={`Peak power for ${p.label}: ${p.val} watts`}
-                                                    className="flex-1 flex flex-col h-full justify-end items-center group relative focus-within:opacity-100 cd-focus-ring rounded"
+                                                    tabIndex={0}
+                                                    aria-label={`Peak power for ${p.label}: ${watts} watts`}
+                                                    className="flex-1 min-w-0 flex flex-col h-full min-h-0 items-center group cd-focus-ring rounded-sm"
                                                 >
-                                                    <div className="absolute top-0 w-full text-center">
-                                                        <span className="text-[10px] font-bold text-cdtext opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity bg-cdsurface px-1 rounded border border-cdborder shadow-sm z-10">{p.val}w</span>
+                                                    <span className="text-[10px] font-bold text-cdtext tabular-nums leading-none mb-1">
+                                                        {watts}w
+                                                    </span>
+                                                    <div className="flex-1 w-full min-h-0 flex items-end justify-center px-0.5">
+                                                        <div
+                                                            className="w-full max-w-[2.25rem] bg-cdprimary/25 group-hover:bg-cdprimary/45 border-t-2 border-cdprimary rounded-t-sm transition-colors min-h-[4px]"
+                                                            style={{ height: `${heightPct}%` }}
+                                                        />
                                                     </div>
-                                                    <div className="flex-1 w-full flex items-end">
-                                                        <div className="w-full bg-cdprimary/20 group-hover:bg-cdprimary/40 rounded-t transition-all" style={{ height: `${heightPct}%` }}>
-                                                            <div className="absolute top-0 w-full h-0.5 bg-cdprimary/50"></div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="text-[10px] text-cdmuted mt-1 h-4 flex items-center">{p.label}</div>
+                                                    <div className="text-[10px] text-cdmuted mt-1 leading-none">{p.label}</div>
                                                 </div>
                                             );
                                         })}
