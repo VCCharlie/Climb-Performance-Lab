@@ -202,7 +202,7 @@ const SettingsModal = ({
                         {/* VISUAL & PRIVACY */}
                         <div className={sectionClass}>
                             <div className="flex items-center gap-2 pb-2 border-b border-cdborder/50 mb-4">
-                                {isDark ? <Moon className="text-blue-400" size={18} /> : <Sun className="text-yellow-500" size={18} />}
+                                {isDark ? <Moon className="text-blue-400" size={18} /> : <Sun className="text-cdprimary" size={18} />}
                                 <h3 className="font-bold text-cdtext">Appearance & Privacy</h3>
                             </div>
 
@@ -923,7 +923,7 @@ const SettingsModal = ({
                         {/* NOTIFICATIE DREMPELS (UITGEBREID) */}
                         <div className={sectionClass}>
                             <div className="flex items-center gap-2 pb-2 border-b border-cdborder/50 mb-4">
-                                <Bell className="text-yellow-400" size={18} />
+                                <Bell className="text-cdprimary" size={18} />
                                 <h3 className="font-bold text-cdtext">Notification Thresholds</h3>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
@@ -950,7 +950,7 @@ const SettingsModal = ({
                         <div className={sectionClass}>
                             <div className="flex items-center justify-between pb-2 border-b border-cdborder/50 mb-4">
                                 <div className="flex items-center gap-2">
-                                    <Zap className="text-yellow-400" size={18} />
+                                    <Zap className="text-cdprimary" size={18} />
                                     <h3 className="font-bold text-cdtext">Power Zones (Coggan)</h3>
                                 </div>
                                 <span className="text-xs text-cdmuted italic">

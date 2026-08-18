@@ -11,7 +11,7 @@ import { useProfileFtp } from '../../context/ProfileFtpContext';
 
 const BADGE_STYLES = {
     recover: 'bg-red-500/15 text-red-400 border-red-500/40',
-    building: 'bg-yellow-500/15 text-yellow-500 border-yellow-500/40',
+    building: 'bg-cdprimary/15 text-cdprimary border-cdprimary/40',
     good: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40',
     peak: 'bg-green-500/15 text-green-400 border-green-500/40',
 };

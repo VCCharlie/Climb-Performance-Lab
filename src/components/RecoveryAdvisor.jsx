@@ -26,7 +26,7 @@ const CustomTooltip = ({ active, payload }) => {
                 <p className="text-cdtext text-sm font-bold mb-2">{formatDateDDMMYYYY(data.date)}</p>
                 <p className="text-blue-400 text-xs">CTL (Fitness): {data.ctl}</p>
                 <p className="text-red-400 text-xs">ATL (Fatigue): {data.atl}</p>
-                <p className="text-yellow-400 text-xs">TSB (Form): {data.tsb}</p>
+                <p className="text-cdprimary text-xs">TSB (Form): {data.tsb}</p>
                 {data.load > 0 && <p className="text-cdtext text-xs mt-1">Training Load: {data.load}</p>}
             </div>
         );
@@ -279,7 +279,7 @@ const RecoveryAdvisor = ({ activities: activitiesProp, startDate, endDate, onGoT
                                     : rec.type === 'warning'
                                         ? 'bg-red-500/20 border-red-500/50 text-red-500'
                                         : rec.type === 'caution'
-                                            ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-500'
+                                            ? 'bg-cdprimary/20 border-cdprimary/50 text-cdprimary'
                                             : 'bg-blue-500/20 border-blue-500/50 text-blue-500'
                                     }`}
                             >

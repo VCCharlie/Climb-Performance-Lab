@@ -126,7 +126,7 @@ const PeriodStatistics = ({ data }) => {
     return (
         <div className={`${chartCardClassLg} mb-6`}>
             <div className="flex items-center gap-2 mb-6 border-b border-cdborder pb-4">
-                <Calendar className="text-yellow-400" size={20} />
+                <Calendar className="text-cdprimary" size={20} />
                 <h3 className="text-lg font-bold text-cdtext">Period Statistics</h3>
                 <span className="text-xs text-cdmuted ml-auto font-mono">
                     {formatDateDDMMYYYY(data[0].date)} - {formatDateDDMMYYYY(data[data.length - 1].date)}
@@ -164,7 +164,7 @@ const PeriodStatistics = ({ data }) => {
                         <div className="text-xs text-cdmuted">Avg Heart Rate</div>
                     </div>
                     <div>
-                        <div className="text-lg font-bold text-yellow-400">{formatNumber(totalEnergy)} <span className="text-xs text-cdmuted font-normal">kJ</span></div>
+                        <div className="text-lg font-bold text-cdprimary">{formatNumber(totalEnergy)} <span className="text-xs text-cdmuted font-normal">kJ</span></div>
                         <div className="text-xs text-cdmuted">Total Work</div>
                     </div>
                 </div>
@@ -394,7 +394,7 @@ const PerformanceModule = ({
                     unit=""
                     subtitle="In selected period"
                     icon={Calendar}
-                    colorClass="text-yellow-500"
+                    colorClass="text-cdprimary"
                     split={{ indoor: countIndoor, outdoor: countOutdoor }}
                 />
             </div>

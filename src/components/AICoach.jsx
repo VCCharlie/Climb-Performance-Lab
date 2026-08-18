@@ -494,9 +494,9 @@ ${workout.zwoSteps.map(step => {
             badge: 'bg-blue-100 text-blue-800'
         };
         return {
-            container: 'border-yellow-200 bg-yellow-50',
-            text: 'text-yellow-700',
-            badge: 'bg-yellow-100 text-yellow-800'
+            container: 'border-cdprimary/30 bg-cdprimarycontainer/30',
+            text: 'text-cdonprimarycontainer',
+            badge: 'bg-cdprimarycontainer text-cdonprimarycontainer'
         };
     };
 
@@ -627,7 +627,7 @@ ${workout.zwoSteps.map(step => {
                     <SwotCard title="Strengths" items={swot.strengths} icon={CheckCircle} color="text-green-500" border="border-green-500" />
                     <SwotCard title="Weaknesses" items={swot.weaknesses} icon={AlertTriangle} color="text-red-500" border="border-red-500" />
                     <SwotCard title="Opportunities" items={opportunitiesForDisplay} icon={TrendingUp} color="text-blue-500" border="border-blue-500" />
-                    <SwotCard title="Threats" items={swot.threats} icon={Activity} color="text-yellow-500" border="border-yellow-500" />
+                    <SwotCard title="Threats" items={swot.threats} icon={Activity} color="text-cdprimary" border="border-cdprimary" />
                 </div>
             </div>
             </CollapsibleSection>

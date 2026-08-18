@@ -258,7 +258,7 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
                         <div>
                             <div className="flex justify-between text-xs text-cdtext mb-1">
                                 <span>Target Power</span>
-                                <span className="font-mono text-yellow-400">{Math.round(targetPower)}W</span>
+                                <span className="font-mono text-cdprimary">{Math.round(targetPower)}W</span>
                             </div>
                             <input
                                 type="range"
@@ -267,7 +267,7 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
                                 step="5"
                                 value={targetPower}
                                 onChange={(e) => setTargetPower(parseInt(e.target.value))}
-                                className="w-full h-2 bg-cdborder rounded-lg appearance-none cursor-pointer accent-yellow-400"
+                                className="w-full h-2 bg-cdborder rounded-lg appearance-none cursor-pointer accent-cdprimary"
                             />
                         </div>
 
@@ -320,7 +320,7 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
                                 className={`p-3 rounded border text-sm flex items-start gap-2 ${rec.type === 'success'
                                     ? 'bg-green-500/20 border-green-500/50 text-green-500'
                                     : rec.type === 'warning'
-                                        ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-500'
+                                        ? 'bg-cdprimary/20 border-cdprimary/50 text-cdprimary'
                                         : rec.type === 'info'
                                             ? 'bg-blue-500/20 border-blue-500/50 text-blue-500'
                                             : 'bg-red-500/20 border-red-500/50 text-red-500'
@@ -344,7 +344,7 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
                                     className={`flex items-center justify-between p-2 rounded text-xs ${gear.isSuitable
                                         ? 'bg-green-500/10 border border-green-500/20'
                                         : 'bg-cdsurface border border-cdborder'
-                                        } ${gear === gearAnalysis.optimal ? 'ring-2 ring-yellow-400' : ''}`}
+                                        } ${gear === gearAnalysis.optimal ? 'ring-2 ring-cdprimary' : ''}`}
                                 >
                                     <span className="text-cdtext font-mono">
                                         {gear.chainring}x{gear.cog}

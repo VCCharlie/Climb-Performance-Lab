@@ -324,7 +324,7 @@ const ClimbSelector = ({
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             placeholder="Search climbs (name, country, region)..."
-            className="w-full bg-cdsurface border border-cdborder rounded pl-10 pr-4 py-2 text-sm text-cdtext outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400"
+            className="w-full bg-cdsurface border border-cdborder rounded pl-10 pr-4 py-2 text-sm text-cdtext outline-none focus:border-cdprimary/50 focus:ring-1 focus:ring-cdprimary/40"
           />
         </div>
         {showNearbyFilter && (
@@ -338,7 +338,7 @@ const ClimbSelector = ({
               >
                 {RADIUS_OPTIONS.map(r => <option key={r} value={r}>{r} km</option>)}
               </select>
-              <button onClick={clearNearby} aria-label="Clear nearby filter" className="text-blue-400 hover:text-blue-200 ml-0.5 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded">
+              <button onClick={clearNearby} aria-label="Clear nearby filter" className="text-blue-400 hover:text-blue-200 ml-0.5 cd-focus-ring rounded">
                 <X size={11} />
               </button>
             </div>
@@ -356,11 +356,11 @@ const ClimbSelector = ({
         )}
         <button
           onClick={() => setShowAdvanced(!showAdvanced)}
-          className={`relative px-3 py-2 rounded border text-xs font-bold flex items-center gap-1 transition-colors ${showAdvanced ? 'bg-yellow-400/10 text-yellow-400 border-yellow-400' : 'text-cdmuted border-cdborder hover:text-cdtext'}`}
+          className={`relative px-3 py-2 rounded border text-xs font-bold flex items-center gap-1 transition-colors ${showAdvanced ? 'bg-cdprimary/10 text-cdprimary border-cdprimary' : 'text-cdmuted border-cdborder hover:text-cdtext'}`}
         >
           Filters {showAdvanced ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           {activeFilterCount > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 bg-yellow-400 text-cdonbrand text-[9px] font-black rounded-full w-4 h-4 flex items-center justify-center">
+            <span className="absolute -top-1.5 -right-1.5 bg-cdprimary text-cdonprimary text-[9px] font-black rounded-full w-4 h-4 flex items-center justify-center">
               {activeFilterCount}
             </span>
           )}
@@ -389,7 +389,7 @@ const ClimbSelector = ({
           <button
             key={c}
             onClick={() => handleCountryChange(c)}
-            className={`px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-colors flex items-center gap-1 ${countryFilter === c ? 'bg-yellow-400 text-cdonbrand border border-yellow-400' : 'bg-cdsurface border-cdborder border text-cdmuted hover:text-cdtext'}`}
+            className={`px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-colors flex items-center gap-1 ${countryFilter === c ? 'bg-cdprimary text-cdonprimary border border-cdprimary' : 'bg-cdsurface border-cdborder border text-cdmuted hover:text-cdtext'}`}
           >
             {c === 'All' ? <><Globe size={12} />All</> : <><FlagIcon country={c} size="sm" />{c}</>}
           </button>
@@ -440,7 +440,7 @@ const ClimbSelector = ({
             <select
               value={sortBy}
               onChange={e => setSortBy(e.target.value)}
-              className="text-xs bg-cdsurface border border-cdborder rounded px-2 py-1 text-cdtext outline-none focus:border-yellow-400"
+              className="text-xs bg-cdsurface border border-cdborder rounded px-2 py-1 text-cdtext outline-none focus:border-cdprimary/50"
             >
               {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
@@ -462,7 +462,7 @@ const ClimbSelector = ({
             {filteredClimbs.length} results
           </span>
           <select
-            className="w-full bg-cdsurface text-cdtext rounded p-3 text-sm border border-cdborder outline-none focus:border-yellow-400"
+            className="w-full bg-cdsurface text-cdtext rounded p-3 text-sm border border-cdborder outline-none focus:border-cdprimary/50"
             value={mode === 'single' ? (selected?.id || '') : ''}
             onChange={e => {
               const climb = climbDatabase.find(c => c.id === e.target.value);
