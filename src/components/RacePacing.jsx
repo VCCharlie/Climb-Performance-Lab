@@ -156,7 +156,7 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
         <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl space-y-6">
             <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-cdtext flex items-center gap-2">
-                    <Mountain className="text-yellow-400" />
+                    <Mountain className="text-cdprimary" />
                     Multi-Climb Race Pacing Strategy
                 </h2>
                 <div className="text-xs text-cdmuted bg-cdbg px-3 py-1 rounded-full border border-cdborder">
@@ -194,7 +194,7 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
                     <div className="bg-cdbg/50 p-4 rounded border border-cdborder">
                         <div className="flex justify-between text-xs text-cdtext mb-2">
                             <span>Race Intensity (IF)</span>
-                            <span className="font-mono text-yellow-400">{(targetIntensity * 100).toFixed(0)}%</span>
+                            <span className="font-mono text-cdprimary">{(targetIntensity * 100).toFixed(0)}%</span>
                         </div>
                         <input
                             type="range"
@@ -203,7 +203,7 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
                             step="0.01"
                             value={targetIntensity}
                             onChange={e => setTargetIntensity(parseFloat(e.target.value))}
-                            className="w-full h-2 bg-cdborder rounded-lg appearance-none cursor-pointer accent-yellow-400"
+                            className="w-full h-2 bg-cdborder rounded-lg appearance-none cursor-pointer accent-cdprimary"
                         />
                         <div className="text-xs text-cdmuted mt-1">
                             {targetIntensity < 0.75 && "Endurance pace - good for ultra-long races"}
@@ -329,7 +329,7 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
                         </div>
 
                         <div className="bg-cdsurface p-4 rounded border border-cdborder text-center">
-                            <Zap className="w-5 h-5 text-yellow-500 mx-auto mb-2" />
+                            <Zap className="w-5 h-5 text-cdprimary mx-auto mb-2" />
                             <div className="text-2xl font-bold text-cdtext">{Math.round(raceStrategy.avgPower)}W</div>
                             <div className="text-xs text-cdmuted uppercase">
                                 {raceStrategy.avgWPerKg.toFixed(1)} W/kg
@@ -377,7 +377,7 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
                                             <td className="py-2 px-2 text-cdtext font-medium">
                                                 {detail.climb.name}
                                             </td>
-                                            <td className="py-2 px-2 text-right text-yellow-600 font-mono">
+                                            <td className="py-2 px-2 text-right text-cdprimary font-mono">
                                                 {Math.round(detail.power)}W
                                             </td>
                                             <td className="py-2 px-2 text-right text-cdtext font-mono">

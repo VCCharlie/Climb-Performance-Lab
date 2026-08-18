@@ -183,7 +183,7 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
     <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl">
       <div className="flex flex-col gap-4 mb-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-xl font-bold text-yellow-400 flex items-center gap-2">
+          <h2 className="text-xl font-bold text-cdprimary flex items-center gap-2">
             <Mountain className="w-6 h-6" /> Physics Engine
           </h2>
           <div className="flex items-center gap-2 flex-wrap">
@@ -204,7 +204,7 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
             <button
               type="button"
               onClick={() => setShowAdvanced(!showAdvanced)}
-              className={`text-xs font-bold px-3 py-1 rounded border ${showAdvanced ? 'bg-yellow-400/10 text-yellow-400 border-yellow-400' : 'text-cdmuted border-cdborder'}`}
+              className={`text-xs font-bold px-3 py-1 rounded border ${showAdvanced ? 'bg-cdprimary/10 text-cdprimary border-cdprimary' : 'text-cdmuted border-cdborder'}`}
             >
               Advanced Physics
             </button>
@@ -229,7 +229,7 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                 step="0.01"
                 value={cda}
                 onChange={e => setCda(parseFloat(e.target.value))}
-                className="w-full bg-cdsurface text-cdtext rounded p-2 border border-cdborder focus:border-yellow-400 outline-none"
+                className="w-full bg-cdsurface text-cdtext rounded p-2 border border-cdborder focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none"
               />
             </div>
             <div>
@@ -239,7 +239,7 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                 step="0.001"
                 value={crr}
                 onChange={e => setCrr(parseFloat(e.target.value))}
-                className="w-full bg-cdsurface text-cdtext rounded p-2 border border-cdborder focus:border-yellow-400 outline-none"
+                className="w-full bg-cdsurface text-cdtext rounded p-2 border border-cdborder focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none"
               />
             </div>
             <div>
@@ -249,7 +249,7 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                 step="0.01"
                 value={loss}
                 onChange={e => setLoss(parseFloat(e.target.value))}
-                className="w-full bg-cdsurface text-cdtext rounded p-2 border border-cdborder focus:border-yellow-400 outline-none"
+                className="w-full bg-cdsurface text-cdtext rounded p-2 border border-cdborder focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none"
               />
             </div>
           </div>
@@ -408,7 +408,7 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                           x={Math.min(98, Math.max(3, x))}
                           y="32"
                           textAnchor="middle"
-                          className="fill-yellow-400/90"
+                          className="fill-cdprimary/90"
                           style={{ fontSize: '2.65px', fontWeight: 700 }}
                         >
                           A
@@ -450,7 +450,7 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
         {selectedClimb && climbInsights && (
           <div className="rounded-xl border border-cdborder bg-cdbg/40 p-4 space-y-3">
             <div className="flex items-center gap-2 text-sm font-bold text-cdtext">
-              <Lightbulb size={16} className="text-yellow-400 shrink-0" />
+              <Lightbulb size={16} className="text-cdprimary shrink-0" />
               Climb insights
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
@@ -468,7 +468,7 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                   <span className="text-[10px] uppercase text-cdmuted font-bold flex items-center gap-1">
                     <Gauge size={11} /> vs FTP
                   </span>
-                  <span className="text-lg font-bold text-yellow-400">{Math.round(climbInsights.pctFtp)}%</span>
+                  <span className="text-lg font-bold text-cdprimary">{Math.round(climbInsights.pctFtp)}%</span>
                   <span className="text-[10px] text-cdmuted">IF {(calc.ifRatio * 100).toFixed(1)}% FTP</span>
                 </div>
               )}
@@ -509,7 +509,7 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
               </p>
             )}
             {climbInsights.gradientNote && (
-              <p className="text-xs text-cdmuted border-l-2 border-yellow-400/50 pl-3 py-0.5">{climbInsights.gradientNote}</p>
+              <p className="text-xs text-cdmuted border-l-2 border-cdprimary/50 pl-3 py-0.5">{climbInsights.gradientNote}</p>
             )}
             {selectedClimb.url && (
               <a
@@ -534,7 +534,7 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                 <button type="button" onClick={() => updateWeight('body', -0.1)} className="p-1 bg-cdborder rounded hover:bg-slate-600">
                   <Minus size={14} />
                 </button>
-                <span className="font-mono w-16 text-center text-yellow-400">{userSettings.weight.toFixed(1)} kg</span>
+                <span className="font-mono w-16 text-center text-cdprimary">{userSettings.weight.toFixed(1)} kg</span>
                 <button type="button" onClick={() => updateWeight('body', 0.1)} className="p-1 bg-cdborder rounded hover:bg-slate-600">
                   <Plus size={14} />
                 </button>
@@ -546,7 +546,7 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                 <button type="button" onClick={() => updateWeight('bike', -0.1)} className="p-1 bg-cdborder rounded hover:bg-slate-600">
                   <Minus size={14} />
                 </button>
-                <span className="font-mono w-16 text-center text-yellow-400">{userSettings.bikeWeight.toFixed(1)} kg</span>
+                <span className="font-mono w-16 text-center text-cdprimary">{userSettings.bikeWeight.toFixed(1)} kg</span>
                 <button type="button" onClick={() => updateWeight('bike', 0.1)} className="p-1 bg-cdborder rounded hover:bg-slate-600">
                   <Plus size={14} />
                 </button>
@@ -558,21 +558,21 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
             <button
               type="button"
               onClick={() => setMode('target')}
-              className={`flex-1 py-2 text-xs font-bold uppercase rounded ${mode === 'target' ? 'bg-yellow-400 text-slate-900' : 'text-cdtext'}`}
+              className={`flex-1 py-2 text-xs font-bold uppercase rounded ${mode === 'target' ? 'bg-cdprimary text-cdonprimary' : 'text-cdtext'}`}
             >
               Target Time
             </button>
             <button
               type="button"
               onClick={() => setMode('predict')}
-              className={`flex-1 py-2 text-xs font-bold uppercase rounded ${mode === 'predict' ? 'bg-yellow-400 text-slate-900' : 'text-cdtext'}`}
+              className={`flex-1 py-2 text-xs font-bold uppercase rounded ${mode === 'predict' ? 'bg-cdprimary text-cdonprimary' : 'text-cdtext'}`}
             >
               Predict
             </button>
           </div>
 
-          <div className="bg-cdbg border border-yellow-400/30 p-4 rounded-lg">
-            <label className="text-xs text-yellow-400 uppercase font-bold mb-2 block">
+          <div className="bg-cdbg border border-cdprimary/30 p-4 rounded-lg">
+            <label className="text-xs text-cdprimary uppercase font-bold mb-2 block">
               {mode === 'target' ? 'Scenario A — desired time' : 'Scenario A — sustainable power'}
             </label>
             <div className="flex items-center gap-2">
@@ -588,14 +588,14 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                 <input
                   value={targetTimeStr}
                   onChange={e => setTargetTimeStr(e.target.value)}
-                  className="w-full bg-transparent text-3xl font-mono text-center text-cdtext outline-none border-b border-transparent focus:border-yellow-400"
+                  className="w-full bg-transparent text-3xl font-mono text-center text-cdtext outline-none border-b border-transparent focus:border-cdprimary/50"
                 />
               ) : (
                 <input
                   type="number"
                   value={targetWatts}
                   onChange={e => setTargetWatts(e.target.value)}
-                  className="w-full bg-transparent text-3xl font-mono text-center text-cdtext outline-none border-b border-transparent focus:border-yellow-400"
+                  className="w-full bg-transparent text-3xl font-mono text-center text-cdtext outline-none border-b border-transparent focus:border-cdprimary/50"
                 />
               )}
 
@@ -619,8 +619,8 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
           </div>
           <div className="bg-cdborder/50 p-4 rounded-lg flex flex-col items-center justify-center border border-cdborder">
             <span className="text-xs text-cdmuted uppercase mb-1">Power / Weight</span>
-            <span className="text-3xl font-bold text-yellow-400">
-              {calc.wkg} <small className="text-sm text-yellow-600">W/kg</small>
+            <span className="text-3xl font-bold text-cdprimary">
+              {calc.wkg} <small className="text-sm text-cdprimary">W/kg</small>
             </span>
           </div>
           <div className="bg-cdborder/50 p-4 rounded-lg flex flex-col items-center justify-center border border-cdborder">
