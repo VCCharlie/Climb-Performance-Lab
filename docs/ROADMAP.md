@@ -82,10 +82,10 @@ Parallel aan de product-fases hierboven loopt een UX/design rollout:
 
 | # | Onderdeel | Status |
 |---|-----------|--------|
-| 5a | **Weather voor alle klimmen** (geocode uit `climbs.js`) | In progress |
+| 5a | **Weather voor alle klimmen** (geocode uit `climbs.js`) | Done (PR #509) |
 | 5b | **Sync/component tests** (hooks rond DataHub) | In progress |
 | 5c | **`App.jsx` opsplitsen** (providers) | Backlog |
-| 5d | Opruimen: dode `SettingsTab.jsx`, `DataHub/` vs `data-hub/` consolidatie | Backlog |
+| 5d | Opruimen: dode `SettingsTab.jsx`, `DataHub/` vs `data-hub/` consolidatie | Backlog (`SettingsTab` removed) |
 
 ---
 
