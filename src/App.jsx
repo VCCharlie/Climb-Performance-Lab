@@ -1304,6 +1304,7 @@ const App = () => {
                                         initialState={bucketListState}
                                         remoteRevision={bucketListRemoteRevision}
                                         isSignedIn={!!user}
+                                        ftp={userSettings.ftp}
                                         onStateChange={handleBucketListStateChange}
                                         onOpenWeatherForClimb={(climb) => {
                                             setWeatherClimbState((prev) => ({

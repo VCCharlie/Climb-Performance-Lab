@@ -18,6 +18,11 @@ import {
     downloadBucketListDonePbJson,
     buildBucketListExportRows,
 } from '../utils/bucketListExport';
+import {
+    countBucketListPrepWorkouts,
+    listBucketListPrepWorkouts,
+} from '../utils/bucketListZwoWorkouts';
+import { downloadZwoWorkouts } from '../utils/zwoExport';
 import { yieldToMain } from '../utils/yieldToMain';
 import { addDismissedPbClimbId, climbPbsWithoutDismissed } from '../utils/bucketListPbDismiss';
 
@@ -41,6 +46,7 @@ const BucketList = ({
     initialState,
     remoteRevision = 0,
     isSignedIn = false,
+    ftp = 0,
     onStateChange,
     onOpenWeatherForClimb,
     onOpenProfilerForClimb,
@@ -452,6 +458,29 @@ const BucketList = ({
         [climbStatus, climbPbs, climbDatabase, activities, initialState?.updatedAt, initialState?.pbScanCompletedAt],
     );
 
+    const prepZwoCount = useMemo(
+        () => countBucketListPrepWorkouts(climbDatabase, climbStatus),
+        [climbDatabase, climbStatus],
+    );
+
+    const handleExportPrepZwo = useCallback(() => {
+        const workouts = listBucketListPrepWorkouts(climbDatabase, climbStatus, { ftp });
+        const n = downloadZwoWorkouts(workouts);
+        if (n === 0) {
+            setScanFeedback({
+                tone: 'warn',
+                message: 'Mark climbs as Planned or Want to generate prep workouts.',
+                at: Date.now(),
+            });
+        } else {
+            setScanFeedback({
+                tone: 'success',
+                message: `Downloading ${n} climb prep .zwo file(s) for Zwift / TrainerRoad.`,
+                at: Date.now(),
+            });
+        }
+    }, [climbDatabase, climbStatus, ftp]);
+
     const handleExportDonePbCsv = useCallback(() => {
         const n = downloadBucketListDonePbCsv(
             { climbStatus, climbPbs, updatedAt: initialState?.updatedAt, pbScanCompletedAt: initialState?.pbScanCompletedAt },
@@ -539,10 +568,21 @@ const BucketList = ({
                     <Download size={12} aria-hidden />
                     Done + PB JSON
                 </button>
+                <button
+                    type="button"
+                    onClick={handleExportPrepZwo}
+                    disabled={prepZwoCount === 0}
+                    className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-md border border-cdborder bg-cdsurface text-cdtext hover:border-cdprimary hover:text-cdprimary disabled:opacity-40 cd-transition"
+                    title="Download hill-repeat .zwo prep workouts for Planned and Want climbs"
+                >
+                    <Download size={12} aria-hidden />
+                    Prep .zwo (planned / want)
+                </button>
                 <span className="text-[10px] text-cdmuted">
                     {exportRowCount > 0
                         ? `${exportRowCount} climb(s) ready (Done or with a PB).`
                         : 'Mark climbs Done or scan for PBs to export.'}
+                    {prepZwoCount > 0 ? ` · ${prepZwoCount} prep .zwo ready (Planned/Want).` : ''}
                 </span>
             </div>
 

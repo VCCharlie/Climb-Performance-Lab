@@ -62,17 +62,17 @@ Parallel aan de product-fases hierboven loopt een UX/design rollout:
 | **Audit 3B** | Mobile Activity Log filters + desktop 4-hub nav | Done |
 | **Audit 3C** | Filters & Bulk typography (dense chips) | Done (PR #503) |
 | **Audit 3E** | `yellow-400` → `cd*` token sweep (Physics, Race, Bucket) | Done (PR #505) |
-| **Audit 3F** | `yellow-400` → `cd*` token sweep (Gear, Map, Dashboard, Coach, Settings) | In progress |
+| **Audit 3F** | `yellow-400` → `cd*` token sweep (Gear, Map, Dashboard, Coach, Settings) | Done (PR #506) |
 | **Later** | Training calendar / decoupling engine | Backlog |
 
 ---
 
 ## Fase 4 — Physics & export
 
-| # | Onderdeel |
-|---|-----------|
-| 4a | **Multi-climb dag-simulator** in Physics (Tour-stage-achtig) |
-| 4b | **Uitgebreide .zwo-export** vanuit coach / bucket list |
+| # | Onderdeel | Status |
+|---|-----------|--------|
+| 4a | **Multi-climb dag-simulator** in Physics (Tour-stage-achtig) | Done (`PhysicsStagePanel`) |
+| 4b | **Uitgebreide .zwo-export** vanuit coach / bucket list | In progress |
 
 ---
 
