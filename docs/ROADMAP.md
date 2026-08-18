@@ -61,8 +61,10 @@ Parallel aan de product-fases hierboven loopt een UX/design rollout:
 | **Audit 3** | Design system: `SubTabNav`, `cd*` tokens, DataHub-consolidatie | Done |
 | **Audit 3B** | Mobile Activity Log filters + desktop 4-hub nav | Done |
 | **Audit 3C** | Filters & Bulk typography (dense chips) | Done (PR #503) |
+| **Audit 3D** | `yellow-400` → `cd*` token sweep (DataHub) | Done (PR #504) |
 | **Audit 3E** | `yellow-400` → `cd*` token sweep (Physics, Race, Bucket) | Done (PR #505) |
 | **Audit 3F** | `yellow-400` → `cd*` token sweep (Gear, Map, Dashboard, Coach, Settings) | Done (PR #506) |
+| **Hotfix** | Activity Detail peak power curve (`cdprimary` alpha) | Done (PR #508) |
 | **Later** | Training calendar / decoupling engine | Backlog |
 
 ---
@@ -72,18 +74,18 @@ Parallel aan de product-fases hierboven loopt een UX/design rollout:
 | # | Onderdeel | Status |
 |---|-----------|--------|
 | 4a | **Multi-climb dag-simulator** in Physics (Tour-stage-achtig) | Done (`PhysicsStagePanel`) |
-| 4b | **Uitgebreide .zwo-export** vanuit coach / bucket list | In progress |
+| 4b | **Uitgebreide .zwo-export** vanuit coach / bucket list | Done (PR #507) |
 
 ---
 
 ## Fase 5 — Platform & kwaliteit
 
-| # | Onderdeel |
-|---|-----------|
-| 5a | **Weather voor alle klimmen** (geocode uit `climbs.js`) |
-| 5b | **Sync/component tests** (hooks rond DataHub) |
-| 5c | **`App.jsx` opsplitsen** (providers) |
-| 5d | Opruimen: dode `SettingsTab.jsx`, `DataHub/` vs `data-hub/` consolidatie |
+| # | Onderdeel | Status |
+|---|-----------|--------|
+| 5a | **Weather voor alle klimmen** (geocode uit `climbs.js`) | In progress |
+| 5b | **Sync/component tests** (hooks rond DataHub) | In progress |
+| 5c | **`App.jsx` opsplitsen** (providers) | Backlog |
+| 5d | Opruimen: dode `SettingsTab.jsx`, `DataHub/` vs `data-hub/` consolidatie | Backlog |
 
 ---
 

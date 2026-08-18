@@ -8,7 +8,7 @@ import {
 } from '../../utils/climbPersonalBests';
 import { formatPbVenueLabel, resolvePbVenue } from '../../utils/activityVenue';
 import { summarizePbVsDbGradient } from '../../utils/bucketPbGradientCompare';
-import { WEATHER_CLIMB_LOCATIONS } from '../../utils/weatherClimbLocations';
+import { canResolveWeatherForClimb } from '../../utils/weatherClimbLocations';
 
 /**
  * Single climb row in the bucket list (virtualized parent supplies positioning).
@@ -32,8 +32,7 @@ const BucketListClimbRow = ({
         ? summarizePbVsDbGradient(climb, pb, pbActivity)
         : null;
 
-    const canWeather = climb.country !== 'ZWIFT'
-        && (WEATHER_CLIMB_LOCATIONS[climb.id] || climb.lat != null || climb.lon != null);
+    const canWeather = canResolveWeatherForClimb(climb);
 
     return (
         <div

@@ -19,6 +19,43 @@ export const WEATHER_CLIMB_LOCATIONS = {
     ch_gotthard: { q: 'Airolo,CH', label: 'Airolo, Switzerland' },
 };
 
+/** ISO-ish country codes → English names for OpenWeather geocode queries. */
+export const WEATHER_COUNTRY_LABELS = {
+    FR: 'France',
+    IT: 'Italy',
+    CH: 'Switzerland',
+    NL: 'Netherlands',
+    ES: 'Spain',
+    DE: 'Germany',
+    BE: 'Belgium',
+    AT: 'Austria',
+    GB: 'United Kingdom',
+    UK: 'United Kingdom',
+    US: 'United States',
+};
+
+/**
+ * @param {string} [code]
+ */
+export function weatherCountryLabel(code) {
+    if (!code) return '';
+    const key = String(code).trim().toUpperCase();
+    return WEATHER_COUNTRY_LABELS[key] || key;
+}
+
+/**
+ * Whether weather lookup is meaningful for this climb (outdoor coords, hint, or named region).
+ * @param {object} climb
+ */
+export function canResolveWeatherForClimb(climb) {
+    if (!climb) return false;
+    if (climb.country === 'ZWIFT') return false;
+    if (WEATHER_CLIMB_LOCATIONS[climb.id]?.q) return true;
+    if (climb.lat != null && climb.lon != null) return true;
+    if (climb.name && climb.country) return true;
+    return false;
+}
+
 /**
  * @param {object} climb
  * @returns {string | null}
@@ -28,9 +65,20 @@ export function weatherLookupQueryForClimb(climb) {
     const known = WEATHER_CLIMB_LOCATIONS[climb.id];
     if (known?.q) return known.q;
     if (climb.country === 'ZWIFT') return null;
-    if (climb.lat != null && climb.lon != null) {
-        return `${climb.lat},${climb.lon}`;
+
+    const lat = Number(climb.lat);
+    const lon = Number(climb.lon);
+    if (Number.isFinite(lat) && Number.isFinite(lon)) {
+        return `${lat},${lon}`;
     }
-    const region = climb.region ? `, ${climb.region}` : '';
-    return `${climb.name}${region}, ${climb.country}`;
+
+    const countryLabel = weatherCountryLabel(climb.country);
+    const region = climb.region ? String(climb.region).trim() : '';
+    const name = String(climb.name || '').trim();
+    if (!name || !countryLabel) return null;
+
+    if (region) {
+        return `${name}, ${region}, ${countryLabel}`;
+    }
+    return `${name}, ${countryLabel}`;
 }
