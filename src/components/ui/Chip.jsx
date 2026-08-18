@@ -15,7 +15,8 @@ const VARIANT_CLASSES = {
 };
 
 const SIZE_CLASSES = {
-  sm: 'px-2 py-0.5 text-[11px] gap-1',
+  xs: 'px-1.5 py-0 text-[10px] leading-tight gap-0.5 min-h-[22px]',
+  sm: 'px-2 py-0.5 text-[10px] leading-tight gap-1 min-h-[24px]',
   md: 'px-2.5 py-1 text-xs gap-1.5',
   lg: 'px-3 py-1.5 text-sm gap-2',
 };
@@ -36,6 +37,7 @@ export default function Chip({
 }) {
   const styles = VARIANT_CLASSES[variant] ?? VARIANT_CLASSES.filter;
   const stateClass = selected ? styles.selected : styles.unselected;
+  const touchMinClass = variant === 'filter' && size !== 'xs' && size !== 'sm';
 
   return (
     <button
@@ -48,12 +50,12 @@ export default function Chip({
         styles.base,
         stateClass,
         SIZE_CLASSES[size],
-        variant === 'filter' && 'cd-min-touch-y',
+        touchMinClass && 'cd-min-touch-y',
         className,
       )}
       {...rest}
     >
-      {Icon && <Icon size={size === 'sm' ? 12 : size === 'lg' ? 16 : 14} className="shrink-0" aria-hidden />}
+      {Icon && <Icon size={size === 'xs' || size === 'sm' ? 10 : size === 'lg' ? 16 : 14} className="shrink-0" aria-hidden />}
       {children}
     </button>
   );

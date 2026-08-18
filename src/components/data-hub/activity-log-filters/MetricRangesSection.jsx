@@ -144,7 +144,7 @@ export default function MetricRangesSection({
                         {METRIC_PRESETS.map((preset) => (
                             <Chip
                                 key={preset.label}
-                                size="sm"
+                                size="xs"
                                 variant="assist"
                                 onClick={() => applyMetricPreset(() => preset.apply(handlers))}
                             >
