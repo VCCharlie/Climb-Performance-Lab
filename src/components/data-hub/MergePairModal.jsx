@@ -37,7 +37,7 @@ const MergePairModal = ({
                             type="button"
                             aria-label="Close modal"
                             onClick={onClose}
-                            className="text-cdmuted hover:text-cdtext text-lg font-bold px-2 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded"
+                            className="text-cdmuted hover:text-cdtext text-lg font-bold px-2 cd-focus-ring rounded"
                         >
                             ✕
                         </button>
@@ -92,7 +92,7 @@ const MergePairModal = ({
                         </button>
                     </div>
                     {!hasDb && (
-                        <p className="px-4 pb-3 text-[10px] text-yellow-500">Sign in and sync is required to write merges to the database.</p>
+                        <p className="px-4 pb-3 text-[10px] text-cdprimary">Sign in and sync is required to write merges to the database.</p>
                     )}
                 </div>
             </div>

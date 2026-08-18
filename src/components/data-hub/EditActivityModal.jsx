@@ -59,7 +59,7 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                 <div className="flex items-start justify-between gap-3 p-3 sm:p-4 border-b border-cdborder bg-cdbg rounded-t-xl shrink-0">
                     <div className="min-w-0 flex-1">
                         <h3 id="edit-activity-modal-title" className="text-cdtext font-bold flex items-center gap-2 text-base">
-                            <Edit2 size={18} className="text-yellow-400 shrink-0" /> Edit activity
+                            <Edit2 size={18} className="text-cdprimary shrink-0" /> Edit activity
                         </h3>
                         <div className="flex flex-wrap items-center gap-2 mt-2">
                             {activity.id && (
@@ -101,7 +101,7 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                         type="button"
                         onClick={onClose}
                         aria-label="Close modal"
-                        className="shrink-0 rounded p-1.5 text-cdmuted hover:text-cdtext hover:bg-cdsurfacehigh/40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                        className="shrink-0 rounded p-1.5 text-cdmuted hover:text-cdtext hover:bg-cdsurfacehigh/40 cd-focus-ring"
                     >
                         <X size={20} />
                     </button>
@@ -112,7 +112,7 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                         {/* BASIS GEGEVENS */}
                         <div className="col-span-full min-w-0">
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Title</label>
-                            <input name="title" type="text" value={formData.title || ''} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                            <input name="title" type="text" value={formData.title || ''} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none" />
                         </div>
 
                         <div className="min-w-0">
@@ -121,14 +121,14 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                                 name="date"
                                 value={formData.date ? new Date(formData.date).toISOString().split('T')[0] : ''}
                                 onChange={(v) => v && setFormData((prev) => ({ ...prev, date: v }))}
-                                className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none"
+                                className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none"
                                 aria-label="Activity date (dd-mm-jjjj)"
                             />
                         </div>
 
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Type</label>
-                            <select name="type" value={formData.type || 'Ride'} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none">
+                            <select name="type" value={formData.type || 'Ride'} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none">
                                 {SPORT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                             </select>
                         </div>
@@ -144,7 +144,7 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                                             setIsCustomGear(false);
                                             setFormData(prev => ({ ...prev, gear_id: null, gear_name: '' }));
                                         }}
-                                        className="text-[10px] text-yellow-500 hover:text-yellow-400 font-bold"
+                                        className="text-[10px] text-cdprimary hover:brightness-110 font-bold"
                                     >
                                         Back to list
                                     </button>
@@ -158,7 +158,7 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                                     value={formData.gear_name || ''}
                                     onChange={(e) => setFormData(prev => ({ ...prev, gear_id: null, gear_name: e.target.value }))}
                                     placeholder="Bike name…"
-                                    className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none"
+                                    className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none"
                                 />
                             ) : (
                                 <select
@@ -192,7 +192,7 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                                             }));
                                         }
                                     }}
-                                    className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none"
+                                    className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none"
                                 >
                                     <option value="">— no bike selected —</option>
                                     {unifiedBikesList.map(({ id, name }) => (
@@ -208,20 +208,20 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
 
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Distance (km)</label>
-                            <input name="distance" type="number" step="0.1" value={formData.distance || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                            <input name="distance" type="number" step="0.1" value={formData.distance || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none" />
                         </div>
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Elevation (m)</label>
-                            <input name="climbing" type="number" value={formData.climbing || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                            <input name="climbing" type="number" value={formData.climbing || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none" />
                         </div>
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Time (sec)</label>
-                            <input name="moving_time" type="number" value={formData.moving_time || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                            <input name="moving_time" type="number" value={formData.moving_time || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none" />
                             <span className="text-xs text-cdmuted text-right block mt-1">{formatTime(formData.moving_time)}</span>
                         </div>
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Load (TSS)</label>
-                            <input name="load" type="number" value={formData.load || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                            <input name="load" type="number" value={formData.load || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none" />
                         </div>
 
                         {/* POWER & HR */}
@@ -229,27 +229,27 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
 
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Avg Power (W)</label>
-                            <input name="avg_power" type="number" value={formData.avg_power || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                            <input name="avg_power" type="number" value={formData.avg_power || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none" />
                         </div>
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Max Power (W)</label>
-                            <input name="max_power" type="number" value={formData.max_power || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                            <input name="max_power" type="number" value={formData.max_power || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none" />
                         </div>
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Norm Power (NP)</label>
-                            <input name="norm_power" type="number" value={formData.norm_power || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                            <input name="norm_power" type="number" value={formData.norm_power || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none" />
                         </div>
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Work (kJ)</label>
-                            <input name="work" type="number" value={formData.work || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                            <input name="work" type="number" value={formData.work || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none" />
                         </div>
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Avg HR (bpm)</label>
-                            <input name="avg_hr" type="number" value={formData.avg_hr || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                            <input name="avg_hr" type="number" value={formData.avg_hr || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none" />
                         </div>
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Max HR (bpm)</label>
-                            <input name="max_hr" type="number" value={formData.max_hr || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                            <input name="max_hr" type="number" value={formData.max_hr || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none" />
                         </div>
 
                         {/* EXTRA METRICS */}
@@ -257,18 +257,18 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
 
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">RPE (1-10)</label>
-                            <input name="rpe" type="number" step="0.1" value={formData.rpe || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                            <input name="rpe" type="number" step="0.1" value={formData.rpe || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none" />
                         </div>
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">FTP (W)</label>
-                            <input name="ftp" type="number" value={formData.ftp || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                            <input name="ftp" type="number" value={formData.ftp || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none" />
                             <p className="hidden sm:block text-[10px] text-cdmuted mt-1 leading-snug">
                                 FTP snapshot from Intervals.icu for this ride (icu_ftp). Your profile FTP lives in Settings → Profile.
                             </p>
                         </div>
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Avg Speed (km/h)</label>
-                            <input name="avg_speed" type="number" step="0.1" value={formData.avg_speed || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                            <input name="avg_speed" type="number" step="0.1" value={formData.avg_speed || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none" />
                         </div>
 
                         {/* BEST EFFORTS — gebruikt voor MMP curve */}
@@ -281,37 +281,37 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                         </div>
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Best 1 min (W)</label>
-                            <input name="best_1min" type="number" value={formData.best_1min || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                            <input name="best_1min" type="number" value={formData.best_1min || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none" />
                         </div>
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Best 5 min (W)</label>
-                            <input name="best_5min" type="number" value={formData.best_5min || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                            <input name="best_5min" type="number" value={formData.best_5min || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none" />
                         </div>
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Best 10 min (W)</label>
-                            <input name="best_10min" type="number" value={formData.best_10min || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                            <input name="best_10min" type="number" value={formData.best_10min || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none" />
                         </div>
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Best 20 min (W)</label>
-                            <input name="best_20min" type="number" value={formData.best_20min || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                            <input name="best_20min" type="number" value={formData.best_20min || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none" />
                         </div>
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Best 60 min (W)</label>
-                            <input name="best_60min" type="number" value={formData.best_60min || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                            <input name="best_60min" type="number" value={formData.best_60min || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none" />
                         </div>
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Best 90 min (W)</label>
-                            <input name="best_90min" type="number" value={formData.best_90min || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                            <input name="best_90min" type="number" value={formData.best_90min || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none" />
                         </div>
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Best 120 min (W)</label>
-                            <input name="best_120min" type="number" value={formData.best_120min || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none" />
+                            <input name="best_120min" type="number" value={formData.best_120min || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none" />
                         </div>
                     </div>
 
                     <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 mt-6 pt-4 border-t border-cdborder">
                         <button type="button" onClick={onClose} className="w-full sm:w-auto px-4 py-2 text-cdmuted hover:text-cdtext font-bold text-sm">Cancel</button>
-                        <button type="submit" className="w-full sm:w-auto px-6 py-2 bg-yellow-500 hover:bg-yellow-400 text-cdonbrand font-bold rounded shadow-lg shadow-yellow-500/20 flex items-center justify-center gap-2">
+                        <button type="submit" className="w-full sm:w-auto px-6 py-2 bg-cdprimary hover:brightness-105 text-cdonprimary font-bold rounded shadow-lg shadow-cdprimary/20 flex items-center justify-center gap-2">
                             <Save size={16} /> Save
                         </button>
                     </div>

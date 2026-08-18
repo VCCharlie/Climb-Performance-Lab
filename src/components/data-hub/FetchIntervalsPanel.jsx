@@ -59,7 +59,7 @@ const FetchIntervalsPanel = ({
                 type="button"
                 onClick={onFetch}
                 disabled={isFetching || isSyncing}
-                className="w-full sm:w-auto shrink-0 px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                className="w-full sm:w-auto shrink-0 px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20 cd-focus-ring"
             >
                 {isFetching || isSyncing ? (
                     <Loader2 size={14} className="animate-spin" aria-hidden="true" />

@@ -39,7 +39,7 @@ export default function StravaEnrichOverlay({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="shrink-0 px-3 py-1.5 text-xs font-bold rounded border border-cdborder text-cdmuted hover:text-cdtext hover:border-yellow-400/50 transition-colors focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                        className="shrink-0 px-3 py-1.5 text-xs font-bold rounded border border-cdborder text-cdmuted hover:text-cdtext hover:border-cdprimary/50 transition-colors cd-focus-ring"
                     >
                         Close
                     </button>

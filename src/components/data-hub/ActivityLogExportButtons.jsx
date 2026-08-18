@@ -78,7 +78,7 @@ const ActivityLogExportButtons = ({
                 onClick={onExportCsv}
                 disabled={disabled}
                 title="Export selected to CSV (opens in Excel)"
-                className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-cdtext hover:border-green-500/50 hover:bg-cdborder/30 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-cdtext hover:border-green-500/50 hover:bg-cdborder/30 disabled:opacity-40 cd-focus-ring"
             >
                 <Download size={12} aria-hidden="true" />
                 CSV
@@ -89,7 +89,7 @@ const ActivityLogExportButtons = ({
                 onClick={onExportXlsx}
                 disabled={disabled || isExportingXlsx}
                 title="Export selected to Excel workbook"
-                className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-cdtext hover:border-green-500/50 hover:bg-cdborder/30 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-cdtext hover:border-green-500/50 hover:bg-cdborder/30 disabled:opacity-40 cd-focus-ring"
             >
                 {isExportingXlsx ? (
                     <Loader2 size={12} className="animate-spin" aria-hidden="true" />

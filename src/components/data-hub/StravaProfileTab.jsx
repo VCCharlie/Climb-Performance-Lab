@@ -169,7 +169,7 @@ const MilestoneBar = ({ title, currentLabel, targetLabel, remainingLabel, pct })
         </div>
         <div className="h-2 rounded-full bg-cdsurface overflow-hidden border border-cdborder/50">
             <div
-                className="h-full bg-gradient-to-r from-orange-500 to-yellow-400 transition-all duration-500"
+                className="h-full bg-gradient-to-r from-orange-500 to-cdprimary transition-all duration-500"
                 style={{ width: `${Math.min(100, Math.max(0, pct))}%` }}
             />
         </div>
@@ -712,13 +712,13 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                 )}
                                 {komCount + crCount > 0 && (
                                     <span className="flex items-center gap-1">
-                                        <Trophy size={11} className="text-yellow-400" /> {komCount} KOM
+                                        <Trophy size={11} className="text-cdprimary" /> {komCount} KOM
                                         {crCount > 0 && <span className="text-purple-400">· {crCount} CR</span>}
                                     </span>
                                 )}
                                 {starred?.length > 0 && (
                                     <span className="flex items-center gap-1">
-                                        <Star size={11} className="text-yellow-400 fill-yellow-400" /> {starred.length} starred
+                                        <Star size={11} className="text-cdprimary fill-cdprimary" /> {starred.length} starred
                                     </span>
                                 )}
                             </div>
@@ -770,7 +770,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
             )}
 
             {!athleteId && (
-                <div className="text-xs text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded p-3 flex gap-2">
+                <div className="text-xs text-cdprimary bg-cdprimary/10 border border-cdprimary/20 rounded p-3 flex gap-2">
                     <AlertCircle size={14} className="shrink-0 mt-0.5" />
                     Reconnect Strava in Settings once so your athlete ID is saved.
                 </div>
@@ -889,7 +889,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                                     </p>
                                                 )}
                                                 {recordRides?.longestApprox && (
-                                                    <p className="text-[10px] text-yellow-500/90 mt-1">Best match: max distance in scanned rides (± stats).</p>
+                                                    <p className="text-[10px] text-cdprimary/90 mt-1">Best match: max distance in scanned rides (± stats).</p>
                                                 )}
                                             </div>
                                         )}
@@ -920,7 +920,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                                     </p>
                                                 )}
                                                 {recordRides?.elevApprox && (
-                                                    <p className="text-[10px] text-yellow-500/90 mt-1">Best match: max elevation in scanned rides (± stats).</p>
+                                                    <p className="text-[10px] text-cdprimary/90 mt-1">Best match: max elevation in scanned rides (± stats).</p>
                                                 )}
                                             </div>
                                         )}
@@ -941,7 +941,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                                     <ExternalLink size={11} />
                                                 </a>
                                                 {!recordRides.historyComplete && (
-                                                    <p className="text-[10px] text-yellow-500/90 mt-1">Older rides beyond the scan cap may have higher totals.</p>
+                                                    <p className="text-[10px] text-cdprimary/90 mt-1">Older rides beyond the scan cap may have higher totals.</p>
                                                 )}
                                             </div>
                                         )}
@@ -1058,10 +1058,10 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                         <section className="space-y-2 min-w-0 rounded-xl border border-cdborder/60 bg-cdbg/20 p-3">
                             <h3 className="text-xs font-bold text-cdtext uppercase tracking-wide flex flex-wrap items-center gap-2">
                                 <span className="flex items-center gap-2">
-                                    <Trophy size={13} className="text-yellow-400" /> KOM / CR
+                                    <Trophy size={13} className="text-cdprimary" /> KOM / CR
                                 </span>
                                 <span className="flex items-center gap-2 font-normal text-[10px] sm:text-xs">
-                                    {komCount > 0 && <span className="flex items-center gap-1 text-yellow-400"><Trophy size={10} /> {komCount} KOM</span>}
+                                    {komCount > 0 && <span className="flex items-center gap-1 text-cdprimary"><Trophy size={10} /> {komCount} KOM</span>}
                                     {crCount > 0 && <span className="flex items-center gap-1 text-purple-400"><Crown size={10} /> {crCount} CR</span>}
                                 </span>
                             </h3>
@@ -1101,11 +1101,11 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                         const isKOM = effort.is_kom !== false;
                                         const segId = effort.segment?.id ?? effort.segment_id;
                                         return (
-                                            <div key={effort.id} className={`flex flex-wrap sm:flex-nowrap items-center gap-2 bg-cdbg/50 border rounded px-2.5 py-1.5 text-xs transition-colors ${isKOM ? 'border-cdborder/40 hover:border-yellow-400/30' : 'border-cdborder/40 hover:border-purple-400/30'}`}>
+                                            <div key={effort.id} className={`flex flex-wrap sm:flex-nowrap items-center gap-2 bg-cdbg/50 border rounded px-2.5 py-1.5 text-xs transition-colors ${isKOM ? 'border-cdborder/40 hover:border-cdprimary/30' : 'border-cdborder/40 hover:border-purple-400/30'}`}>
                                                 {isKOM
-                                                    ? <Trophy size={11} className="text-yellow-400 shrink-0" title="KOM" />
+                                                    ? <Trophy size={11} className="text-cdprimary shrink-0" title="KOM" />
                                                     : <Crown size={11} className="text-purple-400 shrink-0" title="CR" />}
-                                                <span className={`text-[9px] font-bold px-1 py-0.5 rounded shrink-0 ${isKOM ? 'bg-yellow-500/20 text-yellow-400' : 'bg-purple-500/20 text-purple-400'}`}>
+                                                <span className={`text-[9px] font-bold px-1 py-0.5 rounded shrink-0 ${isKOM ? 'bg-cdprimarycontainer text-cdprimary' : 'bg-purple-500/20 text-purple-400'}`}>
                                                     {isKOM ? 'KOM' : 'CR'}
                                                 </span>
                                                 <button
@@ -1137,7 +1137,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                     {starred && (
                         <section className="space-y-2 min-w-0 rounded-xl border border-cdborder/60 bg-cdbg/20 p-3">
                             <h3 className="text-xs font-bold text-cdtext uppercase tracking-wide flex items-center gap-2">
-                                <Star size={13} className="text-yellow-400 fill-yellow-400" /> Starred segments ({fmt.int(starred.length)})
+                                <Star size={13} className="text-cdprimary fill-cdprimary" /> Starred segments ({fmt.int(starred.length)})
                             </h3>
                             <div className="flex flex-wrap gap-2 items-center text-[10px]">
                                 <label className="text-cdmuted font-bold uppercase shrink-0">Filter</label>
@@ -1173,8 +1173,8 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                             ) : (
                                 <div className="max-h-80 overflow-y-auto custom-scrollbar space-y-1 pr-1">
                                     {filteredSortedStarred.map((seg) => (
-                                        <div key={seg.id} className="flex flex-wrap sm:flex-nowrap items-center gap-2 bg-cdbg/50 border border-cdborder/40 rounded px-2.5 py-1.5 text-xs hover:border-yellow-400/30 transition-colors">
-                                            <Star size={11} className="text-yellow-400 fill-yellow-400 shrink-0" />
+                                        <div key={seg.id} className="flex flex-wrap sm:flex-nowrap items-center gap-2 bg-cdbg/50 border border-cdborder/40 rounded px-2.5 py-1.5 text-xs hover:border-cdprimary/30 transition-colors">
+                                            <Star size={11} className="text-cdprimary fill-cdprimary shrink-0" />
                                             <button
                                                 type="button"
                                                 onClick={() => navigateToStravaSegment(seg.id)}

@@ -113,14 +113,14 @@ export default function ActivityLogTab({
                         <button
                             type="button"
                             onClick={expandAllGrouped}
-                            className="text-[10px] font-bold px-2 py-1 rounded border border-cdborder text-cdmuted hover:text-cdaccent hover:border-cdaccent/50 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                            className="text-[10px] font-bold px-2 py-1 rounded border border-cdborder text-cdmuted hover:text-cdaccent hover:border-cdaccent/50 cd-focus-ring"
                         >
                             Expand all
                         </button>
                         <button
                             type="button"
                             onClick={collapseAllGrouped}
-                            className="text-[10px] font-bold px-2 py-1 rounded border border-cdborder text-cdmuted hover:text-cdtext focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                            className="text-[10px] font-bold px-2 py-1 rounded border border-cdborder text-cdmuted hover:text-cdtext cd-focus-ring"
                         >
                             Collapse all
                         </button>
@@ -182,7 +182,7 @@ export default function ActivityLogTab({
 
                 {!activities ? (
                     <div className="flex-1 flex flex-col items-center justify-center text-cdmuted gap-4">
-                        <Loader2 className="animate-spin text-yellow-400" size={32} />
+                        <Loader2 className="animate-spin text-cdprimary" size={32} />
                         <p>Loading Activities...</p>
                     </div>
                 ) : isolateActivityId && !isolatedActivity ? (
