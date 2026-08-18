@@ -32,7 +32,7 @@ function FormFitnessMobileDataCard({ datum, isScrubbing }) {
     const tsbColor = tsb >= 5
         ? 'text-green-400'
         : tsb >= -10
-            ? 'text-yellow-400'
+            ? 'text-cdprimary'
             : 'text-red-400';
 
     return (

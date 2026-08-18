@@ -121,7 +121,7 @@ const ActivityHeatmap = ({ data }) => {
                                         tabIndex={isValid ? 0 : undefined}
                                         className={`cursor-default cd-transition hover:opacity-75 ${!isValid
                                                 ? 'opacity-0'
-                                                : `${LEVEL_CLASSES[cell.level]} rounded-sm focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none`
+                                                : `${LEVEL_CLASSES[cell.level]} rounded-sm cd-focus-ring`
                                             }`}
                                         style={{ width: 13, height: 13 }}
                                     />

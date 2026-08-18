@@ -546,7 +546,7 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
             )}
 
             {planResult.tips?.length > 0 && (
-                <div className="bg-cdsurface p-5 rounded-xl border border-cdborder border-l-4 border-l-yellow-500">
+                <div className="bg-cdsurface p-5 rounded-xl border border-cdborder border-l-4 border-l-cdprimary">
                     <h3 className="text-sm font-bold text-cdtext mb-2">Note</h3>
                     <ul className="list-disc list-inside text-sm text-cdtext space-y-1">
                         {planResult.tips.map((t, i) => (

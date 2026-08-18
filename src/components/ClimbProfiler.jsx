@@ -228,7 +228,7 @@ const ClimbProfiler = ({ userSettings, initialState, onStateChange, theme = 'lig
                     step={1}
                     value={intensityPct}
                     onChange={(e) => setTargetIntensity(Number(e.target.value) / 100)}
-                    className="w-full accent-yellow-500 h-2"
+                    className="w-full accent-cdprimary h-2"
                 />
                 <div className="flex justify-between text-[10px] text-cdmuted uppercase tracking-wide">
                     <span>65% endurance / tempo</span>
@@ -277,7 +277,7 @@ const ClimbProfiler = ({ userSettings, initialState, onStateChange, theme = 'lig
                         type="checkbox"
                         checked={showPowerZones}
                         onChange={() => setShowPowerZones(!showPowerZones)}
-                        className="accent-yellow-500 rounded border-cdborder"
+                        className="accent-cdprimary rounded border-cdborder"
                     />
                     Show power advice in tooltip
                 </label>

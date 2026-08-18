@@ -418,7 +418,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                             OpenWeather API key is stored on this device only — re-enter in Settings on each browser you use.
                         </p>
                         {!apiKey && locationInput.length >= 3 && (
-                            <p className="text-xs text-yellow-500 mt-1">Enter an API key in Settings for location suggestions.</p>
+                            <p className="text-xs text-cdprimary mt-1">Enter an API key in Settings for location suggestions.</p>
                         )}
                     </div>
                 </div>
@@ -440,7 +440,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                 <WeatherForecastStrip forecastData={forecastData} locationLabel={forecastLocation} />
                 {!weatherError && !weatherSuccess && !isLoadingWeather && locationInput && (
                     <div className="text-xs text-cdmuted flex items-center gap-1">
-                        <Lightbulb size={12} className="text-yellow-500" />
+                        <Lightbulb size={12} className="text-cdprimary" />
                         {selectedLocation?.lat !== undefined
                             ? `Coordinates available for ${locationInput} – click "Fetch"`
                             : `Click "Fetch" for ${locationInput}`
@@ -475,7 +475,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                         <div>
                             <div className="flex justify-between text-xs text-cdtext mb-1">
                                 <span>Target Power</span>
-                                <span className="font-mono text-yellow-400">{Math.round(targetPower)}W</span>
+                                <span className="font-mono text-cdprimary">{Math.round(targetPower)}W</span>
                             </div>
                             <input
                                 type="range"
@@ -484,7 +484,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                                 step="5"
                                 value={targetPower}
                                 onChange={(e) => setTargetPower(parseInt(e.target.value))}
-                                className="w-full h-2 bg-cdborder rounded-lg appearance-none cursor-pointer accent-yellow-400"
+                                className="w-full h-2 bg-cdborder rounded-lg appearance-none cursor-pointer accent-cdprimary"
                             />
                         </div>
                     </div>
@@ -546,7 +546,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                 <div className="grid grid-cols-2 gap-4">
                     <div className="bg-cdsurface p-4 rounded border border-cdborder">
                         <div className="flex items-center gap-2 mb-2">
-                            <Sun className="text-center-yellow-500" size={16} />
+                            <Sun className="text-cdprimary" size={16} />
                             <span className="text-xs text-cdmuted uppercase">Ideal Conditions</span>
                         </div>
                         <div className="text-2xl font-bold text-cdtext">
@@ -570,7 +570,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                     ? 'bg-green-100 border-green-500/50 text-green-500'
                     : weatherAdjustedCalculation.timeDifference > 5
                         ? 'bg-red-100 border-red-500/50 text-red-500'
-                        : 'bg-yellow-100 border-yellow-500/50 text-yellow-500'
+                        : 'bg-cdprimarycontainer/40 border-cdprimary/50 text-cdprimary'
                     }`}>
                     <p className="font-bold text-sm">
                         {weatherAdjustedCalculation.timeDifference > 0 ? '+' : ''}
@@ -587,9 +587,9 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                 {weatherAdjustedCalculation.warnings.length > 0 && (
                     <div className="space-y-2">
                         {weatherAdjustedCalculation.warnings.map((warning, idx) => (
-                            <div key={idx} className="bg-yellow-100 border border-yellow-500/50 rounded p-3 flex items-start gap-2">
-                                <AlertTriangle className="text-yellow-500 flex-shrink-0 mt-0.5" size={16} />
-                                <p className="text-sm text-yellow-600">{warning}</p>
+                            <div key={idx} className="bg-cdprimarycontainer/40 border border-cdprimary/50 rounded p-3 flex items-start gap-2">
+                                <AlertTriangle className="text-cdprimary flex-shrink-0 mt-0.5" size={16} />
+                                <p className="text-sm text-cdprimary">{warning}</p>
                             </div>
                         ))}
                     </div>

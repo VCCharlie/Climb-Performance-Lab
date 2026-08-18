@@ -25,7 +25,7 @@ export default function DashboardTodaySyncButton({
             className={cn(
                 'flex items-center justify-center rounded-lg border border-cdborder bg-cdsurface text-cdmuted',
                 'hover:text-green-400 hover:border-green-500/50 cd-transition',
-                'focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none',
+                'cd-focus-ring',
                 'disabled:opacity-50 disabled:pointer-events-none',
                 dim,
                 className,

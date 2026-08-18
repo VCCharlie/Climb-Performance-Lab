@@ -39,7 +39,7 @@ export default function FluidWeekPanel({
     const progressColor = weekPlan.compliancePct > 115
         ? 'bg-orange-400'
         : weekPlan.compliancePct > 100
-            ? 'bg-yellow-400'
+            ? 'bg-cdprimary'
             : 'bg-cdaccent';
 
     return (

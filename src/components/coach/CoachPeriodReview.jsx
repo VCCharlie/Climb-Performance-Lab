@@ -73,7 +73,7 @@ const CoachPeriodReview = ({ activities, userSettings, weeklyHoursTarget }) => {
                     <SwotMini title="Strengths" items={swot.strengths} icon={CheckCircle} color="text-green-500" />
                     <SwotMini title="Weaknesses" items={swot.weaknesses} icon={AlertTriangle} color="text-red-500" />
                     <SwotMini title="Opportunities" items={swot.opportunities} icon={TrendingUp} color="text-blue-500" />
-                    <SwotMini title="Threats" items={swot.threats} icon={Activity} color="text-yellow-500" />
+                    <SwotMini title="Threats" items={swot.threats} icon={Activity} color="text-cdprimary" />
                 </div>
 
                 <div className="rounded-lg border border-cdborder p-4 bg-cdborder/10">

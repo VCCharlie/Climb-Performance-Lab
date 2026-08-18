@@ -65,12 +65,12 @@ const CoachFitnessForecast = ({
     const tsbColor = summary.currentTsb >= 5
         ? 'text-green-400'
         : summary.currentTsb >= -10
-            ? 'text-yellow-400'
+            ? 'text-cdprimary'
             : 'text-red-400';
     const endTsbColor = summary.projectedEndTsb >= 5
         ? 'text-green-400'
         : summary.projectedEndTsb >= -10
-            ? 'text-yellow-400'
+            ? 'text-cdprimary'
             : 'text-red-400';
 
     if (!chartData.length) return null;

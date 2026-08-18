@@ -267,7 +267,7 @@ const VolumeTotalsChart = ({
                         <button
                             type="button"
                             onClick={() => onOpenActivityLogDateRange(selectionDateRange)}
-                            className="inline-flex items-center justify-center gap-1.5 mx-auto px-4 py-2 rounded-lg border border-cdaccent/50 bg-cdsurface text-xs font-bold text-cdaccent hover:bg-cdaccent/10 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                            className="inline-flex items-center justify-center gap-1.5 mx-auto px-4 py-2 rounded-lg border border-cdaccent/50 bg-cdsurface text-xs font-bold text-cdaccent hover:bg-cdaccent/10 cd-focus-ring"
                         >
                             <ExternalLink size={14} className="shrink-0" aria-hidden />
                             Open these rides in Activity log

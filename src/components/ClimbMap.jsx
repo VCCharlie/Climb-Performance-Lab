@@ -330,9 +330,9 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
                         </h2>
                         <p className="text-xs text-cdmuted mt-0.5">
                             {totalShown.toLocaleString('nl-NL')} of {realClimbs.length.toLocaleString('nl-NL')} climbs visible
-                            {trackLoading && <span className="ml-2 text-yellow-400 animate-pulse">· loading track...</span>}
+                            {trackLoading && <span className="ml-2 text-cdprimary animate-pulse">· loading track...</span>}
                             {selectedClimb && !trackLoading && (
-                                <span className="ml-2 text-yellow-400">· {selectedClimb.name}</span>
+                                <span className="ml-2 text-cdprimary">· {selectedClimb.name}</span>
                             )}
                         </p>
                     </div>
@@ -351,7 +351,7 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
                                         <option key={r} value={r}>{r} km</option>
                                     ))}
                                 </select>
-                                <button onClick={clearNearby} aria-label="Clear nearby filter" className="ml-1 text-blue-400 hover:text-blue-200 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded">
+                                <button onClick={clearNearby} aria-label="Clear nearby filter" className="ml-1 text-blue-400 hover:text-blue-200 cd-focus-ring rounded">
                                     <X size={12} />
                                 </button>
                             </div>
@@ -359,9 +359,9 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
                             <button
                                 onClick={locateMe}
                                 disabled={locating}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-cdborder text-xs font-bold text-cdmuted hover:text-cdtext hover:border-yellow-400 transition-colors"
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-cdborder text-xs font-bold text-cdmuted hover:text-cdtext hover:border-cdprimary transition-colors"
                             >
-                                <LocateFixed size={13} className={locating ? 'animate-pulse text-yellow-400' : ''} />
+                                <LocateFixed size={13} className={locating ? 'animate-pulse text-cdprimary' : ''} />
                                 {locating ? 'Locating...' : '📍 Nearby'}
                             </button>
                         )}
@@ -370,7 +370,7 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
                         {/* Filters toggle */}
                         <button
                             onClick={() => setShowFilters(f => !f)}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${showFilters ? 'bg-yellow-400/10 text-yellow-400 border-yellow-400' : 'text-cdmuted border-cdborder hover:text-cdtext'}`}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${showFilters ? 'bg-cdprimary/10 text-cdprimary border-cdprimary' : 'text-cdmuted border-cdborder hover:text-cdtext'}`}
                         >
                             <Filter size={13} />
                             Filters
@@ -390,7 +390,7 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
                                     <button
                                         key={c}
                                         onClick={() => setCountryFilter(c)}
-                                        className={`px-2 py-0.5 rounded-full text-xs font-bold transition-colors flex items-center gap-1 ${countryFilter === c ? 'bg-yellow-400 text-slate-900' : 'bg-cdbg border border-cdborder text-cdmuted hover:text-cdtext'}`}
+                                        className={`px-2 py-0.5 rounded-full text-xs font-bold transition-colors flex items-center gap-1 ${countryFilter === c ? 'bg-cdprimary text-cdonprimary' : 'bg-cdbg border border-cdborder text-cdmuted hover:text-cdtext'}`}
                                     >
                                         {c === 'All' ? 'All' : <><FlagIcon country={c} size="sm" />{c}</>}
                                     </button>
@@ -406,14 +406,14 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
                                     type="number" min={0} max={maxGrade} step={0.5}
                                     value={minGrade}
                                     onChange={e => setMinGrade(Number(e.target.value))}
-                                    className="w-14 text-center bg-cdbg border border-cdborder rounded px-1 py-1 text-xs text-cdtext outline-none focus:border-yellow-400"
+                                    className="w-14 text-center bg-cdbg border border-cdborder rounded px-1 py-1 text-xs text-cdtext outline-none focus:border-cdprimary/50"
                                 />
                                 <span className="text-cdmuted text-xs">–</span>
                                 <input
                                     type="number" min={minGrade} max={25} step={0.5}
                                     value={maxGrade}
                                     onChange={e => setMaxGrade(Number(e.target.value))}
-                                    className="w-14 text-center bg-cdbg border border-cdborder rounded px-1 py-1 text-xs text-cdtext outline-none focus:border-yellow-400"
+                                    className="w-14 text-center bg-cdbg border border-cdborder rounded px-1 py-1 text-xs text-cdtext outline-none focus:border-cdprimary/50"
                                 />
                             </div>
                         </div>
