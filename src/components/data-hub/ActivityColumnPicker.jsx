@@ -49,7 +49,7 @@ const ActivityColumnPicker = ({
                 aria-haspopup="dialog"
                 aria-label="Choose visible columns"
                 title="Show or hide table columns"
-                className="flex items-center justify-center gap-1.5 h-9 px-3 rounded text-sm font-bold border bg-cdsurface border-cdborder text-cdtext hover:border-cdaccent/60 cd-transition focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                className="flex items-center justify-center gap-1.5 h-9 px-3 rounded text-sm font-bold border bg-cdsurface border-cdborder text-cdtext hover:border-cdaccent/60 cd-transition cd-focus-ring"
             >
                 <Columns2 size={14} aria-hidden="true" />
                 <span className="hidden sm:inline">{presetLabel}</span>
@@ -81,7 +81,7 @@ const ActivityColumnPicker = ({
                                 key={id}
                                 type="button"
                                 onClick={() => applyPreset(id)}
-                                className={`px-2 py-1 rounded text-[10px] font-bold border cd-transition focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none ${
+                                className={`px-2 py-1 rounded text-[10px] font-bold border cd-transition cd-focus-ring ${
                                     activePreset === id
                                         ? 'bg-cdaccent/15 border-cdaccent/50 text-cdaccent'
                                         : 'border-cdborder text-cdmuted hover:text-cdtext'

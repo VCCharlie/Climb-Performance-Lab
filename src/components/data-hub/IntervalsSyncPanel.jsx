@@ -51,7 +51,7 @@ const IntervalsSyncPanel = ({
                     onClick={() => setExpanded((v) => !v)}
                     aria-expanded={expanded}
                     aria-controls={panelId}
-                    className="flex flex-1 min-w-0 items-start gap-2 text-left hover:bg-cdborder/10 rounded-md -m-1 p-1 transition-colors focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                    className="flex flex-1 min-w-0 items-start gap-2 text-left hover:bg-cdborder/10 rounded-md -m-1 p-1 transition-colors cd-focus-ring"
                 >
                     {expanded ? (
                         <ChevronDown size={16} className="text-cdmuted shrink-0 mt-0.5" aria-hidden />

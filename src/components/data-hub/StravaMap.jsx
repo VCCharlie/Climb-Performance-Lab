@@ -73,7 +73,7 @@ const StravaMap = ({ polyline }) => {
             <button
                 type="button"
                 onClick={() => setExpanded(e => !e)}
-                className="absolute top-2 right-2 z-[500] bg-cdbg/80 hover:bg-cdbg text-cdmuted hover:text-cdtext border border-cdborder/50 rounded p-1 transition-colors focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none"
+                className="absolute top-2 right-2 z-[500] bg-cdbg/80 hover:bg-cdbg text-cdmuted hover:text-cdtext border border-cdborder/50 rounded p-1 transition-colors cd-focus-ring"
                 title={expanded ? 'Verkleinen' : 'Vergroten'}
                 aria-label={expanded ? 'Collapse map' : 'Expand map'}
             >

@@ -107,7 +107,7 @@ const BulkEditActivitiesModal = ({
             >
                 <div className="flex justify-between items-center p-4 border-b border-cdborder bg-cdbg rounded-t-xl">
                     <h3 id="bulk-edit-modal-title" className="text-cdtext font-bold flex items-center gap-2 text-base">
-                        <Layers size={18} className="text-yellow-400" />
+                        <Layers size={18} className="text-cdprimary" />
                         Bulk edit ({count} activities)
                     </h3>
                     <button type="button" onClick={onClose} className="text-cdmuted hover:text-cdtext" aria-label="Close">
@@ -126,7 +126,7 @@ const BulkEditActivitiesModal = ({
                                 type="checkbox"
                                 checked={applyType}
                                 onChange={(e) => setApplyType(e.target.checked)}
-                                className="accent-yellow-400"
+                                className="accent-cdprimary"
                             />
                             Activity type
                         </label>
@@ -183,7 +183,7 @@ const BulkEditActivitiesModal = ({
                                 type="checkbox"
                                 checked={applyGear}
                                 onChange={(e) => setApplyGear(e.target.checked)}
-                                className="accent-yellow-400"
+                                className="accent-cdprimary"
                             />
                             <span className="flex items-center gap-1.5"><Bike size={14} /> Bike / gear</span>
                         </label>
@@ -205,7 +205,7 @@ const BulkEditActivitiesModal = ({
                                                 setCustomGearName('');
                                                 setGearSelectValue('');
                                             }}
-                                            className="text-[10px] text-yellow-500 hover:text-yellow-400 font-bold"
+                                            className="text-[10px] text-cdprimary hover:brightness-110 font-bold"
                                         >
                                             Back to list
                                         </button>
@@ -242,7 +242,7 @@ const BulkEditActivitiesModal = ({
                                 type="checkbox"
                                 checked={applyLoad}
                                 onChange={(e) => setApplyLoad(e.target.checked)}
-                                className="accent-yellow-400"
+                                className="accent-cdprimary"
                             />
                             Load (TSS)
                         </label>
@@ -265,7 +265,7 @@ const BulkEditActivitiesModal = ({
                                 type="checkbox"
                                 checked={applyRpe}
                                 onChange={(e) => setApplyRpe(e.target.checked)}
-                                className="accent-yellow-400"
+                                className="accent-cdprimary"
                             />
                             RPE (1–10)
                         </label>
@@ -289,7 +289,7 @@ const BulkEditActivitiesModal = ({
                                 type="checkbox"
                                 checked={applyFtp}
                                 onChange={(e) => setApplyFtp(e.target.checked)}
-                                className="accent-yellow-400"
+                                className="accent-cdprimary"
                             />
                             FTP (W) stored on activity
                         </label>
@@ -312,7 +312,7 @@ const BulkEditActivitiesModal = ({
                         </button>
                         <button
                             type="submit"
-                            className="px-6 py-2 bg-yellow-500 hover:bg-yellow-400 text-cdonbrand font-bold rounded shadow-lg shadow-yellow-500/20 flex items-center gap-2"
+                            className="px-6 py-2 bg-cdprimary hover:brightness-105 text-cdonprimary font-bold rounded shadow-lg shadow-cdprimary/20 flex items-center gap-2"
                         >
                             <Save size={16} /> Apply to {count}
                         </button>

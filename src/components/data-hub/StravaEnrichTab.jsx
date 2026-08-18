@@ -21,7 +21,7 @@ const StravaIcon = ({ size = 14 }) => (
 const ConfidenceBadge = ({ confidence }) => {
     const styles = {
         high: 'bg-green-500/20 text-green-400',
-        medium: 'bg-yellow-500/20 text-yellow-400',
+        medium: 'bg-cdprimarycontainer text-cdprimary',
         low: 'bg-orange-500/20 text-orange-400'
     };
     const labels = { high: 'High', medium: 'Medium', low: 'Low' };
@@ -40,7 +40,7 @@ const SectionHeader = ({ icon, iconColor, title, count, children }) => {
                 onClick={() => setOpen(v => !v)}
                 aria-expanded={open}
                 aria-label={`${open ? 'Collapse' : 'Expand'} ${title} section`}
-                className="flex items-center gap-2 w-full text-left mb-2 hover:text-cdtext transition-colors focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded"
+                className="flex items-center gap-2 w-full text-left mb-2 hover:text-cdtext transition-colors cd-focus-ring rounded"
             >
                 {open ? <ChevronDown size={12} className="text-cdmuted" aria-hidden="true" /> : <ChevronRight size={12} className="text-cdmuted" aria-hidden="true" />}
                 {React.createElement(icon, { size: 12, className: iconColor, 'aria-hidden': "true" })}
@@ -403,8 +403,8 @@ const StravaEnrichTab = ({
     if (enrichmentTarget) {
         return (
             <div className="space-y-4 flex-1 overflow-y-auto custom-scrollbar pr-1">
-                <div className="p-3 rounded-lg border-2 border-dashed border-yellow-500/50 bg-yellow-500/5">
-                    <h3 className="font-bold text-yellow-400">Link activity</h3>
+                <div className="p-3 rounded-lg border-2 border-dashed border-cdprimary/50 bg-cdprimary/5">
+                    <h3 className="font-bold text-cdprimary">Link activity</h3>
                     <p className="text-xs text-cdmuted mt-1">
                         Linking <strong className="text-cdtext">{enrichmentTarget.title}</strong> ({enrichmentTarget.date.split('T')[0]}).
                     </p>
@@ -438,12 +438,12 @@ const StravaEnrichTab = ({
                                     value={manualUrl}
                                     onChange={e => setManualUrl(e.target.value)}
                                     placeholder="Paste Strava activity URL…"
-                                    className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-yellow-400 outline-none text-sm"
+                                    className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none text-sm"
                                 />
                                 <button
                                     onClick={handleManualUrlLink}
                                     disabled={!manualUrl}
-                                    className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-bold rounded shadow-lg shadow-yellow-500/20 flex items-center gap-2 text-sm disabled:opacity-50"
+                                    className="px-4 py-2 bg-cdprimary hover:brightness-105 text-cdonprimary font-bold rounded shadow-lg shadow-cdprimary/20 flex items-center gap-2 text-sm disabled:opacity-50"
                                 >
                                     Link
                                 </button>
@@ -461,7 +461,7 @@ const StravaEnrichTab = ({
                                             <span className="w-20 text-cdmuted shrink-0">{strava.start_date_local?.split('T')[0]}</span>
                                             <span className="flex-1 truncate text-cdtext font-medium" title={strava.name}>{strava.name}</span>
                                             <span className="text-cdmuted shrink-0">{Math.round(strava.distance / 100) / 10} km</span>
-                                            {strava.average_watts > 0 && <span className="text-yellow-400 font-bold shrink-0">{Math.round(strava.average_watts)}w</span>}
+                                            {strava.average_watts > 0 && <span className="text-cdprimary font-bold shrink-0">{Math.round(strava.average_watts)}w</span>}
                                             <button
                                                 onClick={() => handleDirectLink(strava)}
                                                 className="ml-auto px-3 py-1 bg-green-600 hover:bg-green-500 text-white font-bold rounded text-xs transition-colors shrink-0"
@@ -585,7 +585,7 @@ const StravaEnrichTab = ({
                                         <span className="w-20 text-cdmuted shrink-0">{strava.start_date_local?.split('T')[0]}</span>
                                         <span className="flex-1 truncate text-cdtext font-medium" title={strava.name}>{strava.name}</span>
                                         <span className="text-cdmuted shrink-0">{Math.round(strava.distance / 100) / 10} km</span>
-                                        {strava.average_watts > 0 && <span className="text-yellow-400 font-bold shrink-0">{Math.round(strava.average_watts)}w</span>}
+                                        {strava.average_watts > 0 && <span className="text-cdprimary font-bold shrink-0">{Math.round(strava.average_watts)}w</span>}
                                     </label>
                                 ))}
                             </div>

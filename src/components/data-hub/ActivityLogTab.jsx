@@ -113,14 +113,14 @@ export default function ActivityLogTab({
                         <button
                             type="button"
                             onClick={expandAllGrouped}
-                            className="text-[10px] font-bold px-2 py-1 rounded border border-cdborder text-cdmuted hover:text-cdaccent hover:border-cdaccent/50 focus-visible:ring-2 focus-visible:ring-cdprimary/40 focus:outline-none"
+                            className="text-[10px] font-bold px-2 py-1 rounded border border-cdborder text-cdmuted hover:text-cdaccent hover:border-cdaccent/50 cd-focus-ring"
                         >
                             Expand all
                         </button>
                         <button
                             type="button"
                             onClick={collapseAllGrouped}
-                            className="text-[10px] font-bold px-2 py-1 rounded border border-cdborder text-cdmuted hover:text-cdtext focus-visible:ring-2 focus-visible:ring-cdprimary/40 focus:outline-none"
+                            className="text-[10px] font-bold px-2 py-1 rounded border border-cdborder text-cdmuted hover:text-cdtext cd-focus-ring"
                         >
                             Collapse all
                         </button>

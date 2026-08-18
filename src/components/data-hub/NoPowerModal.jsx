@@ -35,7 +35,7 @@ const NoPowerModal = ({
                     <div className={modalHeaderClass}>
                         <div>
                             <h3 id="no-power-modal-title" className="text-cdtext font-bold flex items-center gap-2">
-                                <Zap size={16} className="text-yellow-400" aria-hidden />
+                                <Zap size={16} className="text-cdprimary" aria-hidden />
                                 Activities without power ({noPowerList.length})
                             </h3>
                             <p className="text-xs text-cdmuted mt-0.5">Select which ones to remove.</p>
@@ -44,7 +44,7 @@ const NoPowerModal = ({
                             type="button"
                             aria-label="Close modal"
                             onClick={onClose}
-                            className="text-cdmuted hover:text-cdtext text-lg font-bold px-2 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded"
+                            className="text-cdmuted hover:text-cdtext text-lg font-bold px-2 cd-focus-ring rounded"
                         >
                             ✕
                         </button>
@@ -54,7 +54,7 @@ const NoPowerModal = ({
                             type="checkbox"
                             checked={allSelected}
                             onChange={onToggleAll}
-                            className="accent-yellow-400 w-4 h-4"
+                            className="accent-cdprimary w-4 h-4"
                         />
                         <span className="text-xs text-cdmuted font-bold uppercase">Select all</span>
                         <span className="ml-auto text-xs text-cdmuted">{selectedIds.length} selected</span>
@@ -66,7 +66,7 @@ const NoPowerModal = ({
                                     type="checkbox"
                                     checked={selectedIds.includes(a.id)}
                                     onChange={() => onToggleOne(a.id)}
-                                    className="accent-yellow-400 w-4 h-4 shrink-0"
+                                    className="accent-cdprimary w-4 h-4 shrink-0"
                                 />
                                 <span className="text-xs text-cdmuted w-24 shrink-0">{a.date}</span>
                                 <span className="text-sm text-cdtext flex-1 truncate">{a.title || 'Untitled'}</span>

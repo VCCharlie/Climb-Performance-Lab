@@ -309,7 +309,7 @@ const StravaVsLogGapPanel = ({
                     {scanBusy ? scanProgress || 'Scanning Strava…' : 'Refresh Strava ride list'}
                 </button>
                 {!effectiveHistoryComplete && (
-                    <span className="text-[10px] text-yellow-500/90">
+                    <span className="text-[10px] text-cdprimary/90">
                         Strava list capped at ~{fmtInt(fetchCap)} activities — older rides may be missing.
                     </span>
                 )}
@@ -334,7 +334,7 @@ const StravaVsLogGapPanel = ({
             )}
 
             {cacheNotice && (
-                <div className="text-[10px] text-yellow-500/90 bg-yellow-500/10 border border-yellow-500/25 rounded p-2">
+                <div className="text-[10px] text-cdprimary/90 bg-cdprimary/10 border border-cdprimary/25 rounded p-2">
                     {cacheNotice}
                 </div>
             )}

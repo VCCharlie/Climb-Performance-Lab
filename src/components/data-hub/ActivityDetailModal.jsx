@@ -109,12 +109,12 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
                         <h2 id="activity-detail-modal-title" className="text-xl font-bold text-cdtext break-words">{activity.title}</h2>
                         <div className="flex items-center gap-4 mt-2 flex-wrap">
                             {activity.id && !String(activity.id).startsWith('csv_') && (
-                                <a href={`https://intervals.icu/activities/${activity.id}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm px-1 py-0.5 -ml-1">
+                                <a href={`https://intervals.icu/activities/${activity.id}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 cd-focus-ring rounded-sm px-1 py-0.5 -ml-1">
                                     Intervals.icu <ExternalLink size={10} />
                                 </a>
                             )}
                             {activity.strava_id && (
-                                <a href={`https://www.strava.com/activities/${activity.strava_id}`} target="_blank" rel="noopener noreferrer" className="text-xs text-orange-400 hover:text-orange-300 flex items-center gap-1 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm px-1 py-0.5 -ml-1">
+                                <a href={`https://www.strava.com/activities/${activity.strava_id}`} target="_blank" rel="noopener noreferrer" className="text-xs text-orange-400 hover:text-orange-300 flex items-center gap-1 cd-focus-ring rounded-sm px-1 py-0.5 -ml-1">
                                     <StravaIcon size={12} /> Strava <ExternalLink size={10} />
                                 </a>
                             )}
@@ -123,7 +123,7 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
                     <button
                         type="button"
                         onClick={onClose}
-                        className="p-2 hover:bg-cdsurface rounded-full text-cdmuted hover:text-cdtext focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none shrink-0"
+                        className="p-2 hover:bg-cdsurface rounded-full text-cdmuted hover:text-cdtext cd-focus-ring shrink-0"
                         aria-label="Close modal"
                     >
                         <X size={20} />
@@ -135,7 +135,7 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         <StatBox label="Time" value={formatTime(activity.moving_time)} unit="" icon={Clock} color="text-blue-500" />
                         <StatBox label="Distance" value={Number(activity.distance).toFixed(1)} unit="km" icon={MapPin} color="text-green-500" />
-                        <StatBox label="Elevation" value={activity.climbing} unit="m" icon={Mountain} color="text-yellow-500" />
+                        <StatBox label="Elevation" value={activity.climbing} unit="m" icon={Mountain} color="text-cdprimary" />
                         <StatBox label="Load" value={activity.load} unit="TSS" icon={TrendingUp} color="text-purple-500" />
                     </div>
                 </div>
@@ -166,13 +166,13 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
                     {/* Power Stats */}
                     {(activity.avg_power > 0 || activity.norm_power > 0) && (
                         <div>
-                            <h3 className="text-xs uppercase font-bold text-cdmuted mb-3 flex items-center gap-2"><Zap size={14} className="text-yellow-400" /> Power Metrics</h3>
+                            <h3 className="text-xs uppercase font-bold text-cdmuted mb-3 flex items-center gap-2"><Zap size={14} className="text-cdprimary" /> Power Metrics</h3>
                             <div className="grid grid-cols-3 md:grid-cols-4 gap-2 mb-4">
                                 <div className="bg-cdborder/30 p-2 rounded text-center">
                                     <div className="text-xs text-cdmuted">Avg</div>
                                     <ZoneMetricCell metric="power" value={activity.avg_power} profileFtp={profileFtp} suffix="w" className="text-base" />
                                 </div>
-                                <div className="bg-cdborder/30 p-2 rounded text-center border-l-2 border-yellow-400">
+                                <div className="bg-cdborder/30 p-2 rounded text-center border-l-2 border-cdprimary">
                                     <div className="text-xs text-cdmuted">NP®</div>
                                     <NormPowerCell watts={activity.norm_power} profileFtp={profileFtp} suffix="w" className="text-base" />
                                 </div>
@@ -229,14 +229,14 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
                                                     key={idx}
                                                     tabIndex="0"
                                                     aria-label={`Peak power for ${p.label}: ${p.val} watts`}
-                                                    className="flex-1 flex flex-col h-full justify-end items-center group relative focus-within:opacity-100 focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded"
+                                                    className="flex-1 flex flex-col h-full justify-end items-center group relative focus-within:opacity-100 cd-focus-ring rounded"
                                                 >
                                                     <div className="absolute top-0 w-full text-center">
                                                         <span className="text-[10px] font-bold text-cdtext opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity bg-cdsurface px-1 rounded border border-cdborder shadow-sm z-10">{p.val}w</span>
                                                     </div>
                                                     <div className="flex-1 w-full flex items-end">
-                                                        <div className="w-full bg-yellow-500/20 group-hover:bg-yellow-500/40 rounded-t transition-all" style={{ height: `${heightPct}%` }}>
-                                                            <div className="absolute top-0 w-full h-0.5 bg-yellow-400/50"></div>
+                                                        <div className="w-full bg-cdprimary/20 group-hover:bg-cdprimary/40 rounded-t transition-all" style={{ height: `${heightPct}%` }}>
+                                                            <div className="absolute top-0 w-full h-0.5 bg-cdprimary/50"></div>
                                                         </div>
                                                     </div>
                                                     <div className="text-[10px] text-cdmuted mt-1 h-4 flex items-center">{p.label}</div>
@@ -326,13 +326,13 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
                                                     <div key={i} className="flex items-center gap-2 bg-cdbg/50 rounded px-3 py-2 border border-cdborder/30 text-xs">
                                                         <div className="flex-1 truncate flex items-center gap-1">
                                                             {seg.segment?.starred && (
-                                                                <Star size={11} className="text-yellow-400 fill-yellow-400 shrink-0" />
+                                                                <Star size={11} className="text-cdprimary fill-cdprimary shrink-0" />
                                                             )}
                                                             <a
                                                                 href={`https://www.strava.com/segments/${seg.segment?.id}`}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
-                                                                className="text-cdtext hover:text-orange-400 font-medium transition-colors truncate focus-visible:ring-2 focus-visible:ring-yellow-400 focus:outline-none rounded-sm px-1 -ml-1"
+                                                                className="text-cdtext hover:text-orange-400 font-medium transition-colors truncate cd-focus-ring rounded-sm px-1 -ml-1"
                                                                 onClick={e => e.stopPropagation()}
                                                             >
                                                                 {seg.name}
@@ -340,7 +340,7 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
                                                         </div>
                                                         <span className="text-cdmuted font-mono shrink-0">{formatSegmentTime(seg.elapsed_time)}</span>
                                                         {seg.average_watts > 0 && (
-                                                            <span className="text-yellow-400 font-bold shrink-0">{Math.round(seg.average_watts)}w</span>
+                                                            <span className="text-cdprimary font-bold shrink-0">{Math.round(seg.average_watts)}w</span>
                                                         )}
                                                         {seg.pr_rank === 1 && (
                                                             <span className="text-xs bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded font-bold shrink-0">PR</span>

@@ -428,7 +428,7 @@ export const Row = React.memo(React.forwardRef(({
                                     e.stopPropagation();
                                     onOpenProfiler(act, profilerClimbByActivityId?.get(String(act.id)));
                                 }}
-                                className="text-cdmuted hover:text-emerald-400 p-0.5 rounded hover:bg-cdborder/40 focus-visible:ring-2 focus-visible:ring-cdprimary/40 focus:outline-none"
+                                className="text-cdmuted hover:text-emerald-400 p-0.5 rounded hover:bg-cdborder/40 cd-focus-ring"
                                 title={
                                     profilerClimbByActivityId?.get(String(act.id))
                                         ? 'Open in Climb Profiler'
@@ -446,7 +446,7 @@ export const Row = React.memo(React.forwardRef(({
                                 href={`https://intervals.icu/activities/${act.id}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-cdmuted hover:text-blue-400 p-0.5 flex items-center rounded hover:bg-cdborder/40 focus-visible:ring-2 focus-visible:ring-cdprimary/40 focus:outline-none"
+                                className="text-cdmuted hover:text-blue-400 p-0.5 flex items-center rounded hover:bg-cdborder/40 cd-focus-ring"
                                 onClick={(e) => e.stopPropagation()}
                                 title="Open in Intervals.icu"
                                 aria-label="Open in Intervals.icu"
@@ -459,7 +459,7 @@ export const Row = React.memo(React.forwardRef(({
                                 href={stravaUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-cdmuted hover:text-orange-400 p-0.5 flex items-center rounded hover:bg-cdborder/40 focus-visible:ring-2 focus-visible:ring-cdprimary/40 focus:outline-none"
+                                className="text-cdmuted hover:text-orange-400 p-0.5 flex items-center rounded hover:bg-cdborder/40 cd-focus-ring"
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     e.preventDefault();
@@ -476,7 +476,7 @@ export const Row = React.memo(React.forwardRef(({
                                 href={flybyUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-cdmuted hover:text-orange-300 p-0.5 flex items-center rounded hover:bg-cdborder/40 focus-visible:ring-2 focus-visible:ring-cdprimary/40 focus:outline-none"
+                                className="text-cdmuted hover:text-orange-300 p-0.5 flex items-center rounded hover:bg-cdborder/40 cd-focus-ring"
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     e.preventDefault();
@@ -491,7 +491,7 @@ export const Row = React.memo(React.forwardRef(({
                         <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); onEdit(act); }}
-                            className="text-cdmuted hover:text-cdprimary p-0.5 rounded hover:bg-cdborder/40 focus-visible:ring-2 focus-visible:ring-cdprimary/40 focus:outline-none"
+                            className="text-cdmuted hover:text-cdprimary p-0.5 rounded hover:bg-cdborder/40 cd-focus-ring"
                             title="Edit"
                             aria-label="Edit activity"
                         >
@@ -500,7 +500,7 @@ export const Row = React.memo(React.forwardRef(({
                         <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); setIsConfirmingDelete(true); }}
-                            className="text-cdmuted hover:text-red-400 p-0.5 rounded hover:bg-cdborder/40 focus-visible:ring-2 focus-visible:ring-cdprimary/40 focus:outline-none"
+                            className="text-cdmuted hover:text-red-400 p-0.5 rounded hover:bg-cdborder/40 cd-focus-ring"
                             title="Delete"
                             aria-label="Delete activity"
                         >

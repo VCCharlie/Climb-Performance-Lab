@@ -18,7 +18,7 @@ const StravaIcon = () => (
 );
 
 const metricToneClass = {
-    np: 'text-yellow-400 font-semibold',
+    np: 'text-cdprimary font-semibold',
     load: 'text-blue-400 font-semibold',
     muted: 'text-cdtext',
 };
