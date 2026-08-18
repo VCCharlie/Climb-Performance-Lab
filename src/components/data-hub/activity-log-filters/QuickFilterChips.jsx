@@ -59,7 +59,7 @@ export default function QuickFilterChips({
         <div className="flex flex-col gap-2">
             <div className="flex flex-wrap gap-1.5 items-center">
                 <Chip
-                    size="sm"
+                    size="xs"
                     selected={thisWeekOnly}
                     onClick={() => {
                         onThisWeekOnlyChange((v) => !v);
@@ -69,7 +69,7 @@ export default function QuickFilterChips({
                     This week
                 </Chip>
                 <Chip
-                    size="sm"
+                    size="xs"
                     selected={rollingDays === 7}
                     onClick={() => {
                         onRollingDaysChange((cur) => (cur === 7 ? null : 7));
@@ -79,7 +79,7 @@ export default function QuickFilterChips({
                     Last 7d
                 </Chip>
                 <Chip
-                    size="sm"
+                    size="xs"
                     selected={rollingDays === 30}
                     onClick={() => {
                         onRollingDaysChange((cur) => (cur === 30 ? null : 30));
@@ -89,7 +89,7 @@ export default function QuickFilterChips({
                     Last 30d
                 </Chip>
                 <Chip
-                    size="sm"
+                    size="xs"
                     selected={withPowerOnly}
                     onClick={() => {
                         onWithPowerOnlyChange((v) => {
@@ -102,7 +102,7 @@ export default function QuickFilterChips({
                     With power
                 </Chip>
                 <Chip
-                    size="sm"
+                    size="xs"
                     selected={noPowerOnly}
                     onClick={() => {
                         onNoPowerOnlyChange((v) => {
@@ -115,7 +115,7 @@ export default function QuickFilterChips({
                     No power
                 </Chip>
                 <Chip
-                    size="sm"
+                    size="xs"
                     selected={highLoadOnly}
                     onClick={() => onHighLoadOnlyChange((v) => !v)}
                     title="Load (TSS) > 120"
@@ -127,10 +127,11 @@ export default function QuickFilterChips({
                         type="button"
                         onClick={() => setMoreOpen((v) => !v)}
                         className={cn(
-                            'text-[10px] font-semibold px-2 py-1 rounded-full border cd-focus-ring cd-transition',
+                            'inline-flex items-center justify-center font-medium rounded-full',
+                            'px-1.5 py-0 min-h-[22px] text-[10px] leading-tight cd-focus-ring cd-transition',
                             moreOpen || secondaryActive
-                                ? 'border-cdprimary/40 bg-cdprimarycontainer/30 text-cdprimary'
-                                : 'border-cdborder text-cdmuted hover:text-cdtext hover:border-cdprimary/30',
+                                ? 'border border-cdprimary/40 bg-cdprimarycontainer/30 text-cdprimary'
+                                : 'border border-cdborder text-cdmuted hover:text-cdtext hover:border-cdprimary/30',
                         )}
                         aria-expanded={moreOpen}
                     >
@@ -140,7 +141,7 @@ export default function QuickFilterChips({
                 ) : (
                     <>
                         <Chip
-                            size="sm"
+                            size="xs"
                             selected={rollingDays === 14}
                             onClick={() => {
                                 onRollingDaysChange((cur) => (cur === 14 ? null : 14));
@@ -150,7 +151,7 @@ export default function QuickFilterChips({
                             Last 14d
                         </Chip>
                         <Chip
-                            size="sm"
+                            size="xs"
                             selected={stravaLinkedOnly}
                             disabled={!stravaGetToken}
                             onClick={() => onStravaLinkedOnlyChange((v) => !v)}
@@ -158,7 +159,7 @@ export default function QuickFilterChips({
                             Strava link
                         </Chip>
                         <Chip
-                            size="sm"
+                            size="xs"
                             selected={longRideOnly}
                             onClick={() => onLongRideOnlyChange((v) => !v)}
                             title="Distance > 100 km"
@@ -166,7 +167,7 @@ export default function QuickFilterChips({
                             Long ride
                         </Chip>
                         <Chip
-                            size="sm"
+                            size="xs"
                             selected={missingHrOnly}
                             onClick={() => onMissingHrOnlyChange((v) => !v)}
                             title="Avg HR missing or zero"
@@ -174,7 +175,7 @@ export default function QuickFilterChips({
                             No HR
                         </Chip>
                         <Chip
-                            size="sm"
+                            size="xs"
                             selected={virtualRideChip}
                             onClick={() => {
                                 if (virtualRideChip) {
@@ -192,7 +193,7 @@ export default function QuickFilterChips({
                             Virtual only
                         </Chip>
                         <Chip
-                            size="sm"
+                            size="xs"
                             selected={gravelRideChip}
                             onClick={() => {
                                 if (gravelRideChip) {
@@ -210,7 +211,7 @@ export default function QuickFilterChips({
                             Gravel
                         </Chip>
                         <Chip
-                            size="sm"
+                            size="xs"
                             selected={mtbRideChip}
                             onClick={() => {
                                 if (mtbRideChip) {
@@ -228,7 +229,7 @@ export default function QuickFilterChips({
                             MTB
                         </Chip>
                         <Chip
-                            size="sm"
+                            size="xs"
                             selected={ebikeRideChip}
                             onClick={() => {
                                 if (ebikeRideChip) {
@@ -267,7 +268,7 @@ export default function QuickFilterChips({
             {showSecondary && compact && (
                 <div className="flex flex-wrap gap-1.5 items-center">
                     <Chip
-                        size="sm"
+                        size="xs"
                         selected={rollingDays === 14}
                         onClick={() => {
                             onRollingDaysChange((cur) => (cur === 14 ? null : 14));
@@ -277,7 +278,7 @@ export default function QuickFilterChips({
                         Last 14d
                     </Chip>
                     <Chip
-                        size="sm"
+                        size="xs"
                         selected={stravaLinkedOnly}
                         disabled={!stravaGetToken}
                         onClick={() => onStravaLinkedOnlyChange((v) => !v)}
@@ -285,7 +286,7 @@ export default function QuickFilterChips({
                         Strava link
                     </Chip>
                     <Chip
-                        size="sm"
+                        size="xs"
                         selected={longRideOnly}
                         onClick={() => onLongRideOnlyChange((v) => !v)}
                         title="Distance > 100 km"
@@ -293,7 +294,7 @@ export default function QuickFilterChips({
                         Long ride
                     </Chip>
                     <Chip
-                        size="sm"
+                        size="xs"
                         selected={missingHrOnly}
                         onClick={() => onMissingHrOnlyChange((v) => !v)}
                         title="Avg HR missing or zero"
@@ -301,7 +302,7 @@ export default function QuickFilterChips({
                         No HR
                     </Chip>
                     <Chip
-                        size="sm"
+                        size="xs"
                         selected={virtualRideChip}
                         onClick={() => {
                             if (virtualRideChip) {
@@ -319,7 +320,7 @@ export default function QuickFilterChips({
                         Virtual only
                     </Chip>
                     <Chip
-                        size="sm"
+                        size="xs"
                         selected={gravelRideChip}
                         onClick={() => {
                             if (gravelRideChip) {
@@ -337,7 +338,7 @@ export default function QuickFilterChips({
                         Gravel
                     </Chip>
                     <Chip
-                        size="sm"
+                        size="xs"
                         selected={mtbRideChip}
                         onClick={() => {
                             if (mtbRideChip) {
@@ -355,7 +356,7 @@ export default function QuickFilterChips({
                         MTB
                     </Chip>
                     <Chip
-                        size="sm"
+                        size="xs"
                         selected={ebikeRideChip}
                         onClick={() => {
                             if (ebikeRideChip) {

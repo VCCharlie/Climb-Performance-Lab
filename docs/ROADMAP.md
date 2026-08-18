@@ -59,7 +59,8 @@ Parallel aan de product-fases hierboven loopt een UX/design rollout:
 | **Audit 1** | Quick wins (CSV weg, sync-toasts, a11y tabpanels) | Done |
 | **Audit 2** | Daily Home, ride insights, sync-pariteit, import-guard | Done |
 | **Audit 3** | Design system: `SubTabNav`, `cd*` tokens, DataHub-consolidatie | Done |
-| **Audit 3B** | Mobile Activity Log filters + desktop 4-hub nav | In progress |
+| **Audit 3B** | Mobile Activity Log filters + desktop 4-hub nav | Done |
+| **Audit 3C** | Filters & Bulk typography (dense chips) | In progress |
 | **Later** | Full `yellow-400` sweep, training calendar / decoupling | Backlog |
 
 ---
