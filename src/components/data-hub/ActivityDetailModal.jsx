@@ -6,7 +6,7 @@ import {
     activityEfficiencyFactor,
     activityVariabilityIndex,
 } from '../../utils/rideInsights';
-import { decouplingStatusLabel } from '../../utils/coach/aerobicDecoupling';
+import { decouplingStatusLabel, describeRideDecouplingInterpretation } from '../../utils/coach/aerobicDecoupling';
 import ZoneMetricCell from './ZoneMetricCell';
 import NormPowerCell from './NormPowerCell';
 import ModalPortal from '../ui/ModalPortal';
@@ -89,6 +89,9 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
     ].filter((p) => Number(p.val) > 0);
 
     const hasDecoupling = Number.isFinite(Number(activity.decoupling_pct));
+    const decouplingInsight = hasDecoupling
+        ? describeRideDecouplingInterpretation(activity)
+        : null;
 
     return (
         <ModalPortal>
@@ -295,6 +298,12 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
                                     </div>
                                 )}
                             </div>
+                            {decouplingInsight && (
+                                <div className="mt-3 rounded-lg border border-emerald-500/25 bg-emerald-500/5 p-3">
+                                    <p className="text-sm font-semibold text-cdtext">{decouplingInsight.headline}</p>
+                                    <p className="text-[11px] text-cdmuted mt-1 leading-relaxed">{decouplingInsight.detail}</p>
+                                </div>
+                            )}
                             <p className="text-[10px] text-cdmuted mt-2 leading-relaxed">
                                 Within-ride HR drift at steady power (first vs second half)
                                 {activity.decoupling_source ? ` · source: ${activity.decoupling_source}` : ''}

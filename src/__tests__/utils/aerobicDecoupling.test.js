@@ -8,6 +8,8 @@ import {
     isEligibleDecouplingRide,
     buildAerobicEfficiencyTrend,
     summarizeAerobicDecoupling,
+    buildDecouplingPortfolioSummary,
+    describeRideDecouplingInterpretation,
     DECOUPLING_STATUS,
     AEROBIC_TREND_STATUS,
 } from '../../utils/coach/aerobicDecoupling';
@@ -116,5 +118,50 @@ describe('aerobicDecoupling', () => {
         const summary = summarizeAerobicDecoupling(buildAerobicEfficiencyTrend([], 250));
         expect(summary.trendStatus).toBe(AEROBIC_TREND_STATUS.INSUFFICIENT);
         expect(summary.headline).toMatch(/Not enough/i);
+    });
+
+    it('buildDecouplingPortfolioSummary aggregates analyzed rides', () => {
+        const activities = [
+            {
+                date: '2026-08-04',
+                type: 'Ride',
+                moving_time: 5400,
+                norm_power: 180,
+                avg_power: 175,
+                avg_hr: 130,
+                decoupling_pct: 3.2,
+                decoupling_ef_first: 1.38,
+                decoupling_ef_second: 1.34,
+            },
+            {
+                date: '2026-08-10',
+                type: 'Ride',
+                moving_time: 5400,
+                norm_power: 185,
+                avg_power: 180,
+                avg_hr: 132,
+                decoupling_pct: 8.1,
+                decoupling_ef_first: 1.40,
+                decoupling_ef_second: 1.29,
+            },
+        ];
+        const portfolio = buildDecouplingPortfolioSummary(activities, 250, {
+            referenceYmd: '2026-08-12',
+            weeks: 4,
+        });
+        expect(portfolio.analyzedCount).toBe(2);
+        expect(portfolio.avgDecouplingPct).toBeCloseTo(5.65, 1);
+        expect(portfolio.goodCount).toBe(1);
+        expect(portfolio.moderateCount).toBe(1);
+    });
+
+    it('describeRideDecouplingInterpretation returns coaching copy', () => {
+        const copy = describeRideDecouplingInterpretation({
+            decoupling_pct: 6.5,
+            decoupling_ef_first: 1.42,
+            decoupling_ef_second: 1.33,
+        });
+        expect(copy?.headline).toMatch(/Moderate/i);
+        expect(copy?.detail).toMatch(/1\.42/);
     });
 });

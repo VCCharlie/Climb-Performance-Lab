@@ -1,11 +1,13 @@
-import React, { useMemo } from 'react';
-import { Activity, TrendingDown, TrendingUp, Minus } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Activity, TrendingDown, TrendingUp, Minus, ChevronDown, Info } from 'lucide-react';
 import CollapsibleSection from '../ui/CollapsibleSection';
 import { formatDateDDMMYYYY } from '../../utils/formatters';
 import {
     buildAerobicEfficiencyTrend,
+    buildDecouplingPortfolioSummary,
     summarizeAerobicDecoupling,
     decouplingStatusLabel,
+    STEADY_RIDE_DECOUPLING_RATIONALE,
     AEROBIC_TREND_STATUS,
     DECOUPLING_STATUS,
 } from '../../utils/coach/aerobicDecoupling';
@@ -33,13 +35,29 @@ function statusBadgeClass(status) {
     }
 }
 
+function PortfolioStat({ label, value, hint }) {
+    return (
+        <div className="rounded-lg border border-cdborder/50 bg-cdbg/30 p-2.5 min-w-0">
+            <p className="text-[9px] font-bold uppercase tracking-wide text-cdmuted">{label}</p>
+            <p className="text-lg font-bold text-cdtext tabular-nums leading-tight mt-0.5">{value}</p>
+            {hint ? <p className="text-[9px] text-cdmuted mt-1 leading-snug">{hint}</p> : null}
+        </div>
+    );
+}
+
 export default function CoachAerobicDecoupling({
     activities,
     profileFtp,
     referenceYmd,
 }) {
+    const [showRationale, setShowRationale] = useState(false);
+
     const trend = useMemo(
         () => buildAerobicEfficiencyTrend(activities, profileFtp, { referenceYmd, weeks: 12 }),
+        [activities, profileFtp, referenceYmd],
+    );
+    const portfolio = useMemo(
+        () => buildDecouplingPortfolioSummary(activities, profileFtp, { referenceYmd, weeks: 12 }),
         [activities, profileFtp, referenceYmd],
     );
     const summary = useMemo(() => summarizeAerobicDecoupling(trend), [trend]);
@@ -55,6 +73,8 @@ export default function CoachAerobicDecoupling({
 
     const hasDecouplingData = (trend.recentDecoupling?.length ?? 0) > 0;
     const defaultExpanded = hasDecouplingData || trend.eligibleRideCount > 0;
+
+    const distributionTotal = portfolio.goodCount + portfolio.moderateCount + portfolio.highCount;
 
     return (
         <CollapsibleSection
@@ -75,10 +95,74 @@ export default function CoachAerobicDecoupling({
                     </div>
                 </div>
 
+                {portfolio.analyzedCount > 0 && (
+                    <div className="space-y-2">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-cdmuted">
+                            Stream analysis snapshot (last {portfolio.weeks} weeks)
+                        </p>
+                        <div className="grid grid-cols-2 gap-2">
+                            <PortfolioStat
+                                label="Rides analyzed"
+                                value={portfolio.analyzedCount}
+                                hint={portfolio.pendingStreamCount > 0
+                                    ? `${portfolio.pendingStreamCount} steady ride(s) still waiting for streams`
+                                    : 'All eligible steady rides analyzed'}
+                            />
+                            <PortfolioStat
+                                label="Avg decoupling"
+                                value={portfolio.avgDecouplingPct != null
+                                    ? `${portfolio.avgDecouplingPct.toFixed(1)}%`
+                                    : '—'}
+                                hint="Lower is better — HR drift vs power"
+                            />
+                            <PortfolioStat
+                                label="Low drift rides"
+                                value={portfolio.goodSharePct != null
+                                    ? `${Math.round(portfolio.goodSharePct)}%`
+                                    : '—'}
+                                hint={`${portfolio.goodCount} of ${portfolio.analyzedCount} ≤5%`}
+                            />
+                            <PortfolioStat
+                                label="Avg EF shift"
+                                value={
+                                    portfolio.avgEfFirst != null && portfolio.avgEfSecond != null
+                                        ? `${portfolio.avgEfFirst.toFixed(2)}→${portfolio.avgEfSecond.toFixed(2)}`
+                                        : '—'
+                                }
+                                hint="W/bpm first half → second half"
+                            />
+                        </div>
+                        {distributionTotal > 0 && (
+                            <div>
+                                <div className="flex h-2 rounded-full overflow-hidden bg-cdborder/30" aria-hidden>
+                                    <div
+                                        className="bg-emerald-500/70"
+                                        style={{ width: `${(portfolio.goodCount / distributionTotal) * 100}%` }}
+                                    />
+                                    <div
+                                        className="bg-orange-500/70"
+                                        style={{ width: `${(portfolio.moderateCount / distributionTotal) * 100}%` }}
+                                    />
+                                    <div
+                                        className="bg-red-500/70"
+                                        style={{ width: `${(portfolio.highCount / distributionTotal) * 100}%` }}
+                                    />
+                                </div>
+                                <p className="text-[9px] text-cdmuted mt-1">
+                                    {portfolio.goodCount} low · {portfolio.moderateCount} moderate · {portfolio.highCount} high decoupling
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 {trend.weeklyPoints.some((w) => w.avgEf != null) && (
                     <div>
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-cdmuted mb-2">
-                            Weekly efficiency (W/bpm)
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-cdmuted mb-1">
+                            Weekly aerobic efficiency (W/bpm)
+                        </p>
+                        <p className="text-[9px] text-cdmuted mb-2 leading-relaxed">
+                            Long-term trend on steady rides — are you producing more watts per heartbeat over time?
                         </p>
                         <div className="flex items-end gap-0.5 h-28 px-0.5" aria-label="Weekly aerobic efficiency chart">
                             {trend.weeklyPoints.map((week) => {
@@ -114,44 +198,81 @@ export default function CoachAerobicDecoupling({
 
                 {trend.recentDecoupling?.length > 0 && (
                     <div>
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-cdmuted mb-2">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-cdmuted mb-1">
                             Recent within-ride decoupling
+                        </p>
+                        <p className="text-[9px] text-cdmuted mb-2 leading-relaxed">
+                            Per-ride cardiac drift: same power, more HR in the second half = higher %.
                         </p>
                         <ul className="space-y-1.5">
                             {trend.recentDecoupling.map((row) => (
                                 <li
                                     key={row.activityId || `${row.date}-${row.title}`}
-                                    className="flex items-center justify-between gap-2 text-[11px] rounded-md border border-cdborder/40 px-2 py-1.5"
+                                    className="rounded-md border border-cdborder/40 px-2 py-2 space-y-1"
                                 >
-                                    <div className="min-w-0 flex-1">
-                                        <p className="text-cdtext truncate">
-                                            {row.title || 'Untitled ride'}
-                                        </p>
+                                    <div className="flex items-center justify-between gap-2 text-[11px]">
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-cdtext truncate font-medium">
+                                                {row.title || 'Untitled ride'}
+                                            </p>
+                                            <p className="text-[9px] text-cdmuted tabular-nums">
+                                                {row.date ? formatDateDDMMYYYY(row.date) : '—'}
+                                                {row.decouplingSource ? ` · ${row.decouplingSource}` : ''}
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <span className="text-cdtext tabular-nums font-bold text-sm">
+                                                {row.decouplingPct != null ? `${row.decouplingPct.toFixed(1)}%` : '—'}
+                                            </span>
+                                            <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${statusBadgeClass(row.status)}`}>
+                                                {decouplingStatusLabel(row.status)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    {row.efFirst != null && row.efSecond != null && (
                                         <p className="text-[9px] text-cdmuted tabular-nums">
-                                            {row.date ? formatDateDDMMYYYY(row.date) : '—'}
-                                            {row.decouplingSource ? ` · ${row.decouplingSource}` : ''}
+                                            EF {row.efFirst.toFixed(2)} → {row.efSecond.toFixed(2)} W/bpm
+                                            {' · '}
+                                            {row.decouplingPct != null && row.decouplingPct <= 5
+                                                ? 'HR stayed coupled to power'
+                                                : row.decouplingPct <= 10
+                                                    ? 'mild HR drift in 2nd half'
+                                                    : 'strong HR drift in 2nd half'}
                                         </p>
-                                    </div>
-                                    <div className="flex items-center gap-2 shrink-0">
-                                        <span className="text-cdtext tabular-nums font-semibold">
-                                            {row.decouplingPct != null ? `${row.decouplingPct.toFixed(1)}%` : '—'}
-                                        </span>
-                                        <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${statusBadgeClass(row.status)}`}>
-                                            {decouplingStatusLabel(row.status)}
-                                        </span>
-                                    </div>
+                                    )}
                                 </li>
                             ))}
                         </ul>
                     </div>
                 )}
 
+                <div className="rounded-lg border border-cdborder/40 overflow-hidden">
+                    <button
+                        type="button"
+                        onClick={() => setShowRationale((v) => !v)}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold text-cdtext hover:bg-cdborder/20 cd-focus-ring"
+                        aria-expanded={showRationale}
+                    >
+                        <Info size={14} className="text-cdaccent shrink-0" aria-hidden />
+                        {STEADY_RIDE_DECOUPLING_RATIONALE.title}
+                        <ChevronDown
+                            size={14}
+                            className={`ml-auto shrink-0 text-cdmuted transition-transform ${showRationale ? 'rotate-180' : ''}`}
+                            aria-hidden
+                        />
+                    </button>
+                    {showRationale && (
+                        <ul className="px-3 pb-3 space-y-1.5 text-[10px] text-cdmuted leading-relaxed list-disc pl-7">
+                            {STEADY_RIDE_DECOUPLING_RATIONALE.bullets.map((line) => (
+                                <li key={line}>{line}</li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+
                 <p className="text-[10px] text-cdmuted leading-relaxed">
-                    Within-ride decoupling compares power:HR in the first vs second half of a steady ride.
-                    After Intervals.icu sync (with API key or Strava connected), eligible rides are analyzed
-                    automatically — up to 8 per sync. Use Activities → Decoupling backfill to fill older rides
-                    (24 per run). Without streams, this panel still tracks aerobic efficiency (EF) on eligible
-                    endurance rides.
+                    Sync or Activities → Decoupling backfill fetches power+HR streams (24 per run).
+                    Open any analyzed ride in Activities for the full decoupling breakdown.
                 </p>
             </div>
         </CollapsibleSection>
