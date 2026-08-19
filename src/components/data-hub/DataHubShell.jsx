@@ -184,7 +184,7 @@ const DataHubShell = ({
                     bulk.runDecouplingBackfill(sel.length > 0 ? sel : null);
                 }}
                 canDecouplingBackfill={Boolean(intervalsConfig?.apiKey || stravaGetToken)
-                    && Number(userSettings?.ftp) > 0}
+                    && Number(resolvedProfileFtp) > 0}
                 isStravaDescBackfilling={bulk.isStravaDescBackfilling}
                 isDecouplingBackfilling={bulk.isDecouplingBackfilling}
             />
