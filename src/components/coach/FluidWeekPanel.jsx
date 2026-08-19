@@ -1,7 +1,9 @@
 import React from 'react';
 import { RefreshCw, Sparkles, Ban, TrendingUp, Bike, Flame } from 'lucide-react';
 import { formatDateDDMMYYYY } from '../../utils/formatters';
+import { COACH_WEEK_VIEW_MODES } from '../../utils/coach/coachWeekCalendar';
 import FluidWeekSessionCard from './FluidWeekSessionCard';
+import FluidWeekCalendar from './FluidWeekCalendar';
 
 function StatPill({ icon: Icon, label }) {
     return (
@@ -27,6 +29,7 @@ export default function FluidWeekPanel({
     expandKeyPrefix = '',
     isPreview = false,
     className = '',
+    viewMode = COACH_WEEK_VIEW_MODES.LIST,
 }) {
     const stats = React.useMemo(() => {
         const planned = weekPlan.sessions.filter((s) => s.plannedStimulus !== 'rest' && !s.isUnavailable).length;
@@ -113,25 +116,42 @@ export default function FluidWeekPanel({
                 </div>
             )}
 
-            <div className="space-y-1.5 flex-1 overflow-y-auto max-h-[min(70vh,520px)] pr-0.5">
-                {weekPlan.sessions.map((session) => {
-                    const expandKey = `${expandKeyPrefix}${session.date}`;
-                    return (
-                        <FluidWeekSessionCard
-                            key={session.date}
-                            session={session}
-                            expanded={expandedDate === expandKey}
-                            onToggleExpand={() => onToggleExpand(expandKey)}
-                            onToggleDone={() => onToggleDone(session.date)}
-                            onSwapRecovery={() => onSwapRecovery(session.date)}
-                            onMoveToToday={() => onMoveToToday(session.movedFromDate || session.date)}
-                            onUndoMove={() => onUndoMove(session.movedFromDate || session.date)}
-                            onToggleUnavailable={() => onToggleUnavailable(session.date)}
-                            onToggleAvailable={() => onToggleAvailable(session.date)}
-                        />
-                    );
-                })}
-            </div>
+            {viewMode === COACH_WEEK_VIEW_MODES.CALENDAR ? (
+                <div className="flex-1 overflow-y-auto max-h-[min(70vh,520px)] pr-0.5">
+                    <FluidWeekCalendar
+                        weekPlan={weekPlan}
+                        expandedDate={expandedDate}
+                        onToggleExpand={onToggleExpand}
+                        onToggleDone={onToggleDone}
+                        onSwapRecovery={onSwapRecovery}
+                        onMoveToToday={onMoveToToday}
+                        onUndoMove={onUndoMove}
+                        onToggleUnavailable={onToggleUnavailable}
+                        onToggleAvailable={onToggleAvailable}
+                        expandKeyPrefix={expandKeyPrefix}
+                    />
+                </div>
+            ) : (
+                <div className="space-y-1.5 flex-1 overflow-y-auto max-h-[min(70vh,520px)] pr-0.5">
+                    {weekPlan.sessions.map((session) => {
+                        const expandKey = `${expandKeyPrefix}${session.date}`;
+                        return (
+                            <FluidWeekSessionCard
+                                key={session.date}
+                                session={session}
+                                expanded={expandedDate === expandKey}
+                                onToggleExpand={() => onToggleExpand(expandKey)}
+                                onToggleDone={() => onToggleDone(session.date)}
+                                onSwapRecovery={() => onSwapRecovery(session.date)}
+                                onMoveToToday={() => onMoveToToday(session.movedFromDate || session.date)}
+                                onUndoMove={() => onUndoMove(session.movedFromDate || session.date)}
+                                onToggleUnavailable={() => onToggleUnavailable(session.date)}
+                                onToggleAvailable={() => onToggleAvailable(session.date)}
+                            />
+                        );
+                    })}
+                </div>
+            )}
         </section>
     );
 }
