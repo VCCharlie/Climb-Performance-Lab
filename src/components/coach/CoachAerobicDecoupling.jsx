@@ -54,6 +54,7 @@ export default function CoachAerobicDecoupling({
         : 'Steady endurance rides with HR data';
 
     const hasDecouplingData = (trend.recentDecoupling?.length ?? 0) > 0;
+    const defaultExpanded = hasDecouplingData || trend.eligibleRideCount > 0;
 
     return (
         <CollapsibleSection
@@ -61,7 +62,7 @@ export default function CoachAerobicDecoupling({
             subtitle={subtitle}
             icon={Activity}
             iconClassName="text-emerald-400"
-            defaultExpanded={hasDecouplingData || trend.eligibleRideCount >= 3}
+            defaultExpanded={defaultExpanded}
         >
             <div className="space-y-4">
                 <div className="rounded-lg border border-cdborder/50 bg-cdborder/5 p-3">

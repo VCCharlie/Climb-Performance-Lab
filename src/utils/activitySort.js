@@ -1,4 +1,5 @@
 import { activityIntensityFactor, activityMovingTimeSec } from './activityFilterMetrics';
+import { activityEfficiencyFactor, activityVariabilityIndex } from './rideInsights';
 
 /** Activity log columns that must sort numerically (CSV may store some as strings). */
 export const NUMERIC_ACTIVITY_SORT_KEYS = new Set([
@@ -72,6 +73,28 @@ export function compareActivitiesForSort(a, b, sortConfig, profileFtp) {
         return compareNumbers(
             fa != null ? fa : nullSentinel,
             fb != null ? fb : nullSentinel,
+            direction,
+        );
+    }
+
+    if (key === 'variability_index') {
+        const va = activityVariabilityIndex(a.norm_power, a.avg_power);
+        const vb = activityVariabilityIndex(b.norm_power, b.avg_power);
+        const nullSentinel = direction === 'desc' ? -Infinity : Infinity;
+        return compareNumbers(
+            va != null ? va : nullSentinel,
+            vb != null ? vb : nullSentinel,
+            direction,
+        );
+    }
+
+    if (key === 'efficiency_factor') {
+        const ea = activityEfficiencyFactor(a.norm_power, a.avg_hr);
+        const eb = activityEfficiencyFactor(b.norm_power, b.avg_hr);
+        const nullSentinel = direction === 'desc' ? -Infinity : Infinity;
+        return compareNumbers(
+            ea != null ? ea : nullSentinel,
+            eb != null ? eb : nullSentinel,
             direction,
         );
     }

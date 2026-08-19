@@ -61,6 +61,20 @@ describe('activityCardMetrics', () => {
         expect(ifMetric?.color).toBe('#22c55e');
     });
 
+    it('computes VI and EF when columns are visible', () => {
+        const cols = [
+            ...essentialCols,
+            { key: 'variability_index', label: 'VI' },
+            { key: 'efficiency_factor', label: 'EF' },
+        ];
+        const act = { ...sampleAct, avg_power: 200, avg_hr: 140 };
+        const metrics = getActivityCardMetrics(act, cols, 250);
+        const vi = metrics.find((m) => m.key === 'variability_index');
+        const ef = metrics.find((m) => m.key === 'efficiency_factor');
+        expect(vi?.value).toBe('1.05');
+        expect(ef?.value).toBe('1.50');
+    });
+
     it('colors average power and heart rate by profile zones', () => {
         const cols = [
             ...essentialCols,
