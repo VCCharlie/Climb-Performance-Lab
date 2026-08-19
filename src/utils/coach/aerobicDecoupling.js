@@ -310,6 +310,12 @@ export function buildAerobicEfficiencyTrend(activities, profileFtp, options = {}
                 date: activity.date,
                 title: activity.title,
                 decouplingSource: activity.decoupling_source || analysis.source,
+                efFirst: analysis.efFirst ?? (Number.isFinite(Number(activity.decoupling_ef_first))
+                    ? Number(activity.decoupling_ef_first)
+                    : null),
+                efSecond: analysis.efSecond ?? (Number.isFinite(Number(activity.decoupling_ef_second))
+                    ? Number(activity.decoupling_ef_second)
+                    : null),
             };
         })
         .filter(Boolean)
@@ -393,3 +399,105 @@ export function decouplingStatusLabel(status) {
             return 'Decoupling unavailable';
     }
 }
+
+/**
+ * Portfolio stats for analyzed steady rides in the trend window.
+ * @param {object[]} activities
+ * @param {number} profileFtp
+ * @param {{ referenceYmd?: string, weeks?: number }} [options]
+ */
+export function buildDecouplingPortfolioSummary(activities, profileFtp, options = {}) {
+    const referenceYmd = options.referenceYmd || new Date().toISOString().slice(0, 10);
+    const weeks = Math.max(4, Number(options.weeks) || 12);
+    const endMonday = getMondayYmd(referenceYmd);
+    const startMonday = addDaysToYmd(endMonday, -(weeks - 1) * 7);
+    const windowEnd = addDaysToYmd(endMonday, 6);
+
+    const analyzed = [];
+    let pendingStreamCount = 0;
+
+    for (const activity of activities || []) {
+        if (!isEligibleDecouplingRide(activity, profileFtp)) continue;
+        const ymd = normalizeDate(activity.date);
+        if (!ymd || ymd < startMonday || ymd > windowEnd) continue;
+
+        if (Number.isFinite(Number(activity.decoupling_pct))) {
+            const decouplingPct = Number(activity.decoupling_pct);
+            analyzed.push({
+                decouplingPct,
+                status: classifyDecouplingPercent(decouplingPct),
+                efFirst: Number(activity.decoupling_ef_first),
+                efSecond: Number(activity.decoupling_ef_second),
+            });
+        } else {
+            pendingStreamCount += 1;
+        }
+    }
+
+    const goodCount = analyzed.filter((r) => r.status === DECOUPLING_STATUS.GOOD).length;
+    const moderateCount = analyzed.filter((r) => r.status === DECOUPLING_STATUS.MODERATE).length;
+    const highCount = analyzed.filter((r) => r.status === DECOUPLING_STATUS.HIGH).length;
+
+    const efFirstVals = analyzed.map((r) => r.efFirst).filter((v) => Number.isFinite(v));
+    const efSecondVals = analyzed.map((r) => r.efSecond).filter((v) => Number.isFinite(v));
+
+    const avgDecouplingPct = analyzed.length
+        ? analyzed.reduce((sum, row) => sum + row.decouplingPct, 0) / analyzed.length
+        : null;
+
+    return {
+        weeks,
+        analyzedCount: analyzed.length,
+        pendingStreamCount,
+        avgDecouplingPct,
+        goodCount,
+        moderateCount,
+        highCount,
+        goodSharePct: analyzed.length ? (goodCount / analyzed.length) * 100 : null,
+        avgEfFirst: averageEf(efFirstVals),
+        avgEfSecond: averageEf(efSecondVals),
+    };
+}
+
+/**
+ * Coaching copy for a single ride with stream decoupling (English UI).
+ * @param {object | null | undefined} activity
+ */
+export function describeRideDecouplingInterpretation(activity) {
+    const pct = Number(activity?.decoupling_pct);
+    if (!Number.isFinite(pct)) return null;
+
+    const efFirst = Number(activity.decoupling_ef_first);
+    const efSecond = Number(activity.decoupling_ef_second);
+    const efLine = Number.isFinite(efFirst) && Number.isFinite(efSecond)
+        ? ` Efficiency drifted from ${efFirst.toFixed(2)} to ${efSecond.toFixed(2)} W/bpm (NP÷HR).`
+        : '';
+
+    if (pct <= 5) {
+        return {
+            headline: 'Strong aerobic coupling on this ride',
+            detail: `Heart rate stayed efficient for similar power across the ride — classic sign of good aerobic fitness on endurance work.${efLine}`,
+        };
+    }
+    if (pct <= 10) {
+        return {
+            headline: 'Moderate cardiac drift',
+            detail: `HR rose slightly relative to power in the second half.${efLine} Common with heat, fatigue, or glycogen depletion — check fueling and pacing.`,
+        };
+    }
+    return {
+        headline: 'High cardiac drift — worth attention',
+        detail: `Power:HR efficiency dropped noticeably in the second half.${efLine} Often heat, dehydration, going out too hard, or accumulated fatigue.`,
+    };
+}
+
+/** Plain-language rationale for steady-ride filter (English UI). */
+export const STEADY_RIDE_DECOUPLING_RATIONALE = {
+    title: 'Why only steady endurance rides?',
+    bullets: [
+        'Decoupling splits the ride in half and compares power÷heart rate (EF). That only means something when power is fairly steady.',
+        'On interval or race rides, the second half is often harder — HR rises because of effort changes, not aerobic drift.',
+        'We therefore use rides ≥60 min with IF ~0.55–0.85 and low variability (VI ≤1.08): your Z2 / endurance pace.',
+        'Hard sessions still matter for fitness — they are just tracked with other metrics (load, NP, intervals), not Pa:HR decoupling.',
+    ],
+};
