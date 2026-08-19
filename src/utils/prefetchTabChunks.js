@@ -3,7 +3,21 @@
  * Each import is deduped by the module loader after the first call.
  */
 
+import { loadFullClimbDatabase } from '../services/climbDatabase';
+import { loadLeaflet } from './loadLeaflet';
+
 const prefetched = new Set();
+
+const CLIMB_TAB_IDS = new Set(['bucketlist', 'profiler', 'climbmap', 'weather']);
+const LEAFLET_TAB_IDS = new Set(['climbmap', 'race']);
+
+function prefetchClimbDatabase() {
+    runPrefetch('asset:climbs', () => loadFullClimbDatabase());
+}
+
+function prefetchLeafletBundle() {
+    runPrefetch('asset:leaflet', () => loadLeaflet());
+}
 
 const TAB_CHUNK_LOADERS = {
     physics: () => import('../components/PhysicsEngine'),
@@ -17,12 +31,26 @@ const TAB_CHUNK_LOADERS = {
         import('../components/FuelingStrategy'),
         import('../components/ClimbProfileCard'),
         import('../components/RacePacing'),
+        prefetchLeafletBundle(),
     ]),
     gearoptimizer: () => import('../components/GearOptimizer'),
-    profiler: () => import('../components/ClimbProfiler'),
-    bucketlist: () => import('../components/BucketList'),
-    climbmap: () => import('../components/ClimbMap'),
-    weather: () => import('../components/WeatherClimb'),
+    profiler: () => Promise.all([
+        import('../components/ClimbProfiler'),
+        prefetchClimbDatabase(),
+    ]),
+    bucketlist: () => Promise.all([
+        import('../components/BucketList'),
+        prefetchClimbDatabase(),
+    ]),
+    climbmap: () => Promise.all([
+        import('../components/ClimbMap'),
+        prefetchClimbDatabase(),
+        prefetchLeafletBundle(),
+    ]),
+    weather: () => Promise.all([
+        import('../components/WeatherClimb'),
+        prefetchClimbDatabase(),
+    ]),
 };
 
 const DASHBOARD_SUBTAB_LOADERS = {
@@ -32,6 +60,7 @@ const DASHBOARD_SUBTAB_LOADERS = {
     volume: () => import('../components/dashboard/VolumeTotalsTab'),
     compare: () => import('../components/dashboard/CompareTab'),
     strava: () => import('../components/data-hub/StravaProfileTab'),
+    overview: () => import('../components/dashboard/OverviewChartsPanel'),
 };
 
 function runPrefetch(key, loader) {
@@ -48,13 +77,15 @@ function runPrefetch(key, loader) {
 export function prefetchMainTabChunk(tabId) {
     if (!tabId || tabId === 'dashboard') return;
     runPrefetch(`tab:${tabId}`, TAB_CHUNK_LOADERS[tabId]);
+    if (CLIMB_TAB_IDS.has(tabId)) prefetchClimbDatabase();
+    if (LEAFLET_TAB_IDS.has(tabId)) prefetchLeafletBundle();
 }
 
 /**
  * @param {string} subTabId Dashboard sub-tab id
  */
 export function prefetchDashboardSubTabChunk(subTabId) {
-    if (!subTabId || subTabId === 'overview') return;
+    if (!subTabId) return;
     runPrefetch(`dash:${subTabId}`, DASHBOARD_SUBTAB_LOADERS[subTabId]);
 }
 
