@@ -108,6 +108,7 @@ Zie `.jules/bolt-plan.md` voor detail. Veel is al gedaan (lazy tabs, virtualized
 |---|-----------|--------|
 | 8a | Week-plan kalenderweergave (Coach week → calendar UI) | Done |
 | 8b | Aerobic decoupling engine (HR drift / decoupling metrics) | Done |
+| 8c | Stream-based decoupling na Intervals sync (power+HR streams → summary fields) | Done |
 
 ---
 

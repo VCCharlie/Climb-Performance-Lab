@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit2, Trash2, X, Loader2, Link2, FileText } from 'lucide-react';
+import { Edit2, Trash2, X, Loader2, Link2, FileText, Activity } from 'lucide-react';
 import { formatNlNumber } from '../../utils/formatters';
 import ActivityLogExportButtons from './ActivityLogExportButtons';
 
@@ -17,11 +17,14 @@ const ActivityLogBulkBar = ({
     onDelete,
     onStravaEnrich,
     onStravaDescriptionBackfill,
+    onDecouplingBackfill,
     stravaGetToken,
+    canDecouplingBackfill = false,
     isDeleting = false,
     isBulkSaving = false,
     isStravaEnriching = false,
     isStravaDescBackfilling = false,
+    isDecouplingBackfilling = false,
 }) => {
     if (!count || count <= 0 || !useCardLayout) return null;
 
@@ -60,6 +63,18 @@ const ActivityLogBulkBar = ({
                                     Descriptions
                                 </button>
                             </>
+                        )}
+                        {canDecouplingBackfill && (
+                            <button
+                                type="button"
+                                onClick={onDecouplingBackfill}
+                                disabled={isDecouplingBackfilling}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 min-h-11 rounded-lg border border-emerald-500/40 text-emerald-400 text-[11px] font-bold disabled:opacity-40 cd-focus-ring"
+                                title="Backfill within-ride decoupling from power+HR streams"
+                            >
+                                {isDecouplingBackfilling ? <Loader2 size={13} className="animate-spin" aria-hidden /> : <Activity size={13} aria-hidden />}
+                                Decouple
+                            </button>
                         )}
                         <button
                             type="button"

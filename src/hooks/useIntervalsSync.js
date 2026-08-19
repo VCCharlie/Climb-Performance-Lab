@@ -4,6 +4,7 @@ import {
     filterNonEmptyIntervalsActivities,
 } from '../utils/intervals';
 import { enrichActivitiesWithLongDurationBests } from '../utils/intervalsPowerCurveEnrich';
+import { enrichActivitiesWithDecoupling } from '../utils/decouplingStreamEnrich';
 import { fetchWithTimeout } from '../utils/fetchWithTimeout';
 import { devLog } from '../utils/safeLog';
 import {
@@ -16,7 +17,28 @@ const useIntervalsSync = (intervalsConfig) => {
     const [syncProgress, setSyncProgress] = useState(null);
     const [error, setError] = useState(null);
 
-    const syncViaDirectApi = async (startDate, endDate, allowedTypes) => {
+    const enrichSyncedActivities = async (transformed, enrichOptions = {}) => {
+        let result = transformed;
+        setSyncProgress('Enriching long power bests (90/120 min)...');
+        result = await enrichActivitiesWithLongDurationBests(result, intervalsConfig);
+
+        const profileFtp = Number(enrichOptions.profileFtp) || 0;
+        if (profileFtp > 0 && (intervalsConfig?.apiKey || enrichOptions.stravaToken)) {
+            setSyncProgress('Analyzing aerobic decoupling from streams…');
+            result = await enrichActivitiesWithDecoupling(result, {
+                intervalsConfig,
+                profileFtp,
+                stravaToken: enrichOptions.stravaToken || null,
+                maxFetches: enrichOptions.decouplingMaxFetches ?? 8,
+                delayMs: enrichOptions.decouplingDelayMs ?? 150,
+                onProgress: (message) => setSyncProgress(message),
+            });
+        }
+
+        return result;
+    };
+
+    const syncViaDirectApi = async (startDate, endDate, allowedTypes, enrichOptions = {}) => {
         devLog('Starting Intervals.icu sync via direct API...');
         setSyncProgress('Fetching activities from Intervals.icu...');
 
@@ -50,8 +72,7 @@ const useIntervalsSync = (intervalsConfig) => {
         transformed = filterNonEmptyIntervalsActivities(transformed);
         const imported = transformed.length;
 
-        setSyncProgress('Enriching long power bests (90/120 min)...');
-        transformed = await enrichActivitiesWithLongDurationBests(transformed, intervalsConfig);
+        transformed = await enrichSyncedActivities(transformed, enrichOptions);
         return {
             activities: transformed,
             stats: {
@@ -65,7 +86,7 @@ const useIntervalsSync = (intervalsConfig) => {
         };
     };
 
-    const syncViaCloud = async (startDate, endDate, allowedTypes) => {
+    const syncViaCloud = async (startDate, endDate, allowedTypes, enrichOptions = {}) => {
         devLog('Starting Intervals.icu sync via cloud function (server credentials)...');
         setSyncProgress('Fetching activities via secure cloud sync...');
 
@@ -87,9 +108,7 @@ const useIntervalsSync = (intervalsConfig) => {
         transformed = filterNonEmptyIntervalsActivities(transformed);
         const imported = transformed.length;
 
-        setSyncProgress('Enriching long power bests (90/120 min)...');
-        transformed = await enrichActivitiesWithLongDurationBests(transformed, intervalsConfig);
-
+        transformed = await enrichSyncedActivities(transformed, enrichOptions);
         return {
             activities: transformed,
             stats: {
@@ -103,7 +122,7 @@ const useIntervalsSync = (intervalsConfig) => {
         };
     };
 
-    const syncIntervals = async (startDate, endDate, allowedTypes) => {
+    const syncIntervals = async (startDate, endDate, allowedTypes, enrichOptions = {}) => {
         setIsSyncing(true);
         setSyncProgress('Connecting to Intervals.icu...');
         setError(null);
@@ -117,8 +136,8 @@ const useIntervalsSync = (intervalsConfig) => {
             }
 
             const { activities: transformed, stats } = useDirect
-                ? await syncViaDirectApi(startDate, endDate, allowedTypes)
-                : await syncViaCloud(startDate, endDate, allowedTypes);
+                ? await syncViaDirectApi(startDate, endDate, allowedTypes, enrichOptions)
+                : await syncViaCloud(startDate, endDate, allowedTypes, enrichOptions);
 
             return { activities: transformed, stats };
         } catch (err) {

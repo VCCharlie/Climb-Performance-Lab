@@ -81,4 +81,22 @@ describe('protectEnrichedFieldsOnMerge', () => {
     expect(out.climbing).toBe(890);
     expect(out.climbing_from_strava).toBe(true);
   });
+
+  it('keeps stream decoupling summary when re-sync omits enriched fields', () => {
+    const out = protectEnrichedFieldsOnMerge(
+      { id: '1', title: 'Ride', norm_power: 180 },
+      {
+        id: '1',
+        decoupling_pct: 6.2,
+        decoupling_ef_first: 1.38,
+        decoupling_ef_second: 1.29,
+        decoupling_status: 'moderate',
+        decoupling_source: 'intervals',
+        decoupling_analyzed_at: '2026-08-10',
+      },
+    );
+    expect(out.decoupling_pct).toBe(6.2);
+    expect(out.decoupling_source).toBe('intervals');
+    expect(out.decoupling_analyzed_at).toBe('2026-08-10');
+  });
 });
