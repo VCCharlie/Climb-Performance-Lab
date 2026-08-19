@@ -93,7 +93,7 @@ const Dashboard = ({
         safeSessionStorageSet(DASH_SUBTAB_STORAGE_KEY, dashboardTab);
     }, [dashboardTab]);
 
-    const needsFullChartData = dashboardTab === 'power' || dashboardTab === 'distance';
+    const needsFullChartData = dashboardTab === 'power';
 
     // Full enriched history — only when Power or Distance sub-tabs need multi-window curves.
     const chartData = useMemo(() => {
@@ -228,7 +228,7 @@ const Dashboard = ({
                     {dashboardTab === 'distance' && (
                         <div role="tabpanel" id="tabpanel-distance" aria-labelledby="tab-distance">
                             <DistanceTab
-                                chartData={chartData}
+                                activities={firestoreActivities}
                                 timeRange={timeRange}
                                 customStart={customStart}
                                 customEnd={customEnd}

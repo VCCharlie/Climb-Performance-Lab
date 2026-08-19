@@ -122,6 +122,7 @@ const DataHub = ({
         filterKjMin: filter.filterKjMin,
         filterKjMax: filter.filterKjMax,
         clearMetricFilters: filter.clearMetricFilters,
+        climbMatchEnabled: internalTab === 'log',
     });
 
     const bulk = useDataHubBulkActions({

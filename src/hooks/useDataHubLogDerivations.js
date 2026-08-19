@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { MONTH_ORDER } from '../config';
 import { normalizeDate } from '../utils/formatters';
 import { useProfilerClimbMatches } from './useProfilerClimbMatches';
+import { selectActivitiesForClimbMatch } from '../utils/climbMatchActivitiesScope';
 
 /**
  * Activity Log derived state: navigation filters, table rows, gear options, bulk-visible ids.
@@ -34,6 +35,7 @@ export function useDataHubLogDerivations({
     filterKjMin,
     filterKjMax,
     clearMetricFilters,
+    climbMatchEnabled = true,
 }) {
     useEffect(() => {
         if (!focusActivityId) return;
@@ -86,6 +88,25 @@ export function useDataHubLogDerivations({
             : (isGroupedView ? groupedActivities : processedActivities);
     const logTableGrouped = isolateActivityId || rangeFilteredActivities != null ? false : isGroupedView;
 
+    const activitiesForClimbMatch = useMemo(
+        () => selectActivitiesForClimbMatch(
+            logTableActivities,
+            logTableGrouped,
+            groupedActivities,
+            sortConfig,
+            isYearExpanded,
+            isMonthExpanded,
+        ),
+        [
+            logTableActivities,
+            logTableGrouped,
+            groupedActivities,
+            sortConfig,
+            isYearExpanded,
+            isMonthExpanded,
+        ],
+    );
+
     const metricRangeActive =
         [filterDistMin, filterDistMax, filterSpeedMin, filterSpeedMax, filterPowerMin, filterPowerMax,
             filterDurMinMin, filterDurMaxMin, filterElevMin, filterElevMax, filterKjMin, filterKjMax]
@@ -97,8 +118,9 @@ export function useDataHubLogDerivations({
     };
 
     const profilerClimbByActivityId = useProfilerClimbMatches(
-        processedActivities,
+        activitiesForClimbMatch,
         climbDatabaseForMatch || [],
+        { enabled: climbMatchEnabled },
     );
 
     const visibleActivityIdsFlat = useMemo(() => {

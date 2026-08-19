@@ -23,7 +23,7 @@ import { chartCardShellClass } from '../../utils/chartTheme';
  * Top 10 longest rides (distance km) in the dashboard window, optionally compared to a second period.
  */
 const LongestRidesPanel = ({
-    chartData,
+    activities,
     timeRange,
     customStart,
     customEnd,
@@ -71,13 +71,13 @@ const LongestRidesPanel = ({
     }, [dashboardBounds, compareMode, compareDays, customCompareStart, customCompareEnd]);
 
     const currentActs = useMemo(
-        () => (boundsPrimary ? filterActivitiesInBounds(chartData, boundsPrimary) : []),
-        [chartData, boundsPrimary],
+        () => (boundsPrimary ? filterActivitiesInBounds(activities, boundsPrimary) : []),
+        [activities, boundsPrimary],
     );
 
     const compareActs = useMemo(
-        () => (compareBounds ? filterActivitiesInBounds(chartData, compareBounds) : []),
-        [chartData, compareBounds],
+        () => (compareBounds ? filterActivitiesInBounds(activities, compareBounds) : []),
+        [activities, compareBounds],
     );
 
     const periodLabel = dashboardFilterLabel(timeRange);
@@ -103,7 +103,7 @@ const LongestRidesPanel = ({
         return `Difference (column 1 − column 2): rides ${fmt(dr)} · km ${fmt(dk)} · elevation ${fmt(de, ' m')}`;
     }, [compareBounds, boundsPrimary, statsPrimary, statsCompare]);
 
-    if (!chartData?.length || !dashboardBounds) return null;
+    if (!activities?.length || !dashboardBounds) return null;
 
     const headerRangeHint = compareMode === 'custom' && boundsPrimary
         ? formatLongRange(boundsPrimary)
