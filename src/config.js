@@ -36,6 +36,12 @@ export const ACTIVITY_COLUMNS = [
     { key: 'work', label: 'kJ', align: 'right', width: 'w-10', hideByDefault: true },
     { key: 'load', label: 'Load', align: 'right', width: 'w-10', highlight: 'blue' },
     { key: 'rpe', label: 'RPE', align: 'right', width: 'w-8', hideByDefault: true },
+    /** Stream-based steady-ride HR drift (first vs second half). */
+    { key: 'decoupling_pct', label: 'Dec', pickerLabel: 'Decoupling %', align: 'right', width: 'w-10', omitFromExport: true, hideByDefault: true },
+    /** Stream-based threshold tempo HR drift. */
+    { key: 'threshold_drift_pct', label: 'Thr', pickerLabel: 'Threshold drift %', align: 'right', width: 'w-10', omitFromExport: true, hideByDefault: true },
+    /** Stream-based race / variable-effort HR drift. */
+    { key: 'race_drift_pct', label: 'Race', pickerLabel: 'Race drift %', align: 'right', width: 'w-10', omitFromExport: true, hideByDefault: true },
     // Power Curve kolommen (1m, 5m, 10m, 20m, 60m)
     { key: 'best_1min', label: '1m', align: 'right', width: 'w-10', hideByDefault: true },
     { key: 'best_5min', label: '5m', align: 'right', width: 'w-10', hideByDefault: true },
@@ -61,6 +67,7 @@ export const ACTIVITY_COLUMN_PRESETS = {
     power: [
         'date', 'type', 'title', 'moving_time', 'distance', 'climbing',
         'norm_power', 'load', 'avg_power', 'intensity_factor', 'variability_index', 'efficiency_factor',
+        'decoupling_pct', 'threshold_drift_pct', 'race_drift_pct',
         'best_1min', 'best_5min', 'best_20min',
     ],
     full: null,
