@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit2, GitMerge, Link2, Loader2, Trash } from 'lucide-react';
+import { Activity, Edit2, GitMerge, Link2, Loader2, Trash } from 'lucide-react';
 import { formatNlNumber } from '../../../utils/formatters';
 import { buildMarkRecoveryTooltip } from '../../../utils/recoveryTss';
 import ActivityLogExportButtons from '../ActivityLogExportButtons';
@@ -22,12 +22,15 @@ export default function BulkActionsSection({
     stravaGetToken,
     onStravaEnrich,
     onStravaDescriptionBackfill,
+    onDecouplingBackfill,
     onMergePair,
     onDeleteSelected,
     onClearSelection,
     isBulkSaving,
     isStravaEnriching,
     isStravaDescBackfilling,
+    isDecouplingBackfilling,
+    canDecouplingBackfill,
     isDeleting,
 }) {
     const hasSelection = bulkSelectedCount > 0;
@@ -94,6 +97,20 @@ export default function BulkActionsSection({
                             Descriptions
                         </Button>
                     </>
+                ) : null}
+                {canDecouplingBackfill ? (
+                    <Button
+                        type="button"
+                        variant="outlined"
+                        size="sm"
+                        onClick={onDecouplingBackfill}
+                        disabled={isDecouplingBackfilling}
+                        title="Analyze power+HR streams for steady rides missing within-ride decoupling (selected rows, or next batch)"
+                        className="!text-[10px] !h-8"
+                    >
+                        {isDecouplingBackfilling ? <Loader2 size={12} className="animate-spin" aria-hidden /> : <Activity size={12} aria-hidden />}
+                        Decoupling
+                    </Button>
                 ) : null}
                 <Button
                     type="button"

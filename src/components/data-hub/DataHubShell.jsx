@@ -179,7 +179,14 @@ const DataHubShell = ({
                     const sel = bulk.selectedActivitiesForBulk;
                     bulk.runStravaDescriptionBackfill(sel.length > 0 ? sel : null);
                 }}
+                onDecouplingBackfill={() => {
+                    const sel = bulk.selectedActivitiesForBulk;
+                    bulk.runDecouplingBackfill(sel.length > 0 ? sel : null);
+                }}
+                canDecouplingBackfill={Boolean(intervalsConfig?.apiKey || stravaGetToken)
+                    && Number(userSettings?.ftp) > 0}
                 isStravaDescBackfilling={bulk.isStravaDescBackfilling}
+                isDecouplingBackfilling={bulk.isDecouplingBackfilling}
             />
         )}
     </div>

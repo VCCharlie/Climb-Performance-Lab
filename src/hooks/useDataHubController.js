@@ -136,6 +136,7 @@ export function useDataHubController({
         onDelete,
         onImport,
         stravaGetToken,
+        intervalsConfig,
         visibleActivityIdsFlat: logDerivations.visibleActivityIdsFlat,
         setIsDeleting,
         recoveryTss: resolveRecoveryTss(userSettings),
@@ -263,6 +264,8 @@ export function useDataHubController({
         detectedLogFilterPresetId: filter.detectedLogFilterPresetId,
         applyLogFilterPreset: filter.applyLogFilterPreset,
         resetLogFilters: filter.resetLogFilters,
+        intervalsConfig,
+        userSettings,
     });
 
     const onSaveEdit = useCallback(

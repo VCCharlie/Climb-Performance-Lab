@@ -57,6 +57,8 @@ export function useDataHubFilterBar({
     detectedLogFilterPresetId,
     applyLogFilterPreset,
     resetLogFilters,
+    intervalsConfig,
+    userSettings,
 }) {
     const [showUtilMenu, setShowUtilMenu] = useState(false);
     const utilMenuRef = useRef(null);
@@ -197,12 +199,19 @@ export function useDataHubFilterBar({
             const sel = bulk.selectedActivitiesForBulk;
             bulk.runStravaDescriptionBackfill(sel.length > 0 ? sel : null);
         },
+        onDecouplingBackfill: () => {
+            const sel = bulk.selectedActivitiesForBulk;
+            bulk.runDecouplingBackfill(sel.length > 0 ? sel : null);
+        },
         onMergePair: bulk.openMergeModal,
         onDeleteSelected: bulk.confirmBulkDeleteSelected,
         onClearSelection: () => bulk.setBulkSelectedIds(new Set()),
         isBulkSaving: bulk.isBulkSaving,
         isStravaEnriching: bulk.isStravaEnriching,
         isStravaDescBackfilling: bulk.isStravaDescBackfilling,
+        isDecouplingBackfilling: bulk.isDecouplingBackfilling,
+        canDecouplingBackfill: Boolean(intervalsConfig?.apiKey || stravaGetToken)
+            && Number(userSettings?.ftp) > 0,
         filterBarRootRef,
     };
 

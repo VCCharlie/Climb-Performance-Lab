@@ -66,12 +66,15 @@ export default function ActivityLogFilterPanel({
                 stravaGetToken={sectionProps.stravaGetToken}
                 onStravaEnrich={sectionProps.onStravaEnrich}
                 onStravaDescriptionBackfill={sectionProps.onStravaDescriptionBackfill}
+                onDecouplingBackfill={sectionProps.onDecouplingBackfill}
                 onMergePair={sectionProps.onMergePair}
                 onDeleteSelected={sectionProps.onDeleteSelected}
                 onClearSelection={sectionProps.onClearSelection}
                 isBulkSaving={sectionProps.isBulkSaving}
                 isStravaEnriching={sectionProps.isStravaEnriching}
                 isStravaDescBackfilling={sectionProps.isStravaDescBackfilling}
+                isDecouplingBackfilling={sectionProps.isDecouplingBackfilling}
+                canDecouplingBackfill={sectionProps.canDecouplingBackfill}
                 isDeleting={sectionProps.isDeleting}
             />
         </>

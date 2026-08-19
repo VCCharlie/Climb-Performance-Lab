@@ -13,6 +13,7 @@ import {
 import { enrichActivityGearFromStrava } from '../utils/stravaGearEnrich';
 import { enrichSelectedActivitiesFromStrava } from '../utils/stravaSelectedEnrich';
 import { buildStravaDescriptionBackfillUpdates } from '../utils/stravaDescriptionBackfill';
+import { buildDecouplingBackfillUpdates } from '../utils/decouplingStreamBackfill';
 import { formatNlNumber } from '../utils/formatters';
 import { buildMarkRecoveryConfirmMessage, resolveRecoveryTss } from '../utils/recoveryTss';
 import { resolveDeviceProfileTitlesFromSettings } from '../utils/bikeComputerProfileTitles';
@@ -27,6 +28,7 @@ export function useDataHubBulkActions({
     onDelete,
     onImport,
     stravaGetToken,
+    intervalsConfig,
     visibleActivityIdsFlat,
     setIsDeleting,
     recoveryTss,
@@ -45,6 +47,8 @@ export function useDataHubBulkActions({
     const [stravaEnrichMsg, setStravaEnrichMsg] = useState(null);
     const [isStravaDescBackfilling, setIsStravaDescBackfilling] = useState(false);
     const [stravaDescBackfillMsg, setStravaDescBackfillMsg] = useState(null);
+    const [isDecouplingBackfilling, setIsDecouplingBackfilling] = useState(false);
+    const [decouplingBackfillMsg, setDecouplingBackfillMsg] = useState(null);
     const [isExportingXlsx, setIsExportingXlsx] = useState(false);
 
     const allVisibleSelected = useMemo(
@@ -352,6 +356,101 @@ export function useDataHubBulkActions({
         }
     }, [stravaGetToken, activities, persistStravaEnrichUpdates]);
 
+    const runDecouplingBackfill = useCallback(async (subset) => {
+        const profileFtp = Number(userSettings?.ftp) || 0;
+        if (profileFtp <= 0) {
+            setDecouplingBackfillMsg('Set your FTP in Settings first — decoupling analysis needs intensity factor (IF).');
+            return;
+        }
+
+        const hasIntervalsKey = Boolean(intervalsConfig?.apiKey);
+        let stravaToken = null;
+        if (stravaGetToken) {
+            try {
+                stravaToken = await stravaGetToken();
+            } catch {
+                stravaToken = null;
+            }
+        }
+
+        if (!hasIntervalsKey && !stravaToken) {
+            setDecouplingBackfillMsg('Add your Intervals.icu API key in Settings or connect Strava to fetch power/HR streams.');
+            return;
+        }
+
+        const selected = subset && subset.length > 0 ? subset : null;
+        const pool = selected
+            ? selected
+            : (activities || []);
+
+        if (!pool.length) {
+            setDecouplingBackfillMsg('No activities in the log to analyze.');
+            return;
+        }
+
+        setIsDecouplingBackfilling(true);
+        setDecouplingBackfillMsg('Starting aerobic decoupling backfill…');
+
+        try {
+            const onlyIds = selected ? selected.map((a) => a.id) : null;
+            const result = await buildDecouplingBackfillUpdates(activities, {
+                profileFtp,
+                intervalsConfig,
+                stravaToken,
+                onlyIds,
+                onProgress: (m) => setDecouplingBackfillMsg(m),
+            });
+
+            if (result.blockedReason === 'missing_ftp') {
+                setDecouplingBackfillMsg('Set your FTP in Settings first — decoupling analysis needs intensity factor (IF).');
+                return;
+            }
+            if (result.blockedReason === 'missing_credentials') {
+                setDecouplingBackfillMsg('Add your Intervals.icu API key in Settings or connect Strava to fetch power/HR streams.');
+                return;
+            }
+
+            if (result.candidates === 0) {
+                setDecouplingBackfillMsg(
+                    selected
+                        ? 'No selected steady rides still need stream decoupling (≥60 min, IF ~0.55–0.85, HR present).'
+                        : 'All eligible steady rides already have decoupling metrics, or streams are unavailable for them.',
+                );
+                return;
+            }
+
+            if (result.updates.length === 0) {
+                setDecouplingBackfillMsg(
+                    `Checked ${formatNlNumber(result.processed)} ride(s): streams returned no decoupling data`
+                    + (result.remaining > 0 ? ` · ${formatNlNumber(result.remaining)} more waiting — run again.` : ''),
+                );
+                return;
+            }
+
+            setDecouplingBackfillMsg(`Saving decoupling metrics for ${formatNlNumber(result.updates.length)} ride(s)…`);
+            await persistStravaEnrichUpdates(result.updates, pool);
+
+            const remainNote = result.remaining > 0
+                ? ` ${formatNlNumber(result.remaining)} more ride(s) waiting — click again to continue.`
+                : '';
+
+            setDecouplingBackfillMsg(
+                `Done: added stream decoupling to ${formatNlNumber(result.enriched)} steady ride(s).${remainNote}`,
+            );
+        } catch (e) {
+            console.error('[Decoupling backfill]', e);
+            setDecouplingBackfillMsg(`Error: ${e.message || e}`);
+        } finally {
+            setIsDecouplingBackfilling(false);
+        }
+    }, [
+        userSettings?.ftp,
+        intervalsConfig,
+        stravaGetToken,
+        activities,
+        persistStravaEnrichUpdates,
+    ]);
+
     const markBulkRecovery = useCallback(async () => {
         if (selectedActivitiesForBulk.length === 0) return;
         const tss = resolveRecoveryTss({ recoveryTss });
@@ -480,5 +579,9 @@ export function useDataHubBulkActions({
         isStravaDescBackfilling,
         stravaDescBackfillMsg,
         setStravaDescBackfillMsg,
+        runDecouplingBackfill,
+        isDecouplingBackfilling,
+        decouplingBackfillMsg,
+        setDecouplingBackfillMsg,
     };
 }

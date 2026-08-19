@@ -16,6 +16,9 @@ const ActivityLogSyncBanners = ({
     isStravaDescBackfilling,
     stravaDescBackfillMsg,
     onDismissStravaDescBackfillMsg,
+    isDecouplingBackfilling,
+    decouplingBackfillMsg,
+    onDismissDecouplingBackfillMsg,
 }) => (
     <>
         {stravaAutoEnrichNotice && (
@@ -101,6 +104,31 @@ const ActivityLogSyncBanners = ({
                     <button
                         type="button"
                         onClick={onDismissStravaDescBackfillMsg}
+                        className="self-end text-xs font-bold text-cdaccent hover:underline underline-offset-2"
+                    >
+                        Dismiss
+                    </button>
+                )}
+            </div>
+        )}
+        {(isDecouplingBackfilling || decouplingBackfillMsg) && (
+            <div
+                role="status"
+                className={`flex flex-col gap-1.5 text-sm px-3 py-2.5 rounded-lg mb-3 border ${
+                    isDecouplingBackfilling
+                        ? 'bg-emerald-500/15 border-emerald-600/40 text-cdtext'
+                        : 'bg-cdsurface border-cdborder text-cdtext'
+                }`}
+            >
+                <span className="flex items-center gap-2 font-semibold text-cdtext">
+                    {isDecouplingBackfilling && <Loader2 size={14} className="animate-spin text-emerald-600 dark:text-emerald-400" />}
+                    Aerobic decoupling backfill
+                </span>
+                <span className="text-sm leading-snug text-cdtext">{decouplingBackfillMsg}</span>
+                {!isDecouplingBackfilling && decouplingBackfillMsg && (
+                    <button
+                        type="button"
+                        onClick={onDismissDecouplingBackfillMsg}
                         className="self-end text-xs font-bold text-cdaccent hover:underline underline-offset-2"
                     >
                         Dismiss

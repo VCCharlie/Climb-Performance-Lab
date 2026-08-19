@@ -139,8 +139,9 @@ export default function CoachAerobicDecoupling({
                 <p className="text-[10px] text-cdmuted leading-relaxed">
                     Within-ride decoupling compares power:HR in the first vs second half of a steady ride.
                     After Intervals.icu sync (with API key or Strava connected), eligible rides are analyzed
-                    automatically — up to 8 per sync. Without streams, this panel still tracks aerobic
-                    efficiency (EF) on eligible endurance rides.
+                    automatically — up to 8 per sync. Use Activities → Decoupling backfill to fill older rides
+                    (24 per run). Without streams, this panel still tracks aerobic efficiency (EF) on eligible
+                    endurance rides.
                 </p>
             </div>
         </CollapsibleSection>

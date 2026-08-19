@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import {
-    Search, Loader2, Trash, Split, RefreshCw, ChevronDown, Link2,
+    Search, Loader2, Trash, Split, RefreshCw, ChevronDown, Link2, Activity,
 } from 'lucide-react';
 import ActivityColumnPicker from './ActivityColumnPicker';
 import ActivityLogFilterPanel from './activity-log-filters/ActivityLogFilterPanel';
@@ -118,12 +118,15 @@ const ActivityLogFilterBar = ({
     recoveryTss = 35,
     onStravaEnrich,
     onStravaDescriptionBackfill,
+    onDecouplingBackfill,
     onMergePair,
     onDeleteSelected,
     onClearSelection,
     isBulkSaving,
     isStravaEnriching,
     isStravaDescBackfilling = false,
+    isDecouplingBackfilling = false,
+    canDecouplingBackfill = false,
     filterBarRootRef,
 }) => {
     const mobilePanelExpanded = useCardLayout && logFiltersPanelOpen;
@@ -292,6 +295,21 @@ const ActivityLogFilterBar = ({
                                 Strava descriptions
                             </button>
                         )}
+                        {canDecouplingBackfill && (
+                            <button
+                                type="button"
+                                role="menuitem"
+                                onClick={() => {
+                                    onDecouplingBackfill?.();
+                                    onShowUtilMenuChange(false);
+                                }}
+                                disabled={isDecouplingBackfilling}
+                                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-cdtext hover:bg-cdborder disabled:opacity-40 cd-focus-ring focus:outline-none"
+                            >
+                                {isDecouplingBackfilling ? <Loader2 className="animate-spin" size={14} aria-hidden="true" /> : <Activity size={14} aria-hidden="true" />}
+                                Decoupling backfill
+                            </button>
+                        )}
                         <div className="border-t border-cdborder" />
                         <button
                             type="button"
@@ -386,12 +404,15 @@ const ActivityLogFilterBar = ({
             recoveryTss={recoveryTss}
             onStravaEnrich={onStravaEnrich}
             onStravaDescriptionBackfill={onStravaDescriptionBackfill}
+            onDecouplingBackfill={onDecouplingBackfill}
             onMergePair={onMergePair}
             onDeleteSelected={onDeleteSelected}
             onClearSelection={onClearSelection}
             isBulkSaving={isBulkSaving}
             isStravaEnriching={isStravaEnriching}
             isStravaDescBackfilling={isStravaDescBackfilling}
+            isDecouplingBackfilling={isDecouplingBackfilling}
+            canDecouplingBackfill={canDecouplingBackfill}
             isDeleting={isDeleting}
         />
     </div>
