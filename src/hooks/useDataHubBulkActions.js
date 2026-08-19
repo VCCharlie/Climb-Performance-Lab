@@ -13,7 +13,7 @@ import {
 import { enrichActivityGearFromStrava } from '../utils/stravaGearEnrich';
 import { enrichSelectedActivitiesFromStrava } from '../utils/stravaSelectedEnrich';
 import { buildStravaDescriptionBackfillUpdates } from '../utils/stravaDescriptionBackfill';
-import { buildDecouplingBackfillUpdates } from '../utils/decouplingStreamBackfill';
+import { buildDecouplingBackfillUpdates, buildDecouplingBackfillStats, formatDecouplingBackfillIntro } from '../utils/decouplingStreamBackfill';
 import { formatNlNumber } from '../utils/formatters';
 import { buildMarkRecoveryConfirmMessage, resolveRecoveryTss } from '../utils/recoveryTss';
 import { resolveDeviceProfileTitlesFromSettings } from '../utils/bikeComputerProfileTitles';
@@ -389,7 +389,10 @@ export function useDataHubBulkActions({
         }
 
         setIsDecouplingBackfilling(true);
-        setDecouplingBackfillMsg('Starting aerobic decoupling backfill…');
+
+        const creds = { intervalsConfig, hasStravaToken: Boolean(stravaToken) };
+        const stats = buildDecouplingBackfillStats(activities, profileFtp, creds);
+        setDecouplingBackfillMsg(formatDecouplingBackfillIntro(stats));
 
         try {
             const onlyIds = selected ? selected.map((a) => a.id) : null;
@@ -411,10 +414,11 @@ export function useDataHubBulkActions({
             }
 
             if (result.candidates === 0) {
+                const statsNote = formatDecouplingBackfillIntro(stats);
                 setDecouplingBackfillMsg(
                     selected
-                        ? 'No selected steady rides still need stream decoupling (≥60 min, IF ~0.55–0.85, HR present).'
-                        : 'All eligible steady rides already have decoupling metrics, or streams are unavailable for them.',
+                        ? `No selected steady rides still need stream decoupling (≥60 min, IF ~0.55–0.85, HR present). ${statsNote}`
+                        : `No steady rides left to analyze. ${statsNote}`,
                 );
                 return;
             }
@@ -435,7 +439,8 @@ export function useDataHubBulkActions({
                 : '';
 
             setDecouplingBackfillMsg(
-                `Done: added stream decoupling to ${formatNlNumber(result.enriched)} steady ride(s).${remainNote}`,
+                `Done: added stream decoupling to ${formatNlNumber(result.enriched)} steady ride(s) this run`
+                + ` (${formatNlNumber(stats.alreadyAnalyzed + result.enriched)} of ${formatNlNumber(stats.steadyEligible)} steady rides analyzed).${remainNote}`,
             );
         } catch (e) {
             console.error('[Decoupling backfill]', e);
