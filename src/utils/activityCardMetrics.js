@@ -92,6 +92,23 @@ function formatActivityCardMetric(col, act, profileFtp, profileMaxHr) {
                 title: 'Efficiency Factor (NP ÷ average HR, W/bpm)',
             };
         }
+        case 'decoupling_pct':
+        case 'threshold_drift_pct':
+        case 'race_drift_pct': {
+            if (!Number.isFinite(Number(val))) return null;
+            const statusKey = key === 'decoupling_pct'
+                ? 'decoupling_status'
+                : key === 'threshold_drift_pct'
+                    ? 'threshold_drift_status'
+                    : 'race_drift_status';
+            return {
+                key,
+                label: col.label,
+                value: `${Number(val).toFixed(1)}%`,
+                tone: 'muted',
+                title: act[statusKey] || col.pickerLabel || col.label,
+            };
+        }
         case 'avg_hr':
         case 'max_hr':
             return zoneChip(key, col.label, getHeartRateZoneDisplay(val, profileMaxHr), ' bpm');

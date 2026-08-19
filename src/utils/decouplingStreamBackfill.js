@@ -1,23 +1,19 @@
 /**
- * Backfill stream-based aerobic decoupling for existing activities in the log.
- * Processes eligible steady rides without cached decoupling_pct (newest first).
+ * Backfill stream-based HR drift for existing activities in the log.
+ * Processes eligible steady, threshold, and race-style rides (newest first).
  */
 
-import { isEligibleDecouplingRide } from './coach/aerobicDecoupling';
+import {
+    DRIFT_PROFILE,
+    activityNeedsDriftAnalysis,
+    extractDriftPatch,
+    getRideDriftProfile,
+} from './coach/rideDurability';
 import { enrichActivitiesWithDecoupling } from './decouplingStreamEnrich';
 import { isLikelyIntervalsActivityId } from './mergeActivities';
 
 const DEFAULT_MAX_PER_RUN = 24;
 const DEFAULT_DELAY_MS = 150;
-
-const DECOUPLING_PATCH_KEYS = [
-    'decoupling_pct',
-    'decoupling_ef_first',
-    'decoupling_ef_second',
-    'decoupling_status',
-    'decoupling_source',
-    'decoupling_analyzed_at',
-];
 
 /**
  * @param {object[]} siteActivities
@@ -27,17 +23,25 @@ const DECOUPLING_PATCH_KEYS = [
 export function buildDecouplingBackfillStats(siteActivities, profileFtp, creds = {}) {
     const list = siteActivities || [];
     let steadyEligible = 0;
+    let thresholdEligible = 0;
+    let raceEligible = 0;
     let alreadyAnalyzed = 0;
     let missingStreamAccess = 0;
     let candidates = 0;
 
     for (const act of list) {
-        if (!isEligibleDecouplingRide(act, profileFtp)) continue;
-        steadyEligible += 1;
-        if (Number.isFinite(Number(act.decoupling_pct))) {
+        const profile = getRideDriftProfile(act, profileFtp);
+        if (!profile) continue;
+
+        if (profile === DRIFT_PROFILE.STEADY) steadyEligible += 1;
+        else if (profile === DRIFT_PROFILE.THRESHOLD) thresholdEligible += 1;
+        else raceEligible += 1;
+
+        if (!activityNeedsDriftAnalysis(act, profileFtp)) {
             alreadyAnalyzed += 1;
             continue;
         }
+
         if (activityCanFetchDecouplingStreams(act, creds)) {
             candidates += 1;
         } else {
@@ -48,6 +52,9 @@ export function buildDecouplingBackfillStats(siteActivities, profileFtp, creds =
     return {
         totalActivities: list.length,
         steadyEligible,
+        thresholdEligible,
+        raceEligible,
+        driftEligible: steadyEligible + thresholdEligible + raceEligible,
         alreadyAnalyzed,
         missingStreamAccess,
         candidates,
@@ -62,13 +69,20 @@ export function formatDecouplingBackfillIntro(stats, batchSize = DEFAULT_MAX_PER
     if (!stats) return '';
     const parts = [
         `${stats.totalActivities} activities in log`,
-        `${stats.candidates} steady ride(s) still need stream decoupling`,
+        `${stats.candidates} ride(s) still need stream drift analysis`,
     ];
+    if (stats.steadyEligible > 0 || stats.thresholdEligible > 0 || stats.raceEligible > 0) {
+        const profileParts = [];
+        if (stats.steadyEligible > 0) profileParts.push(`${stats.steadyEligible} steady`);
+        if (stats.thresholdEligible > 0) profileParts.push(`${stats.thresholdEligible} threshold`);
+        if (stats.raceEligible > 0) profileParts.push(`${stats.raceEligible} race`);
+        parts.push(`${profileParts.join(' · ')} eligible`);
+    }
     if (stats.alreadyAnalyzed > 0) {
-        parts.push(`${stats.alreadyAnalyzed} steady ride(s) already analyzed`);
+        parts.push(`${stats.alreadyAnalyzed} ride(s) already analyzed`);
     }
     if (stats.missingStreamAccess > 0) {
-        parts.push(`${stats.missingStreamAccess} steady ride(s) lack Strava link / Intervals stream access`);
+        parts.push(`${stats.missingStreamAccess} ride(s) lack Strava link / Intervals stream access`);
     }
     const batchNote = stats.candidates > 0
         ? ` · processing up to ${Math.min(batchSize, stats.candidates)} now`
@@ -82,8 +96,7 @@ export function formatDecouplingBackfillIntro(stats, batchSize = DEFAULT_MAX_PER
  */
 export function activityNeedsDecouplingBackfill(act, profileFtp) {
     if (!act?.id) return false;
-    if (!isEligibleDecouplingRide(act, profileFtp)) return false;
-    return !Number.isFinite(Number(act.decoupling_pct));
+    return activityNeedsDriftAnalysis(act, profileFtp);
 }
 
 /**
@@ -127,12 +140,7 @@ export function pickActivitiesNeedingDecouplingBackfill(
  * @returns {object | null}
  */
 export function extractDecouplingPatch(enriched) {
-    if (!enriched || !Number.isFinite(Number(enriched.decoupling_pct))) return null;
-    const patch = {};
-    for (const key of DECOUPLING_PATCH_KEYS) {
-        if (enriched[key] != null) patch[key] = enriched[key];
-    }
-    return Object.keys(patch).length > 0 ? patch : null;
+    return extractDriftPatch(enriched);
 }
 
 /**
@@ -198,7 +206,7 @@ export async function buildDecouplingBackfillUpdates(siteActivities, opts = {}) 
         };
     }
 
-    opts.onProgress?.(`Decoupling backfill: 0 / ${batch.length}…`);
+    opts.onProgress?.(`Drift backfill: 0 / ${batch.length}…`);
 
     const beforeById = new Map(batch.map((act) => [String(act.id), act]));
     const enriched = await enrichActivitiesWithDecoupling(batch, {
@@ -215,14 +223,14 @@ export async function buildDecouplingBackfillUpdates(siteActivities, opts = {}) 
 
     for (const act of enriched) {
         const prev = beforeById.get(String(act.id));
-        if (!prev || Number.isFinite(Number(prev.decoupling_pct))) continue;
-        const patch = extractDecouplingPatch(act);
+        if (!prev || !activityNeedsDriftAnalysis(prev, profileFtp)) continue;
+        const patch = extractDriftPatch(act);
         if (!patch) continue;
         updates.push({ id: act.id, data: patch });
         enrichedCount += 1;
     }
 
-    opts.onProgress?.(`Decoupling backfill: ${batch.length} / ${batch.length}…`);
+    opts.onProgress?.(`Drift backfill: ${batch.length} / ${batch.length}…`);
 
     return {
         updates,

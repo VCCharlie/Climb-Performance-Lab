@@ -81,7 +81,7 @@ describe('decouplingStreamBackfill', () => {
         expect(stats.alreadyAnalyzed).toBe(1);
         expect(stats.candidates).toBe(1);
         expect(formatDecouplingBackfillIntro(stats)).toMatch(/4 activities in log/);
-        expect(formatDecouplingBackfillIntro(stats)).toMatch(/1 steady ride\(s\) still need stream decoupling/);
+        expect(formatDecouplingBackfillIntro(stats)).toMatch(/still need stream drift analysis/);
     });
 
     it('buildDecouplingBackfillUpdates returns blockedReason without FTP', async () => {

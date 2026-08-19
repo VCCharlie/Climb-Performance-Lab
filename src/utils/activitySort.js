@@ -24,6 +24,9 @@ export const NUMERIC_ACTIVITY_SORT_KEYS = new Set([
     'avg_altitude',
     'max_altitude',
     'ftp',
+    'decoupling_pct',
+    'threshold_drift_pct',
+    'race_drift_pct',
 ]);
 
 function directionMultiplier(direction) {

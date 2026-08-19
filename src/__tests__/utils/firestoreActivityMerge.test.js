@@ -99,4 +99,19 @@ describe('protectEnrichedFieldsOnMerge', () => {
     expect(out.decoupling_source).toBe('intervals');
     expect(out.decoupling_analyzed_at).toBe('2026-08-10');
   });
+
+  it('keeps threshold drift summary when re-sync omits enriched fields', () => {
+    const out = protectEnrichedFieldsOnMerge(
+      { id: '2', title: 'Threshold ride', norm_power: 220 },
+      {
+        id: '2',
+        threshold_drift_pct: 8.4,
+        threshold_drift_status: 'moderate',
+        threshold_drift_source: 'strava',
+        threshold_drift_analyzed_at: '2026-08-12',
+      },
+    );
+    expect(out.threshold_drift_pct).toBe(8.4);
+    expect(out.threshold_drift_source).toBe('strava');
+  });
 });

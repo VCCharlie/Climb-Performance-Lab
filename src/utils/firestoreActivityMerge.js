@@ -4,6 +4,7 @@
  */
 
 import { normalizeStravaActivityId } from './strava';
+import { getAllDriftMergeKeys } from './coach/rideDurability';
 
 const GENERIC_TITLE = /^(Morning|Lunch|Afternoon|Evening|Night) Ride$|^Untitled$/i;
 
@@ -92,24 +93,18 @@ export function protectEnrichedFieldsOnMerge(incoming, existing) {
         out.climbing_from_strava = true;
     }
 
-    // Stream-based decoupling summaries: preserve when re-sync omits enriched fields.
-    const decouplingKeys = [
-        'decoupling_pct',
-        'decoupling_ef_first',
-        'decoupling_ef_second',
-        'decoupling_status',
-        'decoupling_source',
-        'decoupling_analyzed_at',
-    ];
-    for (const key of decouplingKeys) {
+    // Stream-based drift summaries: preserve when re-sync omits enriched fields.
+    const driftKeys = getAllDriftMergeKeys();
+    const driftPctKeys = new Set(['decoupling_pct', 'threshold_drift_pct', 'race_drift_pct']);
+    for (const key of driftKeys) {
         const incomingVal = incoming[key];
         const existingVal = existing[key];
         const incomingMissing = incomingVal == null
             || incomingVal === ''
-            || (key === 'decoupling_pct' && !Number.isFinite(Number(incomingVal)));
+            || (driftPctKeys.has(key) && !Number.isFinite(Number(incomingVal)));
         const existingPresent = existingVal != null
             && existingVal !== ''
-            && (key !== 'decoupling_pct' || Number.isFinite(Number(existingVal)));
+            && (!driftPctKeys.has(key) || Number.isFinite(Number(existingVal)));
         if (incomingMissing && existingPresent) {
             out[key] = existing[key];
         }

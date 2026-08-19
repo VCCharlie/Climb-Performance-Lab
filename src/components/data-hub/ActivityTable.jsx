@@ -24,7 +24,33 @@ import {
 import { registerActivityLogScroller, unregisterActivityLogScroller } from '../../utils/activityLogScroll';
 import { ACTIVITY_TABLE_COLUMNS, MONTH_ORDER } from '../../config';
 import { activityEfficiencyFactor, activityVariabilityIndex } from '../../utils/rideInsights';
+import { decouplingStatusLabel } from '../../utils/coach/aerobicDecoupling';
 import TableScrollShell from './TableScrollShell';
+
+function driftPctStatusClass(status) {
+    switch (status) {
+        case 'good':
+            return 'text-emerald-400';
+        case 'moderate':
+            return 'text-orange-400';
+        case 'high':
+            return 'text-red-400';
+        default:
+            return 'text-cdmuted';
+    }
+}
+
+function DriftPctCell({ pct, status, title }) {
+    if (!Number.isFinite(Number(pct))) return <span className="text-cdmuted">-</span>;
+    return (
+        <span
+            className={`font-mono tabular-nums ${driftPctStatusClass(status)}`}
+            title={title || (status ? decouplingStatusLabel(status) : 'HR drift %')}
+        >
+            {Number(pct).toFixed(1)}%
+        </span>
+    );
+}
 import {
     tableClass,
     tableHeadClass,
@@ -233,6 +259,36 @@ export const Row = React.memo(React.forwardRef(({
                     >
                         {ef.toFixed(2)}
                     </span>
+                );
+            }
+
+            if (col.key === 'decoupling_pct') {
+                return (
+                    <DriftPctCell
+                        pct={act.decoupling_pct}
+                        status={act.decoupling_status}
+                        title="Steady-ride decoupling (stream analysis)"
+                    />
+                );
+            }
+
+            if (col.key === 'threshold_drift_pct') {
+                return (
+                    <DriftPctCell
+                        pct={act.threshold_drift_pct}
+                        status={act.threshold_drift_status}
+                        title="Threshold tempo HR drift (stream analysis)"
+                    />
+                );
+            }
+
+            if (col.key === 'race_drift_pct') {
+                return (
+                    <DriftPctCell
+                        pct={act.race_drift_pct}
+                        status={act.race_drift_status}
+                        title="Race / variable-effort HR drift (stream analysis)"
+                    />
                 );
             }
 

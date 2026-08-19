@@ -81,6 +81,26 @@ describe('decouplingStreamEnrich', () => {
         expect(fetchIntervalsActivityStreams).not.toHaveBeenCalled();
     });
 
+    it('fetchDriftPatchForActivity classifies threshold rides', async () => {
+        fetchIntervalsActivityStreams.mockResolvedValueOnce(driftStreams);
+
+        const thresholdRide = {
+            ...steadyRide,
+            id: '22345',
+            norm_power: 220,
+            avg_power: 210,
+            avg_hr: 155,
+        };
+
+        const patch = await fetchDecouplingPatchForActivity(thresholdRide, {
+            intervalsConfig: { apiKey: 'test-key' },
+            profileFtp: 250,
+        });
+
+        expect(patch?.threshold_drift_pct).toBeGreaterThan(0);
+        expect(patch?.decoupling_pct).toBeUndefined();
+    });
+
     it('fetchDecouplingPatchForActivity falls back to Strava streams', async () => {
         fetchIntervalsActivityStreams.mockResolvedValueOnce(null);
         fetchStravaActivityStreams.mockResolvedValueOnce(driftStreams);

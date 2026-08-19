@@ -7,6 +7,7 @@ import {
     activityVariabilityIndex,
 } from '../../utils/rideInsights';
 import { decouplingStatusLabel, describeRideDecouplingInterpretation } from '../../utils/coach/aerobicDecoupling';
+import { driftProfileLabel } from '../../utils/coach/rideDurability';
 import ZoneMetricCell from './ZoneMetricCell';
 import NormPowerCell from './NormPowerCell';
 import ModalPortal from '../ui/ModalPortal';
@@ -20,6 +21,75 @@ const StravaIcon = ({ size = 14 }) => (
         <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />
     </svg>
 );
+
+function DriftDetailBlock({
+    title,
+    pct,
+    efFirst,
+    efSecond,
+    status,
+    source,
+    analyzedAt,
+    caption,
+}) {
+    if (!Number.isFinite(Number(pct))) return null;
+
+    const insight = describeRideDecouplingInterpretation({
+        decoupling_pct: pct,
+        decoupling_status: status,
+    });
+
+    return (
+        <div>
+            <h3 className="text-xs uppercase font-bold text-cdmuted mb-3 flex items-center gap-2">
+                <TrendingUp size={14} className="text-emerald-400" /> {title}
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div className="bg-cdborder/30 p-2 rounded text-center">
+                    <div className="text-xs text-cdmuted">Drift</div>
+                    <div className="font-bold text-cdtext text-base tabular-nums">
+                        {Number(pct).toFixed(1)}%
+                    </div>
+                </div>
+                {Number.isFinite(Number(efFirst)) && (
+                    <div className="bg-cdborder/30 p-2 rounded text-center" title="Efficiency factor in the first half of the ride">
+                        <div className="text-xs text-cdmuted">EF 1st half</div>
+                        <div className="font-bold text-cdtext text-base tabular-nums">
+                            {Number(efFirst).toFixed(2)}
+                        </div>
+                    </div>
+                )}
+                {Number.isFinite(Number(efSecond)) && (
+                    <div className="bg-cdborder/30 p-2 rounded text-center" title="Efficiency factor in the second half of the ride">
+                        <div className="text-xs text-cdmuted">EF 2nd half</div>
+                        <div className="font-bold text-cdtext text-base tabular-nums">
+                            {Number(efSecond).toFixed(2)}
+                        </div>
+                    </div>
+                )}
+                {status && (
+                    <div className="bg-cdborder/30 p-2 rounded text-center col-span-2 md:col-span-1">
+                        <div className="text-xs text-cdmuted">Status</div>
+                        <div className="font-bold text-cdtext text-[11px] leading-snug">
+                            {decouplingStatusLabel(status)}
+                        </div>
+                    </div>
+                )}
+            </div>
+            {insight && (
+                <div className="mt-3 rounded-lg border border-emerald-500/25 bg-emerald-500/5 p-3">
+                    <p className="text-sm font-semibold text-cdtext">{insight.headline}</p>
+                    <p className="text-[11px] text-cdmuted mt-1 leading-relaxed">{insight.detail}</p>
+                </div>
+            )}
+            <p className="text-[10px] text-cdmuted mt-2 leading-relaxed">
+                {caption}
+                {source ? ` · source: ${source}` : ''}
+                {analyzedAt ? ` · analyzed ${analyzedAt}` : ''}
+            </p>
+        </div>
+    );
+}
 
 const StatBox = ({ label, value, unit, icon, color = "text-cdmuted" }) => (
     <div className="bg-cdbg/50 p-3 rounded-lg border border-cdborder/50 flex flex-col items-center justify-center relative overflow-hidden group">
@@ -89,9 +159,8 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
     ].filter((p) => Number(p.val) > 0);
 
     const hasDecoupling = Number.isFinite(Number(activity.decoupling_pct));
-    const decouplingInsight = hasDecoupling
-        ? describeRideDecouplingInterpretation(activity)
-        : null;
+    const hasThresholdDrift = Number.isFinite(Number(activity.threshold_drift_pct));
+    const hasRaceDrift = Number.isFinite(Number(activity.race_drift_pct));
 
     return (
         <ModalPortal>
@@ -262,54 +331,42 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
                     )}
 
                     {hasDecoupling && (
-                        <div>
-                            <h3 className="text-xs uppercase font-bold text-cdmuted mb-3 flex items-center gap-2">
-                                <TrendingUp size={14} className="text-emerald-400" /> Aerobic decoupling
-                            </h3>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                                <div className="bg-cdborder/30 p-2 rounded text-center">
-                                    <div className="text-xs text-cdmuted">Decoupling</div>
-                                    <div className="font-bold text-cdtext text-base tabular-nums">
-                                        {Number(activity.decoupling_pct).toFixed(1)}%
-                                    </div>
-                                </div>
-                                {Number.isFinite(Number(activity.decoupling_ef_first)) && (
-                                    <div className="bg-cdborder/30 p-2 rounded text-center" title="Efficiency factor in the first half of the ride">
-                                        <div className="text-xs text-cdmuted">EF 1st half</div>
-                                        <div className="font-bold text-cdtext text-base tabular-nums">
-                                            {Number(activity.decoupling_ef_first).toFixed(2)}
-                                        </div>
-                                    </div>
-                                )}
-                                {Number.isFinite(Number(activity.decoupling_ef_second)) && (
-                                    <div className="bg-cdborder/30 p-2 rounded text-center" title="Efficiency factor in the second half of the ride">
-                                        <div className="text-xs text-cdmuted">EF 2nd half</div>
-                                        <div className="font-bold text-cdtext text-base tabular-nums">
-                                            {Number(activity.decoupling_ef_second).toFixed(2)}
-                                        </div>
-                                    </div>
-                                )}
-                                {activity.decoupling_status && (
-                                    <div className="bg-cdborder/30 p-2 rounded text-center col-span-2 md:col-span-1">
-                                        <div className="text-xs text-cdmuted">Status</div>
-                                        <div className="font-bold text-cdtext text-[11px] leading-snug">
-                                            {decouplingStatusLabel(activity.decoupling_status)}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                            {decouplingInsight && (
-                                <div className="mt-3 rounded-lg border border-emerald-500/25 bg-emerald-500/5 p-3">
-                                    <p className="text-sm font-semibold text-cdtext">{decouplingInsight.headline}</p>
-                                    <p className="text-[11px] text-cdmuted mt-1 leading-relaxed">{decouplingInsight.detail}</p>
-                                </div>
-                            )}
-                            <p className="text-[10px] text-cdmuted mt-2 leading-relaxed">
-                                Within-ride HR drift at steady power (first vs second half)
-                                {activity.decoupling_source ? ` · source: ${activity.decoupling_source}` : ''}
-                                {activity.decoupling_analyzed_at ? ` · analyzed ${activity.decoupling_analyzed_at}` : ''}
-                            </p>
-                        </div>
+                        <DriftDetailBlock
+                            title={`${driftProfileLabel('steady')} (steady endurance)`}
+                            pct={activity.decoupling_pct}
+                            efFirst={activity.decoupling_ef_first}
+                            efSecond={activity.decoupling_ef_second}
+                            status={activity.decoupling_status}
+                            source={activity.decoupling_source}
+                            analyzedAt={activity.decoupling_analyzed_at}
+                            caption="Within-ride HR drift at steady power (first vs second half)"
+                        />
+                    )}
+
+                    {hasThresholdDrift && (
+                        <DriftDetailBlock
+                            title={`${driftProfileLabel('threshold')} (tempo / threshold)`}
+                            pct={activity.threshold_drift_pct}
+                            efFirst={activity.threshold_drift_ef_first}
+                            efSecond={activity.threshold_drift_ef_second}
+                            status={activity.threshold_drift_status}
+                            source={activity.threshold_drift_source}
+                            analyzedAt={activity.threshold_drift_analyzed_at}
+                            caption="HR drift during sustained hard aerobic / sub-threshold efforts"
+                        />
+                    )}
+
+                    {hasRaceDrift && (
+                        <DriftDetailBlock
+                            title={`${driftProfileLabel('race')} (race / variable)`}
+                            pct={activity.race_drift_pct}
+                            efFirst={activity.race_drift_ef_first}
+                            efSecond={activity.race_drift_ef_second}
+                            status={activity.race_drift_status}
+                            source={activity.race_drift_source}
+                            analyzedAt={activity.race_drift_analyzed_at}
+                            caption="HR drift during high-intensity variable race-style efforts"
+                        />
                     )}
 
                     {(activity.avg_hr > 0 || activity.max_hr > 0) && (

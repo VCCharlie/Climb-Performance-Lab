@@ -35,6 +35,8 @@ function statusBadgeClass(status) {
     }
 }
 
+const EF_CHART_BAR_AREA_PX = 64;
+
 function PortfolioStat({ label, value, hint }) {
     return (
         <div className="rounded-lg border border-cdborder/50 bg-cdbg/30 p-2.5 min-w-0">
@@ -164,34 +166,41 @@ export default function CoachAerobicDecoupling({
                         <p className="text-[9px] text-cdmuted mb-2 leading-relaxed">
                             Long-term trend on steady rides — are you producing more watts per heartbeat over time?
                         </p>
-                        <div className="flex items-end gap-0.5 h-28 px-0.5" aria-label="Weekly aerobic efficiency chart">
-                            {trend.weeklyPoints.map((week) => {
-                                const heightPct = week.avgEf != null
-                                    ? Math.max(10, Math.round((week.avgEf / maxEf) * 100))
-                                    : 6;
-                                return (
-                                    <div
-                                        key={week.weekStart}
-                                        className="flex-1 min-w-0 flex flex-col h-full items-center justify-end gap-0.5"
-                                        title={week.avgEf != null ? `${week.avgEf.toFixed(2)} W/bpm · ${week.rideCount} ride(s)` : 'No steady rides this week'}
-                                    >
-                                        {week.avgEf != null && (
-                                            <span className="text-[7px] text-cdmuted tabular-nums leading-none">
-                                                {week.avgEf.toFixed(2)}
-                                            </span>
-                                        )}
-                                        <div className="flex-1 w-full min-h-0 flex items-end justify-center">
+                        <div className="overflow-x-auto -mx-1 px-1" aria-label="Weekly aerobic efficiency chart">
+                            <div className="flex items-end gap-0.5 min-w-[17.5rem]">
+                                {trend.weeklyPoints.map((week) => {
+                                    const barHeightPx = week.avgEf != null
+                                        ? Math.max(6, Math.round((week.avgEf / maxEf) * EF_CHART_BAR_AREA_PX))
+                                        : 4;
+                                    return (
+                                        <div
+                                            key={week.weekStart}
+                                            className="flex-1 min-w-0 flex flex-col items-center gap-0.5"
+                                            title={week.avgEf != null ? `${week.avgEf.toFixed(2)} W/bpm · ${week.rideCount} ride(s)` : 'No steady rides this week'}
+                                        >
+                                            {week.avgEf != null ? (
+                                                <span className="text-[7px] text-cdmuted tabular-nums leading-none h-[10px]">
+                                                    {week.avgEf.toFixed(2)}
+                                                </span>
+                                            ) : (
+                                                <span className="h-[10px]" aria-hidden />
+                                            )}
                                             <div
-                                                className={`w-full max-w-[1.25rem] rounded-t ${week.avgEf != null ? 'bg-cdaccent/70' : 'bg-cdborder/30'}`}
-                                                style={{ height: `${heightPct}%`, minHeight: week.avgEf != null ? '6px' : '3px' }}
-                                            />
+                                                className="w-full flex items-end justify-center"
+                                                style={{ height: `${EF_CHART_BAR_AREA_PX}px` }}
+                                            >
+                                                <div
+                                                    className={`w-full max-w-[1.25rem] rounded-t ${week.avgEf != null ? 'bg-cdaccent/70' : 'bg-cdborder/30'}`}
+                                                    style={{ height: `${barHeightPx}px` }}
+                                                />
+                                            </div>
+                                            <span className="text-[7px] text-cdmuted tabular-nums truncate w-full text-center leading-none">
+                                                {formatDateDDMMYYYY(week.weekStart).slice(0, 5)}
+                                            </span>
                                         </div>
-                                        <span className="text-[7px] text-cdmuted tabular-nums truncate w-full text-center leading-none">
-                                            {formatDateDDMMYYYY(week.weekStart).slice(0, 5)}
-                                        </span>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })}
+                            </div>
                         </div>
                     </div>
                 )}
