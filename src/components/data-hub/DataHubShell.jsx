@@ -1,10 +1,10 @@
 import React from 'react';
-import ActivityLogBulkBar from './data-hub/ActivityLogBulkBar';
-import ActivityLogTab from './data-hub/ActivityLogTab';
-import DataHubModals from './data-hub/DataHubModals';
-import StravaEnrichOverlay from './data-hub/StravaEnrichOverlay';
-import ImportSection from './data-hub/ImportSection';
-import SubTabNav from './ui/SubTabNav';
+import ActivityLogBulkBar from './ActivityLogBulkBar';
+import ActivityLogTab from './ActivityLogTab';
+import DataHubModals from './DataHubModals';
+import StravaEnrichOverlay from './StravaEnrichOverlay';
+import ImportSection from './ImportSection';
+import SubTabNav from '../ui/SubTabNav';
 
 /**
  * Presentational DataHub shell — receives composed state from useDataHubController.
