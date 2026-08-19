@@ -314,7 +314,7 @@ export function buildAerobicEfficiencyTrend(activities, profileFtp, options = {}
         })
         .filter(Boolean)
         .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))
-        .slice(0, 5);
+        .slice(0, 10);
 
     return {
         weeklyPoints,

@@ -20,6 +20,63 @@ const DECOUPLING_PATCH_KEYS = [
 ];
 
 /**
+ * @param {object[]} siteActivities
+ * @param {number} profileFtp
+ * @param {{ intervalsConfig?: object, hasStravaToken?: boolean }} [creds]
+ */
+export function buildDecouplingBackfillStats(siteActivities, profileFtp, creds = {}) {
+    const list = siteActivities || [];
+    let steadyEligible = 0;
+    let alreadyAnalyzed = 0;
+    let missingStreamAccess = 0;
+    let candidates = 0;
+
+    for (const act of list) {
+        if (!isEligibleDecouplingRide(act, profileFtp)) continue;
+        steadyEligible += 1;
+        if (Number.isFinite(Number(act.decoupling_pct))) {
+            alreadyAnalyzed += 1;
+            continue;
+        }
+        if (activityCanFetchDecouplingStreams(act, creds)) {
+            candidates += 1;
+        } else {
+            missingStreamAccess += 1;
+        }
+    }
+
+    return {
+        totalActivities: list.length,
+        steadyEligible,
+        alreadyAnalyzed,
+        missingStreamAccess,
+        candidates,
+    };
+}
+
+/**
+ * @param {ReturnType<typeof buildDecouplingBackfillStats>} stats
+ * @param {number} [batchSize]
+ */
+export function formatDecouplingBackfillIntro(stats, batchSize = DEFAULT_MAX_PER_RUN) {
+    if (!stats) return '';
+    const parts = [
+        `${stats.totalActivities} activities in log`,
+        `${stats.candidates} steady ride(s) still need stream decoupling`,
+    ];
+    if (stats.alreadyAnalyzed > 0) {
+        parts.push(`${stats.alreadyAnalyzed} steady ride(s) already analyzed`);
+    }
+    if (stats.missingStreamAccess > 0) {
+        parts.push(`${stats.missingStreamAccess} steady ride(s) lack Strava link / Intervals stream access`);
+    }
+    const batchNote = stats.candidates > 0
+        ? ` · processing up to ${Math.min(batchSize, stats.candidates)} now`
+        : '';
+    return `${parts.join(' · ')}${batchNote}`;
+}
+
+/**
  * @param {object | null | undefined} act
  * @param {number} profileFtp
  */

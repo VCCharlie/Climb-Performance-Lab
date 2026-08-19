@@ -80,19 +80,29 @@ export default function CoachAerobicDecoupling({
                         <p className="text-[10px] font-bold uppercase tracking-wide text-cdmuted mb-2">
                             Weekly efficiency (W/bpm)
                         </p>
-                        <div className="flex items-end gap-1 h-24" aria-label="Weekly aerobic efficiency chart">
+                        <div className="flex items-end gap-0.5 h-28 px-0.5" aria-label="Weekly aerobic efficiency chart">
                             {trend.weeklyPoints.map((week) => {
                                 const heightPct = week.avgEf != null
-                                    ? Math.max(8, Math.round((week.avgEf / maxEf) * 100))
-                                    : 4;
+                                    ? Math.max(10, Math.round((week.avgEf / maxEf) * 100))
+                                    : 6;
                                 return (
-                                    <div key={week.weekStart} className="flex-1 min-w-0 flex flex-col items-center gap-1">
-                                        <div
-                                            className={`w-full rounded-t ${week.avgEf != null ? 'bg-cdaccent/70' : 'bg-cdborder/30'}`}
-                                            style={{ height: `${heightPct}%` }}
-                                            title={week.avgEf != null ? `${week.avgEf.toFixed(2)} W/bpm` : 'No data'}
-                                        />
-                                        <span className="text-[8px] text-cdmuted tabular-nums truncate w-full text-center">
+                                    <div
+                                        key={week.weekStart}
+                                        className="flex-1 min-w-0 flex flex-col h-full items-center justify-end gap-0.5"
+                                        title={week.avgEf != null ? `${week.avgEf.toFixed(2)} W/bpm · ${week.rideCount} ride(s)` : 'No steady rides this week'}
+                                    >
+                                        {week.avgEf != null && (
+                                            <span className="text-[7px] text-cdmuted tabular-nums leading-none">
+                                                {week.avgEf.toFixed(2)}
+                                            </span>
+                                        )}
+                                        <div className="flex-1 w-full min-h-0 flex items-end justify-center">
+                                            <div
+                                                className={`w-full max-w-[1.25rem] rounded-t ${week.avgEf != null ? 'bg-cdaccent/70' : 'bg-cdborder/30'}`}
+                                                style={{ height: `${heightPct}%`, minHeight: week.avgEf != null ? '6px' : '3px' }}
+                                            />
+                                        </div>
+                                        <span className="text-[7px] text-cdmuted tabular-nums truncate w-full text-center leading-none">
                                             {formatDateDDMMYYYY(week.weekStart).slice(0, 5)}
                                         </span>
                                     </div>

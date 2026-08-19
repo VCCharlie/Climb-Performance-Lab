@@ -6,6 +6,7 @@ import {
     activityEfficiencyFactor,
     activityVariabilityIndex,
 } from '../../utils/rideInsights';
+import { decouplingStatusLabel } from '../../utils/coach/aerobicDecoupling';
 import ZoneMetricCell from './ZoneMetricCell';
 import NormPowerCell from './NormPowerCell';
 import ModalPortal from '../ui/ModalPortal';
@@ -86,6 +87,8 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
         { label: '20m', val: activity.best_20min },
         { label: '60m', val: activity.best_60min },
     ].filter((p) => Number(p.val) > 0);
+
+    const hasDecoupling = Number.isFinite(Number(activity.decoupling_pct));
 
     return (
         <ModalPortal>
@@ -252,6 +255,51 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
                                 </div>
                                 );
                             })()}
+                        </div>
+                    )}
+
+                    {hasDecoupling && (
+                        <div>
+                            <h3 className="text-xs uppercase font-bold text-cdmuted mb-3 flex items-center gap-2">
+                                <TrendingUp size={14} className="text-emerald-400" /> Aerobic decoupling
+                            </h3>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                <div className="bg-cdborder/30 p-2 rounded text-center">
+                                    <div className="text-xs text-cdmuted">Decoupling</div>
+                                    <div className="font-bold text-cdtext text-base tabular-nums">
+                                        {Number(activity.decoupling_pct).toFixed(1)}%
+                                    </div>
+                                </div>
+                                {Number.isFinite(Number(activity.decoupling_ef_first)) && (
+                                    <div className="bg-cdborder/30 p-2 rounded text-center" title="Efficiency factor in the first half of the ride">
+                                        <div className="text-xs text-cdmuted">EF 1st half</div>
+                                        <div className="font-bold text-cdtext text-base tabular-nums">
+                                            {Number(activity.decoupling_ef_first).toFixed(2)}
+                                        </div>
+                                    </div>
+                                )}
+                                {Number.isFinite(Number(activity.decoupling_ef_second)) && (
+                                    <div className="bg-cdborder/30 p-2 rounded text-center" title="Efficiency factor in the second half of the ride">
+                                        <div className="text-xs text-cdmuted">EF 2nd half</div>
+                                        <div className="font-bold text-cdtext text-base tabular-nums">
+                                            {Number(activity.decoupling_ef_second).toFixed(2)}
+                                        </div>
+                                    </div>
+                                )}
+                                {activity.decoupling_status && (
+                                    <div className="bg-cdborder/30 p-2 rounded text-center col-span-2 md:col-span-1">
+                                        <div className="text-xs text-cdmuted">Status</div>
+                                        <div className="font-bold text-cdtext text-[11px] leading-snug">
+                                            {decouplingStatusLabel(activity.decoupling_status)}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            <p className="text-[10px] text-cdmuted mt-2 leading-relaxed">
+                                Within-ride HR drift at steady power (first vs second half)
+                                {activity.decoupling_source ? ` · source: ${activity.decoupling_source}` : ''}
+                                {activity.decoupling_analyzed_at ? ` · analyzed ${activity.decoupling_analyzed_at}` : ''}
+                            </p>
                         </div>
                     )}
 

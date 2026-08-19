@@ -4,6 +4,8 @@ import {
     activityCanFetchDecouplingStreams,
     pickActivitiesNeedingDecouplingBackfill,
     buildDecouplingBackfillUpdates,
+    buildDecouplingBackfillStats,
+    formatDecouplingBackfillIntro,
 } from '../../utils/decouplingStreamBackfill';
 
 vi.mock('../../utils/decouplingStreamEnrich', () => ({
@@ -59,6 +61,27 @@ describe('decouplingStreamBackfill', () => {
         });
         expect(picked).toHaveLength(1);
         expect(picked[0].id).toBe('1');
+    });
+
+    it('buildDecouplingBackfillStats explains candidate pool size', () => {
+        const activities = [
+            { ...steadyRide, id: '1' },
+            { ...steadyRide, id: '2', decoupling_pct: 4.1 },
+            { ...steadyRide, id: '3', type: 'Run' },
+            { ...steadyRide, id: '4', strava_id: '999', moving_time: 1200 },
+        ];
+
+        const stats = buildDecouplingBackfillStats(activities, 250, {
+            intervalsConfig: { apiKey: 'key' },
+            hasStravaToken: true,
+        });
+
+        expect(stats.totalActivities).toBe(4);
+        expect(stats.steadyEligible).toBe(2);
+        expect(stats.alreadyAnalyzed).toBe(1);
+        expect(stats.candidates).toBe(1);
+        expect(formatDecouplingBackfillIntro(stats)).toMatch(/4 activities in log/);
+        expect(formatDecouplingBackfillIntro(stats)).toMatch(/1 steady ride\(s\) still need stream decoupling/);
     });
 
     it('buildDecouplingBackfillUpdates returns blockedReason without FTP', async () => {

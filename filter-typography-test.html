@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Filter Typography Test - Mobile Viewport</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 16px;
+            max-width: 390px;
+            margin: 0 auto;
+        }
+        
+        .panel {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e0e0e0;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+        
+        .section-header {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .filter-section {
+            padding: 10px 12px;
+        }
+        
+        .chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+        
+        /* xs size chips - matching Climb Performance Lab */
+        .chip-xs {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 500;
+            border-radius: 9999px;
+            padding: 0 6px;
+            min-height: 22px;
+            font-size: 10px;
+            line-height: 1.25;
+            border: 1px solid #d0d0d0;
+            background: #f8f8f8;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .chip-xs:hover {
+            border-color: #999;
+            color: #333;
+        }
+        
+        .chip-xs.selected {
+            background: #e3f2fd;
+            color: #1976d2;
+            border-color: #1976d280;
+        }
+        
+        .chip-xs.assist {
+            border-color: #d0d0d0;
+            background: #f0f0f0;
+        }
+        
+        .more-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 500;
+            border-radius: 9999px;
+            padding: 0 6px;
+            min-height: 22px;
+            font-size: 10px;
+            line-height: 1.25;
+            border: 1px solid #d0d0d0;
+            background: white;
+            color: #666;
+            cursor: pointer;
+        }
+        
+        .preset-section {
+            padding: 12px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .preset-label {
+            font-size: 9px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #999;
+            margin-right: 8px;
+        }
+        
+        .note {
+            padding: 12px;
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            font-size: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .note strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+        
+        .measurement {
+            background: #e8f5e9;
+            border: 1px solid #4caf50;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="note">
+        <strong>📱 Mobile Viewport Test (390px)</strong>
+        Testing filter pill typography at mobile width. All chips should use consistent size="xs" styling.
+    </div>
+    
+    <div class="panel">
+        <div class="section-header">
+            Filters & bulk
+        </div>
+        
+        <div class="filter-section">
+            <div class="chip-row">
+                <button class="chip-xs selected">This week</button>
+                <button class="chip-xs">Last 7d</button>
+                <button class="chip-xs">Last 30d</button>
+                <button class="chip-xs">With power</button>
+                <button class="chip-xs">No power</button>
+                <button class="chip-xs">High load</button>
+                <button class="more-button">More filters</button>
+            </div>
+            
+            <div class="measurement">
+                <strong>Quick Filter Pills Measurements:</strong><br>
+                • Font size: 10px<br>
+                • Min height: 22px<br>
+                • Padding: 0 6px (px-1.5 = 6px)<br>
+                • Line height: tight (1.25)
+            </div>
+        </div>
+        
+        <div class="preset-section">
+            <div style="margin-bottom: 8px; font-size: 10px; font-weight: 600; color: #666;">
+                METRIC RANGES (expanded)
+            </div>
+            <div class="chip-row">
+                <span class="preset-label">Presets</span>
+                <button class="chip-xs assist">Short &lt;1h</button>
+                <button class="chip-xs assist">Long ≥4h</button>
+                <button class="chip-xs assist">≥50 km</button>
+                <button class="chip-xs assist">≤30 km</button>
+                <button class="chip-xs assist">Fast ≥32 km/h</button>
+                <button class="chip-xs assist">Easy ≤26 km/h</button>
+                <button class="chip-xs assist">Pwr ≥200 W</button>
+                <button class="chip-xs assist">Climb ≥1000 m</button>
+                <button class="chip-xs assist">Work ≥1500 kJ</button>
+            </div>
+            
+            <div class="measurement">
+                <strong>Preset Pills Measurements:</strong><br>
+                • Font size: 10px<br>
+                • Min height: 22px<br>
+                • Padding: 0 6px (px-1.5 = 6px)<br>
+                • Line height: tight (1.25)<br>
+                • Variant: "assist" (slightly different background)
+            </div>
+        </div>
+    </div>
+    
+    <div class="note" style="background: #e8f5e9; border-color: #4caf50;">
+        <strong>✅ Typography Consistency Check</strong>
+        Both top filter pills and bottom preset pills use the same size="xs" styling:<br>
+        • Same font size (10px)<br>
+        • Same height (~22px)<br>
+        • Same padding and typography<br>
+        • Only difference: variant (filter vs assist) for slightly different colors
+    </div>
+</body>
+</html>
