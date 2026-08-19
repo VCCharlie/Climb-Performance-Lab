@@ -300,10 +300,21 @@ export function buildAerobicEfficiencyTrend(activities, profileFtp, options = {}
     }
 
     const recentDecoupling = (activities || [])
-        .map((activity) => analyzeActivityDecoupling(activity, profileFtp))
-        .filter((row) => row.source === 'streams' || row.source === 'cached')
-        .filter((row) => row.decouplingPct != null)
-        .slice(-5);
+        .map((activity) => {
+            const analysis = analyzeActivityDecoupling(activity, profileFtp);
+            if (!analysis || analysis.decouplingPct == null) return null;
+            if (analysis.source !== 'streams' && analysis.source !== 'cached') return null;
+            return {
+                ...analysis,
+                activityId: activity.id,
+                date: activity.date,
+                title: activity.title,
+                decouplingSource: activity.decoupling_source || analysis.source,
+            };
+        })
+        .filter(Boolean)
+        .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))
+        .slice(0, 5);
 
     return {
         weeklyPoints,

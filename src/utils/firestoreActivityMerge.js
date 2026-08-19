@@ -92,5 +92,28 @@ export function protectEnrichedFieldsOnMerge(incoming, existing) {
         out.climbing_from_strava = true;
     }
 
+    // Stream-based decoupling summaries: preserve when re-sync omits enriched fields.
+    const decouplingKeys = [
+        'decoupling_pct',
+        'decoupling_ef_first',
+        'decoupling_ef_second',
+        'decoupling_status',
+        'decoupling_source',
+        'decoupling_analyzed_at',
+    ];
+    for (const key of decouplingKeys) {
+        const incomingVal = incoming[key];
+        const existingVal = existing[key];
+        const incomingMissing = incomingVal == null
+            || incomingVal === ''
+            || (key === 'decoupling_pct' && !Number.isFinite(Number(incomingVal)));
+        const existingPresent = existingVal != null
+            && existingVal !== ''
+            && (key !== 'decoupling_pct' || Number.isFinite(Number(existingVal)));
+        if (incomingMissing && existingPresent) {
+            out[key] = existing[key];
+        }
+    }
+
     return out;
 }

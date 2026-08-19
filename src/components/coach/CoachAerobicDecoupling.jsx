@@ -53,13 +53,15 @@ export default function CoachAerobicDecoupling({
         ? `${trend.eligibleRideCount} steady ride${trend.eligibleRideCount === 1 ? '' : 's'} · last 12 weeks`
         : 'Steady endurance rides with HR data';
 
+    const hasDecouplingData = (trend.recentDecoupling?.length ?? 0) > 0;
+
     return (
         <CollapsibleSection
             title="Aerobic decoupling & efficiency"
             subtitle={subtitle}
             icon={Activity}
             iconClassName="text-emerald-400"
-            defaultExpanded={false}
+            defaultExpanded={hasDecouplingData || trend.eligibleRideCount >= 3}
         >
             <div className="space-y-4">
                 <div className="rounded-lg border border-cdborder/50 bg-cdborder/5 p-3">
@@ -105,17 +107,28 @@ export default function CoachAerobicDecoupling({
                             Recent within-ride decoupling
                         </p>
                         <ul className="space-y-1.5">
-                            {trend.recentDecoupling.map((row, index) => (
+                            {trend.recentDecoupling.map((row) => (
                                 <li
-                                    key={`dec-${index}`}
+                                    key={row.activityId || `${row.date}-${row.title}`}
                                     className="flex items-center justify-between gap-2 text-[11px] rounded-md border border-cdborder/40 px-2 py-1.5"
                                 >
-                                    <span className="text-cdtext tabular-nums">
-                                        {row.decouplingPct != null ? `${row.decouplingPct.toFixed(1)}%` : '—'}
-                                    </span>
-                                    <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${statusBadgeClass(row.status)}`}>
-                                        {decouplingStatusLabel(row.status)}
-                                    </span>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-cdtext truncate">
+                                            {row.title || 'Untitled ride'}
+                                        </p>
+                                        <p className="text-[9px] text-cdmuted tabular-nums">
+                                            {row.date ? formatDateDDMMYYYY(row.date) : '—'}
+                                            {row.decouplingSource ? ` · ${row.decouplingSource}` : ''}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        <span className="text-cdtext tabular-nums font-semibold">
+                                            {row.decouplingPct != null ? `${row.decouplingPct.toFixed(1)}%` : '—'}
+                                        </span>
+                                        <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${statusBadgeClass(row.status)}`}>
+                                            {decouplingStatusLabel(row.status)}
+                                        </span>
+                                    </div>
                                 </li>
                             ))}
                         </ul>
@@ -124,7 +137,8 @@ export default function CoachAerobicDecoupling({
 
                 <p className="text-[10px] text-cdmuted leading-relaxed">
                     Within-ride decoupling compares power:HR in the first vs second half of a steady ride.
-                    Per-ride decoupling % needs power and HR stream data; until then this panel tracks aerobic
+                    After Intervals.icu sync (with API key or Strava connected), eligible rides are analyzed
+                    automatically — up to 8 per sync. Without streams, this panel still tracks aerobic
                     efficiency (EF) on eligible endurance rides.
                 </p>
             </div>

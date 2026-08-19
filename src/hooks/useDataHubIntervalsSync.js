@@ -57,6 +57,19 @@ export function useDataHubIntervalsSync({
         [sportFilters],
     );
 
+    const buildSyncEnrichOptions = useCallback(async () => {
+        const profileFtp = Number(userSettings?.ftp) || 0;
+        let stravaToken = null;
+        if (stravaEnrichEnabled && stravaGetToken) {
+            try {
+                stravaToken = await stravaGetToken();
+            } catch {
+                stravaToken = null;
+            }
+        }
+        return { profileFtp, stravaToken };
+    }, [userSettings?.ftp, stravaEnrichEnabled, stravaGetToken]);
+
     const toggleSportFilter = useCallback((type) => {
         setSportFilters((prev) => ({ ...prev, [type]: !prev[type] }));
     }, []);
@@ -110,7 +123,8 @@ export function useDataHubIntervalsSync({
                 return;
             }
 
-            const syncResult = await syncIntervals(syncStart, syncEnd, selectedTypes);
+            const enrichOptions = await buildSyncEnrichOptions();
+            const syncResult = await syncIntervals(syncStart, syncEnd, selectedTypes, enrichOptions);
             const newActivitiesRaw = syncResult.activities || [];
             const newActivities = newActivitiesRaw.filter((a) => bulkIdSet.has(String(a.id)));
 
@@ -248,6 +262,7 @@ export function useDataHubIntervalsSync({
         showToast,
         stravaEnrichEnabled,
         recordIntervalsSyncSuccess,
+        buildSyncEnrichOptions,
     ]);
 
     const fetchAndMergeIntervalsRange = useCallback(async (syncStart, syncEnd) => {
@@ -277,7 +292,8 @@ export function useDataHubIntervalsSync({
                 setTimeout(() => setSyncStatus(null), 7000);
                 return;
             }
-            const syncResult = await syncIntervals(syncStart, syncEnd, selectedTypes);
+            const enrichOptions = await buildSyncEnrichOptions();
+            const syncResult = await syncIntervals(syncStart, syncEnd, selectedTypes, enrichOptions);
             const newActivitiesRaw = syncResult.activities || [];
             const syncStats = syncResult.stats;
             const mergeCounts = countMergeCategories(newActivitiesRaw, activities);
@@ -414,6 +430,7 @@ export function useDataHubIntervalsSync({
         showToast,
         stravaEnrichEnabled,
         recordIntervalsSyncSuccess,
+        buildSyncEnrichOptions,
     ]);
 
     const handleFetchNewFromIntervals = useCallback(async () => {

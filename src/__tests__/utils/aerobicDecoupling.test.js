@@ -73,6 +73,45 @@ describe('aerobicDecoupling', () => {
         expect(trend.weeklyPoints.some((w) => w.avgEf != null)).toBe(true);
     });
 
+    it('buildAerobicEfficiencyTrend includes cached decoupling ride metadata', () => {
+        const activities = [
+            {
+                id: 'ride-1',
+                date: '2026-08-10',
+                title: 'Long Z2',
+                type: 'Ride',
+                moving_time: 5400,
+                norm_power: 180,
+                avg_power: 175,
+                avg_hr: 135,
+                decoupling_pct: 6.2,
+                decoupling_source: 'intervals',
+            },
+            {
+                id: 'ride-2',
+                date: '2026-08-12',
+                title: 'Sunday endurance',
+                type: 'Ride',
+                moving_time: 5400,
+                norm_power: 185,
+                avg_power: 180,
+                avg_hr: 133,
+                decoupling_pct: 3.1,
+                decoupling_source: 'strava',
+            },
+        ];
+
+        const trend = buildAerobicEfficiencyTrend(activities, 250, {
+            referenceYmd: '2026-08-12',
+            weeks: 4,
+        });
+
+        expect(trend.recentDecoupling).toHaveLength(2);
+        expect(trend.recentDecoupling[0].title).toBe('Sunday endurance');
+        expect(trend.recentDecoupling[0].activityId).toBe('ride-2');
+        expect(trend.recentDecoupling[0].decouplingSource).toBe('strava');
+    });
+
     it('summarizeAerobicDecoupling returns insufficient copy without data', () => {
         const summary = summarizeAerobicDecoupling(buildAerobicEfficiencyTrend([], 250));
         expect(summary.trendStatus).toBe(AEROBIC_TREND_STATUS.INSUFFICIENT);
