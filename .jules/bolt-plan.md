@@ -83,7 +83,7 @@
 | 2.3 | Filter vóór enrich | `Dashboard.jsx` | Distance tab enriched full history | Raw activities + window filter (Power tab still needs full enrich) | Medium |
 | 2.4 | Gedeelde bucket aggregatie | `OverviewTab.jsx`, `BarChartCard.jsx` | 4× aparte O(n) passes | Eén `useMemo` builder, 4 metrics uit één loop | Medium op Overview | **Done** (`buildOverviewBarChartIndex`) |
 | 2.5 | ISO-dates in filters | `useActivityFilter.js` L182–188, `AICoach.jsx` L40–43 | `new Date()` in filter loops | String bounds + `normalizeDate` (journal patroon) | Medium bij zoeken/filter | **Done** (2b) |
-| 2.6 | ClimbMap clustering | `ClimbMap.jsx` L186–218 | Duizenden `L.marker` zonder clustering | `leaflet.markercluster` of grid-simplificatie | **Hoog** op Map-tab (nieuwe dep → goedkeuring) | Backlog |
+| 2.6 | ClimbMap clustering | `ClimbMap.jsx` L186–218 | Duizenden `L.marker` zonder clustering | Grid clustering + viewport cull (no new dep); fallback cap | **Hoog** op Map-tab | **Done** (`climbMapMarkerIndex.js`) |
 | 2.7 | FormTab dag-loop | `FormTab.jsx` L39–50 | `while (current <= end)` over hele ALL-range | Sparse TSS-map; beperk tot gefilterde periode | Medium bij multi-year ALL | **Done** (2b) |
 
 **PR-strategie:** Eén PR `Phase 2a` (2.1–2.3) en één `Phase 2b` (2.4–2.7), of alles in één PR als review-capaciteit het toelaat (~400–600 regels).

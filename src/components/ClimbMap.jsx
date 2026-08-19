@@ -9,6 +9,10 @@ import { MapPin, LocateFixed, Filter, ChevronDown, ChevronUp, X } from 'lucide-r
 import { useClimbDatabase } from '../hooks/useClimbDatabase';
 import { useLeaflet } from '../hooks/useLeaflet';
 import { haversineDistance, calculateClimbCategory } from '../utils/calculations';
+import {
+    buildClimbMapDisplayItems,
+    mapBoundsFromLeaflet,
+} from '../utils/climbMapMarkerIndex';
 import FlagIcon from './FlagIcon';
 import { hasBucketStatus } from '../utils/bucketListState';
 
@@ -35,6 +39,25 @@ const createClimbIcon = (L, cat) => {
         iconAnchor: [5, 5],
     });
 };
+
+const createClusterIcon = (L, count) => L.divIcon({
+    className: '',
+    html: `<div style="
+        min-width: 26px; height: 26px; padding: 0 6px;
+        background: rgba(30, 41, 59, 0.92);
+        border: 2px solid #f59e0b;
+        border-radius: 999px;
+        color: #f8fafc;
+        font-size: 11px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.45);
+    ">${count}</div>`,
+    iconSize: [26, 26],
+    iconAnchor: [13, 13],
+});
 
 const createUserIcon = (L) => L.divIcon({
     className: '',
@@ -134,6 +157,9 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
     const [selectedClimb, setSelectedClimb] = useState(null);
     const [trackLoading, setTrackLoading] = useState(false);
     const [totalShown, setTotalShown] = useState(0);
+    const [mapZoom, setMapZoom] = useState(6);
+    const [mapBounds, setMapBounds] = useState(null);
+    const [displayMode, setDisplayMode] = useState('direct');
 
     const bucketDone = useMemo(
         () => (id) => hasBucketStatus(bucketListState, id, 'done'),
@@ -166,6 +192,25 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
         return climbs;
     }, [countryFilter, catFilter, minGrade, maxGrade, nearbyRadius, userPos, realClimbs]);
 
+    const displayItems = useMemo(() => {
+        const result = buildClimbMapDisplayItems(filteredClimbs, {
+            zoom: mapZoom,
+            bounds: mapBounds,
+        });
+        return result;
+    }, [filteredClimbs, mapZoom, mapBounds]);
+
+    const syncMapViewState = useCallback(() => {
+        const map = mapInstanceRef.current;
+        if (!map) return;
+        try {
+            setMapZoom(map.getZoom());
+            setMapBounds(mapBoundsFromLeaflet(map.getBounds()));
+        } catch {
+            /* keep previous view state — map may be mid-teardown */
+        }
+    }, []);
+
     // Init Leaflet kaart
     useEffect(() => {
         if (!L || !mapRef.current || mapInstanceRef.current) return;
@@ -184,83 +229,136 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
         markersLayerRef.current = L.layerGroup().addTo(map);
         mapInstanceRef.current = map;
 
+        const onViewChange = () => syncMapViewState();
+        map.on('moveend', onViewChange);
+        map.on('zoomend', onViewChange);
+        syncMapViewState();
+
         return () => {
+            map.off('moveend', onViewChange);
+            map.off('zoomend', onViewChange);
             map.remove();
             mapInstanceRef.current = null;
         };
-    }, [L]);
+    }, [L, syncMapViewState]);
 
-    // Herplaats markers bij filterwijziging
-    useEffect(() => {
-        if (!L || !markersLayerRef.current) return;
-        markersLayerRef.current.clearLayers();
-        // Verwijder track van vorige selectie
+    const loadClimbTrack = useCallback((climb) => {
+        if (!L || !climb || climb.lat == null || climb.lon == null) return;
+        setSelectedClimb(climb);
         if (trackLayerRef.current) {
             trackLayerRef.current.remove();
             trackLayerRef.current = null;
         }
-        setSelectedClimb(null);
+        setTrackLoading(true);
+        fetchClimbTrack(climb.lat, climb.lon, climb.lengthKm).then((coords) => {
+            setTrackLoading(false);
+            if (!coords || !mapInstanceRef.current) return;
+            trackLayerRef.current = L.polyline(coords, {
+                color: '#f59e0b',
+                weight: 4,
+                opacity: 0.85,
+            }).addTo(mapInstanceRef.current);
+        }).catch(() => {
+            setTrackLoading(false);
+        });
+    }, [L]);
 
-        filteredClimbs.forEach(climb => {
-            const cat = calculateClimbCategory(climb.lengthKm, climb.avgGrade);
-            const marker = L.marker([climb.lat, climb.lon], {
-                icon: createClimbIcon(L, cat.label),
-                title: climb.name,
-            });
-
-            const inBucket = bucketDone(climb.id)
-                ? '✅ Done'
-                : bucketPlanned(climb.id)
+    const buildClimbPopupHtml = useCallback((climb) => {
+        const inBucket = bucketDone(climb.id)
+            ? '✅ Done'
+            : bucketPlanned(climb.id)
                 ? '📅 Planned'
                 : bucketWant(climb.id)
-                ? '⭐ Want'
-                : null;
+                    ? '⭐ Want'
+                    : null;
 
-            marker.bindPopup(
-                `<div style="min-width:180px; font-family: system-ui, sans-serif;">
-                    <strong style="font-size:13px;">${climb.name}</strong>
-                    <div style="color:#666; font-size:11px; margin-top:2px;">${climb.region || ''} · ${climb.country}</div>
-                    <div style="margin-top:6px; font-size:12px; display:flex; gap:8px; flex-wrap:wrap;">
-                        <span>📏 ${climb.lengthKm} km</span>
-                        <span>📐 ${climb.avgGrade}%</span>
-                        <span>⛰️ ${climb.elevation}m</span>
-                    </div>
-                    ${inBucket ? `<div style="margin-top:6px; font-size:11px; font-weight:bold;">${inBucket}</div>` : ''}
-                    <div style="margin-top:8px; display:flex; gap:4px; flex-wrap:wrap;">
-                        ${!bucketDone(climb.id) ? `<button onclick="window.__climbMapAction('done','${climb.id}')" style="font-size:10px; padding:3px 7px; border-radius:4px; background:#22c55e; color:white; border:none; cursor:pointer;">✅ Done</button>` : ''}
-                        ${!bucketPlanned(climb.id) ? `<button onclick="window.__climbMapAction('planned','${climb.id}')" style="font-size:10px; padding:3px 7px; border-radius:4px; background:#3b82f6; color:white; border:none; cursor:pointer;">📅 Plan</button>` : ''}
-                        ${!bucketWant(climb.id) ? `<button onclick="window.__climbMapAction('want','${climb.id}')" style="font-size:10px; padding:3px 7px; border-radius:4px; background:#a855f7; color:white; border:none; cursor:pointer;">⭐ Want</button>` : ''}
-                    </div>
-                </div>`,
-                { maxWidth: 260 }
-            );
+        return `<div style="min-width:180px; font-family: system-ui, sans-serif;">
+            <strong style="font-size:13px;">${climb.name}</strong>
+            <div style="color:#666; font-size:11px; margin-top:2px;">${climb.region || ''} · ${climb.country}</div>
+            <div style="margin-top:6px; font-size:12px; display:flex; gap:8px; flex-wrap:wrap;">
+                <span>📏 ${climb.lengthKm} km</span>
+                <span>📐 ${climb.avgGrade}%</span>
+                <span>⛰️ ${climb.elevation}m</span>
+            </div>
+            ${inBucket ? `<div style="margin-top:6px; font-size:11px; font-weight:bold;">${inBucket}</div>` : ''}
+            <div style="margin-top:8px; display:flex; gap:4px; flex-wrap:wrap;">
+                ${!bucketDone(climb.id) ? `<button onclick="window.__climbMapAction('done','${climb.id}')" style="font-size:10px; padding:3px 7px; border-radius:4px; background:#22c55e; color:white; border:none; cursor:pointer;">✅ Done</button>` : ''}
+                ${!bucketPlanned(climb.id) ? `<button onclick="window.__climbMapAction('planned','${climb.id}')" style="font-size:10px; padding:3px 7px; border-radius:4px; background:#3b82f6; color:white; border:none; cursor:pointer;">📅 Plan</button>` : ''}
+                ${!bucketWant(climb.id) ? `<button onclick="window.__climbMapAction('want','${climb.id}')" style="font-size:10px; padding:3px 7px; border-radius:4px; background:#a855f7; color:white; border:none; cursor:pointer;">⭐ Want</button>` : ''}
+            </div>
+        </div>`;
+    }, [bucketDone, bucketPlanned, bucketWant]);
 
-            marker.on('click', () => {
-                setSelectedClimb(climb);
-                // Verwijder vorige track
-                if (trackLayerRef.current) {
-                    trackLayerRef.current.remove();
-                    trackLayerRef.current = null;
-                }
-                // Haal Overpass track op als de klim echte GPS heeft
-                if (climb.lat != null && climb.lon != null) {
-                    setTrackLoading(true);
-                    fetchClimbTrack(climb.lat, climb.lon, climb.lengthKm).then(coords => {
-                        setTrackLoading(false);
-                        if (!coords || !mapInstanceRef.current) return;
-                        trackLayerRef.current = L.polyline(coords, {
-                            color: '#f59e0b',
-                            weight: 4,
-                            opacity: 0.85,
-                        }).addTo(mapInstanceRef.current);
+    // Herplaats markers bij filter- of view-wijziging
+    useEffect(() => {
+        if (!L || !markersLayerRef.current) return;
+
+        let cancelled = false;
+
+        try {
+            markersLayerRef.current.clearLayers();
+            if (trackLayerRef.current) {
+                trackLayerRef.current.remove();
+                trackLayerRef.current = null;
+            }
+            setSelectedClimb(null);
+
+            const { items, mode } = displayItems;
+            if (cancelled) return;
+
+            setDisplayMode(mode);
+            setTotalShown(items.length);
+
+            for (const item of items) {
+                if (item.kind === 'cluster') {
+                    const marker = L.marker([item.lat, item.lon], {
+                        icon: createClusterIcon(L, item.count),
+                        title: `${item.count} climbs`,
                     });
+                    marker.bindPopup(
+                        `<div style="font-family: system-ui, sans-serif; font-size:12px;">
+                            <strong>${item.count} climbs in this area</strong>
+                            <div style="margin-top:6px; color:#666;">Zoom in to see individual climbs.</div>
+                        </div>`,
+                        { maxWidth: 220 },
+                    );
+                    marker.on('click', () => {
+                        const map = mapInstanceRef.current;
+                        if (!map || !item.climbs?.length) return;
+                        try {
+                            const bounds = L.latLngBounds(
+                                item.climbs.map((c) => [c.lat, c.lon]),
+                            );
+                            map.fitBounds(bounds.pad(0.25), { maxZoom: 12 });
+                        } catch {
+                            map.setView([item.lat, item.lon], Math.min(map.getZoom() + 2, 14));
+                        }
+                    });
+                    markersLayerRef.current.addLayer(marker);
+                    continue;
                 }
-            });
-            markersLayerRef.current.addLayer(marker);
-        });
 
-        setTotalShown(filteredClimbs.length);
-    }, [L, filteredClimbs, bucketDone, bucketPlanned, bucketWant]);
+                const climb = item.climb;
+                const cat = calculateClimbCategory(climb.lengthKm, climb.avgGrade);
+                const marker = L.marker([climb.lat, climb.lon], {
+                    icon: createClimbIcon(L, cat.label),
+                    title: climb.name,
+                });
+
+                marker.bindPopup(buildClimbPopupHtml(climb), { maxWidth: 260 });
+                marker.on('click', () => loadClimbTrack(climb));
+                markersLayerRef.current.addLayer(marker);
+            }
+        } catch {
+            // Fail-safe: never crash the map tab — leave layer cleared.
+            setTotalShown(0);
+            setDisplayMode('capped');
+        }
+
+        return () => {
+            cancelled = true;
+        };
+    }, [L, displayItems, buildClimbPopupHtml, loadClimbTrack]);
 
     // Globale bucket list actie handler (vanuit Leaflet popup)
     useEffect(() => {
@@ -329,7 +427,11 @@ const ClimbMap = ({ bucketListState, onUpdateBucketList }) => {
                             Climbs Map
                         </h2>
                         <p className="text-xs text-cdmuted mt-0.5">
-                            {totalShown.toLocaleString('nl-NL')} of {realClimbs.length.toLocaleString('nl-NL')} climbs visible
+                            {totalShown.toLocaleString('nl-NL')} markers
+                            {displayMode === 'cluster' ? ' (clustered)' : ''}
+                            {displayMode === 'capped' ? ' (capped for performance)' : ''}
+                            {' · '}
+                            {filteredClimbs.length.toLocaleString('nl-NL')} of {realClimbs.length.toLocaleString('nl-NL')} climbs match filters
                             {trackLoading && <span className="ml-2 text-cdprimary animate-pulse">· loading track...</span>}
                             {selectedClimb && !trackLoading && (
                                 <span className="ml-2 text-cdprimary">· {selectedClimb.name}</span>
