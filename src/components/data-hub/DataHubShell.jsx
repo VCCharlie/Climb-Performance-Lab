@@ -1,0 +1,188 @@
+import React from 'react';
+import ActivityLogBulkBar from './data-hub/ActivityLogBulkBar';
+import ActivityLogTab from './data-hub/ActivityLogTab';
+import DataHubModals from './data-hub/DataHubModals';
+import StravaEnrichOverlay from './data-hub/StravaEnrichOverlay';
+import ImportSection from './data-hub/ImportSection';
+import SubTabNav from './ui/SubTabNav';
+
+/**
+ * Presentational DataHub shell — receives composed state from useDataHubController.
+ */
+const DataHubShell = ({
+    internalTab,
+    setInternalTab,
+    onDataHubTabKeyDown,
+    dataHubTabs,
+    detailActivity,
+    setDetailActivity,
+    editingActivity,
+    setEditingActivity,
+    isDeleting,
+    onSaveEdit,
+    resolvedProfileFtp,
+    profileMaxHr,
+    activities,
+    intervalsConfig,
+    stravaGetToken,
+    isSignedIn,
+    firestoreSyncStatus,
+    isLoadingActivities,
+    lastActivityDate,
+    lastCloudSyncAt,
+    intervalsSync,
+    bulk,
+    stravaEnrich,
+    dataImport,
+    maintenance,
+    filterBarProps,
+    filter,
+    logDerivations,
+    isolateActivityId,
+    logDateRangeFilter,
+    clearActivityLogFilters,
+    onOpenProfilerFromActivity,
+    visibleColumns,
+    useCardLayout,
+    handleRunSyncWithBulk,
+    openImportTab,
+    stravaEnrichResults,
+    onStravaEnrichResults,
+    onImport,
+}) => (
+    <div className="bg-cdsurface rounded-xl border border-cdborder shadow-xl overflow-hidden min-h-[500px] flex flex-col relative animate-in fade-in">
+        <DataHubModals
+            detailActivity={detailActivity}
+            onCloseDetail={() => setDetailActivity(null)}
+            stravaGetToken={stravaGetToken}
+            profileFtp={resolvedProfileFtp}
+            profileMaxHr={profileMaxHr}
+            editingActivity={editingActivity}
+            onCloseEdit={() => setEditingActivity(null)}
+            onSaveEdit={onSaveEdit}
+            onFindOnStrava={stravaEnrich.handleFindOnStrava}
+            activities={activities}
+            bulk={bulk}
+            dataImport={dataImport}
+            maintenance={maintenance}
+            isDeleting={isDeleting}
+        />
+
+        <SubTabNav
+            tabs={dataHubTabs}
+            activeTab={internalTab}
+            onTabChange={setInternalTab}
+            onKeyDown={onDataHubTabKeyDown}
+            ariaLabel="Data Hub Tabs"
+            idPrefix="tab"
+            layout="equal"
+        />
+
+        <div className="flex-1 overflow-hidden flex flex-col">
+            {internalTab === 'log' && (
+                <div role="tabpanel" id="tabpanel-log" aria-labelledby="tab-log" className="flex-1 overflow-hidden flex flex-col min-h-0">
+                    <ActivityLogTab
+                        intervalsSync={intervalsSync}
+                        isSignedIn={isSignedIn}
+                        firestoreSyncStatus={firestoreSyncStatus}
+                        isLoadingActivities={isLoadingActivities}
+                        lastActivityDate={lastActivityDate}
+                        lastCloudSyncAt={lastCloudSyncAt}
+                        lastIntervalsSyncAt={intervalsSync.lastIntervalsSyncAt}
+                        bulkSelectedCount={bulk.bulkSelectedIds.size}
+                        stravaListProgress={stravaEnrich.stravaListProgress}
+                        stravaAutoEnrichNotice={stravaEnrich.stravaAutoEnrichNotice}
+                        onDismissStravaAutoEnrichNotice={stravaEnrich.dismissStravaAutoEnrichNotice}
+                        bulk={bulk}
+                        onOpenImportTab={openImportTab}
+                        filterBarProps={filterBarProps}
+                        isGroupedView={filter.isGroupedView}
+                        isolateActivityId={isolateActivityId}
+                        logDateRangeFilter={logDateRangeFilter}
+                        expandAllGrouped={filter.expandAllGrouped}
+                        collapseAllGrouped={filter.collapseAllGrouped}
+                        groupedActivities={filter.groupedActivities}
+                        isYearExpanded={filter.isYearExpanded}
+                        toggleYear={filter.toggleYear}
+                        ensureYearExpanded={filter.ensureYearExpanded}
+                        clearActivityLogFilters={clearActivityLogFilters}
+                        isolatedActivity={logDerivations.isolatedActivity}
+                        rangeFilteredActivities={logDerivations.rangeFilteredActivities}
+                        activities={activities}
+                        processedActivities={filter.processedActivities}
+                        logTableActivities={logDerivations.logTableActivities}
+                        logTableGrouped={logDerivations.logTableGrouped}
+                        sortConfig={filter.sortConfig}
+                        requestSort={filter.requestSort}
+                        handleDeleteSingle={maintenance.handleDeleteSingle}
+                        setEditingActivity={setEditingActivity}
+                        setDetailActivity={setDetailActivity}
+                        isMonthExpanded={filter.isMonthExpanded}
+                        toggleMonth={filter.toggleMonth}
+                        ensureMonthExpanded={filter.ensureMonthExpanded}
+                        onOpenProfilerFromActivity={onOpenProfilerFromActivity}
+                        profilerClimbByActivityId={logDerivations.profilerClimbByActivityId}
+                        profileFtp={resolvedProfileFtp}
+                        profileMaxHr={profileMaxHr}
+                        visibleColumns={visibleColumns}
+                        onFilterByGearId={filter.filterByGearId}
+                        onRunSync={handleRunSyncWithBulk}
+                    />
+                </div>
+            )}
+
+            {internalTab === 'import' && (
+                <div role="tabpanel" id="tabpanel-import" aria-labelledby="tab-import" className="flex-1 overflow-hidden flex flex-col p-4">
+                    <ImportSection
+                        intervalsConfig={intervalsConfig}
+                        stravaGetToken={stravaGetToken}
+                        onDataDetected={dataImport.handleDataDetected}
+                        onFetchedActivityFromUrl={dataImport.handleManualFetchedActivity}
+                    />
+                </div>
+            )}
+        </div>
+
+        <StravaEnrichOverlay
+            open={stravaEnrich.showStravaEnrichPanel}
+            stravaGetToken={stravaGetToken}
+            onClose={stravaEnrich.closeStravaEnrichPanel}
+            activities={activities}
+            onImportNew={stravaEnrich.handleImportFromStrava}
+            onAfterStravaLink={onImport}
+            startDate={stravaEnrich.stravaSearchDates.startDate}
+            endDate={stravaEnrich.stravaSearchDates.endDate}
+            persistedResults={stravaEnrichResults}
+            onResultsChange={onStravaEnrichResults}
+            enrichmentTarget={stravaEnrich.enrichmentTarget}
+        />
+
+        {internalTab === 'log' && (
+            <ActivityLogBulkBar
+                useCardLayout={useCardLayout}
+                count={bulk.bulkSelectedIds.size}
+                onBulkEdit={() => {
+                    setEditingActivity(null);
+                    bulk.setShowBulkEditModal(true);
+                }}
+                onExportCsv={bulk.exportBulkCsv}
+                onExportXlsx={bulk.exportBulkXlsx}
+                isExportingXlsx={bulk.isExportingXlsx}
+                onClearSelection={() => bulk.setBulkSelectedIds(new Set())}
+                onDelete={bulk.confirmBulkDeleteSelected}
+                isDeleting={isDeleting}
+                isBulkSaving={bulk.isBulkSaving}
+                stravaGetToken={stravaGetToken}
+                onStravaEnrich={() => bulk.runStravaEnrichSelected(bulk.selectedActivitiesForBulk)}
+                isStravaEnriching={bulk.isStravaEnriching}
+                onStravaDescriptionBackfill={() => {
+                    const sel = bulk.selectedActivitiesForBulk;
+                    bulk.runStravaDescriptionBackfill(sel.length > 0 ? sel : null);
+                }}
+                isStravaDescBackfilling={bulk.isStravaDescBackfilling}
+            />
+        )}
+    </div>
+);
+
+export default DataHubShell;
