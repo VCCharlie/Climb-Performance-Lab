@@ -417,8 +417,8 @@ export function useDataHubBulkActions({
                 const statsNote = formatDecouplingBackfillIntro(stats);
                 setDecouplingBackfillMsg(
                     selected
-                        ? `No selected steady rides still need stream decoupling (≥60 min, IF ~0.55–0.85, HR present). ${statsNote}`
-                        : `No steady rides left to analyze. ${statsNote}`,
+                        ? `No selected rides still need stream drift analysis (steady / threshold / race profiles). ${statsNote}`
+                        : `No rides left to analyze. ${statsNote}`,
                 );
                 return;
             }
@@ -439,8 +439,8 @@ export function useDataHubBulkActions({
                 : '';
 
             setDecouplingBackfillMsg(
-                `Done: added stream decoupling to ${formatNlNumber(result.enriched)} steady ride(s) this run`
-                + ` (${formatNlNumber(stats.alreadyAnalyzed + result.enriched)} of ${formatNlNumber(stats.steadyEligible)} steady rides analyzed).${remainNote}`,
+                `Done: added stream drift metrics to ${formatNlNumber(result.enriched)} ride(s) this run`
+                + ` (${formatNlNumber(stats.alreadyAnalyzed + result.enriched)} of ${formatNlNumber(stats.driftEligible)} eligible rides analyzed).${remainNote}`,
             );
         } catch (e) {
             console.error('[Decoupling backfill]', e);

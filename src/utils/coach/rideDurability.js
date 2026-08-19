@@ -59,6 +59,12 @@ export const DRIFT_PATCH_KEY_GROUPS = [
         'race_drift_analyzed_at',
     ],
 ];
+const PROFILE_FOR_COLUMN = {
+    decoupling_pct: DRIFT_PROFILE.STEADY,
+    threshold_drift_pct: DRIFT_PROFILE.THRESHOLD,
+    race_drift_pct: DRIFT_PROFILE.RACE,
+};
+
 /**
  * Threshold tempo: sustained hard aerobic / sub-threshold work.
  */
@@ -67,7 +73,7 @@ export function isEligibleThresholdDriftRide(activity, profileFtp, options = {})
         minDurationMin = 45,
         minIf = 0.80,
         maxIf = 0.98,
-        maxVi = 1.12,
+        maxVi = 1.35,
     } = options;
 
     if (!activity || !ENDURANCE_RIDE_TYPES.has(activity.type)) return false;
@@ -96,7 +102,7 @@ export function isEligibleThresholdDriftRide(activity, profileFtp, options = {})
 export function isEligibleRaceDriftRide(activity, profileFtp, options = {}) {
     const {
         minDurationMin = 60,
-        minIf = 0.88,
+        minIf = 0.85,
         minVi = 1.05,
     } = options;
 
@@ -233,6 +239,69 @@ export function getActivityDriftPct(activity) {
         return { profile: DRIFT_PROFILE.RACE, pct: Number(activity.race_drift_pct) };
     }
     return { profile: null, pct: null };
+}
+
+/**
+ * Whether a drift Activity Log column applies to this ride's intensity profile.
+ */
+export function driftColumnAppliesToRide(columnKey, activity, profileFtp) {
+    const expected = PROFILE_FOR_COLUMN[columnKey];
+    if (!expected) return false;
+    return getRideDriftProfile(activity, profileFtp) === expected;
+}
+
+/**
+ * Explain why drift % is present, pending, or not applicable for a ride.
+ */
+export function describeRideDriftEligibility(activity, profileFtp) {
+    const ftp = Number(profileFtp) || Number(activity?.ftp) || 0;
+    const ifVal = activityIntensityFactor(activity?.norm_power, ftp);
+    const vi = activityVariabilityIndex(activity?.norm_power, activity?.avg_power);
+    const stored = getActivityDriftPct(activity);
+
+    if (stored.pct != null) {
+        return {
+            status: 'analyzed',
+            profile: stored.profile,
+            pct: stored.pct,
+            ifVal: ifVal ?? undefined,
+            vi: vi ?? undefined,
+            headline: `${driftProfileLabel(stored.profile)} analyzed`,
+            detail: `${stored.pct.toFixed(1)}% within-ride HR drift (first vs second half).`,
+        };
+    }
+
+    if (ftp <= 0) {
+        return {
+            status: 'missing_ftp',
+            ifVal: ifVal ?? undefined,
+            vi: vi ?? undefined,
+            headline: 'FTP required for drift analysis',
+            detail: 'Set your FTP in Settings so we can classify this ride and compute intensity factor (IF).',
+        };
+    }
+
+    const profile = getRideDriftProfile(activity, profileFtp);
+    if (profile) {
+        return {
+            status: 'pending',
+            profile,
+            ifVal: ifVal ?? undefined,
+            vi: vi ?? undefined,
+            headline: `Eligible for ${driftProfileLabel(profile)} analysis`,
+            detail: 'Run Activities → Decoupling backfill (or sync with streams) to fetch power+HR streams and store drift % on this ride.',
+        };
+    }
+
+    const ifText = ifVal != null ? `IF ${ifVal.toFixed(2)}` : 'IF unknown';
+    const viText = vi != null ? `VI ${vi.toFixed(2)}` : 'VI unknown';
+    return {
+        status: 'ineligible',
+        ifVal: ifVal ?? undefined,
+        vi: vi ?? undefined,
+        headline: 'Outside drift analysis bands',
+        detail: `${ifText} · ${viText} — this ride does not match steady, threshold, or race drift profiles (duration, IF, or VI).`,
+    };
 }
 
 /**

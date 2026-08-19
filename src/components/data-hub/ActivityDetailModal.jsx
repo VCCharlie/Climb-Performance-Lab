@@ -1,4 +1,4 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { X, Calendar, Clock, MapPin, Zap, ExternalLink, Mountain, TrendingUp, Loader2, AlertCircle, Star, Bike, Trophy, Crown, Heart } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
 import { formatSegmentTime, navigateToStravaSegment, stravaActivityUrl, openExternalUrl } from '../../utils/strava';
@@ -7,7 +7,7 @@ import {
     activityVariabilityIndex,
 } from '../../utils/rideInsights';
 import { decouplingStatusLabel, describeRideDecouplingInterpretation } from '../../utils/coach/aerobicDecoupling';
-import { driftProfileLabel } from '../../utils/coach/rideDurability';
+import { describeRideDriftEligibility, driftProfileLabel } from '../../utils/coach/rideDurability';
 import ZoneMetricCell from './ZoneMetricCell';
 import NormPowerCell from './NormPowerCell';
 import ModalPortal from '../ui/ModalPortal';
@@ -161,6 +161,13 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
     const hasDecoupling = Number.isFinite(Number(activity.decoupling_pct));
     const hasThresholdDrift = Number.isFinite(Number(activity.threshold_drift_pct));
     const hasRaceDrift = Number.isFinite(Number(activity.race_drift_pct));
+    const hasAnyDrift = hasDecoupling || hasThresholdDrift || hasRaceDrift;
+    const hasPowerHrForDrift = Number(activity.norm_power) > 0 && Number(activity.avg_hr) > 0;
+
+    const driftEligibility = useMemo(
+        () => (hasPowerHrForDrift ? describeRideDriftEligibility(activity, profileFtp) : null),
+        [activity, profileFtp, hasPowerHrForDrift],
+    );
 
     return (
         <ModalPortal>
@@ -330,43 +337,73 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
                         </div>
                     )}
 
-                    {hasDecoupling && (
-                        <DriftDetailBlock
-                            title={`${driftProfileLabel('steady')} (steady endurance)`}
-                            pct={activity.decoupling_pct}
-                            efFirst={activity.decoupling_ef_first}
-                            efSecond={activity.decoupling_ef_second}
-                            status={activity.decoupling_status}
-                            source={activity.decoupling_source}
-                            analyzedAt={activity.decoupling_analyzed_at}
-                            caption="Within-ride HR drift at steady power (first vs second half)"
-                        />
-                    )}
+                    {hasPowerHrForDrift && (
+                        <div>
+                            <h3 className="text-xs uppercase font-bold text-cdmuted mb-3 flex items-center gap-2">
+                                <TrendingUp size={14} className="text-emerald-400" /> HR drift (stream analysis)
+                            </h3>
 
-                    {hasThresholdDrift && (
-                        <DriftDetailBlock
-                            title={`${driftProfileLabel('threshold')} (tempo / threshold)`}
-                            pct={activity.threshold_drift_pct}
-                            efFirst={activity.threshold_drift_ef_first}
-                            efSecond={activity.threshold_drift_ef_second}
-                            status={activity.threshold_drift_status}
-                            source={activity.threshold_drift_source}
-                            analyzedAt={activity.threshold_drift_analyzed_at}
-                            caption="HR drift during sustained hard aerobic / sub-threshold efforts"
-                        />
-                    )}
+                            {hasDecoupling && (
+                                <DriftDetailBlock
+                                    title={`${driftProfileLabel('steady')} (steady endurance)`}
+                                    pct={activity.decoupling_pct}
+                                    efFirst={activity.decoupling_ef_first}
+                                    efSecond={activity.decoupling_ef_second}
+                                    status={activity.decoupling_status}
+                                    source={activity.decoupling_source}
+                                    analyzedAt={activity.decoupling_analyzed_at}
+                                    caption="Within-ride HR drift at steady power (first vs second half)"
+                                />
+                            )}
 
-                    {hasRaceDrift && (
-                        <DriftDetailBlock
-                            title={`${driftProfileLabel('race')} (race / variable)`}
-                            pct={activity.race_drift_pct}
-                            efFirst={activity.race_drift_ef_first}
-                            efSecond={activity.race_drift_ef_second}
-                            status={activity.race_drift_status}
-                            source={activity.race_drift_source}
-                            analyzedAt={activity.race_drift_analyzed_at}
-                            caption="HR drift during high-intensity variable race-style efforts"
-                        />
+                            {hasThresholdDrift && (
+                                <DriftDetailBlock
+                                    title={`${driftProfileLabel('threshold')} (tempo / threshold)`}
+                                    pct={activity.threshold_drift_pct}
+                                    efFirst={activity.threshold_drift_ef_first}
+                                    efSecond={activity.threshold_drift_ef_second}
+                                    status={activity.threshold_drift_status}
+                                    source={activity.threshold_drift_source}
+                                    analyzedAt={activity.threshold_drift_analyzed_at}
+                                    caption="HR drift during sustained hard aerobic / sub-threshold efforts"
+                                />
+                            )}
+
+                            {hasRaceDrift && (
+                                <DriftDetailBlock
+                                    title={`${driftProfileLabel('race')} (race / variable)`}
+                                    pct={activity.race_drift_pct}
+                                    efFirst={activity.race_drift_ef_first}
+                                    efSecond={activity.race_drift_ef_second}
+                                    status={activity.race_drift_status}
+                                    source={activity.race_drift_source}
+                                    analyzedAt={activity.race_drift_analyzed_at}
+                                    caption="HR drift during high-intensity variable race-style efforts"
+                                />
+                            )}
+
+                            {!hasAnyDrift && driftEligibility && (
+                                <div
+                                    className={`rounded-lg border p-3 ${
+                                        driftEligibility.status === 'pending'
+                                            ? 'border-emerald-500/30 bg-emerald-500/5'
+                                            : 'border-cdborder/50 bg-cdborder/10'
+                                    }`}
+                                >
+                                    <p className="text-sm font-semibold text-cdtext">{driftEligibility.headline}</p>
+                                    <p className="text-[11px] text-cdmuted mt-1 leading-relaxed">{driftEligibility.detail}</p>
+                                    {driftEligibility.ifVal != null && (
+                                        <p className="text-[10px] text-cdmuted mt-2 tabular-nums">
+                                            Ride summary: IF {driftEligibility.ifVal.toFixed(2)}
+                                            {driftEligibility.vi != null ? ` · VI ${driftEligibility.vi.toFixed(2)}` : ''}
+                                            {driftEligibility.profile
+                                                ? ` · profile: ${driftProfileLabel(driftEligibility.profile)}`
+                                                : ''}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     )}
 
                     {(activity.avg_hr > 0 || activity.max_hr > 0) && (

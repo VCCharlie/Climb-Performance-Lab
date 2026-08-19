@@ -5,6 +5,8 @@ import {
     isEligibleRaceDriftRide,
     buildDriftPatch,
     extractDriftPatch,
+    driftColumnAppliesToRide,
+    describeRideDriftEligibility,
     DRIFT_PROFILE,
 } from '../../utils/coach/rideDurability';
 
@@ -35,8 +37,8 @@ describe('rideDurability', () => {
     it('classifies variable race-style rides', () => {
         const race = {
             ...steadyBase,
-            norm_power: 240,
-            avg_power: 200,
+            norm_power: 255,
+            avg_power: 190,
             avg_hr: 165,
         };
         expect(isEligibleRaceDriftRide(race, 250)).toBe(true);
@@ -52,6 +54,32 @@ describe('rideDurability', () => {
         }, DRIFT_PROFILE.THRESHOLD, 'strava');
         expect(patch?.threshold_drift_pct).toBe(7.2);
         expect(patch?.threshold_drift_source).toBe('strava');
+    });
+
+    it('classifies hard group rides with IF ~0.87 and VI ~1.28 as threshold', () => {
+        const orientExpress = {
+            type: 'Ride',
+            moving_time: 9244,
+            norm_power: 243,
+            avg_power: 190,
+            avg_hr: 132,
+        };
+        expect(getRideDriftProfile(orientExpress, 280)).toBe(DRIFT_PROFILE.THRESHOLD);
+        expect(driftColumnAppliesToRide('threshold_drift_pct', orientExpress, 280)).toBe(true);
+        expect(driftColumnAppliesToRide('decoupling_pct', orientExpress, 280)).toBe(false);
+    });
+
+    it('describeRideDriftEligibility explains pending threshold rides', () => {
+        const ride = {
+            type: 'Ride',
+            moving_time: 9244,
+            norm_power: 243,
+            avg_power: 190,
+            avg_hr: 132,
+        };
+        const info = describeRideDriftEligibility(ride, 280);
+        expect(info.status).toBe('pending');
+        expect(info.profile).toBe(DRIFT_PROFILE.THRESHOLD);
     });
 
     it('extractDriftPatch returns first available profile patch', () => {
