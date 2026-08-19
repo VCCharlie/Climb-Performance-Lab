@@ -65,4 +65,27 @@ describe('getFitnessAtDate / buildFitnessSeriesForRange', () => {
         expect(coachStyle?.ctl).toBe(recoveryStyle?.ctl);
         expect(coachStyle?.atl).toBe(recoveryStyle?.atl);
     });
+
+    it('limits day-loop to display window plus CTL warmup while keeping as-of metrics', () => {
+        const acts = [];
+        for (let i = 1; i <= 28; i += 1) {
+            const day = String(i).padStart(2, '0');
+            acts.push({ date: `2018-01-${day}`, load: 50 });
+        }
+        acts.push({ date: '2026-08-10', load: 150 });
+
+        const bounded = buildFitnessSeriesForRange(acts, {
+            displayStartYmd: '2026-08-01',
+            displayEndYmd: '2026-08-14',
+            asOfYmd: '2026-08-14',
+        });
+        const fullHistory = buildFitnessSeriesForRange(acts, {
+            displayStartYmd: '2018-01-01',
+            displayEndYmd: '2026-08-14',
+            asOfYmd: '2026-08-14',
+        });
+
+        expect(bounded.chartData.length).toBeLessThan(fullHistory.chartData.length);
+        expect(bounded.current?.tsb).toBe(fullHistory.current?.tsb);
+    });
 });

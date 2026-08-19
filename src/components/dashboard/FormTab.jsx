@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { formatDateDDMMYYYY } from '../../utils';
 import { chartCardClassLg } from '../../utils/chartTheme';
-import { calculateFitnessMetrics } from '../../utils/formTabMetrics';
+import { buildFitnessSeriesForRange } from '../../utils/formTabMetrics';
 import FormFitnessChart from './FormFitnessChart';
 
 /**
@@ -18,8 +18,18 @@ const StatBadge = ({ label, value, color }) => (
 const FormTab = ({
     data,
     customTicks,
+    allActivities,
+    displayStartYmd,
+    displayEndYmd,
 }) => {
-    const fitnessData = useMemo(() => calculateFitnessMetrics(data), [data]);
+    const { chartData: fitnessData, current: latest } = useMemo(
+        () => buildFitnessSeriesForRange(allActivities || data, {
+            displayStartYmd,
+            displayEndYmd,
+            asOfYmd: displayEndYmd,
+        }),
+        [allActivities, data, displayStartYmd, displayEndYmd],
+    );
 
     const axisTicks = useMemo(() => {
         if (!customTicks) return undefined;
@@ -30,8 +40,6 @@ const FormTab = ({
             return new Date(yyyy, mm - 1, dd).getTime();
         });
     }, [customTicks]);
-
-    const latest = fitnessData.length ? fitnessData[fitnessData.length - 1] : null;
 
     const tsbColor = latest && latest.tsb >= 5
         ? 'text-green-400'
