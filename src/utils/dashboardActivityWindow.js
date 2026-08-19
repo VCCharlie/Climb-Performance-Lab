@@ -52,6 +52,22 @@ export function getDashboardFilterBoundsYmd(timeRange, customStart, customEnd) {
 }
 
 /**
+ * YMD display window aligned with {@link filterActivitiesByDashboardTimeRange}.
+ * @returns {{ displayStartYmd: string, displayEndYmd: string }}
+ */
+export function getDashboardDisplayBoundsYmd(timeRange, customStart, customEnd) {
+    const todayYmd = toLocalYmd(new Date());
+    const bounds = getDashboardFilterBoundsYmd(timeRange, customStart, customEnd);
+    if (!bounds) {
+        return { displayStartYmd: '2000-01-01', displayEndYmd: todayYmd };
+    }
+    if (bounds.mode === 'range') {
+        return { displayStartYmd: bounds.startYmd, displayEndYmd: bounds.endYmd };
+    }
+    return { displayStartYmd: bounds.startYmd, displayEndYmd: todayYmd };
+}
+
+/**
  * Filter raw activities to the Dashboard time-range before expensive enrich passes.
  */
 export function filterActivitiesByDashboardTimeRange(activities, timeRange, customStart, customEnd) {

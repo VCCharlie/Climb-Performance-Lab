@@ -170,9 +170,12 @@ const useActivityFilter = (activities, profileFtp) => {
             return { processedActivities: [], activitiesForGearFilterOptions: [] };
         }
         const weekRange = thisWeekOnly ? getThisCalendarWeekRange() : null;
+        const weekStartYmd = weekRange ? toLocalYmd(weekRange.start) : null;
+        const weekEndYmd = weekRange ? toLocalYmd(weekRange.end) : null;
         const rollingStart = rollingDays != null && rollingDays > 0
             ? (() => { const s = startOfToday(); s.setDate(s.getDate() - rollingDays); return s; })()
             : null;
+        const rollingStartYmd = rollingStart ? toLocalYmd(rollingStart) : null;
         const tssThreshold = minTss === '' || minTss == null ? null : Number(minTss);
         const tssOk = tssThreshold != null && !Number.isNaN(tssThreshold) && tssThreshold > 0;
 
@@ -213,18 +216,16 @@ const useActivityFilter = (activities, profileFtp) => {
             if (mtbRideChip && sportType !== 'MountainBikeRide') return false;
             if (ebikeRideChip && sportType !== 'EBikeRide') return false;
 
-            if (thisWeekOnly && weekRange) {
+            if (weekStartYmd && weekEndYmd) {
                 const dStr = normalizeDate(a.date);
                 if (!dStr || dStr.length < 10) return false;
-                const weekStartYmd = toLocalYmd(weekRange.start);
-                const weekEndYmd = toLocalYmd(weekRange.end);
                 if (dStr < weekStartYmd || dStr > weekEndYmd) return false;
             }
 
-            if (rollingStart) {
+            if (rollingStartYmd) {
                 const dStr = normalizeDate(a.date);
                 if (!dStr || dStr.length < 10) return false;
-                if (dStr < toLocalYmd(rollingStart)) return false;
+                if (dStr < rollingStartYmd) return false;
             }
 
             if (stravaLinkedOnly && !a.strava_id) return false;

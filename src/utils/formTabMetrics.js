@@ -38,6 +38,19 @@ export function buildTssByDate(activities) {
 }
 
 /**
+ * Limit CTL warmup: start iteration at displayStart − CTL window instead of first-ever activity.
+ * @param {string} firstYmd
+ * @param {string | undefined} displayStartYmd
+ * @returns {string}
+ */
+function resolveFitnessComputeStartYmd(firstYmd, displayStartYmd) {
+    if (!displayStartYmd || displayStartYmd <= firstYmd) return firstYmd;
+    const warmupYmd = addDaysToYmd(displayStartYmd, -CTL_DAYS);
+    if (!warmupYmd) return firstYmd;
+    return warmupYmd > firstYmd ? warmupYmd : firstYmd;
+}
+
+/**
  * @param {Record<string, number>} tssMap
  * @param {string} startYmd
  * @param {string} endYmd
@@ -94,7 +107,8 @@ export function calculateFitnessMetrics(activities, options = {}) {
         ? options.endYmd
         : lastActivityYmd;
 
-    const rows = iterateFitnessRows(tssMap, firstYmd, endYmd);
+    const computeStartYmd = resolveFitnessComputeStartYmd(firstYmd, options.startYmd);
+    const rows = iterateFitnessRows(tssMap, computeStartYmd, endYmd);
 
     if (options.startYmd) {
         return rows.filter((row) => row.date >= options.startYmd);
@@ -132,8 +146,9 @@ export function buildFitnessSeriesForRange(activities, options = {}) {
     const displayEndYmd = options.displayEndYmd || asOfYmd;
     const displayStartYmd = options.displayStartYmd || addDaysToYmd(displayEndYmd, -90);
     const computeEndYmd = asOfYmd >= displayEndYmd ? asOfYmd : displayEndYmd;
+    const computeStartYmd = resolveFitnessComputeStartYmd(firstYmd, displayStartYmd);
 
-    const allRows = iterateFitnessRows(tssMap, firstYmd, computeEndYmd);
+    const allRows = iterateFitnessRows(tssMap, computeStartYmd, computeEndYmd);
     const chartData = allRows
         .filter((row) => row.date >= displayStartYmd && row.date <= displayEndYmd)
         .map((row) => ({

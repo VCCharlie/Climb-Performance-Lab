@@ -234,14 +234,16 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
         // Trend eerste vs tweede helft (alleen zinvol bij langere periodes)
         if (periodDays >= 56 && periodActivities.length >= 8) {
             const midMs = (startD.getTime() + endD.getTime()) / 2;
+            const midYmd = toLocalYmd(new Date(midMs));
             let firstLoad = 0;
             let secondLoad = 0;
             const firstWeeks = Math.max(1, (midMs - startD.getTime()) / (7 * 24 * 60 * 60 * 1000));
             const secondWeeks = Math.max(1, (endD.getTime() - midMs) / (7 * 24 * 60 * 60 * 1000));
             periodActivities.forEach((a) => {
-                const t = new Date(a.date).getTime();
+                const dStr = normalizeDate(a.date);
+                if (!dStr || dStr.length < 10) return;
                 const L = a.load || 0;
-                if (t < midMs) firstLoad += L;
+                if (dStr < midYmd) firstLoad += L;
                 else secondLoad += L;
             });
             const tssW1 = firstLoad / firstWeeks;

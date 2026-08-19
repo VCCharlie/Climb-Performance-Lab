@@ -7,6 +7,7 @@ import {
     previousWindowBounds,
     filterActivitiesInBounds,
     filterActivitiesByDashboardTimeRange,
+    getDashboardDisplayBoundsYmd,
 } from '../utils/dashboardActivityWindow';
 import { enhanceAndSortActivities } from '../utils/enhanceActivity';
 import { prefetchDashboardSubTabChunk } from '../utils/prefetchTabChunks';
@@ -113,6 +114,11 @@ const Dashboard = ({
         return enhanceAndSortActivities(inRange, manualFtp);
     }, [firestoreActivities, manualFtp, timeRange, customStart, customEnd]);
 
+    const formDisplayBoundsYmd = useMemo(
+        () => getDashboardDisplayBoundsYmd(timeRange, customStart, customEnd),
+        [timeRange, customStart, customEnd],
+    );
+
     const volumeComparePrevPeriodActivities = useMemo(() => {
         const b = getDashboardWindowBounds(timeRange, customStart, customEnd, referenceEndDate);
         if (!b || !firestoreActivities?.length) return [];
@@ -202,6 +208,9 @@ const Dashboard = ({
                         <div role="tabpanel" id="tabpanel-form" aria-labelledby="tab-form">
                             <FormTab
                                 data={filteredData}
+                                allActivities={firestoreActivities}
+                                displayStartYmd={formDisplayBoundsYmd.displayStartYmd}
+                                displayEndYmd={formDisplayBoundsYmd.displayEndYmd}
                                 customTicks={customTicks}
                             />
                         </div>
