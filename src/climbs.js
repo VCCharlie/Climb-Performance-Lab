@@ -91,6 +91,9 @@ const ZWIFT_EXTRA = [
 /** Zwift climbs in the main bundle — available before async extended load. */
 export const CORE_CLIMB_DATABASE = ZWIFT_EXTRA.map(withClimbUrl);
 
+/** Bump when climbs_extended.js changes materially — invalidates IndexedDB snapshot. */
+export const CLIMB_DATABASE_STORAGE_REVISION = '2026-08-19';
+
 /**
  * Merge extended real-world climbs with Zwift extras (dedupe by id).
  * @param {object[]} extendedClimbs

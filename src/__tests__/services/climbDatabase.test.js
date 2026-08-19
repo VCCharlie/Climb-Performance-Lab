@@ -5,11 +5,13 @@ import {
     loadFullClimbDatabase,
     isFullClimbDatabaseLoaded,
     getDefaultClimb,
+    resetClimbDatabaseCacheForTests,
 } from '../../services/climbDatabase';
 
 describe('climbDatabase service', () => {
     beforeEach(() => {
         vi.resetModules();
+        resetClimbDatabaseCacheForTests();
     });
 
     it('exposes core climbs synchronously', () => {

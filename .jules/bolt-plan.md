@@ -119,12 +119,12 @@
 
 ## Fase 4 — Geavanceerd (alleen indien nodig)
 
-| # | Optimalisatie | Wanneer |
-|---|---------------|---------|
-| 4.1 | Web Worker voor climb matching | Als 2.1 niet genoeg is op 5000+ activiteiten |
-| 4.2 | Incremental `enhanceActivity` cache | Als 2.3 + Firestore sync nog steeds zwaar |
-| 4.3 | Service Worker chunk prefetch | Na 3.x: prefetch volgende tab op hover nav |
-| 4.4 | IndexedDB voor climb index | Als 3.1 lazy load te traag voelt op Map open |
+| # | Optimalisatie | Wanneer | Status |
+|---|---------------|---------|--------|
+| 4.1 | Web Worker voor climb matching | Als 2.1 niet genoeg is op 5000+ activiteiten | **Done** (`climbMatch.worker.js`, threshold 250) |
+| 4.2 | Incremental `enhanceActivity` cache | Als 2.3 + Firestore sync nog steeds zwaar | **Done** (`enhanceActivity.js` Map cache) |
+| 4.3 | Service Worker chunk prefetch | Na 3.x: prefetch volgende tab op hover nav | **Done** (`prefetchTabChunks.js` + nav hover) |
+| 4.4 | IndexedDB voor climb index | Als 3.1 lazy load te traag voelt op Map open | **Done** (`climbDatabaseStorage.js`) |
 
 ---
 
