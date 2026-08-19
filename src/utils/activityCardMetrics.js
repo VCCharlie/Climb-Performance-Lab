@@ -6,6 +6,7 @@ import {
     getIntensityFactorZoneDisplay,
     getHeartRateZoneDisplay,
 } from './activityMetricZoneDisplay.js';
+import { activityEfficiencyFactor, activityVariabilityIndex } from './rideInsights';
 
 /** Columns rendered in the card header row — metrics come from the rest. */
 export const ACTIVITY_CARD_HEADER_KEYS = new Set(['date', 'type', 'title']);
@@ -68,6 +69,28 @@ function formatActivityCardMetric(col, act, profileFtp, profileMaxHr) {
             const ifVal = activityIntensityFactor(act.norm_power, profileFtp);
             if (ifVal == null) return null;
             return zoneChip(key, col.label, getIntensityFactorZoneDisplay(ifVal));
+        }
+        case 'variability_index': {
+            const vi = activityVariabilityIndex(act.norm_power, act.avg_power);
+            if (vi == null) return null;
+            return {
+                key,
+                label: col.label,
+                value: vi.toFixed(2),
+                tone: 'muted',
+                title: 'Variability Index (NP ÷ average power)',
+            };
+        }
+        case 'efficiency_factor': {
+            const ef = activityEfficiencyFactor(act.norm_power, act.avg_hr);
+            if (ef == null) return null;
+            return {
+                key,
+                label: col.label,
+                value: ef.toFixed(2),
+                tone: 'muted',
+                title: 'Efficiency Factor (NP ÷ average HR, W/bpm)',
+            };
         }
         case 'avg_hr':
         case 'max_hr':

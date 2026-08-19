@@ -23,6 +23,7 @@ import {
 } from '../../utils/activityListFlatten';
 import { registerActivityLogScroller, unregisterActivityLogScroller } from '../../utils/activityLogScroll';
 import { ACTIVITY_TABLE_COLUMNS, MONTH_ORDER } from '../../config';
+import { activityEfficiencyFactor, activityVariabilityIndex } from '../../utils/rideInsights';
 import TableScrollShell from './TableScrollShell';
 import {
     tableClass,
@@ -206,6 +207,32 @@ export const Row = React.memo(React.forwardRef(({
                         normPower={act.norm_power}
                         profileFtp={profileFtp}
                     />
+                );
+            }
+
+            if (col.key === 'variability_index') {
+                const vi = activityVariabilityIndex(act.norm_power, act.avg_power);
+                if (vi == null) return <span className="text-cdmuted">-</span>;
+                return (
+                    <span
+                        className="text-cdmuted font-mono tabular-nums"
+                        title="Variability Index (NP ÷ average power)"
+                    >
+                        {vi.toFixed(2)}
+                    </span>
+                );
+            }
+
+            if (col.key === 'efficiency_factor') {
+                const ef = activityEfficiencyFactor(act.norm_power, act.avg_hr);
+                if (ef == null) return <span className="text-cdmuted">-</span>;
+                return (
+                    <span
+                        className="text-cdmuted font-mono tabular-nums"
+                        title="Efficiency Factor (NP ÷ average HR, W/bpm)"
+                    >
+                        {ef.toFixed(2)}
+                    </span>
                 );
             }
 

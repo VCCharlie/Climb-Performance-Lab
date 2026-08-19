@@ -26,6 +26,10 @@ export const ACTIVITY_COLUMNS = [
     { key: 'norm_power', label: 'NP', align: 'right', width: 'w-9', highlight: 'yellow' },
     /** UI-only: NP ÷ profile FTP; omitted from CSV export. */
     { key: 'intensity_factor', label: 'IF', align: 'right', width: 'w-9', omitFromExport: true, hideByDefault: true },
+    /** UI-only: NP ÷ average power (Variability Index). */
+    { key: 'variability_index', label: 'VI', align: 'right', width: 'w-9', omitFromExport: true, hideByDefault: true },
+    /** UI-only: NP ÷ average HR (Efficiency Factor, W/bpm). */
+    { key: 'efficiency_factor', label: 'EF', pickerLabel: 'EF (W/bpm)', align: 'right', width: 'w-10', omitFromExport: true, hideByDefault: true },
     { key: 'avg_power', label: 'Avg', pickerLabel: 'Avg Pwr', align: 'right', width: 'w-9', hideByDefault: true },
     { key: 'avg_hr', label: 'HR', pickerLabel: 'Avg HR', align: 'right', width: 'w-9', hideByDefault: true },
     { key: 'max_hr', label: 'Max', pickerLabel: 'Max HR', align: 'right', width: 'w-9', hideByDefault: true },
@@ -56,7 +60,7 @@ export const ACTIVITY_COLUMN_PRESETS = {
     essential: ['date', 'type', 'title', 'moving_time', 'distance', 'avg_speed', 'climbing', 'norm_power', 'load'],
     power: [
         'date', 'type', 'title', 'moving_time', 'distance', 'climbing',
-        'norm_power', 'load', 'avg_power', 'intensity_factor',
+        'norm_power', 'load', 'avg_power', 'intensity_factor', 'variability_index', 'efficiency_factor',
         'best_1min', 'best_5min', 'best_20min',
     ],
     full: null,
