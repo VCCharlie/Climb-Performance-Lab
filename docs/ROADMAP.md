@@ -106,7 +106,7 @@ Zie `.jules/bolt-plan.md` voor detail. Veel is al gedaan (lazy tabs, virtualized
 
 | # | Onderdeel | Status |
 |---|-----------|--------|
-| 8a | Week-plan kalenderweergave (Coach week → calendar UI) | Backlog |
+| 8a | Week-plan kalenderweergave (Coach week → calendar UI) | Done |
 | 8b | Aerobic decoupling engine (HR drift / decoupling metrics) | Backlog |
 
 ---
