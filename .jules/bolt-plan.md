@@ -78,9 +78,9 @@
 
 | # | Optimalisatie | Locatie | Probleem | Fix | Verwachte winst |
 |---|---------------|---------|----------|-----|-----------------|
-| 2.1 | Climb-match scope | `DataHub.jsx` L285–293 | `profilerClimbByActivityId` over **alle** activiteiten bij elke sync | Alleen `processedActivities` of lazy bij Profiler-kolom zichtbaar | **Hoog** bij 1000+ activiteiten |
+| 2.1 | Climb-match scope | `useDataHubLogDerivations` | Match over all filtered / collapsed rows | Expanded groups only; skip on Import tab | **Hoog** bij grouped log |
 | 2.2 | Power anchor cache | `powerDurationTable.js`, `PowerDurationTable.jsx` | 7× `powerCurveWithSources` ≈ 147×N werk | Cache `buildAnchorsForActivity` per `activity.id`; één pass voor overlappende windows | **Hoog** op Power sub-tab |
-| 2.3 | Filter vóór enrich | `Dashboard.jsx` L85–149 | `enhanceActivity` + sort op volledige history, daarna filter | Eerst time-range filter, dan enrich | Medium bij lange history |
+| 2.3 | Filter vóór enrich | `Dashboard.jsx` | Distance tab enriched full history | Raw activities + window filter (Power tab still needs full enrich) | Medium |
 | 2.4 | Gedeelde bucket aggregatie | `OverviewTab.jsx`, `BarChartCard.jsx` | 4× aparte O(n) passes | Eén `useMemo` builder, 4 metrics uit één loop | Medium op Overview |
 | 2.5 | ISO-dates in filters | `useActivityFilter.js` L182–188, `AICoach.jsx` L40–43 | `new Date()` in filter loops | String bounds + `normalizeDate` (journal patroon) | Medium bij zoeken/filter |
 | 2.6 | ClimbMap clustering | `ClimbMap.jsx` L186–218 | Duizenden `L.marker` zonder clustering | `leaflet.markercluster` of grid-simplificatie | **Hoog** op Map-tab (nieuwe dep → goedkeuring) |

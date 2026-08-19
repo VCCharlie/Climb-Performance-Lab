@@ -5,7 +5,7 @@ import LongestRidesPanel from './LongestRidesPanel';
  * Dashboard sub-tab: longest rides (distance) — separate from Power tab.
  */
 const DistanceTab = ({
-    chartData,
+    activities,
     timeRange,
     customStart,
     customEnd,
@@ -18,7 +18,7 @@ const DistanceTab = ({
             site preset (1M, 1Y, Custom, …). Comparison works like Power → Top 10 by duration.
         </div>
         <LongestRidesPanel
-            chartData={chartData}
+            activities={activities}
             timeRange={timeRange}
             customStart={customStart}
             customEnd={customEnd}

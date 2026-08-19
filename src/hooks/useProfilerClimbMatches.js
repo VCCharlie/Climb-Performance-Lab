@@ -40,8 +40,12 @@ function matchClimbsSync(activities, climbs) {
 /**
  * Profiler climb matches for visible/filtered activities.
  * Uses a Web Worker when the list is large (Bolt 4.1).
+ * @param {object[]} processedActivities
+ * @param {object[]} climbs
+ * @param {{ enabled?: boolean }} [options]
  */
-export function useProfilerClimbMatches(processedActivities, climbs) {
+export function useProfilerClimbMatches(processedActivities, climbs, options = {}) {
+    const { enabled = true } = options;
     const [workerResult, setWorkerResult] = useState({ cacheKey: '', map: new Map() });
     const climbLookup = useMemo(() => buildClimbLookup(climbs), [climbs]);
 
@@ -69,7 +73,7 @@ export function useProfilerClimbMatches(processedActivities, climbs) {
         && typeof Worker !== 'undefined';
 
     useEffect(() => {
-        if (!useWorker || !workerCacheKey) return undefined;
+        if (!enabled || !useWorker || !workerCacheKey) return undefined;
 
         const worker = getClimbMatchWorker();
         if (!worker) return undefined;
@@ -98,14 +102,15 @@ export function useProfilerClimbMatches(processedActivities, climbs) {
         return () => {
             worker.removeEventListener('message', onMessage);
         };
-    }, [useWorker, workerCacheKey, activityPayload, climbs, climbLookup]);
+    }, [enabled, useWorker, workerCacheKey, activityPayload, climbs, climbLookup]);
 
     return useMemo(() => {
+        if (!enabled) return new Map();
         if (!processedActivities?.length || !climbs?.length) return new Map();
         if (!useWorker) return matchClimbsSync(processedActivities, climbs);
         if (workerResult.cacheKey === workerCacheKey) return workerResult.map;
         // Keep the last match map while the worker recomputes — avoids row height flicker in the log.
         if (workerResult.map.size > 0) return workerResult.map;
         return matchClimbsSync(processedActivities, climbs);
-    }, [processedActivities, climbs, useWorker, workerResult, workerCacheKey]);
+    }, [processedActivities, climbs, useWorker, workerResult, workerCacheKey, enabled]);
 }
