@@ -105,7 +105,7 @@
 | 3.4 | Lazy Leaflet | `ClimbMap.jsx`, `RacePacingMap.jsx`, `StravaMap.jsx` | Leaflet in main bundle | `import()` bij tab-mount | ~100–150 KB gzip | **Done** (`loadLeaflet` + `useLeaflet`) |
 | 3.5 | `manualChunks` | `vite.config.js` | Eén vendor blob | Chunks: `firebase`, `recharts`, `leaflet`, `vendor` | Betere cache-hit-rate | **Done** (+ `react-vendor`, `lucide`) |
 | 3.6 | Activities context | `App.jsx` | Elke sync re-rendert hele tree | `ActivitiesProvider` + selector hooks | Minder cascade | **Done** (`ActivitiesContext`) |
-| 3.7 | DataHub splits | `DataHub.jsx` (~2163 regels) | Monolith | Extract sync shell, filter bar (deels al in subdirs) | Onderhoud + smallere render scope | Backlog |
+| 3.7 | DataHub splits | `DataHub.jsx` (~2163 regels) | Monolith | Extract sync shell, filter bar (deels al in subdirs) | Onderhoud + smallere render scope | **Done** (`useDataHubController` + `DataHubShell`) |
 
 **Aanbevolen PR-volgorde (niet alles tegelijk):**
 1. `Phase 3a`: 3.1 lazy climbs_extended (hoogste ROI, risico: flash of empty state)
