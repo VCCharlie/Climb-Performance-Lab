@@ -97,7 +97,7 @@ Zie `.jules/bolt-plan.md` voor detail. Veel is al gedaan (lazy tabs, virtualized
 |------|--------|--------|
 | Bolt 1 | Quick wins (memo, cleanup) | Partial (lazy tabs, heatmap, Header memo al live) |
 | Bolt 2 | Data hot paths (climb match scope, power cache, filter vóór enrich) | Done (2a #515, 2b bar charts + ISO filters + FormTab bounds) |
-| Bolt 3 | Bundle (lazy climbs DB, manualChunks, Leaflet lazy) | Partial (tab lazy live) |
+| Bolt 3 | Bundle (lazy climbs DB, manualChunks, Leaflet lazy) | Done (3.7 DataHub split = backlog) |
 | Bolt 4 | Advanced (workers, prefetch) | Backlog |
 
 ---

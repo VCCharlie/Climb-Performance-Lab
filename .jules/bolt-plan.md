@@ -1,7 +1,7 @@
 # ⚡ Bolt Master Plan — Climb Performance Lab
 
-> **Status:** Draft v1 — 2026-07-09  
-> **Baseline gemeten:** `npm run build` → **één chunk** `index-*.js` = **2.97 MB** (724 KB gzip). Geen `React.lazy`, geen `manualChunks`.  
+> **Status:** Draft v1 — 2026-07-09 (baseline bijgewerkt 2026-08-19)  
+> **Baseline gemeten (2026-08-19, na Bolt 3):** `npm run build` → main chunk `index-*.js` ≈ **363 KB** raw / **112 KB gzip**; aparte chunks: `react-vendor` 193 KB / 61 KB gzip, `recharts` 451 KB / 128 KB gzip (deferred via `OverviewChartsPanel`), `climbs_extended` 1.15 MB / 196 KB gzip, `firebase` 349 KB / 109 KB gzip, `leaflet` 156 KB / 49 KB gzip.  
 > **Journal:** Zie `.jules/bolt.md` voor codebase-specifieke learnings.
 
 ---
@@ -99,13 +99,13 @@
 
 | # | Optimalisatie | Locatie | Probleem | Fix | Verwachte winst |
 |---|---------------|---------|----------|-----|-----------------|
-| 3.1 | **Lazy climb database** | `climbs.js`, `climbs_extended.js` (1.6 MB source), `App.jsx` L6 | Extended DB altijd in main chunk | Dynamic `import()`; metadata-chunk + full DB bij Map/Bucket/Profiler | **−40–60%** initial JS (grootste enkele win) |
-| 3.2 | Lazy main tabs | `App.jsx` L18–38 | Alle 10+ tabs static import | `React.lazy` + `Suspense` per tab | **−25–40%** initial JS |
-| 3.3 | Lazy dashboard sub-tabs | `Dashboard.jsx` L9–13 | Recharts via Power/Form/Volume eager | Lazy `PowerTab`, `FormTab`, `VolumeTotalsTab` | Recharts pas bij sub-tab |
-| 3.4 | Lazy Leaflet | `ClimbMap.jsx`, `RacePacingMap.jsx`, `StravaMap.jsx` | Leaflet in main bundle | `import()` bij tab-mount | ~100–150 KB gzip |
-| 3.5 | `manualChunks` | `vite.config.js` | Eén vendor blob | Chunks: `firebase`, `recharts`, `leaflet`, `vendor` | Betere cache-hit-rate |
-| 3.6 | Activities context | `App.jsx` | Elke sync re-rendert hele tree | `ActivitiesProvider` + selector hooks | Minder cascade |
-| 3.7 | DataHub splits | `DataHub.jsx` (~2163 regels) | Monolith | Extract sync shell, filter bar (deels al in subdirs) | Onderhoud + smallere render scope |
+| 3.1 | **Lazy climb database** | `climbs.js`, `climbs_extended.js` (1.6 MB source), `App.jsx` L6 | Extended DB altijd in main chunk | Dynamic `import()`; metadata-chunk + full DB bij Map/Bucket/Profiler | **−40–60%** initial JS (grootste enkele win) | **Done** (`climbDatabase.js` + `ClimbDatabaseProvider`) |
+| 3.2 | Lazy main tabs | `App.jsx` L18–38 | Alle 10+ tabs static import | `React.lazy` + `Suspense` per tab | **−25–40%** initial JS | **Done** |
+| 3.3 | Lazy dashboard sub-tabs | `Dashboard.jsx` L9–13 | Recharts via Power/Form/Volume eager | Lazy `PowerTab`, `FormTab`, `VolumeTotalsTab` | Recharts pas bij sub-tab | **Done** (+ `OverviewChartsPanel` async chunk, Bolt 3) |
+| 3.4 | Lazy Leaflet | `ClimbMap.jsx`, `RacePacingMap.jsx`, `StravaMap.jsx` | Leaflet in main bundle | `import()` bij tab-mount | ~100–150 KB gzip | **Done** (`loadLeaflet` + `useLeaflet`) |
+| 3.5 | `manualChunks` | `vite.config.js` | Eén vendor blob | Chunks: `firebase`, `recharts`, `leaflet`, `vendor` | Betere cache-hit-rate | **Done** (+ `react-vendor`, `lucide`) |
+| 3.6 | Activities context | `App.jsx` | Elke sync re-rendert hele tree | `ActivitiesProvider` + selector hooks | Minder cascade | **Done** (`ActivitiesContext`) |
+| 3.7 | DataHub splits | `DataHub.jsx` (~2163 regels) | Monolith | Extract sync shell, filter bar (deels al in subdirs) | Onderhoud + smallere render scope | Backlog |
 
 **Aanbevolen PR-volgorde (niet alles tegelijk):**
 1. `Phase 3a`: 3.1 lazy climbs_extended (hoogste ROI, risico: flash of empty state)

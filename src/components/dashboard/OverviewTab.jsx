@@ -1,15 +1,18 @@
-import React, { useMemo } from 'react';
-import PerformanceModule from '../PerformanceModule';
-import BarChartCard from './charts/BarChartCard';
-import ActivityHeatmap from './charts/ActivityHeatmap';
+import React, { Suspense } from 'react';
 import VolumeGoalsPanel from './VolumeGoalsPanel';
 import ClimbingReadinessCard from './ClimbingReadinessCard';
 import YtdCompareCard from './YtdCompareCard';
 import PowerLongevityCard from './PowerLongevityCard';
 import DailyHomePanel from './DailyHomePanel';
 import EmptyStateCard from '../ui/EmptyStateCard';
-import { buildOverviewBarChartIndex } from '../../utils/dashboardBarChartBuckets';
+import { SkeletonChartCard } from '../ui/Skeleton';
+import { lazyWithRetry } from '../../utils/lazyWithRetry';
 import { BarChart3 } from 'lucide-react';
+
+const OverviewChartsPanel = lazyWithRetry(
+    () => import('./OverviewChartsPanel'),
+    'OverviewChartsPanel',
+);
 
 /**
  * OverviewTab: Main Dashboard overview.
@@ -32,7 +35,6 @@ const OverviewTab = ({
 }) => {
     const activitySource = allActivities || data || [];
     const hasFilteredData = data && data.length > 0;
-    const barChartIndex = useMemo(() => buildOverviewBarChartIndex(data || []), [data]);
 
     if (!activitySource.length) {
         return (
@@ -87,55 +89,15 @@ const OverviewTab = ({
                     widen the period filter to see charts and stats here.
                 </div>
             ) : (
-                <>
-                    {/* Stat cards + FTP progression chart */}
-                    <PerformanceModule
+                <Suspense fallback={<SkeletonChartCard className="min-h-[28rem]" />}>
+                    <OverviewChartsPanel
                         data={data}
                         manualFtp={manualFtp}
                         customTicks={customTicks}
                         onOpenActivityInLog={onOpenActivityInLog}
                         userSettings={userSettings}
                     />
-
-                    {/* Bar charts: 4 columns, each with their own week/month/year & rideType toggle */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <BarChartCard
-                            barChartIndex={barChartIndex}
-                            metric="distance"
-                            title="Distance"
-                            unit="km"
-                            color="rgba(59,130,246,0.75)"
-                            userSettings={userSettings}
-                        />
-                        <BarChartCard
-                            barChartIndex={barChartIndex}
-                            metric="moving_time"
-                            title="Time"
-                            unit="hour"
-                            color="rgba(168,85,247,0.75)"
-                            userSettings={userSettings}
-                        />
-                        <BarChartCard
-                            barChartIndex={barChartIndex}
-                            metric="tss"
-                            title="TSS"
-                            unit="TSS"
-                            color="rgba(249,115,22,0.75)"
-                            userSettings={userSettings}
-                        />
-                        <BarChartCard
-                            barChartIndex={barChartIndex}
-                            metric="elevation"
-                            title="Elevation"
-                            unit="m"
-                            color="rgba(34,197,94,0.75)"
-                            userSettings={userSettings}
-                        />
-                    </div>
-
-                    {/* 52-week activity heatmap — always uses full dataset regardless of time filter */}
-                    <ActivityHeatmap data={data} />
-                </>
+                </Suspense>
             )}
         </div>
     );
