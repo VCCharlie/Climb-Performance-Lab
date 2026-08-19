@@ -11,6 +11,7 @@ import CoachDataPlayground from './coach/CoachDataPlayground';
 import CoachPeriodReview from './coach/CoachPeriodReview';
 import CoachFluidWeekPlan from './coach/CoachFluidWeekPlan';
 import CoachFitnessForecast from './coach/CoachFitnessForecast';
+import CoachAerobicDecoupling from './coach/CoachAerobicDecoupling';
 import CollapsibleSection from './ui/CollapsibleSection';
 import EmptyStateCard from './ui/EmptyStateCard';
 import { useToast } from '../context/ToastContext';
@@ -578,6 +579,12 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
                 userSettings={userSettings}
                 week1Sessions={fluidWeekPlan.sessions}
                 horizonSessions={horizonSessions}
+            />
+
+            <CoachAerobicDecoupling
+                activities={activities}
+                profileFtp={effectiveFtp}
+                referenceYmd={referenceYmd}
             />
 
             <CollapsibleSection
