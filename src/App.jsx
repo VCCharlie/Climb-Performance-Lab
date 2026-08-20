@@ -116,6 +116,8 @@ import {
 } from './app/AppShellHelpers';
 import TrainingFtpContextNote from './components/coach/TrainingFtpContextNote';
 import TrainingSubTabNav from './components/training/TrainingSubTabNav';
+import DashboardTodaySyncButton from './components/dashboard/DashboardTodaySyncButton';
+import { useTodayIntervalsSync } from './context/IntervalsSyncContext';
 
 const CLIMB_HEAVY_TABS = new Set([
     'profiler', 'bucketlist', 'climbmap', 'weather', 'gearoptimizer', 'physics', 'activities',
@@ -435,6 +437,7 @@ const App = () => {
 
     // Sub-tab states for merged tabs
     const [trainingSubTab, setTrainingSubTab] = useState('coach'); // 'coach' | 'goal' | 'recovery'
+    const { syncTodayActivities, isTodaySyncBusy } = useTodayIntervalsSync();
 
     /** Vanuit Dashboard: focus één activiteit in DataHub log; handled via ActivityLogNavigationContext. */
     const [raceSubTab, setRaceSubTab] = useState('fueling');       // 'fueling' | 'racepacing'
@@ -1137,11 +1140,22 @@ const App = () => {
 
                                         {activeTab === 'training' && (
                                             <div id="main-tabpanel-training" role="tabpanel" aria-labelledby="main-tab-training" className="min-w-0 max-w-full overflow-x-hidden">
-                                                <TrainingFtpContextNote userSettings={userSettings} />
-                                                <TrainingSubTabNav
-                                                    activeTab={trainingSubTab}
-                                                    onChange={setTrainingSubTab}
-                                                />
+                                                <div className="flex items-start justify-between gap-3 mb-1">
+                                                    <div className="min-w-0 flex-1">
+                                                        <TrainingFtpContextNote userSettings={userSettings} />
+                                                        <TrainingSubTabNav
+                                                            activeTab={trainingSubTab}
+                                                            onChange={setTrainingSubTab}
+                                                        />
+                                                    </div>
+                                                    {syncTodayActivities ? (
+                                                        <DashboardTodaySyncButton
+                                                            onSync={syncTodayActivities}
+                                                            isBusy={isTodaySyncBusy}
+                                                            className="shrink-0 hidden md:flex mt-1"
+                                                        />
+                                                    ) : null}
+                                                </div>
                                                 {trainingSubTab === 'coach' && (
                                                     <AICoach
                                                         userSettings={userSettings}

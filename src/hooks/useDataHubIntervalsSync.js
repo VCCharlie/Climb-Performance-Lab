@@ -16,6 +16,7 @@ import { useToast } from '../context/ToastContext';
 import { safeLocalStorageSet } from '../utils/safeStorage';
 import { ACTIVITY_LOG_INTERVALS_LAST_SYNC_KEY, readLastIntervalsSyncAt } from '../utils/activityLogSyncLabel';
 import { countMergeCategories, formatIntervalsSyncSummary } from '../utils/importSyncStats';
+import { enrichSyncedActivitiesDrift } from '../utils/syncDriftEnrich';
 
 /**
  * Intervals.icu sync + fetch-new flows for DataHub (selected-row sync and date-range fetch).
@@ -67,8 +68,63 @@ export function useDataHubIntervalsSync({
                 stravaToken = null;
             }
         }
-        return { profileFtp, stravaToken };
-    }, [userSettings?.ftp, stravaEnrichEnabled, stravaGetToken]);
+        return {
+            profileFtp,
+            stravaToken,
+            intervalsConfig,
+            deferDriftEnrich: true,
+        };
+    }, [userSettings?.ftp, stravaEnrichEnabled, stravaGetToken, intervalsConfig]);
+
+    const applyPostSyncDriftEnrich = useCallback(async (list, activitiesMap, enrichOptions) => {
+        if (!list?.length || Number(enrichOptions.profileFtp) <= 0) {
+            return { list, driftEnrichedCount: 0 };
+        }
+
+        setSyncStatus('enriching');
+        setSyncErrorDetail('Analyzing HR drift from power+HR streams…');
+
+        let stravaToken = enrichOptions.stravaToken;
+        if (!stravaToken && stravaEnrichEnabled && stravaGetToken) {
+            try {
+                stravaToken = await stravaGetToken();
+            } catch {
+                stravaToken = null;
+            }
+        }
+
+        const { activities: driftOut, enrichedCount } = await enrichSyncedActivitiesDrift(list, {
+            intervalsConfig,
+            stravaToken,
+            profileFtp: enrichOptions.profileFtp,
+            onProgress: (message) => setSyncErrorDetail(String(message)),
+        });
+
+        if (enrichedCount <= 0) {
+            return { list, driftEnrichedCount: 0 };
+        }
+
+        const updated = driftOut.map((act) => {
+            const existing = activitiesMap.get(String(act.id));
+            return existing ? protectEnrichedFieldsOnMerge(act, existing) : act;
+        });
+
+        if (db) {
+            await Promise.all(
+                updated.map((act) => {
+                    const existing = activitiesMap.get(String(act.id));
+                    return setDoc(
+                        doc(db, 'activities', String(act.id)),
+                        protectEnrichedFieldsOnMerge(act, existing),
+                        { merge: true },
+                    );
+                }),
+            );
+        }
+        onImport(updated);
+
+        return { list: updated, driftEnrichedCount: enrichedCount };
+    }, [intervalsConfig, stravaEnrichEnabled, stravaGetToken, onImport]);
 
     const toggleSportFilter = useCallback((type) => {
         setSportFilters((prev) => ({ ...prev, [type]: !prev[type] }));
@@ -222,6 +278,9 @@ export function useDataHubIntervalsSync({
 
             onImport(working);
 
+            const driftResult = await applyPostSyncDriftEnrich(working, activitiesMap, enrichOptions);
+            working = driftResult.list;
+
             recordIntervalsSyncSuccess();
             setSyncStatus('done');
             const parts = [];
@@ -232,6 +291,9 @@ export function useDataHubIntervalsSync({
             if (enrichedLinkCount > 0) parts.push(`${enrichedLinkCount} Strava link update(s)`);
             if (segmentRefreshCount > 0) parts.push(`${segmentRefreshCount} Strava detail + segment refresh`);
             if (detailFailed > 0) parts.push(`${detailFailed} detail error(s)`);
+            if (driftResult.driftEnrichedCount > 0) {
+                parts.push(`${driftResult.driftEnrichedCount} HR drift analysis update(s)`);
+            }
             setSyncErrorDetail(
                 parts.length > 0
                     ? `✅ Sync complete. ${parts.join(' · ')}.`
@@ -263,6 +325,7 @@ export function useDataHubIntervalsSync({
         stravaEnrichEnabled,
         recordIntervalsSyncSuccess,
         buildSyncEnrichOptions,
+        applyPostSyncDriftEnrich,
     ]);
 
     const fetchAndMergeIntervalsRange = useCallback(async (syncStart, syncEnd) => {
@@ -388,6 +451,9 @@ export function useDataHubIntervalsSync({
                 onImport(merged);
             }
 
+            const driftResult = await applyPostSyncDriftEnrich(merged, activitiesMap, enrichOptions);
+            merged = driftResult.list;
+
             recordIntervalsSyncSuccess();
             setSyncStatus('done');
             const summary = formatIntervalsSyncSummary(syncStats, mergeCounts);
@@ -401,6 +467,9 @@ export function useDataHubIntervalsSync({
                 parts.push('Strava enrich skipped');
             } else if (merged.length > 0) {
                 parts.push('connect Strava in Settings for auto-link + details');
+            }
+            if (driftResult.driftEnrichedCount > 0) {
+                parts.push(`${driftResult.driftEnrichedCount} HR drift analysis update(s)`);
             }
             const detailText = merged.length > 0
                 ? `✅ ${parts.join(' · ')}.`
@@ -431,6 +500,7 @@ export function useDataHubIntervalsSync({
         stravaEnrichEnabled,
         recordIntervalsSyncSuccess,
         buildSyncEnrichOptions,
+        applyPostSyncDriftEnrich,
     ]);
 
     const handleFetchNewFromIntervals = useCallback(async () => {
