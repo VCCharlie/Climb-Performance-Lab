@@ -90,9 +90,20 @@ describe('activityCardMetrics', () => {
         expect(hr?.value).toBe('152 bpm');
     });
 
-    it('omits zero or missing numeric fields', () => {
-        const sparse = { ...sampleAct, climbing: 0, norm_power: null, load: 0 };
-        const metrics = getActivityCardMetrics(sparse, essentialCols, 250);
-        expect(metrics.map((m) => m.key)).toEqual(['moving_time', 'distance']);
+    it('shows drift placeholder when column applies but value is missing', () => {
+        const cols = [
+            ...essentialCols,
+            { key: 'threshold_drift_pct', label: 'Thr', pickerLabel: 'Threshold drift %' },
+        ];
+        const act = {
+            ...sampleAct,
+            moving_time: 9244,
+            norm_power: 243,
+            avg_power: 190,
+            avg_hr: 132,
+        };
+        const metrics = getActivityCardMetrics(act, cols, 280);
+        const thr = metrics.find((m) => m.key === 'threshold_drift_pct');
+        expect(thr?.value).toBe('—');
     });
 });

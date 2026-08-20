@@ -7,6 +7,7 @@ import {
     getHeartRateZoneDisplay,
 } from './activityMetricZoneDisplay.js';
 import { activityEfficiencyFactor, activityVariabilityIndex } from './rideInsights';
+import { driftColumnAppliesToRide } from './coach/rideDurability';
 
 /** Columns rendered in the card header row — metrics come from the rest. */
 export const ACTIVITY_CARD_HEADER_KEYS = new Set(['date', 'type', 'title']);
@@ -95,7 +96,16 @@ function formatActivityCardMetric(col, act, profileFtp, profileMaxHr) {
         case 'decoupling_pct':
         case 'threshold_drift_pct':
         case 'race_drift_pct': {
-            if (!Number.isFinite(Number(val))) return null;
+            if (!Number.isFinite(Number(val))) {
+                if (!driftColumnAppliesToRide(key, act, profileFtp)) return null;
+                return {
+                    key,
+                    label: col.label,
+                    value: '—',
+                    tone: 'muted',
+                    title: `${col.pickerLabel || col.label}: not analyzed yet — run Decoupling backfill in Activities`,
+                };
+            }
             const statusKey = key === 'decoupling_pct'
                 ? 'decoupling_status'
                 : key === 'threshold_drift_pct'

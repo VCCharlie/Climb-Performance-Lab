@@ -36,6 +36,10 @@ function statusBadgeClass(status) {
 }
 
 const EF_CHART_BAR_AREA_PX = 64;
+/** Tailwind opacity on `bg-cdaccent/*` is invisible — `cdaccent` is a plain CSS var without alpha channel. */
+const EF_BAR_ACTIVE_FILL = 'rgb(var(--cd-primary-rgb) / 0.9)';
+const EF_BAR_ACTIVE_BORDER = 'rgb(var(--cd-primary-rgb) / 0.45)';
+const EF_BAR_EMPTY_FILL = 'var(--cd-surface-container-high)';
 
 function PortfolioStat({ label, value, hint }) {
     return (
@@ -190,8 +194,16 @@ export default function CoachAerobicDecoupling({
                                                 style={{ height: `${EF_CHART_BAR_AREA_PX}px` }}
                                             >
                                                 <div
-                                                    className={`w-full max-w-[1.25rem] rounded-t ${week.avgEf != null ? 'bg-cdaccent/70' : 'bg-cdborder/30'}`}
-                                                    style={{ height: `${barHeightPx}px` }}
+                                                    className="w-full max-w-[1.25rem] min-w-[4px] shrink-0 rounded-t"
+                                                    style={{
+                                                        height: `${barHeightPx}px`,
+                                                        backgroundColor: week.avgEf != null
+                                                            ? EF_BAR_ACTIVE_FILL
+                                                            : EF_BAR_EMPTY_FILL,
+                                                        border: week.avgEf != null
+                                                            ? `1px solid ${EF_BAR_ACTIVE_BORDER}`
+                                                            : '1px solid var(--cd-border)',
+                                                    }}
                                                 />
                                             </div>
                                             <span className="text-[7px] text-cdmuted tabular-nums truncate w-full text-center leading-none">
