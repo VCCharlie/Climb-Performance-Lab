@@ -16,7 +16,7 @@ import { useToast } from '../context/ToastContext';
 import { safeLocalStorageSet } from '../utils/safeStorage';
 import { ACTIVITY_LOG_INTERVALS_LAST_SYNC_KEY, readLastIntervalsSyncAt } from '../utils/activityLogSyncLabel';
 import { countMergeCategories, formatIntervalsSyncSummary } from '../utils/importSyncStats';
-import { enrichSyncedActivitiesDrift } from '../utils/syncDriftEnrich';
+import { enrichSyncedActivitiesDrift, formatSyncDriftRemainderNote, SYNC_DRIFT_MAX_FETCHES_DEFAULT, SYNC_DRIFT_MAX_FETCHES_TODAY } from '../utils/syncDriftEnrich';
 
 /**
  * Intervals.icu sync + fetch-new flows for DataHub (selected-row sync and date-range fetch).
@@ -76,9 +76,9 @@ export function useDataHubIntervalsSync({
         };
     }, [userSettings?.ftp, stravaEnrichEnabled, stravaGetToken, intervalsConfig]);
 
-    const applyPostSyncDriftEnrich = useCallback(async (list, activitiesMap, enrichOptions) => {
+    const applyPostSyncDriftEnrich = useCallback(async (list, activitiesMap, enrichOptions, driftOptions = {}) => {
         if (!list?.length || Number(enrichOptions.profileFtp) <= 0) {
-            return { list, driftEnrichedCount: 0 };
+            return { list, driftEnrichedCount: 0, driftRemainingCount: 0 };
         }
 
         setSyncStatus('enriching');
@@ -93,15 +93,16 @@ export function useDataHubIntervalsSync({
             }
         }
 
-        const { activities: driftOut, enrichedCount } = await enrichSyncedActivitiesDrift(list, {
+        const { activities: driftOut, enrichedCount, remainingCount } = await enrichSyncedActivitiesDrift(list, {
             intervalsConfig,
             stravaToken,
             profileFtp: enrichOptions.profileFtp,
+            maxFetches: driftOptions.maxFetches ?? SYNC_DRIFT_MAX_FETCHES_DEFAULT,
             onProgress: (message) => setSyncErrorDetail(String(message)),
         });
 
         if (enrichedCount <= 0) {
-            return { list, driftEnrichedCount: 0 };
+            return { list, driftEnrichedCount: 0, driftRemainingCount: remainingCount };
         }
 
         const updated = driftOut.map((act) => {
@@ -123,7 +124,7 @@ export function useDataHubIntervalsSync({
         }
         onImport(updated);
 
-        return { list: updated, driftEnrichedCount: enrichedCount };
+        return { list: updated, driftEnrichedCount: enrichedCount, driftRemainingCount: remainingCount };
     }, [intervalsConfig, stravaEnrichEnabled, stravaGetToken, onImport]);
 
     const toggleSportFilter = useCallback((type) => {
@@ -294,6 +295,8 @@ export function useDataHubIntervalsSync({
             if (driftResult.driftEnrichedCount > 0) {
                 parts.push(`${driftResult.driftEnrichedCount} HR drift analysis update(s)`);
             }
+            const driftRemainder = formatSyncDriftRemainderNote(driftResult.driftRemainingCount);
+            if (driftRemainder) parts.push(driftRemainder);
             setSyncErrorDetail(
                 parts.length > 0
                     ? `✅ Sync complete. ${parts.join(' · ')}.`
@@ -451,7 +454,13 @@ export function useDataHubIntervalsSync({
                 onImport(merged);
             }
 
-            const driftResult = await applyPostSyncDriftEnrich(merged, activitiesMap, enrichOptions);
+            const isSingleDaySync = syncStart === syncEnd;
+            const driftResult = await applyPostSyncDriftEnrich(
+                merged,
+                activitiesMap,
+                enrichOptions,
+                { maxFetches: isSingleDaySync ? SYNC_DRIFT_MAX_FETCHES_TODAY : SYNC_DRIFT_MAX_FETCHES_DEFAULT },
+            );
             merged = driftResult.list;
 
             recordIntervalsSyncSuccess();
@@ -471,6 +480,8 @@ export function useDataHubIntervalsSync({
             if (driftResult.driftEnrichedCount > 0) {
                 parts.push(`${driftResult.driftEnrichedCount} HR drift analysis update(s)`);
             }
+            const driftRemainder = formatSyncDriftRemainderNote(driftResult.driftRemainingCount);
+            if (driftRemainder) parts.push(driftRemainder);
             const detailText = merged.length > 0
                 ? `✅ ${parts.join(' · ')}.`
                 : summary;

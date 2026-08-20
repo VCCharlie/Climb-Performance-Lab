@@ -102,13 +102,16 @@ Zie `.jules/bolt-plan.md` voor detail. Veel is al gedaan (lazy tabs, virtualized
 
 ---
 
-## Fase 8 — Training calendar (backlog)
+## Fase 8 — Training calendar & HR drift ✅
 
 | # | Onderdeel | Status |
 |---|-----------|--------|
 | 8a | Week-plan kalenderweergave (Coach week → calendar UI) | Done |
 | 8b | Aerobic decoupling engine (HR drift / decoupling metrics) | Done |
 | 8c | Stream-based decoupling na Intervals sync (power+HR streams → summary fields) | Done |
+| 8d | Unified HR Drift coaching (Steady / Threshold / Race tabs) + Activity Log Dec/Thr/Race | Done |
+| 8e | Data Playground drift metrics (trends, explorer presets, period-table Dec/Thr/Race) | Done |
+| 8f | Quick sync + post-Strava drift pipeline (Dashboard / Activities / Training header) | Done |
 
 ---
 
