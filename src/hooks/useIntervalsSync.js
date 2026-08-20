@@ -23,7 +23,7 @@ const useIntervalsSync = (intervalsConfig) => {
         result = await enrichActivitiesWithLongDurationBests(result, intervalsConfig);
 
         const profileFtp = Number(enrichOptions.profileFtp) || 0;
-        if (profileFtp > 0 && (intervalsConfig?.apiKey || enrichOptions.stravaToken)) {
+        if (profileFtp > 0 && !enrichOptions.deferDriftEnrich && (intervalsConfig?.apiKey || enrichOptions.stravaToken)) {
             setSyncProgress('Analyzing HR drift from streams (steady / threshold / race)…');
             result = await enrichActivitiesWithDecoupling(result, {
                 intervalsConfig,
