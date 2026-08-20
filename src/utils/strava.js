@@ -57,27 +57,7 @@ export function stravaFlybyUrl(stravaId) {
     return id ? `https://labs.strava.com/flyby/viewer/#${id}` : null;
 }
 
-/**
- * Open Strava Flyby for an activity in a new tab.
- * Flyby expects only the numeric activity id in the URL hash — not map.summary_polyline
- * (that encoded route string breaks the viewer when appended after the comma).
- * @param {string | number | { strava_id?: string | number } | null | undefined} activityOrId
- * @returns {boolean}
- */
-export function openStravaFlyby(activityOrId) {
-    if (activityOrId == null) return false;
-    const stravaId = typeof activityOrId === 'object' ? activityOrId.strava_id : activityOrId;
-    const url = stravaFlybyUrl(stravaId);
-    if (!url) return false;
-    const opened = openExternalUrl(url, { allowSameTabFallback: false });
-    if (!opened) {
-        notify(
-            `Could not open Strava Flyby (popup blocked?). Allow popups for this site, or open manually:\n${url}`,
-            { variant: 'warning', durationMs: 12000 },
-        );
-    }
-    return opened;
-}
+export { openStravaFlybyForActivity as openStravaFlyby, resolveFlybyStravaId } from './stravaFlyby.js';
 
 /**
  * Open Strava segment in a new tab so the app stays loaded (no full reload after

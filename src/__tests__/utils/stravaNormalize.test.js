@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeStravaActivityId, stravaActivityUrl, stravaFlybyUrl, openExternalUrl, openStravaFlyby } from '../../utils/strava';
+import { normalizeStravaActivityId, stravaActivityUrl, stravaFlybyUrl, openExternalUrl, openStravaFlyby, resolveFlybyStravaId } from '../../utils/strava';
 
 describe('normalizeStravaActivityId', () => {
   it('strips non-digits when long enough', () => {
@@ -26,10 +26,9 @@ describe('stravaFlybyUrl', () => {
     expect(stravaFlybyUrl('123456')).toBe('https://labs.strava.com/flyby/viewer/#123456');
   });
 
-  it('ignores route polyline — Flyby viewer expects id-only hash', () => {
-    const withPolylineArg = stravaFlybyUrl('123456');
-    expect(withPolylineArg).toBe('https://labs.strava.com/flyby/viewer/#123456');
-    expect(withPolylineArg).not.toContain(',');
+  it('uses id-only hash (no route polyline)', () => {
+    const url = stravaFlybyUrl('123456');
+    expect(url).not.toContain(',');
   });
 
   it('returns null when id is missing', () => {
@@ -37,9 +36,15 @@ describe('stravaFlybyUrl', () => {
   });
 });
 
+describe('resolveFlybyStravaId', () => {
+  it('blocks intervals id stored as strava_id', () => {
+    expect(resolveFlybyStravaId({ id: '53534754', strava_id: '53534754' })).toBeNull();
+  });
+});
+
 describe('openStravaFlyby', () => {
-  it('returns false when activity has no strava id', () => {
-    expect(openStravaFlyby({ strava_id: null })).toBe(false);
+  it('returns false when activity has no valid strava id', async () => {
+    await expect(openStravaFlyby({ strava_id: null })).resolves.toBe(false);
   });
 });
 
