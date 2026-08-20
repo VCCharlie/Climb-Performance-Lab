@@ -4,6 +4,7 @@
 
 import { normalizeDate, formatDateDDMMYYYY } from '../formatters';
 import { activityDistanceKm, activityMovingTimeSec, activityAvgSpeedKmh } from '../activityFilterMetrics';
+import { activityEfficiencyFactor } from '../rideInsights';
 import { ymdToMondayYmd, addDaysToYmd } from '../dashboardVolumeTotals';
 import { movingTimeSec } from './coachHelpers';
 import { POWER_PEAK_FIELDS } from './coachPlaygroundMetrics';
@@ -39,6 +40,17 @@ function emptyExtendedBucket() {
         maxAvgPower: 0,
         maxAvgSpeed: 0,
         maxRpe: 0,
+        efWeightedSum: 0,
+        efWeightSec: 0,
+        decouplingPctSum: 0,
+        decouplingPctCount: 0,
+        maxDecouplingPct: 0,
+        thresholdDriftPctSum: 0,
+        thresholdDriftPctCount: 0,
+        maxThresholdDriftPct: 0,
+        raceDriftPctSum: 0,
+        raceDriftPctCount: 0,
+        maxRaceDriftPct: 0,
         powerPeaks: emptyPeakArrays(),
     };
 }
@@ -101,6 +113,33 @@ function addActivityToBucket(bucket, activity) {
 
     POWER_PEAK_FIELDS.forEach((p) => pushPeak(bucket.powerPeaks, p.id, activity[p.id]));
 
+    const ef = activityEfficiencyFactor(activity.norm_power, activity.avg_hr);
+    if (ef != null && sec > 0) {
+        bucket.efWeightedSum += ef * sec;
+        bucket.efWeightSec += sec;
+    }
+
+    const decouplingPct = Number(activity.decoupling_pct);
+    if (Number.isFinite(decouplingPct)) {
+        bucket.decouplingPctSum += decouplingPct;
+        bucket.decouplingPctCount += 1;
+        if (decouplingPct > bucket.maxDecouplingPct) bucket.maxDecouplingPct = decouplingPct;
+    }
+
+    const thresholdDriftPct = Number(activity.threshold_drift_pct);
+    if (Number.isFinite(thresholdDriftPct)) {
+        bucket.thresholdDriftPctSum += thresholdDriftPct;
+        bucket.thresholdDriftPctCount += 1;
+        if (thresholdDriftPct > bucket.maxThresholdDriftPct) bucket.maxThresholdDriftPct = thresholdDriftPct;
+    }
+
+    const raceDriftPct = Number(activity.race_drift_pct);
+    if (Number.isFinite(raceDriftPct)) {
+        bucket.raceDriftPctSum += raceDriftPct;
+        bucket.raceDriftPctCount += 1;
+        if (raceDriftPct > bucket.maxRaceDriftPct) bucket.maxRaceDriftPct = raceDriftPct;
+    }
+
     const dist = Number(activity.distance) || 0;
     if (dist > bucket.maxDistanceKm) bucket.maxDistanceKm = dist;
     const load = Number(activity.load) || 0;
@@ -133,6 +172,18 @@ function finalizeBucket(bucket) {
     const rpe = bucket.rpeCount > 0
         ? Math.round((bucket.rpeSum / bucket.rpeCount) * 10) / 10
         : 0;
+    const efficiencyFactor = bucket.efWeightSec > 0
+        ? Math.round((bucket.efWeightedSum / bucket.efWeightSec) * 100) / 100
+        : 0;
+    const decouplingPct = bucket.decouplingPctCount > 0
+        ? Math.round((bucket.decouplingPctSum / bucket.decouplingPctCount) * 10) / 10
+        : 0;
+    const thresholdDriftPct = bucket.thresholdDriftPctCount > 0
+        ? Math.round((bucket.thresholdDriftPctSum / bucket.thresholdDriftPctCount) * 10) / 10
+        : 0;
+    const raceDriftPct = bucket.raceDriftPctCount > 0
+        ? Math.round((bucket.raceDriftPctSum / bucket.raceDriftPctCount) * 10) / 10
+        : 0;
 
     return {
         ...bucket,
@@ -153,6 +204,13 @@ function finalizeBucket(bucket) {
         maxAvgPower: bucket.maxAvgPower || 0,
         maxAvgSpeed: bucket.maxAvgSpeed || 0,
         maxRpe: bucket.maxRpe || 0,
+        efficiencyFactor,
+        decouplingPct,
+        thresholdDriftPct,
+        raceDriftPct,
+        maxDecouplingPct: bucket.maxDecouplingPct || 0,
+        maxThresholdDriftPct: bucket.maxThresholdDriftPct || 0,
+        maxRaceDriftPct: bucket.maxRaceDriftPct || 0,
     };
 }
 
@@ -229,6 +287,9 @@ export function bucketMetricValue(bucket, metricId, statMode = 'primary', option
             case 'avgPower': return bucket.maxAvgPower;
             case 'avgSpeed': return bucket.maxAvgSpeed;
             case 'rpe': return bucket.maxRpe;
+            case 'decouplingPct': return bucket.maxDecouplingPct || null;
+            case 'thresholdDriftPct': return bucket.maxThresholdDriftPct || null;
+            case 'raceDriftPct': return bucket.maxRaceDriftPct || null;
             default: break;
         }
     }
@@ -246,6 +307,10 @@ export function bucketMetricValue(bucket, metricId, statMode = 'primary', option
         case 'avgPower': return bucket.avgPower;
         case 'avgSpeed': return bucket.avgSpeed;
         case 'rpe': return bucket.rpe;
+        case 'efficiencyFactor': return bucket.efficiencyFactor || null;
+        case 'decouplingPct': return bucket.decouplingPctCount > 0 ? bucket.decouplingPct : null;
+        case 'thresholdDriftPct': return bucket.thresholdDriftPctCount > 0 ? bucket.thresholdDriftPct : null;
+        case 'raceDriftPct': return bucket.raceDriftPctCount > 0 ? bucket.raceDriftPct : null;
         default: return bucket.distanceKm;
     }
 }
