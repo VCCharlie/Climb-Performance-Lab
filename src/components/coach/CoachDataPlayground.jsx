@@ -4,6 +4,7 @@ import {
     VOLUME_METRICS,
     HR_METRICS,
     PERFORMANCE_METRICS,
+    DRIFT_METRICS,
     CHART_TYPES,
     CHART_TYPE_OPTIONS,
     VOLUME_STAT_MODES,
@@ -47,7 +48,7 @@ const CoachDataPlayground = ({ activities }) => {
     return (
         <CollapsibleSection
             title="Data Playground"
-            subtitle="Explore volume, heart rate, power, and cross-metric relationships — filter, compare, scatter plots, and manual anomaly exclusions."
+            subtitle="Explore volume, heart rate, power, HR drift, and cross-metric relationships — filter, compare, scatter plots, and manual anomaly exclusions."
             icon={BarChart3}
             defaultExpanded
         >
@@ -141,6 +142,7 @@ function TrendsPanel({ activities }) {
         { group: 'Volume', options: VOLUME_METRICS },
         { group: 'Heart rate', options: HR_METRICS },
         { group: 'Performance', options: PERFORMANCE_METRICS },
+        { group: 'HR drift', options: DRIFT_METRICS },
     ];
 
     return (

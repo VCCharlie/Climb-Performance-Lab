@@ -83,6 +83,56 @@ describe('coachPlaygroundExplorer', () => {
         expect(activityMetricValue(activities[0], 'avgSpeed')).toBe(28);
     });
 
+    it('activityMetricValue reads drift and EF fields', () => {
+        const ride = {
+            ...activities[0],
+            norm_power: 200,
+            avg_hr: 140,
+            decoupling_pct: 5.5,
+            threshold_drift_pct: 8.2,
+            race_drift_pct: 11.1,
+        };
+        expect(activityMetricValue(ride, 'efficiencyFactor')).toBeCloseTo(200 / 140, 4);
+        expect(activityMetricValue(ride, 'decouplingPct')).toBe(5.5);
+        expect(activityMetricValue(ride, 'thresholdDriftPct')).toBe(8.2);
+        expect(activityMetricValue(ride, 'raceDriftPct')).toBe(11.1);
+    });
+
+    it('bucketMetricValue averages drift metrics per period', () => {
+        const bucket = {
+            decouplingPct: 6,
+            decouplingPctCount: 2,
+            thresholdDriftPct: 7.5,
+            thresholdDriftPctCount: 1,
+            raceDriftPctCount: 0,
+            efficiencyFactor: 1.42,
+            distanceKm: 100,
+        };
+        expect(bucketMetricValue(bucket, 'decouplingPct')).toBe(6);
+        expect(bucketMetricValue(bucket, 'thresholdDriftPct')).toBe(7.5);
+        expect(bucketMetricValue(bucket, 'raceDriftPct')).toBeNull();
+        expect(bucketMetricValue(bucket, 'efficiencyFactor')).toBe(1.42);
+    });
+
+    it('buildTrendPlaygroundData supports decoupling trend', () => {
+        const driftActs = [
+            { date: '2024-01-15', type: 'Ride', distance: 50, moving_time: 3600, decoupling_pct: 4 },
+            { date: '2024-02-10', type: 'Ride', distance: 70, moving_time: 4200, decoupling_pct: 8 },
+        ];
+        const result = buildTrendPlaygroundData(driftActs, {
+            cadence: 'monthly',
+            metricId: 'decouplingPct',
+            startYmd: '2024-01-01',
+            endYmd: '2024-12-31',
+            compareMode: 'none',
+            trendWindow: 2,
+        });
+        const jan = result.chartData.find((r) => r.key === '2024-01');
+        const feb = result.chartData.find((r) => r.key === '2024-02');
+        expect(jan?.value).toBe(4);
+        expect(feb?.value).toBe(8);
+    });
+
     it('buildExplorerData produces scatter points for HR vs speed by year', () => {
         const result = buildExplorerData(activities, {
             cadence: 'yearly',

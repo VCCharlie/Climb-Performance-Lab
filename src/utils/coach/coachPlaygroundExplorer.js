@@ -4,6 +4,7 @@
 
 import { normalizeDate } from '../formatters';
 import { activityDistanceKm, activityMovingTimeSec, activityAvgSpeedKmh } from '../activityFilterMetrics';
+import { activityEfficiencyFactor } from '../rideInsights';
 import { filterActivitiesInRange } from './coachHelpers';
 import { buildPlaygroundBuckets, bucketMetricValue } from './coachPlaygroundBuckets';
 import {
@@ -99,6 +100,20 @@ export function activityMetricValue(activity, metricId) {
         case 'rpe': {
             const rpe = Number(activity?.rpe);
             return Number.isFinite(rpe) && rpe > 0 ? rpe : null;
+        }
+        case 'efficiencyFactor':
+            return activityEfficiencyFactor(activity?.norm_power, activity?.avg_hr);
+        case 'decouplingPct': {
+            const pct = Number(activity?.decoupling_pct);
+            return Number.isFinite(pct) ? pct : null;
+        }
+        case 'thresholdDriftPct': {
+            const pct = Number(activity?.threshold_drift_pct);
+            return Number.isFinite(pct) ? pct : null;
+        }
+        case 'raceDriftPct': {
+            const pct = Number(activity?.race_drift_pct);
+            return Number.isFinite(pct) ? pct : null;
         }
         default: return null;
     }

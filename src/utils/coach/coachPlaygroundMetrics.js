@@ -21,6 +21,14 @@ export const PERFORMANCE_METRICS = [
     { id: 'avgPower', label: 'Average power', unit: 'W', decimals: 0, stat: 'avg' },
     { id: 'avgSpeed', label: 'Average speed', unit: 'km/h', decimals: 1, stat: 'avg' },
     { id: 'rpe', label: 'RPE', unit: '', decimals: 1, stat: 'avg' },
+    { id: 'efficiencyFactor', label: 'EF (NP÷HR)', unit: 'W/bpm', decimals: 2, stat: 'avg' },
+];
+
+/** Stream-based HR drift metrics (per ride; averaged in time buckets). */
+export const DRIFT_METRICS = [
+    { id: 'decouplingPct', label: 'Decoupling %', unit: '%', decimals: 1, stat: 'avg' },
+    { id: 'thresholdDriftPct', label: 'Threshold drift %', unit: '%', decimals: 1, stat: 'avg' },
+    { id: 'raceDriftPct', label: 'Race drift %', unit: '%', decimals: 1, stat: 'avg' },
 ];
 
 export const POWER_PEAK_FIELDS = [
@@ -69,12 +77,14 @@ export const PLAYGROUND_METRICS = [
     ...VOLUME_METRICS,
     ...HR_METRICS,
     ...PERFORMANCE_METRICS,
+    ...DRIFT_METRICS,
 ];
 
 export const ALL_EXPLORER_METRICS = [
     ...VOLUME_METRICS.map((m) => ({ ...m, group: 'Volume' })),
     ...HR_METRICS.map((m) => ({ ...m, group: 'Heart rate' })),
     ...PERFORMANCE_METRICS.map((m) => ({ ...m, group: 'Performance' })),
+    ...DRIFT_METRICS.map((m) => ({ ...m, group: 'HR drift' })),
     ...EXPLORER_POWER_METRICS,
 ];
 
@@ -82,6 +92,7 @@ export const EXPLORER_METRIC_GROUPS = [
     { group: 'Volume', options: VOLUME_METRICS },
     { group: 'Heart rate', options: HR_METRICS },
     { group: 'Performance', options: PERFORMANCE_METRICS },
+    { group: 'HR drift', options: DRIFT_METRICS },
     { group: 'Power peaks', options: EXPLORER_POWER_METRICS },
 ];
 
@@ -166,6 +177,22 @@ export const EXPLORER_PRESETS = [
         xMetric: 'normPower',
         yMetric: 'avgSpeed',
         colorMetric: 'elevationM',
+        cadence: 'monthly',
+    },
+    {
+        id: 'load_decoupling',
+        label: 'Load vs decoupling',
+        xMetric: 'load',
+        yMetric: 'decouplingPct',
+        colorMetric: 'efficiencyFactor',
+        cadence: 'monthly',
+    },
+    {
+        id: 'if_threshold_drift',
+        label: 'NP vs threshold drift',
+        xMetric: 'normPower',
+        yMetric: 'thresholdDriftPct',
+        colorMetric: 'avgHr',
         cadence: 'monthly',
     },
 ];
