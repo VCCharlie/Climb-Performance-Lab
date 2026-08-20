@@ -17,6 +17,9 @@ export const TIME_RANGE_OPTIONS = ['1M', '3M', '6M', '1Y', '3Y', '6Y', 'ALL', 'C
 /** Main tabs where the global time-range filter affects displayed data. */
 export const TIME_RANGE_TAB_IDS = new Set(['dashboard', 'activities', 'training']);
 
+/** Tabs that show the quick “sync today from Intervals.icu” header button (mobile + Activities desktop). */
+export const INTERVALS_QUICK_SYNC_TAB_IDS = new Set(['dashboard', 'activities']);
+
 /** Primary app navigation tabs (10 main sections). */
 export const MAIN_NAV_TABS = [
     { id: 'dashboard', label: 'Dashboard', icon: Gauge },

@@ -7,6 +7,7 @@ import ActivityLogSyncStatusLine from './ActivityLogSyncStatusLine';
 import IntervalsSyncPanel from './IntervalsSyncPanel';
 import QuickNav from './QuickNav';
 import { formatDateDDMMYYYY } from '../../utils/formatters';
+import { useTodayIntervalsSync } from '../../context/IntervalsSyncContext';
 
 /**
  * Activity Log tab: sync banners, filters, grouped nav, and table/cards (Bolt fase 3e).
@@ -58,6 +59,8 @@ export default function ActivityLogTab({
     onFilterByGearId,
     onRunSync,
 }) {
+    const { syncTodayActivities, isTodaySyncBusy } = useTodayIntervalsSync();
+
     return (
         <div role="tabpanel" id="tabpanel-log" aria-labelledby="tab-log" className="p-4 flex-1 min-h-0 overflow-hidden flex flex-col">
             <ActivityLogSyncBanners
@@ -88,6 +91,8 @@ export default function ActivityLogTab({
                 lastCloudSyncAt={lastCloudSyncAt}
                 lastIntervalsSyncAt={lastIntervalsSyncAt}
                 isIntervalsBusy={intervalsSync.isFetchingNewIntervals || intervalsSync.isSyncing}
+                onSyncToday={syncTodayActivities}
+                isTodaySyncBusy={isTodaySyncBusy}
             />
 
             <IntervalsSyncPanel

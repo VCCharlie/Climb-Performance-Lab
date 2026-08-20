@@ -12,7 +12,7 @@ import {
 } from '../dashboardActivityWindow';
 import { filterActivitiesInRange } from './coachHelpers';
 import { buildPlaygroundBuckets, bucketMetricValue } from './coachPlaygroundBuckets';
-import { getPlaygroundMetric } from './coachPlaygroundMetrics';
+import { getPlaygroundMetric, isDriftRelatedMetric } from './coachPlaygroundMetrics';
 
 export {
     PLAYGROUND_METRICS,
@@ -27,6 +27,7 @@ export {
     POWER_PEAK_FIELDS,
     ALL_EXPLORER_METRICS,
     EXPLORER_METRIC_GROUPS,
+    isDriftRelatedMetric,
 } from './coachPlaygroundMetrics';
 
 export { buildExplorerData, pearsonCorrelation } from './coachPlaygroundExplorer';
@@ -44,6 +45,17 @@ function roundMetric(metric, value) {
     const decimals = metric?.decimals ?? 0;
     const factor = 10 ** decimals;
     return Math.round(value * factor) / factor;
+}
+
+function driftPeriodFieldsFromBucket(row) {
+    return {
+        periodDecouplingPct: row.decouplingPctCount > 0 ? row.decouplingPct : null,
+        periodThresholdDriftPct: row.thresholdDriftPctCount > 0 ? row.thresholdDriftPct : null,
+        periodRaceDriftPct: row.raceDriftPctCount > 0 ? row.raceDriftPct : null,
+        decouplingAnalyzedCount: row.decouplingPctCount || 0,
+        thresholdAnalyzedCount: row.thresholdDriftPctCount || 0,
+        raceAnalyzedCount: row.raceDriftPctCount || 0,
+    };
 }
 
 /**
@@ -126,6 +138,7 @@ export function buildTrendPlaygroundData(activities, options = {}) {
             rideCount: row.rideCount,
             trendWindow,
             count: row.rideCount,
+            ...driftPeriodFieldsFromBucket(row),
         };
     });
 
@@ -148,6 +161,7 @@ export function buildTrendPlaygroundData(activities, options = {}) {
         compareTotal,
         deltaPct,
         bucketCount: chronological.length,
+        isDriftRelated: isDriftRelatedMetric(metricId),
     };
 }
 

@@ -195,7 +195,55 @@ export const EXPLORER_PRESETS = [
         colorMetric: 'avgHr',
         cadence: 'monthly',
     },
+    {
+        id: 'ef_decoupling',
+        label: 'EF vs decoupling',
+        xMetric: 'efficiencyFactor',
+        yMetric: 'decouplingPct',
+        colorMetric: 'hours',
+        cadence: 'ride',
+    },
+    {
+        id: 'race_drift_load',
+        label: 'Load vs race drift',
+        xMetric: 'load',
+        yMetric: 'raceDriftPct',
+        colorMetric: 'normPower',
+        cadence: 'monthly',
+    },
+    {
+        id: 'hours_threshold_drift',
+        label: 'Duration vs threshold drift',
+        xMetric: 'hours',
+        yMetric: 'thresholdDriftPct',
+        colorMetric: 'avgHr',
+        cadence: 'monthly',
+    },
+    {
+        id: 'ef_race_drift',
+        label: 'EF vs race drift',
+        xMetric: 'efficiencyFactor',
+        yMetric: 'raceDriftPct',
+        colorMetric: 'load',
+        cadence: 'ride',
+    },
+    {
+        id: 'decoupling_thr_scatter',
+        label: 'Dec vs threshold drift',
+        xMetric: 'decouplingPct',
+        yMetric: 'thresholdDriftPct',
+        colorMetric: 'normPower',
+        cadence: 'yearly',
+    },
 ];
+
+/**
+ * @param {string} metricId
+ */
+export function isDriftRelatedMetric(metricId) {
+    if (metricId === 'efficiencyFactor') return true;
+    return DRIFT_METRICS.some((m) => m.id === metricId);
+}
 
 /**
  * @param {string} metricId

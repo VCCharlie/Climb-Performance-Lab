@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { BarChart3, GitBranch, TrendingUp, Zap } from 'lucide-react';
 import {
     VOLUME_METRICS,
@@ -13,6 +13,7 @@ import {
     defaultPlaygroundPrimaryRange,
     playgroundRangeForYears,
     resolvePlaygroundCompareRange,
+    isDriftRelatedMetric,
 } from '../../utils/coach/coachDataPlayground';
 import { COMPARE_OPTIONS } from '../dashboard/powerTopTenByDurationConstants';
 import { formatLongRange } from '../dashboard/powerTopTenByDurationConstants';
@@ -104,6 +105,13 @@ function TrendsPanel({ activities }) {
     const [trendWindow, setTrendWindow] = useState(3);
     const [showMax, setShowMax] = useState(false);
     const [showMaxTrend, setShowMaxTrend] = useState(false);
+    const [showDriftPeriodColumns, setShowDriftPeriodColumns] = useState(false);
+
+    useEffect(() => {
+        if (isDriftRelatedMetric(metricId)) {
+            setShowDriftPeriodColumns(true);
+        }
+    }, [metricId]);
 
     const applyPreset = (presetId) => {
         setRangePreset(presetId);
@@ -210,6 +218,10 @@ function TrendsPanel({ activities }) {
                     <input type="checkbox" checked={showMaxTrend} onChange={(e) => setShowMaxTrend(e.target.checked)} />
                     Show max trend line
                 </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={showDriftPeriodColumns} onChange={(e) => setShowDriftPeriodColumns(e.target.checked)} />
+                    HR drift columns (Dec / Thr / Race)
+                </label>
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -293,6 +305,13 @@ function TrendsPanel({ activities }) {
                                         <span className="hidden sm:inline">Max trend</span>
                                     </th>
                                 )}
+                                {showDriftPeriodColumns && (
+                                    <>
+                                        <th className={`${playgroundThClass} w-[10%]`} title="Avg steady decoupling % per period (analyzed rides only)">Dec</th>
+                                        <th className={`${playgroundThClass} w-[10%]`} title="Avg threshold drift % per period">Thr</th>
+                                        <th className={`${playgroundThClass} w-[10%]`} title="Avg race drift % per period">Race</th>
+                                    </>
+                                )}
                                 <th className={`${playgroundThClass} w-[10%]`}>Rides</th>
                             </tr>
                         </thead>
@@ -309,6 +328,25 @@ function TrendsPanel({ activities }) {
                                     <td className={`${playgroundTdMonoClass} text-blue-300`}>{row.trend}{unitSuffix}</td>
                                     {showMax && <td className={`${playgroundTdMonoClass} text-purple-300`}>{row.maxValue}{unitSuffix}</td>}
                                     {showMaxTrend && <td className={`${playgroundTdMonoClass} text-pink-300`}>{row.maxTrend}{unitSuffix}</td>}
+                                    {showDriftPeriodColumns && (
+                                        <>
+                                            <DriftPeriodCell
+                                                value={row.periodDecouplingPct}
+                                                analyzedCount={row.decouplingAnalyzedCount}
+                                                active={metricId === 'decouplingPct'}
+                                            />
+                                            <DriftPeriodCell
+                                                value={row.periodThresholdDriftPct}
+                                                analyzedCount={row.thresholdAnalyzedCount}
+                                                active={metricId === 'thresholdDriftPct'}
+                                            />
+                                            <DriftPeriodCell
+                                                value={row.periodRaceDriftPct}
+                                                analyzedCount={row.raceAnalyzedCount}
+                                                active={metricId === 'raceDriftPct'}
+                                            />
+                                        </>
+                                    )}
                                     <td className={playgroundTdMutedClass}>{row.rideCount}</td>
                                 </tr>
                             ))}
@@ -317,6 +355,20 @@ function TrendsPanel({ activities }) {
                 </>
             )}
         </div>
+    );
+}
+
+function DriftPeriodCell({ value, analyzedCount, active = false }) {
+    const title = analyzedCount > 0
+        ? `Average from ${analyzedCount} analyzed ride${analyzedCount === 1 ? '' : 's'}`
+        : 'No analyzed rides in this period';
+    return (
+        <td
+            className={`${playgroundTdMonoClass} ${active ? 'text-cdaccent font-semibold' : 'text-cdmuted'}`}
+            title={title}
+        >
+            {value != null ? `${value}%` : '—'}
+        </td>
     );
 }
 

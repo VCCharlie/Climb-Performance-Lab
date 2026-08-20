@@ -24,7 +24,7 @@ const useIntervalsSync = (intervalsConfig) => {
 
         const profileFtp = Number(enrichOptions.profileFtp) || 0;
         if (profileFtp > 0 && (intervalsConfig?.apiKey || enrichOptions.stravaToken)) {
-            setSyncProgress('Analyzing aerobic decoupling from streams…');
+            setSyncProgress('Analyzing HR drift from streams (steady / threshold / race)…');
             result = await enrichActivitiesWithDecoupling(result, {
                 intervalsConfig,
                 profileFtp,
