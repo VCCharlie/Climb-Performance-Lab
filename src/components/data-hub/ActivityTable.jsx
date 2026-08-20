@@ -221,7 +221,7 @@ export const Row = React.memo(React.forwardRef(({
     if (!act) return null;
 
     const stravaUrl = stravaActivityUrl(act.strava_id);
-    const flybyUrl = stravaFlybyUrl(act.strava_id, { polyline: act.strava_map });
+    const flybyUrl = stravaFlybyUrl(act.strava_id);
     const climbMatch = profilerClimbByActivityId?.get(String(act.id));
 
     const renderCell = (col) => {

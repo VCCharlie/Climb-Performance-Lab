@@ -22,13 +22,14 @@ describe('stravaActivityUrl', () => {
 });
 
 describe('stravaFlybyUrl', () => {
-  it('builds Strava Flyby viewer URL from activity id', () => {
+  it('builds Strava Flyby viewer URL from activity id only', () => {
     expect(stravaFlybyUrl('123456')).toBe('https://labs.strava.com/flyby/viewer/#123456');
   });
 
-  it('appends route polyline when provided', () => {
-    expect(stravaFlybyUrl('123456', { polyline: '_p~iF~ps|U' }))
-      .toBe('https://labs.strava.com/flyby/viewer/#123456,_p~iF~ps|U');
+  it('ignores route polyline — Flyby viewer expects id-only hash', () => {
+    const withPolylineArg = stravaFlybyUrl('123456');
+    expect(withPolylineArg).toBe('https://labs.strava.com/flyby/viewer/#123456');
+    expect(withPolylineArg).not.toContain(',');
   });
 
   it('returns null when id is missing', () => {

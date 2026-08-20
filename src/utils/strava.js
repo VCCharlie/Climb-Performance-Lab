@@ -52,29 +52,31 @@ export function stravaActivityUrl(stravaId) {
 }
 
 /** @param {string | number | null | undefined} stravaId */
-export function stravaFlybyUrl(stravaId, opts = {}) {
+export function stravaFlybyUrl(stravaId) {
     const id = normalizeStravaActivityId(stravaId);
-    if (!id) return null;
-    const polyline = opts.polyline ?? opts.stravaMap;
-    const encoded = typeof polyline === 'string' ? polyline.trim() : '';
-    if (encoded) {
-        return `https://labs.strava.com/flyby/viewer/#${id},${encoded}`;
-    }
-    return `https://labs.strava.com/flyby/viewer/#${id}`;
+    return id ? `https://labs.strava.com/flyby/viewer/#${id}` : null;
 }
 
 /**
- * Open Strava Flyby for an activity (uses stored route polyline when available).
- * @param {string | number | { strava_id?: string | number, strava_map?: string } | null | undefined} activityOrId
+ * Open Strava Flyby for an activity in a new tab.
+ * Flyby expects only the numeric activity id in the URL hash — not map.summary_polyline
+ * (that encoded route string breaks the viewer when appended after the comma).
+ * @param {string | number | { strava_id?: string | number } | null | undefined} activityOrId
  * @returns {boolean}
  */
 export function openStravaFlyby(activityOrId) {
     if (activityOrId == null) return false;
-    const isObj = typeof activityOrId === 'object';
-    const stravaId = isObj ? activityOrId.strava_id : activityOrId;
-    const polyline = isObj ? activityOrId.strava_map : null;
-    const url = stravaFlybyUrl(stravaId, { polyline });
-    return url ? openExternalUrl(url) : false;
+    const stravaId = typeof activityOrId === 'object' ? activityOrId.strava_id : activityOrId;
+    const url = stravaFlybyUrl(stravaId);
+    if (!url) return false;
+    const opened = openExternalUrl(url, { allowSameTabFallback: false });
+    if (!opened) {
+        notify(
+            `Could not open Strava Flyby (popup blocked?). Allow popups for this site, or open manually:\n${url}`,
+            { variant: 'warning', durationMs: 12000 },
+        );
+    }
+    return opened;
 }
 
 /**

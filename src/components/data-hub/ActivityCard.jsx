@@ -106,7 +106,7 @@ const ActivityCard = React.memo(({
     const description = (act.description || act.notes || '').trim();
     const climbMatch = profilerClimbByActivityId?.get(String(act.id));
     const stravaUrl = stravaActivityUrl(act.strava_id);
-    const flybyUrl = stravaFlybyUrl(act.strava_id, { polyline: act.strava_map });
+    const flybyUrl = stravaFlybyUrl(act.strava_id);
 
     const closeMenu = () => {
         setMenuOpen(false);
@@ -270,9 +270,10 @@ const ActivityCard = React.memo(({
                                 )}
                                 {flybyUrl && (
                                     <MenuItem
-                                        href={flybyUrl}
-                                        external
-                                        onClick={closeMenu}
+                                        onClick={() => {
+                                            openStravaFlyby(act);
+                                            closeMenu();
+                                        }}
                                     >
                                         <Play size={14} aria-hidden /> Strava Flyby
                                     </MenuItem>
