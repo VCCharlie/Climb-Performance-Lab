@@ -80,9 +80,12 @@ describe('deriveEftp20FromActivity', () => {
 });
 
 describe('activityExternalLinks', () => {
-    it('builds intervals and strava links', () => {
-        const links = activityExternalLinks({ id: '12345', strava_id: '98765432' });
+    it('builds intervals, strava, and flyby links', () => {
+        const links = activityExternalLinks({ id: '12345', strava_id: '98765432', strava_map: 'abc123poly' });
         expect(links.some((l) => l.href.includes('intervals.icu/activities/12345'))).toBe(true);
         expect(links.some((l) => l.href.includes('strava.com/activities/98765432'))).toBe(true);
+        const flyby = links.find((l) => l.label === 'Flyby');
+        expect(flyby?.href).toBe('https://labs.strava.com/flyby/viewer/#98765432');
+        expect(flyby?.href).not.toContain('abc123poly');
     });
 });
