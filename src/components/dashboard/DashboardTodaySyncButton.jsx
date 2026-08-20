@@ -30,7 +30,7 @@ export default function DashboardTodaySyncButton({
                 dim,
                 className,
             )}
-            title="Fetch & merge today's activities from Intervals.icu"
+            title="Fetch & merge today's activities from Intervals.icu (includes stream drift analysis when FTP + API/Strava are set)"
             aria-label="Sync today's activities from Intervals.icu"
         >
             <RefreshCw size={icon} className={isBusy ? 'animate-spin' : ''} aria-hidden />

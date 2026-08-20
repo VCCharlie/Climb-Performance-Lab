@@ -2,7 +2,7 @@ import React from 'react';
 import TimeRangeToolbar from './TimeRangeToolbar';
 import { TimeRangeCustomDates } from './TimeRangePresetPicker';
 import DashboardTodaySyncButton from '../dashboard/DashboardTodaySyncButton';
-import { TIME_RANGE_TAB_IDS } from '../../config/navTabs';
+import { TIME_RANGE_TAB_IDS, INTERVALS_QUICK_SYNC_TAB_IDS } from '../../config/navTabs';
 
 /**
  * Build inline header chrome for mobile (preset + sync buttons, optional custom dates row).
@@ -19,7 +19,7 @@ export function buildMobileHeaderToolbar({
     isTodaySyncBusy,
 }) {
     const showTimeRange = TIME_RANGE_TAB_IDS.has(activeTab);
-    const showSync = activeTab === 'dashboard' && Boolean(syncTodayActivities);
+    const showSync = INTERVALS_QUICK_SYNC_TAB_IDS.has(activeTab) && Boolean(syncTodayActivities);
     const visible = showTimeRange || showSync;
 
     if (!visible) {

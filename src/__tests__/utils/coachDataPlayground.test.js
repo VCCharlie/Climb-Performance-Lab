@@ -131,6 +131,9 @@ describe('coachPlaygroundExplorer', () => {
         const feb = result.chartData.find((r) => r.key === '2024-02');
         expect(jan?.value).toBe(4);
         expect(feb?.value).toBe(8);
+        expect(result.isDriftRelated).toBe(true);
+        expect(jan?.periodDecouplingPct).toBe(4);
+        expect(jan?.decouplingAnalyzedCount).toBe(1);
     });
 
     it('buildExplorerData produces scatter points for HR vs speed by year', () => {

@@ -211,6 +211,9 @@ function finalizeBucket(bucket) {
         maxDecouplingPct: bucket.maxDecouplingPct || 0,
         maxThresholdDriftPct: bucket.maxThresholdDriftPct || 0,
         maxRaceDriftPct: bucket.maxRaceDriftPct || 0,
+        decouplingPctCount: bucket.decouplingPctCount,
+        thresholdDriftPctCount: bucket.thresholdDriftPctCount,
+        raceDriftPctCount: bucket.raceDriftPctCount,
     };
 }
 
