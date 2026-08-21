@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -25,8 +24,8 @@ import {
 import { todayYmd } from '../../../utils/coach/coachHelpers.js';
 import NlDateInput from '../../NlDateInput.jsx';
 import PlaygroundScatterChart from './PlaygroundScatterChart.jsx';
-import PlaygroundPeriodTable from './PlaygroundPeriodTable.jsx';
-import { playgroundTdMonoClass, playgroundTdMutedClass, playgroundTdTextClass, playgroundThClass } from '../../../utils/playgroundTableStyles.js';
+import PlaygroundExplorerTable from './PlaygroundExplorerTable.jsx';
+import { playgroundExplorerSortKeys } from '../../../utils/playgroundTableStyles.js';
 
 const RANGE_PRESETS = [
   { id: '1y', label: '1 year', years: 1 },
@@ -41,14 +40,6 @@ const THEME = {
   text: 'var(--cd-muted, #94a3b8)',
   xLine: 'var(--cd-accent, #fbbf24)',
   yLine: '#38bdf8',
-};
-
-const SORT_KEYS = {
-  label: 'label',
-  x: 'x',
-  y: 'y',
-  color: 'color',
-  rideCount: 'rideCount',
 };
 
 function MetricSelect({ label, value, onChange, allowNone = false }) {
@@ -70,23 +61,6 @@ function MetricSelect({ label, value, onChange, allowNone = false }) {
         ))}
       </select>
     </label>
-  );
-}
-
-function SortHeader({ label, sortKey, activeKey, direction, onSort }) {
-  const active = activeKey === sortKey;
-  const Icon = active ? (direction === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown;
-  return (
-    <th className={playgroundThClass}>
-      <button
-        type="button"
-        onClick={() => onSort(sortKey)}
-        className={`inline-flex items-center gap-0.5 sm:gap-1 uppercase font-semibold leading-tight ${active ? 'text-cdaccent' : 'text-cdmuted hover:text-cdtext'}`}
-      >
-        {label}
-        <Icon size={12} className="shrink-0" />
-      </button>
-    </th>
   );
 }
 
@@ -112,7 +86,7 @@ function sortPoints(points, sortKey, direction) {
   return [...points].sort((a, b) => {
     const av = a[sortKey];
     const bv = b[sortKey];
-    if (sortKey === SORT_KEYS.label) {
+    if (sortKey === playgroundExplorerSortKeys.label) {
       return factor * String(av || '').localeCompare(String(bv || ''));
     }
     if (av == null && bv == null) return 0;
@@ -137,7 +111,7 @@ export default function PlaygroundExplorerPanel({ activities }) {
   const [excludeZeros, setExcludeZeros] = useState(true);
   const [autoZoom, setAutoZoom] = useState(true);
   const [showTrendLine, setShowTrendLine] = useState(true);
-  const [sortKey, setSortKey] = useState(SORT_KEYS.label);
+  const [sortKey, setSortKey] = useState(playgroundExplorerSortKeys.label);
   const [sortDir, setSortDir] = useState('desc');
   const [primaryStart, setPrimaryStart] = useState(defaultRange.startYmd);
   const [primaryEnd, setPrimaryEnd] = useState(defaultRange.endYmd);
@@ -148,7 +122,7 @@ export default function PlaygroundExplorerPanel({ activities }) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
     } else {
       setSortKey(key);
-      setSortDir(key === SORT_KEYS.label ? 'desc' : 'asc');
+      setSortDir(key === playgroundExplorerSortKeys.label ? 'desc' : 'asc');
     }
   };
 
@@ -364,30 +338,16 @@ export default function PlaygroundExplorerPanel({ activities }) {
         </ResponsiveContainer>
       )}
 
-      <PlaygroundPeriodTable>
-        <thead>
-          <tr className="bg-cdborder/40">
-            <SortHeader label="Period" sortKey={SORT_KEYS.label} activeKey={sortKey} direction={sortDir} onSort={handleSort} />
-            <SortHeader label={explorer.xMeta.label} sortKey={SORT_KEYS.x} activeKey={sortKey} direction={sortDir} onSort={handleSort} />
-            <SortHeader label={explorer.yMeta.label} sortKey={SORT_KEYS.y} activeKey={sortKey} direction={sortDir} onSort={handleSort} />
-            {explorer.colorMeta && (
-              <SortHeader label={explorer.colorMeta.label} sortKey={SORT_KEYS.color} activeKey={sortKey} direction={sortDir} onSort={handleSort} />
-            )}
-            <SortHeader label="Rides" sortKey={SORT_KEYS.rideCount} activeKey={sortKey} direction={sortDir} onSort={handleSort} />
-          </tr>
-        </thead>
-        <tbody className="text-cdtext">
-          {sortedPoints.map((row) => (
-            <tr key={row.key} className="border-t border-cdborder">
-              <td className={playgroundTdTextClass}>{row.label}</td>
-              <td className={playgroundTdMonoClass}>{row.x ?? '—'}</td>
-              <td className={playgroundTdMonoClass}>{row.y ?? '—'}</td>
-              {explorer.colorMeta && <td className={playgroundTdMutedClass}>{row.color ?? '—'}</td>}
-              <td className={playgroundTdMutedClass}>{row.rideCount}</td>
-            </tr>
-          ))}
-        </tbody>
-      </PlaygroundPeriodTable>
+      <PlaygroundExplorerTable
+        rows={sortedPoints}
+        cadence={cadence}
+        xMeta={explorer.xMeta}
+        yMeta={explorer.yMeta}
+        colorMeta={explorer.colorMeta}
+        sortKey={sortKey}
+        sortDir={sortDir}
+        onSort={handleSort}
+      />
     </div>
   );
 }

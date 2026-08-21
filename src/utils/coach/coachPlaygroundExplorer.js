@@ -196,6 +196,7 @@ export function buildExplorerData(activities, options = {}) {
                 type: 'ride',
                 key: a.id || `${a.date}-${a.title || 'ride'}`,
                 label: a.title || a.date || 'Ride',
+                dateYmd: normalizeDate(a.date) || null,
                 data: a,
             }));
     } else {
@@ -218,6 +219,7 @@ export function buildExplorerData(activities, options = {}) {
         return {
             key: source.key,
             label: source.label,
+            dateYmd: source.dateYmd || null,
             x,
             y,
             color,
