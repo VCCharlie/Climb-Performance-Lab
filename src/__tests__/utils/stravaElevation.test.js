@@ -31,4 +31,24 @@ describe('stravaElevation', () => {
         expect(out.climbing).toBe(812);
         expect(out.climbing_from_strava).toBe(true);
     });
+
+    it('skips elevation when climbing was manually corrected', () => {
+        const out = applyStravaElevationToActivity(
+            { id: '1', climbing: 920, climbing_user_corrected: true },
+            { total_elevation_gain: 812 },
+        );
+        expect(out.climbing).toBe(920);
+        expect(out.climbing_user_corrected).toBe(true);
+    });
+
+    it('force refresh clears manual correction flag', () => {
+        const out = applyStravaElevationToActivity(
+            { id: '1', climbing: 920, climbing_user_corrected: true },
+            { total_elevation_gain: 812 },
+            { forceRefreshElevation: true },
+        );
+        expect(out.climbing).toBe(812);
+        expect(out.climbing_from_strava).toBe(true);
+        expect(out.climbing_user_corrected).toBeUndefined();
+    });
 });

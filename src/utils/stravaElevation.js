@@ -2,6 +2,8 @@
  * Strava map-corrected elevation (total_elevation_gain) for site activity `climbing` (meters).
  */
 
+import { shouldApplyStravaElevationPatch } from './activityFieldRetention';
+
 /**
  * @param {number | string | null | undefined} totalElevationGain - Strava API field
  * @returns {number | null} rounded meters, or null if missing/invalid
@@ -28,8 +30,13 @@ export function climbingPatchFromStravaActivity(stravaActivity) {
  * @param {object | null | undefined} stravaActivity
  * @returns {object}
  */
-export function applyStravaElevationToActivity(activity, stravaActivity) {
+export function applyStravaElevationToActivity(activity, stravaActivity, opts = {}) {
+    if (!shouldApplyStravaElevationPatch(activity, opts)) return activity;
     const patch = climbingPatchFromStravaActivity(stravaActivity);
     if (Object.keys(patch).length === 0) return activity;
-    return { ...activity, ...patch };
+    const next = { ...activity, ...patch };
+    if (next.climbing_from_strava === true) {
+        delete next.climbing_user_corrected;
+    }
+    return next;
 }

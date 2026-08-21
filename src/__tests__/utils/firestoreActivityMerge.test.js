@@ -82,6 +82,19 @@ describe('protectEnrichedFieldsOnMerge', () => {
     expect(out.climbing_from_strava).toBe(true);
   });
 
+  it('protects manually corrected climbing from Intervals overwrite', () => {
+    const out = protectEnrichedFieldsOnMerge(
+      { id: '1', title: 'Ride', climbing: 1100 },
+      {
+        id: '1',
+        climbing: 920,
+        climbing_user_corrected: true,
+      },
+    );
+    expect(out.climbing).toBe(920);
+    expect(out.climbing_user_corrected).toBe(true);
+  });
+
   it('keeps stream decoupling summary when re-sync omits enriched fields', () => {
     const out = protectEnrichedFieldsOnMerge(
       { id: '1', title: 'Ride', norm_power: 180 },
