@@ -85,4 +85,4 @@ Full audit: `docs/SENTINEL_PHASE_7_AUDIT.md`
 | R9 | Cloud Run edge `allow-unauthenticated` | Low | **Accepted** — app-layer auth |
 | R10 | Backup JSON may contain plaintext secrets | Medium | **Accepted** — user file |
 
-**Owner sign-off:** pending manual smoke in `docs/SENTINEL_PHASE_7_AUDIT.md` §7.2–7.3.
+**Owner sign-off:** complete 2026-08-21 — accepted residual risks R1–R10 (see `docs/SENTINEL_PHASE_7_AUDIT.md` §7.6).

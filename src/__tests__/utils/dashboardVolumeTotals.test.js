@@ -5,12 +5,16 @@ import {
     formatWeekRangeLabelEn,
     buildMonthlyVolumeTotals,
     buildWeeklyVolumeTotals,
+    buildYearlyVolumeTotals,
     orderVolumeRowsChronological,
     formatMonthChartTickEn,
+    formatYearChartTickEn,
     trailingMovingAverage,
     monthKeyToDateRange,
+    yearKeyToDateRange,
     mondayOneYearBefore,
     monthKeyOneYearBefore,
+    yearKeyOneYearBefore,
 } from '../../utils/dashboardVolumeTotals';
 
 describe('ymdToMondayYmd', () => {
@@ -52,9 +56,43 @@ describe('buildMonthlyVolumeTotals', () => {
         expect(jan.load).toBe(120);
     });
 
-    it('uses Dutch month name for month row labels', () => {
+    it('uses English month name for month row labels', () => {
         const m = buildMonthlyVolumeTotals([{ date: '2026-03-10', distance: 10, climbing: 0, moving_time: 0, load: 0 }]);
-        expect(m[0].label).toMatch(/maart 2026/i);
+        expect(m[0].label).toBe('March 2026');
+    });
+});
+
+describe('buildYearlyVolumeTotals', () => {
+    it('aggregates by calendar year', () => {
+        const acts = [
+            { date: '2025-11-10', distance: 50, climbing: 500, moving_time: 3600, load: 80 },
+            { date: '2026-01-20', distance: 30, climbing: 300, moving_time: 1800, load: 40 },
+            { date: '2026-02-01', distance: 40, climbing: 200, moving_time: 3600, load: 50 },
+        ];
+        const y = buildYearlyVolumeTotals(acts);
+        expect(y).toHaveLength(2);
+        const y2026 = y.find((x) => x.key === '2026');
+        expect(y2026.rideCount).toBe(2);
+        expect(y2026.distanceKm).toBe(70);
+        expect(y2026.label).toBe('2026');
+    });
+});
+
+describe('yearKeyOneYearBefore', () => {
+    it('shifts year', () => {
+        expect(yearKeyOneYearBefore('2026')).toBe('2025');
+    });
+});
+
+describe('yearKeyToDateRange', () => {
+    it('returns full calendar year span', () => {
+        expect(yearKeyToDateRange('2026')).toEqual({ startYmd: '2026-01-01', endYmd: '2026-12-31' });
+    });
+});
+
+describe('formatYearChartTickEn', () => {
+    it('returns year key', () => {
+        expect(formatYearChartTickEn('2026')).toBe('2026');
     });
 });
 
