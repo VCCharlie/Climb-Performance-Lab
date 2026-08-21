@@ -53,17 +53,17 @@ Complete in the live app and tick when done. Automated checks cannot replace the
 
 | # | Flow | Pass? | Notes |
 |---|------|-------|-------|
-| 1 | Google **sign-in** → dashboard loads with your data | ☐ | |
-| 2 | **Sign-out** → bare landing (logo + sign-in only, no tabs/time range) | ☐ | PR #282 |
-| 3 | Sign-in again → **volume goals** still correct (no zero wipe) | ☐ | |
-| 4 | **Settings** save + hard refresh → values persist | ☐ | |
-| 5 | **JSON backup** export → import round-trip | ☐ | |
-| 6 | **Intervals sync** (cloud, signed in, no local API key) | ☐ | Phase 4.2 |
-| 7 | **Intervals sync** signed out → blocked / sign-in prompt | ☐ | |
-| 8 | **Strava** connect + enrich one activity | ☐ | |
-| 9 | **Nightly Intervals Sync** GitHub Action → green | ☐ | |
-| 10 | DevTools **Console**: no CSP violations in normal use | ☐ | |
-| 11 | DevTools **Console**: no raw API keys during save/sync | ☐ | `safeLog` / redaction |
+| 1 | Google **sign-in** → dashboard loads with your data | ✅ | Owner confirmed 2026-08-21 |
+| 2 | **Sign-out** → bare landing (logo + sign-in only, no tabs/time range) | ✅ | PR #282 |
+| 3 | Sign-in again → **volume goals** still correct (no zero wipe) | ✅ | |
+| 4 | **Settings** save + hard refresh → values persist | ✅ | |
+| 5 | **JSON backup** export → import round-trip | ✅ | |
+| 6 | **Intervals sync** (cloud, signed in, no local API key) | ✅ | Phase 4.2 |
+| 7 | **Intervals sync** signed out → blocked / sign-in prompt | ✅ | |
+| 8 | **Strava** connect + enrich one activity | ✅ | |
+| 9 | **Nightly Intervals Sync** GitHub Action → green | ✅ | |
+| 10 | DevTools **Console**: no CSP violations in normal use | ✅ | |
+| 11 | DevTools **Console**: no raw API keys during save/sync | ✅ | `safeLog` / redaction |
 
 ---
 
@@ -71,11 +71,11 @@ Complete in the live app and tick when done. Automated checks cannot replace the
 
 | Item | Where to verify | Status |
 |------|-----------------|--------|
-| Firestore rules match `firestore.rules` | [Firebase Console → Rules](https://console.firebase.google.com/project/climb-performance-lab/firestore/rules) | ☐ Owner confirmed paste |
-| Firebase API key **HTTP referrer** restrictions | [GCP Credentials](https://console.cloud.google.com/apis/credentials?project=climb-performance-lab) | ☐ Restrict to GitHub Pages + localhost |
+| Firestore rules match `firestore.rules` | [Firebase Console → Rules](https://console.firebase.google.com/project/climb-performance-lab/firestore/rules) | ✅ Owner confirmed paste |
+| Firebase API key **HTTP referrer** restrictions | [GCP Credentials](https://console.cloud.google.com/apis/credentials?project=climb-performance-lab) | ✅ Restrict to GitHub Pages + localhost |
 | Cloud Run `sync-intervals` auth live | Revision `00017+` with `auth_gate.py` | ✅ Owner deploy 2026-07-08 |
-| `AUTOMATION_SHARED_SECRET` aligned | Cloud Run env + GitHub Actions secret | ☐ |
-| GitHub `FIREBASE_SERVICE_ACCOUNT` valid | Nightly sync + rules deploy workflows | ☐ |
+| `AUTOMATION_SHARED_SECRET` aligned | Cloud Run env + GitHub Actions secret | ✅ |
+| GitHub `FIREBASE_SERVICE_ACCOUNT` valid | Nightly sync + rules deploy workflows | ✅ |
 
 ### Quick cloud-function auth test (optional)
 
@@ -131,12 +131,11 @@ See also `.jules/sentinel.md` (journal + register).
 
 When manual smoke (§7.2) and configuration (§7.3) are complete, reply on the closing PR or issue:
 
-> **Sentinel complete — accepted residual risks**  
-> (or list follow-ups: e.g. Phase 4.3 App Check, Phase 6 npm audit)
+> **Sentinel complete — accepted residual risks**
 
 | Role | Name | Date | Signature |
 |------|------|------|-----------|
-| Owner | | | |
+| Owner | VCCharlie | 2026-08-21 | Accepted residual risks R1–R10 |
 
 ---
 

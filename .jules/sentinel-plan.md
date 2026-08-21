@@ -2,7 +2,7 @@
 
 **Status:** Living document — master plan for phased security hardening  
 **Last audit:** 2026-07-08 (Phase 7)  
-**Progress:** Phase 1–4.2 ✅ deployed · Phase 4.3 / 5 deferred · Phase 6 ongoing · **Phase 7 audit doc ready — owner sign-off pending**  
+**Progress:** Phase 1–4.2 ✅ deployed · Phase 4.3 / 5 deferred · Phase 6 ongoing · **Phase 7 owner sign-off complete (2026-08-21)**  
 **Scope:** Client SPA (`src/`), PWA (`index.html`, Workbox), Cloud Function (`cloud-function/`), CI (`.github/workflows/`)  
 **Constraint (owner):** No changes that risk locking the owner out of Firebase/Google OAuth or existing cloud data without an explicit backup + rollback plan.
 
@@ -325,7 +325,7 @@ activities/{id}   →  authenticated read/write (single-owner shared log today)
 
 ## Phase 7 — Post-completion full audit (final gate)
 
-**Status:** Automated audit complete 2026-07-08. **Owner manual smoke + sign-off pending.**
+**Status:** Automated audit complete 2026-07-08. **Owner manual smoke + sign-off complete 2026-08-21.**
 
 **Deliverable:** [`docs/SENTINEL_PHASE_7_AUDIT.md`](../docs/SENTINEL_PHASE_7_AUDIT.md)
 
@@ -369,7 +369,7 @@ npm audit
 
 - ✅ [`docs/SENTINEL_PHASE_7_AUDIT.md`](../docs/SENTINEL_PHASE_7_AUDIT.md) — automated results + owner checklists
 - ✅ `.jules/sentinel.md` residual risk register (R1–R10)
-- ⏳ Owner sign-off comment: *"Sentinel complete — accepted residual risks"* or list follow-ups
+- ✅ Owner sign-off recorded 2026-08-21 — accepted residual risks R1–R10
 
 **Phase 7 exit criteria:** All smoke tests pass; residual risks documented; owner explicit OK.
 

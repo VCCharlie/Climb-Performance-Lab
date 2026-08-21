@@ -19,14 +19,18 @@ import {
     formatDurationHoursMinutes,
     formatWeekChartTickEn,
     formatMonthChartTickEn,
+    formatYearChartTickEn,
     orderVolumeRowsChronological,
     trailingMovingAverage,
     addDaysToYmd,
     monthKeyToDateRange,
+    yearKeyToDateRange,
     buildWeeklyVolumeTotals,
     buildMonthlyVolumeTotals,
+    buildYearlyVolumeTotals,
     mondayOneYearBefore,
     monthKeyOneYearBefore,
+    yearKeyOneYearBefore,
 } from '../../utils/dashboardVolumeTotals';
 
 const VOL_CHART_STORAGE_KEY = 'cpl.dashboard.volumeChart.v1';
@@ -70,12 +74,15 @@ const pill = (active) =>
 const VolumeTotalsChart = ({
     weeklyRows,
     monthlyRows,
+    yearlyRows,
     onOpenActivityLogDateRange,
     comparePrevPeriodActivities = [],
     comparePrevYearActivities = [],
 }) => {
     const persisted = readVolumeChartPersist();
-    const [cadence, setCadence] = useState(() => (persisted?.cadence === 'monthly' ? 'monthly' : 'weekly'));
+    const [cadence, setCadence] = useState(() =>
+        (['weekly', 'monthly', 'yearly'].includes(persisted?.cadence) ? persisted.cadence : 'weekly'),
+    );
     const [metricId, setMetricId] = useState(() =>
         (['distance', 'time', 'elevation', 'load'].includes(persisted?.metricId) ? persisted.metricId : 'distance'),
     );
@@ -95,12 +102,16 @@ const VolumeTotalsChart = ({
         );
     }, [cadence, metricId, selectedKey, compareMode]);
 
-    const sourceRows = cadence === 'weekly' ? weeklyRows : monthlyRows;
+    const sourceRows = cadence === 'weekly'
+        ? weeklyRows
+        : cadence === 'monthly'
+            ? monthlyRows
+            : yearlyRows;
     const chronological = useMemo(() => orderVolumeRowsChronological(sourceRows), [sourceRows]);
 
     const chartData = useMemo(() => {
         const metric = METRICS.find((x) => x.id === metricId) || METRICS[0];
-        const trendWindow = cadence === 'weekly' ? 4 : 3;
+        const trendWindow = cadence === 'weekly' ? 4 : cadence === 'monthly' ? 3 : 3;
 
         const compareActs =
             compareMode === 'prevPeriod'
@@ -114,7 +125,9 @@ const VolumeTotalsChart = ({
                 ? orderVolumeRowsChronological(
                     cadence === 'weekly'
                         ? buildWeeklyVolumeTotals(compareActs)
-                        : buildMonthlyVolumeTotals(compareActs),
+                        : cadence === 'monthly'
+                            ? buildMonthlyVolumeTotals(compareActs)
+                            : buildYearlyVolumeTotals(compareActs),
                 )
                 : [];
 
@@ -125,7 +138,11 @@ const VolumeTotalsChart = ({
         const rows = chronological.map((r) => ({
             ...r,
             barValue: Math.max(0, Number(metric.barValue(r)) || 0),
-            tick: cadence === 'weekly' ? formatWeekChartTickEn(r.key) : formatMonthChartTickEn(r.key),
+            tick: cadence === 'weekly'
+                ? formatWeekChartTickEn(r.key)
+                : cadence === 'monthly'
+                    ? formatMonthChartTickEn(r.key)
+                    : formatYearChartTickEn(r.key),
         }));
 
         const nAlign = Math.min(rows.length, compareRowsOrdered.length);
@@ -134,8 +151,11 @@ const VolumeTotalsChart = ({
         const withCompare = rows.map((row, i) => {
             let compareBar = 0;
             if (compareMode === 'prevYear') {
-                const look =
-                    cadence === 'weekly' ? mondayOneYearBefore(row.key) : monthKeyOneYearBefore(row.key);
+                const look = cadence === 'weekly'
+                    ? mondayOneYearBefore(row.key)
+                    : cadence === 'monthly'
+                        ? monthKeyOneYearBefore(row.key)
+                        : yearKeyOneYearBefore(row.key);
                 compareBar = look && compareKeyToVal.has(look) ? compareKeyToVal.get(look) : 0;
             } else if (compareMode === 'prevPeriod' && nAlign > 0 && i >= offAlign) {
                 const pr = compareRowsOrdered[i - offAlign];
@@ -178,7 +198,10 @@ const VolumeTotalsChart = ({
             if (!endYmd) return null;
             return { startYmd: selected.key, endYmd };
         }
-        return monthKeyToDateRange(selected.key);
+        if (cadence === 'monthly') {
+            return monthKeyToDateRange(selected.key);
+        }
+        return yearKeyToDateRange(selected.key);
     }, [selected, cadence]);
 
     const yTickFormatter = (v) => {
@@ -211,12 +234,15 @@ const VolumeTotalsChart = ({
         <div className={`${chartCardClass} space-y-4`}>
             <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-3">
                 <h3 className="text-sm font-bold text-cdtext">Volume chart</h3>
-                <div className="flex flex-wrap gap-2" role="group" aria-label="Week or month">
+                <div className="flex flex-wrap gap-2" role="group" aria-label="Week, month, or year">
                     <button type="button" className={pill(cadence === 'weekly')} onClick={() => setCadence('weekly')}>
                         Weekly
                     </button>
                     <button type="button" className={pill(cadence === 'monthly')} onClick={() => setCadence('monthly')}>
                         Monthly
+                    </button>
+                    <button type="button" className={pill(cadence === 'yearly')} onClick={() => setCadence('yearly')}>
+                        Yearly
                     </button>
                 </div>
             </div>
@@ -364,7 +390,7 @@ const VolumeTotalsChart = ({
                 </span>
             </div>
             <p className="text-[10px] text-cdmuted text-center">
-                Prev period aligns trailing buckets; last year matches the same week/month one year back. Orange line = rolling average.
+                Prev period aligns trailing buckets; last year matches the same week, month, or year one calendar period back. Orange line = rolling average.
             </p>
         </div>
     );

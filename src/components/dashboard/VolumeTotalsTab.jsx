@@ -4,6 +4,7 @@ import { formatNlNumber } from '../../utils/formatters';
 import {
     buildMonthlyVolumeTotals,
     buildWeeklyVolumeTotals,
+    buildYearlyVolumeTotals,
     formatDurationHoursMinutes,
 } from '../../utils/dashboardVolumeTotals';
 import VolumeTotalsChart from './VolumeTotalsChart';
@@ -38,7 +39,7 @@ const TotalsTable = ({ rows, periodHeading }) => (
 );
 
 /**
- * Dashboard: weekly & monthly distance, elevation, moving time, and TSS-style load totals.
+ * Dashboard: weekly, monthly & yearly distance, elevation, moving time, and TSS-style load totals.
  */
 const VolumeTotalsTab = ({
     data,
@@ -48,6 +49,7 @@ const VolumeTotalsTab = ({
 }) => {
     const monthly = useMemo(() => buildMonthlyVolumeTotals(data), [data]);
     const weekly = useMemo(() => buildWeeklyVolumeTotals(data), [data]);
+    const yearly = useMemo(() => buildYearlyVolumeTotals(data), [data]);
 
     if (!data?.length) {
         return (
@@ -67,10 +69,23 @@ const VolumeTotalsTab = ({
             <VolumeTotalsChart
                 weeklyRows={weekly}
                 monthlyRows={monthly}
+                yearlyRows={yearly}
                 onOpenActivityLogDateRange={onOpenActivityLogDateRange}
                 comparePrevPeriodActivities={comparePrevPeriodActivities}
                 comparePrevYearActivities={comparePrevYearActivities}
             />
+
+            <section>
+                <h3 className="text-sm font-bold text-cdtext mb-2 flex items-center gap-2">
+                    <CalendarRange size={16} className="text-cdaccent shrink-0" aria-hidden />
+                    Yearly totals
+                </h3>
+                {yearly.length === 0 ? (
+                    <p className="text-xs text-cdmuted">No yearly buckets in this range.</p>
+                ) : (
+                    <TotalsTable rows={yearly} periodHeading="Year" />
+                )}
+            </section>
 
             <section>
                 <h3 className="text-sm font-bold text-cdtext mb-2 flex items-center gap-2">

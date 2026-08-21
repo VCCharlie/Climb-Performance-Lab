@@ -80,8 +80,17 @@ export function formatMonthLabelEn(monthKey) {
     const y = Number(monthKey.slice(0, 4));
     const mo = Number(monthKey.slice(5, 7));
     if (!Number.isFinite(y) || !Number.isFinite(mo)) return monthKey;
-    const monthName = new Date(y, mo - 1, 1).toLocaleDateString('nl-NL', { month: 'long' });
+    const monthName = new Date(y, mo - 1, 1).toLocaleDateString('en-GB', { month: 'long' });
     return `${monthName} ${y}`;
+}
+
+/**
+ * @param {string} yearKey - YYYY
+ */
+export function formatYearLabelEn(yearKey) {
+    if (!yearKey || yearKey.length < 4) return '—';
+    const y = Number(yearKey.slice(0, 4));
+    return Number.isFinite(y) ? String(y) : yearKey;
 }
 
 function emptyBucket() {
@@ -135,6 +144,31 @@ export function buildMonthlyVolumeTotals(activities) {
  * @param {object[]} activities
  * @returns {{ key: string, label: string, rideCount: number, distanceKm: number, elevationM: number, movingTimeSec: number, load: number }[]}
  */
+/**
+ * @param {object[]} activities
+ * @returns {{ key: string, label: string, rideCount: number, distanceKm: number, elevationM: number, movingTimeSec: number, load: number }[]}
+ */
+export function buildYearlyVolumeTotals(activities) {
+    const map = new Map();
+    for (const a of activities || []) {
+        const ymd = normalizeDate(a?.date);
+        if (!ymd || ymd.length < 4) continue;
+        const yearKey = ymd.slice(0, 4);
+        if (!map.has(yearKey)) map.set(yearKey, emptyBucket());
+        addActivityToBucket(map.get(yearKey), a);
+    }
+    return [...map.entries()]
+        .map(([key, b]) => ({
+            key,
+            label: formatYearLabelEn(key),
+            ...b,
+            elevationM: Math.round(b.elevationM),
+            distanceKm: Math.round(b.distanceKm * 10) / 10,
+            load: Math.round(b.load),
+        }))
+        .sort((x, y) => y.key.localeCompare(x.key));
+}
+
 export function buildWeeklyVolumeTotals(activities) {
     const map = new Map();
     for (const a of activities || []) {
@@ -186,6 +220,14 @@ export function formatMonthChartTickEn(monthKey) {
     if (!monthKey || monthKey.length < 7) return monthKey || '';
     const label = formatDateDDMMYYYY(`${monthKey}-01`);
     return label === '-' ? monthKey : label;
+}
+
+/**
+ * X-axis tick for a year bucket (key = YYYY).
+ * @param {string} yearKey
+ */
+export function formatYearChartTickEn(yearKey) {
+    return formatYearLabelEn(yearKey);
 }
 
 /**
@@ -244,4 +286,24 @@ export function monthKeyOneYearBefore(monthKey) {
     const mo = monthKey.slice(5, 7);
     if (!Number.isFinite(y)) return null;
     return `${y}-${mo}`;
+}
+
+/**
+ * @param {string} yearKey - YYYY
+ * @returns {{ startYmd: string, endYmd: string } | null}
+ */
+export function yearKeyToDateRange(yearKey) {
+    if (!yearKey || yearKey.length < 4) return null;
+    const y = Number(yearKey.slice(0, 4));
+    if (!Number.isFinite(y)) return null;
+    return { startYmd: `${y}-01-01`, endYmd: `${y}-12-31` };
+}
+
+/**
+ * @param {string} yearKey - YYYY
+ */
+export function yearKeyOneYearBefore(yearKey) {
+    if (!yearKey || yearKey.length < 4) return null;
+    const y = Number(yearKey.slice(0, 4)) - 1;
+    return Number.isFinite(y) ? String(y) : null;
 }
