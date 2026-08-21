@@ -116,6 +116,7 @@ import {
 } from './app/AppShellHelpers';
 import TrainingFtpContextNote from './components/coach/TrainingFtpContextNote';
 import TrainingSubTabNav from './components/training/TrainingSubTabNav';
+import TabPageShell from './components/shell/TabPageShell';
 import DashboardTodaySyncButton from './components/dashboard/DashboardTodaySyncButton';
 import { useTodayIntervalsSync } from './context/IntervalsSyncContext';
 
@@ -1140,22 +1141,26 @@ const App = () => {
 
                                         {activeTab === 'training' && (
                                             <div id="main-tabpanel-training" role="tabpanel" aria-labelledby="main-tab-training" className="min-w-0 max-w-full overflow-x-hidden">
-                                                <div className="flex items-start justify-between gap-3 mb-1">
-                                                    <div className="min-w-0 flex-1">
-                                                        <TrainingFtpContextNote userSettings={userSettings} />
-                                                        <TrainingSubTabNav
-                                                            activeTab={trainingSubTab}
-                                                            onChange={setTrainingSubTab}
-                                                        />
-                                                    </div>
-                                                    {syncTodayActivities ? (
+                                                <TabPageShell
+                                                    title="Training"
+                                                    subtitle="AI coach, event goals, and recovery analysis"
+                                                    action={syncTodayActivities ? (
                                                         <DashboardTodaySyncButton
                                                             onSync={syncTodayActivities}
                                                             isBusy={isTodaySyncBusy}
-                                                            className="shrink-0 hidden md:flex mt-1"
+                                                            className="shrink-0 hidden md:flex"
                                                         />
                                                     ) : null}
-                                                </div>
+                                                    subNav={(
+                                                        <>
+                                                            <TrainingFtpContextNote userSettings={userSettings} />
+                                                            <TrainingSubTabNav
+                                                                activeTab={trainingSubTab}
+                                                                onChange={setTrainingSubTab}
+                                                            />
+                                                        </>
+                                                    )}
+                                                >
                                                 {trainingSubTab === 'coach' && (
                                                     <AICoach
                                                         userSettings={userSettings}
@@ -1184,23 +1189,29 @@ const App = () => {
                                                         onGoToActivities={navigateToActivities}
                                                     />
                                                 )}
+                                                </TabPageShell>
                                             </div>
                                         )}
 
                                         {activeTab === 'race' && (
                                     <div id="main-tabpanel-race" role="tabpanel" aria-labelledby="main-tab-race" className="min-w-0">
-                                        <SegmentedControl
-                                            className="mb-4"
-                                            size="lg"
-                                            caps={false}
-                                            value={raceSubTab}
-                                            onChange={setRaceSubTab}
-                                            aria-label="Race section"
-                                            options={[
-                                                { value: 'fueling', label: 'Fueling', icon: Utensils },
-                                                { value: 'racepacing', label: 'Race Pacing', icon: Route },
-                                            ]}
-                                        />
+                                        <TabPageShell
+                                            title="Race"
+                                            subtitle="Fueling strategy and multi-climb pacing"
+                                            subNav={(
+                                                <SegmentedControl
+                                                    size="lg"
+                                                    caps={false}
+                                                    value={raceSubTab}
+                                                    onChange={setRaceSubTab}
+                                                    aria-label="Race section"
+                                                    options={[
+                                                        { value: 'fueling', label: 'Fueling', icon: Utensils },
+                                                        { value: 'racepacing', label: 'Race Pacing', icon: Route },
+                                                    ]}
+                                                />
+                                            )}
+                                        >
                                         {raceSubTab === 'fueling' && (
                                             <FuelingStrategy
                                                 initialDuration={fuelingState.duration}
@@ -1230,6 +1241,7 @@ const App = () => {
                                                 }}
                                             />
                                         )}
+                                        </TabPageShell>
                                     </div>
                                 )}
 
@@ -1245,19 +1257,26 @@ const App = () => {
 
                                 {/* Profiler: ClimbProfiler + ClimbProfileCard side by side */}
                                 {activeTab === 'profiler' && (
-                                    <div id="main-tabpanel-profiler" role="tabpanel" aria-labelledby="main-tab-profiler" className="min-w-0 grid grid-cols-1 lg:grid-cols-3 gap-4">
-                                        <div className="lg:col-span-2">
-                                            <ClimbProfiler
-                                                userSettings={userSettings}
-                                                theme={theme}
-                                                initialState={climbProfilerState}
-                                                onStateChange={setClimbProfilerState}
-                                                onOpenBucketList={() => handleTabChange('bucketlist')}
-                                            />
-                                        </div>
-                                        <div className="lg:col-span-1">
-                                            <ClimbProfileCard climb={climbProfilerState.selectedClimb} />
-                                        </div>
+                                    <div id="main-tabpanel-profiler" role="tabpanel" aria-labelledby="main-tab-profiler" className="min-w-0">
+                                        <TabPageShell
+                                            title="Climb Profiler"
+                                            subtitle="Segment-level gradient profile and power zone overlay"
+                                        >
+                                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                                <div className="lg:col-span-2">
+                                                    <ClimbProfiler
+                                                        userSettings={userSettings}
+                                                        theme={theme}
+                                                        initialState={climbProfilerState}
+                                                        onStateChange={setClimbProfilerState}
+                                                        onOpenBucketList={() => handleTabChange('bucketlist')}
+                                                    />
+                                                </div>
+                                                <div className="lg:col-span-1">
+                                                    <ClimbProfileCard climb={climbProfilerState.selectedClimb} />
+                                                </div>
+                                            </div>
+                                        </TabPageShell>
                                     </div>
                                 )}
 

@@ -23,6 +23,7 @@ export default function PowerLongevityCard({
     weightKg = 0,
     userSettings,
     onGoToPowerTab,
+    bare = false,
 }) {
     const summary = useMemo(() => {
         const historicalFtpByYear = resolveHistoricalFtpMap(userSettings, activities);
@@ -43,15 +44,19 @@ export default function PowerLongevityCard({
                 ? 'text-amber-700 dark:text-amber-400'
                 : 'text-cdtext';
 
-    return (
-        <div className={chartCardClass}>
-            <div className="flex items-start justify-between gap-3 mb-4">
+    const body = (
+        <>
+            <div className={`flex items-start justify-between gap-3 ${bare ? 'mb-3' : 'mb-4'}`}>
                 <div className="flex items-start gap-2 min-w-0">
-                    <Activity className="w-5 h-5 text-cdblue shrink-0 mt-0.5" aria-hidden />
+                    {!bare ? (
+                        <Activity className="w-5 h-5 text-cdblue shrink-0 mt-0.5" aria-hidden />
+                    ) : null}
                     <div className="min-w-0">
-                        <h3 className="text-sm font-bold text-cdtext uppercase tracking-wider">
-                            Long-term power
-                        </h3>
+                        {!bare ? (
+                            <h3 className="text-sm font-bold text-cdtext uppercase tracking-wider">
+                                Long-term power
+                            </h3>
+                        ) : null}
                         <p className="text-[11px] text-cdmuted leading-snug">
                             Peak eFTP (20 min × 0.95) per calendar year — {summary.yearsWithPowerData} years with data.
                             {birthYear ? ` Age axis available (born ${birthYear}).` : ''}
@@ -117,6 +122,10 @@ export default function PowerLongevityCard({
                     Add your birth year in Settings to plot power against age on the Power tab.
                 </p>
             )}
-        </div>
+        </>
     );
+
+    if (bare) return body;
+
+    return <div className={chartCardClass}>{body}</div>;
 }

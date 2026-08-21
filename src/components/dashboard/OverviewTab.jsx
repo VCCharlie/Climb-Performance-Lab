@@ -1,9 +1,7 @@
 import React, { Suspense } from 'react';
 import VolumeGoalsPanel from './VolumeGoalsPanel';
-import ClimbingReadinessCard from './ClimbingReadinessCard';
-import YtdCompareCard from './YtdCompareCard';
-import PowerLongevityCard from './PowerLongevityCard';
-import DailyHomePanel from './DailyHomePanel';
+import TodayHeroPanel from './TodayHeroPanel';
+import YtdPowerTrendCard from './YtdPowerTrendCard';
 import EmptyStateCard from '../ui/EmptyStateCard';
 import { SkeletonChartCard } from '../ui/Skeleton';
 import { lazyWithRetry } from '../../utils/lazyWithRetry';
@@ -16,10 +14,10 @@ const OverviewChartsPanel = lazyWithRetry(
 
 /**
  * OverviewTab: Main Dashboard overview.
- *  - Climbing readiness (full activity history for TSB / this-week metrics)
- *  - StatCards + FTP Progression (PerformanceModule)
- *  - Bar charts: Distance / TSS / Elevation (each with Week/Month toggle)
- *  - 52-week Activity Heatmap
+ *  - Today hero (readiness + focus / latest ride)
+ *  - YTD volume + long-term power (merged card)
+ *  - Volume goals (collapsed on mobile by default)
+ *  - Compact performance KPIs + unified volume charts + heatmap
  */
 const OverviewTab = ({
     data,
@@ -53,21 +51,14 @@ const OverviewTab = ({
 
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
-            <ClimbingReadinessCard
-                activities={activitySource}
-                userSettings={userSettings}
-            />
-
-            <DailyHomePanel
+            <TodayHeroPanel
                 activities={activitySource}
                 userSettings={userSettings}
                 onOpenActivityInLog={onOpenActivityInLog}
                 onGoToTraining={onGoToTraining}
             />
 
-            <YtdCompareCard activities={activitySource} manualFtp={manualFtp} />
-
-            <PowerLongevityCard
+            <YtdPowerTrendCard
                 activities={activitySource}
                 manualFtp={manualFtp}
                 weightKg={userSettings?.weight}
@@ -96,6 +87,7 @@ const OverviewTab = ({
                         customTicks={customTicks}
                         onOpenActivityInLog={onOpenActivityInLog}
                         userSettings={userSettings}
+                        onGoToPowerTab={onGoToPowerTab}
                     />
                 </Suspense>
             )}

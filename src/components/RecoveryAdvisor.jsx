@@ -164,10 +164,10 @@ const RecoveryAdvisor = ({ activities: activitiesProp, startDate, endDate, onGoT
     if (!trainingMetrics.current) {
         return (
             <div className="bg-cdsurface p-6 rounded-xl border border-cdborder shadow-xl">
-                <h2 className="text-xl font-bold text-cdtext mb-4 flex items-center gap-2">
+                <h3 className="text-lg font-bold text-cdtext mb-4 flex items-center gap-2">
                     <Activity className="text-purple-400" aria-hidden />
                     Training Load & Recovery Advisor
-                </h2>
+                </h3>
                 <EmptyStateCard
                     icon={Calendar}
                     title="No activities in this period"
@@ -182,10 +182,10 @@ const RecoveryAdvisor = ({ activities: activitiesProp, startDate, endDate, onGoT
     return (
         <div className="bg-cdsurface p-3 md:p-6 rounded-xl border border-cdborder shadow-md space-y-4 md:space-y-6 min-w-0 max-w-full overflow-x-hidden">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <h2 className="text-xl md:text-2xl font-bold text-cdtext flex items-center gap-2 min-w-0">
+                <h3 className="text-lg md:text-xl font-bold text-cdtext flex items-center gap-2 min-w-0">
                     <Activity className="text-purple-400 shrink-0" />
                     <span className="truncate">Training Load & Recovery Advisor</span>
-                </h2>
+                </h3>
                 <div className="hidden sm:block shrink-0 text-xs text-cdmuted bg-cdbg px-3 py-1 rounded-full border border-cdborder">
                     Performance Management Chart
                 </div>

@@ -26,6 +26,7 @@ import PlaygroundExplorerPanel from './playground/PlaygroundExplorerPanel';
 import PlaygroundPeriodTable from './playground/PlaygroundPeriodTable';
 import PlaygroundResponsiveHeader from './playground/PlaygroundResponsiveHeader';
 import CollapsibleSection from '../ui/CollapsibleSection';
+import { SegmentedControl } from '../ui';
 import {
     playgroundTdMonoClass,
     playgroundTdMutedClass,
@@ -53,11 +54,19 @@ const CoachDataPlayground = ({ activities }) => {
             icon={BarChart3}
             defaultExpanded
         >
-            <div className="flex flex-wrap gap-2 -mt-1">
-                <ModeButton active={mode === 'trends'} onClick={() => setMode('trends')} icon={TrendingUp} label="Volume & HR trends" />
-                <ModeButton active={mode === 'explorer'} onClick={() => setMode('explorer')} icon={GitBranch} label="Metric explorer" />
-                <ModeButton active={mode === 'power'} onClick={() => setMode('power')} icon={Zap} label="Power rankings" />
-            </div>
+            <SegmentedControl
+                size="sm"
+                caps={false}
+                value={mode}
+                onChange={setMode}
+                aria-label="Data playground mode"
+                className="flex-wrap"
+                options={[
+                    { value: 'trends', label: 'Volume & HR trends', icon: TrendingUp },
+                    { value: 'explorer', label: 'Metric explorer', icon: GitBranch },
+                    { value: 'power', label: 'Power rankings', icon: Zap },
+                ]}
+            />
 
             {mode === 'trends' ? (
                 <TrendsPanel activities={activities} />
@@ -69,23 +78,6 @@ const CoachDataPlayground = ({ activities }) => {
         </CollapsibleSection>
     );
 };
-
-function ModeButton({ active, onClick, icon: IconComponent, label }) {
-    return (
-        <button
-            type="button"
-            onClick={onClick}
-            className={`text-xs font-bold px-3 py-1.5 rounded-lg border flex items-center gap-1.5 transition-colors ${
-                active
-                    ? 'border-cdaccent text-cdaccent bg-cdaccent/10'
-                    : 'border-cdborder text-cdmuted hover:text-cdtext'
-            }`}
-        >
-            <IconComponent size={13} />
-            {label}
-        </button>
-    );
-}
 
 function TrendsPanel({ activities }) {
     const today = todayYmd();

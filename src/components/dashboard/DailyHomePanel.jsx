@@ -12,6 +12,7 @@ export default function DailyHomePanel({
     userSettings,
     onOpenActivityInLog,
     onGoToTraining,
+    embedded = false,
 }) {
     const coachContext = useMemo(
         () => buildCoachContext(activities || [], userSettings || {}),
@@ -32,7 +33,13 @@ export default function DailyHomePanel({
     if (!showFocus && !rideInsight) return null;
 
     return (
-        <section aria-label="Today at a glance" className="space-y-4">
+        <section
+            aria-label={embedded ? 'Today focus and latest ride' : 'Today at a glance'}
+            className={`space-y-4 ${embedded ? 'rounded-lg border border-cdborder/60 bg-cdbg/20 p-3 md:p-4' : ''}`}
+        >
+            {embedded && (showFocus || rideInsight) ? (
+                <h4 className="text-xs font-bold text-cdtext uppercase tracking-wider">Focus &amp; latest ride</h4>
+            ) : null}
             {showFocus && (
                 <div>
                     <TodaysFocusCard coachContext={coachContext} />

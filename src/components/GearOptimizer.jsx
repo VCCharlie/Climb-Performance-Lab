@@ -180,11 +180,11 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Left: Configuration */}
                 <div className="space-y-4">
-                    <h3 className="text-sm font-bold text-cdtext uppercase tracking-wide">Huidige Setup</h3>
+                    <h3 className="text-sm font-bold text-cdtext uppercase tracking-wide">Current setup</h3>
 
                     {/* Chainrings Preset */}
                     <div className="bg-cdbg/50 p-4 rounded border border-cdborder space-y-3">
-                        <label className="text-xs text-cdmuted uppercase">Kettingbladen</label>
+                        <label className="text-xs text-cdmuted uppercase">Chainrings</label>
                         <select
                             onChange={(e) => setChainrings(gearingPresets[e.target.value].chainrings)}
                             className="w-full bg-cdborder border border-cdborder rounded px-3 py-2 text-cdtext text-sm"
@@ -216,7 +216,7 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
 
                     {/* Wheels */}
                     <div className="bg-cdbg/50 p-4 rounded border border-cdborder space-y-3">
-                        <label className="text-xs text-cdmuted uppercase">Wielmaat</label>
+                        <label className="text-xs text-cdmuted uppercase">Wheel size</label>
                         <div className="grid grid-cols-2 gap-2">
                             <button
                                 onClick={() => setWheelDiameter(700)}
@@ -233,7 +233,7 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
                         </div>
 
                         <div>
-                            <label className="text-xs text-cdmuted">Bandenmaat (mm)</label>
+                            <label className="text-xs text-cdmuted">Tyre width (mm)</label>
                             <input
                                 type="number"
                                 value={tyreMm}
@@ -336,7 +336,7 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
 
                     {/* Gear Chart */}
                     <div className="bg-cdbg border border-cdborder rounded p-4">
-                        <h4 className="text-cdtext font-bold text-sm mb-3">Alle Verzetten (Cadans @ {Math.round(gearAnalysis.targetSpeedKmh)} km/h)</h4>
+                        <h4 className="text-cdtext font-bold text-sm mb-3">All gear ratios (cadence @ {Math.round(gearAnalysis.targetSpeedKmh)} km/h)</h4>
                         <div className="max-h-64 overflow-y-auto custom-scrollbar space-y-1">
                             {gearAnalysis.gears.map((gear, idx) => (
                                 <div
@@ -359,8 +359,8 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
                             ))}
                         </div>
                         <div className="text-xs text-cdmuted mt-2">
-                            Groene verzetten: 60-100 rpm | Geel = optimaal voor {targetCadence} rpm<br />
-                            Development (m) = afstand per trapomwenteling
+                            Green ratios: 60–100 rpm | Highlighted = optimal for {targetCadence} rpm<br />
+                            Development (m) = distance per crank revolution
                         </div>
                     </div>
                 </div>

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Activity, TrendingDown, TrendingUp, Minus, ChevronDown, Info } from 'lucide-react';
 import CollapsibleSection from '../ui/CollapsibleSection';
+import { SegmentedControl } from '../ui';
 import { formatDateDDMMYYYY } from '../../utils/formatters';
 import {
     buildDriftProfileTrend,
@@ -395,33 +396,22 @@ export default function CoachHrDrift({
             defaultExpanded={totalAnalyzed > 0 || totalEligible > 0}
         >
             <div className="space-y-4">
-                <div className="flex flex-wrap gap-2" role="tablist" aria-label="HR drift profile">
-                    {DRIFT_TAB_ORDER.map((profile) => {
-                        const active = activeTab === profile;
+                <SegmentedControl
+                    size="sm"
+                    caps={false}
+                    value={activeTab}
+                    onChange={setActiveTab}
+                    aria-label="HR drift profile"
+                    className="flex-wrap"
+                    options={DRIFT_TAB_ORDER.map((profile) => {
                         const badge = signals[profile]?.analyzed || 0;
-                        return (
-                            <button
-                                key={profile}
-                                type="button"
-                                role="tab"
-                                aria-selected={active}
-                                onClick={() => setActiveTab(profile)}
-                                className={`text-xs font-bold px-3 py-1.5 rounded-lg border flex items-center gap-1.5 transition-colors ${
-                                    active
-                                        ? 'border-cdaccent text-cdaccent bg-cdaccent/10'
-                                        : 'border-cdborder text-cdmuted hover:text-cdtext'
-                                }`}
-                            >
-                                {TAB_LABELS[profile]}
-                                {badge > 0 && (
-                                    <span className="text-[9px] tabular-nums px-1 rounded bg-cdborder/40 text-cdmuted">
-                                        {badge}
-                                    </span>
-                                )}
-                            </button>
-                        );
+                        const baseLabel = TAB_LABELS[profile];
+                        return {
+                            value: profile,
+                            label: badge > 0 ? `${baseLabel} (${badge})` : baseLabel,
+                        };
                     })}
-                </div>
+                />
 
                 <div role="tabpanel">
                     <DriftProfilePanel

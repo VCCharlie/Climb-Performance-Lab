@@ -475,13 +475,13 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
 
     return (
         <div className="space-y-4 md:space-y-6 animate-in fade-in min-w-0 max-w-full overflow-x-hidden">
-            {/* Header */}
+            {/* Header — section summary (page title lives on Dashboard) */}
             <div className="bg-cdsurface p-3 md:p-6 rounded-xl border border-cdborder shadow-md flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                    <h2 className="text-xl md:text-2xl font-bold text-cdtext flex items-center gap-2">
+                    <h3 className="text-lg md:text-xl font-bold text-cdtext flex items-center gap-2">
                         <Brain className="text-purple-400 shrink-0" />
                         <span className="truncate">AI Performance Coach</span>
-                    </h2>
+                    </h3>
                     <p className="text-sm text-cdmuted">Based on your data from {swot.periodLabel}.</p>
                 </div>
                 <div className="text-right hidden md:block">

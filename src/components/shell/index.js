@@ -1,3 +1,4 @@
+export { default as TabPageShell } from './TabPageShell';
 export { default as MainNav } from './MainNav';
 export { default as NavMoreMenu } from './NavMoreMenu';
 export { default as MobileBottomNav } from './MobileBottomNav';
