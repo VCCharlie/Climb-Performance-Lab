@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { X, Calendar, Clock, MapPin, Zap, ExternalLink, Mountain, TrendingUp, Loader2, AlertCircle, Star, Bike, Trophy, Crown, Heart } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
-import { formatSegmentTime, navigateToStravaSegment, stravaActivityUrl, stravaFlybyUrl, openExternalUrl, openStravaFlyby } from '../../utils/strava';
+import { formatSegmentTime, navigateToStravaSegment, stravaActivityUrl, stravaFlybyUrl, openExternalUrl, openStravaFlyby, resolveFlybyStravaId } from '../../utils/strava';
 import {
     activityEfficiencyFactor,
     activityVariabilityIndex,
@@ -204,10 +204,10 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
                                     <StravaIcon size={12} /> Strava <ExternalLink size={10} />
                                 </button>
                             )}
-                            {activity.strava_id && stravaFlybyUrl(activity.strava_id) && (
+                            {resolveFlybyStravaId(activity) && stravaFlybyUrl(resolveFlybyStravaId(activity)) && (
                                 <button
                                     type="button"
-                                    onClick={() => openStravaFlyby(activity)}
+                                    onClick={() => { void openStravaFlyby(activity, { getStravaToken }); }}
                                     className="text-xs text-orange-300 hover:text-orange-200 flex items-center gap-1 cd-focus-ring rounded-sm px-1 py-0.5 -ml-1"
                                 >
                                     Flyby <ExternalLink size={10} />

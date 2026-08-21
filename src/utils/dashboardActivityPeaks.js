@@ -2,7 +2,7 @@
  * Find activity with best (capped) power value for dashboard / Power tab.
  */
 
-import { stravaActivityUrl, stravaFlybyUrl } from './strava';
+import { stravaActivityUrl, stravaFlybyUrl, resolveFlybyStravaId } from './strava';
 
 /** Same sanity ceiling as Dashboard.enhanceActivity — eFTP estimates above this are discarded. */
 const MAX_DISPLAY_EFTP_W = 600;
@@ -130,7 +130,8 @@ export function activityExternalLinks(activity) {
         links.push({ label: 'Intervals.icu', href: `https://intervals.icu/activities/${id}` });
     }
     const stravaHref = stravaActivityUrl(activity.strava_id);
-    const flybyHref = stravaFlybyUrl(activity.strava_id);
+    const flybyStravaId = resolveFlybyStravaId(activity);
+    const flybyHref = flybyStravaId ? stravaFlybyUrl(flybyStravaId) : null;
     if (stravaHref) {
         links.push({ label: 'Strava', href: stravaHref });
     }

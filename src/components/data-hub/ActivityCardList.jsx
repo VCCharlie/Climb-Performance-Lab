@@ -55,6 +55,7 @@ const ActivityCardList = React.memo(({
     onToggleSelectAllVisible,
     profileFtp,
     profileMaxHr,
+    getStravaToken,
     visibleColumns,
     bulkSelectionActive = false,
 }) => {
@@ -70,6 +71,7 @@ const ActivityCardList = React.memo(({
         visibleColumns,
         profileFtp,
         profileMaxHr,
+        getStravaToken,
     };
 
     const flatRows = useMemo(

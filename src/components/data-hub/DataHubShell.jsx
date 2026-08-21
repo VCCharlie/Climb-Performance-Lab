@@ -124,6 +124,7 @@ const DataHubShell = ({
                         profilerClimbByActivityId={logDerivations.profilerClimbByActivityId}
                         profileFtp={resolvedProfileFtp}
                         profileMaxHr={profileMaxHr}
+                        getStravaToken={stravaGetToken}
                         visibleColumns={visibleColumns}
                         onFilterByGearId={filter.filterByGearId}
                         onRunSync={handleRunSyncWithBulk}

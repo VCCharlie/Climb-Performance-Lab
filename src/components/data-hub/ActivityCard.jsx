@@ -4,7 +4,7 @@ import {
 } from 'lucide-react';
 import { formatDateDDMMYYYY } from '../../utils';
 import { getActivityCardMetrics } from '../../utils/activityCardMetrics';
-import { stravaActivityUrl, stravaFlybyUrl, openExternalUrl, openStravaFlyby } from '../../utils/strava';
+import { stravaActivityUrl, stravaFlybyUrl, openExternalUrl, openStravaFlyby, resolveFlybyStravaId } from '../../utils/strava';
 import { cn } from '../ui/cn';
 import AnchoredDropdownPortal from '../ui/AnchoredDropdownPortal';
 import ActivityTypeIcon from './ActivityTypeIcon';
@@ -70,6 +70,7 @@ const ActivityCard = React.memo(({
     visibleColumns,
     profileFtp,
     profileMaxHr,
+    getStravaToken,
 }) => {
     const [menuOpen, setMenuOpen] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(false);
@@ -106,7 +107,8 @@ const ActivityCard = React.memo(({
     const description = (act.description || act.notes || '').trim();
     const climbMatch = profilerClimbByActivityId?.get(String(act.id));
     const stravaUrl = stravaActivityUrl(act.strava_id);
-    const flybyUrl = stravaFlybyUrl(act.strava_id);
+    const flybyStravaId = resolveFlybyStravaId(act);
+    const flybyUrl = flybyStravaId ? stravaFlybyUrl(flybyStravaId) : null;
 
     const closeMenu = () => {
         setMenuOpen(false);
@@ -271,7 +273,7 @@ const ActivityCard = React.memo(({
                                 {flybyUrl && (
                                     <MenuItem
                                         onClick={() => {
-                                            openStravaFlyby(act);
+                                            void openStravaFlyby(act, { getStravaToken });
                                             closeMenu();
                                         }}
                                     >

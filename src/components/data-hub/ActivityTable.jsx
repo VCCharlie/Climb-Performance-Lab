@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
 import { resolveStravaGearDisplay } from '../../utils/stravaBikesLocalMap';
-import { stravaActivityUrl, stravaFlybyUrl, openExternalUrl, openStravaFlyby } from '../../utils/strava';
+import { stravaActivityUrl, stravaFlybyUrl, openExternalUrl, openStravaFlyby, resolveFlybyStravaId } from '../../utils/strava';
 import { getKomBadgeCountsFromSummary, getKomBadgeDisplaySlots } from '../../utils/stravaSegmentKomSummary';
 import { buildStickyColumnMeta, stickyTableCellProps, stickyActionsCellProps } from '../../utils/activityTableSticky';
 import NormPowerCell from './NormPowerCell';
@@ -212,6 +212,7 @@ export const Row = React.memo(React.forwardRef(({
     showBulkSelect = false,
     profileFtp,
     profileMaxHr,
+    getStravaToken,
     columns = ACTIVITY_TABLE_COLUMNS,
     stickyMeta = null,
     ...trProps
@@ -221,7 +222,8 @@ export const Row = React.memo(React.forwardRef(({
     if (!act) return null;
 
     const stravaUrl = stravaActivityUrl(act.strava_id);
-    const flybyUrl = stravaFlybyUrl(act.strava_id);
+    const flybyStravaId = resolveFlybyStravaId(act);
+    const flybyUrl = flybyStravaId ? stravaFlybyUrl(flybyStravaId) : null;
     const climbMatch = profilerClimbByActivityId?.get(String(act.id));
 
     const renderCell = (col) => {
@@ -563,7 +565,7 @@ export const Row = React.memo(React.forwardRef(({
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     e.preventDefault();
-                                    openStravaFlyby(act);
+                                    void openStravaFlyby(act, { getStravaToken });
                                 }}
                                 title="Open Strava Flyby"
                                 aria-label="Open Strava Flyby"
@@ -637,6 +639,7 @@ const ActivityTable = React.memo(({
     onToggleSelectAllVisible,
     profileFtp,
     profileMaxHr,
+    getStravaToken,
     visibleColumns = ACTIVITY_TABLE_COLUMNS,
 }) => {
     const columns = visibleColumns;
@@ -754,6 +757,7 @@ const ActivityTable = React.memo(({
                 profilerClimbByActivityId={profilerClimbByActivityId}
                 profileFtp={profileFtp}
                 profileMaxHr={profileMaxHr}
+                getStravaToken={getStravaToken}
                 columns={columns}
                 stickyMeta={stickyMeta}
             />
@@ -841,6 +845,7 @@ const ActivityTable = React.memo(({
                                         onFilterByGearId={onFilterByGearId}
                                         profileFtp={profileFtp}
                                         profileMaxHr={profileMaxHr}
+                                        getStravaToken={getStravaToken}
                                         columns={columns}
                                         stickyMeta={stickyMeta}
                                     />
@@ -873,6 +878,7 @@ const ActivityTable = React.memo(({
                                                 profilerClimbByActivityId={profilerClimbByActivityId}
                                                 profileFtp={profileFtp}
                                                 profileMaxHr={profileMaxHr}
+                                                getStravaToken={getStravaToken}
                                                 columns={columns}
                                                 stickyMeta={stickyMeta}
                                             />
@@ -896,6 +902,7 @@ const ActivityTable = React.memo(({
                                 profilerClimbByActivityId={profilerClimbByActivityId}
                                 profileFtp={profileFtp}
                                 profileMaxHr={profileMaxHr}
+                                getStravaToken={getStravaToken}
                                 columns={columns}
                                 stickyMeta={stickyMeta}
                             />
