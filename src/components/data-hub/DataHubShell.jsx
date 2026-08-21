@@ -5,6 +5,7 @@ import DataHubModals from './DataHubModals';
 import StravaEnrichOverlay from './StravaEnrichOverlay';
 import ImportSection from './ImportSection';
 import SubTabNav from '../ui/SubTabNav';
+import TabPageShell from '../shell/TabPageShell';
 
 /**
  * Presentational DataHub shell — receives composed state from useDataHubController.
@@ -50,7 +51,7 @@ const DataHubShell = ({
     onStravaEnrichResults,
     onImport,
 }) => (
-    <div className="bg-cdsurface rounded-xl border border-cdborder shadow-xl overflow-hidden min-h-[500px] flex flex-col relative animate-in fade-in">
+    <>
         <DataHubModals
             detailActivity={detailActivity}
             onCloseDetail={() => setDetailActivity(null)}
@@ -68,17 +69,23 @@ const DataHubShell = ({
             isDeleting={isDeleting}
         />
 
-        <SubTabNav
-            tabs={dataHubTabs}
-            activeTab={internalTab}
-            onTabChange={setInternalTab}
-            onKeyDown={onDataHubTabKeyDown}
-            ariaLabel="Data Hub Tabs"
-            idPrefix="tab"
-            layout="equal"
-        />
-
-        <div className="flex-1 overflow-hidden flex flex-col">
+        <TabPageShell
+            title="Activities"
+            subtitle="Import, sync, and manage your training log"
+            cardShellClassName="bg-cdsurface rounded-xl border border-cdborder shadow-xl overflow-hidden min-h-[500px] flex flex-col relative animate-in fade-in"
+            contentClassName="flex-1 overflow-hidden flex flex-col"
+            subNav={(
+                <SubTabNav
+                    tabs={dataHubTabs}
+                    activeTab={internalTab}
+                    onTabChange={setInternalTab}
+                    onKeyDown={onDataHubTabKeyDown}
+                    ariaLabel="Data Hub Tabs"
+                    idPrefix="tab"
+                    layout="scroll"
+                />
+            )}
+        >
             {internalTab === 'log' && (
                 <div role="tabpanel" id="tabpanel-log" aria-labelledby="tab-log" className="flex-1 overflow-hidden flex flex-col min-h-0">
                     <ActivityLogTab
@@ -142,55 +149,55 @@ const DataHubShell = ({
                     />
                 </div>
             )}
-        </div>
 
-        <StravaEnrichOverlay
-            open={stravaEnrich.showStravaEnrichPanel}
-            stravaGetToken={stravaGetToken}
-            onClose={stravaEnrich.closeStravaEnrichPanel}
-            activities={activities}
-            onImportNew={stravaEnrich.handleImportFromStrava}
-            onAfterStravaLink={onImport}
-            startDate={stravaEnrich.stravaSearchDates.startDate}
-            endDate={stravaEnrich.stravaSearchDates.endDate}
-            persistedResults={stravaEnrichResults}
-            onResultsChange={onStravaEnrichResults}
-            enrichmentTarget={stravaEnrich.enrichmentTarget}
-        />
-
-        {internalTab === 'log' && (
-            <ActivityLogBulkBar
-                useCardLayout={useCardLayout}
-                count={bulk.bulkSelectedIds.size}
-                onBulkEdit={() => {
-                    setEditingActivity(null);
-                    bulk.setShowBulkEditModal(true);
-                }}
-                onExportCsv={bulk.exportBulkCsv}
-                onExportXlsx={bulk.exportBulkXlsx}
-                isExportingXlsx={bulk.isExportingXlsx}
-                onClearSelection={() => bulk.setBulkSelectedIds(new Set())}
-                onDelete={bulk.confirmBulkDeleteSelected}
-                isDeleting={isDeleting}
-                isBulkSaving={bulk.isBulkSaving}
+            <StravaEnrichOverlay
+                open={stravaEnrich.showStravaEnrichPanel}
                 stravaGetToken={stravaGetToken}
-                onStravaEnrich={() => bulk.runStravaEnrichSelected(bulk.selectedActivitiesForBulk)}
-                isStravaEnriching={bulk.isStravaEnriching}
-                onStravaDescriptionBackfill={() => {
-                    const sel = bulk.selectedActivitiesForBulk;
-                    bulk.runStravaDescriptionBackfill(sel.length > 0 ? sel : null);
-                }}
-                onDecouplingBackfill={() => {
-                    const sel = bulk.selectedActivitiesForBulk;
-                    bulk.runDecouplingBackfill(sel.length > 0 ? sel : null);
-                }}
-                canDecouplingBackfill={Boolean(intervalsConfig?.apiKey || stravaGetToken)
-                    && Number(resolvedProfileFtp) > 0}
-                isStravaDescBackfilling={bulk.isStravaDescBackfilling}
-                isDecouplingBackfilling={bulk.isDecouplingBackfilling}
+                onClose={stravaEnrich.closeStravaEnrichPanel}
+                activities={activities}
+                onImportNew={stravaEnrich.handleImportFromStrava}
+                onAfterStravaLink={onImport}
+                startDate={stravaEnrich.stravaSearchDates.startDate}
+                endDate={stravaEnrich.stravaSearchDates.endDate}
+                persistedResults={stravaEnrichResults}
+                onResultsChange={onStravaEnrichResults}
+                enrichmentTarget={stravaEnrich.enrichmentTarget}
             />
-        )}
-    </div>
+
+            {internalTab === 'log' && (
+                <ActivityLogBulkBar
+                    useCardLayout={useCardLayout}
+                    count={bulk.bulkSelectedIds.size}
+                    onBulkEdit={() => {
+                        setEditingActivity(null);
+                        bulk.setShowBulkEditModal(true);
+                    }}
+                    onExportCsv={bulk.exportBulkCsv}
+                    onExportXlsx={bulk.exportBulkXlsx}
+                    isExportingXlsx={bulk.isExportingXlsx}
+                    onClearSelection={() => bulk.setBulkSelectedIds(new Set())}
+                    onDelete={bulk.confirmBulkDeleteSelected}
+                    isDeleting={isDeleting}
+                    isBulkSaving={bulk.isBulkSaving}
+                    stravaGetToken={stravaGetToken}
+                    onStravaEnrich={() => bulk.runStravaEnrichSelected(bulk.selectedActivitiesForBulk)}
+                    isStravaEnriching={bulk.isStravaEnriching}
+                    onStravaDescriptionBackfill={() => {
+                        const sel = bulk.selectedActivitiesForBulk;
+                        bulk.runStravaDescriptionBackfill(sel.length > 0 ? sel : null);
+                    }}
+                    onDecouplingBackfill={() => {
+                        const sel = bulk.selectedActivitiesForBulk;
+                        bulk.runDecouplingBackfill(sel.length > 0 ? sel : null);
+                    }}
+                    canDecouplingBackfill={Boolean(intervalsConfig?.apiKey || stravaGetToken)
+                        && Number(resolvedProfileFtp) > 0}
+                    isStravaDescBackfilling={bulk.isStravaDescBackfilling}
+                    isDecouplingBackfilling={bulk.isDecouplingBackfilling}
+                />
+            )}
+        </TabPageShell>
+    </>
 );
 
 export default DataHubShell;

@@ -8,6 +8,7 @@ import {
 import { normalizeTerrainProfile } from '../../utils/climbingTerrainProfile';
 import { chartCardClass } from '../../utils/chartTheme';
 import { useProfileFtp } from '../../context/ProfileFtpContext';
+import { SegmentedControl } from '../ui';
 
 const BADGE_STYLES = {
     recover: 'bg-red-500/15 text-red-400 border-red-500/40',
@@ -65,7 +66,7 @@ function HistoryTable({ rows }) {
 /**
  * Dashboard card: climbing-specific readiness from elevation, Z2 proxy, TSS, and TSB.
  */
-const ClimbingReadinessCard = ({ activities, userSettings }) => {
+const ClimbingReadinessCard = ({ activities, userSettings, embedded = false }) => {
     const profileFtp = useProfileFtp();
     const ftp = profileFtp.ftp || Number(userSettings?.ftp) || 0;
     const terrainProfile = normalizeTerrainProfile(userSettings?.terrainProfile);
@@ -97,12 +98,16 @@ const ClimbingReadinessCard = ({ activities, userSettings }) => {
     const badgeClass = BADGE_STYLES[readiness.badge.key] || BADGE_STYLES.building;
     const historyRows = historyView === 'month' ? history.months : history.weeks;
 
+    const wrapperClass = embedded
+        ? 'space-y-4 min-h-0'
+        : `${chartCardClass} p-4 md:p-5 space-y-4`;
+
     return (
-        <section className={`${chartCardClass} p-4 md:p-5 space-y-4`} aria-label="Climbing readiness">
+        <section className={wrapperClass} aria-label="Climbing readiness">
             <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
-                    <h3 className="text-sm font-bold text-cdtext flex items-center gap-2">
-                        <Mountain className="text-cdaccent shrink-0" size={18} aria-hidden />
+                    <h3 className={`text-sm font-bold text-cdtext flex items-center gap-2 ${embedded ? 'text-xs uppercase tracking-wider' : ''}`}>
+                        {!embedded ? <Mountain className="text-cdaccent shrink-0" size={18} aria-hidden /> : null}
                         Climbing readiness
                         <button
                             type="button"
@@ -219,26 +224,18 @@ const ClimbingReadinessCard = ({ activities, userSettings }) => {
             <div className="border-t border-cdborder/60 pt-3 space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-[10px] font-bold text-cdmuted uppercase tracking-wide">Score history</p>
-                    <div className="flex bg-cdbg/60 border border-cdborder rounded overflow-hidden text-[10px] font-bold">
-                        <button
-                            type="button"
-                            onClick={() => setHistoryView('week')}
-                            className={`px-2.5 py-1 cd-transition ${
-                                historyView === 'week' ? 'bg-cdaccent text-white' : 'text-cdmuted hover:text-cdtext'
-                            }`}
-                        >
-                            Weekly
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setHistoryView('month')}
-                            className={`px-2.5 py-1 cd-transition ${
-                                historyView === 'month' ? 'bg-cdaccent text-white' : 'text-cdmuted hover:text-cdtext'
-                            }`}
-                        >
-                            Monthly
-                        </button>
-                    </div>
+                    <SegmentedControl
+                        size="sm"
+                        caps={false}
+                        dense
+                        value={historyView}
+                        onChange={setHistoryView}
+                        aria-label="Readiness score history grouping"
+                        options={[
+                            { value: 'week', label: 'Weekly' },
+                            { value: 'month', label: 'Monthly' },
+                        ]}
+                    />
                 </div>
                 <HistoryTable rows={historyRows} />
             </div>

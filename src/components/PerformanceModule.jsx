@@ -221,6 +221,8 @@ const PerformanceModule = ({
     customTicks,
     onOpenActivityInLog,
     userSettings,
+    variant = 'full',
+    onGoToPowerTab,
     // Note: Control props (setTimeRange etc) not used here anymore as controls moved to Dashboard
 }) => {
     const profileFtp = useProfileFtp();
@@ -327,6 +329,66 @@ const PerformanceModule = ({
     };
 
     const currentFtpSubtitle = describeProfileFtpSourceSubtitle(userSettings, profileFtp);
+
+    if (variant === 'overview') {
+        return (
+            <div className={`${chartCardClassLg} mb-6`}>
+                <div className="flex flex-wrap items-start justify-between gap-3 mb-4 border-b border-cdborder pb-4">
+                    <h3 className="text-sm font-bold text-cdtext uppercase tracking-wider flex items-center gap-2">
+                        <Zap className="text-blue-400 shrink-0" size={18} aria-hidden />
+                        Performance snapshot
+                    </h3>
+                    {typeof onGoToPowerTab === 'function' && (
+                        <button
+                            type="button"
+                            onClick={onGoToPowerTab}
+                            className="inline-flex items-center gap-1.5 text-xs font-bold text-cdaccent hover:underline cd-focus-ring rounded"
+                        >
+                            <ExternalLink size={12} className="shrink-0" aria-hidden />
+                            Open Power tab
+                        </button>
+                    )}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <StatCard
+                        title="Current FTP"
+                        value={displayFtp}
+                        unit="W"
+                        subtitle={currentFtpSubtitle}
+                        icon={Zap}
+                        colorClass="text-blue-500"
+                    />
+                    <StatCard
+                        title="Peak eFTP (20m)"
+                        value={displayEftp}
+                        unit="W"
+                        subtitle="Best 20min × 0.95"
+                        sourceMeta={peak20Peak.activity ? peakSourceMeta(peak20Peak.activity) : null}
+                        icon={TrendingUp}
+                        trend={displayEftp >= displayFtp ? 'up' : 'down'}
+                        colorClass="text-green-500"
+                        quickLink={
+                            peak20Peak.activity && canOpenActivity
+                                ? {
+                                    label: 'Open source activity',
+                                    onClick: () => onOpenActivityInLog(peak20Peak.activity.id, { isolate: true }),
+                                }
+                                : undefined
+                        }
+                    />
+                    <StatCard
+                        title="Avg Load"
+                        value={avgLoadPerRide}
+                        unit="TSS"
+                        subtitle="Per ride (Avg)"
+                        icon={Activity}
+                        colorClass="text-purple-500"
+                        split={{ indoor: avgLoadIndoor, outdoor: avgLoadOutdoor }}
+                    />
+                </div>
+            </div>
+        );
+    }
 
     return (
         <>

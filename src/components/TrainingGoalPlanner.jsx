@@ -204,10 +204,10 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
     return (
         <div className="space-y-4 md:space-y-6 animate-in fade-in min-w-0 max-w-full">
             <div className="bg-cdsurface p-3 md:p-6 rounded-xl border border-cdborder shadow-md">
-                <h2 className="text-xl md:text-2xl font-bold text-cdtext flex items-center gap-2 mb-2">
+                <h3 className="text-lg md:text-xl font-bold text-cdtext flex items-center gap-2 mb-2">
                     <Mountain className="text-cdaccent shrink-0" size={22} />
                     Goal & planning
-                </h2>
+                </h3>
                 <p className="text-sm text-cdmuted leading-relaxed max-w-3xl">
                     Set a <strong className="text-cdtext font-medium">date</strong> and the <strong className="text-cdtext font-medium">profile</strong> of your target (distance, elevation, optional duration, expected average intensity as % FTP).
                     We estimate <strong className="text-cdtext font-medium">event-day TSS</strong> and provide a <strong className="text-cdtext font-medium">weekly schedule</strong> with rising load and taper — aligned with your recent TSS (last 4 weeks in your selected dashboard period).

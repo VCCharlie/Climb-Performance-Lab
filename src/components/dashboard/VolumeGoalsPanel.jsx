@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ChevronDown, ChevronUp, Target } from 'lucide-react';
+import useMediaQuery from '../../hooks/useMediaQuery';
 import { deriveVolumeGoalsFromYearlyGoals, scaleVolumeGoals, currentWeekRange, currentMonthRange, currentYearRange, sumVolumeForRange } from '../../utils/volumeGoals';
 import { projectYearEndVolume } from '../../utils/yearEndProjection';
 import { VolumeGoalPeriodCard } from './VolumeGoalPeriodCard';
@@ -110,7 +111,8 @@ function GoalPreviewScale({ id, value, onChange, previewActive, variant = 'heade
  * @param {() => void} [props.onOpenSettings]
  */
 const VolumeGoalsPanel = ({ chartData = [], userSettings, onOpenSettings }) => {
-    const [collapsed, setCollapsed] = useState(false);
+    const isMobile = useMediaQuery('(max-width: 767px)');
+    const [collapsed, setCollapsed] = useState(isMobile);
     const [previewScalePct, setPreviewScalePct] = useState(100);
 
     const baseGoals = useMemo(

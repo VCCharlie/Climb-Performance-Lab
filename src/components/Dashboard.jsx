@@ -19,6 +19,7 @@ import { useTodayIntervalsSync } from '../context/IntervalsSyncContext';
 import { useTabListKeyboard } from '../hooks/useTabListKeyboard';
 import OverviewTab from './dashboard/OverviewTab';
 import DashboardSubTabNav from './dashboard/DashboardSubTabNav';
+import TabPageShell from './shell/TabPageShell';
 
 const CompareTab = lazyWithRetry(() => import('./dashboard/CompareTab'), 'CompareTab');
 
@@ -156,29 +157,26 @@ const Dashboard = ({
 
 
     return (
-        <div className="space-y-4 md:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* HEADER SECTION */}
-            <div className="bg-cdsurface p-3 md:p-4 rounded-xl border border-cdborder shadow-md flex items-start justify-between gap-3">
-                <div>
-                    <h2 className="text-xl md:text-2xl font-bold text-cdtext tracking-tight">Dashboard</h2>
-                    <p className="hidden md:block text-cdmuted text-sm">Performance metrics overview</p>
-                </div>
+        <TabPageShell
+            title="Dashboard"
+            subtitle="Performance metrics overview"
+            action={(
                 <DashboardTodaySyncButton
                     onSync={syncTodayActivities}
                     isBusy={isTodaySyncBusy}
                     className="shrink-0 hidden md:flex"
                 />
-            </div>
-
-            <DashboardSubTabNav
-                activeTab={dashboardTab}
-                onTabChange={setDashboardTab}
-                onTabIntent={handleDashboardSubTabIntent}
-                onKeyDown={onDashboardTabKeyDown}
-                stravaConnected={stravaConnected}
-            />
-
-            {/* TAB CONTENT */}
+            )}
+            subNav={(
+                <DashboardSubTabNav
+                    activeTab={dashboardTab}
+                    onTabChange={setDashboardTab}
+                    onTabIntent={handleDashboardSubTabIntent}
+                    onKeyDown={onDashboardTabKeyDown}
+                    stravaConnected={stravaConnected}
+                />
+            )}
+        >
             {dashboardTab === 'overview' && (
                 <div role="tabpanel" id="tabpanel-overview" aria-labelledby="tab-overview">
                     <OverviewTab
@@ -276,7 +274,7 @@ const Dashboard = ({
                     )}
                 </Suspense>
             )}
-        </div>
+        </TabPageShell>
     );
 };
 

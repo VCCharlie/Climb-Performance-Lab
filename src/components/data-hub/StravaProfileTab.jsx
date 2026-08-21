@@ -36,9 +36,9 @@ import {
     mergeStravaProfileStatsOnly,
 } from '../../utils/stravaProfileLightFetch';
 import StravaVsLogGapPanel from './StravaVsLogGapPanel';
-import { useTabListKeyboard } from '../../hooks/useTabListKeyboard';
+import { SegmentedControl } from '../ui';
 
-const STRAVA_PROFILE_TAB_IDS = ['overview', 'ridestats', 'vslog'];
+
 const STRAVA_BASE = 'https://www.strava.com/api/v3';
 const LOCALE = 'nl-NL';
 
@@ -433,7 +433,6 @@ const StravaRefreshActions = ({
 
 const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChange, activities = [] }) => {
     const [subTab, setSubTab] = useState('overview');
-    const onStravaProfileTabKeyDown = useTabListKeyboard(STRAVA_PROFILE_TAB_IDS, subTab, setSubTab);
     const [isFetching, setIsFetching] = useState(false);
     const [fetchMode, setFetchMode] = useState(null);
     const [fetchProgress, setFetchProgress] = useState('');
@@ -789,41 +788,19 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
             )}
 
             {getStravaToken && (
-                <div className="flex border-b border-cdborder" role="tablist" aria-label="Strava Profile Sub-tabs" onKeyDown={onStravaProfileTabKeyDown}>
-                    <button
-                        type="button"
-                        id="tab-strava-overview"
-                        role="tab"
-                        aria-selected={subTab === 'overview'}
-                        aria-controls="tabpanel-strava-overview"
-                        onClick={() => setSubTab('overview')}
-                        className={`flex-1 py-2.5 text-xs font-bold ${subTab === 'overview' ? 'text-cdprimary border-b-2 border-cdprimary -mb-px' : 'text-cdmuted hover:text-cdtext'}`}
-                    >
-                        Overview
-                    </button>
-                    <button
-                        type="button"
-                        id="tab-strava-ridestats"
-                        role="tab"
-                        aria-selected={subTab === 'ridestats'}
-                        aria-controls="tabpanel-strava-ridestats"
-                        onClick={() => setSubTab('ridestats')}
-                        className={`flex-1 py-2.5 text-xs font-bold ${subTab === 'ridestats' ? 'text-cdprimary border-b-2 border-cdprimary -mb-px' : 'text-cdmuted hover:text-cdtext'}`}
-                    >
-                        Ride stats
-                    </button>
-                    <button
-                        type="button"
-                        id="tab-strava-vslog"
-                        role="tab"
-                        aria-selected={subTab === 'vslog'}
-                        aria-controls="tabpanel-strava-vslog"
-                        onClick={() => setSubTab('vslog')}
-                        className={`flex-1 py-2.5 text-xs font-bold ${subTab === 'vslog' ? 'text-cdprimary border-b-2 border-cdprimary -mb-px' : 'text-cdmuted hover:text-cdtext'}`}
-                    >
-                        Vs log
-                    </button>
-                </div>
+                <SegmentedControl
+                    size="sm"
+                    caps={false}
+                    fullWidth
+                    value={subTab}
+                    onChange={setSubTab}
+                    aria-label="Strava Profile Sub-tabs"
+                    options={[
+                        { value: 'overview', label: 'Overview' },
+                        { value: 'ridestats', label: 'Ride stats' },
+                        { value: 'vslog', label: 'Vs log' },
+                    ]}
+                />
             )}
 
             {subTab === 'overview' && (
