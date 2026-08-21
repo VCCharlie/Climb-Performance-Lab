@@ -1,7 +1,7 @@
 # ⚡ Bolt Master Plan — Climb Performance Lab
 
-> **Status:** Draft v1 — 2026-07-09 (baseline bijgewerkt 2026-08-19)  
-> **Baseline gemeten (2026-08-19, na Bolt 3):** `npm run build` → main chunk `index-*.js` ≈ **363 KB** raw / **112 KB gzip**; aparte chunks: `react-vendor` 193 KB / 61 KB gzip, `recharts` 451 KB / 128 KB gzip (deferred via `OverviewChartsPanel`), `climbs_extended` 1.15 MB / 196 KB gzip, `firebase` 349 KB / 109 KB gzip, `leaflet` 156 KB / 49 KB gzip.  
+> **Status:** v1 — 2026-07-09 (baseline bijgewerkt 2026-08-21)  
+> **Baseline gemeten (2026-08-21, na Bolt 3 + Fase 8):** `npm run build` → main chunk `index-*.js` ≈ **387 KB** raw / **119 KB gzip**; aparte chunks: `react-vendor` 193 KB / 61 KB gzip, `recharts` 451 KB / 128 KB gzip (deferred via `OverviewChartsPanel`), `climbs_extended` 1.15 MB / 196 KB gzip, `firebase` 349 KB / 109 KB gzip, `leaflet` 156 KB / 49 KB gzip.  
 > **Journal:** Zie `.jules/bolt.md` voor codebase-specifieke learnings.
 
 ---
@@ -50,24 +50,24 @@
 
 ---
 
-## Fase 1 — Quick wins (runtime + kleine bundle)
+## Fase 1 — Quick wins (runtime + kleine bundle) ✅
 
 **Doel:** Lage risico, < 200 regels totaal, meetbaar binnen één PR.  
-**Geschatte impact:** Shell re-renders −20–30%; Overview charts iets vloeiender; ~15–30 KB gzip kleiner (framer-motion).
+**Geschatte impact:** Shell re-renders −20–30%; Overview charts iets vloeiender; ~15–30 KB gzip kleiner (framer-motion).  
+**Status:** **Done** — gemerged via PR #286 (`cursor/bolt-phase-1-quick-wins-2207`); regressie-guard `src/__tests__/bolt/boltPhase1Contract.test.js`.
 
-| # | Optimalisatie | Locatie | Probleem | Fix | Verwachte winst |
-|---|---------------|---------|----------|-----|-----------------|
-| 1.1 | Verwijder ongebruikte dependency | `package.json` | `framer-motion` niet geïmporteerd in `src/` | Dependency verwijderen | Kleinere install + marginale bundle |
-| 1.2 | Verwijder dode code | `DataHub/ActivityLogTab.jsx`, `FetchIntervalsPanel`, `SyncPanel` | Niet geïmporteerd / vervangen door `IntervalsSyncPanel` | Bestanden verwijderd (5d) | — |
-| 1.3 | Memo chart series | `PerformanceModule.jsx` L226, L271–272, L468 | `new Date()` + dubbele `filter` + inline `.map` elke render | `useMemo` voor `axisTicks`, `indoor/outdoor` split, `chartSeries` | Minder GC bij Overview met 200+ punten |
-| 1.4 | Heatmap max | `ActivityHeatmap.jsx` L48 | `Math.max(...Object.values())` | Single-pass `reduce` | Micro; consistent met journal |
-| 1.5 | Shell memo | `Header.jsx`, `shell/MainNav.jsx` | Re-render bij elke `activities` sync | `React.memo` | Minder werk buiten actieve tab |
-| 1.6 | Stabiele handlers | `DataHub.jsx` L131+ | `handleFindOnStrava` etc. nieuwe ref per render | `useCallback` | Consistentie voor gememoized children |
-| 1.7 | `allVisibleSelected` | `DataHub.jsx` L321–322 | O(n) `.every()` elke render | Verplaats naar `useMemo` | Micro bij grote selecties |
+| # | Optimalisatie | Locatie | Probleem | Fix | Status |
+|---|---------------|---------|----------|-----|--------|
+| 1.1 | Verwijder ongebruikte dependency | `package.json` | `framer-motion` niet geïmporteerd in `src/` | Dependency verwijderen | **Done** |
+| 1.2 | Verwijder dode code | `DataHub/ActivityLogTab.jsx`, `FetchIntervalsPanel`, `SyncPanel` | Niet geïmporteerd / vervangen door `IntervalsSyncPanel` | Bestanden verwijderd (Fase 5d) | **Done** |
+| 1.3 | Memo chart series | `PerformanceModule.jsx` | `new Date()` + dubbele `filter` + inline `.map` elke render | `useMemo` voor `axisTicks`, `indoor/outdoor` split, `chartSeries` | **Done** |
+| 1.4 | Heatmap max | `ActivityHeatmap.jsx` | `Math.max(...Object.values())` | Single-pass `reduce` | **Done** |
+| 1.5 | Shell memo | `Header.jsx`, `shell/MainNav.jsx` | Re-render bij elke `activities` sync | `React.memo` | **Done** |
+| 1.6 | Stabiele handlers | `useDataHubStravaEnrich.js`, `useDataHubController.js` | `handleFindOnStrava` etc. nieuwe ref per render | `useCallback` (DataHub 3.7 split) | **Done** |
+| 1.7 | `allVisibleSelected` | `useDataHubBulkActions.js` | O(n) `.every()` elke render | `useMemo` | **Done** |
 
-**PR:** `⚡ Bolt Phase 1: Quick wins (memo, useMemo, cleanup)`  
-**Afhankelijkheden:** 1.1 vereist expliciete goedkeuring (package.json wijziging).  
-**Tests:** `npm run lint` + `npm run test:run`
+**PR:** `⚡ Bolt Phase 1: Quick wins (memo, useMemo, cleanup)` — merged **#286**  
+**Tests:** `npm run test:run` → `boltPhase1Contract.test.js`, `boltPhase1Smoke.test.jsx`, `boltPhase1RechartsEdge.test.jsx`
 
 ---
 
@@ -161,6 +161,6 @@ main
 
 ## Volgende stap
 
-Start met **Fase 1** (laag risico, direct meetbaar) tenzij first-load de pijn is → dan **Fase 3a** eerst.
+Bolt 1–4 zijn **Done** op `main`. Houd nieuwe optimalisaties achter het meet-ritme (baseline in dit document + contract/smoke tests).
 
 *Bijgewerkt door Bolt ⚡ — meet eerst, optimaliseer daarna.*
