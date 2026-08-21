@@ -262,7 +262,7 @@ export default function ActivityLogTab({
                             profilerClimbByActivityId={profilerClimbByActivityId}
                             profileFtp={profileFtp}
                             profileMaxHr={profileMaxHr}
-                            getStravaToken={stravaGetToken}
+                            getStravaToken={getStravaToken}
                             visibleColumns={visibleColumns}
                             onFilterByGearId={onFilterByGearId}
                         />
