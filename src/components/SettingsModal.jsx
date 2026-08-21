@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { Settings, Activity, Save, Moon, Sun, Shield, Target, Bell, Database, Download, Upload, Zap, X, Link, Unlink, List } from 'lucide-react';
+import { Settings, Activity, Save, Moon, Sun, Shield, Target, Bell, Database, Download, Upload, Zap, X, Link, Unlink, List, ExternalLink } from 'lucide-react';
 import { calculatePowerZones } from '../utils';
 import { DEFAULT_RECOVERY_TSS } from '../config';
 import {
@@ -269,10 +269,25 @@ const SettingsModal = ({
                             <div className="mb-4 rounded-cdmd border border-cdprimary/30 bg-cdprimarycontainer/15 p-3">
                                 <p className="text-xs font-semibold text-cdtext mb-1">How to connect your data</p>
                                 <ol className="text-xs text-cdmuted space-y-1 list-decimal list-inside leading-relaxed">
-                                    <li>Enter your <strong className="text-cdtext">Athlete ID</strong> below (from Intervals.icu → Settings).</li>
-                                    <li>Optionally add an API key for direct browser sync.</li>
+                                    <li>
+                                        Open{' '}
+                                        <a
+                                            href="https://intervals.icu/settings"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-cdaccent hover:underline inline-flex items-center gap-1"
+                                        >
+                                            Intervals.icu settings
+                                            <ExternalLink size={12} aria-hidden />
+                                        </a>
+                                        {' '}for your <strong className="text-cdtext">Athlete ID</strong> and API key (Developer section).
+                                    </li>
+                                    <li>Optionally add an API key below for direct browser sync.</li>
                                     <li>Go to the <strong className="text-cdtext">Activities</strong> tab → <strong className="text-cdtext">Fetch &amp; merge</strong> to import rides.</li>
                                 </ol>
+                                <p className="text-xs text-cdmuted mt-3 leading-relaxed">
+                                    <strong className="text-cdtext">Elevation priority:</strong> Strava map-corrected climbing meters (and manual edits in the activity editor) are kept across Intervals re-sync, Strava enrich, and decoupling runs.
+                                </p>
                             </div>
 
                             <div className="grid grid-cols-1 gap-4">
@@ -290,6 +305,15 @@ const SettingsModal = ({
                                         Leave empty to sync via the secure cloud function (same credentials as nightly GitHub Actions sync).
                                         Add a key here only if you need direct browser access to Intervals.icu.
                                     </p>
+                                    <a
+                                        href="https://intervals.icu/settings"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-xs text-cdaccent hover:underline inline-flex items-center gap-1 mt-2"
+                                    >
+                                        Open Intervals.icu settings (API key &amp; Athlete ID)
+                                        <ExternalLink size={12} aria-hidden />
+                                    </a>
                                 </div>
                                 <div className="pt-2 border-t border-cdborder/30 mt-2">
                                     <p className="text-xs font-semibold text-cdtext mb-1">Nightly server sync</p>

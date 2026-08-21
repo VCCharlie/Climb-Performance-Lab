@@ -262,7 +262,9 @@ export async function enrichActivityGearFromStrava(merged, stravaSide, token, op
 
     // Fix legacy bug: Intervals stored meters as "km" for rides <1 km (e.g. 772 m → 772 "km")
     if (detail) {
-        out = applyStravaElevationToActivity(out, detail);
+        out = applyStravaElevationToActivity(out, detail, {
+            forceRefreshElevation: forceDetail,
+        });
 
         const stravaKm = kmFromStravaDistanceMeters(detail.distance);
         const storeKm = activityDistanceKm(out);

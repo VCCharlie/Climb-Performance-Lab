@@ -3,6 +3,8 @@ import { doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { stripUndefinedFields } from '../utils/mergeActivities';
 import { enrichActivityGearFromStrava } from '../utils/stravaGearEnrich';
+import { applyManualClimbingCorrectionFlags } from '../utils/activityFieldRetention';
+import { protectEnrichedFieldsOnMerge } from '../utils/firestoreActivityMerge';
 import { useConfirm } from '../context/ConfirmContext';
 import { useToast } from '../context/ToastContext';
 
@@ -24,8 +26,10 @@ export function useDataHubMaintenance({
     const handleSaveEdit = useCallback(async (updatedActivity, setEditingActivity) => {
         try {
             const prev = (activities || []).find((a) => String(a.id) === String(updatedActivity.id)) || {};
-            let toSave = stripUndefinedFields({ ...prev, ...updatedActivity });
-            if (stravaGetToken && toSave.strava_id) {
+            let toSave = stripUndefinedFields(
+                applyManualClimbingCorrectionFlags(prev, { ...prev, ...updatedActivity }),
+            );
+            if (stravaGetToken && toSave.strava_id && toSave.climbing_user_corrected !== true) {
                 try {
                     const token = await stravaGetToken();
                     if (token) {
@@ -35,6 +39,7 @@ export function useDataHubMaintenance({
                     console.warn('[Edit save] Strava enrich failed:', gearErr);
                 }
             }
+            toSave = protectEnrichedFieldsOnMerge(toSave, prev);
             if (db) {
                 await setDoc(doc(db, 'activities', String(toSave.id)), toSave, { merge: true });
             }
