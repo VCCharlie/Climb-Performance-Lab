@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
     normalizeIntervalsActivityFromAny,
     filterNonEmptyIntervalsActivities,
+    buildIntervalsActivitiesListUrl,
 } from '../utils/intervals';
 import { runActivityEnrichmentPipeline } from '../utils/enrichment/runActivityEnrichmentPipeline';
 import { fetchWithTimeout } from '../utils/fetchWithTimeout';
@@ -33,7 +34,11 @@ const useIntervalsSync = (intervalsConfig) => {
         devLog('Starting Intervals.icu sync via direct API...');
         setSyncProgress('Fetching activities from Intervals.icu...');
 
-        const url = `https://intervals.icu/api/v1/athlete/${intervalsConfig.athleteId}/activities?oldest=${startDate}&newest=${endDate}`;
+        const url = buildIntervalsActivitiesListUrl(
+            intervalsConfig.athleteId,
+            startDate,
+            endDate,
+        );
         const authString = btoa(`API_KEY:${intervalsConfig.apiKey}`);
 
         const response = await fetchWithTimeout(url, {

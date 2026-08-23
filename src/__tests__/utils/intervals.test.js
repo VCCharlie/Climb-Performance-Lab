@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { normalizeIntervalsActivity } from '../../utils/intervals';
+import { normalizeIntervalsActivity, buildIntervalsActivitiesListUrl, INTERVALS_LIST_ACTIVITY_FIELDS } from '../../utils/intervals';
 
 const fixturesDir = resolve(__dirname, '../fixtures');
 const fixture = JSON.parse(readFileSync(resolve(fixturesDir, 'sample-intervals-api.json'), 'utf-8'));
@@ -304,5 +304,23 @@ describe('normalizeIntervalsActivity - edge cases', () => {
     for (const field of numericFields) {
       expect(typeof norm[field]).toBe('number');
     }
+  });
+});
+
+describe('Intervals list API URL', () => {
+  it('INTERVALS_LIST_ACTIVITY_FIELDS includes icu_zone_times and icu_hr_zone_times', () => {
+    expect(INTERVALS_LIST_ACTIVITY_FIELDS).toContain('icu_zone_times');
+    expect(INTERVALS_LIST_ACTIVITY_FIELDS).toContain('icu_hr_zone_times');
+    expect(INTERVALS_LIST_ACTIVITY_FIELDS).toContain('icu_ftp');
+    expect(INTERVALS_LIST_ACTIVITY_FIELDS).toContain('external_id');
+  });
+
+  it('buildIntervalsActivitiesListUrl passes fields, oldest, and newest', () => {
+    const url = buildIntervalsActivitiesListUrl('i12345', '2026-08-01', '2026-08-31');
+    expect(url).toContain('/athlete/i12345/activities?');
+    expect(url).toContain('oldest=2026-08-01');
+    expect(url).toContain('newest=2026-08-31');
+    expect(url).toContain('fields=');
+    expect(decodeURIComponent(url)).toContain('icu_zone_times');
   });
 });
