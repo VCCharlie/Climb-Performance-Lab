@@ -39,6 +39,69 @@ def get_credentials_from_secrets():
     return _get_credentials_from_secrets()
 
 
+# Keep in sync with src/utils/intervals.js INTERVALS_LIST_ACTIVITY_FIELDS
+INTERVALS_LIST_ACTIVITY_FIELDS = ",".join([
+    "id",
+    "start_date_local",
+    "start_date",
+    "name",
+    "title",
+    "description",
+    "notes",
+    "type",
+    "sub_type",
+    "trainer",
+    "external_id",
+    "moving_time",
+    "elapsed_time",
+    "icu_recording_time",
+    "distance",
+    "icu_distance",
+    "total_elevation_gain",
+    "total_elevation_loss",
+    "average_speed",
+    "velocity_smooth",
+    "icu_average_watts",
+    "average_watts",
+    "device_watts",
+    "weighted_average_watts",
+    "icu_weighted_avg_watts",
+    "icu_training_load",
+    "training_load",
+    "power_load",
+    "icu_rpe",
+    "perceived_exertion",
+    "feel",
+    "icu_average_heartrate",
+    "average_heartrate",
+    "max_heartrate",
+    "icu_max_watts",
+    "icu_max_hr",
+    "icu_ftp",
+    "icu_eftp",
+    "icu_rolling_ftp",
+    "icu_pm_ftp",
+    "icu_pm_ftp_watts",
+    "icu_joules",
+    "kilojoules",
+    "work",
+    "icu_zone_times",
+    "icu_hr_zone_times",
+    "icu_intervals",
+    "Best1minpower",
+    "Best5minpower",
+    "Best10minpower",
+    "Best20minpower",
+    "Best60minpower",
+    "Best90minpower",
+    "Best120minpower",
+    "icu_power_90min",
+    "icu_power_120min",
+    "average_altitude",
+    "maximum_altitude",
+])
+
+
 def get_intervals_activities(athlete_id: str, api_key: str, start_date: str, end_date: str) -> list:
     """
     Fetch activities from Intervals.icu API.
@@ -58,7 +121,8 @@ def get_intervals_activities(athlete_id: str, api_key: str, start_date: str, end
 
     params = {
         "oldest": start_date,
-        "newest": end_date
+        "newest": end_date,
+        "fields": INTERVALS_LIST_ACTIVITY_FIELDS,
     }
 
     response = requests.get(url, headers=headers, params=params, timeout=30)

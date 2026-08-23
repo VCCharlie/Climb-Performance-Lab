@@ -9,6 +9,89 @@ import { extractStravaId } from './strava';
 import { buildZoneTimesFields } from './zoneTimes';
 
 /**
+ * Explicit fields for GET /athlete/{id}/activities — summary responses often omit
+ * icu_zone_times unless requested. Keep in sync with normalizeIntervalsActivity inputs
+ * and cloud-function/main.py INTERVALS_LIST_ACTIVITY_FIELDS.
+ */
+export const INTERVALS_LIST_ACTIVITY_FIELDS = [
+    'id',
+    'start_date_local',
+    'start_date',
+    'name',
+    'title',
+    'description',
+    'notes',
+    'type',
+    'sub_type',
+    'trainer',
+    'external_id',
+    'moving_time',
+    'elapsed_time',
+    'icu_recording_time',
+    'distance',
+    'icu_distance',
+    'total_elevation_gain',
+    'total_elevation_loss',
+    'average_speed',
+    'velocity_smooth',
+    'icu_average_watts',
+    'average_watts',
+    'device_watts',
+    'weighted_average_watts',
+    'icu_weighted_avg_watts',
+    'icu_training_load',
+    'training_load',
+    'power_load',
+    'icu_rpe',
+    'perceived_exertion',
+    'feel',
+    'icu_average_heartrate',
+    'average_heartrate',
+    'max_heartrate',
+    'icu_max_watts',
+    'icu_max_hr',
+    'icu_ftp',
+    'icu_eftp',
+    'icu_rolling_ftp',
+    'icu_pm_ftp',
+    'icu_pm_ftp_watts',
+    'icu_joules',
+    'kilojoules',
+    'work',
+    'icu_zone_times',
+    'icu_hr_zone_times',
+    'icu_intervals',
+    'Best1minpower',
+    'Best5minpower',
+    'Best10minpower',
+    'Best20minpower',
+    'Best60minpower',
+    'Best90minpower',
+    'Best120minpower',
+    'icu_power_90min',
+    'icu_power_120min',
+    'average_altitude',
+    'maximum_altitude',
+].join(',');
+
+/**
+ * Build the Intervals.icu activities list URL with explicit fields (incl. zone times).
+ *
+ * @param {string} athleteId
+ * @param {string} startDate YYYY-MM-DD
+ * @param {string} endDate YYYY-MM-DD
+ * @returns {string}
+ */
+export function buildIntervalsActivitiesListUrl(athleteId, startDate, endDate) {
+    const params = new URLSearchParams({
+        oldest: startDate,
+        newest: endDate,
+        fields: INTERVALS_LIST_ACTIVITY_FIELDS,
+    });
+    return `https://intervals.icu/api/v1/athlete/${encodeURIComponent(athleteId)}/activities?${params.toString()}`;
+}
+
+/**
  * True when the payload looks like raw Intervals.icu API JSON (not our normalized shape).
  */
 export function isRawIntervalsApiPayload(item) {

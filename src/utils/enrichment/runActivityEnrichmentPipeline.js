@@ -4,6 +4,7 @@
  */
 
 import { enrichActivitiesWithLongDurationBests } from '../intervalsPowerCurveEnrich';
+import { enrichActivitiesWithZoneTimes } from '../intervalsZoneTimesEnrich';
 import { enrichActivitiesWithDecoupling } from '../decouplingStreamEnrich';
 import { buildZoneTimesFields } from '../zoneTimes';
 
@@ -37,15 +38,18 @@ export function mapZoneTimesOnActivities(activities) {
  *   deferDriftEnrich?: boolean,
  *   decouplingMaxFetches?: number,
  *   decouplingDelayMs?: number,
+ *   zoneTimesMaxFetches?: number,
+ *   zoneTimesDelayMs?: number,
  *   onProgress?: (message: string) => void,
  * }} [options]
- * @returns {Promise<{ activities: object[], stats: { zoneMapped: number, powerCurveRan: boolean, driftRan: boolean } }>}
+ * @returns {Promise<{ activities: object[], stats: { zoneMapped: number, zoneTimesEnriched: number, powerCurveRan: boolean, driftRan: boolean } }>}
  */
 export async function runActivityEnrichmentPipeline(activities, options = {}) {
     const onProgress = options.onProgress;
     let result = activities || [];
     const stats = {
         zoneMapped: 0,
+        zoneTimesEnriched: 0,
         powerCurveRan: false,
         driftRan: false,
     };
@@ -53,6 +57,20 @@ export async function runActivityEnrichmentPipeline(activities, options = {}) {
     const zonePass = mapZoneTimesOnActivities(result);
     result = zonePass.activities;
     stats.zoneMapped = zonePass.mappedCount;
+
+    if (options.intervalsConfig?.apiKey) {
+        onProgress?.('Fetching zone times from activity details…');
+        try {
+            const zoneEnrich = await enrichActivitiesWithZoneTimes(result, options.intervalsConfig, {
+                maxFetches: options.zoneTimesMaxFetches ?? 25,
+                delayMs: options.zoneTimesDelayMs ?? 120,
+            });
+            result = zoneEnrich.activities;
+            stats.zoneTimesEnriched = zoneEnrich.enrichedCount;
+        } catch (err) {
+            console.warn('[Enrichment] Zone times detail enrich failed:', err);
+        }
+    }
 
     if (options.intervalsConfig?.apiKey || options.intervalsConfig?.athleteId) {
         onProgress?.('Enriching long power bests (90/120 min)…');
