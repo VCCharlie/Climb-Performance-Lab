@@ -118,6 +118,35 @@ describe('enrichActivitiesWithZoneTimes', () => {
         expect(fetch).not.toHaveBeenCalled();
     });
 
+    it('prefers recent rides when maxFetches is capped', async () => {
+        fetch.mockImplementation(async (url) => ({
+            ok: true,
+            json: async () => {
+                const id = String(url).split('/').pop();
+                return {
+                    id,
+                    icu_zone_times: [{ id: 'Z2', secs: 1000 }],
+                };
+            },
+        }));
+
+        const activities = [
+            { id: 'old', date: '2026-08-01', avg_power: 150 },
+            { id: 'new', date: '2026-08-20', avg_power: 160 },
+        ];
+
+        const { activities: out, enrichedCount } = await enrichActivitiesWithZoneTimes(
+            activities,
+            { apiKey: 'test-key' },
+            { maxFetches: 1, delayMs: 0 },
+        );
+
+        expect(enrichedCount).toBe(1);
+        expect(out.find((a) => a.id === 'new')?.power_zone_sec?.[1]).toBe(1000);
+        expect(out.find((a) => a.id === 'old')?.power_zone_sec).toBeUndefined();
+        expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
     it('respects maxFetches cap', async () => {
         fetch.mockImplementation(async (url) => ({
             ok: true,
