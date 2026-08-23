@@ -2,13 +2,15 @@ import React from 'react';
 import { RefreshCw, Sparkles, Ban, TrendingUp, Bike, Flame } from 'lucide-react';
 import { formatDateDDMMYYYY } from '../../utils/formatters';
 import { COACH_WEEK_VIEW_MODES } from '../../utils/coach/coachWeekCalendar';
+import { computeCtlWeekOverWeekDelta } from '../../utils/coach/coachWeekCtlDelta';
+import { todayYmd } from '../../utils/coach/coachHelpers';
 import FluidWeekSessionCard from './FluidWeekSessionCard';
 import FluidWeekCalendar from './FluidWeekCalendar';
 
-function StatPill({ icon: Icon, label }) {
+function StatPill({ icon: IconGlyph, label }) {
     return (
         <span className="inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-cdborder/25 text-cdmuted">
-            <Icon size={10} className="text-cdaccent shrink-0" />
+            <IconGlyph size={10} className="text-cdaccent shrink-0" />
             {label}
         </span>
     );
@@ -30,7 +32,15 @@ export default function FluidWeekPanel({
     isPreview = false,
     className = '',
     viewMode = COACH_WEEK_VIEW_MODES.LIST,
+    activities = [],
+    weeklyHours = 5,
+    referenceYmd = todayYmd(),
 }) {
+    const ctlDelta = React.useMemo(
+        () => computeCtlWeekOverWeekDelta(activities, weekPlan.mondayYmd, referenceYmd),
+        [activities, weekPlan.mondayYmd, referenceYmd],
+    );
+
     const stats = React.useMemo(() => {
         const planned = weekPlan.sessions.filter((s) => s.plannedStimulus !== 'rest' && !s.isUnavailable).length;
         const done = weekPlan.sessions.filter(
@@ -61,6 +71,15 @@ export default function FluidWeekPanel({
                         <span className="text-lg font-bold text-cdtext">{weekPlan.actualTss}</span>
                         <span className="text-cdmuted text-sm"> / {weekPlan.targetTss}</span>
                         <span className="text-[9px] text-cdmuted uppercase block">TSS</span>
+                        {ctlDelta && (
+                            <span
+                                className={`text-[9px] font-bold tabular-nums block mt-0.5 ${
+                                    ctlDelta.delta > 0 ? 'text-emerald-400' : ctlDelta.delta < 0 ? 'text-orange-400' : 'text-cdmuted'
+                                }`}
+                            >
+                                CTL {ctlDelta.delta > 0 ? '+' : ''}{ctlDelta.delta} vs last week
+                            </span>
+                        )}
                     </div>
                 </div>
                 <p className="text-[11px] text-cdmuted mt-0.5">
@@ -129,6 +148,8 @@ export default function FluidWeekPanel({
                         onToggleUnavailable={onToggleUnavailable}
                         onToggleAvailable={onToggleAvailable}
                         expandKeyPrefix={expandKeyPrefix}
+                        activities={activities}
+                        weeklyHours={weeklyHours}
                     />
                 </div>
             ) : (

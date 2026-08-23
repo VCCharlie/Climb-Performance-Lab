@@ -236,6 +236,9 @@ const CoachFluidWeekPlan = ({
                                     index > 0 ? 'border-l border-cdborder/50 pl-4' : '',
                                 ].join(' ')}
                                 viewMode={viewMode}
+                                activities={activities}
+                                weeklyHours={Number(userSettings?.weeklyHoursTarget) || 5}
+                                referenceYmd={today}
                                 {...handlers}
                             />
                         );

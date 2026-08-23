@@ -13,6 +13,7 @@ import { getChartTheme } from '../../utils/chartTheme';
 import useElementSize from '../../hooks/useElementSize';
 import useMediaQuery from '../../hooks/useMediaQuery';
 import CollapsibleDashboardCard from './CollapsibleDashboardCard';
+import PowerCategoryBars from './PowerCategoryBars';
 import { cn } from '../ui';
 
 const RADAR_MAX_FTP_PCT = 160;
@@ -346,6 +347,11 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(220px,280px)] gap-4 items-start">
+                <div className="space-y-3 min-w-0">
+                    <PowerCategoryBars
+                        powerPeakRows={powerPeakRows}
+                        historyPeakRows={historyPeakRows}
+                    />
                 <div
                     ref={(node) => {
                         chartWrapRef.current = node;
@@ -430,6 +436,7 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
                             aria-hidden
                         />
                     )}
+                </div>
                 </div>
 
                 <div ref={sidePanelRef} className="flex flex-col gap-3 min-w-0">
