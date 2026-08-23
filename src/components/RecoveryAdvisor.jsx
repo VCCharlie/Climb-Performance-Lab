@@ -1,5 +1,5 @@
 ﻿import React, { useMemo, useState, useEffect } from 'react';
-import { Activity, TrendingUp, TrendingDown, Calendar, AlertTriangle, CheckCircle, Zap, Info, Lightbulb } from 'lucide-react';
+import { Activity, TrendingUp, TrendingDown, Calendar, AlertTriangle, CheckCircle, Zap } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts';
 import { formatDateDDMMYYYY } from '../utils/formatters';
 import { buildFitnessSeriesForRange } from '../utils/formTabMetrics';
@@ -13,6 +13,7 @@ import {
     TRAINING_PLAN_UPDATED_EVENT,
 } from '../utils/trainingPlanSnapshot';
 import EmptyStateCard from './ui/EmptyStateCard';
+import CollapsibleInfoCard from './ui/CollapsibleInfoCard';
 
 // ⚡ Bolt Optimization: Use array lookup instead of Date.toLocaleString() in loops
 const NL_SHORT_MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
@@ -193,8 +194,11 @@ const RecoveryAdvisor = ({ activities: activitiesProp, startDate, endDate, onGoT
 
             {/* Methodology Info */}
             {trainingMetrics.trainingPlan?.goalDate && (
-                <div className="bg-cdaccent/10 border border-cdaccent/30 rounded-lg p-4 text-sm text-cdtext">
-                    <p className="font-bold text-cdaccent mb-1">Goal plan linked</p>
+                <CollapsibleInfoCard
+                    title="Goal plan linked"
+                    variant="accent"
+                    defaultExpanded
+                >
                     <p>
                         {trainingMetrics.trainingPlan.eventName} on{' '}
                         {formatDateDDMMYYYY(trainingMetrics.trainingPlan.goalDate)}
@@ -202,18 +206,21 @@ const RecoveryAdvisor = ({ activities: activitiesProp, startDate, endDate, onGoT
                             ? ' — you are in a taper phase.'
                             : ` — week ${trainingMetrics.trainingPlan.currentWeekNum} target: ${trainingMetrics.trainingPlan.currentWeekTargetTss ?? '—'} TSS.`}
                     </p>
-                </div>
+                </CollapsibleInfoCard>
             )}
 
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-                <h4 className="text-blue-400 font-bold text-sm mb-2">ℹ️ How does this work?</h4>
-                <div className="text-xs text-cdtext space-y-1">
-                    <p><strong>• CTL (Fitness):</strong> 42-day average of training load. Higher value = better fitness</p>
-                    <p><strong>• ATL (Fatigue):</strong> 7-day average. Higher value = more fatigue</p>
-                    <p><strong>• TSB (Form):</strong> CTL − ATL. Negative = tired, positive = fresh, 5–25 = race ready</p>
-                    <p><strong>💡 Ideal TSB for races:</strong> +5 to +25 (fresh but not deconditioned)</p>
+            <CollapsibleInfoCard
+                title="How does this work?"
+                variant="info"
+                defaultExpanded={false}
+            >
+                <div className="text-xs space-y-1">
+                    <p><strong>CTL (Fitness):</strong> 42-day average of training load. Higher value = better fitness</p>
+                    <p><strong>ATL (Fatigue):</strong> 7-day average. Higher value = more fatigue</p>
+                    <p><strong>TSB (Form):</strong> CTL − ATL. Negative = tired, positive = fresh, 5–25 = race ready</p>
+                    <p><strong>Ideal TSB for races:</strong> +5 to +25 (fresh but not deconditioned)</p>
                 </div>
-            </div>
+            </CollapsibleInfoCard>
 
             {/* Current Metrics */}
             <p className="text-xs text-cdmuted -mt-2">

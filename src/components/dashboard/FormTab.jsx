@@ -3,6 +3,7 @@ import { formatDateDDMMYYYY } from '../../utils';
 import { chartCardClassLg } from '../../utils/chartTheme';
 import { buildFitnessSeriesForRange } from '../../utils/formTabMetrics';
 import FormFitnessChart from './FormFitnessChart';
+import CollapsibleInfoCard from '../ui/CollapsibleInfoCard';
 
 /**
  * FormTab: Shows CTL, ATL and TSB (fitness / fatigue / form) progression over time.
@@ -64,9 +65,15 @@ const FormTab = ({
                             fitnessData={fitnessData}
                             axisTicks={axisTicks}
                         />
-                        <p className="text-xs text-cdmuted mt-3">
+                        <CollapsibleInfoCard
+                            title="CTL / ATL / TSB explained"
+                            variant="info"
+                            defaultExpanded={false}
+                            className="mt-3 !shadow-none"
+                            bodyClassName="!text-xs !text-cdmuted"
+                        >
                             CTL (42-day) = fitness · ATL (7-day) = fatigue · TSB = CTL − ATL (form)
-                        </p>
+                        </CollapsibleInfoCard>
                     </div>
                 </>
             ) : (

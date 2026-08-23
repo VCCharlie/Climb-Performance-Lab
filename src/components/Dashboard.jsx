@@ -59,6 +59,7 @@ const Dashboard = ({
     onOpenActivityLogDateRange,
     onGoToActivities,
     onGoToTraining,
+    onGoToCoachHrDrift,
     stravaGetToken = null,
     stravaAthleteId = null,
     stravaProfileData = null,
@@ -190,6 +191,7 @@ const Dashboard = ({
                         onGoToPowerTab={() => setDashboardTab('power')}
                         onGoToActivities={onGoToActivities}
                         onGoToTraining={onGoToTraining}
+                        onGoToCoachHrDrift={onGoToCoachHrDrift}
                     />
                 </div>
             )}

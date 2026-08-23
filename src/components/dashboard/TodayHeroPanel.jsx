@@ -2,10 +2,11 @@ import React from 'react';
 import { Sun } from 'lucide-react';
 import ClimbingReadinessCard from './ClimbingReadinessCard';
 import DailyHomePanel from './DailyHomePanel';
+import TrainingStatusStrip from './TrainingStatusStrip';
 import { chartCardClass } from '../../utils/chartTheme';
 
 /**
- * Overview hero: climbing readiness (left) + today's focus / latest ride (right).
+ * Overview hero: training status strip + climbing readiness + today's focus / latest ride.
  */
 export default function TodayHeroPanel({
     activities,
@@ -21,11 +22,13 @@ export default function TodayHeroPanel({
                 <Sun className="w-5 h-5 text-cdaccent shrink-0" aria-hidden />
                 <div>
                     <h3 className="text-sm font-bold text-cdtext uppercase tracking-wider">Today</h3>
-                    <p className="text-[11px] text-cdmuted">Readiness, focus, and your latest ride</p>
+                    <p className="text-[11px] text-cdmuted">Form, load, readiness, focus, and your latest ride</p>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+            <TrainingStatusStrip activities={activities} userSettings={userSettings} />
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 mt-4">
                 <ClimbingReadinessCard
                     embedded
                     activities={activities}

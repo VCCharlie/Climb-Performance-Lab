@@ -1019,6 +1019,19 @@ const App = () => {
         setTrainingSubTab('coach');
     }, []);
 
+    const navigateToCoachHrDrift = useCallback(() => {
+        persistMainTab('training');
+        setActiveTab('training');
+        setTrainingSubTab('coach');
+        if (typeof sessionStorage !== 'undefined') {
+            try {
+                sessionStorage.setItem('cpl.training.scrollTarget.v1', 'hr-drift');
+            } catch {
+                /* quota / private mode */
+            }
+        }
+    }, []);
+
     const [dataHubMountKey, setDataHubMountKey] = useState(0);
     const [dataHubMountTab, setDataHubMountTab] = useState(() => resolveInitialDataHubInternalTab());
 
@@ -1102,6 +1115,7 @@ const App = () => {
                                         onOpenSettings={handleOpenSettings}
                                         onGoToActivities={navigateToActivities}
                                         onGoToTraining={navigateToTraining}
+                                        onGoToCoachHrDrift={navigateToCoachHrDrift}
                                         stravaGetToken={stravaAuth.isConnected ? stravaAuth.getValidToken : null}
                                         stravaAthleteId={stravaConfig?.athlete_id}
                                         stravaProfileData={stravaProfileData}
