@@ -2,11 +2,13 @@
  * Field-level retention for activity merge / enrich pipelines.
  *
  * Recommended order:
- * 1. Intervals.icu import (bike-computer metrics)
+ * 1. Intervals.icu import (bike-computer metrics + zone times)
  * 2. protectEnrichedFieldsOnMerge (keep Strava / manual corrections)
  * 3. Strava enrich (map-corrected elevation, gear, route)
  * 4. Drift / decoupling (stream summaries only — never overwrites climbing)
  */
+
+import { protectZoneTimesOnMerge } from './zoneTimes';
 
 /**
  * @param {number | string | null | undefined} value
@@ -87,4 +89,15 @@ export function protectClimbingOnMerge(incoming, existing, out) {
         out.climbing = existing.climbing;
         out.climbing_from_strava = true;
     }
+}
+
+/**
+ * Preserve enriched zone-time arrays when Intervals re-sync omits them.
+ *
+ * @param {object} incoming
+ * @param {object} existing
+ * @param {object} out
+ */
+export function protectZoneTimesFieldsOnMerge(incoming, existing, out) {
+    protectZoneTimesOnMerge(incoming, existing, out);
 }

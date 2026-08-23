@@ -59,6 +59,42 @@ describe('computeClimbingReadiness', () => {
         expect(result.badge.key).toBeTruthy();
     });
 
+    it('uses real Z2 zone time from power_zone_sec when available', () => {
+        const activities = [
+            {
+                date: '2026-07-22',
+                climbing: 200,
+                load: 80,
+                norm_power: 220,
+                moving_time: 7200,
+                power_zone_sec: [0, 5400, 0, 0, 0, 0, 0],
+            },
+        ];
+
+        const withZones = computeClimbingReadiness({
+            activities,
+            ftp: 250,
+            referenceDate: baseDate,
+        });
+
+        const withoutZones = computeClimbingReadiness({
+            activities: [
+                {
+                    date: '2026-07-22',
+                    climbing: 200,
+                    load: 80,
+                    norm_power: 220,
+                    moving_time: 7200,
+                },
+            ],
+            ftp: 250,
+            referenceDate: baseDate,
+        });
+
+        expect(withZones.metrics.z2Hours).toBe(1.5);
+        expect(withZones.scores.z2).toBeGreaterThan(withoutZones.scores.z2);
+    });
+
     it('uses TSB from fitness metrics as of today', () => {
         const activities = [];
         for (let i = 0; i < 14; i += 1) {

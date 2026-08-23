@@ -9,6 +9,7 @@ import { currentWeekRange, currentMonthRange } from './volumeGoals';
 import { getFitnessAtDate } from './formTabMetrics';
 import { todayYmd } from './coach/coachHelpers';
 import { z2PowerBandFromFtp } from './profileFtp';
+import { hasZoneTimesData } from './zoneTimes';
 import {
     normalizeTerrainProfile,
     elevationTargetsForProfile,
@@ -31,7 +32,7 @@ export const CLIMBING_READINESS_EXPLANATION = {
         'The score (0–100) estimates how ready you are for a hard climb this week. It is not FTP — it blends recent climbing volume, endurance work, load, and freshness.',
     weights: [
         '30% — Elevation climbed this period (m), adjusted for your terrain profile in Settings',
-        '25% — Z2 endurance proxy (ride time at 55–75% FTP using NP or avg power)',
+        '25% — Z2 endurance (real Z2 zone time from Intervals when available, otherwise ride time at 55–75% FTP using NP or avg power)',
         '20% — Training load (TSS) for the period',
         '25% — Form (TSB from your activity history)',
     ],
@@ -61,6 +62,35 @@ function activityIntensityFactor(a, ftp) {
     const watts = Number(a?.norm_power) || Number(a?.avg_power) || 0;
     if (!watts || watts <= 0) return null;
     return watts / ftp;
+}
+
+/**
+ * Z2 seconds from Intervals zone times when present, otherwise null.
+ * @param {object} a
+ * @returns {number | null}
+ */
+function activityZ2SecondsFromZones(a) {
+    const zones = a?.power_zone_sec;
+    if (!hasZoneTimesData(zones)) return null;
+    const z2 = Number(zones[1]);
+    return z2 > 0 ? z2 : null;
+}
+
+/**
+ * @param {object} a
+ * @param {number} ftp
+ * @returns {number}
+ */
+function activityZ2Seconds(a, ftp) {
+    const fromZones = activityZ2SecondsFromZones(a);
+    if (fromZones != null) return fromZones;
+
+    const ifac = activityIntensityFactor(a, ftp);
+    const movingSec = activityMovingTimeSec(a);
+    if (ifac != null && movingSec != null && ifac >= Z2_IF_MIN && ifac <= Z2_IF_MAX) {
+        return movingSec;
+    }
+    return 0;
 }
 
 /**
@@ -235,12 +265,7 @@ function computeClimbingReadinessForRange(
     for (const a of periodActs) {
         elevationM += Math.max(0, Number(a?.climbing) || 0);
         periodTss += Math.max(0, Number(a?.load) || 0);
-
-        const ifac = activityIntensityFactor(a, ftp);
-        const movingSec = activityMovingTimeSec(a);
-        if (ifac != null && movingSec != null && ifac >= Z2_IF_MIN && ifac <= Z2_IF_MAX) {
-            z2Seconds += movingSec;
-        }
+        z2Seconds += activityZ2Seconds(a, ftp);
     }
 
     const z2Hours = z2Seconds / 3600;

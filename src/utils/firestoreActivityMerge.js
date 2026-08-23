@@ -5,7 +5,7 @@
 
 import { normalizeStravaActivityId } from './strava';
 import { getAllDriftMergeKeys } from './coach/rideDurability';
-import { protectClimbingOnMerge } from './activityFieldRetention';
+import { protectClimbingOnMerge, protectZoneTimesFieldsOnMerge } from './activityFieldRetention';
 
 const GENERIC_TITLE = /^(Morning|Lunch|Afternoon|Evening|Night) Ride$|^Untitled$/i;
 
@@ -86,6 +86,7 @@ export function protectEnrichedFieldsOnMerge(incoming, existing) {
     }
 
     protectClimbingOnMerge(incoming, existing, out);
+    protectZoneTimesFieldsOnMerge(incoming, existing, out);
 
     // Stream-based drift summaries: preserve when re-sync omits enriched fields.
     const driftKeys = getAllDriftMergeKeys();
