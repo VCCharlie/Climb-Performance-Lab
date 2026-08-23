@@ -22,6 +22,7 @@ import {
 } from '../../utils/powerTrendSeries';
 import { resolveHistoricalFtpMap } from '../../utils/historicalFtp';
 import CollapsibleDashboardCard from './CollapsibleDashboardCard';
+import CollapsibleInfoCard from '../ui/CollapsibleInfoCard';
 
 const METRICS = [
     { id: 'eftp20', label: 'eFTP (20m)', color: 'rgba(34,197,94,0.85)', unit: 'W' },
@@ -116,9 +117,15 @@ export default function PowerLongevitySection({
             </div>
 
             {!birthYear && (
-                <p className="text-[10px] text-cdmuted mb-3">
+                <CollapsibleInfoCard
+                    title="Age timeline"
+                    defaultExpanded={false}
+                    variant="default"
+                    className="!shadow-none mb-3"
+                    bodyClassName="!text-[10px] !text-cdmuted"
+                >
                     Set birth year in Settings to switch the chart to an age timeline.
-                </p>
+                </CollapsibleInfoCard>
             )}
 
             <div className="h-56 mb-4">

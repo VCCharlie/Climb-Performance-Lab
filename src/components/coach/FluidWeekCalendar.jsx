@@ -6,11 +6,17 @@ import {
 } from '../../utils/coach/coachWeekCalendar';
 import { getStimulusStyle } from './coachStimulusStyles';
 import FluidWeekSessionCard from './FluidWeekSessionCard';
+import {
+    buildWeekDayTssMap,
+    tssBubbleSizePx,
+} from '../../utils/coach/coachWeekCalendarTss';
 
 function CalendarDayCell({
     cell,
     selected,
     onSelect,
+    dayTss,
+    maxDayTss,
 }) {
     const session = cell.session;
     const styles = getStimulusStyle(session?.stimulus || 'rest');
@@ -26,6 +32,7 @@ function CalendarDayCell({
         && !isBlocked,
     );
     const isEmpty = !session;
+    const bubbleSize = tssBubbleSizePx(dayTss, maxDayTss);
 
     return (
         <button
@@ -33,7 +40,9 @@ function CalendarDayCell({
             onClick={() => session && onSelect(cell.dateYmd)}
             disabled={isEmpty}
             aria-pressed={selected}
-            aria-label={session ? `${cell.weekdayLabel} ${cell.dayOfMonth}, ${label}` : `${cell.weekdayLabel}, no session`}
+            aria-label={session
+                ? `${cell.weekdayLabel} ${cell.dayOfMonth}, ${label}${dayTss > 0 ? `, ${Math.round(dayTss)} TSS` : ''}`
+                : `${cell.weekdayLabel}, no session`}
             className={[
                 'flex flex-col items-stretch min-h-[88px] rounded-lg border p-1.5 text-left transition-colors',
                 isEmpty ? 'border-cdborder/20 bg-cdborder/5 opacity-40 cursor-default' : 'cursor-pointer hover:bg-cdborder/15',
@@ -47,12 +56,28 @@ function CalendarDayCell({
                 <span className={`text-sm font-bold tabular-nums ${isToday ? 'text-cdaccent' : 'text-cdtext'}`}>
                     {cell.dayOfMonth ?? '—'}
                 </span>
-                <span className={`w-2 h-2 rounded-full shrink-0 ${styles.dot}`} aria-hidden />
+                <div className="flex items-center gap-1 shrink-0">
+                    {bubbleSize > 0 && (
+                        <span
+                            className="rounded-full bg-cdprimary/70 border border-cdprimary/40 shrink-0"
+                            style={{ width: bubbleSize, height: bubbleSize }}
+                            title={`${Math.round(dayTss)} TSS`}
+                            aria-hidden
+                        />
+                    )}
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${styles.dot}`} aria-hidden />
+                </div>
             </div>
 
             <p className={`text-[10px] leading-tight font-medium line-clamp-2 flex-1 ${isCompleted ? 'text-cdmuted line-through' : 'text-cdtext'}`}>
                 {label}
             </p>
+
+            {dayTss > 0 && (
+                <p className="text-[9px] text-cdmuted tabular-nums font-mono mt-0.5">
+                    {Math.round(dayTss)} TSS
+                </p>
+            )}
 
             <div className="flex items-center justify-end gap-0.5 mt-1 min-h-[14px]">
                 {isBlocked && <Ban size={11} className="text-red-300" aria-label="Blocked" />}
@@ -76,8 +101,20 @@ export default function FluidWeekCalendar({
     onToggleUnavailable,
     onToggleAvailable,
     expandKeyPrefix = '',
+    activities = [],
+    weeklyHours = 5,
 }) {
     const cells = useMemo(() => buildWeekCalendarCells(weekPlan), [weekPlan]);
+
+    const dayTssMap = useMemo(
+        () => buildWeekDayTssMap(weekPlan, activities, weeklyHours),
+        [weekPlan, activities, weeklyHours],
+    );
+
+    const maxDayTss = useMemo(() => {
+        const values = Object.values(dayTssMap);
+        return values.length ? Math.max(...values) : 0;
+    }, [dayTssMap]);
 
     const selectedSession = useMemo(() => {
         if (!expandedDate) return null;
@@ -112,6 +149,8 @@ export default function FluidWeekCalendar({
                                 && expandedDate === `${expandKeyPrefix}${cell.dateYmd}`,
                             )}
                             onSelect={handleSelect}
+                            dayTss={cell.dateYmd ? dayTssMap[cell.dateYmd] || 0 : 0}
+                            maxDayTss={maxDayTss}
                         />
                     </div>
                 ))}
@@ -133,7 +172,7 @@ export default function FluidWeekCalendar({
 
             {!expandedDate && (
                 <p className="text-[10px] text-cdmuted text-center">
-                    Tap a day to view details and actions
+                    Tap a day to view details and actions — bubble size reflects daily TSS
                 </p>
             )}
         </div>

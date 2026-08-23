@@ -4,6 +4,8 @@ import PowerTopTenByDurationPanel from './PowerTopTenByDurationPanel';
 import PowerTabDetails from './PowerTabDetails';
 import PowerProfileRadar from './PowerProfileRadar';
 import PowerLongevitySection from './PowerLongevitySection';
+import PeakPowerDurationBarCard from './PeakPowerDurationBarCard';
+import CollapsibleInfoCard from '../ui/CollapsibleInfoCard';
 import { findBestPowerActivity, DASHBOARD_FTP_CAPS } from '../../utils/dashboardActivityPeaks';
 import { dashboardFilterLabel } from '../../utils/powerDurationTable';
 
@@ -150,10 +152,16 @@ const PowerTab = ({
             )}
 
             {!hasPeriodData && hasHistory && (
-                <p className="text-sm text-cdmuted bg-cdborder/20 border border-cdborder rounded-lg px-4 py-3">
+                <CollapsibleInfoCard
+                    title="No rides in selected period"
+                    defaultExpanded
+                    variant="default"
+                    className="!shadow-none"
+                    bodyClassName="!text-sm !text-cdmuted"
+                >
                     No rides in <span className="text-cdtext font-semibold">{periodLabel}</span> — the power-duration matrix still uses
                     your full history; pick another period at the top for the other power sections.
-                </p>
+                </CollapsibleInfoCard>
             )}
 
             {stats && (
@@ -172,6 +180,14 @@ const PowerTab = ({
                 <PowerProfileRadar
                     powerPeakRows={powerPeakRows}
                     historyPeakRows={historyPowerPeakRows}
+                    manualFtp={manualFtp}
+                    onOpenActivityInLog={onOpenActivityInLog}
+                />
+            )}
+
+            {chartData.length > 0 && (
+                <PeakPowerDurationBarCard
+                    chartData={chartData}
                     manualFtp={manualFtp}
                     onOpenActivityInLog={onOpenActivityInLog}
                 />
@@ -210,9 +226,15 @@ const PowerTab = ({
             )}
 
             {!stats && hasHistory && (
-                <p className="text-xs text-cdmuted">
-                    Note: choose a period with rides to see eFTP, the monthly chart, and the MMP curve.
-                </p>
+                <CollapsibleInfoCard
+                    title="Period stats unavailable"
+                    defaultExpanded={false}
+                    variant="default"
+                    className="!shadow-none"
+                    bodyClassName="!text-xs !text-cdmuted"
+                >
+                    Choose a period with rides to see eFTP, the monthly chart, and the MMP curve.
+                </CollapsibleInfoCard>
             )}
         </div>
     );
