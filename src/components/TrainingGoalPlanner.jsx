@@ -15,6 +15,7 @@ import {
 import { trainingGoalFormDefaultsFromSnapshot, resolveTrainingGoalDisplayName } from '../utils/trainingGoalLink';
 import { formatDateDDMMYYYY } from '../utils/formatters';
 import NlDateInput from './NlDateInput';
+import CollapsibleInfoCard from './ui/CollapsibleInfoCard';
 
 const defaultGoalDate = () => {
     const d = new Date();
@@ -203,25 +204,27 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
 
     return (
         <div className="space-y-4 md:space-y-6 animate-in fade-in min-w-0 max-w-full">
-            <div className="bg-cdsurface p-3 md:p-6 rounded-xl border border-cdborder shadow-md">
-                <h3 className="text-lg md:text-xl font-bold text-cdtext flex items-center gap-2 mb-2">
-                    <Mountain className="text-cdaccent shrink-0" size={22} />
-                    Goal & planning
-                </h3>
-                <p className="text-sm text-cdmuted leading-relaxed max-w-3xl">
+            <CollapsibleInfoCard
+                title="Goal & planning"
+                subtitle="Set a date and climb profile to estimate event-day TSS and a weekly schedule with taper."
+                icon={Mountain}
+                variant="default"
+                defaultExpanded
+            >
+                <p className="text-sm text-cdmuted leading-relaxed">
                     Set a <strong className="text-cdtext font-medium">date</strong> and the <strong className="text-cdtext font-medium">profile</strong> of your target (distance, elevation, optional duration, expected average intensity as % FTP).
                     We estimate <strong className="text-cdtext font-medium">event-day TSS</strong> and provide a <strong className="text-cdtext font-medium">weekly schedule</strong> with rising load and taper — aligned with your recent TSS (last 4 weeks in your selected dashboard period).
-                    {isSignedIn ? (
-                        <span className="block mt-2 text-xs">
-                            Signed in — your event goal syncs across devices via Firebase (separate from yearly km/elevation goals on the Dashboard).
-                        </span>
-                    ) : (
-                        <span className="block mt-2 text-xs">
-                            Sign in to sync this event goal across mobile and desktop.
-                        </span>
-                    )}
                 </p>
-            </div>
+                {isSignedIn ? (
+                    <p className="text-xs text-cdmuted mt-2">
+                        Signed in — your event goal syncs across devices via Firebase (separate from yearly km/elevation goals on the Dashboard).
+                    </p>
+                ) : (
+                    <p className="text-xs text-cdmuted mt-2">
+                        Sign in to sync this event goal across mobile and desktop.
+                    </p>
+                )}
+            </CollapsibleInfoCard>
 
             {activeGoalSnapshot && !planResult.error && (
                 <div className="bg-cdsurface p-4 rounded-xl border border-cdborder border-l-4 border-l-cdaccent flex flex-wrap items-start justify-between gap-4">
@@ -546,14 +549,13 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
             )}
 
             {planResult.tips?.length > 0 && (
-                <div className="bg-cdsurface p-5 rounded-xl border border-cdborder border-l-4 border-l-cdprimary">
-                    <h3 className="text-sm font-bold text-cdtext mb-2">Note</h3>
-                    <ul className="list-disc list-inside text-sm text-cdtext space-y-1">
+                <CollapsibleInfoCard title="Planning notes" variant="primary" defaultExpanded>
+                    <ul className="list-disc list-inside space-y-1">
                         {planResult.tips.map((t, i) => (
                             <li key={i}>{t}</li>
                         ))}
                     </ul>
-                </div>
+                </CollapsibleInfoCard>
             )}
 
             <div className="flex flex-wrap items-center gap-3 text-sm text-cdmuted">

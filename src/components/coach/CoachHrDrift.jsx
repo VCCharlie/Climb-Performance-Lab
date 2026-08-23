@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from 'react';
-import { Activity, TrendingDown, TrendingUp, Minus, ChevronDown, Info } from 'lucide-react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { Activity, TrendingDown, TrendingUp, Minus } from 'lucide-react';
 import CollapsibleSection from '../ui/CollapsibleSection';
+import CollapsibleInfoCard from '../ui/CollapsibleInfoCard';
 import { SegmentedControl } from '../ui';
 import { formatDateDDMMYYYY } from '../../utils/formatters';
 import {
@@ -183,8 +184,6 @@ function WeeklyDriftChart({ weeklyDriftPoints, profile }) {
 }
 
 function DriftProfilePanel({ profile, activities, profileFtp, referenceYmd }) {
-    const [showRationale, setShowRationale] = useState(false);
-
     const trend = useMemo(
         () => buildDriftProfileTrend(activities, profileFtp, profile, { referenceYmd, weeks: 12 }),
         [activities, profileFtp, referenceYmd, profile],
@@ -335,29 +334,18 @@ function DriftProfilePanel({ profile, activities, profileFtp, referenceYmd }) {
                 </div>
             )}
 
-            <div className="rounded-lg border border-cdborder/40 overflow-hidden">
-                <button
-                    type="button"
-                    onClick={() => setShowRationale((v) => !v)}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold text-cdtext hover:bg-cdborder/20 cd-focus-ring"
-                    aria-expanded={showRationale}
-                >
-                    <Info size={14} className="text-cdaccent shrink-0" aria-hidden />
-                    {rationale.title}
-                    <ChevronDown
-                        size={14}
-                        className={`ml-auto shrink-0 text-cdmuted transition-transform ${showRationale ? 'rotate-180' : ''}`}
-                        aria-hidden
-                    />
-                </button>
-                {showRationale && (
-                    <ul className="px-3 pb-3 space-y-1.5 text-[10px] text-cdmuted leading-relaxed list-disc pl-7">
-                        {rationale.bullets.map((line) => (
-                            <li key={line}>{line}</li>
-                        ))}
-                    </ul>
-                )}
-            </div>
+            <CollapsibleInfoCard
+                title={rationale.title}
+                variant="default"
+                defaultExpanded={false}
+                bodyClassName="!text-[10px] !text-cdmuted"
+            >
+                <ul className="list-disc pl-4 space-y-1.5 leading-relaxed">
+                    {rationale.bullets.map((line) => (
+                        <li key={line}>{line}</li>
+                    ))}
+                </ul>
+            </CollapsibleInfoCard>
         </div>
     );
 }
@@ -367,6 +355,15 @@ export default function CoachHrDrift({
     profileFtp,
     referenceYmd,
 }) {
+    const sectionRef = useRef(null);
+    const scrollPending = (() => {
+        try {
+            return sessionStorage.getItem('cpl.training.scrollTarget.v1') === 'hr-drift';
+        } catch {
+            return false;
+        }
+    })();
+
     const signals = useMemo(
         () => countDriftProfileSignals(activities, profileFtp),
         [activities, profileFtp],
@@ -379,21 +376,42 @@ export default function CoachHrDrift({
         return withEligible || DRIFT_PROFILE.STEADY;
     }, [signals]);
 
-    const [activeTab, setActiveTab] = useState(defaultTab);
-
     const totalAnalyzed = DRIFT_TAB_ORDER.reduce((sum, p) => sum + (signals[p]?.analyzed || 0), 0);
     const totalEligible = DRIFT_TAB_ORDER.reduce((sum, p) => sum + (signals[p]?.eligible || 0), 0);
+
+    const [activeTab, setActiveTab] = useState(defaultTab);
+    const [sectionExpanded, setSectionExpanded] = useState(
+        scrollPending || totalAnalyzed > 0 || totalEligible > 0,
+    );
+
+    useEffect(() => {
+        if (!scrollPending) return undefined;
+        try {
+            sessionStorage.removeItem('cpl.training.scrollTarget.v1');
+        } catch {
+            /* ignore */
+        }
+        setSectionExpanded(true);
+        const timer = window.setTimeout(() => {
+            sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 120);
+        return () => window.clearTimeout(timer);
+    }, [scrollPending]);
+
     const subtitle = totalEligible > 0
         ? `${totalAnalyzed} analyzed · ${totalEligible} eligible across steady / threshold / race · last 12 weeks`
         : 'Stream-based HR drift on steady, threshold, and race-style rides';
 
     return (
         <CollapsibleSection
+            id="coach-hr-drift"
+            sectionRef={sectionRef}
             title="HR drift & aerobic efficiency"
             subtitle={subtitle}
             icon={Activity}
             iconClassName="text-emerald-400"
-            defaultExpanded={totalAnalyzed > 0 || totalEligible > 0}
+            expanded={sectionExpanded}
+            onExpandedChange={setSectionExpanded}
         >
             <div className="space-y-4">
                 <SegmentedControl

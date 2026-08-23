@@ -13,6 +13,7 @@ import CoachFluidWeekPlan from './coach/CoachFluidWeekPlan';
 import CoachFitnessForecast from './coach/CoachFitnessForecast';
 import CoachHrDrift from './coach/CoachHrDrift';
 import CollapsibleSection from './ui/CollapsibleSection';
+import CollapsibleInfoCard from './ui/CollapsibleInfoCard';
 import EmptyStateCard from './ui/EmptyStateCard';
 import { useToast } from '../context/ToastContext';
 import { buildFluidWeekPlan } from '../utils/coach/coachWeekPlan';
@@ -534,7 +535,12 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
                 </div>
             )}
 
-            <div className="bg-cdsurface p-4 rounded-xl border border-cdborder flex flex-wrap items-center gap-4">
+            <CollapsibleInfoCard
+                title="Weekly hours budget"
+                subtitle="Shapes training days and default TSS when no event goal is set."
+                variant="default"
+                defaultExpanded={false}
+            >
                 <label className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-cdmuted">
                     <span className="font-semibold text-cdtext whitespace-nowrap">Weekly hours budget</span>
                     <select
@@ -548,12 +554,12 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
                         <option value={7}>7 h / week</option>
                     </select>
                 </label>
-                <p className="text-xs text-cdmuted flex-1 min-w-0">
+                <p className="text-xs text-cdmuted mt-3">
                     {linkedEventGoal
                         ? `Shapes which days you train. Weekly TSS (${fluidWeekPlan.targetTss}) comes from your event goal in Goals & Planning — not the hours table (~${fluidWeekPlan.hoursBudgetTss} TSS at ${weeklyHoursTarget} h/wk). Yearly km/elevation goals on the Dashboard stay separate.`
                         : 'Saved in Settings. Drives TSS targets, fluid workouts, and week rebalancing when no event goal is set.'}
                 </p>
-            </div>
+            </CollapsibleInfoCard>
 
             <CoachFluidWeekPlan
                 activities={activities}

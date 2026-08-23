@@ -2,6 +2,7 @@ import React from 'react';
 import { Gauge } from 'lucide-react';
 import { useProfileFtp } from '../../context/ProfileFtpContext';
 import { describeProfileFtpSourceSubtitle } from '../../utils/profileFtp';
+import CollapsibleInfoCard from '../ui/CollapsibleInfoCard';
 
 /**
  * Shows which FTP value (manual / 20 min / 60 min) drives Training tab calculations.
@@ -12,24 +13,34 @@ const TrainingFtpContextNote = ({ userSettings }) => {
 
     if (!ftp) {
         return (
-            <div className="mb-4 px-4 py-3 rounded-lg border border-cdprimary/30 bg-cdprimarycontainer/15 text-xs text-cdtext">
-                <Gauge size={14} className="inline mr-1.5 text-cdprimary align-text-bottom" />
+            <CollapsibleInfoCard
+                title="FTP required for zone analysis"
+                icon={Gauge}
+                variant="primary"
+                defaultExpanded
+                className="mb-4"
+                bodyClassName="!text-xs"
+            >
                 Set your FTP in Settings (manual or estimated from 20/60 min peaks) to unlock zone-based coach analysis.
-            </div>
+            </CollapsibleInfoCard>
         );
     }
 
     const subtitle = describeProfileFtpSourceSubtitle(userSettings, profileFtp);
 
     return (
-        <div className="mb-4 px-4 py-3 rounded-lg border border-cdborder bg-cdborder/10 text-xs text-cdmuted flex flex-wrap items-center gap-x-2 gap-y-1">
-            <Gauge size={14} className="text-cdaccent shrink-0" aria-hidden />
-            <span>
-                Training calculations use{' '}
-                <strong className="text-cdtext tabular-nums">{ftp} W FTP</strong>
-                {' '}— {subtitle}.
-            </span>
-        </div>
+        <CollapsibleInfoCard
+            title="FTP context for this tab"
+            icon={Gauge}
+            variant="default"
+            defaultExpanded={false}
+            className="mb-4"
+            bodyClassName="!text-xs !text-cdmuted"
+        >
+            Training calculations use{' '}
+            <strong className="text-cdtext tabular-nums">{ftp} W FTP</strong>
+            {' '}— {subtitle}.
+        </CollapsibleInfoCard>
     );
 };
 

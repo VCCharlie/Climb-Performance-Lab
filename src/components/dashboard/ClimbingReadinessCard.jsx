@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Mountain, TrendingUp, Activity, Gauge, HelpCircle } from 'lucide-react';
+import { Mountain, TrendingUp, Activity, Gauge } from 'lucide-react';
 import {
     computeClimbingReadiness,
     computeClimbingReadinessHistory,
@@ -9,6 +9,7 @@ import { normalizeTerrainProfile } from '../../utils/climbingTerrainProfile';
 import { chartCardClass } from '../../utils/chartTheme';
 import { useProfileFtp } from '../../context/ProfileFtpContext';
 import { SegmentedControl } from '../ui';
+import CollapsibleInfoCard from '../ui/CollapsibleInfoCard';
 
 const BADGE_STYLES = {
     recover: 'bg-red-500/15 text-red-400 border-red-500/40',
@@ -70,7 +71,6 @@ const ClimbingReadinessCard = ({ activities, userSettings, embedded = false }) =
     const profileFtp = useProfileFtp();
     const ftp = profileFtp.ftp || Number(userSettings?.ftp) || 0;
     const terrainProfile = normalizeTerrainProfile(userSettings?.terrainProfile);
-    const [showHelp, setShowHelp] = useState(false);
     const [historyView, setHistoryView] = useState('week');
 
     const readiness = useMemo(
@@ -109,16 +109,6 @@ const ClimbingReadinessCard = ({ activities, userSettings, embedded = false }) =
                     <h3 className={`text-sm font-bold text-cdtext flex items-center gap-2 ${embedded ? 'text-xs uppercase tracking-wider' : ''}`}>
                         {!embedded ? <Mountain className="text-cdaccent shrink-0" size={18} aria-hidden /> : null}
                         Climbing readiness
-                        <button
-                            type="button"
-                            onClick={() => setShowHelp((v) => !v)}
-                            className="inline-flex items-center justify-center w-6 h-6 rounded-full border border-cdborder text-cdmuted hover:text-cdaccent hover:border-cdaccent/50 cd-transition"
-                            aria-expanded={showHelp}
-                            aria-label="How is the climbing readiness score calculated?"
-                            title="How is this score calculated?"
-                        >
-                            <HelpCircle size={14} aria-hidden />
-                        </button>
                     </h3>
                     <p className="text-xs text-cdmuted mt-0.5">
                         This week ({readiness.weekLabel}) — score {readiness.composite}/100 ·{' '}
@@ -133,20 +123,23 @@ const ClimbingReadinessCard = ({ activities, userSettings, embedded = false }) =
                 </span>
             </div>
 
-            {showHelp && (
-                <div className="rounded-lg border border-cdborder/60 bg-cdbg/40 p-3 text-[11px] text-cdmuted space-y-2">
-                    <p className="text-cdtext font-semibold">{CLIMBING_READINESS_EXPLANATION.title}</p>
-                    <p className="leading-snug">{CLIMBING_READINESS_EXPLANATION.summary}</p>
-                    <ul className="list-disc pl-4 space-y-0.5">
-                        {CLIMBING_READINESS_EXPLANATION.weights.map((line) => (
-                            <li key={line}>{line}</li>
-                        ))}
-                    </ul>
-                    <p className="text-[10px] leading-snug">{CLIMBING_READINESS_EXPLANATION.terrainNote}</p>
-                    <p className="text-[10px] leading-snug">{CLIMBING_READINESS_EXPLANATION.rollingNote}</p>
-                    <p className="text-[10px] leading-snug">{CLIMBING_READINESS_EXPLANATION.historyNote}</p>
-                </div>
-            )}
+            <CollapsibleInfoCard
+                title={CLIMBING_READINESS_EXPLANATION.title}
+                subtitle="How the 0–100 score blends elevation, Z2, load, and form."
+                variant="default"
+                defaultExpanded={false}
+                className="!shadow-none"
+            >
+                <p className="text-[11px] leading-snug text-cdmuted">{CLIMBING_READINESS_EXPLANATION.summary}</p>
+                <ul className="list-disc pl-4 space-y-0.5 text-[11px] text-cdmuted">
+                    {CLIMBING_READINESS_EXPLANATION.weights.map((line) => (
+                        <li key={line}>{line}</li>
+                    ))}
+                </ul>
+                <p className="text-[10px] leading-snug text-cdmuted">{CLIMBING_READINESS_EXPLANATION.terrainNote}</p>
+                <p className="text-[10px] leading-snug text-cdmuted">{CLIMBING_READINESS_EXPLANATION.rollingNote}</p>
+                <p className="text-[10px] leading-snug text-cdmuted">{CLIMBING_READINESS_EXPLANATION.historyNote}</p>
+            </CollapsibleInfoCard>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
                 <div className="rounded-lg border border-cdborder/60 bg-cdbg/40 px-2 py-2">

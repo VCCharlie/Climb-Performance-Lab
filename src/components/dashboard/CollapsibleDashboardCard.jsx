@@ -4,7 +4,7 @@ import { chartCardShellClass } from '../../utils/chartTheme';
 import { cn } from '../ui';
 
 /**
- * Collapsible dashboard section card — shared header pattern for Power tab panels.
+ * Collapsible dashboard section card — chevron top-right in header row.
  */
 export default function CollapsibleDashboardCard({
     title,
@@ -22,26 +22,26 @@ export default function CollapsibleDashboardCard({
             <button
                 type="button"
                 onClick={() => setExpanded((open) => !open)}
-                className="w-full flex items-start gap-3 p-4 text-left hover:bg-cdborder/20 cd-transition cd-focus-ring"
+                className="w-full p-4 text-left hover:bg-cdborder/20 cd-transition cd-focus-ring"
                 aria-expanded={expanded}
             >
-                {Icon ? (
-                    <div className="mt-0.5 text-cdaccent shrink-0">
-                        <Icon size={22} strokeWidth={2.2} aria-hidden />
+                <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                        {Icon ? (
+                            <div className="mt-0.5 text-cdaccent shrink-0">
+                                <Icon size={22} strokeWidth={2.2} aria-hidden />
+                            </div>
+                        ) : null}
+                        <div className="min-w-0 flex-1">
+                            <span className="text-lg font-bold text-cdtext">{title}</span>
+                            {description ? (
+                                <div className="text-xs text-cdmuted mt-1 leading-relaxed">{description}</div>
+                            ) : null}
+                        </div>
                     </div>
-                ) : null}
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-lg font-bold text-cdtext">{title}</span>
-                        {expanded ? (
-                            <ChevronDown size={18} className="text-cdmuted shrink-0" aria-hidden />
-                        ) : (
-                            <ChevronRight size={18} className="text-cdmuted shrink-0" aria-hidden />
-                        )}
+                    <div className="shrink-0 self-start pt-0.5 text-cdmuted" aria-hidden>
+                        {expanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
                     </div>
-                    {description ? (
-                        <div className="text-xs text-cdmuted mt-1 leading-relaxed">{description}</div>
-                    ) : null}
                 </div>
             </button>
             {expanded ? (

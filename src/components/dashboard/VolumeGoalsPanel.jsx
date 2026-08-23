@@ -5,6 +5,7 @@ import { deriveVolumeGoalsFromYearlyGoals, scaleVolumeGoals, currentWeekRange, c
 import { projectYearEndVolume } from '../../utils/yearEndProjection';
 import { VolumeGoalPeriodCard } from './VolumeGoalPeriodCard';
 import { chartCardClass } from '../../utils/chartTheme';
+import CollapsibleInfoCard from '../ui/CollapsibleInfoCard';
 
 const PREVIEW_SCALE_MIN = 50;
 const PREVIEW_SCALE_MAX = 150;
@@ -214,7 +215,13 @@ const VolumeGoalsPanel = ({ chartData = [], userSettings, onOpenSettings }) => {
                 </div>
             ) : null}
 
-            <p className="text-[11px] text-cdmuted leading-snug">
+            <CollapsibleInfoCard
+                title="About these goals"
+                variant="default"
+                defaultExpanded={false}
+                className="!shadow-none !rounded-md mb-3"
+                bodyClassName="!text-[11px] !text-cdmuted !leading-snug !space-y-0"
+            >
                 Yearly targets live in Settings → Performance &amp; Goals. Weekly and monthly bars are calculated automatically (÷52 and ÷12).
                 {onOpenSettings ? (
                     <>
@@ -228,7 +235,7 @@ const VolumeGoalsPanel = ({ chartData = [], userSettings, onOpenSettings }) => {
                         </button>
                     </>
                 ) : null}
-            </p>
+            </CollapsibleInfoCard>
 
             {!collapsed && (
                 <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-4">

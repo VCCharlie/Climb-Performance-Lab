@@ -2,6 +2,8 @@ import React, { Suspense } from 'react';
 import VolumeGoalsPanel from './VolumeGoalsPanel';
 import TodayHeroPanel from './TodayHeroPanel';
 import YtdPowerTrendCard from './YtdPowerTrendCard';
+import WeeklyLoadChartCard from './WeeklyLoadChartCard';
+import AerobicEfficiencySnapshotCard from './AerobicEfficiencySnapshotCard';
 import EmptyStateCard from '../ui/EmptyStateCard';
 import { SkeletonChartCard } from '../ui/Skeleton';
 import { lazyWithRetry } from '../../utils/lazyWithRetry';
@@ -14,7 +16,8 @@ const OverviewChartsPanel = lazyWithRetry(
 
 /**
  * OverviewTab: Main Dashboard overview.
- *  - Today hero (readiness + focus / latest ride)
+ *  - Today hero (training status + readiness + focus / latest ride)
+ *  - Weekly load chart + aerobic efficiency snapshot
  *  - YTD volume + long-term power (merged card)
  *  - Volume goals (collapsed on mobile by default)
  *  - Compact performance KPIs + unified volume charts + heatmap
@@ -30,6 +33,7 @@ const OverviewTab = ({
     onGoToPowerTab,
     onGoToActivities,
     onGoToTraining,
+    onGoToCoachHrDrift,
 }) => {
     const activitySource = allActivities || data || [];
     const hasFilteredData = data && data.length > 0;
@@ -57,6 +61,18 @@ const OverviewTab = ({
                 onOpenActivityInLog={onOpenActivityInLog}
                 onGoToTraining={onGoToTraining}
             />
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+                <WeeklyLoadChartCard
+                    activities={activitySource}
+                    userSettings={userSettings}
+                />
+                <AerobicEfficiencySnapshotCard
+                    activities={activitySource}
+                    userSettings={userSettings}
+                    onGoToCoachHrDrift={onGoToCoachHrDrift}
+                />
+            </div>
 
             <YtdPowerTrendCard
                 activities={activitySource}

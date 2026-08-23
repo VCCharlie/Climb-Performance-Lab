@@ -19,6 +19,7 @@ export const HR_METRICS = [
 export const PERFORMANCE_METRICS = [
     { id: 'normPower', label: 'Normalized power', unit: 'W', decimals: 0, stat: 'avg' },
     { id: 'avgPower', label: 'Average power', unit: 'W', decimals: 0, stat: 'avg' },
+    { id: 'intensityFactor', label: 'Intensity factor (IF)', unit: '', decimals: 2, stat: 'avg' },
     { id: 'avgSpeed', label: 'Average speed', unit: 'km/h', decimals: 1, stat: 'avg' },
     { id: 'rpe', label: 'RPE', unit: '', decimals: 1, stat: 'avg' },
     { id: 'efficiencyFactor', label: 'EF (NP÷HR)', unit: 'W/bpm', decimals: 2, stat: 'avg' },

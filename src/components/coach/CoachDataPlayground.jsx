@@ -42,7 +42,7 @@ const RANGE_PRESETS = [
     { id: 'all', label: 'All data', years: 30 },
 ];
 
-const CoachDataPlayground = ({ activities }) => {
+const CoachDataPlayground = ({ activities, userSettings }) => {
     const [mode, setMode] = useState('trends');
 
     if (!activities?.length) return null;
@@ -69,7 +69,7 @@ const CoachDataPlayground = ({ activities }) => {
             />
 
             {mode === 'trends' ? (
-                <TrendsPanel activities={activities} />
+                <TrendsPanel activities={activities} userSettings={userSettings} />
             ) : mode === 'explorer' ? (
                 <PlaygroundExplorerPanel activities={activities} />
             ) : (
@@ -79,7 +79,7 @@ const CoachDataPlayground = ({ activities }) => {
     );
 };
 
-function TrendsPanel({ activities }) {
+function TrendsPanel({ activities, userSettings }) {
     const today = todayYmd();
     const defaultRange = defaultPlaygroundPrimaryRange(today);
 
@@ -121,6 +121,8 @@ function TrendsPanel({ activities }) {
         return resolvePlaygroundCompareRange(compareMode, primaryStart, primaryEnd, compareDays);
     }, [compareMode, primaryStart, primaryEnd, compareDays, compareStart, compareEnd]);
 
+    const profileFtp = Number(userSettings?.ftp) || 0;
+
     const trendData = useMemo(
         () => buildTrendPlaygroundData(activities, {
             cadence,
@@ -132,8 +134,9 @@ function TrendsPanel({ activities }) {
             compareStartYmd: compareRange?.startYmd,
             compareEndYmd: compareRange?.endYmd,
             trendWindow,
+            profileFtp,
         }),
-        [activities, cadence, metricId, statMode, primaryStart, primaryEnd, compareMode, compareRange, trendWindow],
+        [activities, cadence, metricId, statMode, primaryStart, primaryEnd, compareMode, compareRange, trendWindow, profileFtp],
     );
 
     const metric = trendData.metric;

@@ -51,6 +51,9 @@ function emptyExtendedBucket() {
         raceDriftPctSum: 0,
         raceDriftPctCount: 0,
         maxRaceDriftPct: 0,
+        ifWeightedSum: 0,
+        ifWeightSec: 0,
+        maxIntensityFactor: 0,
         powerPeaks: emptyPeakArrays(),
     };
 }
@@ -60,7 +63,7 @@ function pushPeak(peaks, field, value) {
     if (Number.isFinite(n) && n > 0) peaks[field].push(n);
 }
 
-function addActivityToBucket(bucket, activity) {
+function addActivityToBucket(bucket, activity, profileFtp = 0) {
     bucket.rideCount += 1;
     const dk = activityDistanceKm(activity);
     if (dk != null && !Number.isNaN(dk)) bucket.distanceKm += dk;
@@ -88,6 +91,13 @@ function addActivityToBucket(bucket, activity) {
         bucket.normPowerWeightedSum += normPower * sec;
         bucket.normPowerWeightSec += sec;
         if (normPower > bucket.maxNormPower) bucket.maxNormPower = normPower;
+        const ftp = Number(profileFtp) || 0;
+        if (ftp > 0) {
+            const ifVal = normPower / ftp;
+            bucket.ifWeightedSum += ifVal * sec;
+            bucket.ifWeightSec += sec;
+            if (ifVal > bucket.maxIntensityFactor) bucket.maxIntensityFactor = ifVal;
+        }
     }
 
     const avgPower = Number(activity.avg_power) || 0;
@@ -175,6 +185,9 @@ function finalizeBucket(bucket) {
     const efficiencyFactor = bucket.efWeightSec > 0
         ? Math.round((bucket.efWeightedSum / bucket.efWeightSec) * 100) / 100
         : 0;
+    const intensityFactor = bucket.ifWeightSec > 0
+        ? Math.round((bucket.ifWeightedSum / bucket.ifWeightSec) * 1000) / 1000
+        : 0;
     const decouplingPct = bucket.decouplingPctCount > 0
         ? Math.round((bucket.decouplingPctSum / bucket.decouplingPctCount) * 10) / 10
         : 0;
@@ -205,6 +218,8 @@ function finalizeBucket(bucket) {
         maxAvgSpeed: bucket.maxAvgSpeed || 0,
         maxRpe: bucket.maxRpe || 0,
         efficiencyFactor,
+        intensityFactor,
+        maxIntensityFactor: bucket.maxIntensityFactor || 0,
         decouplingPct,
         thresholdDriftPct,
         raceDriftPct,
@@ -232,8 +247,9 @@ function formatMonthLabel(monthKey) {
 /**
  * @param {object[]} activities
  * @param {'weekly' | 'monthly' | 'yearly'} cadence
+ * @param {number} [profileFtp]
  */
-export function buildPlaygroundBuckets(activities, cadence) {
+export function buildPlaygroundBuckets(activities, cadence, profileFtp = 0) {
     const map = new Map();
 
     for (const a of activities || []) {
@@ -251,7 +267,7 @@ export function buildPlaygroundBuckets(activities, cadence) {
         }
 
         if (!map.has(key)) map.set(key, emptyExtendedBucket());
-        addActivityToBucket(map.get(key), a);
+        addActivityToBucket(map.get(key), a, profileFtp);
     }
 
     return [...map.entries()]
@@ -287,6 +303,7 @@ export function bucketMetricValue(bucket, metricId, statMode = 'primary', option
             case 'load': return bucket.maxLoad;
             case 'maxHr': return bucket.maxHr;
             case 'normPower': return bucket.maxNormPower;
+            case 'intensityFactor': return bucket.maxIntensityFactor || null;
             case 'avgPower': return bucket.maxAvgPower;
             case 'avgSpeed': return bucket.maxAvgSpeed;
             case 'rpe': return bucket.maxRpe;
@@ -307,6 +324,7 @@ export function bucketMetricValue(bucket, metricId, statMode = 'primary', option
         case 'avgHr': return bucket.avgHr;
         case 'maxHr': return bucket.maxHr;
         case 'normPower': return bucket.normPower;
+        case 'intensityFactor': return bucket.ifWeightSec > 0 ? bucket.intensityFactor : null;
         case 'avgPower': return bucket.avgPower;
         case 'avgSpeed': return bucket.avgSpeed;
         case 'rpe': return bucket.rpe;

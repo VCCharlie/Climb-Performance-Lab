@@ -102,6 +102,7 @@ export function buildTrendPlaygroundData(activities, options = {}) {
         compareEndYmd,
         compareMode = 'none',
         trendWindow = 3,
+        profileFtp = 0,
     } = options;
 
     const metric = getPlaygroundMetric(metricId);
@@ -111,7 +112,7 @@ export function buildTrendPlaygroundData(activities, options = {}) {
         ? filterActivitiesInRange(rides, startYmd, endYmd)
         : rides;
 
-    const chronological = buildPlaygroundBuckets(primaryActs, cadence);
+    const chronological = buildPlaygroundBuckets(primaryActs, cadence, profileFtp);
     const values = chronological.map((row) => bucketMetricValue(row, metricId, statMode));
     const trend = trailingMovingAverage(values, trendWindow);
     const maxValues = chronological.map((row) => bucketMetricValue(row, metricId, 'max'));
@@ -120,7 +121,7 @@ export function buildTrendPlaygroundData(activities, options = {}) {
     let compareChronological = [];
     if (compareMode !== 'none' && compareStartYmd && compareEndYmd) {
         const compareActs = filterActivitiesInRange(rides, compareStartYmd, compareEndYmd);
-        compareChronological = buildPlaygroundBuckets(compareActs, cadence);
+        compareChronological = buildPlaygroundBuckets(compareActs, cadence, profileFtp);
     }
 
     const chartData = chronological.map((row, index) => {
