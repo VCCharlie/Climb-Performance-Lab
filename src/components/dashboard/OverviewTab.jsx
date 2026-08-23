@@ -5,6 +5,7 @@ import YtdPowerTrendCard from './YtdPowerTrendCard';
 import WeeklyLoadChartCard from './WeeklyLoadChartCard';
 import AerobicEfficiencySnapshotCard from './AerobicEfficiencySnapshotCard';
 import EmptyStateCard from '../ui/EmptyStateCard';
+import CollapsibleInfoCard from '../ui/CollapsibleInfoCard';
 import { SkeletonChartCard } from '../ui/Skeleton';
 import { lazyWithRetry } from '../../utils/lazyWithRetry';
 import { BarChart3 } from 'lucide-react';
@@ -91,10 +92,16 @@ const OverviewTab = ({
             )}
 
             {!hasFilteredData ? (
-                <div className="rounded-xl border border-cdborder bg-cdsurface px-4 py-6 text-center text-sm text-cdmuted">
+                <CollapsibleInfoCard
+                    title="No activities in selected period"
+                    defaultExpanded
+                    variant="default"
+                    className="!shadow-none"
+                    bodyClassName="!text-sm !text-cdmuted"
+                >
                     No activities in the selected dashboard period. Climbing readiness above uses your full log;
                     widen the period filter to see charts and stats here.
-                </div>
+                </CollapsibleInfoCard>
             ) : (
                 <Suspense fallback={<SkeletonChartCard className="min-h-[28rem]" />}>
                     <OverviewChartsPanel

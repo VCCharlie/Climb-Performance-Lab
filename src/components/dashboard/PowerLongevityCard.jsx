@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Activity, ArrowDown, ArrowUp, ChevronRight } from 'lucide-react';
 import { chartCardClass } from '../../utils/chartTheme';
+import CollapsibleInfoCard from '../ui/CollapsibleInfoCard';
 import {
     computeYearlyPowerPeakRows,
     computePowerLongevitySummary,
@@ -118,9 +119,15 @@ export default function PowerLongevityCard({
             </div>
 
             {!birthYear && (
-                <p className="text-[10px] text-cdmuted mt-3 border-t border-cdborder/40 pt-2">
+                <CollapsibleInfoCard
+                    title="Age timeline"
+                    defaultExpanded={false}
+                    variant="default"
+                    className="!shadow-none mt-3"
+                    bodyClassName="!text-[10px] !text-cdmuted"
+                >
                     Add your birth year in Settings to plot power against age on the Power tab.
-                </p>
+                </CollapsibleInfoCard>
             )}
         </>
     );

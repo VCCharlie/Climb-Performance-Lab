@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import { HeartPulse, TrendingDown, TrendingUp, Minus } from 'lucide-react';
-import { chartCardClass } from '../../utils/chartTheme';
 import {
     buildDriftProfilePortfolio,
     buildDriftProfileTrend,
@@ -13,6 +12,7 @@ import {
 } from '../../utils/coach/aerobicDecoupling';
 import { useProfileFtp } from '../../context/ProfileFtpContext';
 import { todayYmd } from '../../utils/coach/coachHelpers';
+import CollapsibleDashboardCard from './CollapsibleDashboardCard';
 
 function TrendBadge({ status }) {
     if (status === AEROBIC_TREND_STATUS.IMPROVING) {
@@ -67,19 +67,14 @@ export default function AerobicEfficiencySnapshotCard({
         : null;
 
     return (
-        <div className={chartCardClass}>
-            <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
-                <div className="flex items-start gap-2 min-w-0">
-                    <HeartPulse className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" aria-hidden />
-                    <div>
-                        <h3 className="text-sm font-bold text-cdtext uppercase tracking-wider">
-                            Aerobic efficiency
-                        </h3>
-                        <p className="text-[11px] text-cdmuted">
-                            Steady endurance rides — watts per heartbeat (EF) and cardiac drift trend
-                        </p>
-                    </div>
-                </div>
+        <CollapsibleDashboardCard
+            title="Aerobic efficiency"
+            icon={HeartPulse}
+            description="Steady endurance rides — watts per heartbeat (EF) and cardiac drift trend"
+            defaultExpanded
+            bodyClassName="!pt-0"
+        >
+            <div className="flex justify-end mb-3">
                 <TrendBadge status={trend?.trendStatus} />
             </div>
 
@@ -121,6 +116,6 @@ export default function AerobicEfficiencySnapshotCard({
                     Open HR drift &amp; aerobic efficiency in Coach →
                 </button>
             ) : null}
-        </div>
+        </CollapsibleDashboardCard>
     );
 }

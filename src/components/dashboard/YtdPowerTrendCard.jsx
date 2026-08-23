@@ -3,7 +3,7 @@ import { TrendingUp } from 'lucide-react';
 import { SegmentedControl } from '../ui';
 import YtdCompareCard from './YtdCompareCard';
 import PowerLongevityCard from './PowerLongevityCard';
-import { chartCardClass } from '../../utils/chartTheme';
+import CollapsibleDashboardCard from './CollapsibleDashboardCard';
 
 /**
  * Merged YTD volume compare + long-term power trend with internal metric switcher.
@@ -18,19 +18,14 @@ export default function YtdPowerTrendCard({
     const [view, setView] = useState('volume');
 
     return (
-        <div className={chartCardClass}>
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
-                <div className="flex items-start gap-2 min-w-0">
-                    <TrendingUp className="w-5 h-5 text-cdaccent shrink-0 mt-0.5" aria-hidden />
-                    <div className="min-w-0">
-                        <h3 className="text-sm font-bold text-cdtext uppercase tracking-wider">
-                            Year &amp; power trends
-                        </h3>
-                        <p className="text-[11px] text-cdmuted leading-snug">
-                            Compare volume year-to-date or review long-term power peaks.
-                        </p>
-                    </div>
-                </div>
+        <CollapsibleDashboardCard
+            title="Year & power trends"
+            icon={TrendingUp}
+            description="Compare volume year-to-date or review long-term power peaks."
+            defaultExpanded
+            bodyClassName="!pt-0"
+        >
+            <div className="flex justify-end mb-4">
                 <SegmentedControl
                     size="sm"
                     caps={false}
@@ -57,6 +52,6 @@ export default function YtdPowerTrendCard({
                     onGoToPowerTab={onGoToPowerTab}
                 />
             )}
-        </div>
+        </CollapsibleDashboardCard>
     );
 }

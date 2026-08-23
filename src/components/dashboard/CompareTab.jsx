@@ -9,6 +9,7 @@ import { computeSportMixForComparePeriod } from '../../utils/compareSportMix';
 import YearAtMomentBars from './YearAtMomentBars';
 import CompareYearLegend from './CompareYearLegend';
 import CompareSportDonut from './CompareSportDonut';
+import CollapsibleInfoCard from '../ui/CollapsibleInfoCard';
 
 const DEFAULT_SPORTS = new Set(['Ride', 'VirtualRide']);
 
@@ -161,9 +162,15 @@ const CompareTab = ({ allActivities, manualFtp = 0, onGoToActivities }) => {
 
                             <div>
                                 <h4 className="text-[10px] font-bold text-cdmuted uppercase tracking-wide mb-1">Power peaks</h4>
-                                <p className="text-[10px] text-cdmuted mb-3 leading-snug">
+                                <CollapsibleInfoCard
+                                    title="How power peaks are compared"
+                                    defaultExpanded={false}
+                                    variant="default"
+                                    className="!shadow-none mb-3"
+                                    bodyClassName="!text-[10px] !text-cdmuted !leading-snug"
+                                >
                                     Best 20 min and 60 min in each year&apos;s window (eFTP = 20 min × 0.95).
-                                </p>
+                                </CollapsibleInfoCard>
                                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                                     {POWER_METRICS.map((m) => (
                                         <div key={m.id} className="space-y-2">
@@ -176,9 +183,15 @@ const CompareTab = ({ allActivities, manualFtp = 0, onGoToActivities }) => {
 
                             <div className="space-y-2">
                                 <CompareYearLegend years={compareYears} currentYear={currentYear} />
-                                <p className="text-[10px] text-cdmuted">
+                                <CollapsibleInfoCard
+                                    title="Chart legend"
+                                    defaultExpanded={false}
+                                    variant="default"
+                                    className="!shadow-none"
+                                    bodyClassName="!text-[10px] !text-cdmuted"
+                                >
                                     Each year uses a fixed color across all charts (see legend). Bar length is relative to the highest year in that chart.
-                                </p>
+                                </CollapsibleInfoCard>
                             </div>
                         </div>
                         <CompareSportDonut rows={sportMix} basis="distanceKm" />

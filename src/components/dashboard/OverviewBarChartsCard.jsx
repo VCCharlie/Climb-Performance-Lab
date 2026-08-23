@@ -5,7 +5,8 @@ import {
 } from 'recharts';
 import { BarChart3 } from 'lucide-react';
 import { ChartTooltip, SegmentedControl } from '../ui';
-import { getChartTheme, chartCardClass } from '../../utils/chartTheme';
+import { getChartTheme } from '../../utils/chartTheme';
+import CollapsibleDashboardCard from './CollapsibleDashboardCard';
 import { seriesFromBarChartIndex } from '../../utils/dashboardBarChartBuckets';
 import { barChartGoalLineValue } from '../../utils/volumeGoals';
 import { formatNlNumber } from '../../utils/formatters';
@@ -41,15 +42,14 @@ export default function OverviewBarChartsCard({ barChartIndex, userSettings }) {
     const theme = getChartTheme();
 
     return (
-        <div className={chartCardClass}>
-            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3 mb-4">
-                <div className="flex items-start gap-2 min-w-0">
-                    <BarChart3 className="w-5 h-5 text-cdblue shrink-0 mt-0.5" aria-hidden />
-                    <div>
-                        <h3 className="text-sm font-bold text-cdtext uppercase tracking-wider">Volume charts</h3>
-                        <p className="text-[11px] text-cdmuted">Distance, time, TSS, and elevation in one view</p>
-                    </div>
-                </div>
+        <CollapsibleDashboardCard
+            title="Volume charts"
+            icon={BarChart3}
+            description="Distance, time, TSS, and elevation in one view"
+            defaultExpanded
+            bodyClassName="!pt-0"
+        >
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 mb-4">
                 <SegmentedControl
                     size="sm"
                     caps={false}
@@ -59,9 +59,6 @@ export default function OverviewBarChartsCard({ barChartIndex, userSettings }) {
                     aria-label="Volume chart metric"
                     options={METRIC_OPTIONS.map(({ value, label }) => ({ value, label }))}
                 />
-            </div>
-
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 mb-4">
                 <SegmentedControl
                     size="sm"
                     caps={false}
@@ -139,6 +136,6 @@ export default function OverviewBarChartsCard({ barChartIndex, userSettings }) {
                     </ResponsiveContainer>
                 </div>
             )}
-        </div>
+        </CollapsibleDashboardCard>
     );
 }

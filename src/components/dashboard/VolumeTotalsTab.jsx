@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { BarChart3, CalendarRange } from 'lucide-react';
+import CollapsibleInfoCard from '../ui/CollapsibleInfoCard';
 import { formatNlNumber } from '../../utils/formatters';
 import {
     buildMonthlyVolumeTotals,
@@ -61,10 +62,16 @@ const VolumeTotalsTab = ({
 
     return (
         <div className="space-y-8 animate-in fade-in duration-300">
-            <div className="rounded-lg border border-cdborder bg-cdbg/30 p-3 text-xs text-cdmuted leading-relaxed">
+            <CollapsibleInfoCard
+                title="About volume totals"
+                defaultExpanded={false}
+                variant="default"
+                className="!shadow-none"
+                bodyClassName="!text-xs !text-cdmuted !leading-relaxed"
+            >
                 Totals follow the <strong className="text-cdtext">same date filter</strong> as the rest of the Dashboard (preset or custom range).
                 Weeks start on <strong className="text-cdtext">Monday</strong>. Load is the sum of activity training load (TSS).
-            </div>
+            </CollapsibleInfoCard>
 
             <VolumeTotalsChart
                 weeklyRows={weekly}

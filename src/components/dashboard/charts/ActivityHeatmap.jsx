@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { chartCardClass } from '../../../utils/chartTheme';
+import { Activity } from 'lucide-react';
+import CollapsibleDashboardCard from '../CollapsibleDashboardCard';
 
 /**
  * ActivityHeatmap — 52-week activity intensity grid.
@@ -76,10 +77,14 @@ const ActivityHeatmap = ({ data }) => {
 
     if (cells.length === 0) {
         return (
-            <div className={chartCardClass}>
-                <h3 className="text-sm font-bold text-cdtext uppercase tracking-wider mb-4">Activity heatmap</h3>
+            <CollapsibleDashboardCard
+                title="Activity heatmap"
+                description="Last 52 weeks — daily distance intensity"
+                icon={Activity}
+                defaultExpanded={false}
+            >
                 <div className="h-24 flex items-center justify-center text-cdmuted text-sm">No heatmap data</div>
-            </div>
+            </CollapsibleDashboardCard>
         );
     }
 
@@ -90,10 +95,13 @@ const ActivityHeatmap = ({ data }) => {
     }
 
     return (
-        <div className={chartCardClass}>
-            <h3 className="text-sm font-bold text-cdtext uppercase tracking-wider mb-4">
-                Activity heatmap — last 52 weeks
-            </h3>
+        <CollapsibleDashboardCard
+            title="Activity heatmap"
+            description="Last 52 weeks — darker orange = more km that day"
+            icon={Activity}
+            defaultExpanded={false}
+            bodyClassName="!pt-0"
+        >
             <div className="overflow-x-auto pb-2">
                 <div className="flex gap-1 min-w-max">
                     {/* Day labels column */}
@@ -140,7 +148,7 @@ const ActivityHeatmap = ({ data }) => {
                 ))}
                 <span className="text-[10px] text-cdmuted">More</span>
             </div>
-        </div>
+        </CollapsibleDashboardCard>
     );
 };
 

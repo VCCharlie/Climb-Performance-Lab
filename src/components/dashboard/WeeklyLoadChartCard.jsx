@@ -5,13 +5,14 @@ import {
 } from 'recharts';
 import { BarChart3 } from 'lucide-react';
 import { ChartTooltip } from '../ui';
-import { getChartTheme, chartCardClass } from '../../utils/chartTheme';
+import { getChartTheme } from '../../utils/chartTheme';
 import { buildWeeklyTssSeries } from '../../utils/weeklyLoadChart';
 import {
     buildTrainingStatusOverview,
     computeWeeklyTssOptimalBand,
 } from '../../utils/trainingStatusOverview';
 import { formatNlNumber } from '../../utils/formatters';
+import CollapsibleDashboardCard from './CollapsibleDashboardCard';
 
 /**
  * Weekly TSS bars with target line and optimal load band (85–115% of target).
@@ -35,20 +36,16 @@ export default function WeeklyLoadChartCard({ activities, userSettings }) {
 
     const theme = getChartTheme();
     const showBand = optimalBand.min > 0 && optimalBand.max > optimalBand.min;
+    const description = `TSS per calendar week — dashed line is your weekly target${showBand ? '; shaded band is the optimal zone (85–115%)' : ''}.`;
 
     return (
-        <div className={chartCardClass}>
-            <div className="flex items-start gap-2 mb-4">
-                <BarChart3 className="w-5 h-5 text-cdblue shrink-0 mt-0.5" aria-hidden />
-                <div>
-                    <h3 className="text-sm font-bold text-cdtext uppercase tracking-wider">Weekly load</h3>
-                    <p className="text-[11px] text-cdmuted">
-                        TSS per calendar week — dashed line is your weekly target
-                        {showBand ? '; shaded band is the optimal zone (85–115%)' : ''}
-                    </p>
-                </div>
-            </div>
-
+        <CollapsibleDashboardCard
+            title="Weekly load"
+            icon={BarChart3}
+            description={description}
+            defaultExpanded
+            bodyClassName="!pt-0"
+        >
             {chartData.length === 0 ? (
                 <div className="h-44 flex items-center justify-center text-cdmuted text-sm">
                     No weekly TSS data yet
@@ -108,6 +105,6 @@ export default function WeeklyLoadChartCard({ activities, userSettings }) {
                     </ResponsiveContainer>
                 </div>
             )}
-        </div>
+        </CollapsibleDashboardCard>
     );
 }

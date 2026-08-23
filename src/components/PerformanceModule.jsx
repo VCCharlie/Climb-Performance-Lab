@@ -11,6 +11,7 @@ import {
 } from '../utils/dashboardActivityPeaks';
 import { useProfileFtp } from '../context/ProfileFtpContext';
 import { describeProfileFtpSourceSubtitle } from '../utils/profileFtp';
+import CollapsibleDashboardCard from './dashboard/CollapsibleDashboardCard';
 
 const formatNumber = (num) => {
     if (num === null || num === undefined) return '-';
@@ -332,12 +333,15 @@ const PerformanceModule = ({
 
     if (variant === 'overview') {
         return (
-            <div className={`${chartCardClassLg} mb-6`}>
-                <div className="flex flex-wrap items-start justify-between gap-3 mb-4 border-b border-cdborder pb-4">
-                    <h3 className="text-sm font-bold text-cdtext uppercase tracking-wider flex items-center gap-2">
-                        <Zap className="text-blue-400 shrink-0" size={18} aria-hidden />
-                        Performance snapshot
-                    </h3>
+            <CollapsibleDashboardCard
+                title="Performance snapshot"
+                icon={Zap}
+                description="Current FTP, peak eFTP, and average load for the selected period"
+                defaultExpanded
+                className="mb-6"
+                bodyClassName="!pt-0"
+            >
+                <div className="flex justify-end mb-3">
                     {typeof onGoToPowerTab === 'function' && (
                         <button
                             type="button"
@@ -386,7 +390,7 @@ const PerformanceModule = ({
                         split={{ indoor: avgLoadIndoor, outdoor: avgLoadOutdoor }}
                     />
                 </div>
-            </div>
+            </CollapsibleDashboardCard>
         );
     }
 
