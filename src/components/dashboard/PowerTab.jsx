@@ -5,6 +5,7 @@ import PowerTabDetails from './PowerTabDetails';
 import PowerProfileRadar from './PowerProfileRadar';
 import PowerLongevitySection from './PowerLongevitySection';
 import PeakPowerDurationBarCard from './PeakPowerDurationBarCard';
+import TimeInZonesCard from './TimeInZonesCard';
 import CollapsibleInfoCard from '../ui/CollapsibleInfoCard';
 import { findBestPowerActivity, DASHBOARD_FTP_CAPS } from '../../utils/dashboardActivityPeaks';
 import { dashboardFilterLabel } from '../../utils/powerDurationTable';
@@ -183,6 +184,10 @@ const PowerTab = ({
                     manualFtp={manualFtp}
                     onOpenActivityInLog={onOpenActivityInLog}
                 />
+            )}
+
+            {(hasPeriodData ? data : chartData).length > 0 && (
+                <TimeInZonesCard activities={hasPeriodData ? data : chartData} />
             )}
 
             {chartData.length > 0 && (

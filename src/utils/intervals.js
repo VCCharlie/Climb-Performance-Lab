@@ -6,6 +6,7 @@
 import { normalizeDate, parseDurationToSeconds } from './formatters';
 import { determineActivityType } from './activityTypes';
 import { extractStravaId } from './strava';
+import { buildZoneTimesFields } from './zoneTimes';
 
 /**
  * True when the payload looks like raw Intervals.icu API JSON (not our normalized shape).
@@ -39,6 +40,8 @@ export function isRawIntervalsApiPayload(item) {
         'perceived_exertion',
         'power_load',
         'sub_type',
+        'icu_zone_times',
+        'icu_hr_zone_times',
     ];
 
     for (const key of rawOnlyKeys) {
@@ -89,6 +92,10 @@ export function cloudPayloadToRawShape(item) {
         average_altitude: item.avg_altitude,
         maximum_altitude: item.max_altitude,
         trainer: item.type === 'VirtualRide',
+        icu_zone_times: item.power_zone_sec ?? item.icu_zone_times,
+        icu_hr_zone_times: item.hr_zone_sec ?? item.icu_hr_zone_times,
+        zone_times_source: item.zone_times_source,
+        zone_times_ftp: item.zone_times_ftp,
     };
 }
 
@@ -227,6 +234,8 @@ export const normalizeIntervalsActivity = (item) => {
     // Strava ID: Intervals.icu slaat dit op als external_id (bijv. "strava-12345678")
     const stravaId = extractStravaId(getVal('external_id', 'externalId'));
 
+    const zoneTimesFields = buildZoneTimesFields(item, { ftp });
+
     return {
         id: id,
         strava_id: stravaId,
@@ -260,5 +269,6 @@ export const normalizeIntervalsActivity = (item) => {
         avg_altitude: Math.round(avgAltitude),
         max_altitude: Math.round(maxAltitude),
         trainer: item.trainer === true || finalType === 'VirtualRide' || finalType === 'VirtualRun',
+        ...zoneTimesFields,
     };
 };

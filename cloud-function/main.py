@@ -87,6 +87,53 @@ def safe_float(val, default=0.0):
         return default
 
 
+def map_intervals_power_zone_times(raw):
+    """Map icu_zone_times objects or compact ints to Z1-Z7 seconds array."""
+    if raw is None:
+        return None
+    if isinstance(raw, list) and len(raw) > 0 and isinstance(raw[0], (int, float)):
+        out = [max(0, int(round(float(v)))) for v in raw[:7]]
+        while len(out) < 7:
+            out.append(0)
+        return out if any(v > 0 for v in out) else None
+    if not isinstance(raw, list):
+        return None
+    out = [0] * 7
+    touched = False
+    for entry in raw:
+        if isinstance(entry, (int, float)):
+            idx = next((i for i, v in enumerate(out) if v == 0), None)
+            if idx is not None and idx < 7:
+                out[idx] = max(0, int(round(float(entry))))
+                touched = True
+            continue
+        if not isinstance(entry, dict):
+            continue
+        zone_id = str(entry.get("id") or entry.get("zone") or "").strip().upper()
+        secs = max(0, safe_int(entry.get("secs") or entry.get("seconds") or entry.get("time")))
+        zone_num = 0
+        if zone_id.startswith("Z") and zone_id[1:].isdigit():
+            zone_num = int(zone_id[1:])
+        elif zone_id.isdigit():
+            zone_num = int(zone_id)
+        if 1 <= zone_num <= 7 and secs > 0:
+            out[zone_num - 1] = secs
+            touched = True
+    return out if touched else None
+
+
+def map_intervals_hr_zone_times(raw):
+    """Map icu_hr_zone_times to compact seconds array."""
+    if raw is None:
+        return None
+    if isinstance(raw, list) and len(raw) > 0 and isinstance(raw[0], (int, float)):
+        out = [max(0, int(round(float(v)))) for v in raw[:7]]
+        while len(out) < 7:
+            out.append(0)
+        return out if any(v > 0 for v in out) else None
+    return map_intervals_power_zone_times(raw)
+
+
 def get_first_valid(*values, default=0):
     """Return the first non-None, non-zero value from the list."""
     for val in values:
@@ -316,7 +363,10 @@ def transform_activity(activity: dict) -> dict:
     # Check trainer flag and title keywords for virtual detection
     final_type = determine_activity_type(activity_type, name, is_indoor)
 
-    return {
+    power_zone_sec = map_intervals_power_zone_times(activity.get("icu_zone_times"))
+    hr_zone_sec = map_intervals_hr_zone_times(activity.get("icu_hr_zone_times"))
+
+    result = {
         "id": str(activity_id),
         "date": date_str,
         "type": final_type,
@@ -342,6 +392,16 @@ def transform_activity(activity: dict) -> dict:
         "ftp": ftp,
         "eFTP": safe_int(activity.get("icu_eftp"), 0),
     }
+
+    if power_zone_sec:
+        result["power_zone_sec"] = power_zone_sec
+        result["zone_times_source"] = "intervals"
+        if ftp > 0:
+            result["zone_times_ftp"] = ftp
+    if hr_zone_sec:
+        result["hr_zone_sec"] = hr_zone_sec
+
+    return result
 
 
 def determine_activity_type(api_type: str, title: str, is_indoor: bool = False) -> str:

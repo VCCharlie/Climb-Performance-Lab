@@ -23,7 +23,17 @@
     "Best20minpower": 275,
     "Best60minpower": 250,
     "avgAltitude": 1200,
-    "maxAltitude": 2642
+    "maxAltitude": 2642,
+    "icu_zone_times": [
+      { "id": "Z1", "secs": 900 },
+      { "id": "Z2", "secs": 4200 },
+      { "id": "Z3", "secs": 1200 },
+      { "id": "Z4", "secs": 600 },
+      { "id": "Z5", "secs": 300 },
+      { "id": "Z6", "secs": 0 },
+      { "id": "Z7", "secs": 0 }
+    ],
+    "icu_hr_zone_times": [600, 2400, 1800, 900, 300, 0, 0]
   },
   {
     "id": "i12346",

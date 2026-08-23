@@ -13,7 +13,7 @@ const fixture = JSON.parse(readFileSync(resolve(fixturesDir, 'sample-intervals-a
 // ─── FIELD EXTRACTION & FALLBACKS ────────────────────────────────────────────
 
 describe('normalizeIntervalsActivity - field extraction', () => {
-  it('extracts from primary field names (activity 0)', () => {
+    it('extracts from primary field names (activity 0)', () => {
     const norm = normalizeIntervalsActivity(fixture[0]);
     expect(norm.id).toBe('i12345');
     expect(norm.date).toBe('2025-06-15');
@@ -26,6 +26,10 @@ describe('normalizeIntervalsActivity - field extraction', () => {
     expect(norm.ftp).toBe(280);
     expect(norm.max_power).toBe(650);
     expect(norm.max_hr).toBe(178);
+    expect(norm.power_zone_sec).toEqual([900, 4200, 1200, 600, 300, 0, 0]);
+    expect(norm.hr_zone_sec).toEqual([600, 2400, 1800, 900, 300, 0, 0]);
+    expect(norm.zone_times_source).toBe('intervals');
+    expect(norm.zone_times_ftp).toBe(280);
   });
 
   it('extracts from secondary field names (activity 1)', () => {

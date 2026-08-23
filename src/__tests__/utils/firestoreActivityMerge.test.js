@@ -127,4 +127,19 @@ describe('protectEnrichedFieldsOnMerge', () => {
     expect(out.threshold_drift_pct).toBe(8.4);
     expect(out.threshold_drift_source).toBe('strava');
   });
+
+  it('keeps power zone times when re-sync omits enriched fields', () => {
+    const out = protectEnrichedFieldsOnMerge(
+      { id: '3', title: 'Ride', norm_power: 190 },
+      {
+        id: '3',
+        power_zone_sec: [300, 4200, 900, 0, 0, 0, 0],
+        zone_times_source: 'intervals',
+        zone_times_ftp: 260,
+      },
+    );
+    expect(out.power_zone_sec[1]).toBe(4200);
+    expect(out.zone_times_source).toBe('intervals');
+    expect(out.zone_times_ftp).toBe(260);
+  });
 });

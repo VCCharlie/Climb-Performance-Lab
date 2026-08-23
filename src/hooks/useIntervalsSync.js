@@ -3,8 +3,7 @@ import {
     normalizeIntervalsActivityFromAny,
     filterNonEmptyIntervalsActivities,
 } from '../utils/intervals';
-import { enrichActivitiesWithLongDurationBests } from '../utils/intervalsPowerCurveEnrich';
-import { enrichActivitiesWithDecoupling } from '../utils/decouplingStreamEnrich';
+import { runActivityEnrichmentPipeline } from '../utils/enrichment/runActivityEnrichmentPipeline';
 import { fetchWithTimeout } from '../utils/fetchWithTimeout';
 import { devLog } from '../utils/safeLog';
 import {
@@ -18,23 +17,15 @@ const useIntervalsSync = (intervalsConfig) => {
     const [error, setError] = useState(null);
 
     const enrichSyncedActivities = async (transformed, enrichOptions = {}) => {
-        let result = transformed;
-        setSyncProgress('Enriching long power bests (90/120 min)...');
-        result = await enrichActivitiesWithLongDurationBests(result, intervalsConfig);
-
-        const profileFtp = Number(enrichOptions.profileFtp) || 0;
-        if (profileFtp > 0 && !enrichOptions.deferDriftEnrich && (intervalsConfig?.apiKey || enrichOptions.stravaToken)) {
-            setSyncProgress('Analyzing HR drift from streams (steady / threshold / race)…');
-            result = await enrichActivitiesWithDecoupling(result, {
-                intervalsConfig,
-                profileFtp,
-                stravaToken: enrichOptions.stravaToken || null,
-                maxFetches: enrichOptions.decouplingMaxFetches ?? 8,
-                delayMs: enrichOptions.decouplingDelayMs ?? 150,
-                onProgress: (message) => setSyncProgress(message),
-            });
-        }
-
+        const { activities: result } = await runActivityEnrichmentPipeline(transformed, {
+            intervalsConfig,
+            profileFtp: enrichOptions.profileFtp,
+            stravaToken: enrichOptions.stravaToken || null,
+            deferDriftEnrich: enrichOptions.deferDriftEnrich,
+            decouplingMaxFetches: enrichOptions.decouplingMaxFetches ?? 8,
+            decouplingDelayMs: enrichOptions.decouplingDelayMs ?? 150,
+            onProgress: (message) => setSyncProgress(message),
+        });
         return result;
     };
 

@@ -4,6 +4,7 @@ import {
     climbingWasManuallyEdited,
     hasProtectedClimbing,
     shouldApplyStravaElevationPatch,
+    protectZoneTimesFieldsOnMerge,
 } from '../../utils/activityFieldRetention';
 
 describe('activityFieldRetention', () => {
@@ -30,5 +31,17 @@ describe('activityFieldRetention', () => {
         const act = { climbing: 900, climbing_user_corrected: true };
         expect(shouldApplyStravaElevationPatch(act)).toBe(false);
         expect(shouldApplyStravaElevationPatch(act, { forceRefreshElevation: true })).toBe(true);
+    });
+
+    it('protectZoneTimesFieldsOnMerge keeps existing zone arrays', () => {
+        const existing = {
+            power_zone_sec: [0, 3600, 0, 0, 0, 0, 0],
+            zone_times_source: 'intervals',
+            zone_times_ftp: 250,
+        };
+        const out = { id: '1', avg_power: 200 };
+        protectZoneTimesFieldsOnMerge({ id: '1', avg_power: 200 }, existing, out);
+        expect(out.power_zone_sec[1]).toBe(3600);
+        expect(out.zone_times_source).toBe('intervals');
     });
 });
