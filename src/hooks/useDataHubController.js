@@ -15,6 +15,7 @@ import { useProfileFtp } from '../context/ProfileFtpContext';
 import { useActivityLogNavigation } from '../context/ActivityLogNavigationContext';
 import { resolveRecoveryTss } from '../utils/recoveryTss';
 import { readLastCloudSyncAt } from '../utils/activityLogSyncLabel';
+import { filterActivitiesByDashboardTimeRange } from '../utils/dashboardActivityWindow';
 import { useTabListKeyboard } from './useTabListKeyboard';
 
 export const DATA_HUB_INTERNAL_TABS = ['log', 'import'];
@@ -35,6 +36,9 @@ export function resolveDataHubInternalTab(tab) {
 export function useDataHubController({
     intervalsConfig,
     stravaGetToken,
+    timeRange = '1Y',
+    customStart = '',
+    customEnd = '',
     startDate,
     endDate,
     stravaEnrichResults,
@@ -98,7 +102,13 @@ export function useDataHubController({
     } = useActivityColumnVisibility();
 
     const useCardLayout = useActivityCardLayout();
-    const filter = useActivityFilter(activities, resolvedProfileFtp);
+
+    const activitiesInGlobalTimeRange = useMemo(
+        () => filterActivitiesByDashboardTimeRange(activities, timeRange, customStart, customEnd),
+        [activities, timeRange, customStart, customEnd],
+    );
+
+    const filter = useActivityFilter(activitiesInGlobalTimeRange, resolvedProfileFtp);
 
     const logDerivations = useDataHubLogDerivations({
         activities,

@@ -1138,6 +1138,9 @@ const App = () => {
                                                 key={dataHubMountKey}
                                                 intervalsConfig={intervalsConfig}
                                                 stravaGetToken={stravaAuth.isConnected ? stravaAuth.getValidToken : null}
+                                                timeRange={timeRange}
+                                                customStart={customStart}
+                                                customEnd={customEnd}
                                                 startDate={globalStartDate}
                                                 endDate={globalEndDate}
                                                 stravaEnrichResults={stravaEnrichResults}
