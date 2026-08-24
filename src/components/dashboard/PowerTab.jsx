@@ -209,6 +209,8 @@ const PowerTab = ({
             {chartData.length > 0 && (
                 <PeakPowerDurationBarCard
                     chartData={chartData}
+                    periodData={data}
+                    timeRange={timeRange}
                     manualFtp={manualFtp}
                     onOpenActivityInLog={onOpenActivityInLog}
                 />

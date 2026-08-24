@@ -15,7 +15,12 @@ import { getChartTheme } from '../../utils/chartTheme';
 import {
     buildAnchorsCache,
     topNInterpolatedAtSec,
+    dashboardFilterLabel,
 } from '../../utils/powerDurationTable';
+import {
+    PEAK_LEADERBOARD_SCOPES,
+    selectPeakLeaderboardActivities,
+} from '../../utils/dashboardActivityPeaks';
 import { formatDateDDMMYYYY } from '../../utils';
 import CollapsibleDashboardCard from './CollapsibleDashboardCard';
 
@@ -27,6 +32,11 @@ const DURATION_OPTIONS = [
     { value: '300', label: '5m' },
     { value: '1200', label: '20m' },
     { value: '3600', label: '60m' },
+];
+
+const SCOPE_OPTIONS = [
+    { value: PEAK_LEADERBOARD_SCOPES.PERIOD, label: 'Period bests' },
+    { value: PEAK_LEADERBOARD_SCOPES.ALLTIME, label: 'All-time bests' },
 ];
 
 const BAR_COLORS = [
@@ -47,21 +57,30 @@ const BAR_COLORS = [
  */
 export default function PeakPowerDurationBarCard({
     chartData,
+    periodData,
+    timeRange = '1Y',
     manualFtp,
     onOpenActivityInLog,
 }) {
     const [durationSec, setDurationSec] = useState('300');
+    const [scope, setScope] = useState(PEAK_LEADERBOARD_SCOPES.PERIOD);
 
     const durationSecNum = Number(durationSec) || 300;
+    const periodLabel = dashboardFilterLabel(timeRange);
+
+    const leaderboardActivities = useMemo(
+        () => selectPeakLeaderboardActivities(scope, periodData, chartData),
+        [scope, periodData, chartData],
+    );
 
     const anchorsCache = useMemo(
-        () => buildAnchorsCache(chartData, manualFtp),
-        [chartData, manualFtp],
+        () => buildAnchorsCache(leaderboardActivities, manualFtp),
+        [leaderboardActivities, manualFtp],
     );
 
     const rows = useMemo(() => {
         const top = topNInterpolatedAtSec(
-            chartData,
+            leaderboardActivities,
             manualFtp,
             durationSecNum,
             10,
@@ -81,10 +100,13 @@ export default function PeakPowerDurationBarCard({
                 activityId: entry.activity?.id,
             };
         });
-    }, [chartData, manualFtp, durationSecNum, anchorsCache]);
+    }, [leaderboardActivities, manualFtp, durationSecNum, anchorsCache]);
 
     const theme = getChartTheme();
     const durationLabel = DURATION_OPTIONS.find((o) => o.value === durationSec)?.label || `${durationSecNum}s`;
+    const scopeHint = scope === PEAK_LEADERBOARD_SCOPES.PERIOD
+        ? `Top efforts in ${periodLabel}`
+        : 'Top efforts across your full history';
 
     if (!chartData?.length) return null;
 
@@ -92,24 +114,38 @@ export default function PeakPowerDurationBarCard({
         <CollapsibleDashboardCard
             title="Peak power leaderboard"
             icon={Zap}
-            description="Top 10 interpolated efforts at each duration — switch duration to compare sprints vs endurance."
+            description="Top 10 interpolated efforts at each duration — switch duration to compare sprints vs endurance. Toggle period vs all-time bests."
             defaultExpanded
         >
-            <div className="flex justify-end mb-3">
-                <SegmentedControl
-                    size="sm"
-                    caps={false}
-                    dense
-                    value={durationSec}
-                    onChange={setDurationSec}
-                    aria-label="Peak power duration"
-                    options={DURATION_OPTIONS}
-                />
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                <p className="text-xs text-cdmuted">{scopeHint}</p>
+                <div className="flex flex-col sm:flex-row gap-2 sm:items-center shrink-0">
+                    <SegmentedControl
+                        size="sm"
+                        caps={false}
+                        dense
+                        value={scope}
+                        onChange={setScope}
+                        aria-label="Peak power scope"
+                        options={SCOPE_OPTIONS}
+                    />
+                    <SegmentedControl
+                        size="sm"
+                        caps={false}
+                        dense
+                        value={durationSec}
+                        onChange={setDurationSec}
+                        aria-label="Peak power duration"
+                        options={DURATION_OPTIONS}
+                    />
+                </div>
             </div>
 
             {rows.length === 0 ? (
                 <p className="text-sm text-cdmuted text-center py-8">
-                    No rides long enough for {durationLabel} peaks in your history.
+                    {scope === PEAK_LEADERBOARD_SCOPES.PERIOD
+                        ? `No rides in ${periodLabel} long enough for ${durationLabel} peaks.`
+                        : `No rides long enough for ${durationLabel} peaks in your history.`}
                 </p>
             ) : (
                 <div className="h-64 sm:h-72">

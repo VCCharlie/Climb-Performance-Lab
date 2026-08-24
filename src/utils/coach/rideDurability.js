@@ -8,9 +8,10 @@ import {
     analyzeDecouplingFromStreams,
     classifyDecouplingPercent,
     isEligibleDecouplingRide,
-} from './aerobicDecoupling';
-import { activityIntensityFactor, activityMovingTimeSec } from '../activityFilterMetrics';
-import { activityVariabilityIndex } from '../rideInsights';
+} from './aerobicDecoupling.js';
+import { activityIntensityFactor, activityMovingTimeSec } from '../activityFilterMetrics.js';
+import { activityVariabilityIndex } from '../rideInsights.js';
+import { DRIFT_PATCH_KEY_GROUPS, getAllDriftMergeKeys } from './driftMergeKeys.js';
 
 const ENDURANCE_RIDE_TYPES = new Set([
     'Ride',
@@ -19,6 +20,8 @@ const ENDURANCE_RIDE_TYPES = new Set([
     'MountainBikeRide',
     'EBikeRide',
 ]);
+
+export { DRIFT_PATCH_KEY_GROUPS, getAllDriftMergeKeys };
 
 export const DRIFT_PROFILE = {
     STEADY: 'steady',
@@ -32,33 +35,6 @@ const PROFILE_PCT_KEY = {
     [DRIFT_PROFILE.RACE]: 'race_drift_pct',
 };
 
-/** Field groups persisted per drift profile (order: steady → threshold → race). */
-export const DRIFT_PATCH_KEY_GROUPS = [
-    [
-        'decoupling_pct',
-        'decoupling_ef_first',
-        'decoupling_ef_second',
-        'decoupling_status',
-        'decoupling_source',
-        'decoupling_analyzed_at',
-    ],
-    [
-        'threshold_drift_pct',
-        'threshold_drift_ef_first',
-        'threshold_drift_ef_second',
-        'threshold_drift_status',
-        'threshold_drift_source',
-        'threshold_drift_analyzed_at',
-    ],
-    [
-        'race_drift_pct',
-        'race_drift_ef_first',
-        'race_drift_ef_second',
-        'race_drift_status',
-        'race_drift_source',
-        'race_drift_analyzed_at',
-    ],
-];
 const PROFILE_FOR_COLUMN = {
     decoupling_pct: DRIFT_PROFILE.STEADY,
     threshold_drift_pct: DRIFT_PROFILE.THRESHOLD,
@@ -328,11 +304,4 @@ export function extractDriftPatch(activity) {
         if (Object.keys(patch).length > 0) return patch;
     }
     return null;
-}
-
-/**
- * All drift summary keys (for Firestore merge protection).
- */
-export function getAllDriftMergeKeys() {
-    return DRIFT_PATCH_KEY_GROUPS.flat();
 }
