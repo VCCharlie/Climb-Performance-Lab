@@ -5,7 +5,13 @@
 
 import { normalizeStravaActivityId } from './strava';
 import { getAllDriftMergeKeys } from './coach/rideDurability';
-import { protectClimbingOnMerge, protectZoneTimesFieldsOnMerge } from './activityFieldRetention';
+import {
+    protectClimbingOnMerge,
+    protectStravaLinkedGearOnMerge,
+    protectStravaLinkedTitleOnMerge,
+    protectStravaLinkedTypeOnMerge,
+    protectZoneTimesFieldsOnMerge,
+} from './activityFieldRetention';
 
 const GENERIC_TITLE = /^(Morning|Lunch|Afternoon|Evening|Night) Ride$|^Untitled$/i;
 
@@ -47,6 +53,7 @@ export function protectEnrichedFieldsOnMerge(incoming, existing) {
     if (isSpecificTitle(exTitle) && isGenericTitle(inTitle)) {
         out.title = existing.title;
     }
+    protectStravaLinkedTitleOnMerge(incoming, existing, out);
 
     // Strava link + route + gear: Intervals payload often omits these; never wipe enriched data.
     if (hasStravaId(existing.strava_id) && !hasStravaId(incoming.strava_id)) {
@@ -57,14 +64,16 @@ export function protectEnrichedFieldsOnMerge(incoming, existing) {
     if (exMap && !inMap) {
         out.strava_map = existing.strava_map;
     }
-    if (existing.gear_id && !incoming.gear_id) {
+    protectStravaLinkedGearOnMerge(incoming, existing, out);
+    if (existing.gear_id && !incoming.gear_id && out.gear_id !== existing.gear_id) {
         out.gear_id = existing.gear_id;
     }
     const exGearName = existing.gear_name != null && String(existing.gear_name).trim() !== '';
     const inGearName = incoming.gear_name != null && String(incoming.gear_name).trim() !== '';
-    if (exGearName && !inGearName) {
+    if (exGearName && !inGearName && out.gear_name !== existing.gear_name) {
         out.gear_name = existing.gear_name;
     }
+    protectStravaLinkedTypeOnMerge(incoming, existing, out);
 
     const inHr = Number(incoming.avg_hr);
     const exHr = Number(existing.avg_hr);

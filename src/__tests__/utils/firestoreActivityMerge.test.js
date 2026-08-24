@@ -165,4 +165,89 @@ describe('protectEnrichedFieldsOnMerge', () => {
     expect(out.power_zone_sec[1]).toBe(5000);
     expect(out.zone_times_ftp).toBe(265);
   });
+
+  it('backfill: preserves Strava-enriched title, gear, type, and climbing over Intervals payload', () => {
+    const existing = {
+      id: 'i53534754',
+      date: '2025-06-14',
+      title: 'Race with friends — Col du Galibier',
+      strava_id: '1234567890',
+      strava_map: 'polyline',
+      gear_id: 'g999',
+      gear_name: 'Canyon Endurace CF SL',
+      type: 'GravelRide',
+      climbing: 1850,
+      climbing_from_strava: true,
+      avg_hr: 152,
+    };
+    const incoming = {
+      id: 'i53534754',
+      date: '2025-06-14',
+      title: 'Evening Ride',
+      gear_id: 'wahoo-profile',
+      gear_name: 'Wahoo ELEMNT',
+      type: 'Ride',
+      climbing: 1420,
+      norm_power: 228,
+      load: 95,
+      avg_hr: 0,
+    };
+    const out = protectEnrichedFieldsOnMerge(incoming, existing);
+    expect(out.title).toBe('Race with friends — Col du Galibier');
+    expect(out.gear_id).toBe('g999');
+    expect(out.gear_name).toBe('Canyon Endurace CF SL');
+    expect(out.type).toBe('GravelRide');
+    expect(out.climbing).toBe(1850);
+    expect(out.climbing_from_strava).toBe(true);
+    expect(out.strava_id).toBe('1234567890');
+    expect(out.strava_map).toBe('polyline');
+    expect(out.avg_hr).toBe(152);
+    expect(out.norm_power).toBe(228);
+    expect(out.load).toBe(95);
+  });
+
+  it('backfill: preserves Strava climbing on linked rows without climbing_from_strava flag', () => {
+    const out = protectEnrichedFieldsOnMerge(
+      {
+        id: 'i99',
+        title: 'Evening Ride',
+        climbing: 1100,
+        type: 'Ride',
+      },
+      {
+        id: 'i99',
+        strava_id: '1234567890',
+        title: 'Alpine loop',
+        climbing: 890,
+      },
+    );
+    expect(out.climbing).toBe(890);
+    expect(out.title).toBe('Alpine loop');
+    expect(out.type).toBe('Ride');
+  });
+
+  it('backfill: allows Intervals metrics while Strava-linked identity fields stay intact', () => {
+    const existing = {
+      id: 'i77',
+      strava_id: '1234567890',
+      title: 'Morning Ride',
+      climbing: 400,
+      gear_id: 'g1',
+      gear_name: 'Road bike',
+      type: 'VirtualRide',
+    };
+    const incoming = {
+      id: 'i77',
+      title: 'Morning Ride',
+      climbing: 380,
+      norm_power: 210,
+      power_zone_sec: [0, 4200, 600, 0, 0, 0, 0],
+      zone_times_source: 'intervals',
+    };
+    const out = protectEnrichedFieldsOnMerge(incoming, existing);
+    expect(out.norm_power).toBe(210);
+    expect(out.power_zone_sec[1]).toBe(4200);
+    expect(out.gear_name).toBe('Road bike');
+    expect(out.type).toBe('VirtualRide');
+  });
 });
