@@ -226,6 +226,28 @@ describe('protectEnrichedFieldsOnMerge', () => {
     expect(out.type).toBe('Ride');
   });
 
+  it('backfill: preserves custom title when incoming Intervals title is also specific', () => {
+    const out = protectEnrichedFieldsOnMerge(
+      {
+        id: 'i88',
+        title: 'Wahoo ELEMNT V2 — cols block',
+        type: 'Ride',
+        climbing: 1200,
+      },
+      {
+        id: 'i88',
+        strava_id: '1234567890',
+        title: 'Race with friends — Galibier',
+        type: 'GravelRide',
+        climbing: 1850,
+        climbing_from_strava: true,
+      },
+    );
+    expect(out.title).toBe('Race with friends — Galibier');
+    expect(out.type).toBe('GravelRide');
+    expect(out.climbing).toBe(1850);
+  });
+
   it('backfill: allows Intervals metrics while Strava-linked identity fields stay intact', () => {
     const existing = {
       id: 'i77',

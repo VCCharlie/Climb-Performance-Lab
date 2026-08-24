@@ -21,6 +21,13 @@ import { enrichSyncedActivitiesDrift, formatSyncDriftRemainderNote, SYNC_DRIFT_M
 /**
  * Intervals.icu sync + fetch-new flows for DataHub (selected-row sync and date-range fetch).
  */
+function buildActivitiesLookupMap(activities, getActivitiesSnapshot) {
+    const source = typeof getActivitiesSnapshot === 'function'
+        ? getActivitiesSnapshot()
+        : activities;
+    return new Map((source || []).map((a) => [String(a.id), a]));
+}
+
 export function useDataHubIntervalsSync({
     intervalsConfig,
     activities,
@@ -29,6 +36,7 @@ export function useDataHubIntervalsSync({
     bulkSelectedIds,
     selectedActivitiesForBulk,
     userSettings,
+    getActivitiesSnapshot,
 }) {
     const deviceProfileTitles = resolveDeviceProfileTitlesFromSettings(userSettings);
     const { showToast } = useToast();
@@ -185,7 +193,7 @@ export function useDataHubIntervalsSync({
             const newActivitiesRaw = syncResult.activities || [];
             const newActivities = newActivitiesRaw.filter((a) => bulkIdSet.has(String(a.id)));
 
-            const activitiesMap = new Map((activities || []).map((a) => [String(a.id), a]));
+            const activitiesMap = buildActivitiesLookupMap(activities, getActivitiesSnapshot);
 
             const mergeNewInto = (act) => {
                 const existing = activitiesMap.get(String(act.id));
@@ -333,6 +341,7 @@ export function useDataHubIntervalsSync({
         recordIntervalsSyncSuccess,
         buildSyncEnrichOptions,
         applyPostSyncDriftEnrich,
+        getActivitiesSnapshot,
     ]);
 
     const fetchAndMergeIntervalsRange = useCallback(async (syncStart, syncEnd) => {
@@ -368,7 +377,7 @@ export function useDataHubIntervalsSync({
             const syncStats = syncResult.stats;
             const mergeCounts = countMergeCategories(newActivitiesRaw, activities);
 
-            const activitiesMap = new Map((activities || []).map((a) => [String(a.id), a]));
+            const activitiesMap = buildActivitiesLookupMap(activities, getActivitiesSnapshot);
 
             const mergeNewInto = (act) => {
                 const existing = activitiesMap.get(String(act.id));
@@ -520,6 +529,7 @@ export function useDataHubIntervalsSync({
         recordIntervalsSyncSuccess,
         buildSyncEnrichOptions,
         applyPostSyncDriftEnrich,
+        getActivitiesSnapshot,
     ]);
 
     const handleFetchNewFromIntervals = useCallback(async () => {
