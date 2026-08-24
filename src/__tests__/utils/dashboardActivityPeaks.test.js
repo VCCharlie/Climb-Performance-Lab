@@ -5,6 +5,8 @@ import {
     findPeakEftp20Activity,
     findPeakEftp60Activity,
     deriveEftp20FromActivity,
+    PEAK_LEADERBOARD_SCOPES,
+    selectPeakLeaderboardActivities,
 } from '../../utils/dashboardActivityPeaks';
 
 describe('findBestPowerActivity', () => {
@@ -87,5 +89,36 @@ describe('activityExternalLinks', () => {
         const flyby = links.find((l) => l.label === 'Flyby');
         expect(flyby?.href).toBe('https://labs.strava.com/flyby/viewer/#98765432');
         expect(flyby?.href).not.toContain('abc123poly');
+    });
+});
+
+describe('selectPeakLeaderboardActivities', () => {
+    const periodActs = [{ id: '1', date: '2026-01-01' }];
+    const allActs = [
+        { id: '1', date: '2026-01-01' },
+        { id: '2', date: '2020-06-15' },
+    ];
+
+    it('returns period activities when scope is period', () => {
+        expect(
+            selectPeakLeaderboardActivities(PEAK_LEADERBOARD_SCOPES.PERIOD, periodActs, allActs),
+        ).toEqual(periodActs);
+    });
+
+    it('returns full history when scope is alltime', () => {
+        expect(
+            selectPeakLeaderboardActivities(PEAK_LEADERBOARD_SCOPES.ALLTIME, periodActs, allActs),
+        ).toEqual(allActs);
+    });
+
+    it('returns empty array for period scope when period list is empty', () => {
+        expect(
+            selectPeakLeaderboardActivities(PEAK_LEADERBOARD_SCOPES.PERIOD, [], allActs),
+        ).toEqual([]);
+    });
+
+    it('falls back to empty array when all inputs are missing', () => {
+        expect(selectPeakLeaderboardActivities(PEAK_LEADERBOARD_SCOPES.PERIOD, null, null)).toEqual([]);
+        expect(selectPeakLeaderboardActivities(PEAK_LEADERBOARD_SCOPES.ALLTIME, null, null)).toEqual([]);
     });
 });

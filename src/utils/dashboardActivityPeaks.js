@@ -142,3 +142,23 @@ export function activityExternalLinks(activity) {
 }
 
 export { FTP_CAPS as DASHBOARD_FTP_CAPS };
+
+/** Peak power leaderboard scope: period-filtered vs full history. */
+export const PEAK_LEADERBOARD_SCOPES = {
+    PERIOD: 'period',
+    ALLTIME: 'alltime',
+};
+
+/**
+ * Pick activity list for peak-power leaderboard based on scope toggle.
+ * @param {'period'|'alltime'} scope
+ * @param {object[]} periodActivities - rides in dashboard time range
+ * @param {object[]} allActivities - full ride history
+ * @returns {object[]}
+ */
+export function selectPeakLeaderboardActivities(scope, periodActivities, allActivities) {
+    if (scope === PEAK_LEADERBOARD_SCOPES.ALLTIME) {
+        return allActivities || [];
+    }
+    return periodActivities || [];
+}
