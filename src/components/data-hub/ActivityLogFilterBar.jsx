@@ -106,6 +106,18 @@ const ActivityLogFilterBar = ({
     onFilterKjMinChange,
     filterKjMax,
     onFilterKjMaxChange,
+    filterDecMin,
+    onFilterDecMinChange,
+    filterDecMax,
+    onFilterDecMaxChange,
+    filterThrMin,
+    onFilterThrMinChange,
+    filterThrMax,
+    onFilterThrMaxChange,
+    filterRaceMin,
+    onFilterRaceMinChange,
+    filterRaceMax,
+    onFilterRaceMaxChange,
     // Bulk actions
     onBulkEdit,
     onBulkSetGravelRide,
@@ -392,6 +404,18 @@ const ActivityLogFilterBar = ({
             onFilterKjMinChange={onFilterKjMinChange}
             filterKjMax={filterKjMax}
             onFilterKjMaxChange={onFilterKjMaxChange}
+            filterDecMin={filterDecMin}
+            onFilterDecMinChange={onFilterDecMinChange}
+            filterDecMax={filterDecMax}
+            onFilterDecMaxChange={onFilterDecMaxChange}
+            filterThrMin={filterThrMin}
+            onFilterThrMinChange={onFilterThrMinChange}
+            filterThrMax={filterThrMax}
+            onFilterThrMaxChange={onFilterThrMaxChange}
+            filterRaceMin={filterRaceMin}
+            onFilterRaceMinChange={onFilterRaceMinChange}
+            filterRaceMax={filterRaceMax}
+            onFilterRaceMaxChange={onFilterRaceMaxChange}
             bulkSelectedCount={bulkSelectedCount}
             onBulkEdit={onBulkEdit}
             onBulkSetGravelRide={onBulkSetGravelRide}

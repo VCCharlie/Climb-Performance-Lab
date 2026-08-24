@@ -41,6 +41,12 @@ function renderDerivations(overrides = {}) {
         filterElevMax: '',
         filterKjMin: '',
         filterKjMax: '',
+        filterDecMin: '',
+        filterDecMax: '',
+        filterThrMin: '',
+        filterThrMax: '',
+        filterRaceMin: '',
+        filterRaceMax: '',
         clearMetricFilters,
         ...overrides,
     };
@@ -77,6 +83,14 @@ describe('useDataHubLogDerivations', () => {
     it('detects active metric range filters', () => {
         const { result } = renderDerivations({
             filterPowerMin: '200',
+        });
+
+        expect(result.current.metricRangeActive).toBe(true);
+    });
+
+    it('detects active drift metric range filters', () => {
+        const { result } = renderDerivations({
+            filterDecMax: '5',
         });
 
         expect(result.current.metricRangeActive).toBe(true);
