@@ -5,6 +5,12 @@ import {
     applyPresetBounds,
     presetBoundsToFilterState,
     createPresetApplier,
+    presetsConflict,
+    getConflictingPresetIds,
+    mergeBoundsIntoFilterState,
+    mergePresetsToFilterState,
+    toggleMetricPresetIds,
+    createEmptyMetricFilterState,
 } from '../../utils/metricRangePresets';
 import { activityMatchesDriftRange } from '../../utils/activityFilterMetrics';
 
@@ -85,6 +91,86 @@ describe('metricRangePresets', () => {
             'Race ≤10%',
             'Race analyzed',
         ]);
+    });
+
+    describe('preset merge and toggle', () => {
+        it('merges non-conflicting general presets across different metrics', () => {
+            const merged = mergePresetsToFilterState(['long-4h', 'dist-min-50']);
+
+            expect(merged).toMatchObject({
+                filterDurMinMin: '240',
+                filterDistMin: '50',
+            });
+        });
+
+        it('merges compatible drift min and max on the same column', () => {
+            const merged = mergePresetsToFilterState(['dec-analyzed', 'dec-max-5']);
+
+            expect(merged).toMatchObject({
+                filterDecMin: '0',
+                filterDecMax: '5',
+            });
+        });
+
+        it('merges general preset with drift preset', () => {
+            const merged = mergePresetsToFilterState(['long-4h', 'dec-max-5']);
+
+            expect(merged).toMatchObject({
+                filterDurMinMin: '240',
+                filterDecMax: '5',
+            });
+        });
+
+        it('detects opposing duration presets as conflicting', () => {
+            const shortPreset = GENERAL_METRIC_PRESETS.find((p) => p.id === 'short-1h');
+            const longPreset = GENERAL_METRIC_PRESETS.find((p) => p.id === 'long-4h');
+
+            expect(presetsConflict(shortPreset, longPreset)).toBe(true);
+        });
+
+        it('detects same drift min key presets as conflicting', () => {
+            const analyzed = DRIFT_METRIC_PRESETS.find((p) => p.id === 'dec-analyzed');
+            const high = DRIFT_METRIC_PRESETS.find((p) => p.id === 'dec-min-10');
+
+            expect(presetsConflict(analyzed, high)).toBe(true);
+        });
+
+        it('does not treat drift min + max on same column as conflicting', () => {
+            const analyzed = DRIFT_METRIC_PRESETS.find((p) => p.id === 'dec-analyzed');
+            const good = DRIFT_METRIC_PRESETS.find((p) => p.id === 'dec-max-5');
+
+            expect(presetsConflict(analyzed, good)).toBe(false);
+        });
+
+        it('toggle off removes a preset from the active set', () => {
+            expect(toggleMetricPresetIds(['long-4h', 'dec-max-5'], 'long-4h')).toEqual(['dec-max-5']);
+        });
+
+        it('activating a preset replaces conflicting active presets on the same axis', () => {
+            const next = toggleMetricPresetIds(['short-1h'], 'long-4h');
+
+            expect(next).toEqual(['long-4h']);
+        });
+
+        it('recomputes empty filter state when all presets are toggled off', () => {
+            const empty = mergePresetsToFilterState([]);
+            expect(empty).toEqual(createEmptyMetricFilterState());
+        });
+
+        it('tightens duplicate min bounds to the higher minimum', () => {
+            const state = createEmptyMetricFilterState();
+            const merged = mergeBoundsIntoFilterState(state, { distMin: '30' });
+            const tightened = mergeBoundsIntoFilterState(merged, { distMin: '50' });
+
+            expect(tightened.filterDistMin).toBe('50');
+        });
+
+        it('returns conflicting ids for an activating preset', () => {
+            const longPreset = GENERAL_METRIC_PRESETS.find((p) => p.id === 'long-4h');
+            const conflicts = getConflictingPresetIds(longPreset, ['short-1h', 'dist-min-50']);
+
+            expect(conflicts).toEqual(['short-1h']);
+        });
     });
 
     describe('drift preset filter semantics', () => {

@@ -119,11 +119,6 @@ export function useDataHubLogDerivations({
             filterDecMin, filterDecMax, filterThrMin, filterThrMax, filterRaceMin, filterRaceMax]
             .some((v) => v !== '' && v != null);
 
-    const applyMetricPreset = (apply) => {
-        clearMetricFilters();
-        apply();
-    };
-
     const profilerClimbByActivityId = useProfilerClimbMatches(
         activitiesForClimbMatch,
         climbDatabaseForMatch || [],
@@ -161,7 +156,6 @@ export function useDataHubLogDerivations({
         logTableActivities,
         logTableGrouped,
         metricRangeActive,
-        applyMetricPreset,
         profilerClimbByActivityId,
         visibleActivityIdsFlat,
     };
