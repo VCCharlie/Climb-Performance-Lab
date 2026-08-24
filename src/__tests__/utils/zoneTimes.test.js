@@ -139,5 +139,19 @@ describe('zoneTimes', () => {
         });
         expect(dash.startYmd).toBe('2026-01-01');
         expect(dash.endYmd).toBe('2026-08-24');
+
+        const custom = computeZoneChartLookbackYmd('custom', {
+            customStartYmd: '2026-03-01',
+            customEndYmd: '2026-06-30',
+        });
+        expect(custom.startYmd).toBe('2026-03-01');
+        expect(custom.endYmd).toBe('2026-06-30');
+
+        const customFallback = computeZoneChartLookbackYmd('custom', {
+            dashboardStartYmd: '2026-02-01',
+            dashboardEndYmd: '2026-08-24',
+        });
+        expect(customFallback.startYmd).toBe('2026-02-01');
+        expect(customFallback.endYmd).toBe('2026-08-24');
     });
 });

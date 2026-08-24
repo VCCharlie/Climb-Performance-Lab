@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import {
     BarChart,
     Bar,
@@ -13,7 +13,7 @@ import { Layers } from 'lucide-react';
 import { ChartTooltip, SegmentedControl } from '../ui';
 import { getChartTheme } from '../../utils/chartTheme';
 import CollapsibleDashboardCard from './CollapsibleDashboardCard';
-import NlDateInput from '../NlDateInput';
+import CustomDateRangeFields from '../ui/CustomDateRangeFields';
 import { COGGAN_ZONES } from '../../cogganZones';
 import {
     activitiesHaveZoneTimes,
@@ -45,6 +45,38 @@ export default function TimeInZonesCard({
     const [lookback, setLookback] = useState('12w');
     const [customStartYmd, setCustomStartYmd] = useState('');
     const [customEndYmd, setCustomEndYmd] = useState('');
+
+    const defaultCustomEndYmd = dashboardEndYmd?.slice(0, 10) || referenceEndYmd?.slice(0, 10) || '';
+
+    const handleLookbackChange = useCallback((next) => {
+        setLookback(next);
+        if (next === 'custom') {
+            if (!customStartYmd && dashboardStartYmd) {
+                setCustomStartYmd(dashboardStartYmd.slice(0, 10));
+            }
+            if (!customEndYmd && defaultCustomEndYmd) {
+                setCustomEndYmd(defaultCustomEndYmd);
+            }
+        }
+    }, [customStartYmd, customEndYmd, dashboardStartYmd, defaultCustomEndYmd]);
+
+    const handleCustomRangeApply = useCallback((startYmd, endYmd) => {
+        setCustomStartYmd(startYmd);
+        setCustomEndYmd(endYmd);
+    }, []);
+
+    const customRangeFields = lookback === 'custom' ? (
+        <CustomDateRangeFields
+            startYmd={customStartYmd}
+            endYmd={customEndYmd}
+            onApply={handleCustomRangeApply}
+            defaultEndYmd={customEndYmd ? '' : defaultCustomEndYmd}
+            compact
+            className="mb-4"
+            startAriaLabel="Zone chart custom start date (dd/mm/yyyy)"
+            endAriaLabel="Zone chart custom end date (dd/mm/yyyy)"
+        />
+    ) : null;
 
     const hasZoneData = activitiesHaveZoneTimes(activities);
 
@@ -130,28 +162,12 @@ export default function TimeInZonesCard({
                         caps={false}
                         dense
                         value={lookback}
-                        onChange={setLookback}
+                        onChange={handleLookbackChange}
                         aria-label="Zone chart lookback"
                         options={ZONE_CHART_LOOKBACK_PRESETS}
                     />
                 </div>
-                {lookback === 'custom' && (
-                    <div className="flex flex-wrap items-center gap-2 mb-4">
-                        <NlDateInput
-                            value={customStartYmd}
-                            onChange={setCustomStartYmd}
-                            aria-label="Zone chart custom start date"
-                            className="bg-cdsurfacelow border border-cdborder rounded-lg px-2 py-1 text-xs text-cdtext w-28"
-                        />
-                        <span className="text-cdmuted text-xs">to</span>
-                        <NlDateInput
-                            value={customEndYmd || endYmd}
-                            onChange={setCustomEndYmd}
-                            aria-label="Zone chart custom end date"
-                            className="bg-cdsurfacelow border border-cdborder rounded-lg px-2 py-1 text-xs text-cdtext w-28"
-                        />
-                    </div>
-                )}
+                {customRangeFields}
                 <p className="text-sm text-cdmuted py-4">
                     No zone time in the selected period. Try a wider lookback or sync more rides from Intervals.icu.
                 </p>
@@ -191,29 +207,13 @@ export default function TimeInZonesCard({
                     caps={false}
                     dense
                     value={lookback}
-                    onChange={setLookback}
+                    onChange={handleLookbackChange}
                     aria-label="Zone chart lookback"
                     options={ZONE_CHART_LOOKBACK_PRESETS}
                 />
             </div>
 
-            {lookback === 'custom' && (
-                <div className="flex flex-wrap items-center gap-2 mb-4">
-                    <NlDateInput
-                        value={customStartYmd}
-                        onChange={setCustomStartYmd}
-                        aria-label="Zone chart custom start date"
-                        className="bg-cdsurfacelow border border-cdborder rounded-lg px-2 py-1 text-xs text-cdtext w-28"
-                    />
-                    <span className="text-cdmuted text-xs">to</span>
-                    <NlDateInput
-                        value={customEndYmd || endYmd}
-                        onChange={setCustomEndYmd}
-                        aria-label="Zone chart custom end date"
-                        className="bg-cdsurfacelow border border-cdborder rounded-lg px-2 py-1 text-xs text-cdtext w-28"
-                    />
-                </div>
-            )}
+            {customRangeFields}
 
             <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">

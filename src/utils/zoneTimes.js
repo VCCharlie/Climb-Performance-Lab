@@ -276,7 +276,9 @@ export function computeZoneChartLookbackYmd(preset, options = {}) {
     }
 
     if (preset === 'custom') {
-        const startYmd = options.customStartYmd?.slice(0, 10) || '2000-01-01';
+        const startYmd = options.customStartYmd?.slice(0, 10)
+            || options.dashboardStartYmd?.slice(0, 10)
+            || '2000-01-01';
         return { startYmd, endYmd };
     }
 
