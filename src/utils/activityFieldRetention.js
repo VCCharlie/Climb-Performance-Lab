@@ -8,6 +8,8 @@
  * 4. Drift / decoupling (stream summaries only — never overwrites climbing)
  */
 
+import { normalizeStravaActivityId } from './strava';
+import { shouldPreferStravaTitle } from './stravaTitleHeuristics';
 import { protectZoneTimesOnMerge } from './zoneTimes';
 
 /**
@@ -27,6 +29,15 @@ export function climbingMetersRounded(value) {
 export function hasProtectedClimbing(activity) {
     if (!activity) return false;
     return activity.climbing_from_strava === true || activity.climbing_user_corrected === true;
+}
+
+/**
+ * @param {object | null | undefined} activity
+ * @returns {boolean}
+ */
+export function activityHasStravaLink(activity) {
+    const n = normalizeStravaActivityId(activity?.strava_id);
+    return !!(n && n.length >= 6);
 }
 
 /**
@@ -88,6 +99,74 @@ export function protectClimbingOnMerge(incoming, existing, out) {
     ) {
         out.climbing = existing.climbing;
         out.climbing_from_strava = true;
+        return;
+    }
+
+    // Strava-linked rows without the flag (legacy) still lose map-corrected meters on backfill.
+    if (
+        activityHasStravaLink(existing)
+        && climbingMetersRounded(existing.climbing) > 0
+        && incoming.climbing_from_strava !== true
+        && climbingMetersRounded(incoming.climbing) !== climbingMetersRounded(existing.climbing)
+    ) {
+        out.climbing = existing.climbing;
+        if (existing.climbing_from_strava === true) {
+            out.climbing_from_strava = true;
+        }
+    }
+}
+
+/**
+ * Preserve Strava/custom titles when Intervals backfill sends profile or generic names.
+ *
+ * @param {object} incoming
+ * @param {object} existing
+ * @param {object} out
+ */
+export function protectStravaLinkedTitleOnMerge(incoming, existing, out) {
+    if (!existing || !out || !activityHasStravaLink(existing)) return;
+
+    const exTitle = (existing.title || '').trim();
+    const inTitle = (incoming.title || '').trim();
+    if (!exTitle) return;
+
+    if (!shouldPreferStravaTitle(exTitle, inTitle, { gearName: existing.gear_name })) {
+        out.title = existing.title;
+    }
+}
+
+/**
+ * Preserve Strava gear when Intervals sends bike-computer gear ids/names.
+ *
+ * @param {object} incoming
+ * @param {object} existing
+ * @param {object} out
+ */
+export function protectStravaLinkedGearOnMerge(incoming, existing, out) {
+    if (!existing || !out || !activityHasStravaLink(existing)) return;
+
+    if (existing.gear_id) {
+        out.gear_id = existing.gear_id;
+    }
+    const exGearName = existing.gear_name != null && String(existing.gear_name).trim() !== '';
+    if (exGearName) {
+        out.gear_name = existing.gear_name;
+    }
+}
+
+/**
+ * Preserve Strava sport_type (VirtualRide, GravelRide, …) on Intervals re-sync.
+ *
+ * @param {object} incoming
+ * @param {object} existing
+ * @param {object} out
+ */
+export function protectStravaLinkedTypeOnMerge(incoming, existing, out) {
+    if (!existing || !out || !activityHasStravaLink(existing)) return;
+
+    const exType = (existing.type || '').trim();
+    if (exType) {
+        out.type = existing.type;
     }
 }
 
