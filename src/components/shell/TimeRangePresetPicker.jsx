@@ -1,8 +1,8 @@
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import AnchoredDropdownPortal from '../ui/AnchoredDropdownPortal';
-import NlDateInput from '../NlDateInput';
-import { inputBaseClass, cn } from '../ui';
+import CustomDateRangeFields from '../ui/CustomDateRangeFields';
+import { cn } from '../ui';
 import { TIME_RANGE_OPTIONS } from '../../config/navTabs';
 
 /**
@@ -16,28 +16,28 @@ export function TimeRangeCustomDates({
     compact = false,
     className,
 }) {
+    const todayYmd = useMemo(() => new Date().toISOString().split('T')[0], []);
+
+    const handleApply = (startYmd, endYmd) => {
+        onCustomStart(startYmd);
+        onCustomEnd(endYmd);
+    };
+
     return (
-        <div
+        <CustomDateRangeFields
+            startYmd={customStart}
+            endYmd={customEnd}
+            onApply={handleApply}
+            defaultEndYmd={customEnd ? '' : todayYmd}
+            compact={compact}
             className={cn(
-                'flex items-center gap-2 bg-cdsurfacelow rounded-cdmd border border-cdborder/60 animate-in fade-in slide-in-from-top-1',
+                'bg-cdsurfacelow rounded-cdmd border border-cdborder/60 animate-in fade-in slide-in-from-top-1',
                 compact ? 'p-1.5' : 'p-1.5',
                 className,
             )}
-        >
-            <NlDateInput
-                value={customStart}
-                onChange={onCustomStart}
-                className={`${inputBaseClass} text-[10px] ${compact ? 'py-0.5' : 'py-1'} flex-1`}
-                aria-label="Start date (dd-mm-jjjj)"
-            />
-            <span className="text-cdmuted text-[10px]">–</span>
-            <NlDateInput
-                value={customEnd}
-                onChange={onCustomEnd}
-                className={`${inputBaseClass} text-[10px] ${compact ? 'py-0.5' : 'py-1'} flex-1`}
-                aria-label="End date (dd-mm-jjjj)"
-            />
-        </div>
+            startAriaLabel="Start date (dd/mm/yyyy)"
+            endAriaLabel="End date (dd/mm/yyyy)"
+        />
     );
 }
 

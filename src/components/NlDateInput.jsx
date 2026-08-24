@@ -37,6 +37,19 @@ export default function NlDateInput({
         [onChange]
     );
 
+    const handleChange = useCallback(
+        (e) => {
+            const raw = e.target.value;
+            setText(raw);
+            const parsed = parseNlDmyToIso(raw);
+            if (parsed) {
+                onChange(parsed);
+                setText(formatIsoToNlDmy(parsed));
+            }
+        },
+        [onChange],
+    );
+
     return (
         <input
             id={id}
@@ -49,7 +62,7 @@ export default function NlDateInput({
             placeholder={placeholder}
             aria-label={ariaLabel}
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={handleChange}
             onBlur={() => commit(text)}
             onKeyDown={(e) => {
                 if (e.key === 'Enter') {
