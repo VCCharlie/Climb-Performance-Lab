@@ -988,7 +988,7 @@ const SettingsModal = ({
                                         <div className="w-3 h-3 rounded-full" style={{ backgroundColor: zone.color }}></div>
                                         <span className="w-24 text-xs font-bold text-cdtext">{zone.label}</span>
 
-                                        <div className="flex-1 text-right text-xs font-mono opacity-80 text-cdmuted">
+                                        <div className="flex-1 text-right text-xs tabular-nums opacity-80 text-cdmuted">
                                             {zone.min} - {zone.max < 9999 ? zone.max : '∞'} W
                                         </div>
                                     </div>

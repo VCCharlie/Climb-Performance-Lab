@@ -195,8 +195,8 @@ export default function HistoricalFtpSettings({ activities, userSettings, update
                             <tbody className="divide-y divide-cdborder/40">
                                 {yearRows.map((row) => (
                                     <tr key={row.year} className="text-cdtext">
-                                        <td className="px-3 py-2 font-mono">{row.year}</td>
-                                        <td className="px-3 py-2 font-mono text-cdmuted">
+                                        <td className="px-3 py-2 tabular-nums">{row.year}</td>
+                                        <td className="px-3 py-2 tabular-nums text-cdmuted">
                                             {row.autoFtp ?? '—'}
                                             {row.trimmedCount > 0 && row.autoFtp != null && (
                                                 <span className="block text-[9px] text-cdmuted">
@@ -216,11 +216,11 @@ export default function HistoricalFtpSettings({ activities, userSettings, update
                                                 aria-label={`FTP override for ${row.year}`}
                                             />
                                         </td>
-                                        <td className="px-3 py-2 font-mono font-semibold text-cdaccent">
+                                        <td className="px-3 py-2 tabular-nums font-semibold text-cdaccent">
                                             {row.effectiveFtp ?? '—'}
                                         </td>
-                                        <td className="px-3 py-2 font-mono text-cdmuted">{row.effortCount}</td>
-                                        <td className="px-3 py-2 font-mono text-cdmuted">
+                                        <td className="px-3 py-2 tabular-nums text-cdmuted">{row.effortCount}</td>
+                                        <td className="px-3 py-2 tabular-nums text-cdmuted">
                                             {row.effortsUsed > 0 ? row.effortsUsed : '—'}
                                         </td>
                                     </tr>

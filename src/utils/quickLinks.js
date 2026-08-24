@@ -15,6 +15,7 @@ export const QUICK_LINK_ICON_OPTIONS = [
     { id: 'flag', label: 'Flag' },
     { id: 'compass', label: 'Compass' },
     { id: 'activity', label: 'Activity' },
+    { id: 'strava', label: 'Strava' },
 ];
 
 export const DEFAULT_QUICK_LINKS = [
