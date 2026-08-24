@@ -216,16 +216,146 @@ export function sumPowerZoneSeconds(activities, startYmd, endYmd) {
     return totals;
 }
 
+const EN_MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** @typedef {'week' | 'month' | 'year'} ZoneChartCadence */
+
+export const ZONE_CHART_CADENCES = [
+    { value: 'week', label: 'Week' },
+    { value: 'month', label: 'Month' },
+    { value: 'year', label: 'Year' },
+];
+
+export const ZONE_CHART_LOOKBACK_PRESETS = [
+    { value: '4w', label: '4 wk' },
+    { value: '12w', label: '12 wk' },
+    { value: '6m', label: '6 mo' },
+    { value: '1y', label: '1 yr' },
+    { value: '3y', label: '3 yr' },
+    { value: 'dashboard', label: 'Dashboard' },
+    { value: 'custom', label: 'Custom' },
+];
+
 /**
- * Weekly stacked-bar rows for time-in-zones visualization.
+ * @param {string} [referenceEndYmd] - YYYY-MM-DD; defaults to today (local)
+ * @returns {string}
+ */
+function toLocalYmd(referenceEndYmd) {
+    if (referenceEndYmd && String(referenceEndYmd).length >= 10) {
+        return String(referenceEndYmd).slice(0, 10);
+    }
+    const d = new Date();
+    const m = `${d.getMonth() + 1}`.padStart(2, '0');
+    const day = `${d.getDate()}`.padStart(2, '0');
+    return `${d.getFullYear()}-${m}-${day}`;
+}
+
+/**
+ * Compute YMD bounds for the zone chart lookback preset.
+ *
+ * @param {string} preset - one of ZONE_CHART_LOOKBACK_PRESETS values
+ * @param {{
+ *   referenceEndYmd?: string,
+ *   dashboardStartYmd?: string,
+ *   dashboardEndYmd?: string,
+ *   customStartYmd?: string,
+ *   customEndYmd?: string,
+ * }} [options]
+ * @returns {{ startYmd: string, endYmd: string }}
+ */
+export function computeZoneChartLookbackYmd(preset, options = {}) {
+    const endYmd = options.customEndYmd?.slice(0, 10)
+        || options.dashboardEndYmd?.slice(0, 10)
+        || toLocalYmd(options.referenceEndYmd);
+
+    if (preset === 'dashboard' && options.dashboardStartYmd) {
+        return {
+            startYmd: options.dashboardStartYmd.slice(0, 10),
+            endYmd,
+        };
+    }
+
+    if (preset === 'custom') {
+        const startYmd = options.customStartYmd?.slice(0, 10) || '2000-01-01';
+        return { startYmd, endYmd };
+    }
+
+    const end = new Date(`${endYmd}T12:00:00`);
+    const start = new Date(end);
+    start.setHours(0, 0, 0, 0);
+
+    if (preset === '4w') start.setDate(start.getDate() - 27);
+    else if (preset === '12w') start.setDate(start.getDate() - 83);
+    else if (preset === '6m') start.setMonth(start.getMonth() - 6);
+    else if (preset === '1y') start.setFullYear(start.getFullYear() - 1);
+    else if (preset === '3y') start.setFullYear(start.getFullYear() - 3);
+    else start.setDate(start.getDate() - 83);
+
+    const startYmd = `${start.getFullYear()}-${`${start.getMonth() + 1}`.padStart(2, '0')}-${`${start.getDate()}`.padStart(2, '0')}`;
+    return { startYmd, endYmd };
+}
+
+/**
+ * @param {string} ymd
+ * @param {ZoneChartCadence} cadence
+ * @returns {string}
+ */
+function bucketKeyFromYmd(ymd, cadence) {
+    if (cadence === 'year') return ymd.slice(0, 4);
+    if (cadence === 'month') return ymd.slice(0, 7);
+    const d = new Date(`${ymd}T12:00:00`);
+    const day = d.getDay();
+    const mondayOffset = day === 0 ? -6 : 1 - day;
+    const monday = new Date(d);
+    monday.setDate(d.getDate() + mondayOffset);
+    return monday.toISOString().slice(0, 10);
+}
+
+/**
+ * @param {string} bucketKey
+ * @param {ZoneChartCadence} cadence
+ * @returns {string}
+ */
+function bucketLabelFromKey(bucketKey, cadence) {
+    if (cadence === 'year') return bucketKey;
+    if (cadence === 'month') {
+        const [y, m] = bucketKey.split('-');
+        return `${EN_MONTHS_SHORT[parseInt(m, 10) - 1]} ${y.slice(-2)}`;
+    }
+    const [, m, d] = bucketKey.split('-');
+    return `${EN_MONTHS_SHORT[parseInt(m, 10) - 1]} ${d}`;
+}
+
+/**
+ * @param {number[]} secs
+ * @returns {{ z1: number, z2: number, z3: number, z4: number, z5: number, z6: number, z7: number, totalHours: number }}
+ */
+function hoursRowFromSeconds(secs) {
+    const hours = secs.map((s) => Math.round((s / 3600) * 10) / 10);
+    const totalHours = Math.round(hours.reduce((sum, h) => sum + h, 0) * 10) / 10;
+    return {
+        z1: hours[0],
+        z2: hours[1],
+        z3: hours[2],
+        z4: hours[3],
+        z5: hours[4],
+        z6: hours[5],
+        z7: hours[6],
+        totalHours,
+    };
+}
+
+/**
+ * Stacked-bar rows for time-in-zones visualization (hours per bucket).
  *
  * @param {object[]} activities
  * @param {string} [startYmd]
  * @param {string} [endYmd]
- * @returns {Array<{ label: string, weekKey: string, z1: number, z2: number, z3: number, z4: number, z5: number, z6: number, z7: number, totalHours: number }>}
+ * @param {ZoneChartCadence} [cadence]
+ * @returns {Array<{ label: string, bucketKey: string, weekKey: string, z1: number, z2: number, z3: number, z4: number, z5: number, z6: number, z7: number, totalHours: number }>}
  */
-export function weeklyPowerZoneChartRows(activities, startYmd, endYmd) {
-    const weekMap = new Map();
+export function powerZoneChartRows(activities, startYmd, endYmd, cadence = 'week') {
+    const bucketMap = new Map();
 
     for (const act of activities || []) {
         const ymd = String(act?.date || '').slice(0, 10);
@@ -236,42 +366,97 @@ export function weeklyPowerZoneChartRows(activities, startYmd, endYmd) {
         const zones = act?.power_zone_sec;
         if (!hasZoneTimesData(zones)) continue;
 
-        const d = new Date(`${ymd}T12:00:00`);
-        const day = d.getDay();
-        const mondayOffset = day === 0 ? -6 : 1 - day;
-        const monday = new Date(d);
-        monday.setDate(d.getDate() + mondayOffset);
-        const weekKey = monday.toISOString().slice(0, 10);
-
-        if (!weekMap.has(weekKey)) {
-            weekMap.set(weekKey, Array(POWER_ZONE_COUNT).fill(0));
+        const bucketKey = bucketKeyFromYmd(ymd, cadence);
+        if (!bucketMap.has(bucketKey)) {
+            bucketMap.set(bucketKey, Array(POWER_ZONE_COUNT).fill(0));
         }
-        const bucket = weekMap.get(weekKey);
+        const bucket = bucketMap.get(bucketKey);
         for (let i = 0; i < POWER_ZONE_COUNT; i += 1) {
             bucket[i] += Math.max(0, Number(zones[i]) || 0);
         }
     }
 
-    const EN_MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-    return Array.from(weekMap.entries())
+    return Array.from(bucketMap.entries())
         .sort(([a], [b]) => a.localeCompare(b))
-        .map(([weekKey, secs]) => {
-            const [, m, d] = weekKey.split('-');
-            const label = `${EN_MONTHS_SHORT[parseInt(m, 10) - 1]} ${d}`;
-            const hours = secs.map((s) => Math.round((s / 3600) * 10) / 10);
-            const totalHours = Math.round(hours.reduce((sum, h) => sum + h, 0) * 10) / 10;
+        .map(([bucketKey, secs]) => {
+            const hours = hoursRowFromSeconds(secs);
             return {
-                label,
-                weekKey,
-                z1: hours[0],
-                z2: hours[1],
-                z3: hours[2],
-                z4: hours[3],
-                z5: hours[4],
-                z6: hours[5],
-                z7: hours[6],
-                totalHours,
+                label: bucketLabelFromKey(bucketKey, cadence),
+                bucketKey,
+                weekKey: cadence === 'week' ? bucketKey : bucketKey,
+                ...hours,
             };
         });
+}
+
+/**
+ * @param {ReturnType<typeof powerZoneChartRows>} rows
+ * @returns {ReturnType<typeof powerZoneChartRows>}
+ */
+export function powerZoneChartRowsAsPercent(rows) {
+    return (rows || []).map((row) => {
+        const total = Number(row.totalHours) || 0;
+        if (total <= 0) {
+            return {
+                ...row,
+                z1: 0,
+                z2: 0,
+                z3: 0,
+                z4: 0,
+                z5: 0,
+                z6: 0,
+                z7: 0,
+                totalHours: 0,
+                totalPercent: 0,
+            };
+        }
+        const pct = (hours) => Math.round((hours / total) * 1000) / 10;
+        return {
+            ...row,
+            z1: pct(row.z1),
+            z2: pct(row.z2),
+            z3: pct(row.z3),
+            z4: pct(row.z4),
+            z5: pct(row.z5),
+            z6: pct(row.z6),
+            z7: pct(row.z7),
+            totalPercent: 100,
+        };
+    });
+}
+
+/**
+ * Weekly stacked-bar rows for time-in-zones visualization.
+ *
+ * @param {object[]} activities
+ * @param {string} [startYmd]
+ * @param {string} [endYmd]
+ * @returns {ReturnType<typeof powerZoneChartRows>}
+ */
+export function weeklyPowerZoneChartRows(activities, startYmd, endYmd) {
+    return powerZoneChartRows(activities, startYmd, endYmd, 'week');
+}
+
+/**
+ * Monthly stacked-bar rows for time-in-zones visualization.
+ *
+ * @param {object[]} activities
+ * @param {string} [startYmd]
+ * @param {string} [endYmd]
+ * @returns {ReturnType<typeof powerZoneChartRows>}
+ */
+export function monthlyPowerZoneChartRows(activities, startYmd, endYmd) {
+    return powerZoneChartRows(activities, startYmd, endYmd, 'month');
+}
+
+/**
+ * Yearly stacked-bar rows for time-in-zones visualization.
+ *
+ * @param {object[]} activities
+ * @param {string} [startYmd]
+ * @param {string} [endYmd]
+ * @returns {ReturnType<typeof powerZoneChartRows>}
+ */
+export function yearlyPowerZoneChartRows(activities, startYmd, endYmd) {
+    return powerZoneChartRows(activities, startYmd, endYmd, 'year');
 }

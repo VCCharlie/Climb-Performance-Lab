@@ -8,6 +8,7 @@ import PeakPowerDurationBarCard from './PeakPowerDurationBarCard';
 import TimeInZonesCard from './TimeInZonesCard';
 import CollapsibleInfoCard from '../ui/CollapsibleInfoCard';
 import { findBestPowerActivity, DASHBOARD_FTP_CAPS } from '../../utils/dashboardActivityPeaks';
+import { getDashboardDisplayBoundsYmd } from '../../utils/dashboardActivityWindow';
 import { dashboardFilterLabel } from '../../utils/powerDurationTable';
 
 /**
@@ -133,6 +134,16 @@ const PowerTab = ({
     const hasPeriodData = Boolean(data?.length);
     const hasHistory = Boolean(chartData?.length);
 
+    const dashboardDisplayBounds = useMemo(
+        () => getDashboardDisplayBoundsYmd(timeRange, customStart, customEnd),
+        [timeRange, customStart, customEnd],
+    );
+
+    const zoneChartReferenceEndYmd = useMemo(() => {
+        if (referenceEndDate) return String(referenceEndDate).slice(0, 10);
+        return dashboardDisplayBounds.displayEndYmd;
+    }, [referenceEndDate, dashboardDisplayBounds.displayEndYmd]);
+
     if (!hasPeriodData && !hasHistory) {
         return (
             <div className="flex items-center justify-center h-40 text-cdmuted">
@@ -186,8 +197,13 @@ const PowerTab = ({
                 />
             )}
 
-            {(hasPeriodData ? data : chartData).length > 0 && (
-                <TimeInZonesCard activities={hasPeriodData ? data : chartData} />
+            {chartData.length > 0 && (
+                <TimeInZonesCard
+                    activities={chartData}
+                    dashboardStartYmd={dashboardDisplayBounds.displayStartYmd}
+                    dashboardEndYmd={dashboardDisplayBounds.displayEndYmd}
+                    referenceEndYmd={zoneChartReferenceEndYmd}
+                />
             )}
 
             {chartData.length > 0 && (
