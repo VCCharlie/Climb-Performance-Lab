@@ -9,7 +9,7 @@
  */
 
 import { normalizeStravaActivityId } from './strava';
-import { shouldPreferStravaTitle } from './stravaTitleHeuristics';
+import { isGenericActivityTitle, shouldPreferStravaTitle } from './stravaTitleHeuristics';
 import { protectZoneTimesOnMerge } from './zoneTimes';
 
 /**
@@ -129,6 +129,12 @@ export function protectStravaLinkedTitleOnMerge(incoming, existing, out) {
     const exTitle = (existing.title || '').trim();
     const inTitle = (incoming.title || '').trim();
     if (!exTitle) return;
+
+    // Custom Strava / user titles must never be replaced by Intervals device-profile names.
+    if (!isGenericActivityTitle(exTitle)) {
+        out.title = existing.title;
+        return;
+    }
 
     if (!shouldPreferStravaTitle(exTitle, inTitle, { gearName: existing.gear_name })) {
         out.title = existing.title;

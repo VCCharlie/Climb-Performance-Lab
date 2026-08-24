@@ -15,12 +15,13 @@ export function IntervalsSyncProvider({
     stravaGetToken,
     userSettings,
 }) {
-    const { activities, importActivities } = useActivities();
+    const { activities, importActivities, getActivitiesSnapshot } = useActivities();
 
     const intervalsSync = useDataHubIntervalsSync({
         intervalsConfig,
         activities,
         onImport: importActivities,
+        getActivitiesSnapshot,
         stravaGetToken,
         bulkSelectedIds: EMPTY_BULK_SET,
         selectedActivitiesForBulk: [],

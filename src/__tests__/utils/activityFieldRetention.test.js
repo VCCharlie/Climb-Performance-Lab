@@ -67,6 +67,29 @@ describe('activityFieldRetention', () => {
         expect(out.title).toBe('Race with friends');
     });
 
+    it('protectStravaLinkedTitleOnMerge keeps non-generic title even when it matches gear_name', () => {
+        const existing = {
+            strava_id: '1234567890',
+            title: 'Canyon Endurace CF SL',
+            gear_name: 'Canyon Endurace CF SL',
+        };
+        const incoming = { title: 'Evening Ride' };
+        const out = { ...incoming };
+        protectStravaLinkedTitleOnMerge(incoming, existing, out);
+        expect(out.title).toBe('Canyon Endurace CF SL');
+    });
+
+    it('protectStravaLinkedTitleOnMerge allows Strava title to replace generic Morning Ride', () => {
+        const existing = {
+            strava_id: '1234567890',
+            title: 'Morning Ride',
+        };
+        const incoming = { title: 'Epic gravel smash' };
+        const out = { ...incoming };
+        protectStravaLinkedTitleOnMerge(incoming, existing, out);
+        expect(out.title).toBe('Epic gravel smash');
+    });
+
     it('protectStravaLinkedGearOnMerge keeps Strava gear when Intervals sends bike-computer gear', () => {
         const existing = {
             strava_id: '1234567890',
