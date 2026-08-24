@@ -44,7 +44,7 @@ function DriftPctCell({ pct, status, title }) {
     if (!Number.isFinite(Number(pct))) return <span className="text-cdmuted">-</span>;
     return (
         <span
-            className={`font-mono tabular-nums ${driftPctStatusClass(status)}`}
+            className={`tabular-nums ${driftPctStatusClass(status)}`}
             title={title || (status ? decouplingStatusLabel(status) : 'HR drift %')}
         >
             {Number(pct).toFixed(1)}%
@@ -243,7 +243,7 @@ export const Row = React.memo(React.forwardRef(({
                 if (vi == null) return <span className="text-cdmuted">-</span>;
                 return (
                     <span
-                        className="text-cdmuted font-mono tabular-nums"
+                        className="text-cdmuted tabular-nums"
                         title="Variability Index (NP ÷ average power)"
                     >
                         {vi.toFixed(2)}
@@ -256,7 +256,7 @@ export const Row = React.memo(React.forwardRef(({
                 if (ef == null) return <span className="text-cdmuted">-</span>;
                 return (
                     <span
-                        className="text-cdmuted font-mono tabular-nums"
+                        className="text-cdmuted tabular-nums"
                         title="Efficiency Factor (NP ÷ average HR, W/bpm)"
                     >
                         {ef.toFixed(2)}
@@ -411,7 +411,7 @@ export const Row = React.memo(React.forwardRef(({
                         </span>
                     );
                 }
-                case 'moving_time': return <span className="text-cdmuted font-mono">{formatTime(val)}</span>;
+                case 'moving_time': return <span className="text-cdmuted tabular-nums">{formatTime(val)}</span>;
                 case 'distance': case 'avg_speed': return <span className="text-cdmuted">{Number(val).toFixed(1)}</span>;
                 case 'work': {
                     const w = Number(val);
