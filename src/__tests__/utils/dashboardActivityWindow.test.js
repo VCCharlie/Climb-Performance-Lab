@@ -38,6 +38,22 @@ describe('filterActivitiesByDashboardTimeRange', () => {
         expect(f.map((a) => a.id)).toEqual([2]);
     });
 
+    it('includes boundary dates for custom range (Activities tab scenario)', () => {
+        const acts = [
+            { date: '2025-12-31', id: 'before' },
+            { date: '2026-01-01', id: 'start' },
+            { date: '2026-08-24', id: 'end' },
+            { date: '2026-08-25', id: 'after' },
+        ];
+        const filtered = filterActivitiesByDashboardTimeRange(
+            acts,
+            'Custom',
+            '2026-01-01',
+            '2026-08-24',
+        );
+        expect(filtered.map((a) => a.id)).toEqual(['start', 'end']);
+    });
+
     it('returns all activities when custom has no start', () => {
         const acts = [{ date: '2026-01-01', id: 1 }];
         expect(filterActivitiesByDashboardTimeRange(acts, 'Custom', '', '')).toEqual(acts);
