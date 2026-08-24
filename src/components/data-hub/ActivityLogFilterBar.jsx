@@ -81,7 +81,9 @@ const ActivityLogFilterBar = ({
     onActivityLogRangesExpandedChange,
     metricRangeActive,
     clearMetricFilters,
-    applyMetricPreset,
+    activeMetricPresetIds,
+    toggleMetricPreset,
+    clearActiveMetricPresets,
     filterDistMin,
     onFilterDistMinChange,
     filterDistMax,
@@ -379,7 +381,9 @@ const ActivityLogFilterBar = ({
             onActivityLogRangesExpandedChange={onActivityLogRangesExpandedChange}
             metricRangeActive={metricRangeActive}
             clearMetricFilters={clearMetricFilters}
-            applyMetricPreset={applyMetricPreset}
+            activeMetricPresetIds={activeMetricPresetIds}
+            toggleMetricPreset={toggleMetricPreset}
+            clearActiveMetricPresets={clearActiveMetricPresets}
             filterDistMin={filterDistMin}
             onFilterDistMinChange={onFilterDistMinChange}
             filterDistMax={filterDistMax}

@@ -96,16 +96,11 @@ describe('useDataHubLogDerivations', () => {
         expect(result.current.metricRangeActive).toBe(true);
     });
 
-    it('applyMetricPreset clears filters then runs preset callback', () => {
-        const { result, clearMetricFilters } = renderDerivations();
-        const apply = vi.fn();
+    it('toggleMetricPreset is no longer exposed from log derivations', () => {
+        const { result } = renderDerivations();
 
-        act(() => {
-            result.current.applyMetricPreset(apply);
-        });
-
-        expect(clearMetricFilters).toHaveBeenCalled();
-        expect(apply).toHaveBeenCalled();
+        expect(result.current.toggleMetricPreset).toBeUndefined();
+        expect(result.current.applyMetricPreset).toBeUndefined();
     });
 
     it('lists visible activity ids from processed activities', () => {

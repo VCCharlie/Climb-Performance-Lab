@@ -26,7 +26,9 @@ export default function ActivityLogFilterPanel({
                 onExpandedChange={sectionProps.onActivityLogRangesExpandedChange}
                 metricRangeActive={sectionProps.metricRangeActive}
                 clearMetricFilters={sectionProps.clearMetricFilters}
-                applyMetricPreset={sectionProps.applyMetricPreset}
+                activeMetricPresetIds={sectionProps.activeMetricPresetIds}
+                toggleMetricPreset={sectionProps.toggleMetricPreset}
+                clearActiveMetricPresets={sectionProps.clearActiveMetricPresets}
                 filterDistMin={sectionProps.filterDistMin}
                 onFilterDistMinChange={sectionProps.onFilterDistMinChange}
                 filterDistMax={sectionProps.filterDistMax}

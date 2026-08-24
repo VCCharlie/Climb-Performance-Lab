@@ -25,6 +25,11 @@ import {
     buildGearFilterOptionsFromActivities,
     mergeActiveGearFilterOption,
 } from '../utils/activityGearFilterOptions';
+import {
+    createEmptyMetricFilterState,
+    mergePresetsToFilterState,
+    toggleMetricPresetIds,
+} from '../utils/metricRangePresets';
 
 // Helper inside hook or import
 const isValid = (act) => act && act.id && act.date;
@@ -447,26 +452,45 @@ const useActivityFilter = (activities, profileFtp) => {
         return () => clearTimeout(timer);
     }, [groupedActivities]);
 
-    const clearMetricFilters = useCallback(() => {
-        setFilterDistMin('');
-        setFilterDistMax('');
-        setFilterSpeedMin('');
-        setFilterSpeedMax('');
-        setFilterPowerMin('');
-        setFilterPowerMax('');
-        setFilterDurMinMin('');
-        setFilterDurMaxMin('');
-        setFilterElevMin('');
-        setFilterElevMax('');
-        setFilterKjMin('');
-        setFilterKjMax('');
-        setFilterDecMin('');
-        setFilterDecMax('');
-        setFilterThrMin('');
-        setFilterThrMax('');
-        setFilterRaceMin('');
-        setFilterRaceMax('');
+    const [activeMetricPresetIds, setActiveMetricPresetIds] = useState([]);
+
+    const applyMetricFilterState = useCallback((state) => {
+        setFilterDistMin(state.filterDistMin ?? '');
+        setFilterDistMax(state.filterDistMax ?? '');
+        setFilterSpeedMin(state.filterSpeedMin ?? '');
+        setFilterSpeedMax(state.filterSpeedMax ?? '');
+        setFilterPowerMin(state.filterPowerMin ?? '');
+        setFilterPowerMax(state.filterPowerMax ?? '');
+        setFilterDurMinMin(state.filterDurMinMin ?? '');
+        setFilterDurMaxMin(state.filterDurMaxMin ?? '');
+        setFilterElevMin(state.filterElevMin ?? '');
+        setFilterElevMax(state.filterElevMax ?? '');
+        setFilterKjMin(state.filterKjMin ?? '');
+        setFilterKjMax(state.filterKjMax ?? '');
+        setFilterDecMin(state.filterDecMin ?? '');
+        setFilterDecMax(state.filterDecMax ?? '');
+        setFilterThrMin(state.filterThrMin ?? '');
+        setFilterThrMax(state.filterThrMax ?? '');
+        setFilterRaceMin(state.filterRaceMin ?? '');
+        setFilterRaceMax(state.filterRaceMax ?? '');
     }, []);
+
+    const clearMetricFilters = useCallback(() => {
+        applyMetricFilterState(createEmptyMetricFilterState());
+        setActiveMetricPresetIds([]);
+    }, [applyMetricFilterState]);
+
+    const clearActiveMetricPresets = useCallback(() => {
+        setActiveMetricPresetIds([]);
+    }, []);
+
+    const toggleMetricPreset = useCallback((presetId) => {
+        setActiveMetricPresetIds((prev) => {
+            const next = toggleMetricPresetIds(prev, presetId);
+            applyMetricFilterState(mergePresetsToFilterState(next));
+            return next;
+        });
+    }, [applyMetricFilterState]);
 
     const applyLogFilterPreset = useCallback((presetId) => {
         const chips = chipStateForPreset(presetId || 'all');
@@ -580,6 +604,9 @@ const useActivityFilter = (activities, profileFtp) => {
         filterGearId, setFilterGearId,
         gearFilterOptions,
         clearMetricFilters,
+        activeMetricPresetIds,
+        toggleMetricPreset,
+        clearActiveMetricPresets,
         applyLogFilterPreset,
         resetLogFilters,
         activeLogFilterPresetId,

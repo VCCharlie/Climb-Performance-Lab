@@ -1,13 +1,20 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Button, Chip, cn, inputBaseClass } from '../../ui';
 import {
     GENERAL_METRIC_PRESETS,
     DRIFT_METRIC_PRESETS,
-    createPresetApplier,
 } from '../../../utils/metricRangePresets';
 
 const RANGE_INPUT_CLASS = cn(inputBaseClass, 'w-12 !py-0.5 !px-1 !text-[10px] !leading-tight');
+
+function wrapManualMetricHandler(handler, onManualMetricChange) {
+    if (!onManualMetricChange) return handler;
+    return (value) => {
+        onManualMetricChange();
+        handler(value);
+    };
+}
 
 function RangeField({ label, minValue, maxValue, onMinChange, onMaxChange, step = 1 }) {
     return (
@@ -40,22 +47,27 @@ function RangeField({ label, minValue, maxValue, onMinChange, onMaxChange, step 
     );
 }
 
-function PresetChipRow({ label, presets, handlers, applyMetricPreset }) {
+function PresetChipRow({ label, presets, activeMetricPresetIds, toggleMetricPreset }) {
     return (
         <div className="flex flex-wrap gap-1.5 items-center">
             {label ? (
                 <span className="text-[9px] font-semibold text-cdmuted uppercase shrink-0 mr-0.5">{label}</span>
             ) : null}
-            {presets.map((preset) => (
-                <Chip
-                    key={preset.label}
-                    size="xs"
-                    variant="assist"
-                    onClick={() => applyMetricPreset(() => createPresetApplier(preset)(handlers))}
-                >
-                    {preset.label}
-                </Chip>
-            ))}
+            {presets.map((preset) => {
+                const selected = activeMetricPresetIds.includes(preset.id);
+                return (
+                    <Chip
+                        key={preset.id}
+                        size="xs"
+                        variant="filter"
+                        selected={selected}
+                        onClick={() => toggleMetricPreset(preset.id)}
+                        aria-label={`${selected ? 'Remove' : 'Apply'} preset ${preset.label}`}
+                    >
+                        {preset.label}
+                    </Chip>
+                );
+            })}
         </div>
     );
 }
@@ -68,7 +80,9 @@ export default function MetricRangesSection({
     onExpandedChange,
     metricRangeActive,
     clearMetricFilters,
-    applyMetricPreset,
+    activeMetricPresetIds = [],
+    toggleMetricPreset,
+    clearActiveMetricPresets,
     filterDistMin,
     onFilterDistMinChange,
     filterDistMax,
@@ -106,7 +120,29 @@ export default function MetricRangesSection({
     filterRaceMax,
     onFilterRaceMaxChange,
 }) {
-    const handlers = {
+    const onManualMetricChange = clearActiveMetricPresets;
+
+    const handlers = useMemo(() => ({
+        onFilterDistMinChange: wrapManualMetricHandler(onFilterDistMinChange, onManualMetricChange),
+        onFilterDistMaxChange: wrapManualMetricHandler(onFilterDistMaxChange, onManualMetricChange),
+        onFilterSpeedMinChange: wrapManualMetricHandler(onFilterSpeedMinChange, onManualMetricChange),
+        onFilterSpeedMaxChange: wrapManualMetricHandler(onFilterSpeedMaxChange, onManualMetricChange),
+        onFilterPowerMinChange: wrapManualMetricHandler(onFilterPowerMinChange, onManualMetricChange),
+        onFilterPowerMaxChange: wrapManualMetricHandler(onFilterPowerMaxChange, onManualMetricChange),
+        onFilterDurMinMinChange: wrapManualMetricHandler(onFilterDurMinMinChange, onManualMetricChange),
+        onFilterDurMaxMinChange: wrapManualMetricHandler(onFilterDurMaxMinChange, onManualMetricChange),
+        onFilterElevMinChange: wrapManualMetricHandler(onFilterElevMinChange, onManualMetricChange),
+        onFilterElevMaxChange: wrapManualMetricHandler(onFilterElevMaxChange, onManualMetricChange),
+        onFilterKjMinChange: wrapManualMetricHandler(onFilterKjMinChange, onManualMetricChange),
+        onFilterKjMaxChange: wrapManualMetricHandler(onFilterKjMaxChange, onManualMetricChange),
+        onFilterDecMinChange: wrapManualMetricHandler(onFilterDecMinChange, onManualMetricChange),
+        onFilterDecMaxChange: wrapManualMetricHandler(onFilterDecMaxChange, onManualMetricChange),
+        onFilterThrMinChange: wrapManualMetricHandler(onFilterThrMinChange, onManualMetricChange),
+        onFilterThrMaxChange: wrapManualMetricHandler(onFilterThrMaxChange, onManualMetricChange),
+        onFilterRaceMinChange: wrapManualMetricHandler(onFilterRaceMinChange, onManualMetricChange),
+        onFilterRaceMaxChange: wrapManualMetricHandler(onFilterRaceMaxChange, onManualMetricChange),
+    }), [
+        onManualMetricChange,
         onFilterDistMinChange,
         onFilterDistMaxChange,
         onFilterSpeedMinChange,
@@ -125,7 +161,7 @@ export default function MetricRangesSection({
         onFilterThrMaxChange,
         onFilterRaceMinChange,
         onFilterRaceMaxChange,
-    };
+    ]);
 
     return (
         <div className="border-t border-cdborder/40">
@@ -163,28 +199,28 @@ export default function MetricRangesSection({
             {expanded ? (
                 <div className="px-3 pb-3 space-y-2">
                     <div className="flex flex-wrap items-end gap-x-3 gap-y-2">
-                        <RangeField label="Dist" minValue={filterDistMin} maxValue={filterDistMax} onMinChange={onFilterDistMinChange} onMaxChange={onFilterDistMaxChange} step={0.1} />
-                        <RangeField label="Speed" minValue={filterSpeedMin} maxValue={filterSpeedMax} onMinChange={onFilterSpeedMinChange} onMaxChange={onFilterSpeedMaxChange} step={0.1} />
-                        <RangeField label="Power" minValue={filterPowerMin} maxValue={filterPowerMax} onMinChange={onFilterPowerMinChange} onMaxChange={onFilterPowerMaxChange} />
-                        <RangeField label="Duration" minValue={filterDurMinMin} maxValue={filterDurMaxMin} onMinChange={onFilterDurMinMinChange} onMaxChange={onFilterDurMaxMinChange} />
-                        <RangeField label="Elev" minValue={filterElevMin} maxValue={filterElevMax} onMinChange={onFilterElevMinChange} onMaxChange={onFilterElevMaxChange} />
-                        <RangeField label="kJ" minValue={filterKjMin} maxValue={filterKjMax} onMinChange={onFilterKjMinChange} onMaxChange={onFilterKjMaxChange} />
-                        <RangeField label="Dec %" minValue={filterDecMin} maxValue={filterDecMax} onMinChange={onFilterDecMinChange} onMaxChange={onFilterDecMaxChange} step={0.1} />
-                        <RangeField label="Thr %" minValue={filterThrMin} maxValue={filterThrMax} onMinChange={onFilterThrMinChange} onMaxChange={onFilterThrMaxChange} step={0.1} />
-                        <RangeField label="Race %" minValue={filterRaceMin} maxValue={filterRaceMax} onMinChange={onFilterRaceMinChange} onMaxChange={onFilterRaceMaxChange} step={0.1} />
+                        <RangeField label="Dist" minValue={filterDistMin} maxValue={filterDistMax} onMinChange={handlers.onFilterDistMinChange} onMaxChange={handlers.onFilterDistMaxChange} step={0.1} />
+                        <RangeField label="Speed" minValue={filterSpeedMin} maxValue={filterSpeedMax} onMinChange={handlers.onFilterSpeedMinChange} onMaxChange={handlers.onFilterSpeedMaxChange} step={0.1} />
+                        <RangeField label="Power" minValue={filterPowerMin} maxValue={filterPowerMax} onMinChange={handlers.onFilterPowerMinChange} onMaxChange={handlers.onFilterPowerMaxChange} />
+                        <RangeField label="Duration" minValue={filterDurMinMin} maxValue={filterDurMaxMin} onMinChange={handlers.onFilterDurMinMinChange} onMaxChange={handlers.onFilterDurMaxMinChange} />
+                        <RangeField label="Elev" minValue={filterElevMin} maxValue={filterElevMax} onMinChange={handlers.onFilterElevMinChange} onMaxChange={handlers.onFilterElevMaxChange} />
+                        <RangeField label="kJ" minValue={filterKjMin} maxValue={filterKjMax} onMinChange={handlers.onFilterKjMinChange} onMaxChange={handlers.onFilterKjMaxChange} />
+                        <RangeField label="Dec %" minValue={filterDecMin} maxValue={filterDecMax} onMinChange={handlers.onFilterDecMinChange} onMaxChange={handlers.onFilterDecMaxChange} step={0.1} />
+                        <RangeField label="Thr %" minValue={filterThrMin} maxValue={filterThrMax} onMinChange={handlers.onFilterThrMinChange} onMaxChange={handlers.onFilterThrMaxChange} step={0.1} />
+                        <RangeField label="Race %" minValue={filterRaceMin} maxValue={filterRaceMax} onMinChange={handlers.onFilterRaceMinChange} onMaxChange={handlers.onFilterRaceMaxChange} step={0.1} />
                     </div>
                     <div className="space-y-1.5">
                         <PresetChipRow
                             label="Presets"
                             presets={GENERAL_METRIC_PRESETS}
-                            handlers={handlers}
-                            applyMetricPreset={applyMetricPreset}
+                            activeMetricPresetIds={activeMetricPresetIds}
+                            toggleMetricPreset={toggleMetricPreset}
                         />
                         <PresetChipRow
                             label="Drift"
                             presets={DRIFT_METRIC_PRESETS}
-                            handlers={handlers}
-                            applyMetricPreset={applyMetricPreset}
+                            activeMetricPresetIds={activeMetricPresetIds}
+                            toggleMetricPreset={toggleMetricPreset}
                         />
                     </div>
                 </div>
