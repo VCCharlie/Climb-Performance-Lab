@@ -6,11 +6,34 @@
  * 2. protectEnrichedFieldsOnMerge (keep Strava / manual corrections)
  * 3. Strava enrich (map-corrected elevation, gear, route)
  * 4. Drift / decoupling (stream summaries only — never overwrites climbing)
+ *
+ * ─── Checklist when adding a new enriched field ───
+ *
+ * 1. Decide the pipeline stage:
+ *    - Intervals-only metrics → no protect* needed if Intervals is source of truth.
+ *    - Strava / manual / stream-derived → add protect* before any re-sync can wipe it.
+ *
+ * 2. Add a focused helper here (protectXOnMerge) when logic is non-trivial; wire it
+ *    into protectEnrichedFieldsOnMerge in firestoreActivityMerge.js.
+ *
+ * 3. Audit every Firestore write path (setDoc merge: true):
+ *    - useDataHubIntervalsSync.js
+ *    - useDataHubImport.js (via mergePayload)
+ *    - useDataHubBulkActions.js
+ *    - useDataHubMaintenance.js
+ *    - useDataHubStravaEnrich.js (silent + panel import)
+ *    - ActivitiesContext (via activityUpsert.prepareProtectedActivityUpserts)
+ *    - scripts/nightlySync.js (Node — import from src/utils/firestoreActivityMerge.js)
+ *
+ * 4. Add unit tests in activityFieldRetention.test.js and/or firestoreActivityMerge.test.js.
+ *
+ * 5. Cloud function (main.py) transforms API → activity shape only; merge protection
+ *    runs client-side / nightly script — keep field names aligned with intervals.js.
  */
 
-import { normalizeStravaActivityId } from './strava';
-import { isGenericActivityTitle, shouldPreferStravaTitle } from './stravaTitleHeuristics';
-import { protectZoneTimesOnMerge } from './zoneTimes';
+import { normalizeStravaActivityId } from './strava.js';
+import { isGenericActivityTitle, shouldPreferStravaTitle } from './stravaTitleHeuristics.js';
+import { protectZoneTimesOnMerge } from './zoneTimes.js';
 
 /**
  * @param {number | string | null | undefined} value

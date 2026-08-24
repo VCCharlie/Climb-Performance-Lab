@@ -97,10 +97,13 @@ export function useDataHubStravaEnrich({
             }
 
             if (result.updates.length > 0 && db) {
+                const activitiesMap = new Map((activities || []).map((a) => [String(a.id), a]));
                 await Promise.all(
-                    result.updates.map(({ id, data }) =>
-                        setDoc(doc(db, 'activities', String(id)), data, { merge: true }),
-                    ),
+                    result.updates.map(({ id, data }) => {
+                        const existing = activitiesMap.get(String(id));
+                        const payload = protectEnrichedFieldsOnMerge(data, existing);
+                        return setDoc(doc(db, 'activities', String(id)), payload, { merge: true });
+                    }),
                 );
                 return result.updates.length;
             }
@@ -113,7 +116,7 @@ export function useDataHubStravaEnrich({
             }
         }
         return 0;
-    }, [stravaGetToken, startDate, endDate, deviceProfileTitles]);
+    }, [stravaGetToken, startDate, endDate, deviceProfileTitles, activities]);
 
     useEffect(() => {
         if (autoEnrichRanRef.current) return;

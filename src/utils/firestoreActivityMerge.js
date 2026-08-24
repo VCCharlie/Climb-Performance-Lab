@@ -3,15 +3,15 @@
  * over bestaande handmatige of Strava-verrijkte velden heen schrijft bij merge: true.
  */
 
-import { normalizeStravaActivityId } from './strava';
-import { getAllDriftMergeKeys } from './coach/rideDurability';
+import { normalizeStravaActivityId } from './strava.js';
+import { getAllDriftMergeKeys } from './coach/driftMergeKeys.js';
 import {
     protectClimbingOnMerge,
     protectStravaLinkedGearOnMerge,
     protectStravaLinkedTitleOnMerge,
     protectStravaLinkedTypeOnMerge,
     protectZoneTimesFieldsOnMerge,
-} from './activityFieldRetention';
+} from './activityFieldRetention.js';
 
 const GENERIC_TITLE = /^(Morning|Lunch|Afternoon|Evening|Night) Ride$|^Untitled$/i;
 

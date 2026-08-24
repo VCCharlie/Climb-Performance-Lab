@@ -27,6 +27,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { getValidStravaAccessToken } from './stravaTokenManager.js';
 import { shouldPreferStravaTitle } from '../src/utils/stravaTitleHeuristics.js';
 import { normalizeBikeComputerProfileTitles } from '../src/utils/bikeComputerProfileTitles.js';
+import { protectEnrichedFieldsOnMerge } from '../src/utils/firestoreActivityMerge.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -188,69 +189,28 @@ async function upsertToFirestore(db, newActivities, isDryRun) {
             return timeDiff < 300 && distDiff < 0.5;
         });
 
-        // Maak het basisobject klaar met de nieuwe Intervals data
-        let actToSave = { ...newAct };
-
         if (exactMatch) {
-            // SCENARIO 1: UPDATE MODUS
-            // De rit bestond al. Bescherm handmatige edits en Strava-verrijkte velden!
-            if (exactMatch.title && exactMatch.title.trim() !== '') actToSave.title = exactMatch.title;
-            if (exactMatch.type) actToSave.type = exactMatch.type;
-            if (exactMatch.rpe !== undefined && exactMatch.rpe !== null && exactMatch.rpe !== 0) actToSave.rpe = exactMatch.rpe;
-            if (exactMatch.strava_id) actToSave.strava_id = exactMatch.strava_id;
-            if (exactMatch.strava_map) actToSave.strava_map = exactMatch.strava_map;
-            if (exactMatch.gear_id) actToSave.gear_id = exactMatch.gear_id;
-            if (exactMatch.gear_name) actToSave.gear_name = exactMatch.gear_name;
-            // Bewaar Strava-verrijkte HR als Intervals geen HR heeft
-            if (exactMatch.avg_hr && exactMatch.avg_hr > 0 && (!actToSave.avg_hr || actToSave.avg_hr === 0)) actToSave.avg_hr = exactMatch.avg_hr;
-            if (exactMatch.max_hr && exactMatch.max_hr > 0 && (!actToSave.max_hr || actToSave.max_hr === 0)) actToSave.max_hr = exactMatch.max_hr;
-            // kJ / power-curve: keep Firestore value if cloud transform missed Intervals fields
-            if (exactMatch.work && Number(exactMatch.work) > 0 && (!actToSave.work || Number(actToSave.work) === 0)) {
-                actToSave.work = exactMatch.work;
-            }
-            for (const k of ['best_1min', 'best_5min', 'best_10min', 'best_20min', 'best_60min', 'best_90min', 'best_120min']) {
-                const ex = Number(exactMatch[k]);
-                const nw = Number(actToSave[k]);
-                if (ex > 0 && (!nw || nw === 0)) actToSave[k] = exactMatch[k];
-            }
-
+            // SCENARIO 1: UPDATE — same id, preserve enriched fields (Strava, manual, zone times, drift).
+            const actToSave = protectEnrichedFieldsOnMerge(newAct, exactMatch);
             toProcess.push(actToSave);
             updatedCount++;
             if (isDryRun) console.log(`[DRY-RUN] UPDATE: Beschermde velden behouden voor "${actToSave.title}" (${actToSave.id})`);
 
         } else if (duplicateMatch) {
-            // SCENARIO 2: MERGE MODUS (Deduplicatie)
-            actToSave.id = duplicateMatch.firestoreId; 
-            
-            // Bescherm handmatige edits en Strava-verrijkte velden
-            if (duplicateMatch.title && duplicateMatch.title.trim() !== '') actToSave.title = duplicateMatch.title;
-            if (duplicateMatch.type) actToSave.type = duplicateMatch.type;
-            if (duplicateMatch.rpe !== undefined && duplicateMatch.rpe !== null && duplicateMatch.rpe !== 0) actToSave.rpe = duplicateMatch.rpe;
-            if (duplicateMatch.strava_id) actToSave.strava_id = duplicateMatch.strava_id;
-            if (duplicateMatch.strava_map) actToSave.strava_map = duplicateMatch.strava_map;
-            if (duplicateMatch.gear_id) actToSave.gear_id = duplicateMatch.gear_id;
-            if (duplicateMatch.gear_name) actToSave.gear_name = duplicateMatch.gear_name;
-            if (duplicateMatch.avg_hr && duplicateMatch.avg_hr > 0 && (!actToSave.avg_hr || actToSave.avg_hr === 0)) actToSave.avg_hr = duplicateMatch.avg_hr;
-            if (duplicateMatch.max_hr && duplicateMatch.max_hr > 0 && (!actToSave.max_hr || actToSave.max_hr === 0)) actToSave.max_hr = duplicateMatch.max_hr;
-            if (duplicateMatch.work && Number(duplicateMatch.work) > 0 && (!actToSave.work || Number(actToSave.work) === 0)) {
-                actToSave.work = duplicateMatch.work;
-            }
-            for (const k of ['best_1min', 'best_5min', 'best_10min', 'best_20min', 'best_60min', 'best_90min', 'best_120min']) {
-                const ex = Number(duplicateMatch[k]);
-                const nw = Number(actToSave[k]);
-                if (ex > 0 && (!nw || nw === 0)) actToSave[k] = duplicateMatch[k];
-            }
-
+            // SCENARIO 2: MERGE (dedupe) — keep Firestore doc id, apply shared retention rules.
+            const actToSave = {
+                ...protectEnrichedFieldsOnMerge(newAct, duplicateMatch),
+                id: duplicateMatch.firestoreId,
+            };
             toProcess.push(actToSave);
             mergedCount++;
             if (isDryRun) console.log(`[DRY-RUN] MERGE: "${actToSave.title}" (${actToSave.id}) <== Verrijkt met Intervals data`);
 
         } else {
-            // SCENARIO 3: NEW MODUS
-            // Volledig nieuwe rit, geen bescherming nodig.
-            toProcess.push(actToSave);
+            // SCENARIO 3: NEW — no existing row to protect.
+            toProcess.push({ ...newAct });
             newCount++;
-            if (isDryRun) console.log(`[DRY-RUN] NEW: "${actToSave.title}" (${actToSave.id})`);
+            if (isDryRun) console.log(`[DRY-RUN] NEW: "${newAct.title}" (${newAct.id})`);
         }
     }
 
@@ -514,11 +474,13 @@ async function enrichWithStrava(db, firestoreActivities, startDate, endDate, isD
 
         const docId = String(site.firestoreId || site.id);
 
+        const payload = protectEnrichedFieldsOnMerge(updateData, site);
+
         if (isDryRun) {
-            const fields = Object.keys(updateData).join(', ');
-            console.log(`[DRY-RUN] STRAVA ENRICH "${site.title}" → "${updateData.title || site.title}" [${fields}] (${type})`);
+            const fields = Object.keys(payload).join(', ');
+            console.log(`[DRY-RUN] STRAVA ENRICH "${site.title}" → "${payload.title || site.title}" [${fields}] (${type})`);
         } else {
-            await db.collection(FIRESTORE_COLLECTION).doc(docId).set(updateData, { merge: true });
+            await db.collection(FIRESTORE_COLLECTION).doc(docId).set(payload, { merge: true });
         }
         enrichedCount++;
     }
