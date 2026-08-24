@@ -66,7 +66,7 @@ export function RankedTableMobileCards({
                                 #{i + 1}
                             </span>
                             <span
-                                className={`text-base font-mono font-bold tabular-nums ${vCls}`}
+                                className={`text-base font-bold tabular-nums ${vCls}`}
                                 title={vTitle}
                             >
                                 {formatValue(value)}
@@ -86,7 +86,7 @@ export function RankedTableMobileCards({
                                 {row.activity ? formatDateDDMMYYYY(row.activity.date) : '—'}
                             </span>
                             {variant === 'distance' && row.activity && (
-                                <span className="font-mono whitespace-nowrap">
+                                <span className="tabular-nums whitespace-nowrap">
                                     {formatTime(row.activity.moving_time)}
                                 </span>
                             )}
@@ -146,15 +146,15 @@ export function RankedTableDesktop({
 
                         return (
                             <tr key={`${row.activity?.id ?? i}-${value}`} className="hover:bg-cdborder/15">
-                                <td className="px-2 py-1.5 text-cdmuted font-mono sticky left-0 z-[1] bg-cdsurface">{i + 1}</td>
+                                <td className="px-2 py-1.5 text-cdmuted tabular-nums sticky left-0 z-[1] bg-cdsurface">{i + 1}</td>
                                 <td
-                                    className={`px-2 py-1.5 text-right font-mono font-bold tabular-nums whitespace-nowrap ${vCls}`}
+                                    className={`px-2 py-1.5 text-right font-bold tabular-nums whitespace-nowrap ${vCls}`}
                                     title={vTitle}
                                 >
                                     {formatValue(value)}
                                 </td>
                                 {variant === 'distance' && (
-                                    <td className="px-2 py-1.5 text-cdmuted font-mono whitespace-nowrap">
+                                    <td className="px-2 py-1.5 text-cdmuted tabular-nums whitespace-nowrap">
                                         {row.activity ? formatTime(row.activity.moving_time) : '—'}
                                     </td>
                                 )}

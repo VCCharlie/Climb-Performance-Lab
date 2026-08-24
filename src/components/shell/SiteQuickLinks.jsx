@@ -13,6 +13,7 @@ import {
     Activity,
 } from 'lucide-react';
 import { resolveQuickLinks } from '../../utils/quickLinks';
+import StravaIcon from '../icons/StravaIcon';
 
 const ICON_MAP = {
     package: Package,
@@ -42,7 +43,9 @@ export default function SiteQuickLinks({ userSettings, iconOnly = false }) {
         >
             <div className="max-w-7xl mx-auto px-3 py-1.5 flex items-center justify-center sm:justify-end gap-1.5 sm:gap-2 flex-wrap">
                 {links.map((link) => {
-                    const IconComponent = ICON_MAP[link.icon] || Link2;
+                    const IconComponent = link.icon === 'strava'
+                        ? StravaIcon
+                        : (ICON_MAP[link.icon] || Link2);
                     return (
                         <a
                             key={link.id}

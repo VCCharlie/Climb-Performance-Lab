@@ -29,7 +29,7 @@ export default function CollapsibleDurationSection({
                 )}
                 <span className={`text-sm font-bold shrink-0 ${accentClassName}`}>{label}</span>
                 {summary ? (
-                    <span className="text-sm font-mono font-bold text-cdtext tabular-nums ml-auto shrink-0">
+                    <span className="text-sm font-bold text-cdtext tabular-nums ml-auto shrink-0">
                         {summary}
                     </span>
                 ) : null}

@@ -69,7 +69,7 @@ const PowerTopTenExpandedBody = ({
                         max={3650}
                         value={compareDays}
                         onChange={(e) => setCompareDays(Math.max(1, Number(e.target.value) || 1))}
-                        className="bg-cdborder/30 border border-cdborder rounded-lg px-2 py-2 text-cdtext text-sm font-mono"
+                        className="bg-cdborder/30 border border-cdborder rounded-lg px-2 py-2 text-cdtext text-sm tabular-nums"
                     />
                 </label>
             )}

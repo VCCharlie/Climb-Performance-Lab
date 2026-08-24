@@ -22,24 +22,24 @@ export const PeriodSummaryCard = ({
         <div className="grid grid-cols-3 gap-2 text-center sm:text-left">
             <div className="min-w-0">
                 <div className="text-[9px] uppercase tracking-wide text-cdmuted font-bold">Rides</div>
-                <div className="text-sm font-mono font-bold text-cdtext tabular-nums">{formatNlNumber(stats.rideCount)}</div>
+                <div className="text-sm font-bold text-cdtext tabular-nums">{formatNlNumber(stats.rideCount)}</div>
             </div>
             <div className="min-w-0">
                 <div className="text-[9px] uppercase tracking-wide text-cdmuted font-bold">Distance</div>
-                <div className="text-sm font-mono font-bold text-cdtext tabular-nums break-words">
+                <div className="text-sm font-bold text-cdtext tabular-nums break-words">
                     {formatNlNumber(Math.round(stats.distanceKm * 10) / 10)} km
                 </div>
             </div>
             <div className="min-w-0">
                 <div className="text-[9px] uppercase tracking-wide text-cdmuted font-bold">Elevation</div>
-                <div className="text-sm font-mono font-bold text-cdtext tabular-nums">{formatNlNumber(stats.elevationM)} m</div>
+                <div className="text-sm font-bold text-cdtext tabular-nums">{formatNlNumber(stats.elevationM)} m</div>
             </div>
         </div>
         {showRideAverages && (
             <div className="grid grid-cols-2 gap-2 text-center sm:text-left mt-2 pt-2 border-t border-cdborder/40">
                 <div className="min-w-0">
                     <div className="text-[9px] uppercase tracking-wide text-cdmuted font-bold">Avg distance</div>
-                    <div className="text-sm font-mono font-bold text-cdtext tabular-nums">
+                    <div className="text-sm font-bold text-cdtext tabular-nums">
                         {stats.avgDistanceKm != null && stats.rideCount > 0
                             ? `${formatNlNumber(Math.round(stats.avgDistanceKm * 10) / 10)} km`
                             : '—'}
@@ -47,7 +47,7 @@ export const PeriodSummaryCard = ({
                 </div>
                 <div className="min-w-0">
                     <div className="text-[9px] uppercase tracking-wide text-cdmuted font-bold">Avg speed</div>
-                    <div className="text-sm font-mono font-bold text-cdtext tabular-nums">
+                    <div className="text-sm font-bold text-cdtext tabular-nums">
                         {stats.avgSpeedKmh != null
                             ? `${formatNlNumber(Math.round(stats.avgSpeedKmh * 10) / 10)} km/h`
                             : '—'}
