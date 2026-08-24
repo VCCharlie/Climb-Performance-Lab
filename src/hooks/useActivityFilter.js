@@ -9,6 +9,7 @@ import {
     parseNumericBound,
     inNumericRange,
     activityMatchesLogSearch,
+    activityMatchesDriftRange,
 } from '../utils/activityFilterMetrics';
 import { compareActivitiesForSort } from '../utils/activitySort';
 import { resolveActivityType } from '../utils/activityVenue';
@@ -93,6 +94,12 @@ const useActivityFilter = (activities, profileFtp) => {
     const [filterElevMax, setFilterElevMax] = useState('');
     const [filterKjMin, setFilterKjMin] = useState('');
     const [filterKjMax, setFilterKjMax] = useState('');
+    const [filterDecMin, setFilterDecMin] = useState('');
+    const [filterDecMax, setFilterDecMax] = useState('');
+    const [filterThrMin, setFilterThrMin] = useState('');
+    const [filterThrMax, setFilterThrMax] = useState('');
+    const [filterRaceMin, setFilterRaceMin] = useState('');
+    const [filterRaceMax, setFilterRaceMax] = useState('');
     /** Strava gear_id (string); empty = no filter */
     const [filterGearId, setFilterGearId] = useState('');
 
@@ -191,6 +198,12 @@ const useActivityFilter = (activities, profileFtp) => {
         const elMax = parseNumericBound(filterElevMax);
         const kjMin = parseNumericBound(filterKjMin);
         const kjMax = parseNumericBound(filterKjMax);
+        const decMin = parseNumericBound(filterDecMin);
+        const decMax = parseNumericBound(filterDecMax);
+        const thrMin = parseNumericBound(filterThrMin);
+        const thrMax = parseNumericBound(filterThrMax);
+        const raceMin = parseNumericBound(filterRaceMin);
+        const raceMax = parseNumericBound(filterRaceMax);
 
         const needDist = dMin != null || dMax != null;
         const needSpeed = spMin != null || spMax != null;
@@ -198,9 +211,13 @@ const useActivityFilter = (activities, profileFtp) => {
         const needPower = pwMin != null || pwMax != null;
         const needElev = elMin != null || elMax != null;
         const needKj = kjMin != null || kjMax != null;
+        const needDec = decMin != null || decMax != null;
+        const needThr = thrMin != null || thrMax != null;
+        const needRace = raceMin != null || raceMax != null;
 
         const anyMetric =
-            needDist || needSpeed || needPower || needDur || needElev || needKj;
+            needDist || needSpeed || needPower || needDur || needElev || needKj
+            || needDec || needThr || needRace;
 
         const searchLower = search ? search.toLowerCase() : '';
 
@@ -291,6 +308,10 @@ const useActivityFilter = (activities, profileFtp) => {
                     const kjVal = !Number.isNaN(kj) && kj > 0 ? kj : null;
                     if (!inNumericRange(kjVal, kjMin, kjMax, { requireValue: true })) return false;
                 }
+
+                if (needDec && !activityMatchesDriftRange(a, 'decoupling_pct', decMin, decMax)) return false;
+                if (needThr && !activityMatchesDriftRange(a, 'threshold_drift_pct', thrMin, thrMax)) return false;
+                if (needRace && !activityMatchesDriftRange(a, 'race_drift_pct', raceMin, raceMax)) return false;
             }
 
             if (!activityMatchesLogSearch(a, searchLower)) return false;
@@ -314,7 +335,7 @@ const useActivityFilter = (activities, profileFtp) => {
             filtered.sort((a, b) => compareActivitiesForSort(a, b, sortConfig, profileFtp));
         }
         return { processedActivities: filtered, activitiesForGearFilterOptions: forGearOptions };
-    }, [activities, search, sortConfig, profileFtp, indoorFilter, virtualRideChip, gravelRideChip, mtbRideChip, ebikeRideChip, thisWeekOnly, rollingDays, stravaLinkedOnly, noPowerOnly, withPowerOnly, highLoadOnly, longRideOnly, missingHrOnly, minTss, filterGearId, filterDistMin, filterDistMax, filterSpeedMin, filterSpeedMax, filterPowerMin, filterPowerMax, filterDurMinMin, filterDurMaxMin, filterElevMin, filterElevMax, filterKjMin, filterKjMax]);
+    }, [activities, search, sortConfig, profileFtp, indoorFilter, virtualRideChip, gravelRideChip, mtbRideChip, ebikeRideChip, thisWeekOnly, rollingDays, stravaLinkedOnly, noPowerOnly, withPowerOnly, highLoadOnly, longRideOnly, missingHrOnly, minTss, filterGearId, filterDistMin, filterDistMax, filterSpeedMin, filterSpeedMax, filterPowerMin, filterPowerMax, filterDurMinMin, filterDurMaxMin, filterElevMin, filterElevMax, filterKjMin, filterKjMax, filterDecMin, filterDecMax, filterThrMin, filterThrMax, filterRaceMin, filterRaceMax]);
 
     const gearFilterOptions = useMemo(() => {
         const base = buildGearFilterOptionsFromActivities(activitiesForGearFilterOptions);
@@ -439,6 +460,12 @@ const useActivityFilter = (activities, profileFtp) => {
         setFilterElevMax('');
         setFilterKjMin('');
         setFilterKjMax('');
+        setFilterDecMin('');
+        setFilterDecMax('');
+        setFilterThrMin('');
+        setFilterThrMax('');
+        setFilterRaceMin('');
+        setFilterRaceMax('');
     }, []);
 
     const applyLogFilterPreset = useCallback((presetId) => {
@@ -544,6 +571,12 @@ const useActivityFilter = (activities, profileFtp) => {
         filterElevMax, setFilterElevMax,
         filterKjMin, setFilterKjMin,
         filterKjMax, setFilterKjMax,
+        filterDecMin, setFilterDecMin,
+        filterDecMax, setFilterDecMax,
+        filterThrMin, setFilterThrMin,
+        filterThrMax, setFilterThrMax,
+        filterRaceMin, setFilterRaceMin,
+        filterRaceMax, setFilterRaceMax,
         filterGearId, setFilterGearId,
         gearFilterOptions,
         clearMetricFilters,

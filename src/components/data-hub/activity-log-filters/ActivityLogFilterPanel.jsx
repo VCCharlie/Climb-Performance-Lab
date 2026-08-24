@@ -51,6 +51,18 @@ export default function ActivityLogFilterPanel({
                 onFilterKjMinChange={sectionProps.onFilterKjMinChange}
                 filterKjMax={sectionProps.filterKjMax}
                 onFilterKjMaxChange={sectionProps.onFilterKjMaxChange}
+                filterDecMin={sectionProps.filterDecMin}
+                onFilterDecMinChange={sectionProps.onFilterDecMinChange}
+                filterDecMax={sectionProps.filterDecMax}
+                onFilterDecMaxChange={sectionProps.onFilterDecMaxChange}
+                filterThrMin={sectionProps.filterThrMin}
+                onFilterThrMinChange={sectionProps.onFilterThrMinChange}
+                filterThrMax={sectionProps.filterThrMax}
+                onFilterThrMaxChange={sectionProps.onFilterThrMaxChange}
+                filterRaceMin={sectionProps.filterRaceMin}
+                onFilterRaceMinChange={sectionProps.onFilterRaceMinChange}
+                filterRaceMax={sectionProps.filterRaceMax}
+                onFilterRaceMaxChange={sectionProps.onFilterRaceMaxChange}
             />
             <BulkActionsSection
                 bulkSelectedCount={sectionProps.bulkSelectedCount}

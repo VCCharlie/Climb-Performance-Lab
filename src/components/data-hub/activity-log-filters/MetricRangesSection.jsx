@@ -80,6 +80,18 @@ export default function MetricRangesSection({
     onFilterKjMinChange,
     filterKjMax,
     onFilterKjMaxChange,
+    filterDecMin,
+    onFilterDecMinChange,
+    filterDecMax,
+    onFilterDecMaxChange,
+    filterThrMin,
+    onFilterThrMinChange,
+    filterThrMax,
+    onFilterThrMaxChange,
+    filterRaceMin,
+    onFilterRaceMinChange,
+    filterRaceMax,
+    onFilterRaceMaxChange,
 }) {
     const handlers = {
         onFilterDistMinChange,
@@ -94,6 +106,12 @@ export default function MetricRangesSection({
         onFilterElevMaxChange,
         onFilterKjMinChange,
         onFilterKjMaxChange,
+        onFilterDecMinChange,
+        onFilterDecMaxChange,
+        onFilterThrMinChange,
+        onFilterThrMaxChange,
+        onFilterRaceMinChange,
+        onFilterRaceMaxChange,
     };
 
     return (
@@ -115,7 +133,7 @@ export default function MetricRangesSection({
                         <span className="normal-case font-medium text-cdprimary">· active</span>
                     ) : null}
                 </button>
-                <span className="text-[9px] text-cdmuted hidden sm:inline">Dist · Speed · Power · Duration · Elev · kJ</span>
+                <span className="text-[9px] text-cdmuted hidden sm:inline">Dist · Speed · Power · Duration · Elev · kJ · Dec · Thr · Race</span>
                 {metricRangeActive ? (
                     <Button
                         type="button"
@@ -138,6 +156,9 @@ export default function MetricRangesSection({
                         <RangeField label="Duration" minValue={filterDurMinMin} maxValue={filterDurMaxMin} onMinChange={onFilterDurMinMinChange} onMaxChange={onFilterDurMaxMinChange} />
                         <RangeField label="Elev" minValue={filterElevMin} maxValue={filterElevMax} onMinChange={onFilterElevMinChange} onMaxChange={onFilterElevMaxChange} />
                         <RangeField label="kJ" minValue={filterKjMin} maxValue={filterKjMax} onMinChange={onFilterKjMinChange} onMaxChange={onFilterKjMaxChange} />
+                        <RangeField label="Dec %" minValue={filterDecMin} maxValue={filterDecMax} onMinChange={onFilterDecMinChange} onMaxChange={onFilterDecMaxChange} step={0.1} />
+                        <RangeField label="Thr %" minValue={filterThrMin} maxValue={filterThrMax} onMinChange={onFilterThrMinChange} onMaxChange={onFilterThrMaxChange} step={0.1} />
+                        <RangeField label="Race %" minValue={filterRaceMin} maxValue={filterRaceMax} onMinChange={onFilterRaceMinChange} onMaxChange={onFilterRaceMaxChange} step={0.1} />
                     </div>
                     <div className="flex flex-wrap gap-1.5 items-center">
                         <span className="text-[9px] font-semibold text-cdmuted uppercase shrink-0 mr-0.5">Presets</span>

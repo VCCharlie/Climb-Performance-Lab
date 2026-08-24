@@ -3,7 +3,9 @@ import NlDateInput from '../NlDateInput';
 import { inputBaseClass, cn } from './index';
 import {
     isValidCustomDateRange,
+    isCustomDateApplyEnabled,
     normalizeYmd,
+    resolveDraftYmd,
 } from '../../utils/customDateRange';
 
 /**
@@ -33,20 +35,18 @@ export default function CustomDateRangeFields({
 
     const resolvedEnd = draftEnd || defaultEndYmd;
     const appliedEnd = endYmd || defaultEndYmd;
-    const rangeValid = isValidCustomDateRange(draftStart, resolvedEnd);
-    const rangeChanged = normalizeYmd(draftStart) !== normalizeYmd(startYmd)
-        || normalizeYmd(resolvedEnd) !== normalizeYmd(appliedEnd);
+    const applyEnabled = isCustomDateApplyEnabled(draftStart, resolvedEnd);
 
     const applyRange = useCallback(() => {
         if (!isValidCustomDateRange(draftStart, resolvedEnd)) return;
-        onApply(normalizeYmd(draftStart), normalizeYmd(resolvedEnd));
+        onApply(resolveDraftYmd(draftStart), resolveDraftYmd(resolvedEnd));
     }, [draftStart, resolvedEnd, onApply]);
 
     const tryAutoApply = useCallback((nextStart, nextEnd) => {
         const end = nextEnd || defaultEndYmd;
         if (!isValidCustomDateRange(nextStart, end)) return;
-        const nextStartNorm = normalizeYmd(nextStart);
-        const nextEndNorm = normalizeYmd(end);
+        const nextStartNorm = resolveDraftYmd(nextStart);
+        const nextEndNorm = resolveDraftYmd(end);
         if (nextStartNorm === normalizeYmd(startYmd) && nextEndNorm === normalizeYmd(appliedEnd)) {
             return;
         }
@@ -89,11 +89,11 @@ export default function CustomDateRangeFields({
                 <button
                     type="button"
                     onClick={applyRange}
-                    disabled={!rangeValid || !rangeChanged}
+                    disabled={!applyEnabled}
                     className={cn(
                         'shrink-0 font-semibold uppercase tracking-wide rounded-cdmd border cd-focus-ring cd-transition',
                         compact ? 'px-2 py-0.5 text-[10px] min-h-7' : 'px-2.5 py-1 text-[10px] min-h-8',
-                        rangeValid && rangeChanged
+                        applyEnabled
                             ? 'border-cdprimary bg-cdprimarycontainer text-cdonprimarycontainer hover:opacity-90'
                             : 'border-cdborder/60 text-cdmuted opacity-60 cursor-not-allowed',
                     )}

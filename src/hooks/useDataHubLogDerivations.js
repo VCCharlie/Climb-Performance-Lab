@@ -34,6 +34,12 @@ export function useDataHubLogDerivations({
     filterElevMax,
     filterKjMin,
     filterKjMax,
+    filterDecMin,
+    filterDecMax,
+    filterThrMin,
+    filterThrMax,
+    filterRaceMin,
+    filterRaceMax,
     clearMetricFilters,
     climbMatchEnabled = true,
 }) {
@@ -109,7 +115,8 @@ export function useDataHubLogDerivations({
 
     const metricRangeActive =
         [filterDistMin, filterDistMax, filterSpeedMin, filterSpeedMax, filterPowerMin, filterPowerMax,
-            filterDurMinMin, filterDurMaxMin, filterElevMin, filterElevMax, filterKjMin, filterKjMax]
+            filterDurMinMin, filterDurMaxMin, filterElevMin, filterElevMax, filterKjMin, filterKjMax,
+            filterDecMin, filterDecMax, filterThrMin, filterThrMax, filterRaceMin, filterRaceMax]
             .some((v) => v !== '' && v != null);
 
     const applyMetricPreset = (apply) => {

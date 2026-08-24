@@ -5,7 +5,9 @@ import { describe, it, expect } from 'vitest';
 import {
     isIsoYmd,
     isValidCustomDateRange,
+    isCustomDateApplyEnabled,
     normalizeYmd,
+    resolveDraftYmd,
 } from '../../utils/customDateRange';
 
 describe('customDateRange helpers', () => {
@@ -29,5 +31,19 @@ describe('customDateRange helpers', () => {
         expect(isValidCustomDateRange('', '2026-04-09')).toBe(false);
         expect(isValidCustomDateRange('2026-04-09', '')).toBe(false);
         expect(isValidCustomDateRange('2026-05-01', '2026-04-01')).toBe(false);
+    });
+
+    it('accepts Dutch display dates with slashes or hyphens', () => {
+        expect(resolveDraftYmd('01/01/2012')).toBe('2012-01-01');
+        expect(resolveDraftYmd('24-08-2013')).toBe('2013-08-24');
+        expect(isValidCustomDateRange('01/01/2012', '24/08/2013')).toBe(true);
+        expect(isValidCustomDateRange('01-01-2012', '24-08-2013')).toBe(true);
+    });
+
+    it('enables Apply when both draft dates are valid (even if unchanged)', () => {
+        expect(isCustomDateApplyEnabled('2012-01-01', '2013-08-24')).toBe(true);
+        expect(isCustomDateApplyEnabled('01-01-2012', '24-08-2013')).toBe(true);
+        expect(isCustomDateApplyEnabled('2013-08-24', '2012-01-01')).toBe(false);
+        expect(isCustomDateApplyEnabled('', '2013-08-24')).toBe(false);
     });
 });

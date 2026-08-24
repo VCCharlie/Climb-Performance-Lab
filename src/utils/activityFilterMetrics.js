@@ -63,6 +63,35 @@ export function parseNumericBound(str) {
     return Number.isNaN(n) ? null : n;
 }
 
+/** Activity fields for aerobic drift % filters (Dec / Thr / Race columns). */
+export const DRIFT_PCT_FIELDS = ['decoupling_pct', 'threshold_drift_pct', 'race_drift_pct'];
+
+/**
+ * @param {object | null | undefined} activity
+ * @param {'decoupling_pct' | 'threshold_drift_pct' | 'race_drift_pct'} field
+ * @returns {number | null}
+ */
+export function activityDriftPct(activity, field) {
+    const raw = activity?.[field];
+    if (raw === null || raw === undefined || raw === '') return null;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Drift % min/max filter — only activities with a finite drift value match when bounds are set.
+ * @param {object | null | undefined} activity
+ * @param {'decoupling_pct' | 'threshold_drift_pct' | 'race_drift_pct'} field
+ * @param {number | null} min
+ * @param {number | null} max
+ * @returns {boolean}
+ */
+export function activityMatchesDriftRange(activity, field, min, max) {
+    if (min == null && max == null) return true;
+    const val = activityDriftPct(activity, field);
+    return inNumericRange(val, min, max, { requireValue: true });
+}
+
 /**
  * @param {number | null} value
  * @param {number | null} min

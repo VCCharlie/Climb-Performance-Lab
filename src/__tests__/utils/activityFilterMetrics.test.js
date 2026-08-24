@@ -8,6 +8,8 @@ import {
   inNumericRange,
   activityDescriptionSearchText,
   activityMatchesLogSearch,
+  activityDriftPct,
+  activityMatchesDriftRange,
 } from '../../utils/activityFilterMetrics';
 
 describe('activityDistanceKm', () => {
@@ -70,6 +72,31 @@ describe('activityDescriptionSearchText', () => {
 
   it('falls back to notes when description is empty', () => {
     expect(activityDescriptionSearchText({ notes: 'Recovery spin' })).toBe('Recovery spin');
+  });
+});
+
+describe('activityMatchesDriftRange', () => {
+  it('returns finite drift pct values', () => {
+    expect(activityDriftPct({ decoupling_pct: 5.5 }, 'decoupling_pct')).toBe(5.5);
+    expect(activityDriftPct({ decoupling_pct: null }, 'decoupling_pct')).toBe(null);
+    expect(activityDriftPct({}, 'threshold_drift_pct')).toBe(null);
+  });
+
+  it('matches activities with finite drift within bounds', () => {
+    const activity = { decoupling_pct: 4.2, threshold_drift_pct: 8.1, race_drift_pct: 12.0 };
+    expect(activityMatchesDriftRange(activity, 'decoupling_pct', null, 5)).toBe(true);
+    expect(activityMatchesDriftRange(activity, 'decoupling_pct', 5, null)).toBe(false);
+    expect(activityMatchesDriftRange(activity, 'threshold_drift_pct', 7, 9)).toBe(true);
+    expect(activityMatchesDriftRange(activity, 'race_drift_pct', 10, 11)).toBe(false);
+  });
+
+  it('excludes activities without finite drift when bounds are set', () => {
+    expect(activityMatchesDriftRange({ decoupling_pct: undefined }, 'decoupling_pct', null, 5)).toBe(false);
+    expect(activityMatchesDriftRange({ threshold_drift_pct: 'n/a' }, 'threshold_drift_pct', 0, 10)).toBe(false);
+  });
+
+  it('passes through when no bounds are set', () => {
+    expect(activityMatchesDriftRange({}, 'race_drift_pct', null, null)).toBe(true);
   });
 });
 
