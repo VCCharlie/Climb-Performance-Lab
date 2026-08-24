@@ -7,6 +7,11 @@ import {
     protectZoneTimesOnMerge,
     sumPowerZoneSeconds,
     weeklyPowerZoneChartRows,
+    monthlyPowerZoneChartRows,
+    yearlyPowerZoneChartRows,
+    powerZoneChartRows,
+    powerZoneChartRowsAsPercent,
+    computeZoneChartLookbackYmd,
     POWER_ZONE_COUNT,
 } from '../../utils/zoneTimes';
 
@@ -91,5 +96,48 @@ describe('zoneTimes', () => {
         expect(rows.length).toBe(1);
         expect(rows[0].z2).toBe(1.5);
         expect(rows[0].totalHours).toBeGreaterThan(0);
+    });
+
+    it('builds monthly and yearly chart rows', () => {
+        const activities = [
+            { date: '2026-01-15', power_zone_sec: [0, 3600, 0, 0, 0, 0, 0] },
+            { date: '2026-02-10', power_zone_sec: [0, 1800, 0, 0, 0, 0, 0] },
+            { date: '2025-12-20', power_zone_sec: [0, 7200, 0, 0, 0, 0, 0] },
+        ];
+
+        const monthly = monthlyPowerZoneChartRows(activities);
+        expect(monthly).toHaveLength(3);
+        expect(monthly[0].bucketKey).toBe('2025-12');
+        expect(monthly[1].z2).toBe(1);
+
+        const yearly = yearlyPowerZoneChartRows(activities);
+        expect(yearly).toHaveLength(2);
+        expect(yearly.find((r) => r.bucketKey === '2026')?.z2).toBe(1.5);
+    });
+
+    it('converts chart rows to percentage share per bucket', () => {
+        const rows = powerZoneChartRows(
+            [{ date: '2026-08-04', power_zone_sec: [3600, 3600, 0, 0, 0, 0, 0] }],
+            '2026-08-01',
+            '2026-08-31',
+            'week',
+        );
+        const pctRows = powerZoneChartRowsAsPercent(rows);
+        expect(pctRows[0].z1).toBe(50);
+        expect(pctRows[0].z2).toBe(50);
+        expect(pctRows[0].totalPercent).toBe(100);
+    });
+
+    it('computes lookback YMD bounds for presets', () => {
+        const bounds = computeZoneChartLookbackYmd('4w', { referenceEndYmd: '2026-08-24' });
+        expect(bounds.endYmd).toBe('2026-08-24');
+        expect(bounds.startYmd).toBe('2026-07-28');
+
+        const dash = computeZoneChartLookbackYmd('dashboard', {
+            dashboardStartYmd: '2026-01-01',
+            dashboardEndYmd: '2026-08-24',
+        });
+        expect(dash.startYmd).toBe('2026-01-01');
+        expect(dash.endYmd).toBe('2026-08-24');
     });
 });

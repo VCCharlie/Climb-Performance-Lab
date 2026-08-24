@@ -142,4 +142,27 @@ describe('protectEnrichedFieldsOnMerge', () => {
     expect(out.zone_times_source).toBe('intervals');
     expect(out.zone_times_ftp).toBe(260);
   });
+
+  it('protects Strava climbing while accepting new zone times from Intervals backfill', () => {
+    const out = protectEnrichedFieldsOnMerge(
+      {
+        id: '4',
+        title: 'Cols ride',
+        climbing: 1100,
+        power_zone_sec: [100, 5000, 800, 0, 0, 0, 0],
+        zone_times_source: 'intervals',
+        zone_times_ftp: 265,
+      },
+      {
+        id: '4',
+        climbing: 890,
+        climbing_from_strava: true,
+        strava_id: '99887766',
+      },
+    );
+    expect(out.climbing).toBe(890);
+    expect(out.climbing_from_strava).toBe(true);
+    expect(out.power_zone_sec[1]).toBe(5000);
+    expect(out.zone_times_ftp).toBe(265);
+  });
 });

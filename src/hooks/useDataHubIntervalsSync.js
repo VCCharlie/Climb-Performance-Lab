@@ -261,7 +261,11 @@ export function useDataHubIntervalsSync({
                                 const strId = String(working[i].id);
                                 const update = updatesMap.get(strId);
                                 if (update) {
-                                    const updated = stripUndefinedFields({ ...working[i], ...update.data });
+                                    const existingBase = activitiesMap.get(strId) || working[i];
+                                    const updated = protectEnrichedFieldsOnMerge(
+                                        stripUndefinedFields({ ...working[i], ...update.data }),
+                                        existingBase,
+                                    );
                                     working[i] = updated;
                                     workingMap.set(strId, updated);
                                 }
@@ -437,7 +441,11 @@ export function useDataHubIntervalsSync({
                                 const strId = String(merged[i].id);
                                 const update = updatesMap.get(strId);
                                 if (update) {
-                                    const updatedData = stripUndefinedFields({ ...merged[i], ...update.data });
+                                    const existingBase = activitiesMap.get(strId) || merged[i];
+                                    const updatedData = protectEnrichedFieldsOnMerge(
+                                        stripUndefinedFields({ ...merged[i], ...update.data }),
+                                        existingBase,
+                                    );
                                     merged[i] = updatedData;
                                     mergedMap.set(strId, updatedData);
                                 }
