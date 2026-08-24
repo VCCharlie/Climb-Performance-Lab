@@ -1,6 +1,11 @@
 import React from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Button, Chip, cn, inputBaseClass } from '../../ui';
+import {
+    GENERAL_METRIC_PRESETS,
+    DRIFT_METRIC_PRESETS,
+    createPresetApplier,
+} from '../../../utils/metricRangePresets';
 
 const RANGE_INPUT_CLASS = cn(inputBaseClass, 'w-12 !py-0.5 !px-1 !text-[10px] !leading-tight');
 
@@ -35,17 +40,25 @@ function RangeField({ label, minValue, maxValue, onMinChange, onMaxChange, step 
     );
 }
 
-const METRIC_PRESETS = [
-    { label: 'Short <1h', apply: (h) => h.onFilterDurMaxMinChange('60') },
-    { label: 'Long ≥4h', apply: (h) => h.onFilterDurMinMinChange('240') },
-    { label: '≥50 km', apply: (h) => h.onFilterDistMinChange('50') },
-    { label: '≤30 km', apply: (h) => h.onFilterDistMaxChange('30') },
-    { label: 'Fast ≥32 km/h', apply: (h) => h.onFilterSpeedMinChange('32') },
-    { label: 'Easy ≤26 km/h', apply: (h) => h.onFilterSpeedMaxChange('26') },
-    { label: 'Pwr ≥200 W', apply: (h) => h.onFilterPowerMinChange('200') },
-    { label: 'Climb ≥1000 m', apply: (h) => h.onFilterElevMinChange('1000') },
-    { label: 'Work ≥1500 kJ', apply: (h) => h.onFilterKjMinChange('1500') },
-];
+function PresetChipRow({ label, presets, handlers, applyMetricPreset }) {
+    return (
+        <div className="flex flex-wrap gap-1.5 items-center">
+            {label ? (
+                <span className="text-[9px] font-semibold text-cdmuted uppercase shrink-0 mr-0.5">{label}</span>
+            ) : null}
+            {presets.map((preset) => (
+                <Chip
+                    key={preset.label}
+                    size="xs"
+                    variant="assist"
+                    onClick={() => applyMetricPreset(() => createPresetApplier(preset)(handlers))}
+                >
+                    {preset.label}
+                </Chip>
+            ))}
+        </div>
+    );
+}
 
 /**
  * Collapsible metric range filters — flat section (no nested card).
@@ -160,18 +173,19 @@ export default function MetricRangesSection({
                         <RangeField label="Thr %" minValue={filterThrMin} maxValue={filterThrMax} onMinChange={onFilterThrMinChange} onMaxChange={onFilterThrMaxChange} step={0.1} />
                         <RangeField label="Race %" minValue={filterRaceMin} maxValue={filterRaceMax} onMinChange={onFilterRaceMinChange} onMaxChange={onFilterRaceMaxChange} step={0.1} />
                     </div>
-                    <div className="flex flex-wrap gap-1.5 items-center">
-                        <span className="text-[9px] font-semibold text-cdmuted uppercase shrink-0 mr-0.5">Presets</span>
-                        {METRIC_PRESETS.map((preset) => (
-                            <Chip
-                                key={preset.label}
-                                size="xs"
-                                variant="assist"
-                                onClick={() => applyMetricPreset(() => preset.apply(handlers))}
-                            >
-                                {preset.label}
-                            </Chip>
-                        ))}
+                    <div className="space-y-1.5">
+                        <PresetChipRow
+                            label="Presets"
+                            presets={GENERAL_METRIC_PRESETS}
+                            handlers={handlers}
+                            applyMetricPreset={applyMetricPreset}
+                        />
+                        <PresetChipRow
+                            label="Drift"
+                            presets={DRIFT_METRIC_PRESETS}
+                            handlers={handlers}
+                            applyMetricPreset={applyMetricPreset}
+                        />
                     </div>
                 </div>
             ) : null}
