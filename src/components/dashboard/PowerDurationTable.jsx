@@ -184,7 +184,7 @@ const PowerDurationTable = ({
                             {popover.activity.title || 'Untitled'}
                         </div>
                         <div className="text-cdmuted mb-1">{formatDateDDMMYYYY(popover.activity.date)}</div>
-                        <div className="text-cdaccent font-mono">
+                        <div className="text-cdaccent tabular-nums">
                             ~{popover.watts} W @ {popover.durationLabel} (estimated)
                         </div>
                     </div>
@@ -263,7 +263,7 @@ const PowerDurationTable = ({
                     <tbody className="text-cdtext">
                         {POWER_DURATION_ROWS.map((row) => (
                             <tr key={row.label} className="border-b border-cdborder/40 hover:bg-cdborder/20">
-                                <td className="sticky left-0 z-10 bg-cdsurface font-mono font-semibold text-left px-2 py-1 border-r border-cdborder">
+                                <td className="sticky left-0 z-10 bg-cdsurface font-semibold text-left px-2 py-1 border-r border-cdborder tabular-nums">
                                     {row.label}
                                 </td>
                                 {columns.map((col) => {
@@ -300,7 +300,7 @@ const PowerDurationTable = ({
                                                 tipPayload ? 'cursor-pointer hover:bg-cdborder/30 focus:outline-none focus:ring-2 focus:ring-cdaccent/50' : ''
                                             } ${isOpen ? 'ring-2 ring-cdaccent/60 bg-cdborder/20' : ''}`}
                                         >
-                                            <div className="flex items-center justify-center gap-3 font-mono tabular-nums">
+                                            <div className="flex items-center justify-center gap-3 tabular-nums">
                                                 <span className={wClass}>{watts != null ? watts : '—'}</span>
                                                 <span className={`${wClass} text-cdmuted/80`}>|</span>
                                                 <span className={wClass}>{wkgVal ?? '—'}</span>
