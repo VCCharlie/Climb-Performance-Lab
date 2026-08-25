@@ -2,6 +2,7 @@
  * Find activity with best (capped) power value for dashboard / Power tab.
  */
 
+import { buildAnchorsForActivity, interpolatePowerAt } from './powerDurationTable';
 import { stravaActivityUrl, stravaFlybyUrl, resolveFlybyStravaId } from './strava';
 
 /** Same sanity ceiling as Dashboard.enhanceActivity — eFTP estimates above this are discarded. */
@@ -34,6 +35,37 @@ export function findBestPowerActivity(activities, key, manualFtp) {
     for (const a of activities) {
         const w = Number(a[key]) || 0;
         if (w <= 0 || w > cap) continue;
+        if (w > bestW) {
+            bestW = w;
+            bestAct = a;
+        } else if (w === bestW && bestAct && new Date(a.date) > new Date(bestAct.date)) {
+            bestAct = a;
+        }
+    }
+    return { activity: bestAct, watts: bestW };
+}
+
+function maxAnchorSec(anchors) {
+    if (!anchors?.length) return 0;
+    return anchors.reduce((max, a) => Math.max(max, a.sec), 0);
+}
+
+/**
+ * Best interpolated power at a fixed duration (e.g. 15 s) across activities.
+ * Uses the same anchor curve as the power-duration matrix (max_power → best_1min → …).
+ * @returns {{ activity: object|null, watts: number }}
+ */
+export function findBestInterpolatedPowerAtSec(activities, sec, manualFtp) {
+    if (!activities?.length || sec <= 0) return { activity: null, watts: 0 };
+    const neuromuscularCap = manualFtp > 0 ? manualFtp * 6 : 800;
+    let bestAct = null;
+    let bestW = 0;
+    for (const a of activities) {
+        const anchors = buildAnchorsForActivity(a, manualFtp);
+        if (!anchors.length || sec > maxAnchorSec(anchors)) continue;
+        const raw = interpolatePowerAt(anchors, sec);
+        if (raw == null || raw <= 0) continue;
+        const w = Math.min(raw, neuromuscularCap);
         if (w > bestW) {
             bestW = w;
             bestAct = a;

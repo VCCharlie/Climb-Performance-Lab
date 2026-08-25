@@ -7,7 +7,7 @@ import PowerLongevitySection from './PowerLongevitySection';
 import PeakPowerDurationBarCard from './PeakPowerDurationBarCard';
 import TimeInZonesCard from './TimeInZonesCard';
 import CollapsibleInfoCard from '../ui/CollapsibleInfoCard';
-import { findBestPowerActivity, DASHBOARD_FTP_CAPS } from '../../utils/dashboardActivityPeaks';
+import { findBestPowerActivity, findBestInterpolatedPowerAtSec, DASHBOARD_FTP_CAPS } from '../../utils/dashboardActivityPeaks';
 import { getDashboardDisplayBoundsYmd } from '../../utils/dashboardActivityWindow';
 import { dashboardFilterLabel } from '../../utils/powerDurationTable';
 
@@ -43,6 +43,7 @@ const cappedMax = (activities, key, manualFtp) => {
 };
 
 const POWER_TABLE_KEYS = [
+    { key: 'peak_15s', label: '15 s', interpolatedSec: 15 },
     { key: 'best_1min', label: '1 min' },
     { key: 'best_5min', label: '5 min' },
     { key: 'best_10min', label: '10 min' },
@@ -115,7 +116,11 @@ const PowerTab = ({
 
     const powerPeakRows = useMemo(() => {
         if (!data?.length) return [];
-        return POWER_TABLE_KEYS.map(({ key, label }) => {
+        return POWER_TABLE_KEYS.map(({ key, label, interpolatedSec }) => {
+            if (interpolatedSec) {
+                const { activity, watts } = findBestInterpolatedPowerAtSec(data, interpolatedSec, manualFtp);
+                return { key, label, watts, activity };
+            }
             const { activity, watts } = findBestPowerActivity(data, key, manualFtp);
             return { key, label, watts, activity };
         });
@@ -124,7 +129,11 @@ const PowerTab = ({
     /** Best per duration over full dashboard ride history (for radar outer ring). */
     const historyPowerPeakRows = useMemo(() => {
         if (!chartData?.length) return null;
-        return POWER_TABLE_KEYS.map(({ key, label }) => {
+        return POWER_TABLE_KEYS.map(({ key, label, interpolatedSec }) => {
+            if (interpolatedSec) {
+                const { activity, watts } = findBestInterpolatedPowerAtSec(chartData, interpolatedSec, manualFtp);
+                return { key, label, watts, activity };
+            }
             const { activity, watts } = findBestPowerActivity(chartData, key, manualFtp);
             return { key, label, watts, activity };
         });

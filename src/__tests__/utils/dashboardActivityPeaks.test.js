@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
     findBestPowerActivity,
+    findBestInterpolatedPowerAtSec,
     activityExternalLinks,
     findPeakEftp20Activity,
     findPeakEftp60Activity,
@@ -25,6 +26,29 @@ describe('findBestPowerActivity', () => {
         const r = findBestPowerActivity(acts, 'best_20min', 200);
         expect(r.watts).toBe(0);
         expect(r.activity).toBeNull();
+    });
+});
+
+describe('findBestInterpolatedPowerAtSec', () => {
+    it('interpolates 15 s peak from max_power and best_1min anchors', () => {
+        const acts = [
+            {
+                id: 'a',
+                date: '2026-01-01',
+                max_power: 950,
+                best_1min: 420,
+            },
+            {
+                id: 'b',
+                date: '2026-01-02',
+                max_power: 700,
+                best_1min: 380,
+            },
+        ];
+        const r = findBestInterpolatedPowerAtSec(acts, 15, 250);
+        expect(r.watts).toBeGreaterThan(0);
+        expect(r.activity).not.toBeNull();
+        expect(['a', 'b']).toContain(r.activity.id);
     });
 });
 

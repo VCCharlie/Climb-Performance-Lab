@@ -43,8 +43,9 @@ export const PHENOTYPE_BANDS = [
         label: 'Sprinter',
         summary: 'Neuromuscular punch — 1 min and 5 min sit well above 20 min power.',
         thresholds: [
-            '1 min / 20 min ≥ 1.50, or 5 min / 20 min ≥ 1.22 with 1 min / 5 min ≥ 1.15',
+            '1 min / 20 min ≥ 1.58, or 5 min / 20 min ≥ 1.24 with 1 min / 5 min ≥ 1.18',
             'Short Coggan zones ≥ 2 above your 20 min zone',
+            'Short durations must lead on % of all-time peak — flat 84–93% bands are rouleur, not sprinter',
             'Down-ranked when the curve is flat or TT-like',
         ],
     },
@@ -139,9 +140,68 @@ function ratio(a, b) {
     return a / b;
 }
 
+function pctOfBaseline(periodW, baselineW) {
+    if (!periodW || !baselineW || baselineW <= 0) return null;
+    return (periodW / baselineW) * 100;
+}
+
+/**
+ * Relative (% of all-time) shape — flat bands mean rouleur, not sprinter.
+ * @returns {{
+ *   pcts: Record<string, number | null>,
+ *   spread: number,
+ *   isFlatBand: boolean,
+ *   shortLeadsPct: boolean,
+ *   midLeadsPct: boolean,
+ *   enduranceLeadsPct: boolean,
+ * }}
+ */
+function analyzePctShape(powerPeakRows, historyPeakRows) {
+    const pcts = {};
+    const values = [];
+    for (const key of PHENOTYPE_DURATION_KEYS) {
+        const periodW = rowWatts(powerPeakRows, key);
+        const historyW = rowWatts(historyPeakRows, key);
+        const baseline = historyW > 0 ? historyW : periodW;
+        const pct = pctOfBaseline(periodW, baseline);
+        pcts[key] = pct;
+        if (pct != null && pct > 0) values.push(pct);
+    }
+
+    if (values.length < 2) {
+        return {
+            pcts,
+            spread: 0,
+            isFlatBand: false,
+            shortLeadsPct: false,
+            midLeadsPct: false,
+            enduranceLeadsPct: false,
+        };
+    }
+
+    const spread = Math.max(...values) - Math.min(...values);
+    const maxPct = Math.max(...values);
+    const minPct = Math.min(...values);
+
+    const shortPct = Math.max(pcts.best_1min ?? 0, pcts.best_5min ?? 0);
+    const midPct = [pcts.best_5min, pcts.best_10min, pcts.best_20min]
+        .filter((p) => p != null)
+        .reduce((acc, p) => acc + p, 0) / Math.max(1, [pcts.best_5min, pcts.best_10min, pcts.best_20min].filter((p) => p != null).length);
+    const endurancePct = pcts.best_60min ?? 0;
+
+    return {
+        pcts,
+        spread,
+        isFlatBand: spread <= 10 && minPct >= 75,
+        shortLeadsPct: shortPct >= maxPct - 1.5 && shortPct > endurancePct + 4,
+        midLeadsPct: midPct >= maxPct - 2 && midPct > shortPct + 2,
+        enduranceLeadsPct: endurancePct >= maxPct - 1.5 && endurancePct > shortPct + 2,
+    };
+}
+
 /**
  * @param {Array<{ key: string, watts: number }> | null | undefined} powerPeakRows
- * @param {{ ftp?: number, weightKg?: number }} [options]
+ * @param {{ ftp?: number, weightKg?: number, historyPeakRows?: Array<{ key: string, watts: number }> }} [options]
  * @returns {{
  *   id: string,
  *   label: string,
@@ -154,6 +214,10 @@ function ratio(a, b) {
 export function inferRiderPhenotype(powerPeakRows, options = {}) {
     const ftp = estimateFtp(powerPeakRows, Number(options.ftp) || 0);
     const weightKg = Number(options.weightKg) || 0;
+    const historyPeakRows = options.historyPeakRows || null;
+    const pctShape = historyPeakRows?.length
+        ? analyzePctShape(powerPeakRows, historyPeakRows)
+        : null;
 
     const watts = {};
     for (const key of PHENOTYPE_DURATION_KEYS) {
@@ -206,6 +270,10 @@ export function inferRiderPhenotype(powerPeakRows, options = {}) {
     const pct2060 = w20 > 0 && w60 > 0 ? Math.abs(w60 - w20) / w20 : 1;
     const shortHead = r120;
 
+    const moderateLeftDrop = r120 >= 1.28 && r120 < 1.55;
+    const steepLeftDrop = r120 >= 1.55;
+    const gradualCurve = r120 > 0 && r120 < 1.55 && r520 > 0 && r520 < 1.35;
+
     const scores = {
         sprinter: 0,
         rouleur: 0,
@@ -224,26 +292,43 @@ export function inferRiderPhenotype(powerPeakRows, options = {}) {
     const peakWatts = Math.max(w1, w5, w10, w20, w60);
     const midNearPeak = [w5, w10, w20].filter((w) => w > 0).some((w) => w >= peakWatts * 0.94);
 
-    // Sprinter: steep left-side drop — short >> long, not moderate gradual curves
-    if (z20 != null) {
+    // Sprinter: steep left-side drop — short >> long in watts AND relative shape (not flat % band)
+    const pctFlat = pctShape?.isFlatBand === true;
+    const relativeShortDominance = pctShape ? pctShape.shortLeadsPct : true;
+
+    if (z20 != null && steepLeftDrop && !pctFlat && relativeShortDominance) {
         const shortLift1 = z1 != null ? z1 - z20 : 0;
         const shortLift5 = z5 != null ? z5 - z20 : 0;
         const maxShortLift = Math.max(shortLift1, shortLift5);
 
-        if (maxShortLift >= 3 && r120 >= 1.48) {
+        if (maxShortLift >= 3 && r120 >= 1.62) {
             scores.sprinter += 48 + (maxShortLift - 3) * 8;
-        } else if (maxShortLift >= 2 && r120 >= 1.52) {
+        } else if (maxShortLift >= 2 && r120 >= 1.58) {
             scores.sprinter += 38;
-        } else if (r120 >= 1.58 && r520 >= 1.25) {
+        } else if (r120 >= 1.65 && r520 >= 1.28) {
             scores.sprinter += 32;
-        } else if (r120 >= 1.50 && r520 >= 1.22 && r15 >= 1.15) {
+        } else if (r120 >= 1.58 && r520 >= 1.24 && r15 >= 1.18) {
             scores.sprinter += 28;
-        } else if (r520 >= 1.28 && r120 >= 1.42) {
+        } else if (r520 >= 1.30 && r120 >= 1.55) {
             scores.sprinter += 18;
         }
+    } else if (z20 != null && moderateLeftDrop && !pctFlat && relativeShortDominance && r520 >= 1.22) {
+        scores.sprinter += 10;
     }
 
-    // Rouleur: flat curve — similar category at every duration (1 min through 60 min)
+    if (pctFlat || gradualCurve || (moderateLeftDrop && !steepLeftDrop)) {
+        scores.sprinter *= pctFlat ? 0.08 : 0.35;
+    }
+    if (pctShape && !pctShape.shortLeadsPct && scores.sprinter > 0) {
+        scores.sprinter *= 0.25;
+    }
+
+    // Rouleur: flat curve — similar category at every duration (absolute + % of all-time)
+    if (pctFlat) {
+        scores.rouleur += 50 + Math.max(0, 10 - (pctShape.spread || 0)) * 2;
+    } else if (pctShape?.spread != null && pctShape.spread <= 12) {
+        scores.rouleur += 28;
+    }
     if (availableZones.length >= 3 && (overallFlat || endToEndFlat)) {
         if (overallFlat) {
             scores.rouleur += 52;
@@ -268,6 +353,11 @@ export function inferRiderPhenotype(powerPeakRows, options = {}) {
     }
 
     // Climber: 5–20 min relative strength peaks vs shorter & longer durations
+    if (pctShape?.midLeadsPct) {
+        scores.climber += 24;
+    } else if (pctShape?.enduranceLeadsPct && pctFlat) {
+        scores.climber += 8;
+    }
     const midZones = [z5, z10, z20].filter((z) => z != null);
     const edgeZones = [z1, z60].filter((z) => z != null);
     if (midZones.length >= 2 && edgeZones.length >= 1) {
@@ -337,6 +427,11 @@ export function inferRiderPhenotype(powerPeakRows, options = {}) {
     if (overallFlat) {
         scores.time_trialist *= 0.35;
         scores.sprinter *= 0.45;
+    }
+
+    if (pctFlat) {
+        scores.sprinter *= 0.15;
+        scores.time_trialist *= 0.55;
     }
 
     if (climberTail && scores.time_trialist > 0) {
