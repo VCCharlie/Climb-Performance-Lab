@@ -42,15 +42,18 @@ export function buildWeekDayTssMap(weekPlan, activities, weeklyHours = 5) {
 }
 
 /**
- * Bubble diameter in px (8–28) proportional to TSS within the week.
+ * Bubble diameter in px proportional to TSS within the week.
  * @param {number} tss
  * @param {number} maxTss
+ * @param {{ minPx?: number, maxPx?: number }} [options]
  * @returns {number}
  */
-export function tssBubbleSizePx(tss, maxTss) {
+export function tssBubbleSizePx(tss, maxTss, options = {}) {
+    const minPx = options.minPx ?? 6;
+    const maxPx = options.maxPx ?? 20;
     const n = Number(tss) || 0;
     const max = Number(maxTss) || 0;
     if (n <= 0 || max <= 0) return 0;
     const ratio = Math.min(1, n / max);
-    return Math.round(8 + ratio * 20);
+    return Math.round(minPx + ratio * (maxPx - minPx));
 }
