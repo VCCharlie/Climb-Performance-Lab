@@ -17,6 +17,7 @@ function CalendarDayCell({
     onSelect,
     dayTss,
     maxDayTss,
+    compactBubble = false,
 }) {
     const session = cell.session;
     const styles = getStimulusStyle(session?.stimulus || 'rest');
@@ -32,7 +33,10 @@ function CalendarDayCell({
         && !isBlocked,
     );
     const isEmpty = !session;
-    const bubbleSize = tssBubbleSizePx(dayTss, maxDayTss);
+    const bubbleSize = tssBubbleSizePx(dayTss, maxDayTss, {
+        minPx: compactBubble ? 5 : 6,
+        maxPx: compactBubble ? 14 : 18,
+    });
 
     return (
         <button
@@ -44,7 +48,7 @@ function CalendarDayCell({
                 ? `${cell.weekdayLabel} ${cell.dayOfMonth}, ${label}${dayTss > 0 ? `, ${Math.round(dayTss)} TSS` : ''}`
                 : `${cell.weekdayLabel}, no session`}
             className={[
-                'flex flex-col items-stretch min-h-[88px] rounded-lg border p-1.5 text-left transition-colors',
+                'relative flex flex-col items-stretch min-h-[92px] sm:min-h-[96px] rounded-lg border p-1.5 pb-1 text-left transition-colors overflow-visible',
                 isEmpty ? 'border-cdborder/20 bg-cdborder/5 opacity-40 cursor-default' : 'cursor-pointer hover:bg-cdborder/15',
                 selected ? 'ring-2 ring-cdaccent border-cdaccent/50' : 'border-cdborder/40',
                 isToday && !selected ? 'ring-1 ring-cdaccent/40' : '',
@@ -52,34 +56,34 @@ function CalendarDayCell({
                 isCompleted ? 'opacity-80' : '',
             ].join(' ')}
         >
-            <div className="flex items-center justify-between gap-1 mb-1">
+            <div className="flex items-center justify-between gap-1 mb-0.5">
                 <span className={`text-sm font-bold tabular-nums ${isToday ? 'text-cdaccent' : 'text-cdtext'}`}>
                     {cell.dayOfMonth ?? '—'}
                 </span>
-                <div className="flex items-center gap-1 shrink-0">
-                    {bubbleSize > 0 && (
-                        <span
-                            className="rounded-full bg-cdprimary/70 border border-cdprimary/40 shrink-0"
-                            style={{ width: bubbleSize, height: bubbleSize }}
-                            title={`${Math.round(dayTss)} TSS`}
-                            aria-hidden
-                        />
-                    )}
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${styles.dot}`} aria-hidden />
-                </div>
+                <span className={`w-2 h-2 rounded-full shrink-0 ${styles.dot}`} aria-hidden />
             </div>
 
-            <p className={`text-[10px] leading-tight font-medium line-clamp-2 flex-1 ${isCompleted ? 'text-cdmuted line-through' : 'text-cdtext'}`}>
+            <p className={`text-[10px] leading-tight font-medium line-clamp-2 flex-1 min-h-[2rem] ${isCompleted ? 'text-cdmuted line-through' : 'text-cdtext'}`}>
                 {label}
             </p>
 
-            {dayTss > 0 && (
-                <p className="text-[9px] text-cdmuted tabular-nums font-mono mt-0.5">
-                    {Math.round(dayTss)} TSS
-                </p>
-            )}
+            <div className="mt-auto flex flex-col items-center justify-end gap-0.5 pt-1 min-h-[28px]">
+                {bubbleSize > 0 && (
+                    <span
+                        className="rounded-full bg-cdprimary/75 border border-cdprimary/50 shrink-0 shadow-sm"
+                        style={{ width: bubbleSize, height: bubbleSize }}
+                        title={`${Math.round(dayTss)} TSS`}
+                        aria-hidden
+                    />
+                )}
+                {dayTss > 0 && (
+                    <p className="text-[9px] text-cdmuted tabular-nums font-mono leading-none">
+                        {Math.round(dayTss)}
+                    </p>
+                )}
+            </div>
 
-            <div className="flex items-center justify-end gap-0.5 mt-1 min-h-[14px]">
+            <div className="flex items-center justify-end gap-0.5 mt-0.5 min-h-[12px]">
                 {isBlocked && <Ban size={11} className="text-red-300" aria-label="Blocked" />}
                 {isCompleted && <CheckCircle2 size={11} className="text-emerald-400" aria-label="Completed" />}
                 {isMissed && (
@@ -103,6 +107,7 @@ export default function FluidWeekCalendar({
     expandKeyPrefix = '',
     activities = [],
     weeklyHours = 5,
+    compactBubble = false,
 }) {
     const cells = useMemo(() => buildWeekCalendarCells(weekPlan), [weekPlan]);
 
@@ -131,14 +136,14 @@ export default function FluidWeekCalendar({
     };
 
     return (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 overflow-visible">
             <div
-                className="grid grid-cols-7 gap-1 sm:gap-1.5"
+                className="grid grid-cols-7 gap-1 sm:gap-1.5 overflow-visible pt-0.5"
                 role="grid"
                 aria-label="Week training calendar"
             >
                 {cells.map((cell) => (
-                    <div key={cell.weekdayLabel} className="flex flex-col min-w-0" role="columnheader">
+                    <div key={cell.weekdayLabel} className="flex flex-col min-w-0 overflow-visible" role="columnheader">
                         <span className="text-[9px] font-bold uppercase tracking-wide text-cdmuted text-center mb-1">
                             {cell.weekdayLabel}
                         </span>
@@ -151,6 +156,7 @@ export default function FluidWeekCalendar({
                             onSelect={handleSelect}
                             dayTss={cell.dateYmd ? dayTssMap[cell.dateYmd] || 0 : 0}
                             maxDayTss={maxDayTss}
+                            compactBubble={compactBubble}
                         />
                     </div>
                 ))}
@@ -172,7 +178,7 @@ export default function FluidWeekCalendar({
 
             {!expandedDate && (
                 <p className="text-[10px] text-cdmuted text-center">
-                    Tap a day to view details and actions — bubble size reflects daily TSS
+                    Tap a day to view details — bubble size reflects daily TSS
                 </p>
             )}
         </div>

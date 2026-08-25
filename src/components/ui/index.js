@@ -6,6 +6,7 @@ export { default as Input } from './Input';
 export { default as Chip } from './Chip';
 export { default as IconButton } from './IconButton';
 export { default as SegmentedControl } from './SegmentedControl';
+export { default as Switch } from './Switch';
 export {
   tableShellClass,
   tableClass,

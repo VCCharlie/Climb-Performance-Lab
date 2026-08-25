@@ -18,7 +18,7 @@ import {
 } from '../utils/profileFtp';
 import { formatDateDDMMYYYY } from '../utils/formatters';
 import { buildBackupExport, validateBackupPayload, describeBackupImport, BACKUP_MAX_BYTES } from '../utils/backupSchema';
-import { Button, IconButton, inputBaseClass, inputNumberClass, modalScrimClass, modalPanelClass, modalHeaderClass, modalFooterClass, SegmentedControl } from './ui';
+import { Button, IconButton, inputBaseClass, inputNumberClass, modalScrimClass, modalPanelClass, modalHeaderClass, modalFooterClass, SubTabNav } from './ui';
 import ModalPortal from './ui/ModalPortal';
 import { useActivities } from '../hooks/useActivities';
 import { useConfirm } from '../context/ConfirmContext';
@@ -45,11 +45,11 @@ const StravaIcon = ({ size = 16 }) => (
 );
 
 const SETTINGS_TABS = [
-    { value: 'profile', label: 'Profile' },
-    { value: 'integrations', label: 'Integrations' },
-    { value: 'goals', label: 'Goals' },
-    { value: 'historical', label: 'Historical' },
-    { value: 'backup', label: 'Backup' },
+    { id: 'profile', label: 'Profile' },
+    { id: 'integrations', label: 'Integrations' },
+    { id: 'goals', label: 'Goals' },
+    { id: 'historical', label: 'Historical' },
+    { id: 'backup', label: 'Backup' },
 ];
 
 const SettingsModal = ({
@@ -184,15 +184,14 @@ const SettingsModal = ({
                     </IconButton>
                 </div>
 
-                <div className="px-6 pt-4 pb-2 border-b border-cdborder/40 bg-cdsurfacelow">
-                    <SegmentedControl
-                        options={SETTINGS_TABS}
-                        value={settingsTab}
-                        onChange={setSettingsTab}
-                        fullWidth
-                        size="sm"
-                        caps={false}
-                        aria-label="Settings sections"
+                <div className="px-4 sm:px-6 pt-3 pb-0 bg-cdsurfacelow">
+                    <SubTabNav
+                        tabs={SETTINGS_TABS}
+                        activeTab={settingsTab}
+                        onTabChange={setSettingsTab}
+                        ariaLabel="Settings sections"
+                        idPrefix="settings-tab"
+                        tabPanelIdPrefix="settings-panel"
                     />
                 </div>
 

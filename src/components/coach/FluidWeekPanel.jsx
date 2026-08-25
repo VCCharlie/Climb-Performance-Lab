@@ -1,9 +1,11 @@
 import React from 'react';
-import { RefreshCw, Sparkles, Ban, TrendingUp, Bike, Flame } from 'lucide-react';
+import { RefreshCw, Sparkles, Ban, TrendingUp, Bike, Flame, Mountain } from 'lucide-react';
 import { formatDateDDMMYYYY } from '../../utils/formatters';
 import { COACH_WEEK_VIEW_MODES } from '../../utils/coach/coachWeekCalendar';
 import { computeCtlWeekOverWeekDelta } from '../../utils/coach/coachWeekCtlDelta';
 import { todayYmd } from '../../utils/coach/coachHelpers';
+import { computeClimbingReadiness } from '../../utils/climbingReadiness';
+import { resolveEffectiveProfileFtp } from '../../utils/profileFtp';
 import FluidWeekSessionCard from './FluidWeekSessionCard';
 import FluidWeekCalendar from './FluidWeekCalendar';
 
@@ -35,6 +37,8 @@ export default function FluidWeekPanel({
     activities = [],
     weeklyHours = 5,
     referenceYmd = todayYmd(),
+    userSettings = null,
+    compactCalendar = false,
 }) {
     const ctlDelta = React.useMemo(
         () => computeCtlWeekOverWeekDelta(activities, weekPlan.mondayYmd, referenceYmd),
@@ -48,6 +52,21 @@ export default function FluidWeekPanel({
         ).length;
         return { planned, done };
     }, [weekPlan.sessions]);
+
+    const climbingReadinessHint = React.useMemo(() => {
+        if (!activities?.length) return null;
+        const ftp = resolveEffectiveProfileFtp(userSettings || {}, activities).ftp || 0;
+        const referenceDate = new Date(`${referenceYmd}T12:00:00`);
+        const readiness = computeClimbingReadiness({
+            activities,
+            ftp,
+            referenceDate,
+            terrainProfile: userSettings?.terrainProfile,
+        });
+        if (readiness.composite >= 65) return null;
+        if (readiness.scores?.elevation >= 60 && readiness.composite >= 55) return null;
+        return readiness.hints?.[0] || readiness.badge?.label || null;
+    }, [activities, userSettings, referenceYmd]);
 
     const progressColor = weekPlan.compliancePct > 115
         ? 'bg-orange-400'
@@ -123,6 +142,16 @@ export default function FluidWeekPanel({
                 </div>
             )}
 
+            {climbingReadinessHint && (
+                <p className="text-[11px] text-cdmuted mb-2 flex items-start gap-1.5 bg-cdborder/20 rounded-md px-2 py-1.5 leading-relaxed">
+                    <Mountain size={11} className="shrink-0 mt-0.5 text-cdaccent" aria-hidden />
+                    <span>
+                        <span className="font-semibold text-cdtext">Climbing readiness: </span>
+                        {climbingReadinessHint}
+                    </span>
+                </p>
+            )}
+
             {(weekPlan.hasAvailabilityBlocks || weekPlan.hasExplicitAvailability) && onClearAvailability && (
                 <div className="mb-2 flex justify-end">
                     <button
@@ -136,7 +165,7 @@ export default function FluidWeekPanel({
             )}
 
             {viewMode === COACH_WEEK_VIEW_MODES.CALENDAR ? (
-                <div className="flex-1 overflow-y-auto max-h-[min(70vh,520px)] pr-0.5">
+                <div className="flex-1 overflow-y-auto overflow-x-visible max-h-[min(70vh,520px)] pr-0.5 pt-1">
                     <FluidWeekCalendar
                         weekPlan={weekPlan}
                         expandedDate={expandedDate}
@@ -150,6 +179,7 @@ export default function FluidWeekPanel({
                         expandKeyPrefix={expandKeyPrefix}
                         activities={activities}
                         weeklyHours={weeklyHours}
+                        compactBubble={compactCalendar}
                     />
                 </div>
             ) : (

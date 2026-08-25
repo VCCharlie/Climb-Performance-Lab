@@ -1,5 +1,5 @@
-import React from 'react';
-import { computePowerProfileCategoryBars } from '../../utils/powerProfileCategories';
+import React, { useMemo } from 'react';
+import { computePowerProfileCategoryBars, inferRiderArchetype } from '../../utils/powerProfileCategories';
 
 function barTone(pct) {
     if (pct == null) return 'bg-cdborder/50';
@@ -14,17 +14,31 @@ function barTone(pct) {
  */
 export default function PowerCategoryBars({ powerPeakRows, historyPeakRows }) {
     const bars = computePowerProfileCategoryBars(powerPeakRows, historyPeakRows);
+    const archetype = useMemo(
+        () => inferRiderArchetype(historyPeakRows?.length ? historyPeakRows : powerPeakRows),
+        [historyPeakRows, powerPeakRows],
+    );
 
     const hasData = bars.some((b) => b.periodWatts > 0 || b.baselineWatts > 0);
     if (!hasData) return null;
 
     return (
         <div className="rounded-lg border border-cdborder/50 bg-cdsurfacelow/30 p-3 space-y-3">
-            <div className="flex items-center justify-between gap-2">
-                <h4 className="text-[10px] font-bold uppercase tracking-wide text-cdmuted">
-                    Power categories
-                </h4>
-                <span className="text-[10px] text-cdmuted">% of all-time peak</span>
+            <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                    <h4 className="text-[10px] font-bold uppercase tracking-wide text-cdmuted">
+                        Power categories
+                    </h4>
+                    {archetype.id !== 'building' && (
+                        <p className="mt-1 text-sm font-bold text-cdtext">
+                            {archetype.label}
+                            <span className="ml-1.5 text-[11px] font-normal text-cdmuted">
+                                · {archetype.tagline}
+                            </span>
+                        </p>
+                    )}
+                </div>
+                <span className="text-[10px] text-cdmuted shrink-0 pt-0.5">% of all-time peak</span>
             </div>
 
             {bars.map((bar) => {

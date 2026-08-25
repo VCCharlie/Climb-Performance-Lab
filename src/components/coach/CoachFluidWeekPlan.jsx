@@ -210,10 +210,10 @@ const CoachFluidWeekPlan = ({
                     </p>
                 )}
 
-                <div className="-mx-1 px-1 pt-1">
+                <div className="-mx-1 px-1 pt-2 overflow-visible">
                     <div
                         className={[
-                            'flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2',
+                            'flex gap-4 overflow-x-auto overflow-y-visible snap-x snap-mandatory pb-2',
                             visibleWeeks.length > 1 ? 'scroll-smooth' : '',
                         ].join(' ')}
                     >
@@ -232,13 +232,15 @@ const CoachFluidWeekPlan = ({
                                 expandKeyPrefix={expandKeyPrefix}
                                 isPreview={isPreview}
                                 className={[
-                                    'min-w-[min(100%,340px)] max-w-full flex-shrink-0 snap-center',
+                                    'min-w-[min(100%,340px)] max-w-full flex-shrink-0 snap-center overflow-visible',
                                     index > 0 ? 'border-l border-cdborder/50 pl-4' : '',
                                 ].join(' ')}
                                 viewMode={viewMode}
                                 activities={activities}
                                 weeklyHours={Number(userSettings?.weeklyHoursTarget) || 5}
                                 referenceYmd={today}
+                                userSettings={userSettings}
+                                compactCalendar={visibleWeeks.length > 1}
                                 {...handlers}
                             />
                         );

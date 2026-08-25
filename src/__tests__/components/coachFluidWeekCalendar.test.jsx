@@ -80,4 +80,22 @@ describe('CoachFluidWeekPlan calendar view', () => {
         expect(screen.getByText('Threshold intervals')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /Mark done/i })).toBeInTheDocument();
     });
+
+    it('shows TSS bubbles in calendar grid view', () => {
+        const weekPlan = buildMockWeekPlan();
+        render(
+            <CoachFluidWeekPlan
+                activities={[{ date: '2026-08-05', load: 85 }]}
+                userSettings={{ weeklyHoursTarget: 5, ftp: 250 }}
+                coachContext={{ athlete: { ftp: 250 }, fitness: { tsb: 0 } }}
+                weekPlan={weekPlan}
+            />,
+        );
+
+        fireEvent.click(screen.getByRole('button', { name: 'Calendar' }));
+
+        const wedCell = screen.getByRole('button', { name: /Wed 5,/i });
+        expect(wedCell).toBeInTheDocument();
+        expect(wedCell.getAttribute('title') || wedCell.textContent).toMatch(/TSS|85/i);
+    });
 });
