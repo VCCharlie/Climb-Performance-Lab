@@ -315,3 +315,48 @@ textarea:focus:not(:focus-visible) {
     transition-duration: 0.01ms !important;
   }
 }
+
+/*
+ * Typography scale — Barlow everywhere (see :root). Metrics use tabular-nums, not monospace.
+ * JS mirror: src/utils/typography.js
+ */
+.cd-type-section {
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--cd-text);
+}
+
+.cd-type-subsection {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1.35;
+  color: var(--cd-text);
+}
+
+.cd-type-body {
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--cd-text);
+}
+
+.cd-type-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1.35;
+  color: var(--cd-muted);
+}
+
+.cd-type-caption {
+  font-size: 0.625rem;
+  line-height: 1.4;
+  color: var(--cd-muted);
+}
+
+.cd-type-numeric {
+  font-variant-numeric: tabular-nums;
+}
