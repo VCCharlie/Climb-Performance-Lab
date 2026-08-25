@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { computePowerProfileCategoryBars, inferRiderArchetype } from '../../utils/powerProfileCategories';
+import { computePowerProfileCategoryBars } from '../../utils/powerProfileCategories';
+import { inferRiderPhenotype } from '../../utils/riderPhenotype';
 
 function barTone(pct) {
     if (pct == null) return 'bg-cdborder/50';
@@ -12,11 +13,16 @@ function barTone(pct) {
 /**
  * Horizontal Sprint / Attack / Breakaway / Endurance bars vs history baseline.
  */
-export default function PowerCategoryBars({ powerPeakRows, historyPeakRows }) {
+export default function PowerCategoryBars({
+    powerPeakRows,
+    historyPeakRows,
+    manualFtp = 0,
+    weightKg = 0,
+}) {
     const bars = computePowerProfileCategoryBars(powerPeakRows, historyPeakRows);
-    const archetype = useMemo(
-        () => inferRiderArchetype(historyPeakRows?.length ? historyPeakRows : powerPeakRows),
-        [historyPeakRows, powerPeakRows],
+    const phenotype = useMemo(
+        () => inferRiderPhenotype(powerPeakRows, { ftp: manualFtp, weightKg }),
+        [powerPeakRows, manualFtp, weightKg],
     );
 
     const hasData = bars.some((b) => b.periodWatts > 0 || b.baselineWatts > 0);
@@ -26,20 +32,30 @@ export default function PowerCategoryBars({ powerPeakRows, historyPeakRows }) {
         <div className="rounded-lg border border-cdborder/50 bg-cdsurfacelow/30 p-3 space-y-3">
             <div
                 className={[
-                    'rounded-md border px-3 py-2',
-                    archetype.id === 'building'
+                    'rounded-md border px-3 py-2.5',
+                    phenotype.id === 'building'
                         ? 'border-cdborder/50 bg-cdborder/15'
                         : 'border-cdprimary/35 bg-cdprimary/10',
                 ].join(' ')}
             >
-                <p className="text-[10px] font-bold uppercase tracking-wide text-cdmuted">
-                    Rider archetype
+                <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-cdmuted">
+                        Rider phenotype
+                    </p>
+                    {phenotype.confidence > 0 && phenotype.id !== 'building' && (
+                        <span className="text-[10px] font-semibold text-cdmuted tabular-nums">
+                            {phenotype.confidence}% match
+                        </span>
+                    )}
+                </div>
+                <p className="mt-0.5 text-lg sm:text-xl font-black text-cdtext leading-tight font-barlow">
+                    {phenotype.label}
                 </p>
-                <p className="mt-0.5 text-base font-black text-cdtext leading-tight">
-                    {archetype.label}
+                <p className="mt-1 text-xs sm:text-sm text-cdmuted leading-snug">
+                    {phenotype.tagline}
                 </p>
-                <p className="mt-0.5 text-xs text-cdmuted leading-snug">
-                    {archetype.tagline}
+                <p className="mt-1.5 text-[10px] text-cdmuted/90 leading-snug">
+                    Training guide from this period&apos;s peaks — not a diagnosis.
                 </p>
             </div>
 
@@ -67,7 +83,7 @@ export default function PowerCategoryBars({ powerPeakRows, historyPeakRows }) {
                                     : ''}
                             </span>
                         </div>
-                        <div className="h-2 rounded-full bg-cdborder/40 overflow-hidden">
+                        <div className="h-2.5 rounded-full bg-cdborder/40 overflow-hidden">
                             <div
                                 className={`h-full rounded-full transition-all duration-500 ${barTone(bar.pctOfBaseline)}`}
                                 style={{ width: `${width}%` }}

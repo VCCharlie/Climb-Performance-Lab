@@ -45,61 +45,22 @@ describe('powerProfileCategories', () => {
         expect(bars[0].pctOfBaseline).toBe(100);
     });
 
-    describe('inferRiderArchetype', () => {
+    describe('inferRiderArchetype (re-export)', () => {
         it('returns building when fewer than two peaks exist', () => {
-            const result = inferRiderArchetype([{ key: 'best_1min', watts: 400 }]);
+            const result = inferRiderArchetype([{ key: 'best_1min', watts: 400 }], { ftp: 280 });
             expect(result.id).toBe('building');
             expect(result.label).toBe(RIDER_ARCHETYPE_LABELS.building);
         });
 
-        it('detects sprinter profile from high 1 min vs 5 min ratio', () => {
+        it('delegates to riderPhenotype scoring', () => {
             const rows = [
-                { key: 'best_1min', watts: 900 },
-                { key: 'best_5min', watts: 650 },
-                { key: 'best_20min', watts: 420 },
-                { key: 'best_60min', watts: 360 },
-            ];
-            expect(inferRiderArchetype(rows).id).toBe('sprinter');
-        });
-
-        it('detects puncheur profile from strong 5 min efforts', () => {
-            const rows = [
-                { key: 'best_1min', watts: 500 },
-                { key: 'best_5min', watts: 430 },
+                { key: 'best_1min', watts: 1100 },
+                { key: 'best_5min', watts: 620 },
+                { key: 'best_10min', watts: 460 },
                 { key: 'best_20min', watts: 340 },
-                { key: 'best_60min', watts: 310 },
+                { key: 'best_60min', watts: 300 },
             ];
-            expect(inferRiderArchetype(rows).id).toBe('puncheur');
-        });
-
-        it('detects diesel profile from dominant 60 min peak', () => {
-            const rows = [
-                { key: 'best_1min', watts: 370 },
-                { key: 'best_5min', watts: 345 },
-                { key: 'best_20min', watts: 335 },
-                { key: 'best_60min', watts: 333 },
-            ];
-            expect(inferRiderArchetype(rows).id).toBe('diesel');
-        });
-
-        it('detects time trialist from flat 20–60 min curve', () => {
-            const rows = [
-                { key: 'best_1min', watts: 430 },
-                { key: 'best_5min', watts: 410 },
-                { key: 'best_20min', watts: 395 },
-                { key: 'best_60min', watts: 385 },
-            ];
-            expect(inferRiderArchetype(rows).id).toBe('time_trialist');
-        });
-
-        it('detects climber from sustained mid-long power without punch', () => {
-            const rows = [
-                { key: 'best_1min', watts: 410 },
-                { key: 'best_5min', watts: 400 },
-                { key: 'best_20min', watts: 375 },
-                { key: 'best_60min', watts: 355 },
-            ];
-            expect(inferRiderArchetype(rows).id).toBe('climber');
+            expect(inferRiderArchetype(rows, { ftp: 280 }).id).toBe('sprinter');
         });
     });
 });
