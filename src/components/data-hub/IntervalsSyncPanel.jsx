@@ -51,17 +51,17 @@ const IntervalsSyncPanel = ({
                     onClick={() => setExpanded((v) => !v)}
                     aria-expanded={expanded}
                     aria-controls={panelId}
-                    className="flex flex-1 min-w-0 items-start gap-2 text-left hover:bg-cdborder/10 rounded-md -m-1 p-1 transition-colors cd-focus-ring"
+                    className="flex flex-1 min-w-0 items-start justify-between gap-2 text-left hover:bg-cdborder/10 rounded-md -m-1 p-1 transition-colors cd-focus-ring"
                 >
+                    <div className="min-w-0">
+                        <h4 className="cd-type-subsection">Intervals.icu sync</h4>
+                        <p className="cd-type-caption mt-0.5">{subtitle}</p>
+                    </div>
                     {expanded ? (
                         <ChevronDown size={16} className="text-cdmuted shrink-0 mt-0.5" aria-hidden />
                     ) : (
                         <ChevronRight size={16} className="text-cdmuted shrink-0 mt-0.5" aria-hidden />
                     )}
-                    <div className="min-w-0">
-                        <h4 className="text-xs font-bold text-cdtext uppercase tracking-wide">Intervals.icu sync</h4>
-                        <p className="text-[10px] text-cdmuted leading-snug mt-0.5">{subtitle}</p>
-                    </div>
                 </button>
                 <Button
                     type="button"

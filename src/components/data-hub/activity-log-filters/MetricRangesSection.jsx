@@ -169,27 +169,29 @@ export default function MetricRangesSection({
                 <button
                     type="button"
                     onClick={() => onExpandedChange?.(!expanded)}
-                    className="flex items-center gap-1.5 text-left text-[10px] font-semibold text-cdtext uppercase tracking-wide hover:text-cdprimary cd-focus-ring rounded-sm"
+                    className="flex flex-1 min-w-0 items-center justify-between gap-2 text-left cd-type-subsection hover:text-cdprimary cd-focus-ring rounded-sm"
                     aria-expanded={expanded}
                 >
+                    <span className="flex items-center gap-1.5 min-w-0">
+                        Metric ranges
+                        {metricRangeActive ? (
+                            <span className="normal-case font-medium text-cdprimary">· active</span>
+                        ) : null}
+                    </span>
                     {expanded ? (
                         <ChevronDown size={14} className="text-cdmuted shrink-0" aria-hidden />
                     ) : (
                         <ChevronRight size={14} className="text-cdmuted shrink-0" aria-hidden />
                     )}
-                    Metric ranges
-                    {metricRangeActive ? (
-                        <span className="normal-case font-medium text-cdprimary">· active</span>
-                    ) : null}
                 </button>
-                <span className="text-[9px] text-cdmuted hidden sm:inline">Dist · Speed · Power · Duration · Elev · kJ · Dec · Thr · Race</span>
+                <span className="cd-type-caption hidden sm:inline">Dist · Speed · Power · Duration · Elev · kJ · Dec · Thr · Race</span>
                 {metricRangeActive ? (
                     <Button
                         type="button"
                         variant="text"
                         size="sm"
                         onClick={clearMetricFilters}
-                        className="!text-[10px] !h-7 ml-auto"
+                        className="!text-[10px] !h-7 shrink-0"
                     >
                         Clear ranges
                     </Button>
