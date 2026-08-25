@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import {
+    cdCollapsibleChevronClass,
+    cdTypeCaption,
+    cdTypeSection,
+} from '../../utils/typography';
+import { cn } from './cn';
 
 /**
  * Reusable collapsible panel — chevron top-right, title left.
@@ -41,15 +47,15 @@ export default function CollapsibleSection({
             >
                 <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                        <h3 className="text-lg font-bold text-cdtext flex items-center gap-2">
+                        <h3 className={cn(cdTypeSection, 'flex items-center gap-2')}>
                             {Icon ? <Icon size={20} className={`shrink-0 ${iconClassName}`} /> : null}
                             <span className="min-w-0">{title}</span>
                         </h3>
                         {subtitle ? (
-                            <p className="text-xs text-cdmuted mt-1 leading-relaxed">{subtitle}</p>
+                            <p className={cn(cdTypeCaption, 'mt-1 leading-relaxed')}>{subtitle}</p>
                         ) : null}
                     </div>
-                    <div className="shrink-0 self-start pt-0.5 text-cdmuted" aria-hidden>
+                    <div className={cn(cdCollapsibleChevronClass, 'self-start pt-0.5')} aria-hidden>
                         {expanded
                             ? <ChevronDown size={18} />
                             : <ChevronRight size={18} />}

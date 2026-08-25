@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { chartCardShellClass } from '../../utils/chartTheme';
+import {
+    cdCollapsibleChevronClass,
+    cdTypeCaption,
+    cdTypeSection,
+} from '../../utils/typography';
 import { cn } from '../ui';
 
 /**
@@ -33,13 +38,13 @@ export default function CollapsibleDashboardCard({
                             </div>
                         ) : null}
                         <div className="min-w-0 flex-1">
-                            <span className="text-lg font-bold text-cdtext">{title}</span>
+                            <span className={cdTypeSection}>{title}</span>
                             {description ? (
-                                <div className="text-xs text-cdmuted mt-1 leading-relaxed">{description}</div>
+                                <div className={cn(cdTypeCaption, 'mt-1 leading-relaxed')}>{description}</div>
                             ) : null}
                         </div>
                     </div>
-                    <div className="shrink-0 self-start pt-0.5 text-cdmuted" aria-hidden>
+                    <div className={cn(cdCollapsibleChevronClass, 'self-start pt-0.5')} aria-hidden>
                         {expanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
                     </div>
                 </div>

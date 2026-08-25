@@ -246,7 +246,7 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
                             Week {activeGoalSnapshot.currentWeekNum}: {activeGoalSnapshot.currentPhaseLabel}
                             {activeGoalSnapshot.isTaperPhase ? ' (taper)' : ''}
                             {' · '}
-                            <span className="font-mono font-bold text-cdtext">{activeGoalSnapshot.currentWeekTargetTss} TSS</span>
+                            <span className="font-bold tabular-nums text-cdtext">{activeGoalSnapshot.currentWeekTargetTss} TSS</span>
                             {' '}this week — also drives your fluid week plan in Coach.
                         </p>
                         {planResult.plan?.developmentMode === 'develop-aerobic' && (
@@ -447,11 +447,11 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
                             <p className="text-sm text-cdtext leading-relaxed">{planResult.demand.narrative}</p>
                             <dl className="grid grid-cols-2 gap-2 text-sm">
                                 <dt className="text-cdmuted">Weeks to event</dt>
-                                <dd className="text-cdtext font-mono font-bold">{planResult.weeksToEvent}</dd>
+                                <dd className="text-cdtext font-bold tabular-nums">{planResult.weeksToEvent}</dd>
                                 <dt className="text-cdmuted">Recent TSS/week (4 wk)</dt>
-                                <dd className="text-cdtext font-mono font-bold">{planResult.recentWeeklyTss}</dd>
+                                <dd className="text-cdtext font-bold tabular-nums">{planResult.recentWeeklyTss}</dd>
                                 <dt className="text-cdmuted">Estimated event-day TSS</dt>
-                                <dd className="text-cdtext font-mono font-bold">{planResult.demand.estimatedEventTss}</dd>
+                                <dd className="text-cdtext font-bold tabular-nums">{planResult.demand.estimatedEventTss}</dd>
                             </dl>
                             <p className="text-xs text-cdmuted leading-relaxed border-t border-cdborder pt-3">
                                 The period for “recent TSS” follows your dashboard filter (start: {startDate || '—'}). Adjust the filter below the dashboard if you want a different reference.
@@ -501,7 +501,7 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
                                             Week {w.weekNum}
                                             {isCurrent ? ' · now' : ''}
                                         </span>
-                                        <span className="font-mono font-bold text-cdtext">{w.targetTss} TSS</span>
+                                        <span className="font-bold tabular-nums text-cdtext">{w.targetTss} TSS</span>
                                     </div>
                                     <p className="text-sm font-semibold text-cdtext">{w.phaseLabel}</p>
                                     <p className="text-xs text-cdmuted leading-relaxed">{w.focus}</p>
@@ -530,14 +530,14 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
                                                 isCurrent ? 'bg-cdaccent/10' : ''
                                             }`}
                                         >
-                                            <td className="px-3 py-2 font-mono font-bold">
+                                            <td className="px-3 py-2 font-bold tabular-nums">
                                                 {w.weekNum}
                                                 {isCurrent ? (
                                                     <span className="ml-1 text-[10px] uppercase text-cdaccent">now</span>
                                                 ) : null}
                                             </td>
                                             <td className="px-3 py-2 text-cdmuted">{w.phaseLabel}</td>
-                                            <td className="px-3 py-2 text-right font-mono">{w.targetTss}</td>
+                                            <td className="px-3 py-2 text-right tabular-nums">{w.targetTss}</td>
                                             <td className="px-3 py-2 text-xs text-cdmuted">{w.focus}</td>
                                         </tr>
                                     );

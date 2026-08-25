@@ -125,7 +125,7 @@ const ImportModal = ({
                             {showDebug ? 'Hide debug data' : 'Show debug data (raw API response)'}
                         </Button>
                         {showDebug && (
-                            <pre className="mt-2 text-[10px] text-cdgreen bg-cdsurface border border-cdborder/50 p-4 rounded-cdmd overflow-auto max-h-60 font-mono select-text">
+                            <pre className="mt-2 text-[10px] text-cdgreen bg-cdsurface border border-cdborder/50 p-4 rounded-cdmd overflow-auto max-h-60 tabular-nums select-text">
                                 {JSON.stringify(rawData, null, 2)}
                             </pre>
                         )}

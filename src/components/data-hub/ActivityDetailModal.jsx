@@ -504,7 +504,7 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
                                                                 {seg.name}
                                                             </button>
                                                         </div>
-                                                        <span className="text-cdmuted font-mono shrink-0">{formatSegmentTime(seg.elapsed_time)}</span>
+                                                        <span className="text-cdmuted tabular-nums shrink-0">{formatSegmentTime(seg.elapsed_time)}</span>
                                                         {seg.average_watts > 0 && (
                                                             <span className="text-cdprimary font-bold shrink-0">{Math.round(seg.average_watts)}w</span>
                                                         )}

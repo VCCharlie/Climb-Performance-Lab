@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from './cn';
+import { cdTypeLabel } from '../../utils/typography';
 
 const VARIANT_CLASSES = {
   filter: {
@@ -15,8 +16,8 @@ const VARIANT_CLASSES = {
 };
 
 const SIZE_CLASSES = {
-  xs: 'px-1.5 py-0 text-[10px] leading-tight gap-0.5 min-h-[22px]',
-  sm: 'px-2 py-0.5 text-[10px] leading-tight gap-1 min-h-[24px]',
+  xs: cn('px-1.5 py-0 leading-tight gap-0.5 min-h-[22px]', cdTypeLabel, 'normal-case tracking-normal font-medium'),
+  sm: cn('px-2 py-0.5 leading-tight gap-1 min-h-[24px]', cdTypeLabel, 'normal-case tracking-normal font-medium'),
   md: 'px-2.5 py-1 text-xs gap-1.5',
   lg: 'px-3 py-1.5 text-sm gap-2',
 };

@@ -83,7 +83,7 @@ function GoalPreviewScale({ id, value, onChange, previewActive, variant = 'heade
                 +
             </button>
             <span
-                className={`font-mono tabular-nums text-cdtext text-right shrink-0 ${
+                className={`tabular-nums text-cdtext text-right shrink-0 ${
                     isMobile ? 'text-[10px] w-9' : 'text-[10px] w-8'
                 }`}
             >

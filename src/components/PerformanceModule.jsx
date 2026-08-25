@@ -72,11 +72,11 @@ const StatCard = ({ title, value, unit, subtitle, icon, trend, colorClass, split
                 <div className="mt-4 pt-3 border-t border-cdborder/50 space-y-1">
                     <div className="flex justify-between text-xs">
                         <span className="text-cdmuted">Outdoor</span>
-                        <span className="font-mono text-cdtext">{formatNumber(split.outdoor)} {unit}</span>
+                        <span className="tabular-nums text-cdtext">{formatNumber(split.outdoor)} {unit}</span>
                     </div>
                     <div className="flex justify-between text-xs">
                         <span className="text-cdmuted">Indoor</span>
-                        <span className="font-mono text-cdtext">{formatNumber(split.indoor)} {unit}</span>
+                        <span className="tabular-nums text-cdtext">{formatNumber(split.indoor)} {unit}</span>
                     </div>
                 </div>
             )}
@@ -129,7 +129,7 @@ const PeriodStatistics = ({ data }) => {
             <div className="flex items-center gap-2 mb-6 border-b border-cdborder pb-4">
                 <Calendar className="text-cdprimary" size={20} />
                 <h3 className="text-lg font-bold text-cdtext">Period Statistics</h3>
-                <span className="text-xs text-cdmuted ml-auto font-mono">
+                <span className="text-xs text-cdmuted ml-auto tabular-nums">
                     {formatDateDDMMYYYY(data[0].date)} - {formatDateDDMMYYYY(data[data.length - 1].date)}
                 </span>
             </div>

@@ -275,19 +275,19 @@ const VolumeTotalsChart = ({
                     <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm text-cdtext">
                         <div>
                             <div className="text-cdmuted text-[10px] uppercase font-bold">Distance</div>
-                            <div className="font-mono font-bold tabular-nums">{formatNlNumber(selected.distanceKm)} km</div>
+                            <div className="font-bold tabular-nums">{formatNlNumber(selected.distanceKm)} km</div>
                         </div>
                         <div>
                             <div className="text-cdmuted text-[10px] uppercase font-bold">Time</div>
-                            <div className="font-mono font-bold tabular-nums">{formatDurationHoursMinutes(selected.movingTimeSec)}</div>
+                            <div className="font-bold tabular-nums">{formatDurationHoursMinutes(selected.movingTimeSec)}</div>
                         </div>
                         <div>
                             <div className="text-cdmuted text-[10px] uppercase font-bold">Elevation</div>
-                            <div className="font-mono font-bold tabular-nums">{formatNlNumber(selected.elevationM)} m</div>
+                            <div className="font-bold tabular-nums">{formatNlNumber(selected.elevationM)} m</div>
                         </div>
                         <div>
                             <div className="text-cdmuted text-[10px] uppercase font-bold">Load</div>
-                            <div className="font-mono font-bold tabular-nums text-blue-400/95">{formatNlNumber(selected.load)}</div>
+                            <div className="font-bold tabular-nums text-blue-400/95">{formatNlNumber(selected.load)}</div>
                         </div>
                     </div>
                     {typeof onOpenActivityLogDateRange === 'function' && selectionDateRange && (

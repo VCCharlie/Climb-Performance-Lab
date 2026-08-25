@@ -235,7 +235,7 @@ const StravaVsLogGapPanel = ({
                             setStartYmd(v);
                             schedulePersistUi({ startYmd: v, endYmd, includeEbikeRide, useFuzzyMatch });
                         }}
-                        className="bg-cdbg border border-cdborder rounded px-2 py-1.5 text-xs text-cdtext font-mono"
+                        className="bg-cdbg border border-cdborder rounded px-2 py-1.5 text-xs text-cdtext tabular-nums"
                         aria-label="From date (dd-mm-jjjj)"
                     />
                 </label>
@@ -247,7 +247,7 @@ const StravaVsLogGapPanel = ({
                             setEndYmd(v);
                             schedulePersistUi({ startYmd, endYmd: v, includeEbikeRide, useFuzzyMatch });
                         }}
-                        className="bg-cdbg border border-cdborder rounded px-2 py-1.5 text-xs text-cdtext font-mono"
+                        className="bg-cdbg border border-cdborder rounded px-2 py-1.5 text-xs text-cdtext tabular-nums"
                         aria-label="To date (dd-mm-jjjj)"
                     />
                 </label>
@@ -328,7 +328,7 @@ const StravaVsLogGapPanel = ({
             {cachedFetchedLabel && fullScanSource === 'disk' && fullScanActs !== null && (
                 <p className="text-[10px] text-cdmuted">
                     Using <strong className="text-cdtext">browser-cached</strong> full Strava ride list from{' '}
-                    <span className="text-cdtext font-mono">{cachedFetchedLabel}</span> ({fmtInt(cachedScanMeta?.count || 0)} rides).
+                    <span className="text-cdtext tabular-nums">{cachedFetchedLabel}</span> ({fmtInt(cachedScanMeta?.count || 0)} rides).
                     Tap <strong className="text-cdtext">Refresh Strava ride list</strong> to update from Strava.
                 </p>
             )}
@@ -415,12 +415,12 @@ const StravaVsLogGapPanel = ({
                                         const st = a.sport_type || a.type || '';
                                         return (
                                             <tr key={a.id} className="hover:bg-cdborder/10">
-                                                <td className={`${td} font-mono whitespace-nowrap`}>{d}</td>
+                                                <td className={`${td} tabular-nums whitespace-nowrap`}>{d}</td>
                                                 <td className={td}>
                                                     <span className="line-clamp-2">{a.name || '—'}</span>
                                                 </td>
                                                 <td className={`${td} text-cdmuted`}>{st}</td>
-                                                <td className={`${td} text-right font-mono`}>{fmtKm(km)}</td>
+                                                <td className={`${td} text-right tabular-nums`}>{fmtKm(km)}</td>
                                                 <td className={`${td} text-right text-cdmuted`}>
                                                     {movingTimeLabel(a.moving_time)}
                                                 </td>

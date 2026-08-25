@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '../ui/cn';
+import { cdTypePageSubtitle, cdTypePageTitle } from '../../utils/typography';
 
 /**
  * Reusable tab page shell: [Header: title + subtitle + optional action] → [SubTabNav | SegmentedControl slot] → [content].
@@ -41,10 +42,10 @@ export default function TabPageShell({
                 >
                     <div className="min-w-0">
                         {title ? (
-                            <h2 className="text-xl md:text-2xl font-bold text-cdtext tracking-tight">{title}</h2>
+                            <h2 className={cdTypePageTitle}>{title}</h2>
                         ) : null}
                         {subtitle ? (
-                            <p className="hidden md:block text-cdmuted text-sm mt-0.5">{subtitle}</p>
+                            <p className={cn('hidden md:block', cdTypePageSubtitle)}>{subtitle}</p>
                         ) : null}
                     </div>
                     {action ? <div className="shrink-0">{action}</div> : null}

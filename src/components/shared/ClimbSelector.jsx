@@ -87,7 +87,7 @@ const NumberFilter = ({ label, value, onChange, min, max, step = 1, showDecimals
           value={inputVal}
           onChange={handleChange}
           onBlur={handleBlur}
-          className="w-14 text-center bg-transparent text-xs text-cdtext outline-none font-mono"
+          className="w-14 text-center bg-transparent text-xs text-cdtext outline-none tabular-nums"
         />
         <RepeatButton
           onAction={() => onChange(Math.min(max, Number((value + step).toFixed(showDecimals ? 1 : 0))))}

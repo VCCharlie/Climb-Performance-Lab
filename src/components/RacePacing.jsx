@@ -194,7 +194,7 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
                     <div className="bg-cdbg/50 p-4 rounded border border-cdborder">
                         <div className="flex justify-between text-xs text-cdtext mb-2">
                             <span>Race Intensity (IF)</span>
-                            <span className="font-mono text-cdprimary">{(targetIntensity * 100).toFixed(0)}%</span>
+                            <span className="tabular-nums text-cdprimary">{(targetIntensity * 100).toFixed(0)}%</span>
                         </div>
                         <input
                             type="range"
@@ -377,16 +377,16 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
                                             <td className="py-2 px-2 text-cdtext font-medium">
                                                 {detail.climb.name}
                                             </td>
-                                            <td className="py-2 px-2 text-right text-cdprimary font-mono">
+                                            <td className="py-2 px-2 text-right text-cdprimary tabular-nums">
                                                 {Math.round(detail.power)}W
                                             </td>
-                                            <td className="py-2 px-2 text-right text-cdtext font-mono">
+                                            <td className="py-2 px-2 text-right text-cdtext tabular-nums">
                                                 {Math.round(detail.timeMinutes)}m
                                             </td>
-                                            <td className="py-2 px-2 text-right text-orange-500 font-mono">
+                                            <td className="py-2 px-2 text-right text-orange-500 tabular-nums">
                                                 {Math.round(detail.carbsGrams)}g
                                             </td>
-                                            <td className="py-2 px-2 text-right text-cdmuted font-mono text-xs">
+                                            <td className="py-2 px-2 text-right text-cdmuted tabular-nums text-xs">
                                                 {Math.floor(detail.cumulativeTime / 60)}h{Math.round(detail.cumulativeTime % 60)}m
                                             </td>
                                         </tr>

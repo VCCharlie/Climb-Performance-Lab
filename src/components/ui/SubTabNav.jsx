@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { cn } from './cn';
+import { cdTypeSubsection } from '../../utils/typography';
 
 /** Active sub-tab text — use cdprimary (theme accent), not hardcoded yellow. */
 export const SUB_TAB_ACTIVE_TEXT_CLASS = 'text-cdprimary';
@@ -10,7 +11,8 @@ export const SUB_TAB_ACTIVE_TEXT_CLASS = 'text-cdprimary';
 export function subTabButtonClass(isActive, activeTextClass = SUB_TAB_ACTIVE_TEXT_CLASS) {
     return cn(
         'shrink-0 md:flex-1 md:min-w-[5.5rem] px-3 md:px-2 py-2 md:py-3',
-        'text-xs md:text-sm font-bold whitespace-nowrap cd-focus-ring cd-transition',
+        cdTypeSubsection,
+        'normal-case tracking-normal md:text-sm font-bold whitespace-nowrap cd-focus-ring cd-transition',
         isActive
             ? cn('bg-cdborder', activeTextClass)
             : 'text-cdmuted hover:bg-cdborder/50',

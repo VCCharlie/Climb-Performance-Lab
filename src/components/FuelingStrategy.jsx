@@ -194,14 +194,14 @@ const FuelingStrategy = ({
                         <div>
                             <div className="flex justify-between text-xs text-cdtext mb-1">
                                 <span>Duration</span>
-                                <span className="font-mono text-cdprimary">{Math.floor(duration / 60)}h {duration % 60}m</span>
+                                <span className="tabular-nums text-cdprimary">{Math.floor(duration / 60)}h {duration % 60}m</span>
                             </div>
                             <input type="range" min="30" max="600" step="15" value={duration} onChange={e => setDuration(parseInt(e.target.value))} className="w-full h-2 bg-cdborder rounded-lg appearance-none cursor-pointer accent-cdprimary" />
                         </div>
                         <div>
                             <div className="flex justify-between text-xs text-cdtext mb-1">
                                 <span>Intensity (IF)</span>
-                                <span className="font-mono text-cdprimary">{(intensity * 100).toFixed(0)}%</span>
+                                <span className="tabular-nums text-cdprimary">{(intensity * 100).toFixed(0)}%</span>
                             </div>
                             <input type="range" min="0.5" max="1.1" step="0.01" value={intensity} onChange={e => setIntensity(parseFloat(e.target.value))} className="w-full h-2 bg-cdborder rounded-lg appearance-none cursor-pointer accent-red-500" />
                         </div>
@@ -326,13 +326,13 @@ const FuelingStrategy = ({
                         <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
                             {/* Pre-Load */}
                             <div className="flex items-center gap-4 text-cdmuted border-l-2 border-cdborder pl-4 py-1">
-                                <span className="font-mono text-xs w-12">-15m</span>
+                                <span className="tabular-nums text-xs w-12">-15m</span>
                                 <div className="bg-cdsurface px-3 py-1 rounded text-xs">Drink 300ml + 1 Gel (Pre-load)</div>
                             </div>
 
                             {timeline.map((event, idx) => (
                                 <div key={idx} className="flex items-center gap-4 text-cdtext border-l-2 border-cdprimary/50 pl-4 py-1">
-                                    <span className="font-mono text-sm w-12 text-cdprimary">{Math.floor(event.time / 60)}h{event.time % 60 > 0 ? event.time % 60 : '00'}</span>
+                                    <span className="tabular-nums text-sm w-12 text-cdprimary">{Math.floor(event.time / 60)}h{event.time % 60 > 0 ? event.time % 60 : '00'}</span>
                                     <div className="flex items-center gap-2 bg-cdsurface px-3 py-2 rounded text-sm w-full">
                                         <event.icon size={14} className="text-cdmuted" />
                                         {event.action}

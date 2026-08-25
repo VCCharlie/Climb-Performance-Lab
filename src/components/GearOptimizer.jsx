@@ -258,7 +258,7 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
                         <div>
                             <div className="flex justify-between text-xs text-cdtext mb-1">
                                 <span>Target Power</span>
-                                <span className="font-mono text-cdprimary">{Math.round(targetPower)}W</span>
+                                <span className="tabular-nums text-cdprimary">{Math.round(targetPower)}W</span>
                             </div>
                             <input
                                 type="range"
@@ -274,7 +274,7 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
                         <div>
                             <div className="flex justify-between text-xs text-cdtext mb-1">
                                 <span>Preferred Cadence</span>
-                                <span className="font-mono text-blue-400">{targetCadence} rpm</span>
+                                <span className="tabular-nums text-blue-400">{targetCadence} rpm</span>
                             </div>
                             <input
                                 type="range"
@@ -346,10 +346,10 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
                                         : 'bg-cdsurface border border-cdborder'
                                         } ${gear === gearAnalysis.optimal ? 'ring-2 ring-cdprimary' : ''}`}
                                 >
-                                    <span className="text-cdtext font-mono">
+                                    <span className="text-cdtext tabular-nums">
                                         {gear.chainring}x{gear.cog}
                                     </span>
-                                    <span className={`font-mono ${gear.isSuitable ? 'text-green-400' : 'text-cdmuted'}`}>
+                                    <span className={`tabular-nums ${gear.isSuitable ? 'text-green-400' : 'text-cdmuted'}`}>
                                         {Math.round(gear.cadenceNeeded)} rpm
                                     </span>
                                     <span className="text-cdmuted">

@@ -125,17 +125,17 @@ export function VolumeGoalPeriodCard({ title, subtitle, range, g, s, nowRef, yea
                 <div className="grid grid-cols-3 gap-2 text-[10px] text-cdtext">
                     <div>
                         <span className="text-cdmuted block text-[9px]">km</span>
-                        <span className="font-mono font-semibold">{g.distanceKm || '—'}</span>
+                        <span className="tabular-nums font-semibold">{g.distanceKm || '—'}</span>
                     </div>
                     <div>
                         <span className="text-cdmuted block text-[9px]">hours</span>
-                        <span className="font-mono font-semibold">
+                        <span className="tabular-nums font-semibold">
                             {g.movingTimeHours ? formatHoursShort(g.movingTimeHours) : '—'}
                         </span>
                     </div>
                     <div>
                         <span className="text-cdmuted block text-[9px]">m</span>
-                        <span className="font-mono font-semibold">{g.elevationM || '—'}</span>
+                        <span className="tabular-nums font-semibold">{g.elevationM || '—'}</span>
                     </div>
                 </div>
             </div>
