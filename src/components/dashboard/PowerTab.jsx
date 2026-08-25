@@ -193,6 +193,7 @@ const PowerTab = ({
                     powerPeakRows={powerPeakRows}
                     historyPeakRows={historyPowerPeakRows}
                     manualFtp={manualFtp}
+                    weightKg={effectiveWeightKg}
                     onOpenActivityInLog={onOpenActivityInLog}
                 />
             )}
