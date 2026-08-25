@@ -77,7 +77,7 @@ function CalendarDayCell({
                     />
                 )}
                 {dayTss > 0 && (
-                    <p className="text-[9px] text-cdmuted tabular-nums font-mono leading-none">
+                    <p className="cd-type-caption tabular-nums leading-none">
                         {Math.round(dayTss)}
                     </p>
                 )}

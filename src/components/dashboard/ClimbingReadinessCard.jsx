@@ -52,7 +52,7 @@ function HistoryTable({ rows }) {
                     {rows.map((row) => (
                         <tr key={row.label} className="text-cdtext">
                             <td className="px-2 py-1.5 text-cdmuted">{row.label}</td>
-                            <td className="px-2 py-1.5 font-mono font-bold text-right tabular-nums">
+                            <td className="px-2 py-1.5 font-bold text-right tabular-nums">
                                 {row.composite}/100
                             </td>
                             <td className="px-2 py-1.5 text-cdmuted">{row.badgeLabel}</td>

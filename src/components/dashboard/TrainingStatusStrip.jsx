@@ -13,7 +13,7 @@ const BADGE_STYLES = {
 function MetricCell({ label, value, colorClass = 'text-cdtext' }) {
     return (
         <div className="min-w-0 text-center px-2">
-            <div className={`text-lg md:text-xl font-black tabular-nums ${colorClass}`}>
+            <div className={`text-base md:text-lg font-black tabular-nums ${colorClass}`}>
                 {value ?? '—'}
             </div>
             <div className="text-[10px] text-cdmuted uppercase tracking-wide font-bold mt-0.5">
@@ -69,7 +69,7 @@ export default function TrainingStatusStrip({ activities, userSettings }) {
                 >
                     <Gauge size={12} aria-hidden />
                     {status.readinessBadge?.label}
-                    <span className="tabular-nums font-mono normal-case">{status.readinessComposite}/100</span>
+                    <span className="tabular-nums normal-case">{status.readinessComposite}/100</span>
                 </span>
             </div>
 
