@@ -161,4 +161,25 @@ describe('riderPhenotype', () => {
         expect(result.id).toBe('time_trialist');
         expect(result.zoneIndices.best_20min).toBeGreaterThan(0);
     });
+
+    it('does not classify flat % of all-time band as sprinter (user screenshot curve)', () => {
+        const period = peakRows({
+            best_1min: 534,
+            best_5min: 348,
+            best_10min: 310,
+            best_20min: 304,
+            best_60min: 279,
+        });
+        const history = peakRows({
+            best_1min: 631,
+            best_5min: 403,
+            best_10min: 342,
+            best_20min: 337,
+            best_60min: 302,
+        });
+        const result = inferRiderPhenotype(period, { ftp: FTP, historyPeakRows: history });
+        expect(result.id).not.toBe('sprinter');
+        expect(['rouleur', 'climber', 'time_trialist']).toContain(result.id);
+        expect(result.scores.sprinter).toBeLessThan(result.scores.rouleur);
+    });
 });

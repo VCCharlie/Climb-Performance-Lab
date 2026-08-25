@@ -13,10 +13,10 @@ import { cn } from '../ui';
 
 function barTone(pct) {
     if (pct == null) return 'bg-cdborder/50';
-    if (pct >= 95) return 'bg-emerald-500';
-    if (pct >= 80) return 'bg-cdprimary';
-    if (pct >= 65) return 'bg-amber-500';
-    return 'bg-orange-600/80';
+    if (pct >= 95) return 'bg-cdgreen/70';
+    if (pct >= 80) return 'bg-cdprimary/75';
+    if (pct >= 65) return 'bg-cdaccent/60';
+    return 'bg-cdprimary/55';
 }
 
 /**
@@ -32,8 +32,8 @@ export default function PowerCategoryBars({
 
     const bars = computePowerProfileCategoryBars(powerPeakRows, historyPeakRows);
     const phenotype = useMemo(
-        () => inferRiderPhenotype(powerPeakRows, { ftp: manualFtp, weightKg }),
-        [powerPeakRows, manualFtp, weightKg],
+        () => inferRiderPhenotype(powerPeakRows, { ftp: manualFtp, weightKg, historyPeakRows: historyPeakRows }),
+        [powerPeakRows, manualFtp, weightKg, historyPeakRows],
     );
 
     const hasData = bars.some((b) => b.periodWatts > 0 || b.baselineWatts > 0);
@@ -86,7 +86,7 @@ export default function PowerCategoryBars({
                 {showBands ? (
                     <div className="mt-2 space-y-2.5 rounded-md border border-cdborder/40 bg-cdsurface/60 px-3 py-2.5">
                         <p className={cdTypeCaption}>
-                            We compare this period&apos;s peak power at 1, 5, 10, 20, and 60 min (Coggan zones + key ratios).
+                            We compare this period&apos;s peak power at 15 s, 1, 5, 10, 20, and 60 min (Coggan zones + key ratios).
                             The highest-scoring shape wins; match % is how far ahead of the runner-up it is.
                         </p>
                         {PHENOTYPE_BANDS.map((band) => (
