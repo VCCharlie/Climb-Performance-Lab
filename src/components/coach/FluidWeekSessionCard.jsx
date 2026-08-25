@@ -96,8 +96,8 @@ export default function FluidWeekSessionCard({
                 styles.rowBg || 'bg-cdborder/5',
             ].join(' ')}
         >
-            <div className="px-2.5 py-2">
-                <div className="flex items-start gap-2">
+            <div className="px-2 py-1.5">
+                <div className="flex items-start gap-1.5">
                     <button
                         type="button"
                         onClick={() => isActionable && onToggleDone()}
@@ -113,11 +113,11 @@ export default function FluidWeekSessionCard({
                     </button>
 
                     <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                            <span className={`text-sm font-semibold ${session.completed ? 'text-cdmuted line-through' : 'text-cdtext'}`}>
+                        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                            <span className={`text-xs font-semibold ${session.completed ? 'text-cdmuted line-through' : 'text-cdtext'}`}>
                                 {session.day}
                             </span>
-                            <span className="text-[10px] text-cdmuted tabular-nums">
+                            <span className="cd-type-caption tabular-nums">
                                 {formatDateDDMMYYYY(session.date)}
                             </span>
                             {session.isToday && (
@@ -138,7 +138,7 @@ export default function FluidWeekSessionCard({
                             <StatusBadge className={styles.badge}>{styles.label}</StatusBadge>
                             {dayTss > 0 && (
                                 <span
-                                    className="inline-flex items-center gap-1 text-[10px] text-cdmuted tabular-nums font-mono"
+                                    className="inline-flex items-center gap-1 cd-type-caption tabular-nums"
                                     title={`${Math.round(dayTss)} TSS`}
                                 >
                                     {bubbleSizePx > 0 && (
@@ -153,26 +153,26 @@ export default function FluidWeekSessionCard({
                             )}
                         </div>
 
-                        <p className={`text-sm leading-snug mt-0.5 ${session.completed ? 'text-cdmuted' : 'text-cdtext'}`}>
+                        <p className={`text-xs leading-snug mt-0.5 ${session.completed ? 'text-cdmuted' : 'text-cdtext'}`}>
                             {session.workoutName}
                         </p>
 
                         {session.note && (
-                            <p className="text-[11px] text-cdaccent mt-1 flex items-start gap-1">
+                            <p className="cd-type-caption text-cdaccent mt-0.5 flex items-start gap-1">
                                 <RefreshCw size={10} className="shrink-0 mt-0.5" />
                                 {session.note}
                             </p>
                         )}
 
                         {session.flexNote && (
-                            <p className="text-[11px] text-blue-300/90 mt-1 flex items-start gap-1">
+                            <p className="cd-type-caption text-blue-300/90 mt-0.5 flex items-start gap-1">
                                 <Sparkles size={10} className="shrink-0 mt-0.5" />
                                 {session.flexNote}
                             </p>
                         )}
 
                         {session.fluidWorkout?.mainSet?.blocks?.length > 0 && !expanded && (
-                            <p className="text-[11px] text-cdmuted mt-1 truncate">
+                            <p className="cd-type-caption mt-0.5 truncate">
                                 {session.fluidWorkout.mainSet.blocks.map((b) =>
                                     `${b.reps}× ${b.workMin} min`
                                 ).join(' · ')}
@@ -188,7 +188,7 @@ export default function FluidWeekSessionCard({
                 </div>
 
                 {hasActions && (
-                    <div className="flex items-center justify-end gap-0.5 mt-1.5 pt-1.5 border-t border-cdborder/30">
+                    <div className="flex items-center justify-end gap-0.5 mt-1 pt-1 border-t border-cdborder/30">
                         {session.fluidWorkout && !isRest && (
                             <ActionButton
                                 onClick={onToggleExpand}

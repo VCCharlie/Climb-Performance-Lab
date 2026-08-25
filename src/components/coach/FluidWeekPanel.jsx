@@ -13,10 +13,10 @@ import {
 import FluidWeekSessionCard from './FluidWeekSessionCard';
 import FluidWeekCalendar from './FluidWeekCalendar';
 
-function StatPill({ icon: IconGlyph, label }) {
+function StatPill({ icon: Icon, label }) {
     return (
         <span className="inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-cdborder/25 text-cdmuted">
-            <IconGlyph size={10} className="text-cdaccent shrink-0" />
+            <Icon size={10} className="text-cdaccent shrink-0" />
             {label}
         </span>
     );
@@ -197,7 +197,7 @@ export default function FluidWeekPanel({
                     />
                 </div>
             ) : (
-                <div className="space-y-1.5 flex-1 overflow-y-auto max-h-[min(70vh,520px)] pr-0.5">
+                <div className="space-y-1 flex-1 overflow-y-auto max-h-[min(70vh,520px)] pr-0.5">
                     {weekPlan.sessions.map((session) => {
                         const expandKey = `${expandKeyPrefix}${session.date}`;
                         const dayTss = dayTssMap[session.date] || 0;

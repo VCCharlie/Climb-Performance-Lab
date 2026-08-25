@@ -66,7 +66,7 @@ function RideLabelCell({ row, isRideMode }) {
 }
 
 function MetricValue({ value }) {
-    return <span className="font-mono tabular-nums">{value ?? '—'}</span>;
+    return <span className="tabular-nums">{value ?? '—'}</span>;
 }
 
 function ExplorerRideCards({ rows, xMeta, yMeta, colorMeta }) {

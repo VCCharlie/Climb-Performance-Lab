@@ -287,7 +287,7 @@ export default function PlaygroundPowerPanel({ activities }) {
               <span className="truncate text-cdtext">
                 {e.year} · {analysis.formatEffortDate(e.date)} · {e.title}
               </span>
-              <span className="shrink-0 font-mono text-cdaccent">{e.watts} W</span>
+              <span className="shrink-0 tabular-nums text-cdaccent">{e.watts} W</span>
             </button>
           );
         })}

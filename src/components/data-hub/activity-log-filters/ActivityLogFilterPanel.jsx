@@ -107,7 +107,7 @@ export default function ActivityLogFilterPanel({
             <button
                 type="button"
                 onClick={() => onCollapsedChange?.((v) => !v)}
-                className="w-full flex items-center justify-between gap-2 px-3 py-2 min-h-9 text-left text-[10px] font-semibold uppercase tracking-wide text-cdtext cd-transition hover:bg-cdborder/10 cd-focus-ring"
+                className="w-full flex items-center justify-between gap-2 px-3 py-2 min-h-9 text-left cd-type-subsection cd-transition hover:bg-cdborder/10 cd-focus-ring"
                 aria-expanded={!collapsed}
             >
                 <span className="flex items-center gap-2 min-w-0">

@@ -41,6 +41,7 @@ export const playgroundTdClass =
 
 export const playgroundTdTextClass = `${playgroundTdClass} text-cdtext min-w-0 max-w-0`;
 
-export const playgroundTdMonoClass = `${playgroundTdClass} font-mono whitespace-nowrap`;
+/** Numeric playground cells — Barlow tabular figures (not monospace). */
+export const playgroundTdMonoClass = `${playgroundTdClass} tabular-nums whitespace-nowrap`;
 
 export const playgroundTdMutedClass = `${playgroundTdClass} text-cdmuted whitespace-nowrap`;
