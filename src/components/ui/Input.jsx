@@ -36,7 +36,7 @@ export default function Input({
         id={inputId}
         aria-describedby={[hintId, errorId].filter(Boolean).join(' ') || undefined}
         aria-invalid={error ? true : undefined}
-        className={cn(inputBaseClass, SIZE_CLASSES[size], error && 'border-cdred/60 focus:border-cdred/60 focus:ring-cdred/15', inputClassName)}
+        className={cn(inputBaseClass, SIZE_CLASSES[size], error && 'border-cdred/60 focus-visible:border-cdred/60 focus-visible:ring-cdred/15', inputClassName)}
         {...rest}
       />
       {hint && !error && (

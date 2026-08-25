@@ -297,7 +297,7 @@ const PowerDurationTable = ({
                                                     : undefined
                                             }
                                             className={`px-1 py-1 border-r border-cdborder/30 ${
-                                                tipPayload ? 'cursor-pointer hover:bg-cdborder/30 focus:outline-none focus:ring-2 focus:ring-cdaccent/50' : ''
+                                                tipPayload ? 'cursor-pointer hover:bg-cdborder/30 outline-none focus-visible:ring-2 focus-visible:ring-cdaccent/50' : ''
                                             } ${isOpen ? 'ring-2 ring-cdaccent/60 bg-cdborder/20' : ''}`}
                                         >
                                             <div className="flex items-center justify-center gap-3 tabular-nums">

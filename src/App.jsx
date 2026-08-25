@@ -51,6 +51,7 @@ const WeatherClimb = lazyWithRetry(() => import('./components/WeatherClimb'), 'W
 const ClimbMap = lazyWithRetry(() => import('./components/ClimbMap'), 'ClimbMap');
 
 import useStravaAuth from './hooks/useStravaAuth';
+import useTouchFocusRelease from './hooks/useTouchFocusRelease';
 import { applyTheme } from './theme/applyTheme';
 import { consumeNavRestore, persistMainTab, readPersistedMainTab, resolveInitialMainTab, resolveInitialDataHubInternalTab } from './utils/sessionNavRestore';
 import { mergeVolumeGoals, hydrateYearlyGoalsFromLegacy } from './utils/volumeGoals';
@@ -136,6 +137,8 @@ const App = () => {
     useEffect(() => {
         applyTheme(theme);
     }, [theme]);
+
+    useTouchFocusRelease();
 
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
