@@ -13,6 +13,7 @@ import {
 import { TrendingUp } from 'lucide-react';
 import { ChartTooltip } from '../ui';
 import { getChartTheme, chartSegmentToggleClass } from '../../utils/chartTheme';
+import { CHART_A11Y_PROPS } from '../../utils/chartA11y';
 import { formatNlNumber } from '../../utils/formatters';
 import {
     computeYearlyPowerPeakRows,
@@ -130,7 +131,7 @@ export default function PowerLongevitySection({
 
             <div className="h-56 mb-4">
                 <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                    <ComposedChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} {...CHART_A11Y_PROPS}>
                         <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} vertical={false} />
                         <XAxis
                             dataKey="xKey"

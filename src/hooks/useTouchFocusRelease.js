@@ -1,14 +1,21 @@
 import { useEffect } from 'react';
 
-const TOUCH_FOCUS_SELECTORS = [
+const RECHARTS_FOCUS_SELECTORS = [
     '.recharts-surface',
     '.recharts-wrapper',
     '.recharts-tooltip-wrapper',
+    '.recharts-default-tooltip',
 ].join(', ');
+
+function shouldReleaseTouchFocus(element) {
+    if (!(element instanceof Element)) return false;
+    if (element.closest('.cd-chart-host')) return true;
+    return element.matches(RECHARTS_FOCUS_SELECTORS);
+}
 
 /**
  * Mobile browsers keep :focus on tapped elements (charts, buttons) until elsewhere is tapped.
- * Blur pointer-driven focus so themed :focus-visible rings stay keyboard-only.
+ * Blur pointer-driven focus inside chart hosts so themed :focus-visible rings stay keyboard-only.
  */
 export default function useTouchFocusRelease() {
     useEffect(() => {
@@ -16,8 +23,7 @@ export default function useTouchFocusRelease() {
             if (event.pointerType !== 'touch') return;
 
             const active = document.activeElement;
-            if (!(active instanceof Element)) return;
-            if (!active.matches(TOUCH_FOCUS_SELECTORS)) return;
+            if (!shouldReleaseTouchFocus(active)) return;
 
             active.blur();
         };

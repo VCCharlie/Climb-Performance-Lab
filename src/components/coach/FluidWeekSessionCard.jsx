@@ -45,6 +45,8 @@ function ActionButton({ onClick, title, children, active = false, activeClass = 
 export default function FluidWeekSessionCard({
     session,
     expanded,
+    dayTss = 0,
+    tssBubbleSizePx: bubbleSizePx = 0,
     onToggleExpand,
     onToggleDone,
     onSwapRecovery,
@@ -134,6 +136,21 @@ export default function FluidWeekSessionCard({
                                 <StatusBadge className="bg-blue-500/15 text-blue-300">Moved</StatusBadge>
                             )}
                             <StatusBadge className={styles.badge}>{styles.label}</StatusBadge>
+                            {dayTss > 0 && (
+                                <span
+                                    className="inline-flex items-center gap-1 text-[10px] text-cdmuted tabular-nums font-mono"
+                                    title={`${Math.round(dayTss)} TSS`}
+                                >
+                                    {bubbleSizePx > 0 && (
+                                        <span
+                                            className="rounded-full bg-cdprimary/75 border border-cdprimary/50 shrink-0"
+                                            style={{ width: bubbleSizePx, height: bubbleSizePx }}
+                                            aria-hidden
+                                        />
+                                    )}
+                                    {Math.round(dayTss)} TSS
+                                </span>
+                            )}
                         </div>
 
                         <p className={`text-sm leading-snug mt-0.5 ${session.completed ? 'text-cdmuted' : 'text-cdtext'}`}>

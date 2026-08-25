@@ -9,7 +9,8 @@ import {
 } from 'recharts';
 import { Activity, ExternalLink } from 'lucide-react';
 import { activityExternalLinks } from '../../utils/dashboardActivityPeaks';
-import { getChartTheme } from '../../utils/chartTheme';
+import { getChartTheme, chartHostClass } from '../../utils/chartTheme';
+import { CHART_A11Y_PROPS } from '../../utils/chartA11y';
 import useElementSize from '../../hooks/useElementSize';
 import useMediaQuery from '../../hooks/useMediaQuery';
 import CollapsibleDashboardCard from './CollapsibleDashboardCard';
@@ -357,7 +358,7 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
                         chartWrapRef.current = node;
                         chartRef(node);
                     }}
-                    className="w-full min-w-0 mx-auto lg:mx-0 max-w-sm lg:max-w-none"
+                    className={`w-full min-w-0 mx-auto lg:mx-0 max-w-sm lg:max-w-none ${chartHostClass}`}
                     style={{ height: chartHeight }}
                 >
                     {chartReady ? (
@@ -368,6 +369,7 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, onOpenAc
                             cy="50%"
                             outerRadius={chartOuterRadius}
                             data={data}
+                            {...CHART_A11Y_PROPS}
                         >
                             <defs>
                                 <radialGradient id={RADAR_GRADIENT_ID} cx="50%" cy="50%" r="50%">

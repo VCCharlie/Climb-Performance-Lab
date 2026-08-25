@@ -5,6 +5,7 @@ import {
 import { History } from 'lucide-react';
 import { ChartTooltip } from '../ui';
 import { getChartTheme, chartCardClass, chartSegmentToggleClass } from '../../utils/chartTheme';
+import { CHART_A11Y_PROPS } from '../../utils/chartA11y';
 import { computeMultiYearYtdAtSameMoment, multiYearChartSeries } from '../../utils/multiYearSameMoment';
 import { formatNlNumber } from '../../utils/formatters';
 
@@ -78,7 +79,7 @@ const MultiYearCompareChart = ({ activities }) => {
 
             <div className="h-52">
                 <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                    <BarChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }} {...CHART_A11Y_PROPS}>
                         <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} vertical={false} />
                         <XAxis dataKey="year" tick={theme.axisTick} stroke={theme.axisStroke} />
                         <YAxis

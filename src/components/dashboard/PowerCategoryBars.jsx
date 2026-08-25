@@ -24,20 +24,29 @@ export default function PowerCategoryBars({ powerPeakRows, historyPeakRows }) {
 
     return (
         <div className="rounded-lg border border-cdborder/50 bg-cdsurfacelow/30 p-3 space-y-3">
+            <div
+                className={[
+                    'rounded-md border px-3 py-2',
+                    archetype.id === 'building'
+                        ? 'border-cdborder/50 bg-cdborder/15'
+                        : 'border-cdprimary/35 bg-cdprimary/10',
+                ].join(' ')}
+            >
+                <p className="text-[10px] font-bold uppercase tracking-wide text-cdmuted">
+                    Rider archetype
+                </p>
+                <p className="mt-0.5 text-base font-black text-cdtext leading-tight">
+                    {archetype.label}
+                </p>
+                <p className="mt-0.5 text-xs text-cdmuted leading-snug">
+                    {archetype.tagline}
+                </p>
+            </div>
+
             <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                    <h4 className="text-[10px] font-bold uppercase tracking-wide text-cdmuted">
-                        Power categories
-                    </h4>
-                    {archetype.id !== 'building' && (
-                        <p className="mt-1 text-sm font-bold text-cdtext">
-                            {archetype.label}
-                            <span className="ml-1.5 text-[11px] font-normal text-cdmuted">
-                                · {archetype.tagline}
-                            </span>
-                        </p>
-                    )}
-                </div>
+                <h4 className="text-[10px] font-bold uppercase tracking-wide text-cdmuted">
+                    Power categories
+                </h4>
                 <span className="text-[10px] text-cdmuted shrink-0 pt-0.5">% of all-time peak</span>
             </div>
 

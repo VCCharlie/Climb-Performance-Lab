@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import { ChartTooltip, SegmentedControl } from '../../ui';
 import { getChartTheme, chartCardClass, chartHostClass } from '../../../utils/chartTheme';
+import { CHART_A11Y_PROPS } from '../../../utils/chartA11y';
 import { seriesFromBarChartIndex } from '../../../utils/dashboardBarChartBuckets';
 import { barChartGoalLineValue } from '../../../utils/volumeGoals';
 import { formatNlNumber } from '../../../utils/formatters';
@@ -77,7 +78,7 @@ const BarChartCard = ({ barChartIndex, metric, title, unit, color, userSettings 
             ) : (
                 <div className={`h-44 ${chartHostClass}`}>
                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                        <BarChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }} {...CHART_A11Y_PROPS}>
                             <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} opacity={0.65} vertical={false} />
                             <XAxis
                                 dataKey="label"

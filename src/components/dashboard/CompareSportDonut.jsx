@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { ChartTooltip } from '../ui';
 import { chartCardClass } from '../../utils/chartTheme';
+import { CHART_A11Y_PROPS } from '../../utils/chartA11y';
 import { formatSportMixValue } from '../../utils/compareSportMix';
 
 /**
@@ -28,7 +29,7 @@ const CompareSportDonut = ({ rows, basis = 'distanceKm' }) => {
             <p className="text-[10px] text-cdmuted mb-3">Current period · by {basis === 'count' ? 'activity count' : basis === 'movingTimeSec' ? 'hours' : 'distance'}</p>
             <div className="h-52">
                 <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
+                    <PieChart {...CHART_A11Y_PROPS}>
                         <Pie
                             data={rows}
                             dataKey="value"

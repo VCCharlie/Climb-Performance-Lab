@@ -59,6 +59,36 @@ describe('useTouchFocusRelease', () => {
         });
     });
 
+    it('blurs a focused element inside cd-chart-host after touch pointerup', () => {
+        renderHook(() => useTouchFocusRelease());
+
+        const handler = document.addEventListener.mock.calls.find(
+            ([eventName]) => eventName === 'pointerup',
+        )?.[1];
+
+        const host = document.createElement('div');
+        host.className = 'cd-chart-host';
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.blur = vi.fn();
+        host.appendChild(button);
+        document.body.appendChild(host);
+        Object.defineProperty(document, 'activeElement', {
+            configurable: true,
+            value: button,
+        });
+
+        handler({ pointerType: 'touch' });
+
+        expect(button.blur).toHaveBeenCalled();
+
+        document.body.removeChild(host);
+        Object.defineProperty(document, 'activeElement', {
+            configurable: true,
+            value: document.body,
+        });
+    });
+
     it('does not blur chart focus for mouse pointerup', () => {
         renderHook(() => useTouchFocusRelease());
 

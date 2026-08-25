@@ -7,6 +7,7 @@ import { BarChart3 } from 'lucide-react';
 import PowerCurveChart from './charts/PowerCurveChart';
 import { ChartTooltip } from '../ui';
 import { getChartTheme } from '../../utils/chartTheme';
+import { CHART_A11Y_PROPS } from '../../utils/chartA11y';
 import useMediaQuery from '../../hooks/useMediaQuery';
 import CollapsibleDashboardCard from './CollapsibleDashboardCard';
 
@@ -32,6 +33,7 @@ const PowerTabDetails = ({ monthlyBests, data, manualFtp }) => {
                         <LineChart
                             data={monthlyBests}
                             margin={{ top: 5, right: isMobile ? 8 : 20, left: isMobile ? -8 : 0, bottom: 0 }}
+                            {...CHART_A11Y_PROPS}
                         >
                             <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} opacity={0.65} vertical={false} />
                             <XAxis
