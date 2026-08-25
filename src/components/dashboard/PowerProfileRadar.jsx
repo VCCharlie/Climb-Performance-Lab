@@ -40,12 +40,12 @@ function historyAccentColor() {
     return getCssVar('--cd-green', '#16a34a');
 }
 
-function periodAccentMuted(alpha = 0.28) {
+function periodAccentMuted(alpha = 0.18) {
     const base = periodAccentColor();
     return `color-mix(in srgb, ${base} ${Math.round(alpha * 100)}%, transparent)`;
 }
 
-function historyAccentMuted(alpha = 0.22) {
+function historyAccentMuted(alpha = 0.14) {
     const base = historyAccentColor();
     return `color-mix(in srgb, ${base} ${Math.round(alpha * 100)}%, transparent)`;
 }
@@ -64,32 +64,50 @@ function CustomAngleTick({ x, y, payload, data, displayKey, isCoarsePointer }) {
     const datum = data?.find((d) => d.subject === payload?.value);
     const active = datum?.key === displayKey;
     const watts = datum?.wattsPeriod > 0 ? `${datum.wattsPeriod} W` : null;
+    const isTop = datum?.key === 'peak_15s';
+    const labelY = isTop ? -12 : 0;
+    const wattsY = isTop ? 4 : 14;
+    const pillW = watts ? Math.max(44, watts.length * (isCoarsePointer ? 6.2 : 6.8) + 12) : 0;
 
     return (
-        <g transform={`translate(${x},${y})`}>
+        <g transform={`translate(${x},${y + (isTop ? -8 : 0)})`}>
             <text
+                y={labelY}
                 textAnchor="middle"
                 dominantBaseline="middle"
                 fill={active ? 'var(--cd-text)' : 'var(--cd-muted, #64748b)'}
-                fontSize={isCoarsePointer ? 12 : 13}
+                fontSize={isCoarsePointer ? 11 : 12}
                 fontWeight={700}
                 fontFamily={BARLOW}
             >
                 {payload?.value}
             </text>
             {watts ? (
-                <text
-                    y={14}
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    fill={active ? periodAccentColor() : 'var(--cd-muted, #64748b)'}
-                    fillOpacity={active ? 0.88 : 1}
-                    fontSize={isCoarsePointer ? 10 : 11}
-                    fontWeight={600}
-                    fontFamily={BARLOW}
-                >
-                    {watts}
-                </text>
+                <g transform={`translate(0, ${wattsY})`}>
+                    <rect
+                        x={-pillW / 2}
+                        y={-9}
+                        width={pillW}
+                        height={16}
+                        rx={4}
+                        fill="var(--cd-surface-bright, var(--cd-surface))"
+                        fillOpacity={0.94}
+                        stroke="var(--cd-border, #dce1e8)"
+                        strokeOpacity={0.55}
+                        strokeWidth={0.75}
+                    />
+                    <text
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fill={active ? periodAccentColor() : 'var(--cd-muted, #64748b)'}
+                        fillOpacity={active ? 0.82 : 0.92}
+                        fontSize={isCoarsePointer ? 9 : 10}
+                        fontWeight={600}
+                        fontFamily={BARLOW}
+                    >
+                        {watts}
+                    </text>
+                </g>
             ) : null}
         </g>
     );
@@ -265,10 +283,10 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, weightKg
     const [pinnedKey, setPinnedKey] = useState(null);
 
     const outerStroke = historyAccentColor();
-    const outerFill = historyAccentMuted(0.2);
+    const outerFill = historyAccentMuted(0.14);
     const periodStroke = periodAccentColor();
-    const periodFillStrong = periodAccentMuted(0.32);
-    const periodFillSoft = periodAccentMuted(0.12);
+    const periodFillStrong = periodAccentMuted(0.22);
+    const periodFillSoft = periodAccentMuted(0.08);
 
     const data = useMemo(() => {
         const periodRows = powerPeakRows || [];
@@ -308,6 +326,22 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, weightKg
         () => (displayKey ? data.find((row) => row.key === displayKey) : null),
         [data, displayKey],
     );
+
+    useEffect(() => {
+        const host = chartWrapRef.current;
+        if (!host) return undefined;
+
+        const releaseChartFocus = () => {
+            const active = document.activeElement;
+            if (!(active instanceof Element)) return;
+            if (!host.contains(active)) return;
+            if (!active.closest('.recharts-surface, .recharts-wrapper')) return;
+            active.blur();
+        };
+
+        host.addEventListener('pointerup', releaseChartFocus, true);
+        return () => host.removeEventListener('pointerup', releaseChartFocus, true);
+    }, []);
 
     useEffect(() => {
         if (!pinnedKey) return undefined;
@@ -353,7 +387,9 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, weightKg
             if (cx == null || cy == null || !payload?.key) return null;
             const k = payload.key;
             const hi = displayKey === k;
-            const r = hi ? (isCoarsePointer ? 14 : 12) : (isCoarsePointer ? 11 : 9);
+            const is15s = k === 'peak_15s';
+            const baseR = is15s ? (isCoarsePointer ? 9 : 7) : (isCoarsePointer ? 11 : 9);
+            const r = hi ? baseR + (isCoarsePointer ? 2 : 2) : baseR;
             return (
                 <g>
                     <circle
@@ -380,9 +416,9 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, weightKg
                         r={r}
                         fill={hi ? periodFillStrong : periodFillSoft}
                         stroke={periodStroke}
-                        strokeOpacity={hi ? 0.95 : 0.72}
-                        strokeWidth={hi ? 3 : 2}
-                        filter={hi ? `url(#${RADAR_GLOW_ID})` : undefined}
+                        strokeOpacity={hi ? 0.78 : 0.55}
+                        strokeWidth={hi ? 2 : 1.5}
+                        filter={hi && !is15s ? `url(#${RADAR_GLOW_ID})` : undefined}
                         pointerEvents="none"
                     />
                 </g>
@@ -409,8 +445,8 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, weightKg
         [data],
     );
 
-    const chartHeight = isNarrow ? 360 : isCoarsePointer ? 420 : isWide ? 480 : 440;
-    const chartOuterRadius = chartSize.width > 0 && chartSize.width < 360 ? '74%' : '82%';
+    const chartHeight = isNarrow ? 380 : isCoarsePointer ? 440 : isWide ? 500 : 460;
+    const chartOuterRadius = chartSize.width > 0 && chartSize.width < 360 ? '70%' : '76%';
     const chartReady = chartSize.width > 0 && chartSize.height > 0;
 
     const angleTickRenderer = useCallback(
@@ -445,14 +481,14 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, weightKg
         >
             <div className={cn('flex flex-col sm:flex-row sm:flex-wrap justify-center gap-3 sm:gap-x-8 sm:gap-y-2 mb-5 px-1', cdTypeBody, 'text-cdmuted')}>
                 <span className="inline-flex items-center gap-2.5">
-                    <span className="h-3.5 w-3.5 shrink-0 rounded-full bg-cdprimary shadow-sm ring-2 ring-cdprimary/30" />
+                    <span className="h-3.5 w-3.5 shrink-0 rounded-full bg-cdprimary/55 ring-1 ring-cdprimary/20" />
                     <span>
                         <span className="font-bold text-cdtext">This period</span>
                         <span className="hidden sm:inline"> — filled area</span>
                     </span>
                 </span>
                 <span className="inline-flex items-center gap-2.5">
-                    <span className="h-0 w-8 shrink-0 border-t-[3px] border-dashed border-cdgreen/70" />
+                    <span className="h-0 w-8 shrink-0 border-t-2 border-dashed border-cdgreen/45" />
                     <span>
                         <span className="font-bold text-cdtext">All-time best</span>
                         <span className="hidden sm:inline"> — dashed ring{!showHistoryRing && ' (same as period)'}</span>
@@ -478,7 +514,9 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, weightKg
                     className={cn(
                         'w-full min-w-0 order-1 2xl:order-2 rounded-2xl border border-cdborder/40 bg-cdsurfacelow/30 p-2 sm:p-4',
                         chartHostClass,
+                        'outline-none focus:outline-none focus-visible:outline-none',
                     )}
+                    tabIndex={-1}
                     style={{ height: chartHeight, minHeight: chartHeight }}
                 >
                     {chartReady ? (
@@ -489,17 +527,17 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, weightKg
                             cy="50%"
                             outerRadius={chartOuterRadius}
                             data={data}
-                            margin={{ top: 28, right: 36, bottom: 28, left: 36 }}
+                            margin={{ top: 48, right: 40, bottom: 32, left: 40 }}
                             {...CHART_A11Y_PROPS}
                         >
                             <defs>
                                 <radialGradient id={RADAR_GRADIENT_ID} cx="50%" cy="50%" r="55%">
-                                    <stop offset="10%" stopColor={periodStroke} stopOpacity={0.42} />
-                                    <stop offset="70%" stopColor={periodStroke} stopOpacity={0.16} />
-                                    <stop offset="100%" stopColor={periodStroke} stopOpacity={0.04} />
+                                    <stop offset="10%" stopColor={periodStroke} stopOpacity={0.24} />
+                                    <stop offset="70%" stopColor={periodStroke} stopOpacity={0.1} />
+                                    <stop offset="100%" stopColor={periodStroke} stopOpacity={0.03} />
                                 </radialGradient>
                                 <filter id={RADAR_GLOW_ID} x="-50%" y="-50%" width="200%" height="200%">
-                                    <feGaussianBlur stdDeviation="3.5" result="blur" />
+                                    <feGaussianBlur stdDeviation="2.5" result="blur" />
                                     <feMerge>
                                         <feMergeNode in="blur" />
                                         <feMergeNode in="SourceGraphic" />
@@ -508,7 +546,7 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, weightKg
                             </defs>
                             <PolarGrid
                                 stroke={theme.grid}
-                                strokeOpacity={0.45}
+                                strokeOpacity={0.35}
                                 gridType="polygon"
                                 radialLines
                             />
@@ -535,9 +573,9 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, weightKg
                                 stroke={outerStroke}
                                 fill={outerFill}
                                 fillOpacity={1}
-                                strokeWidth={2}
-                                strokeOpacity={0.72}
-                                strokeDasharray="7 5"
+                                strokeWidth={1.5}
+                                strokeOpacity={0.5}
+                                strokeDasharray="6 4"
                                 dot={false}
                                 isAnimationActive
                                 animationDuration={450}
@@ -549,8 +587,8 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, weightKg
                                 stroke={periodStroke}
                                 fill={`url(#${RADAR_GRADIENT_ID})`}
                                 fillOpacity={1}
-                                strokeWidth={2.5}
-                                strokeOpacity={0.88}
+                                strokeWidth={1.75}
+                                strokeOpacity={0.65}
                                 shape={PeriodRadarFillShape}
                                 dot={renderPeriodDot}
                                 activeDot={false}
