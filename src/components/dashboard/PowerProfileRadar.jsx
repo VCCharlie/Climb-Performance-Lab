@@ -11,6 +11,7 @@ import {
 import { Activity, ExternalLink } from 'lucide-react';
 import { activityExternalLinks } from '../../utils/dashboardActivityPeaks';
 import { getChartTheme, chartHostClass } from '../../utils/chartTheme';
+import { getCssVar } from '../../theme';
 import { CHART_A11Y_PROPS } from '../../utils/chartA11y';
 import useElementSize from '../../hooks/useElementSize';
 import useMediaQuery from '../../hooks/useMediaQuery';
@@ -30,6 +31,24 @@ const RADAR_MAX_FTP_PCT = 160;
 const RADAR_GRADIENT_ID = 'power-profile-period-fill';
 const RADAR_GLOW_ID = 'power-profile-dot-glow';
 const BARLOW = 'Barlow, sans-serif';
+
+function periodAccentColor() {
+    return getCssVar('--cd-primary', '#ea580c');
+}
+
+function historyAccentColor() {
+    return getCssVar('--cd-green', '#16a34a');
+}
+
+function periodAccentMuted(alpha = 0.28) {
+    const base = periodAccentColor();
+    return `color-mix(in srgb, ${base} ${Math.round(alpha * 100)}%, transparent)`;
+}
+
+function historyAccentMuted(alpha = 0.22) {
+    const base = historyAccentColor();
+    return `color-mix(in srgb, ${base} ${Math.round(alpha * 100)}%, transparent)`;
+}
 
 function rowByKey(rows, key) {
     return (rows || []).find((r) => r.key === key) || null;
@@ -63,7 +82,8 @@ function CustomAngleTick({ x, y, payload, data, displayKey, isCoarsePointer }) {
                     y={14}
                     textAnchor="middle"
                     dominantBaseline="middle"
-                    fill={active ? 'rgb(249, 115, 22)' : 'var(--cd-muted, #64748b)'}
+                    fill={active ? periodAccentColor() : 'var(--cd-muted, #64748b)'}
+                    fillOpacity={active ? 0.88 : 1}
                     fontSize={isCoarsePointer ? 10 : 11}
                     fontWeight={600}
                     fontFamily={BARLOW}
@@ -103,8 +123,8 @@ function PowerRadarDetailPanel({ d, pinned, onDismissPin, onOpenActivityInLog })
                 </p>
             )}
             <div className="space-y-2.5">
-                <div className="rounded-lg border border-orange-500/25 bg-orange-500/10 px-3 py-2">
-                    <div className={cn(cdTypeLabel, 'text-orange-600 dark:text-orange-200/90')}>
+                <div className="rounded-lg border border-cdprimary/20 bg-cdprimary/10 px-3 py-2">
+                    <div className={cn(cdTypeLabel, 'text-cdprimary/90')}>
                         This period
                     </div>
                     <div className={cdTypeMetricLg}>{d.wattsPeriod} W</div>
@@ -139,8 +159,8 @@ function PowerRadarDetailPanel({ d, pinned, onDismissPin, onOpenActivityInLog })
                         ))}
                     </div>
                 </div>
-                <div className="rounded-lg border border-emerald-700/30 bg-emerald-500/10 px-3 py-2">
-                    <div className={cn(cdTypeLabel, 'text-emerald-700 dark:text-emerald-200/95')}>
+                <div className="rounded-lg border border-cdgreen/25 bg-cdgreen/10 px-3 py-2">
+                    <div className={cn(cdTypeLabel, 'text-cdgreen/90')}>
                         Best in history
                     </div>
                     <div className={cdTypeMetricLg}>{d.wattsMax} W</div>
@@ -200,12 +220,12 @@ function DurationValueRow({
             )}
         >
             <span className={cn('font-bold text-cdtext w-12 shrink-0', cdTypeBody, 'text-xs sm:text-sm')}>{d.subject}</span>
-            <span className={cn('font-bold text-orange-600 dark:text-orange-300', cdTypeNumeric, cdTypeBody, 'text-xs sm:text-sm')}>
+            <span className={cn('font-bold text-cdprimary/90', cdTypeNumeric, cdTypeBody, 'text-xs sm:text-sm')}>
                 {d.wattsPeriod > 0 ? `${d.wattsPeriod} W` : '—'}
             </span>
             <span className={cn('text-cdmuted', cdTypeCaption)}>/</span>
             <span
-                className={cn('font-bold text-emerald-600 dark:text-emerald-400', cdTypeNumeric, cdTypeBody, 'text-xs sm:text-sm')}
+                className={cn('font-bold text-cdgreen/85', cdTypeNumeric, cdTypeBody, 'text-xs sm:text-sm')}
                 title="Best in app history"
             >
                 {d.wattsMax > 0 ? `${d.wattsMax} W` : '—'}
@@ -244,9 +264,11 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, weightKg
     const [hoverKey, setHoverKey] = useState(null);
     const [pinnedKey, setPinnedKey] = useState(null);
 
-    const outerStroke = theme.green;
-    const outerFill = 'rgba(22, 101, 52, 0.18)';
-    const periodStroke = theme.primary;
+    const outerStroke = historyAccentColor();
+    const outerFill = historyAccentMuted(0.2);
+    const periodStroke = periodAccentColor();
+    const periodFillStrong = periodAccentMuted(0.32);
+    const periodFillSoft = periodAccentMuted(0.12);
 
     const data = useMemo(() => {
         const periodRows = powerPeakRows || [];
@@ -356,8 +378,9 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, weightKg
                         cx={cx}
                         cy={cy}
                         r={r}
-                        fill={hi ? 'rgba(249, 115, 22, 0.5)' : 'rgba(249, 115, 22, 0.22)'}
+                        fill={hi ? periodFillStrong : periodFillSoft}
                         stroke={periodStroke}
+                        strokeOpacity={hi ? 0.95 : 0.72}
                         strokeWidth={hi ? 3 : 2}
                         filter={hi ? `url(#${RADAR_GLOW_ID})` : undefined}
                         pointerEvents="none"
@@ -365,7 +388,7 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, weightKg
                 </g>
             );
         },
-        [displayKey, handleDotActivate, isCoarsePointer, periodStroke, pinnedKey],
+        [displayKey, handleDotActivate, isCoarsePointer, periodFillSoft, periodFillStrong, periodStroke, pinnedKey],
     );
 
     const showHistoryRing = useMemo(() => {
@@ -429,7 +452,7 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, weightKg
                     </span>
                 </span>
                 <span className="inline-flex items-center gap-2.5">
-                    <span className="h-0 w-8 shrink-0 border-t-[3px] border-dashed border-emerald-600" />
+                    <span className="h-0 w-8 shrink-0 border-t-[3px] border-dashed border-cdgreen/70" />
                     <span>
                         <span className="font-bold text-cdtext">All-time best</span>
                         <span className="hidden sm:inline"> — dashed ring{!showHistoryRing && ' (same as period)'}</span>
@@ -471,9 +494,9 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, weightKg
                         >
                             <defs>
                                 <radialGradient id={RADAR_GRADIENT_ID} cx="50%" cy="50%" r="55%">
-                                    <stop offset="10%" stopColor={periodStroke} stopOpacity={0.62} />
-                                    <stop offset="70%" stopColor={periodStroke} stopOpacity={0.22} />
-                                    <stop offset="100%" stopColor={periodStroke} stopOpacity={0.06} />
+                                    <stop offset="10%" stopColor={periodStroke} stopOpacity={0.42} />
+                                    <stop offset="70%" stopColor={periodStroke} stopOpacity={0.16} />
+                                    <stop offset="100%" stopColor={periodStroke} stopOpacity={0.04} />
                                 </radialGradient>
                                 <filter id={RADAR_GLOW_ID} x="-50%" y="-50%" width="200%" height="200%">
                                     <feGaussianBlur stdDeviation="3.5" result="blur" />
@@ -485,7 +508,7 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, weightKg
                             </defs>
                             <PolarGrid
                                 stroke={theme.grid}
-                                strokeOpacity={0.75}
+                                strokeOpacity={0.45}
                                 gridType="polygon"
                                 radialLines
                             />
@@ -512,7 +535,8 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, weightKg
                                 stroke={outerStroke}
                                 fill={outerFill}
                                 fillOpacity={1}
-                                strokeWidth={2.5}
+                                strokeWidth={2}
+                                strokeOpacity={0.72}
                                 strokeDasharray="7 5"
                                 dot={false}
                                 isAnimationActive
@@ -525,7 +549,8 @@ const PowerProfileRadar = ({ powerPeakRows, historyPeakRows, manualFtp, weightKg
                                 stroke={periodStroke}
                                 fill={`url(#${RADAR_GRADIENT_ID})`}
                                 fillOpacity={1}
-                                strokeWidth={3}
+                                strokeWidth={2.5}
+                                strokeOpacity={0.88}
                                 shape={PeriodRadarFillShape}
                                 dot={renderPeriodDot}
                                 activeDot={false}
