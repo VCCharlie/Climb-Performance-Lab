@@ -15,6 +15,7 @@ import { formatNlNumber } from '../../utils/formatters';
 import { safeSessionStorageSet } from '../../utils/safeStorage.js';
 import { ChartTooltip } from '../ui';
 import { getChartTheme, chartCardClass, chartHostClass } from '../../utils/chartTheme';
+import { CHART_A11Y_PROPS } from '../../utils/chartA11y';
 import {
     formatDurationHoursMinutes,
     formatWeekChartTickEn,
@@ -304,7 +305,7 @@ const VolumeTotalsChart = ({
 
             <div className={`h-[280px] w-full min-h-[220px] ${chartHostClass}`}>
                 <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={chartData} margin={{ top: 12, right: 10, left: 0, bottom: 4 }}>
+                    <ComposedChart data={chartData} margin={{ top: 12, right: 10, left: 0, bottom: 4 }} {...CHART_A11Y_PROPS}>
                         <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} opacity={0.65} vertical={false} />
                         <XAxis
                             dataKey="tick"

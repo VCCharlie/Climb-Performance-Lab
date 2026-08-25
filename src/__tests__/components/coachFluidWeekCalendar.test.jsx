@@ -98,4 +98,18 @@ describe('CoachFluidWeekPlan calendar view', () => {
         expect(wedCell).toBeInTheDocument();
         expect(wedCell.getAttribute('title') || wedCell.textContent).toMatch(/TSS|85/i);
     });
+
+    it('shows TSS bubble and label in list view day rows', () => {
+        render(
+            <CoachFluidWeekPlan
+                activities={[{ date: '2026-08-05', load: 85 }]}
+                userSettings={{ weeklyHoursTarget: 5, ftp: 250 }}
+                coachContext={{ athlete: { ftp: 250 }, fitness: { tsb: 0 } }}
+                weekPlan={buildMockWeekPlan()}
+            />,
+        );
+
+        expect(screen.getByRole('button', { name: 'List' })).toHaveAttribute('aria-pressed', 'true');
+        expect(screen.getByText('85 TSS')).toBeInTheDocument();
+    });
 });

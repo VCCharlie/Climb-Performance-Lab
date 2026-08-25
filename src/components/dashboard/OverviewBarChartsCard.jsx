@@ -6,6 +6,7 @@ import {
 import { BarChart3 } from 'lucide-react';
 import { ChartTooltip, SegmentedControl } from '../ui';
 import { getChartTheme } from '../../utils/chartTheme';
+import { CHART_A11Y_PROPS } from '../../utils/chartA11y';
 import CollapsibleDashboardCard from './CollapsibleDashboardCard';
 import { seriesFromBarChartIndex } from '../../utils/dashboardBarChartBuckets';
 import { barChartGoalLineValue } from '../../utils/volumeGoals';
@@ -94,7 +95,7 @@ export default function OverviewBarChartsCard({ barChartIndex, userSettings }) {
             ) : (
                 <div className="h-52 md:h-56">
                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                        <BarChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }} {...CHART_A11Y_PROPS}>
                             <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} opacity={0.65} vertical={false} />
                             <XAxis
                                 dataKey="label"

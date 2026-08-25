@@ -242,8 +242,28 @@ textarea:focus:not(:focus-visible) {
 }
 
 @media (pointer: coarse) {
-  .recharts-surface:focus-visible {
+  .recharts-surface:focus-visible,
+  .recharts-wrapper:focus-visible,
+  .recharts-tooltip-wrapper:focus-visible {
     box-shadow: none;
+  }
+
+  /* Charts inside cd-chart-host: no sticky tap rings (keyboard users use external controls). */
+  .cd-chart-host .recharts-wrapper,
+  .cd-chart-host .recharts-surface,
+  .cd-chart-host .recharts-tooltip-wrapper {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  .cd-chart-host .recharts-wrapper:focus,
+  .cd-chart-host .recharts-wrapper:focus-visible,
+  .cd-chart-host .recharts-surface:focus,
+  .cd-chart-host .recharts-surface:focus-visible,
+  .cd-chart-host .recharts-tooltip-wrapper:focus,
+  .cd-chart-host .recharts-tooltip-wrapper:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
   }
 }
 

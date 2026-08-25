@@ -12,6 +12,7 @@ import {
 import { Zap } from 'lucide-react';
 import { ChartTooltip, SegmentedControl } from '../ui';
 import { getChartTheme } from '../../utils/chartTheme';
+import { CHART_A11Y_PROPS } from '../../utils/chartA11y';
 import {
     buildAnchorsCache,
     topNInterpolatedAtSec,
@@ -154,6 +155,7 @@ export default function PeakPowerDurationBarCard({
                             data={rows}
                             layout="vertical"
                             margin={{ top: 4, right: 16, left: 4, bottom: 0 }}
+                            {...CHART_A11Y_PROPS}
                         >
                             <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} horizontal={false} opacity={0.65} />
                             <XAxis

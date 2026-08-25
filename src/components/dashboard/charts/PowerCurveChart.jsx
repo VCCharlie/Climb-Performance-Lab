@@ -6,6 +6,7 @@ import {
 import { LineChart } from 'lucide-react';
 import { ChartTooltip } from '../../ui';
 import { getChartTheme } from '../../../utils/chartTheme';
+import { CHART_A11Y_PROPS } from '../../../utils/chartA11y';
 import CollapsibleDashboardCard from '../CollapsibleDashboardCard';
 
 /**
@@ -72,7 +73,7 @@ const PowerCurveChart = ({ data, manualFtp }) => {
                 <>
                     <div className="h-56">
                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={curveData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+                            <AreaChart data={curveData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }} {...CHART_A11Y_PROPS}>
                                 <defs>
                                     <linearGradient id="mmpGradient" x1="0" y1="0" x2="0" y2="1">
                                         <stop offset="5%" stopColor={theme.primary} stopOpacity={0.35} />

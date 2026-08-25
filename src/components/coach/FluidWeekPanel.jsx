@@ -6,6 +6,10 @@ import { computeCtlWeekOverWeekDelta } from '../../utils/coach/coachWeekCtlDelta
 import { todayYmd } from '../../utils/coach/coachHelpers';
 import { computeClimbingReadiness } from '../../utils/climbingReadiness';
 import { resolveEffectiveProfileFtp } from '../../utils/profileFtp';
+import {
+    buildWeekDayTssMap,
+    tssBubbleSizePx,
+} from '../../utils/coach/coachWeekCalendarTss';
 import FluidWeekSessionCard from './FluidWeekSessionCard';
 import FluidWeekCalendar from './FluidWeekCalendar';
 
@@ -52,6 +56,16 @@ export default function FluidWeekPanel({
         ).length;
         return { planned, done };
     }, [weekPlan.sessions]);
+
+    const dayTssMap = React.useMemo(
+        () => buildWeekDayTssMap(weekPlan, activities, weeklyHours),
+        [weekPlan, activities, weeklyHours],
+    );
+
+    const maxDayTss = React.useMemo(() => {
+        const values = Object.values(dayTssMap);
+        return values.length ? Math.max(...values) : 0;
+    }, [dayTssMap]);
 
     const climbingReadinessHint = React.useMemo(() => {
         if (!activities?.length) return null;
@@ -186,10 +200,14 @@ export default function FluidWeekPanel({
                 <div className="space-y-1.5 flex-1 overflow-y-auto max-h-[min(70vh,520px)] pr-0.5">
                     {weekPlan.sessions.map((session) => {
                         const expandKey = `${expandKeyPrefix}${session.date}`;
+                        const dayTss = dayTssMap[session.date] || 0;
+                        const bubbleSize = tssBubbleSizePx(dayTss, maxDayTss, { minPx: 6, maxPx: 16 });
                         return (
                             <FluidWeekSessionCard
                                 key={session.date}
                                 session={session}
+                                dayTss={dayTss}
+                                tssBubbleSizePx={bubbleSize}
                                 expanded={expandedDate === expandKey}
                                 onToggleExpand={() => onToggleExpand(expandKey)}
                                 onToggleDone={() => onToggleDone(session.date)}
