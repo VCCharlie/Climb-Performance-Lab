@@ -29,7 +29,7 @@ const ProfilerInsights = ({ tacticalZones, ftp, intensityPct, pacingMetrics }) =
                             key={`${zone.type}-${idx}`}
                             className={`flex items-start gap-3 p-2.5 rounded-lg border text-sm ${zoneStyle(zone.type)}`}
                         >
-                            <span className="font-mono text-xs text-cdmuted w-14 shrink-0 pt-0.5">
+                            <span className="tabular-nums text-xs text-cdmuted w-14 shrink-0 pt-0.5">
                                 {zone.km.toFixed(1)} km
                             </span>
                             <span className="flex-1 leading-snug">{zone.label}</span>

@@ -475,7 +475,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                         <div>
                             <div className="flex justify-between text-xs text-cdtext mb-1">
                                 <span>Target Power</span>
-                                <span className="font-mono text-cdprimary">{Math.round(targetPower)}W</span>
+                                <span className="tabular-nums text-cdprimary">{Math.round(targetPower)}W</span>
                             </div>
                             <input
                                 type="range"
@@ -497,7 +497,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                         <div>
                             <div className="flex justify-between text-xs text-cdtext mb-1">
                                 <span className="flex items-center gap-1"><Thermometer size={12} /> Temperature</span>
-                                <span className="font-mono text-orange-400">{temperature}°C</span>
+                                <span className="tabular-nums text-orange-400">{temperature}°C</span>
                             </div>
                             <input type="range" min="-5" max="40" step="1" value={temperature}
                                 onChange={(e) => setTemperature(parseInt(e.target.value))}
@@ -506,7 +506,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                         <div>
                             <div className="flex justify-between text-xs text-cdtext mb-1">
                                 <span className="flex items-center gap-1"><Wind size={12} /> Wind Speed</span>
-                                <span className="font-mono text-cyan-400">{windSpeed} km/h</span>
+                                <span className="tabular-nums text-cyan-400">{windSpeed} km/h</span>
                             </div>
                             <input type="range" min="0" max="50" step="5" value={windSpeed}
                                 onChange={(e) => setWindSpeed(parseInt(e.target.value))}
@@ -530,7 +530,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                         <div>
                             <div className="flex justify-between text-xs text-cdtext mb-1">
                                 <span className="flex items-center gap-1"><Droplets size={12} /> Humidity</span>
-                                <span className="font-mono text-blue-400">{humidity}%</span>
+                                <span className="tabular-nums text-blue-400">{humidity}%</span>
                             </div>
                             <input type="range" min="20" max="100" step="5" value={humidity}
                                 onChange={(e) => setHumidity(parseInt(e.target.value))}

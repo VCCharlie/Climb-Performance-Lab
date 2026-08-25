@@ -67,7 +67,7 @@ const YearAtMomentBars = ({ rows, metricId, currentYear }) => {
 
                 return (
                     <div key={row.year} className="flex items-center gap-2 text-xs">
-                        <span className={`w-10 shrink-0 font-mono tabular-nums ${isCurrent ? 'text-cdaccent font-bold' : 'text-cdmuted'}`}>
+                        <span className={`w-10 shrink-0 tabular-nums ${isCurrent ? 'text-cdaccent font-bold' : 'text-cdmuted'}`}>
                             {row.year}
                         </span>
                         <div
@@ -81,7 +81,7 @@ const YearAtMomentBars = ({ rows, metricId, currentYear }) => {
                                 title={`${row.year}: ${formatMetric(metricId, value)}`}
                             />
                         </div>
-                        <span className={`w-24 shrink-0 text-right font-mono tabular-nums ${isCurrent ? 'text-cdtext font-semibold' : 'text-cdmuted'}`}>
+                        <span className={`w-24 shrink-0 text-right tabular-nums ${isCurrent ? 'text-cdtext font-semibold' : 'text-cdmuted'}`}>
                             {formatMetric(metricId, value)}
                         </span>
                     </div>

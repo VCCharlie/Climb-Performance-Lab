@@ -27,11 +27,11 @@ const TotalsTable = ({ rows, periodHeading }) => (
                 {rows.map((row) => (
                     <tr key={row.key} className="hover:bg-cdborder/15">
                         <td className="px-3 py-2 font-medium text-cdtext whitespace-nowrap">{row.label}</td>
-                        <td className="px-3 py-2 text-right font-mono tabular-nums">{formatNlNumber(row.rideCount)}</td>
-                        <td className="px-3 py-2 text-right font-mono tabular-nums">{formatNlNumber(row.distanceKm)} km</td>
-                        <td className="px-3 py-2 text-right font-mono tabular-nums">{formatNlNumber(row.elevationM)} m</td>
-                        <td className="px-3 py-2 text-right font-mono tabular-nums text-cdmuted">{formatDurationHoursMinutes(row.movingTimeSec)}</td>
-                        <td className="px-3 py-2 text-right font-mono tabular-nums text-blue-400/95">{formatNlNumber(row.load)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{formatNlNumber(row.rideCount)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{formatNlNumber(row.distanceKm)} km</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{formatNlNumber(row.elevationM)} m</td>
+                        <td className="px-3 py-2 text-right tabular-nums text-cdmuted">{formatDurationHoursMinutes(row.movingTimeSec)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums text-blue-400/95">{formatNlNumber(row.load)}</td>
                     </tr>
                 ))}
             </tbody>

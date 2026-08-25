@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, Info } from 'lucide-react';
 import useMediaQuery from '../../hooks/useMediaQuery';
+import {
+    cdCollapsibleChevronClass,
+    cdTypeBody,
+    cdTypeCaption,
+    cdTypeSubsection,
+} from '../../utils/typography';
+import { cn } from './cn';
 
 const VARIANT_STYLES = {
     info: {
@@ -55,22 +62,22 @@ export default function CollapsibleInfoCard({
             >
                 <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                        <div className={`text-sm font-bold flex items-center gap-2 ${styles.title}`}>
+                        <div className={cn(cdTypeSubsection, 'flex items-center gap-2', styles.title)}>
                             <Icon size={16} className={`shrink-0 ${styles.icon}`} aria-hidden />
-                            <span className="min-w-0">{title}</span>
+                            <span className="min-w-0 normal-case tracking-normal">{title}</span>
                         </div>
                         {subtitle ? (
-                            <p className="text-xs text-cdmuted mt-1 leading-relaxed">{subtitle}</p>
+                            <p className={cn(cdTypeCaption, 'mt-1 leading-relaxed')}>{subtitle}</p>
                         ) : null}
                     </div>
-                    <div className="shrink-0 text-cdmuted self-start pt-0.5" aria-hidden>
+                    <div className={cn(cdCollapsibleChevronClass, 'self-start pt-0.5')} aria-hidden>
                         {expanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
                     </div>
                 </div>
             </button>
 
             {expanded ? (
-                <div className={`px-4 pb-4 text-sm text-cdtext leading-relaxed space-y-2 ${bodyClassName}`}>
+                <div className={cn('px-4 pb-4 leading-relaxed space-y-2', cdTypeBody, bodyClassName)}>
                     {children}
                 </div>
             ) : null}

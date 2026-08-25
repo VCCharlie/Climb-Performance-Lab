@@ -163,9 +163,9 @@ const MilestoneBar = ({ title, currentLabel, targetLabel, remainingLabel, pct })
             <span className="text-[10px] text-cdmuted text-right">{remainingLabel}</span>
         </div>
         <div className="text-xs text-cdtext mb-1.5">
-            <span className="font-mono font-bold">{currentLabel}</span>
+            <span className="font-bold tabular-nums">{currentLabel}</span>
             <span className="text-cdmuted"> → </span>
-            <span className="font-mono font-bold text-orange-400">{targetLabel}</span>
+            <span className="font-bold tabular-nums text-orange-400">{targetLabel}</span>
         </div>
         <div className="h-2 rounded-full bg-cdsurface overflow-hidden border border-cdborder/50">
             <div
@@ -1093,7 +1093,7 @@ const StravaProfileTab = ({ getStravaToken, athleteId, persistedData, onDataChan
                                                 >
                                                     {effort.name}
                                                 </button>
-                                                <span className="text-cdmuted shrink-0 font-mono text-[10px]">{fmt.segTime(effort.elapsed_time)}</span>
+                                                <span className="text-cdmuted shrink-0 tabular-nums text-[10px]">{fmt.segTime(effort.elapsed_time)}</span>
                                                 <span className="text-cdmuted shrink-0 text-[10px]">{effort.segment?.distance != null ? `${fmt.num(effort.segment.distance / 1000, 1)} km` : '—'}</span>
                                                 <button
                                                     type="button"

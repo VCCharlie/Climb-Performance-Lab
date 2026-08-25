@@ -112,7 +112,7 @@ const ImportSection = ({
                         Or paste JSON
                     </span>
                     <textarea
-                        className={cn(inputBaseClass, 'h-32 text-xs font-mono resize-y')}
+                        className={cn(inputBaseClass, 'h-32 text-xs tabular-nums resize-y')}
                         placeholder="Paste JSON array or single activity object…"
                         value={importText}
                         onChange={(e) => setImportText(e.target.value)}

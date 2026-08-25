@@ -88,7 +88,7 @@ const PhysicsStagePanel = ({ userSettings, cda, crr, loss }) => {
                         step={5}
                         value={defaultRecoveryMinutes}
                         onChange={(e) => setDefaultRecoveryMinutes(Math.max(0, Number(e.target.value) || 0))}
-                        className="w-full bg-cdsurface text-cdtext font-mono text-center rounded p-2 border border-cdborder focus:border-cdaccent outline-none"
+                        className="w-full bg-cdsurface text-cdtext tabular-nums text-center rounded p-2 border border-cdborder focus:border-cdaccent outline-none"
                     />
                 </div>
             </div>
@@ -134,7 +134,7 @@ const PhysicsStagePanel = ({ userSettings, cda, crr, loss }) => {
                                                 [climb.id]: Math.max(0, Number(e.target.value) || 0),
                                             }))
                                         }
-                                        className="w-16 bg-cdbg text-cdtext text-center rounded border border-cdborder p-1 font-mono"
+                                        className="w-16 bg-cdbg text-cdtext text-center rounded border border-cdborder p-1 tabular-nums"
                                         aria-label={`Recovery after ${climb.name}`}
                                     />
                                     <span className="text-cdmuted">min</span>
@@ -207,19 +207,19 @@ const PhysicsStagePanel = ({ userSettings, cda, crr, loss }) => {
                                         <td className="px-2 py-1.5">
                                             <span className="font-semibold">{seg.climb.name}</span>
                                         </td>
-                                        <td className="px-2 py-1.5 font-mono text-right tabular-nums text-cdmuted">
+                                        <td className="px-2 py-1.5 tabular-nums text-right tabular-nums text-cdmuted">
                                             {formatStageDuration(seg.startOffsetSeconds)}
                                         </td>
-                                        <td className="px-2 py-1.5 font-mono text-right tabular-nums">
+                                        <td className="px-2 py-1.5 tabular-nums text-right tabular-nums">
                                             {seg.climbTime}
                                         </td>
-                                        <td className="px-2 py-1.5 font-mono text-right tabular-nums">
+                                        <td className="px-2 py-1.5 tabular-nums text-right tabular-nums">
                                             {seg.watts}
                                         </td>
-                                        <td className="px-2 py-1.5 font-mono text-right tabular-nums text-cdmuted">
+                                        <td className="px-2 py-1.5 tabular-nums text-right tabular-nums text-cdmuted">
                                             {seg.vam}
                                         </td>
-                                        <td className="px-2 py-1.5 font-mono text-right tabular-nums">
+                                        <td className="px-2 py-1.5 tabular-nums text-right tabular-nums">
                                             {seg.tss}
                                             {seg.recoveryTss > 0 ? ` +${seg.recoveryTss}` : ''}
                                         </td>

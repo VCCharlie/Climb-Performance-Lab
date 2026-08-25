@@ -3,6 +3,7 @@ import {
     inferRiderPhenotype,
     RIDER_PHENOTYPE_LABELS,
     PHENOTYPE_DURATION_KEYS,
+    PHENOTYPE_BANDS,
 } from '../../utils/riderPhenotype';
 
 function peakRows(profile) {
@@ -22,6 +23,16 @@ function peakRows(profile) {
 
 describe('riderPhenotype', () => {
     const FTP = 280;
+
+    it('exports band documentation for UI', () => {
+        expect(PHENOTYPE_BANDS).toHaveLength(4);
+        expect(PHENOTYPE_BANDS.map((b) => b.id)).toEqual([
+            'sprinter',
+            'climber',
+            'time_trialist',
+            'rouleur',
+        ]);
+    });
 
     it('returns building when fewer than two peaks exist', () => {
         const result = inferRiderPhenotype([{ key: 'best_1min', watts: 400 }], { ftp: FTP });
@@ -69,6 +80,19 @@ describe('riderPhenotype', () => {
         expect(result.scores.climber).toBeGreaterThan(result.scores.sprinter);
     });
 
+    it('detects realistic amateur climber — not time trialist on moderate drop-off', () => {
+        const rows = peakRows({
+            best_1min: 420,
+            best_5min: 330,
+            best_10min: 305,
+            best_20min: 285,
+            best_60min: 255,
+        });
+        const result = inferRiderPhenotype(rows, { ftp: FTP, weightKg: 72 });
+        expect(result.id).toBe('climber');
+        expect(result.scores.time_trialist).toBeLessThan(result.scores.climber);
+    });
+
     it('detects time-trialist-shaped sustained 20–60 min curve', () => {
         const rows = peakRows({
             best_1min: 360,
@@ -94,6 +118,18 @@ describe('riderPhenotype', () => {
         expect(result.id).not.toBe('sprinter');
     });
 
+    it('does not default to time trialist on flat-moderate amateur curves', () => {
+        const rows = peakRows({
+            best_1min: 380,
+            best_5min: 350,
+            best_10min: 335,
+            best_20min: 320,
+            best_60min: 300,
+        });
+        const result = inferRiderPhenotype(rows, { ftp: FTP, weightKg: 72 });
+        expect(result.id).not.toBe('time_trialist');
+    });
+
     it('uses period peaks — different periods can yield different phenotypes', () => {
         const sprinterPeriod = peakRows({
             best_1min: 1050,
@@ -103,9 +139,9 @@ describe('riderPhenotype', () => {
             best_60min: 290,
         });
         const ttPeriod = peakRows({
-            best_1min: 350,
-            best_5min: 338,
-            best_10min: 328,
+            best_1min: 360,
+            best_5min: 345,
+            best_10min: 332,
             best_20min: 318,
             best_60min: 305,
         });

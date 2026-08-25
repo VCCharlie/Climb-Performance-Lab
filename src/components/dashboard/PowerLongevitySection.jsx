@@ -195,17 +195,17 @@ export default function PowerLongevitySection({
                     <tbody className="divide-y divide-cdborder/40">
                         {[...enrichedRows].reverse().map((row) => (
                             <tr key={row.year} className="text-cdtext">
-                                <td className="px-3 py-2 font-mono">{row.year}</td>
+                                <td className="px-3 py-2 tabular-nums">{row.year}</td>
                                 {birthYear && (
-                                    <td className="px-3 py-2 font-mono text-cdmuted">
+                                    <td className="px-3 py-2 tabular-nums text-cdmuted">
                                         {row.age ?? '—'}
                                     </td>
                                 )}
-                                <td className="px-3 py-2 font-mono">{row.eftp20 ?? '—'}</td>
-                                <td className="px-3 py-2 font-mono">{row.best20min ?? '—'}</td>
-                                <td className="px-3 py-2 font-mono">{row.best60min ?? '—'}</td>
-                                <td className="px-3 py-2 font-mono">{row.eftpWkg ?? '—'}</td>
-                                <td className="px-3 py-2 font-mono text-cdmuted">{row.rideCount}</td>
+                                <td className="px-3 py-2 tabular-nums">{row.eftp20 ?? '—'}</td>
+                                <td className="px-3 py-2 tabular-nums">{row.best20min ?? '—'}</td>
+                                <td className="px-3 py-2 tabular-nums">{row.best60min ?? '—'}</td>
+                                <td className="px-3 py-2 tabular-nums">{row.eftpWkg ?? '—'}</td>
+                                <td className="px-3 py-2 tabular-nums text-cdmuted">{row.rideCount}</td>
                             </tr>
                         ))}
                     </tbody>

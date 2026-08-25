@@ -56,12 +56,12 @@ const MergePairModal = ({
                             <>
                                 <div className="rounded-lg border border-cdborder bg-cdbg/40 p-2 space-y-1">
                                     <div className="text-[10px] font-bold text-cdaccent uppercase">Keep (Intervals)</div>
-                                    <div className="text-cdtext font-mono text-[11px]">id {mergePairPreview.intervals.id}</div>
+                                    <div className="text-cdtext tabular-nums text-[11px]">id {mergePairPreview.intervals.id}</div>
                                     <div className="text-cdtext truncate">{mergePairPreview.intervals.title || '—'}</div>
                                 </div>
                                 <div className="rounded-lg border border-cdborder bg-cdbg/40 p-2 space-y-1">
                                     <div className="text-[10px] font-bold text-orange-400 uppercase">Remove after merge (Strava import)</div>
-                                    <div className="text-cdtext font-mono text-[11px]">id {mergePairPreview.stravaSide.id}</div>
+                                    <div className="text-cdtext tabular-nums text-[11px]">id {mergePairPreview.stravaSide.id}</div>
                                     <div className="text-cdtext truncate">{mergePairPreview.stravaSide.title || '—'}</div>
                                     {mergePairPreview.stravaSide.strava_id && (
                                         <div className="text-[10px]">strava_id {mergePairPreview.stravaSide.strava_id}</div>

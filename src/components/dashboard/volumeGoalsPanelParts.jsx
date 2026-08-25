@@ -2,7 +2,7 @@ import React from 'react';
 import { calendarProgressLabel, getVolumeScheduleStatus, progressPercent } from '../../utils/volumeGoals';
 
 export const inputCls =
-    'w-full min-w-0 border border-cdborder rounded px-2 py-1.5 text-sm font-mono bg-cdsurface text-cdtext outline-none focus:ring-2 focus:ring-cdaccent/40';
+    'w-full min-w-0 border border-cdborder rounded px-2 py-1.5 text-sm tabular-nums bg-cdsurface text-cdtext outline-none focus:ring-2 focus:ring-cdaccent/40';
 
 /** @param {number} h decimal hours */
 export function formatHoursShort(h) {
@@ -54,7 +54,7 @@ export function PeriodTimeStrip({ range, nowRef }) {
                 <span>
                     Day {dayOfPeriod} of {spanDays}
                 </span>
-                <span className="font-mono tabular-nums">{pct}% through period</span>
+                <span className="tabular-nums">{pct}% through period</span>
             </div>
         </div>
     );
@@ -145,7 +145,7 @@ export function GoalRow({ label, current, target, unit, formatCurrent, formatTar
                             {badgeText}
                         </span>
                     ) : null}
-                    <span className="text-cdtext font-mono tabular-nums">
+                    <span className="text-cdtext tabular-nums">
                         {formatCurrent(current)}
                         <span className="text-cdmuted"> / </span>
                         {target > 0 ? formatTarget(target) : '—'}

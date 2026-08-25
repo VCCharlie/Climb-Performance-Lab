@@ -486,7 +486,7 @@ const StravaEnrichTab = ({
             <div className="flex items-center justify-between gap-3">
                 <div>
                     <p className="text-xs text-cdmuted">
-                        Range: <span className="text-cdtext font-mono">{startDate}</span> – <span className="text-cdtext font-mono">{endDate}</span>
+                        Range: <span className="text-cdtext tabular-nums">{startDate}</span> – <span className="text-cdtext tabular-nums">{endDate}</span>
                         <span className="ml-1 opacity-70">({dateRangeHint})</span>
                     </p>
                     {results && !isFetching && (
