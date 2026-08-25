@@ -4,7 +4,7 @@ import {
     ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 import { ChartTooltip, SegmentedControl } from '../../ui';
-import { getChartTheme, chartCardClass } from '../../../utils/chartTheme';
+import { getChartTheme, chartCardClass, chartHostClass } from '../../../utils/chartTheme';
 import { seriesFromBarChartIndex } from '../../../utils/dashboardBarChartBuckets';
 import { barChartGoalLineValue } from '../../../utils/volumeGoals';
 import { formatNlNumber } from '../../../utils/formatters';
@@ -75,7 +75,7 @@ const BarChartCard = ({ barChartIndex, metric, title, unit, color, userSettings 
                     No data in this period
                 </div>
             ) : (
-                <div className="h-44">
+                <div className={`h-44 ${chartHostClass}`}>
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} opacity={0.65} vertical={false} />

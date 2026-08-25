@@ -14,7 +14,7 @@ import {
 import { formatNlNumber } from '../../utils/formatters';
 import { safeSessionStorageSet } from '../../utils/safeStorage.js';
 import { ChartTooltip } from '../ui';
-import { getChartTheme, chartCardClass } from '../../utils/chartTheme';
+import { getChartTheme, chartCardClass, chartHostClass } from '../../utils/chartTheme';
 import {
     formatDurationHoursMinutes,
     formatWeekChartTickEn,
@@ -62,7 +62,7 @@ const METRICS = [
 ];
 
 const pill = (active) =>
-    `px-3 py-2 rounded-lg text-xs font-bold border transition-colors ${
+    `px-3 py-2 rounded-lg text-xs font-bold border transition-colors cd-focus-ring outline-none ${
         active
             ? 'bg-cdborder text-cdaccent border-cdaccent/60 shadow-sm'
             : 'bg-cdbg/50 text-cdmuted border-cdborder hover:text-cdtext hover:border-cdborder'
@@ -302,7 +302,7 @@ const VolumeTotalsChart = ({
                 </div>
             )}
 
-            <div className="h-[280px] w-full min-h-[220px]">
+            <div className={`h-[280px] w-full min-h-[220px] ${chartHostClass}`}>
                 <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={chartData} margin={{ top: 12, right: 10, left: 0, bottom: 4 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} opacity={0.65} vertical={false} />

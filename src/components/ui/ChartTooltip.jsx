@@ -16,6 +16,7 @@ export default function ChartTooltip({
   formatter,
   hideLabel = false,
   className,
+  accessibilityLayer = false,
 }) {
   if (!active || !payload?.length) return null;
 
@@ -26,8 +27,12 @@ export default function ChartTooltip({
     ? (labelFormatter ? labelFormatter(label) : label)
     : null;
 
+  const a11yProps = accessibilityLayer
+    ? { role: 'status', 'aria-live': 'polite' }
+    : { 'aria-hidden': true };
+
   return (
-    <div className={cn(chartTooltipShellClass, className)}>
+    <div className={cn(chartTooltipShellClass, className)} {...a11yProps}>
       {title != null && (
         <p className="text-xs font-semibold text-cdtext mb-1.5 tabular-nums">{title}</p>
       )}
