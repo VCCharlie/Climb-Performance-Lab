@@ -41,22 +41,26 @@ export function releaseChartFocus(element) {
 
 /**
  * Strip focusability Recharts adds after interaction (tooltip div, surface).
+ * Only writes attributes when values differ — avoids unnecessary DOM mutations.
  */
 export function stripChartFocusability(root) {
     if (!(root instanceof Element)) return;
 
     root.querySelectorAll('.recharts-surface, .recharts-wrapper [tabindex]').forEach((node) => {
-        if (node instanceof Element && !node.matches(REAL_CONTROL_SELECTOR)) {
-            node.setAttribute('tabindex', '-1');
-            if (node instanceof SVGElement) {
+        if (!(node instanceof Element) || node.matches(REAL_CONTROL_SELECTOR)) return;
+
+        if (node instanceof SVGElement) {
+            if (node.getAttribute('focusable') !== 'false') {
                 node.setAttribute('focusable', 'false');
             }
+            if (node.hasAttribute('tabindex')) {
+                node.removeAttribute('tabindex');
+            }
+            return;
+        }
+
+        if (node.getAttribute('tabindex') !== '-1') {
+            node.setAttribute('tabindex', '-1');
         }
     });
-
-    const surface = root.querySelector('.recharts-surface');
-    if (surface instanceof SVGElement) {
-        surface.removeAttribute('tabindex');
-        surface.setAttribute('focusable', 'false');
-    }
 }
