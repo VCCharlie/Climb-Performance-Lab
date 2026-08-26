@@ -1,40 +1,32 @@
 import { useEffect } from 'react';
-
-const RECHARTS_FOCUS_SELECTORS = [
-    '.recharts-surface',
-    '.recharts-wrapper',
-    '.recharts-tooltip-wrapper',
-    '.recharts-default-tooltip',
-].join(', ');
-
-function shouldReleaseTouchFocus(element) {
-    if (!(element instanceof Element)) return false;
-    if (element.closest('.cd-chart-host')) return true;
-    return element.matches(RECHARTS_FOCUS_SELECTORS);
-}
+import { releaseChartFocus, shouldReleaseChartFocus } from '../utils/chartFocusRelease';
 
 /**
  * Browsers keep :focus on tapped/clicked chart SVG until elsewhere is activated.
- * Blur pointer-driven focus on Recharts and inside chart hosts so rings stay keyboard-only on real controls.
+ * Blur chart focus on focusin (immediate) and pointerup (deferred — Recharts focuses after up).
  */
 export default function useTouchFocusRelease() {
     useEffect(() => {
-        const releasePointerFocus = (event) => {
-            const active = document.activeElement;
-            if (!shouldReleaseTouchFocus(active)) return;
-
-            // Chart SVG / wrapper: release after any pointer (touch + mouse click).
-            if (active.matches(RECHARTS_FOCUS_SELECTORS) || active.closest(RECHARTS_FOCUS_SELECTORS)) {
-                active.blur();
-                return;
-            }
-
-            // Inside chart host but not a focusable control: touch only (scrubber wrappers).
-            if (event.pointerType !== 'touch') return;
-            active.blur();
+        const onFocusIn = (event) => {
+            releaseChartFocus(event.target);
         };
 
-        document.addEventListener('pointerup', releasePointerFocus, true);
-        return () => document.removeEventListener('pointerup', releasePointerFocus, true);
+        const onPointerUp = () => {
+            releaseChartFocus(document.activeElement);
+            requestAnimationFrame(() => {
+                releaseChartFocus(document.activeElement);
+                requestAnimationFrame(() => releaseChartFocus(document.activeElement));
+            });
+        };
+
+        document.addEventListener('focusin', onFocusIn, true);
+        document.addEventListener('pointerup', onPointerUp, true);
+
+        return () => {
+            document.removeEventListener('focusin', onFocusIn, true);
+            document.removeEventListener('pointerup', onPointerUp, true);
+        };
     }, []);
 }
+
+export { shouldReleaseChartFocus };

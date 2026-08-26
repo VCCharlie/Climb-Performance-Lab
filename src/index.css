@@ -255,10 +255,12 @@ textarea:focus:not(:focus-visible) {
 .cd-chart-host .recharts-surface,
 .cd-chart-host .recharts-tooltip-wrapper,
 .cd-chart-host .recharts-responsive-container,
+.cd-chart-host svg,
 .cd-chart-host svg.recharts-surface {
   outline: none !important;
   box-shadow: none !important;
   -webkit-tap-highlight-color: transparent;
+  -webkit-focus-ring-color: transparent;
 }
 
 .cd-chart-host .recharts-wrapper:focus,
@@ -270,7 +272,17 @@ textarea:focus:not(:focus-visible) {
 .cd-chart-host .recharts-responsive-container:focus,
 .cd-chart-host .recharts-responsive-container:focus-visible,
 .cd-chart-host svg:focus,
-.cd-chart-host svg:focus-visible {
+.cd-chart-host svg:focus-visible,
+.cd-chart-host *:focus,
+.cd-chart-host *:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-focus-ring-color: transparent;
+}
+
+/* Recharts tooltip escape-handler div (tabindex=-1 inside SVG) */
+.recharts-wrapper div[tabindex]:focus,
+.recharts-wrapper div[tabindex]:focus-visible {
   outline: none !important;
   box-shadow: none !important;
 }
@@ -278,8 +290,10 @@ textarea:focus:not(:focus-visible) {
 @media (pointer: coarse) {
   .recharts-surface:focus-visible,
   .recharts-wrapper:focus-visible,
-  .recharts-tooltip-wrapper:focus-visible {
-    box-shadow: none;
+  .recharts-tooltip-wrapper:focus-visible,
+  .recharts-wrapper div[tabindex]:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
   }
 }
 
