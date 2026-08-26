@@ -14,21 +14,27 @@ function shouldReleaseTouchFocus(element) {
 }
 
 /**
- * Mobile browsers keep :focus on tapped elements (charts, buttons) until elsewhere is tapped.
- * Blur pointer-driven focus inside chart hosts so themed :focus-visible rings stay keyboard-only.
+ * Browsers keep :focus on tapped/clicked chart SVG until elsewhere is activated.
+ * Blur pointer-driven focus on Recharts and inside chart hosts so rings stay keyboard-only on real controls.
  */
 export default function useTouchFocusRelease() {
     useEffect(() => {
-        const releaseTouchFocus = (event) => {
-            if (event.pointerType !== 'touch') return;
-
+        const releasePointerFocus = (event) => {
             const active = document.activeElement;
             if (!shouldReleaseTouchFocus(active)) return;
 
+            // Chart SVG / wrapper: release after any pointer (touch + mouse click).
+            if (active.matches(RECHARTS_FOCUS_SELECTORS) || active.closest(RECHARTS_FOCUS_SELECTORS)) {
+                active.blur();
+                return;
+            }
+
+            // Inside chart host but not a focusable control: touch only (scrubber wrappers).
+            if (event.pointerType !== 'touch') return;
             active.blur();
         };
 
-        document.addEventListener('pointerup', releaseTouchFocus, true);
-        return () => document.removeEventListener('pointerup', releaseTouchFocus, true);
+        document.addEventListener('pointerup', releasePointerFocus, true);
+        return () => document.removeEventListener('pointerup', releasePointerFocus, true);
     }, []);
 }

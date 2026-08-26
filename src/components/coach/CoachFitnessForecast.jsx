@@ -6,7 +6,9 @@ import {
 import { Activity } from 'lucide-react';
 import { formatDateDDMMYYYY } from '../../utils/formatters';
 import { ChartTooltip, cn } from '../ui';
+import ChartHost from '../ui/ChartHost';
 import { getChartTheme } from '../../utils/chartTheme';
+import { CHART_A11Y_PROPS } from '../../utils/chartA11y';
 import CollapsibleSection from '../ui/CollapsibleSection';
 import { buildFitnessForecast } from '../../utils/coach/coachFitnessForecast';
 import { todayYmd } from '../../utils/coach/coachHelpers';
@@ -97,9 +99,9 @@ const CoachFitnessForecast = ({
                         : 'rounded-cdlg border border-cdborder/60 bg-cdsurface p-5 md:p-6',
                 )}
             >
-                <div className={cn('w-full', isMobile ? 'h-[min(52vw,280px)]' : 'h-72')}>
+                <ChartHost className={cn('w-full', isMobile ? 'h-[min(52vw,280px)]' : 'h-72')}>
                     <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={chartData} margin={chartMargins}>
+                        <LineChart data={chartData} margin={chartMargins} {...CHART_A11Y_PROPS}>
                             <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} opacity={0.65} vertical={false} />
                             {projectionStart && (
                                 <ReferenceArea
@@ -210,7 +212,7 @@ const CoachFitnessForecast = ({
                             />
                         </LineChart>
                     </ResponsiveContainer>
-                </div>
+                </ChartHost>
             </div>
             <div className="rounded-lg bg-cdborder/10 px-4 py-3.5">
                 <p className="text-xs text-cdmuted leading-relaxed">

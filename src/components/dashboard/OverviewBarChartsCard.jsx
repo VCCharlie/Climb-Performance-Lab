@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import { BarChart3 } from 'lucide-react';
 import { ChartTooltip, SegmentedControl } from '../ui';
+import ChartHost from '../ui/ChartHost';
 import { getChartTheme } from '../../utils/chartTheme';
 import { CHART_A11Y_PROPS } from '../../utils/chartA11y';
 import CollapsibleDashboardCard from './CollapsibleDashboardCard';
@@ -93,7 +94,7 @@ export default function OverviewBarChartsCard({ barChartIndex, userSettings }) {
                     No data in this period
                 </div>
             ) : (
-                <div className="h-52 md:h-56">
+                <ChartHost className="h-52 md:h-56">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }} {...CHART_A11Y_PROPS}>
                             <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} opacity={0.65} vertical={false} />
@@ -135,7 +136,7 @@ export default function OverviewBarChartsCard({ barChartIndex, userSettings }) {
                             />
                         </BarChart>
                     </ResponsiveContainer>
-                </div>
+                </ChartHost>
             )}
         </CollapsibleDashboardCard>
     );

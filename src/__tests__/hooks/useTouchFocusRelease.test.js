@@ -89,7 +89,7 @@ describe('useTouchFocusRelease', () => {
         });
     });
 
-    it('does not blur chart focus for mouse pointerup', () => {
+    it('blurs a focused recharts surface after mouse pointerup', () => {
         renderHook(() => useTouchFocusRelease());
 
         const handler = document.addEventListener.mock.calls.find(
@@ -98,6 +98,7 @@ describe('useTouchFocusRelease', () => {
 
         const surface = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         surface.setAttribute('class', 'recharts-surface');
+        surface.blur = vi.fn();
         document.body.appendChild(surface);
         Object.defineProperty(document, 'activeElement', {
             configurable: true,
@@ -106,9 +107,39 @@ describe('useTouchFocusRelease', () => {
 
         handler({ pointerType: 'mouse' });
 
-        expect(document.activeElement).toBe(surface);
+        expect(surface.blur).toHaveBeenCalled();
 
         document.body.removeChild(surface);
+        Object.defineProperty(document, 'activeElement', {
+            configurable: true,
+            value: document.body,
+        });
+    });
+
+    it('does not blur non-chart focus inside cd-chart-host for mouse pointerup', () => {
+        renderHook(() => useTouchFocusRelease());
+
+        const handler = document.addEventListener.mock.calls.find(
+            ([eventName]) => eventName === 'pointerup',
+        )?.[1];
+
+        const host = document.createElement('div');
+        host.className = 'cd-chart-host';
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.blur = vi.fn();
+        host.appendChild(button);
+        document.body.appendChild(host);
+        Object.defineProperty(document, 'activeElement', {
+            configurable: true,
+            value: button,
+        });
+
+        handler({ pointerType: 'mouse' });
+
+        expect(button.blur).not.toHaveBeenCalled();
+
+        document.body.removeChild(host);
         Object.defineProperty(document, 'activeElement', {
             configurable: true,
             value: document.body,

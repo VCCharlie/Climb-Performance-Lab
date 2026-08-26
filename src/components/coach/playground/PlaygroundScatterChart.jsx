@@ -14,6 +14,8 @@ import {
 } from 'recharts';
 import { buildTrendLineEndpoints, computeAxisDomain } from '../../../utils/coach/coachPlaygroundRegression.js';
 import { formatPlaygroundAxisTick } from '../../../utils/coach/coachPlaygroundMetrics.js';
+import { CHART_A11Y_PROPS } from '../../../utils/chartA11y';
+import ChartHost from '../../ui/ChartHost';
 
 const THEME = {
   grid: 'var(--cd-border, #334155)',
@@ -110,8 +112,9 @@ export default function PlaygroundScatterChart({
 
   return (
     <div className="space-y-1">
-      <ResponsiveContainer width="100%" height={320}>
-        <ComposedChart margin={{ top: 12, right: 16, left: 4, bottom: 8 }}>
+      <ChartHost>
+        <ResponsiveContainer width="100%" height={320}>
+          <ComposedChart margin={{ top: 12, right: 16, left: 4, bottom: 8 }} {...CHART_A11Y_PROPS}>
           <CartesianGrid strokeDasharray="3 3" stroke={THEME.grid} opacity={0.5} />
           <XAxis
             type="number"
@@ -170,6 +173,7 @@ export default function PlaygroundScatterChart({
           )}
         </ComposedChart>
       </ResponsiveContainer>
+      </ChartHost>
       {brushRange && (
         <button
           type="button"

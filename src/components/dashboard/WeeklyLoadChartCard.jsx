@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import { BarChart3 } from 'lucide-react';
 import { ChartTooltip } from '../ui';
+import ChartHost from '../ui/ChartHost';
 import { getChartTheme } from '../../utils/chartTheme';
 import { CHART_A11Y_PROPS } from '../../utils/chartA11y';
 import { buildWeeklyTssSeries } from '../../utils/weeklyLoadChart';
@@ -52,7 +53,7 @@ export default function WeeklyLoadChartCard({ activities, userSettings }) {
                     No weekly TSS data yet
                 </div>
             ) : (
-                <div className="h-52 md:h-56">
+                <ChartHost className="h-52 md:h-56">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }} {...CHART_A11Y_PROPS}>
                             {showBand ? (
@@ -104,7 +105,7 @@ export default function WeeklyLoadChartCard({ activities, userSettings }) {
                             />
                         </BarChart>
                     </ResponsiveContainer>
-                </div>
+                </ChartHost>
             )}
         </CollapsibleDashboardCard>
     );

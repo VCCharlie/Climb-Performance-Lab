@@ -16,6 +16,8 @@ import {
   Legend,
 } from 'recharts';
 import { CHART_TYPES, formatPlaygroundAxisTick } from '../../../utils/coach/coachPlaygroundMetrics.js';
+import { CHART_A11Y_PROPS } from '../../../utils/chartA11y';
+import ChartHost from '../../ui/ChartHost';
 
 const THEME = {
   grid: 'var(--cd-border, #334155)',
@@ -26,7 +28,11 @@ const THEME = {
 };
 
 function ChartShell({ children }) {
-  return <div className="relative min-w-0 overflow-hidden isolate">{children}</div>;
+  return (
+    <ChartHost className="relative min-w-0 overflow-hidden isolate">
+      {children}
+    </ChartHost>
+  );
 }
 
 function PlaygroundTooltip({ active, payload, label, metricLabel, showMax, showTrend, showMaxTrend }) {
@@ -100,6 +106,7 @@ export default function PlaygroundVolumeChart({
   const common = {
     data,
     margin: { top: 8, right: 12, left: 0, bottom: 0 },
+    ...CHART_A11Y_PROPS,
   };
 
   const yTickFormatter = (v) => formatPlaygroundAxisTick(v, { decimals: metricDecimals, unit: metricUnit });
@@ -123,7 +130,7 @@ export default function PlaygroundVolumeChart({
     return (
       <ChartShell>
         <ResponsiveContainer width="100%" height={280}>
-          <ScatterChart margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+          <ScatterChart margin={{ top: 8, right: 12, left: 0, bottom: 0 }} {...CHART_A11Y_PROPS}>
             <CartesianGrid strokeDasharray="3 3" stroke={THEME.grid} opacity={0.5} />
             <XAxis
               type="number"

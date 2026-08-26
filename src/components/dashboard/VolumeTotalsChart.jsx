@@ -14,7 +14,8 @@ import {
 import { formatNlNumber } from '../../utils/formatters';
 import { safeSessionStorageSet } from '../../utils/safeStorage.js';
 import { ChartTooltip } from '../ui';
-import { getChartTheme, chartCardClass, chartHostClass } from '../../utils/chartTheme';
+import ChartHost from '../ui/ChartHost';
+import { getChartTheme, chartCardClass } from '../../utils/chartTheme';
 import { CHART_A11Y_PROPS } from '../../utils/chartA11y';
 import {
     formatDurationHoursMinutes,
@@ -303,7 +304,7 @@ const VolumeTotalsChart = ({
                 </div>
             )}
 
-            <div className={`h-[280px] w-full min-h-[220px] ${chartHostClass}`}>
+            <ChartHost className="h-[280px] w-full min-h-[220px]">
                 <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={chartData} margin={{ top: 12, right: 10, left: 0, bottom: 4 }} {...CHART_A11Y_PROPS}>
                         <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} opacity={0.65} vertical={false} />
@@ -373,7 +374,7 @@ const VolumeTotalsChart = ({
                         />
                     </ComposedChart>
                 </ResponsiveContainer>
-            </div>
+            </ChartHost>
             <div className="flex flex-wrap justify-center gap-4 sm:gap-6 text-[10px] text-cdmuted">
                 <span className="inline-flex items-center gap-1.5">
                     <span className="inline-block w-3 h-3 rounded-sm bg-blue-500/80" aria-hidden />

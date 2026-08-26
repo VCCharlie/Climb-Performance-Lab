@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import { Zap } from 'lucide-react';
 import { ChartTooltip, SegmentedControl } from '../ui';
+import ChartHost from '../ui/ChartHost';
 import { getChartTheme } from '../../utils/chartTheme';
 import { CHART_A11Y_PROPS } from '../../utils/chartA11y';
 import {
@@ -149,7 +150,7 @@ export default function PeakPowerDurationBarCard({
                         : `No rides long enough for ${durationLabel} peaks in your history.`}
                 </p>
             ) : (
-                <div className="h-64 sm:h-72">
+                <ChartHost className="h-64 sm:h-72">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart
                             data={rows}
@@ -201,7 +202,7 @@ export default function PeakPowerDurationBarCard({
                             </Bar>
                         </BarChart>
                     </ResponsiveContainer>
-                </div>
+                </ChartHost>
             )}
         </CollapsibleDashboardCard>
     );

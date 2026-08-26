@@ -6,6 +6,7 @@ import {
 import { BarChart3 } from 'lucide-react';
 import PowerCurveChart from './charts/PowerCurveChart';
 import { ChartTooltip } from '../ui';
+import ChartHost from '../ui/ChartHost';
 import { getChartTheme } from '../../utils/chartTheme';
 import { CHART_A11Y_PROPS } from '../../utils/chartA11y';
 import useMediaQuery from '../../hooks/useMediaQuery';
@@ -28,7 +29,7 @@ const PowerTabDetails = ({ monthlyBests, data, manualFtp }) => {
                 description="Peak 5 min, 20 min, and 60 min power per calendar month in the selected period."
                 defaultExpanded
             >
-                <div className="h-64 sm:h-72">
+                <ChartHost className="h-64 sm:h-72">
                     <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={200}>
                         <LineChart
                             data={monthlyBests}
@@ -73,7 +74,7 @@ const PowerTabDetails = ({ monthlyBests, data, manualFtp }) => {
                             <Line type="monotone" dataKey="c_60min" stroke={theme.green} strokeWidth={2} dot={{ r: isMobile ? 2 : 3 }} connectNulls />
                         </LineChart>
                     </ResponsiveContainer>
-                </div>
+                </ChartHost>
             </CollapsibleDashboardCard>
 
             <PowerCurveChart data={data} manualFtp={manualFtp} />

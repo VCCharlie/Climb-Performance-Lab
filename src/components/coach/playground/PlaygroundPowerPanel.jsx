@@ -18,6 +18,8 @@ import {
   CHART_TYPES,
   POWER_STAT_MODES,
 } from '../../../utils/coach/coachPlaygroundMetrics.js';
+import ChartHost from '../../ui/ChartHost';
+import { CHART_A11Y_PROPS } from '../../../utils/chartA11y';
 
 const THEME = {
   grid: 'var(--cd-border, #334155)',
@@ -223,9 +225,10 @@ export default function PlaygroundPowerPanel({ activities }) {
       </p>
 
       {chartData.some((r) => r.barValue != null) ? (
-        <ResponsiveContainer width="100%" height={280}>
-          {chartType === CHART_TYPES.LINE ? (
-            <LineChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+        <ChartHost>
+          <ResponsiveContainer width="100%" height={280}>
+            {chartType === CHART_TYPES.LINE ? (
+              <LineChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }} {...CHART_A11Y_PROPS}>
               <CartesianGrid strokeDasharray="3 3" stroke={THEME.grid} opacity={0.5} />
               <XAxis dataKey="year" tick={{ fill: THEME.text, fontSize: 11 }} />
               <YAxis tick={{ fill: THEME.text, fontSize: 11 }} width={48} />
@@ -240,7 +243,7 @@ export default function PlaygroundPowerPanel({ activities }) {
               )}
             </LineChart>
           ) : chartType === CHART_TYPES.BAR ? (
-            <BarChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+            <BarChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }} {...CHART_A11Y_PROPS}>
               <CartesianGrid strokeDasharray="3 3" stroke={THEME.grid} opacity={0.5} />
               <XAxis dataKey="year" tick={{ fill: THEME.text, fontSize: 11 }} />
               <YAxis tick={{ fill: THEME.text, fontSize: 11 }} width={48} />
@@ -249,7 +252,7 @@ export default function PlaygroundPowerPanel({ activities }) {
               <Bar dataKey="barValue" name={barLabel} fill={THEME.primary} radius={[4, 4, 0, 0]} />
             </BarChart>
           ) : (
-            <ComposedChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+            <ComposedChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }} {...CHART_A11Y_PROPS}>
               <CartesianGrid strokeDasharray="3 3" stroke={THEME.grid} opacity={0.5} />
               <XAxis dataKey="year" tick={{ fill: THEME.text, fontSize: 11 }} />
               <YAxis tick={{ fill: THEME.text, fontSize: 11 }} width={48} />
@@ -264,7 +267,8 @@ export default function PlaygroundPowerPanel({ activities }) {
               )}
             </ComposedChart>
           )}
-        </ResponsiveContainer>
+          </ResponsiveContainer>
+        </ChartHost>
       ) : (
         <p className="text-sm text-cdmuted py-8 text-center">No power peaks for this duration in the selected years.</p>
       )}
