@@ -1,13 +1,11 @@
 import React, { useEffect, useRef } from 'react';
 import { cn } from './cn';
 import { chartHostClass } from '../../utils/chartTheme';
-
-const RECHARTS_FOCUS_SELECTORS = '.recharts-surface, .recharts-wrapper, .recharts-tooltip-wrapper';
-
-function isChartFocusTarget(element) {
-    if (!(element instanceof Element)) return false;
-    return element.matches(`${RECHARTS_FOCUS_SELECTORS}, svg`) || Boolean(element.closest(RECHARTS_FOCUS_SELECTORS));
-}
+import {
+    releaseChartFocus,
+    shouldReleaseChartFocus,
+    stripChartFocusability,
+} from '../../utils/chartFocusRelease';
 
 /**
  * Wraps Recharts ResponsiveContainer — suppresses sticky tap/click focus rings on chart SVG
@@ -29,16 +27,31 @@ export default function ChartHost({ className, style, children, hostRef, ...rest
         const host = localRef.current;
         if (!host) return undefined;
 
-        const releaseChartFocus = () => {
-            const active = document.activeElement;
-            if (!(active instanceof Element)) return;
-            if (!host.contains(active)) return;
-            if (!isChartFocusTarget(active)) return;
-            active.blur();
+        const onFocusIn = (event) => {
+            releaseChartFocus(event.target);
         };
 
-        host.addEventListener('pointerup', releaseChartFocus, true);
-        return () => host.removeEventListener('pointerup', releaseChartFocus, true);
+        const onPointerUp = () => {
+            releaseChartFocus(document.activeElement);
+            // Recharts often focuses tooltip/SVG after pointerup — blur on next frames too.
+            requestAnimationFrame(() => {
+                releaseChartFocus(document.activeElement);
+                requestAnimationFrame(() => releaseChartFocus(document.activeElement));
+            });
+        };
+
+        const observer = new MutationObserver(() => stripChartFocusability(host));
+        observer.observe(host, { childList: true, subtree: true, attributes: true, attributeFilter: ['tabindex'] });
+        stripChartFocusability(host);
+
+        host.addEventListener('focusin', onFocusIn, true);
+        host.addEventListener('pointerup', onPointerUp, true);
+
+        return () => {
+            observer.disconnect();
+            host.removeEventListener('focusin', onFocusIn, true);
+            host.removeEventListener('pointerup', onPointerUp, true);
+        };
     }, []);
 
     return (
@@ -57,3 +70,5 @@ export default function ChartHost({ className, style, children, hostRef, ...rest
         </div>
     );
 }
+
+export { shouldReleaseChartFocus, releaseChartFocus };
