@@ -15,6 +15,7 @@ export default function TimeRangeToolbar({
     layout = 'desktop',
     className,
     compact = false,
+    hideCustomDates = false,
 }) {
     const pickerProps = {
         timeRange,
@@ -25,7 +26,7 @@ export default function TimeRangeToolbar({
         onCustomEnd,
         compact,
         align: layout === 'desktop' ? 'end' : 'start',
-        hideCustomDates: layout === 'mobile-inline',
+        hideCustomDates: hideCustomDates || layout === 'mobile-inline',
         className: cn(
             layout === 'desktop' && 'shrink-0',
             layout === 'mobile-inline' && 'shrink-0',

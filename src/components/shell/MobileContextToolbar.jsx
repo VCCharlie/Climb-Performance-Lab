@@ -4,11 +4,16 @@ import { TimeRangeCustomDates } from './TimeRangePresetPicker';
 import DashboardTodaySyncButton from '../dashboard/DashboardTodaySyncButton';
 import { TIME_RANGE_TAB_IDS, INTERVALS_QUICK_SYNC_TAB_IDS } from '../../config/navTabs';
 
-/**
- * Build inline header chrome for mobile (preset + sync buttons, optional custom dates row).
- */
-export function buildMobileHeaderToolbar({
-    activeTab,
+function headerToolbarVisibility(activeTab, syncTodayActivities) {
+    const showTimeRange = TIME_RANGE_TAB_IDS.has(activeTab);
+    const showSync = INTERVALS_QUICK_SYNC_TAB_IDS.has(activeTab) && Boolean(syncTodayActivities);
+    return { showTimeRange, showSync, visible: showTimeRange || showSync };
+}
+
+function buildContextToolbarActions({
+    showTimeRange,
+    showSync,
+    layout,
     timeRange,
     onTimeRangeChange,
     customStart,
@@ -17,20 +22,14 @@ export function buildMobileHeaderToolbar({
     onCustomEnd,
     syncTodayActivities,
     isTodaySyncBusy,
+    syncButtonSize = 'sm',
+    hideCustomDates = false,
 }) {
-    const showTimeRange = TIME_RANGE_TAB_IDS.has(activeTab);
-    const showSync = INTERVALS_QUICK_SYNC_TAB_IDS.has(activeTab) && Boolean(syncTodayActivities);
-    const visible = showTimeRange || showSync;
-
-    if (!visible) {
-        return null;
-    }
-
-    const actions = (
+    return (
         <div className="flex items-center gap-1.5 shrink-0">
             {showTimeRange ? (
                 <TimeRangeToolbar
-                    layout="mobile-inline"
+                    layout={layout}
                     timeRange={timeRange}
                     onTimeRangeChange={onTimeRangeChange}
                     customStart={customStart}
@@ -38,19 +37,26 @@ export function buildMobileHeaderToolbar({
                     onCustomStart={onCustomStart}
                     onCustomEnd={onCustomEnd}
                     compact
+                    hideCustomDates={hideCustomDates}
                 />
             ) : null}
             {showSync ? (
                 <DashboardTodaySyncButton
                     onSync={syncTodayActivities}
                     isBusy={isTodaySyncBusy}
-                    size="sm"
+                    size={syncButtonSize}
                 />
             ) : null}
         </div>
     );
+}
 
-    const footer = showTimeRange && timeRange === 'Custom' ? (
+function buildCustomDatesFooter(showTimeRange, timeRange, customStart, customEnd, onCustomStart, onCustomEnd) {
+    if (!showTimeRange || timeRange !== 'Custom') {
+        return null;
+    }
+
+    return (
         <TimeRangeCustomDates
             customStart={customStart}
             customEnd={customEnd}
@@ -58,7 +64,69 @@ export function buildMobileHeaderToolbar({
             onCustomEnd={onCustomEnd}
             compact
         />
-    ) : null;
+    );
+}
 
-    return { actions, footer };
+/**
+ * Build inline header chrome for mobile (preset + sync buttons, optional custom dates row).
+ */
+export function buildMobileHeaderToolbar(props) {
+    const { showTimeRange, showSync, visible } = headerToolbarVisibility(
+        props.activeTab,
+        props.syncTodayActivities,
+    );
+
+    if (!visible) {
+        return null;
+    }
+
+    return {
+        actions: buildContextToolbarActions({
+            showTimeRange,
+            showSync,
+            layout: 'mobile-inline',
+            ...props,
+        }),
+        footer: buildCustomDatesFooter(
+            showTimeRange,
+            props.timeRange,
+            props.customStart,
+            props.customEnd,
+            props.onCustomStart,
+            props.onCustomEnd,
+        ),
+    };
+}
+
+/**
+ * Build header chrome for desktop lg+ (period preset + sync today, optional custom dates row).
+ */
+export function buildDesktopHeaderToolbar(props) {
+    const { showTimeRange, showSync, visible } = headerToolbarVisibility(
+        props.activeTab,
+        props.syncTodayActivities,
+    );
+
+    if (!visible) {
+        return null;
+    }
+
+    return {
+        actions: buildContextToolbarActions({
+            showTimeRange,
+            showSync,
+            layout: 'desktop',
+            syncButtonSize: 'sm',
+            hideCustomDates: true,
+            ...props,
+        }),
+        footer: buildCustomDatesFooter(
+            showTimeRange,
+            props.timeRange,
+            props.customStart,
+            props.customEnd,
+            props.onCustomStart,
+            props.onCustomEnd,
+        ),
+    };
 }

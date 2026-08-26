@@ -1169,7 +1169,7 @@ const App = () => {
                                                         <DashboardTodaySyncButton
                                                             onSync={syncTodayActivities}
                                                             isBusy={isTodaySyncBusy}
-                                                            className="shrink-0 hidden md:flex"
+                                                            className="shrink-0 hidden md:flex lg:hidden"
                                                         />
                                                     ) : null}
                                                     subNav={(
