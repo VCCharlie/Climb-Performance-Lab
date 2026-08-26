@@ -49,10 +49,32 @@ describe('buildCoachContext', () => {
         const ctx = buildCoachContext(sampleActivities, { ftp: 250, weight: 75 }, { weeklyHoursTarget: 5 });
         expect(ctx.athlete.ftp).toBe(250);
         expect(ctx.weeklyLoad.targetTss).toBe(250);
+        expect(ctx.weeklyLoad.targetSource).toBe('hours-budget');
         expect(ctx.selectedStimulus).toBeTruthy();
         expect(ctx.fluidWorkout).toBeTruthy();
         expect(ctx.fluidWorkout.name).toBeTruthy();
         expect(ctx.stimulusRationale).toBeTruthy();
+    });
+
+    it('weeklyLoad uses calendar week TSS aligned with training status strip', () => {
+        const activities = [
+            { id: 'old1', date: '2026-08-20', type: 'Ride', load: 120, moving_time: 3600, norm_power: 180 },
+            { id: 'old2', date: '2026-08-21', type: 'Ride', load: 130, moving_time: 3600, norm_power: 180 },
+            { id: 'old3', date: '2026-08-22', type: 'Ride', load: 119, moving_time: 3600, norm_power: 180 },
+            { id: 'wk1', date: '2026-08-24', type: 'Ride', load: 30, moving_time: 1800, norm_power: 150 },
+            { id: 'wk2', date: '2026-08-26', type: 'Ride', load: 27, moving_time: 1800, norm_power: 150 },
+        ];
+
+        const ctx = buildCoachContext(
+            activities,
+            { ftp: 250, weeklyHoursTarget: 5 },
+            { endDate: '2026-08-26', weeklyHoursTarget: 5 },
+        );
+
+        expect(ctx.weeklyLoad.actualTss).toBe(57);
+        expect(ctx.weeklyLoad.targetTss).toBe(250);
+        expect(ctx.weeklyLoad.compliancePct).toBe(Math.round((57 / 250) * 100));
+        expect(ctx.weeklyLoad.weekLabel).toMatch(/24 Aug/);
     });
 
     it('includes fitness metrics', () => {
