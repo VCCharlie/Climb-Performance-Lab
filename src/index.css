@@ -255,12 +255,15 @@ textarea:focus:not(:focus-visible) {
 .cd-chart-host .recharts-surface,
 .cd-chart-host .recharts-tooltip-wrapper,
 .cd-chart-host .recharts-responsive-container,
+.cd-chart-host svg,
 .cd-chart-host svg.recharts-surface {
   outline: none !important;
   box-shadow: none !important;
   -webkit-tap-highlight-color: transparent;
+  -webkit-focus-ring-color: transparent;
 }
 
+.cd-chart-host .recharts-wrapper:focus,
 .cd-chart-host .recharts-wrapper:focus-visible,
 .cd-chart-host .recharts-surface:focus,
 .cd-chart-host .recharts-surface:focus-visible,
@@ -274,6 +277,7 @@ textarea:focus:not(:focus-visible) {
 .cd-chart-host *:focus-visible {
   outline: none !important;
   box-shadow: none !important;
+  -webkit-focus-ring-color: transparent;
 }
 
 /* Recharts tooltip escape-handler div (tabindex=-1 inside SVG) */

@@ -4,4 +4,6 @@
  */
 export const CHART_A11Y_PROPS = Object.freeze({
     accessibilityLayer: false,
+    // Prevent Android/WebKit from drawing native SVG focus rings on tap.
+    focusable: false,
 });

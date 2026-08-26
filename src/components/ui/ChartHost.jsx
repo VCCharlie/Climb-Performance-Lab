@@ -62,7 +62,6 @@ export default function ChartHost({ className, style, children, hostRef, ...rest
                 'outline-none focus:outline-none focus-visible:outline-none',
                 className,
             )}
-            tabIndex={-1}
             style={style}
             {...rest}
         >
