@@ -3,7 +3,9 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { Activity, TrendingUp, Zap, Calendar, ArrowUp, ArrowDown, ExternalLink, ListTree } from 'lucide-react';
 import { formatDateDDMMYYYY } from '../utils';
 import { ChartTooltip } from './ui';
+import ChartHost from './ui/ChartHost';
 import { getChartTheme, chartCardClassLg } from '../utils/chartTheme';
+import { CHART_A11Y_PROPS } from '../utils/chartA11y';
 import {
     findPeakEftp20Activity,
     findPeakEftp60Activity,
@@ -557,9 +559,9 @@ const PerformanceModule = ({
                         {/* Controls removed from here */}
                     </div>
 
-                    <div className="min-h-[300px] h-[50vh] max-h-[500px] w-full">
+                    <ChartHost className="min-h-[300px] h-[50vh] max-h-[500px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <ComposedChart data={chartSeries} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                            <ComposedChart data={chartSeries} margin={{ top: 10, right: 30, left: 0, bottom: 0 }} {...CHART_A11Y_PROPS}>
                                 <defs>
                                     <linearGradient id="colorLoad" x1="0" y1="0" x2="0" y2="1">
                                         <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
@@ -651,7 +653,7 @@ const PerformanceModule = ({
                                 )}
                             </ComposedChart>
                         </ResponsiveContainer>
-                    </div>
+                    </ChartHost>
                 </div>
             </div>
         </>

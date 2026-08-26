@@ -11,7 +11,8 @@ import {
 } from 'recharts';
 import { Layers } from 'lucide-react';
 import { ChartTooltip, SegmentedControl } from '../ui';
-import { getChartTheme, chartHostClass } from '../../utils/chartTheme';
+import ChartHost from '../ui/ChartHost';
+import { getChartTheme } from '../../utils/chartTheme';
 import { CHART_A11Y_PROPS } from '../../utils/chartA11y';
 import CollapsibleDashboardCard from './CollapsibleDashboardCard';
 import CustomDateRangeFields from '../ui/CustomDateRangeFields';
@@ -216,7 +217,7 @@ export default function TimeInZonesCard({
 
             {customRangeFields}
 
-            <div className={`h-64 w-full ${chartHostClass}`}>
+            <ChartHost className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartRows} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} {...CHART_A11Y_PROPS}>
                         <CartesianGrid strokeDasharray="3 3" stroke={theme.gridStroke} vertical={false} />
@@ -258,7 +259,7 @@ export default function TimeInZonesCard({
                         ))}
                     </BarChart>
                 </ResponsiveContainer>
-            </div>
+            </ChartHost>
         </CollapsibleDashboardCard>
     );
 }

@@ -1,6 +1,8 @@
 import React from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { chartTooltipShellClass, getChartTheme } from '../../utils/chartTheme';
+import { CHART_A11Y_PROPS } from '../../utils/chartA11y';
+import ChartHost from '../ui/ChartHost';
 
 const ProfilerTooltip = ({ active, payload, showPowerZones, powerRecommendations }) => {
     if (active && payload && payload.length) {
@@ -52,8 +54,9 @@ const ProfilerCharts = ({
                     </div>
                     <span className="text-[10px] text-cdmuted uppercase shrink-0">% vs. distance</span>
                 </div>
-                <ResponsiveContainer width="100%" height={260}>
-                    <AreaChart data={profileData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                <ChartHost>
+                    <ResponsiveContainer width="100%" height={260}>
+                        <AreaChart data={profileData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} {...CHART_A11Y_PROPS}>
                         <defs>
                             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor="#ef4444" stopOpacity={0.85} />
@@ -98,7 +101,8 @@ const ProfilerCharts = ({
                             strokeWidth={2}
                         />
                     </AreaChart>
-                </ResponsiveContainer>
+                    </ResponsiveContainer>
+                </ChartHost>
             </div>
 
             <div className="bg-cdbg/60 p-4 rounded-xl border border-cdborder">
@@ -109,8 +113,9 @@ const ProfilerCharts = ({
                     </div>
                     <span className="text-[10px] text-cdmuted uppercase shrink-0">cumulative</span>
                 </div>
-                <ResponsiveContainer width="100%" height={220}>
-                    <AreaChart data={profileData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                <ChartHost>
+                    <ResponsiveContainer width="100%" height={220}>
+                        <AreaChart data={profileData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} {...CHART_A11Y_PROPS}>
                         <defs>
                             <linearGradient id={elevId} x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.85} />
@@ -147,7 +152,8 @@ const ProfilerCharts = ({
                             strokeWidth={2}
                         />
                     </AreaChart>
-                </ResponsiveContainer>
+                    </ResponsiveContainer>
+                </ChartHost>
             </div>
         </div>
     );

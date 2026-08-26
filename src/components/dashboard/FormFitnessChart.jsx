@@ -16,7 +16,8 @@ import {
 } from 'recharts';
 import { formatDateDDMMYYYY } from '../../utils';
 import { ChartTooltip } from '../ui';
-import { getChartTheme } from '../../utils/chartTheme';
+import { getChartTheme, chartHostClass } from '../../utils/chartTheme';
+import { CHART_A11Y_PROPS } from '../../utils/chartA11y';
 import useMediaQuery from '../../hooks/useMediaQuery';
 import useChartTouchScrubber from '../../hooks/useChartTouchScrubber';
 import { computeFitnessChartYDomain } from '../../utils/chartTouchScrubber';
@@ -139,7 +140,8 @@ const FormFitnessChart = ({
             <div
                 ref={wrapperRef}
                 className={cn(
-                    'relative w-full select-none',
+                    chartHostClass,
+                    'relative w-full select-none outline-none focus:outline-none focus-visible:outline-none',
                     isScrubbing && 'cursor-grabbing',
                     !isScrubbing && isMobileLayout && 'cursor-crosshair',
                 )}
@@ -147,6 +149,7 @@ const FormFitnessChart = ({
                     height: chartHeight,
                     touchAction,
                 }}
+                tabIndex={-1}
                 role="img"
                 aria-label="CTL, ATL and TSB fitness chart. Touch and drag horizontally to inspect values."
                 {...handlers}
@@ -156,6 +159,7 @@ const FormFitnessChart = ({
                         data={fitnessData}
                         margin={margins}
                         syncId="form-fitness-chart"
+                        {...CHART_A11Y_PROPS}
                     >
                         <CartesianGrid
                             strokeDasharray="3 3"

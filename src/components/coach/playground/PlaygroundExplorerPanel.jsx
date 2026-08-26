@@ -24,6 +24,8 @@ import {
 import { todayYmd } from '../../../utils/coach/coachHelpers.js';
 import NlDateInput from '../../NlDateInput.jsx';
 import PlaygroundScatterChart from './PlaygroundScatterChart.jsx';
+import ChartHost from '../../ui/ChartHost';
+import { CHART_A11Y_PROPS } from '../../../utils/chartA11y';
 import PlaygroundExplorerTable from './PlaygroundExplorerTable.jsx';
 import { playgroundExplorerSortKeys } from '../../../utils/playgroundTableStyles.js';
 
@@ -313,8 +315,9 @@ export default function PlaygroundExplorerPanel({ activities }) {
           autoZoom={autoZoom}
         />
       ) : (
-        <ResponsiveContainer width="100%" height={300}>
-          <ComposedChart data={explorer.timelineData} margin={{ top: 8, right: 48, left: 0, bottom: 0 }}>
+        <ChartHost>
+          <ResponsiveContainer width="100%" height={300}>
+            <ComposedChart data={explorer.timelineData} margin={{ top: 8, right: 48, left: 0, bottom: 0 }} {...CHART_A11Y_PROPS}>
             <CartesianGrid strokeDasharray="3 3" stroke={THEME.grid} opacity={0.5} />
             <XAxis dataKey="label" tick={{ fill: THEME.text, fontSize: 10 }} interval="preserveStartEnd" />
             <YAxis
@@ -335,7 +338,8 @@ export default function PlaygroundExplorerPanel({ activities }) {
             <Line yAxisId="left" type="monotone" dataKey="xValue" name={explorer.xMeta.label} stroke={THEME.xLine} strokeWidth={2} dot={{ r: 3 }} connectNulls />
             <Line yAxisId="right" type="monotone" dataKey="yValue" name={explorer.yMeta.label} stroke={THEME.yLine} strokeWidth={2} dot={{ r: 3 }} connectNulls />
           </ComposedChart>
-        </ResponsiveContainer>
+          </ResponsiveContainer>
+        </ChartHost>
       )}
 
       <PlaygroundExplorerTable

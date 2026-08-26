@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import { LineChart } from 'lucide-react';
 import { ChartTooltip } from '../../ui';
+import ChartHost from '../../ui/ChartHost';
 import { getChartTheme } from '../../../utils/chartTheme';
 import { CHART_A11Y_PROPS } from '../../../utils/chartA11y';
 import CollapsibleDashboardCard from '../CollapsibleDashboardCard';
@@ -71,7 +72,7 @@ const PowerCurveChart = ({ data, manualFtp }) => {
                 </div>
             ) : (
                 <>
-                    <div className="h-56">
+                    <ChartHost className="h-56">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={curveData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }} {...CHART_A11Y_PROPS}>
                                 <defs>
@@ -118,7 +119,7 @@ const PowerCurveChart = ({ data, manualFtp }) => {
                                 />
                             </AreaChart>
                         </ResponsiveContainer>
-                    </div>
+                    </ChartHost>
                     <p className="text-xs text-cdmuted mt-2">
                         Based on best effort per activity in the selected period.
                     </p>

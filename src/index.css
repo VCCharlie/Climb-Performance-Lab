@@ -244,11 +244,21 @@ textarea:focus:not(:focus-visible) {
 /*
  * Charts inside cd-chart-host: no focus rings — interaction uses dots, rows, or external controls.
  */
-.cd-chart-host .recharts-wrapper,
-.cd-chart-host .recharts-surface,
-.cd-chart-host .recharts-tooltip-wrapper {
+.cd-chart-host,
+.cd-chart-host:focus,
+.cd-chart-host:focus-visible {
   outline: none !important;
   box-shadow: none !important;
+}
+
+.cd-chart-host .recharts-wrapper,
+.cd-chart-host .recharts-surface,
+.cd-chart-host .recharts-tooltip-wrapper,
+.cd-chart-host .recharts-responsive-container,
+.cd-chart-host svg.recharts-surface {
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .cd-chart-host .recharts-wrapper:focus,
@@ -256,7 +266,11 @@ textarea:focus:not(:focus-visible) {
 .cd-chart-host .recharts-surface:focus,
 .cd-chart-host .recharts-surface:focus-visible,
 .cd-chart-host .recharts-tooltip-wrapper:focus,
-.cd-chart-host .recharts-tooltip-wrapper:focus-visible {
+.cd-chart-host .recharts-tooltip-wrapper:focus-visible,
+.cd-chart-host .recharts-responsive-container:focus,
+.cd-chart-host .recharts-responsive-container:focus-visible,
+.cd-chart-host svg:focus,
+.cd-chart-host svg:focus-visible {
   outline: none !important;
   box-shadow: none !important;
 }

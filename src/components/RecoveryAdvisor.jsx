@@ -14,6 +14,8 @@ import {
 } from '../utils/trainingPlanSnapshot';
 import EmptyStateCard from './ui/EmptyStateCard';
 import CollapsibleInfoCard from './ui/CollapsibleInfoCard';
+import ChartHost from './ui/ChartHost';
+import { CHART_A11Y_PROPS } from '../utils/chartA11y';
 
 // ⚡ Bolt Optimization: Use array lookup instead of Date.toLocaleString() in loops
 const NL_SHORT_MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
@@ -306,8 +308,9 @@ const RecoveryAdvisor = ({ activities: activitiesProp, startDate, endDate, onGoT
                 <h3 className="text-cdtext font-bold text-sm mb-4 uppercase tracking-wide">
                     {trainingMetrics.rangeLabel} — Performance Management Chart
                 </h3>
-                <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={trainingMetrics.chartData}>
+                <ChartHost>
+                    <ResponsiveContainer width="100%" height={300}>
+                        <LineChart data={trainingMetrics.chartData} {...CHART_A11Y_PROPS}>
                         <CartesianGrid strokeDasharray="3 3" stroke="var(--color-cdborder, #e2e8f0)" />
                         <XAxis
                             dataKey="date"
@@ -334,7 +337,8 @@ const RecoveryAdvisor = ({ activities: activitiesProp, startDate, endDate, onGoT
                         <Line type="monotone" dataKey="atl" stroke="#ef4444" strokeWidth={2} name="ATL (Fatigue)" dot={false} />
                         <Line type="monotone" dataKey="tsb" stroke="#facc15" strokeWidth={2} name="TSB (Form)" dot={false} />
                     </LineChart>
-                </ResponsiveContainer>
+                    </ResponsiveContainer>
+                </ChartHost>
             </div>
         </div>
     );

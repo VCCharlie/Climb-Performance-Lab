@@ -30,4 +30,5 @@ export {
 } from './modalStyles';
 export { default as SubTabNav, subTabButtonClass, SUB_TAB_ACTIVE_TEXT_CLASS } from './SubTabNav';
 export { default as ChartTooltip } from './ChartTooltip';
+export { default as ChartHost } from './ChartHost';
 export { Skeleton, SkeletonText, SkeletonChartCard, LoadingPanel } from './Skeleton';
