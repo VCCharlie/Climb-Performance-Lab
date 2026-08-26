@@ -9,6 +9,7 @@ import { useProfileFtp } from '../context/ProfileFtpContext';
 import { useToast } from '../context/ToastContext';
 import { IconButton, cn } from './ui';
 import SiteQuickLinks from './shell/SiteQuickLinks';
+import MainNavTabs from './shell/MainNavTabs';
 import { buildMobileHeaderToolbar } from './shell/MobileContextToolbar';
 import { useTodayIntervalsSync } from '../context/IntervalsSyncContext';
 
@@ -43,6 +44,7 @@ function Header({
     onOpenSettings,
     user,
     activeTab = null,
+    onTabChange,
     timeRange = '1Y',
     onTimeRangeChange,
     customStart = '',
@@ -143,7 +145,7 @@ function Header({
         >
             <SiteQuickLinks userSettings={userSettings} />
             <div className="max-w-7xl mx-auto flex justify-between items-center gap-2 px-3 py-2 md:gap-3 md:px-4 md:py-3">
-                <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+                <div className="flex items-center gap-2 md:gap-3 min-w-0 shrink-0 lg:max-w-[14rem]">
                     <div className="bg-cdbrand p-1.5 md:p-2 rounded-cdmd shrink-0" aria-hidden>
                         <Activity className="text-cdonbrand w-4 h-4 md:w-6 md:h-6" />
                     </div>
@@ -156,6 +158,16 @@ function Header({
                         )}
                     </div>
                 </div>
+
+                {showAppChrome && onTabChange && activeTab ? (
+                    <div className="hidden lg:flex flex-1 justify-center min-w-0 px-2">
+                        <MainNavTabs
+                            activeTab={activeTab}
+                            onTabChange={onTabChange}
+                            variant="header"
+                        />
+                    </div>
+                ) : null}
 
                 {mobileToolbar?.actions ? (
                     <div className="md:hidden shrink-0">{mobileToolbar.actions}</div>

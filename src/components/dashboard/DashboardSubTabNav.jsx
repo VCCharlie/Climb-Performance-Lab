@@ -34,6 +34,7 @@ export default function DashboardSubTabNav({
             ariaLabel="Dashboard Tabs"
             idPrefix="tab"
             tabPanelIdPrefix="tabpanel"
+            density="compact"
         />
     );
 }

@@ -8,11 +8,16 @@ export const SUB_TAB_ACTIVE_TEXT_CLASS = 'text-cdprimary';
 /**
  * Shared sub-tab strip: horizontal scroll on mobile, equal-width row on desktop.
  */
-export function subTabButtonClass(isActive, activeTextClass = SUB_TAB_ACTIVE_TEXT_CLASS) {
+export function subTabButtonClass(isActive, activeTextClass = SUB_TAB_ACTIVE_TEXT_CLASS, density = 'default') {
+    const isCompact = density === 'compact';
     return cn(
-        'shrink-0 md:flex-1 md:min-w-[5.5rem] px-3 md:px-2 py-2 md:py-3',
+        'shrink-0 md:flex-1 whitespace-nowrap cd-focus-ring cd-transition',
+        isCompact
+            ? 'min-w-[4.5rem] md:min-w-[4rem] px-3 md:px-2 py-2 md:py-1.5 cd-min-touch-y'
+            : 'md:min-w-[5.5rem] px-3 md:px-2 py-2 md:py-3',
         cdTypeSubsection,
-        'normal-case tracking-normal md:text-sm font-bold whitespace-nowrap cd-focus-ring cd-transition',
+        'normal-case tracking-normal font-bold',
+        isCompact ? 'md:text-xs' : 'md:text-sm',
         isActive
             ? cn('bg-cdborder', activeTextClass)
             : 'text-cdmuted hover:bg-cdborder/50',
@@ -40,6 +45,7 @@ export default function SubTabNav({
     idPrefix = 'tab',
     tabPanelIdPrefix = 'tabpanel',
     layout = 'scroll',
+    density = 'default',
     buttonClassName,
 }) {
     const scrollRef = useRef(null);
@@ -97,7 +103,7 @@ export default function SubTabNav({
                         onMouseEnter={prefetch}
                         onFocus={prefetch}
                         className={cn(
-                            subTabButtonClass(isActive, tab.activeTextClass),
+                            subTabButtonClass(isActive, tab.activeTextClass, density),
                             layout === 'equal' && 'flex-1 py-3',
                             buttonClassName,
                         )}
