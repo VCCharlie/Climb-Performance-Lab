@@ -1066,6 +1066,7 @@ const App = () => {
                         onOpenSettings={handleOpenSettings}
                         user={user}
                         activeTab={user ? activeTab : null}
+                        onTabChange={user ? handleTabChange : undefined}
                         timeRange={timeRange}
                         onTimeRangeChange={setTimeRange}
                         customStart={customStart}

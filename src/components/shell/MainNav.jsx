@@ -1,13 +1,14 @@
 import React from 'react';
-import NavTab from './NavTab';
-import NavMoreMenu from './NavMoreMenu';
+import { cn } from '../ui';
+import MainNavTabs from './MainNavTabs';
 import TimeRangeToolbar from './TimeRangeToolbar';
 import StickyTimeRangeToolbar from './StickyTimeRangeToolbar';
-import { PRIMARY_NAV_TABS, TIME_RANGE_TAB_IDS } from '../../config/navTabs';
-import { prefetchMainTabChunk } from '../../utils/prefetchTabChunks';
+import { TIME_RANGE_TAB_IDS } from '../../config/navTabs';
 
 /**
- * Desktop main navigation — four primary hubs + More menu (parity with mobile bottom nav).
+ * Desktop navigation row below the header.
+ * lg+: tabs live in the header banner — this row shows only the time-range filter when relevant.
+ * md–lg: tabs + time range (unchanged tablet layout).
  */
 function MainNav({
   activeTab,
@@ -31,34 +32,21 @@ function MainNav({
   };
 
   return (
-    <div className="relative mb-4 hidden md:block">
+    <div className={cn('relative mb-4 hidden md:block', !showTimeRange && 'lg:hidden')}>
       <StickyTimeRangeToolbar enabled>
         <div className="border-b border-cdborder/40 pb-1" data-pinned-main-nav="">
           <div className="flex items-center gap-2">
-            <nav
-              className="flex flex-1 flex-wrap items-center gap-x-0.5 gap-y-0 min-w-0"
-              role="tablist"
-              aria-label="Main navigation"
-            >
-              {PRIMARY_NAV_TABS.map((item) => (
-                <NavTab
-                  key={item.id}
-                  id={`main-tab-${item.id}`}
-                  ariaControls={`main-tabpanel-${item.id}`}
-                  icon={item.icon}
-                  label={item.label}
-                  isActive={activeTab === item.id}
-                  onClick={() => onTabChange(item.id)}
-                  onPrefetch={() => prefetchMainTabChunk(item.id)}
-                />
-              ))}
-              <NavMoreMenu activeTab={activeTab} onTabChange={onTabChange} />
-            </nav>
+            <MainNavTabs
+              activeTab={activeTab}
+              onTabChange={onTabChange}
+              className="lg:hidden"
+            />
             {showTimeRange ? (
               <TimeRangeToolbar
                 layout="desktop"
                 {...timeRangeProps}
                 compact
+                className="ml-auto"
               />
             ) : null}
           </div>

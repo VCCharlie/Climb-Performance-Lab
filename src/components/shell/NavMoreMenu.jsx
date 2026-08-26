@@ -8,10 +8,11 @@ import { prefetchMainTabChunk } from '../../utils/prefetchTabChunks';
 /**
  * Desktop "More" menu — secondary tabs (Race, Gear, Profiler, …) aligned with mobile bottom nav.
  */
-export default function NavMoreMenu({ activeTab, onTabChange }) {
+export default function NavMoreMenu({ activeTab, onTabChange, variant = 'default' }) {
     const [open, setOpen] = useState(false);
     const buttonRef = useRef(null);
     const moreIsActive = isMoreNavTab(activeTab);
+    const isHeader = variant === 'header';
 
     return (
         <div className={cn('relative shrink-0', open && 'z-[60]')}>
@@ -24,21 +25,30 @@ export default function NavMoreMenu({ activeTab, onTabChange }) {
                 aria-haspopup="menu"
                 onClick={() => setOpen((v) => !v)}
                 className={cn(
-                    'relative flex items-center gap-1.5 px-3 py-2.5 text-xs font-semibold whitespace-nowrap',
-                    'rounded-t-cdmd cd-transition cd-focus-ring',
+                    'relative flex items-center whitespace-nowrap rounded-t-cdmd cd-transition cd-focus-ring',
+                    isHeader
+                        ? 'gap-1 px-2 py-1.5 lg:px-2.5 text-[11px] lg:text-xs font-semibold'
+                        : 'gap-1.5 px-3 py-2.5 text-xs font-semibold',
                     moreIsActive || open
                         ? 'text-cdtext'
                         : 'text-cdmuted hover:text-cdtext hover:bg-cdsurfacelow/80',
                 )}
             >
                 <MoreHorizontal
-                    className={cn('w-4 h-4 shrink-0', (moreIsActive || open) && 'text-cdprimary')}
+                    className={cn(
+                        'shrink-0',
+                        isHeader ? 'w-3.5 h-3.5 lg:w-4 lg:h-4' : 'w-4 h-4',
+                        (moreIsActive || open) && 'text-cdprimary',
+                    )}
                     aria-hidden
                 />
                 More
                 {moreIsActive && (
                     <span
-                        className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-cdprimary"
+                        className={cn(
+                            'absolute bottom-0 h-0.5 rounded-full bg-cdprimary',
+                            isHeader ? 'left-2 right-2 lg:left-2.5 lg:right-2.5' : 'left-3 right-3',
+                        )}
                         aria-hidden
                     />
                 )}

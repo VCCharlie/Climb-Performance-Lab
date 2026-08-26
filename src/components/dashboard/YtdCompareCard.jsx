@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { TrendingUp, Bike, Mountain, Clock, Zap } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
 import { computeCplYtdYearOverYear, computeYtdGravelVsRoad, percentChange } from '../../utils/ytdYearOverYear';
 import { chartCardClass } from '../../utils/chartTheme';
 
@@ -193,14 +193,6 @@ const YtdCompareCard = ({ activities, manualFtp = 0, bare = false }) => {
                     />
                 </div>
             )}
-
-            <div className="mt-3 grid grid-cols-2 sm:grid-cols-5 gap-2 text-[10px] text-cdmuted">
-                <span className="flex items-center gap-1"><Bike size={12} className="text-orange-400" /> Rides</span>
-                <span className="flex items-center gap-1"><TrendingUp size={12} className="text-blue-400" /> Distance</span>
-                <span className="flex items-center gap-1"><Mountain size={12} className="text-green-400" /> Elevation</span>
-                <span className="flex items-center gap-1"><Clock size={12} className="text-purple-400" /> Time</span>
-                <span className="flex items-center gap-1"><Zap size={12} className="text-amber-400" /> TSS</span>
-            </div>
         </>
     );
 
