@@ -84,4 +84,20 @@ describe('stripChartFocusability', () => {
 
         expect(tooltipDiv.getAttribute('tabindex')).toBe('-1');
     });
+
+    it('is idempotent — second strip does not write attributes again', () => {
+        const host = document.createElement('div');
+        const surface = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        surface.setAttribute('class', 'recharts-surface');
+        surface.setAttribute('tabindex', '0');
+        host.appendChild(surface);
+
+        stripChartFocusability(host);
+        const setAttribute = vi.spyOn(surface, 'setAttribute');
+        const removeAttribute = vi.spyOn(surface, 'removeAttribute');
+        stripChartFocusability(host);
+
+        expect(setAttribute).not.toHaveBeenCalled();
+        expect(removeAttribute).not.toHaveBeenCalled();
+    });
 });
