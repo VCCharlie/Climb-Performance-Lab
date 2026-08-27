@@ -5,7 +5,6 @@
  */
 
 import { climbingMetersFromStrava } from './stravaElevation';
-import { adjacentLocalDateKeys } from './stravaFetchRange';
 
 // Fietstypes die we willen ophalen / koppelen
 export const STRAVA_BIKE_TYPES = new Set([
@@ -180,6 +179,14 @@ export const normalizeStravaActivity = (act) => {
     };
 };
 
+/** Local calendar day from site.date (ISO date or datetime). */
+export function siteCalendarDateKey(site) {
+    const raw = site?.date;
+    if (raw == null || raw === '') return null;
+    const key = String(raw).split('T')[0];
+    return /^\d{4}-\d{2}-\d{2}$/.test(key) ? key : null;
+}
+
 function collectCandidatesOnDates(siteByDate, dateKeys, usedSiteIds) {
     const seen = new Set();
     const candidates = [];
@@ -222,7 +229,7 @@ export const matchStravaToSite = (stravaActivities, siteActivities) => {
         if (site.strava_id) {
             siteByStravaId.set(String(site.strava_id), site);
         }
-        const dateKey = site.date?.split('T')[0];
+        const dateKey = siteCalendarDateKey(site);
         if (dateKey) {
             if (!siteByDate.has(dateKey)) siteByDate.set(dateKey, []);
             siteByDate.get(dateKey).push(site);
@@ -246,9 +253,11 @@ export const matchStravaToSite = (stravaActivities, siteActivities) => {
             continue;
         }
 
+        // Same local calendar day only — adjacent-day fuzzy match caused wrong links
+        // (e.g. "My whoosh" on 13 Apr matched to Strava on 14 Apr). Use Find on Strava for manual picks.
         const candidates = collectCandidatesOnDates(
             siteByDate,
-            adjacentLocalDateKeys(stravaDate),
+            [stravaDate],
             usedSiteIds,
         );
 
