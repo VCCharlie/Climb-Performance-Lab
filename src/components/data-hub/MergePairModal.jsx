@@ -44,10 +44,10 @@ const MergePairModal = ({
                     </div>
                     <div className="p-4 space-y-3 text-xs text-cdmuted overflow-y-auto custom-scrollbar">
                         <p>
-                            Keeps the <strong className="text-cdtext">Intervals.icu</strong> activity id and power/load metrics.
-                            Pulls in <strong className="text-cdtext">Strava</strong> link, map polyline, gear, and a better title when the Intervals title is generic.
+                            Keeps the <strong className="text-cdtext">primary</strong> activity id and best available power/load metrics.
+                            Pulls in <strong className="text-cdtext">Strava</strong> link, map polyline, gear, distance, and HR from whichever row has them.
                             After merge, if you are signed in to Strava, we fetch activity details to fill <strong className="text-cdtext">gear</strong> and route polyline when missing.
-                            The duplicate Strava-only row is <strong className="text-red-400">deleted</strong> from the database.
+                            The duplicate row is <strong className="text-red-400">deleted</strong> from the database.
                         </p>
                         {mergePairPreview?.error && (
                             <div className="rounded-lg border border-red-500/40 bg-red-500/10 text-red-400 px-3 py-2">{mergePairPreview.error}</div>
@@ -55,12 +55,12 @@ const MergePairModal = ({
                         {mergePairPreview && !mergePairPreview.error && (
                             <>
                                 <div className="rounded-lg border border-cdborder bg-cdbg/40 p-2 space-y-1">
-                                    <div className="text-[10px] font-bold text-cdaccent uppercase">Keep (Intervals)</div>
+                                    <div className="text-[10px] font-bold text-cdaccent uppercase">Keep (primary)</div>
                                     <div className="text-cdtext tabular-nums text-[11px]">id {mergePairPreview.intervals.id}</div>
                                     <div className="text-cdtext truncate">{mergePairPreview.intervals.title || '—'}</div>
                                 </div>
                                 <div className="rounded-lg border border-cdborder bg-cdbg/40 p-2 space-y-1">
-                                    <div className="text-[10px] font-bold text-orange-400 uppercase">Remove after merge (Strava import)</div>
+                                    <div className="text-[10px] font-bold text-orange-400 uppercase">Remove after merge (duplicate)</div>
                                     <div className="text-cdtext tabular-nums text-[11px]">id {mergePairPreview.stravaSide.id}</div>
                                     <div className="text-cdtext truncate">{mergePairPreview.stravaSide.title || '—'}</div>
                                     {mergePairPreview.stravaSide.strava_id && (

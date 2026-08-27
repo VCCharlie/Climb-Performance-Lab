@@ -123,5 +123,50 @@ describe('useDataHubBulkActions', () => {
         });
 
         expect(result.current.mergePairPreview?.error).toBeTruthy();
+        expect(result.current.canMergePair).toBe(false);
+    });
+
+    it('builds merge preview for FulGaz-style Intervals duplicate pair', () => {
+        const enriched = {
+            id: 'i100',
+            date: '2019-05-04',
+            type: 'VirtualRide',
+            title: 'FulGaz - Col du Chaussy',
+            moving_time: '43:21',
+            distance: 0,
+            strava_id: '555',
+            load: 53,
+        };
+        const sparse = {
+            id: 'i200',
+            date: '2019-05-04',
+            type: 'VirtualRide',
+            title: 'FulGaz - Col du Chaussy',
+            moving_time: '43:21',
+            distance: 10,
+            gear_name: 'Gilbertson Allure',
+            load: 0,
+        };
+
+        const { result } = renderHook(() => useDataHubBulkActions({
+            activities: [enriched, sparse],
+            onDelete,
+            onImport,
+            stravaGetToken: null,
+            visibleActivityIdsFlat: ['i100', 'i200'],
+            setIsDeleting: vi.fn(),
+            recoveryTss: 30,
+            userSettings: {},
+        }));
+
+        act(() => {
+            result.current.toggleBulkSelectOne('i100');
+            result.current.toggleBulkSelectOne('i200');
+        });
+
+        expect(result.current.canMergePair).toBe(true);
+        expect(result.current.mergePairPreview?.intervals?.id).toBe('i100');
+        expect(result.current.mergePairPreview?.merged?.strava_id).toBe('555');
+        expect(result.current.mergePairPreview?.merged?.distance).toBe(10);
     });
 });

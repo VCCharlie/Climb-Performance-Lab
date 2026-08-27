@@ -24,6 +24,8 @@ export default function BulkActionsSection({
     onStravaDescriptionBackfill,
     onDecouplingBackfill,
     onMergePair,
+    canMergePair,
+    mergePairHint,
     onDeleteSelected,
     onClearSelection,
     isBulkSaving,
@@ -117,8 +119,12 @@ export default function BulkActionsSection({
                     variant="outlined"
                     size="sm"
                     onClick={onMergePair}
-                    disabled={bulkSelectedCount !== 2}
-                    title="Select exactly two rows: Intervals + Strava import"
+                    disabled={bulkSelectedCount !== 2 || !canMergePair}
+                    title={
+                        bulkSelectedCount !== 2
+                            ? 'Select exactly two duplicate rows to merge'
+                            : (mergePairHint || 'Merge two duplicate activities into one row (keeps Strava link, load, gear, and distance)')
+                    }
                     className="!text-[10px] !h-8"
                 >
                     <GitMerge size={12} aria-hidden />
