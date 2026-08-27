@@ -3,17 +3,18 @@ import FixedLayerPortal from '../ui/FixedLayerPortal';
 import useAppHeaderOffset from '../../hooks/useAppHeaderOffset';
 import { setPinnedTimeRangeHeight } from '../../utils/pinnedTimeRangeHeight';
 
-const DESKTOP_NAV_QUERY = '(min-width: 768px)';
+/** Tablet sub-header only (md–lg). lg+ uses header banner controls — never pin a duplicate row. */
+const TABLET_NAV_QUERY = '(min-width: 768px) and (max-width: 1023px)';
 
 /** Solid shell matching the site header (opaque, no blur). */
 const PINNED_SHELL_CLASS =
-    'hidden md:block fixed left-0 right-0 z-[34] border-b border-cdborder/50 border-t border-cdsurface bg-cdsurface shadow-sm';
+    'hidden md:block lg:hidden fixed left-0 right-0 z-[34] border-b border-cdborder/50 border-t border-cdsurface bg-cdsurface shadow-sm';
 
-function isDesktopNavViewport() {
+function isTabletNavViewport() {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
         return false;
     }
-    return window.matchMedia(DESKTOP_NAV_QUERY).matches;
+    return window.matchMedia(TABLET_NAV_QUERY).matches;
 }
 
 function clonePinnedChild(children) {
@@ -42,7 +43,7 @@ export default function StickyTimeRangeToolbar({ children, enabled = true }) {
         if (!sentinel || typeof IntersectionObserver === 'undefined') return undefined;
 
         const updatePinned = (entry) => {
-            if (!isDesktopNavViewport()) {
+            if (!isTabletNavViewport()) {
                 setPinned(false);
                 return;
             }
@@ -59,7 +60,7 @@ export default function StickyTimeRangeToolbar({ children, enabled = true }) {
         );
 
         const onViewportChange = () => {
-            if (!isDesktopNavViewport()) {
+            if (!isTabletNavViewport()) {
                 setPinned(false);
             }
         };
@@ -73,7 +74,7 @@ export default function StickyTimeRangeToolbar({ children, enabled = true }) {
     }, [enabled, headerOffset]);
 
     useEffect(() => {
-        if (!enabled || !pinned || !isDesktopNavViewport()) {
+        if (!enabled || !pinned || !isTabletNavViewport()) {
             setPinnedTimeRangeHeight(0);
             return undefined;
         }
@@ -97,7 +98,7 @@ export default function StickyTimeRangeToolbar({ children, enabled = true }) {
         if (!enabled) setPinnedTimeRangeHeight(0);
     }, [enabled]);
 
-    const showPinnedPortal = pinned && isDesktopNavViewport();
+    const showPinnedPortal = pinned && isTabletNavViewport();
 
     if (!enabled) return null;
 
