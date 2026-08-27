@@ -60,6 +60,10 @@ const ActivityLogFilterBar = ({
     stravaGetToken,
     stravaLinkedOnly,
     onStravaLinkedOnlyChange,
+    noStravaLinkOnly,
+    onNoStravaLinkOnlyChange,
+    possibleDuplicatesOnly,
+    onPossibleDuplicatesOnlyChange,
     noPowerOnly,
     onNoPowerOnlyChange,
     withPowerOnly,
@@ -134,6 +138,8 @@ const ActivityLogFilterBar = ({
     onStravaDescriptionBackfill,
     onDecouplingBackfill,
     onMergePair,
+    canMergePair,
+    mergePairHint,
     onDeleteSelected,
     onClearSelection,
     isBulkSaving,
@@ -149,6 +155,8 @@ const ActivityLogFilterBar = ({
         thisWeekOnly,
         rollingDays != null,
         stravaLinkedOnly,
+        noStravaLinkOnly,
+        possibleDuplicatesOnly,
         noPowerOnly,
         withPowerOnly,
         highLoadOnly,
@@ -163,7 +171,7 @@ const ActivityLogFilterBar = ({
         metricRangeActive,
         indoorFilter !== 'all',
     ].filter(Boolean).length, [
-        thisWeekOnly, rollingDays, stravaLinkedOnly, noPowerOnly, withPowerOnly,
+        thisWeekOnly, rollingDays, stravaLinkedOnly, noStravaLinkOnly, possibleDuplicatesOnly, noPowerOnly, withPowerOnly,
         highLoadOnly, longRideOnly, missingHrOnly, virtualRideChip, gravelRideChip,
         mtbRideChip, ebikeRideChip, minTss, filterGearId, metricRangeActive, indoorFilter,
     ]);
@@ -352,6 +360,10 @@ const ActivityLogFilterBar = ({
             stravaGetToken={stravaGetToken}
             stravaLinkedOnly={stravaLinkedOnly}
             onStravaLinkedOnlyChange={onStravaLinkedOnlyChange}
+            noStravaLinkOnly={noStravaLinkOnly}
+            onNoStravaLinkOnlyChange={onNoStravaLinkOnlyChange}
+            possibleDuplicatesOnly={possibleDuplicatesOnly}
+            onPossibleDuplicatesOnlyChange={onPossibleDuplicatesOnlyChange}
             noPowerOnly={noPowerOnly}
             onNoPowerOnlyChange={onNoPowerOnlyChange}
             withPowerOnly={withPowerOnly}
@@ -434,6 +446,8 @@ const ActivityLogFilterBar = ({
             onStravaDescriptionBackfill={onStravaDescriptionBackfill}
             onDecouplingBackfill={onDecouplingBackfill}
             onMergePair={onMergePair}
+            canMergePair={canMergePair}
+            mergePairHint={mergePairHint}
             onDeleteSelected={onDeleteSelected}
             onClearSelection={onClearSelection}
             isBulkSaving={isBulkSaving}

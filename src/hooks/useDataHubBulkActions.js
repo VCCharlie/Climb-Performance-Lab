@@ -6,8 +6,7 @@ import { protectEnrichedFieldsOnMerge } from '../utils/firestoreActivityMerge';
 import { downloadActivitiesCsv, downloadActivitiesXlsx } from '../utils/activityCsvExport';
 import {
     mergeActivitiesIntervalsPrimary,
-    isStravaOnlyActivityId,
-    isLikelyIntervalsActivityId,
+    pickMergePairSides,
     stripUndefinedFields,
 } from '../utils/mergeActivities';
 import { enrichActivityGearFromStrava } from '../utils/stravaGearEnrich';
@@ -133,33 +132,30 @@ export function useDataHubBulkActions({
     const mergePairPreview = useMemo(() => {
         if (selectedActivitiesForBulk.length !== 2) return null;
         const [x, y] = selectedActivitiesForBulk;
-        let intervals = null;
-        let stravaSide = null;
-        if (isLikelyIntervalsActivityId(x.id) && isStravaOnlyActivityId(y.id)) {
-            intervals = x;
-            stravaSide = y;
-        } else if (isLikelyIntervalsActivityId(y.id) && isStravaOnlyActivityId(x.id)) {
-            intervals = y;
-            stravaSide = x;
-        } else if (!String(x.id).startsWith('strava_') && String(y.id).startsWith('strava_')) {
-            intervals = x;
-            stravaSide = y;
-        } else if (!String(y.id).startsWith('strava_') && String(x.id).startsWith('strava_')) {
-            intervals = y;
-            stravaSide = x;
-        } else {
-            return { error: 'Select one Intervals activity and one Strava-import row (id strava_…), or pick one non-strava_ id and one strava_ id.' };
-        }
-        if (String(intervals.id) === String(stravaSide.id)) {
-            return { error: 'Cannot merge an activity with itself.' };
-        }
+        const sides = pickMergePairSides(x, y);
+        if (sides.error) return { error: sides.error };
+        const { primary, secondary } = sides;
         try {
-            const merged = mergeActivitiesIntervalsPrimary(intervals, stravaSide);
-            return { intervals, stravaSide, merged };
+            const merged = mergeActivitiesIntervalsPrimary(primary, secondary);
+            return { intervals: primary, stravaSide: secondary, merged };
         } catch (e) {
             return { error: e.message || 'Merge failed' };
         }
     }, [selectedActivitiesForBulk]);
+
+    const canMergePair = Boolean(
+        selectedActivitiesForBulk.length === 2
+        && mergePairPreview
+        && !mergePairPreview.error
+        && mergePairPreview.merged,
+    );
+
+    const mergePairHint = useMemo(() => {
+        if (selectedActivitiesForBulk.length !== 2) return null;
+        if (mergePairPreview?.error) return mergePairPreview.error;
+        if (canMergePair) return 'Ready to merge — combines Strava link, load, gear, and distance from both rows.';
+        return null;
+    }, [selectedActivitiesForBulk.length, mergePairPreview, canMergePair]);
 
     const confirmMergePair = useCallback(async () => {
         if (!mergePairPreview || mergePairPreview.error || !mergePairPreview.merged) return;
@@ -564,6 +560,8 @@ export function useDataHubBulkActions({
         isExportingXlsx,
         confirmBulkDeleteSelected,
         mergePairPreview,
+        canMergePair,
+        mergePairHint,
         showMergeModal,
         mergeError,
         isMerging,

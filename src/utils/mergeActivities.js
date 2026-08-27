@@ -6,6 +6,7 @@ import { normalizeStravaActivityId } from './strava';
 import { parseDurationToSeconds } from './formatters';
 import { activityDistanceKm } from './activityFilterMetrics';
 import { climbingMetersFromStrava } from './stravaElevation';
+import { isSameActivity } from './dedup';
 
 /** Intervals sync uses seconds (number); Strava normalize uses "H:MM:SS" string — compare in seconds. */
 function movingTimeToSeconds(val) {
@@ -33,6 +34,61 @@ export function isLikelyIntervalsActivityId(id) {
     if (s.startsWith('csv_')) return true;
     if (/^i\d+$/i.test(s)) return true;
     return /^\d+$/.test(s);
+}
+
+/**
+ * Score how complete an activity row is for merge keeper selection.
+ * @param {object} activity
+ * @returns {number}
+ */
+export function mergeCompletenessScore(activity) {
+    if (!activity) return 0;
+    let score = 0;
+    if (activity.strava_id) score += 100;
+    if (Number(activity.load) > 0) score += 50;
+    if (Number(activity.norm_power) > 0 || Number(activity.avg_power) > 0) score += 25;
+    if (Number(activity.avg_hr) > 0) score += 20;
+    if (Number(activity.distance) > 0) score += 10;
+    if (activity.gear_id) score += 5;
+    if (isLikelyIntervalsActivityId(activity.id)) score += 5;
+    return score;
+}
+
+/**
+ * Pick keeper vs duplicate side for merge UI and Firestore write.
+ * @param {object} x
+ * @param {object} y
+ * @returns {{ primary: object, secondary: object } | { error: string }}
+ */
+export function pickMergePairSides(x, y) {
+    if (!x || !y) return { error: 'Select two activities to merge.' };
+    if (String(x.id) === String(y.id)) {
+        return { error: 'Cannot merge an activity with itself.' };
+    }
+
+    if (isLikelyIntervalsActivityId(x.id) && isStravaOnlyActivityId(y.id)) {
+        return { primary: x, secondary: y };
+    }
+    if (isLikelyIntervalsActivityId(y.id) && isStravaOnlyActivityId(x.id)) {
+        return { primary: y, secondary: x };
+    }
+    if (!String(x.id).startsWith('strava_') && String(y.id).startsWith('strava_')) {
+        return { primary: x, secondary: y };
+    }
+    if (!String(y.id).startsWith('strava_') && String(x.id).startsWith('strava_')) {
+        return { primary: y, secondary: x };
+    }
+
+    if (!isSameActivity(x, y)) {
+        return {
+            error: 'Selected rows do not look like duplicates. Use Tools → Duplicates to review, or pick two rows with the same date and title.',
+        };
+    }
+
+    const sx = mergeCompletenessScore(x);
+    const sy = mergeCompletenessScore(y);
+    if (sx >= sy) return { primary: x, secondary: y };
+    return { primary: y, secondary: x };
 }
 
 /**

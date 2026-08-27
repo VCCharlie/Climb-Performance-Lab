@@ -19,6 +19,16 @@ describe('activityLogFilterPresets', () => {
         expect(detectActiveLogFilterPreset(state)).toBe('ebike');
     });
 
+    it('detectActiveLogFilterPreset matches no_strava_link preset', () => {
+        const state = { ...defaultLogFilterChipState(), noStravaLinkOnly: true };
+        expect(detectActiveLogFilterPreset(state)).toBe('no_strava_link');
+    });
+
+    it('detectActiveLogFilterPreset matches possible_duplicates preset', () => {
+        const state = { ...defaultLogFilterChipState(), possibleDuplicatesOnly: true };
+        expect(detectActiveLogFilterPreset(state)).toBe('possible_duplicates');
+    });
+
     it('parseStoredFilterPresetId rejects unknown ids', () => {
         expect(parseStoredFilterPresetId()).toBeNull();
     });

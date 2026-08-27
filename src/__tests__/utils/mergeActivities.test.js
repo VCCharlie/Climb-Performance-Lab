@@ -4,6 +4,7 @@ import {
   isLikelyIntervalsActivityId,
   pickMergedTitle,
   mergeActivitiesIntervalsPrimary,
+  pickMergePairSides,
   stripUndefinedFields,
 } from '../../utils/mergeActivities';
 
@@ -30,6 +31,43 @@ describe('pickMergedTitle', () => {
 describe('stripUndefinedFields', () => {
   it('removes undefined keys', () => {
     expect(stripUndefinedFields({ a: 1, b: undefined })).toEqual({ a: 1 });
+  });
+});
+
+describe('pickMergePairSides', () => {
+  it('merges two Intervals rows when they look like duplicates', () => {
+    const enriched = {
+      id: 'i100',
+      date: '2019-05-04',
+      title: 'FulGaz - Col du Chaussy',
+      strava_id: '555',
+      load: 53,
+      distance: 0,
+      moving_time: '43:21',
+      type: 'VirtualRide',
+    };
+    const sparse = {
+      id: 'i200',
+      date: '2019-05-04',
+      title: 'FulGaz - Col du Chaussy',
+      distance: 10,
+      gear_name: 'Gilbertson Allure',
+      load: 0,
+      moving_time: '43:21',
+      type: 'VirtualRide',
+    };
+    const sides = pickMergePairSides(enriched, sparse);
+    expect(sides.error).toBeUndefined();
+    expect(sides.primary.id).toBe('i100');
+    expect(sides.secondary.id).toBe('i200');
+  });
+
+  it('rejects unrelated pair', () => {
+    const sides = pickMergePairSides(
+      { id: 'a', date: '2020-01-01', title: 'Ride A', moving_time: 3600, distance: 30, type: 'Ride' },
+      { id: 'b', date: '2020-01-01', title: 'Ride B', moving_time: 7200, distance: 60, type: 'Ride' },
+    );
+    expect(sides.error).toBeTruthy();
   });
 });
 
