@@ -134,6 +134,9 @@ const DataHubShell = ({
                         getStravaToken={stravaGetToken}
                         visibleColumns={visibleColumns}
                         onFilterByGearId={filter.filterByGearId}
+                        onFilterByDay={filter.filterByDay}
+                        singleDayFilterYmd={filter.singleDayFilterYmd}
+                        clearDayFilter={filter.clearDayFilter}
                         onRunSync={handleRunSyncWithBulk}
                     />
                 </div>

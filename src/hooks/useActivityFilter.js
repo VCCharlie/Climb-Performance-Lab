@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 
 import { MONTH_ORDER } from '../config';
 import { normalizeDate } from '../utils/formatters';
@@ -38,6 +38,12 @@ import {
     toggleMetricPresetIds,
 } from '../utils/metricRangePresets';
 import { duplicateActivityIdSet } from '../utils/dedup';
+import {
+    activityCalendarYmd,
+    activityMatchesDayFilter,
+    applyFilterSnapshotToSetters,
+    captureFilterStateForDayUndo,
+} from '../utils/activityLogDayFilter';
 
 // Helper inside hook or import
 const isValid = (act) => act && act.id && act.date;
@@ -160,6 +166,10 @@ const useActivityFilter = (activities, profileFtp) => {
     const [filterRaceMax, setFilterRaceMax] = useState(initialFilterFields.filterRaceMax);
     /** Strava gear_id (string); empty = no filter */
     const [filterGearId, setFilterGearId] = useState(initialFilterFields.filterGearId);
+
+    /** Single calendar-day filter from clicking a date in the log table */
+    const [singleDayFilterYmd, setSingleDayFilterYmd] = useState(null);
+    const previousFilterSnapshotRef = useRef(null);
 
     // We store explicit collapse state.
     const [expandedYears, setExpandedYears] = useState(null);
@@ -383,6 +393,8 @@ const useActivityFilter = (activities, profileFtp) => {
 
             if (!activityMatchesLogSearch(a, searchLower)) return false;
 
+            if (!activityMatchesDayFilter(a, singleDayFilterYmd)) return false;
+
             return true;
         };
 
@@ -402,7 +414,7 @@ const useActivityFilter = (activities, profileFtp) => {
             filtered.sort((a, b) => compareActivitiesForSort(a, b, sortConfig, profileFtp));
         }
         return { processedActivities: filtered, activitiesForGearFilterOptions: forGearOptions };
-    }, [activities, search, sortConfig, profileFtp, indoorFilter, virtualRideChip, gravelRideChip, mtbRideChip, ebikeRideChip, thisWeekOnly, rollingDays, stravaLinkedOnly, noStravaLinkOnly, possibleDuplicatesOnly, duplicateIds, noPowerOnly, withPowerOnly, highLoadOnly, longRideOnly, missingHrOnly, minTss, filterGearId, filterDistMin, filterDistMax, filterSpeedMin, filterSpeedMax, filterPowerMin, filterPowerMax, filterDurMinMin, filterDurMaxMin, filterElevMin, filterElevMax, filterKjMin, filterKjMax, filterDecMin, filterDecMax, filterThrMin, filterThrMax, filterRaceMin, filterRaceMax]);
+    }, [activities, search, sortConfig, profileFtp, indoorFilter, virtualRideChip, gravelRideChip, mtbRideChip, ebikeRideChip, thisWeekOnly, rollingDays, stravaLinkedOnly, noStravaLinkOnly, possibleDuplicatesOnly, duplicateIds, noPowerOnly, withPowerOnly, highLoadOnly, longRideOnly, missingHrOnly, minTss, filterGearId, filterDistMin, filterDistMax, filterSpeedMin, filterSpeedMax, filterPowerMin, filterPowerMax, filterDurMinMin, filterDurMaxMin, filterElevMin, filterElevMax, filterKjMin, filterKjMax, filterDecMin, filterDecMax, filterThrMin, filterThrMax, filterRaceMin, filterRaceMax, singleDayFilterYmd]);
 
     const gearFilterOptions = useMemo(() => {
         const base = buildGearFilterOptionsFromActivities(activitiesForGearFilterOptions);
@@ -582,6 +594,8 @@ const useActivityFilter = (activities, profileFtp) => {
         setSearch('');
         setFilterGearId('');
         clearMetricFilters();
+        previousFilterSnapshotRef.current = null;
+        setSingleDayFilterYmd(null);
         writeActivityLogFilterState(buildActivityLogFilterSnapshot({
             ...FILTER_FIELD_DEFAULTS,
             indoorFilter: 'all',
@@ -713,6 +727,145 @@ const useActivityFilter = (activities, profileFtp) => {
         setFilterGearId(id);
     }, []);
 
+    const getCurrentFilterSnapshot = useCallback(() => captureFilterStateForDayUndo({
+        search,
+        indoorFilter,
+        thisWeekOnly,
+        rollingDays,
+        stravaLinkedOnly,
+        noStravaLinkOnly,
+        possibleDuplicatesOnly,
+        noPowerOnly,
+        withPowerOnly,
+        highLoadOnly,
+        longRideOnly,
+        missingHrOnly,
+        virtualRideChip,
+        gravelRideChip,
+        mtbRideChip,
+        ebikeRideChip,
+        minTss,
+        filterDistMin,
+        filterDistMax,
+        filterSpeedMin,
+        filterSpeedMax,
+        filterPowerMin,
+        filterPowerMax,
+        filterDurMinMin,
+        filterDurMaxMin,
+        filterElevMin,
+        filterElevMax,
+        filterKjMin,
+        filterKjMax,
+        filterDecMin,
+        filterDecMax,
+        filterThrMin,
+        filterThrMax,
+        filterRaceMin,
+        filterRaceMax,
+        filterGearId,
+        activeMetricPresetIds,
+        sortConfig,
+        activeLogFilterPresetId,
+    }), [
+        search,
+        indoorFilter,
+        thisWeekOnly,
+        rollingDays,
+        stravaLinkedOnly,
+        noStravaLinkOnly,
+        possibleDuplicatesOnly,
+        noPowerOnly,
+        withPowerOnly,
+        highLoadOnly,
+        longRideOnly,
+        missingHrOnly,
+        virtualRideChip,
+        gravelRideChip,
+        mtbRideChip,
+        ebikeRideChip,
+        minTss,
+        filterDistMin,
+        filterDistMax,
+        filterSpeedMin,
+        filterSpeedMax,
+        filterPowerMin,
+        filterPowerMax,
+        filterDurMinMin,
+        filterDurMaxMin,
+        filterElevMin,
+        filterElevMax,
+        filterKjMin,
+        filterKjMax,
+        filterDecMin,
+        filterDecMax,
+        filterThrMin,
+        filterThrMax,
+        filterRaceMin,
+        filterRaceMax,
+        filterGearId,
+        activeMetricPresetIds,
+        sortConfig,
+        activeLogFilterPresetId,
+    ]);
+
+    const restoreFilterSnapshot = useCallback((snapshot) => {
+        applyFilterSnapshotToSetters(snapshot, {
+            setSearch,
+            setIndoorFilter,
+            setThisWeekOnly,
+            setRollingDays,
+            setStravaLinkedOnly,
+            setNoStravaLinkOnly,
+            setPossibleDuplicatesOnly,
+            setNoPowerOnly,
+            setWithPowerOnly,
+            setHighLoadOnly,
+            setLongRideOnly,
+            setMissingHrOnly,
+            setVirtualRideChip,
+            setGravelRideChip,
+            setMtbRideChip,
+            setEbikeRideChip,
+            setMinTss,
+            setFilterGearId,
+            setActiveMetricPresetIds,
+            setActiveLogFilterPresetId,
+            setSortConfig,
+            applyMetricFilterState,
+        });
+        if (snapshot) {
+            const presetId = snapshot.activeLogFilterPresetId ?? 'all';
+            safeLocalStorageSet(ACTIVITY_LOG_FILTER_PRESET_STORAGE_KEY, presetId);
+            writeActivityLogFilterState(buildActivityLogFilterSnapshot(snapshot));
+        }
+    }, [applyMetricFilterState]);
+
+    const clearDayFilter = useCallback(() => {
+        const snapshot = previousFilterSnapshotRef.current;
+        if (snapshot) {
+            restoreFilterSnapshot(snapshot);
+            previousFilterSnapshotRef.current = null;
+        }
+        setSingleDayFilterYmd(null);
+    }, [restoreFilterSnapshot]);
+
+    const filterByDay = useCallback((dateValue) => {
+        const ymd = activityCalendarYmd(dateValue);
+        if (!ymd) return;
+
+        if (singleDayFilterYmd === ymd) {
+            clearDayFilter();
+            return;
+        }
+
+        if (!singleDayFilterYmd) {
+            previousFilterSnapshotRef.current = getCurrentFilterSnapshot();
+        }
+
+        setSingleDayFilterYmd(ymd);
+    }, [singleDayFilterYmd, clearDayFilter, getCurrentFilterSnapshot]);
+
     return {
         search, setSearch,
         indoorFilter, setIndoorFilter,
@@ -770,6 +923,10 @@ const useActivityFilter = (activities, profileFtp) => {
         detectedLogFilterPresetId,
         logFilterPresets: BUILTIN_ACTIVITY_LOG_FILTER_PRESETS,
         filterByGearId,
+        singleDayFilterYmd,
+        filterByDay,
+        clearDayFilter,
+        isDayFilterActive: Boolean(singleDayFilterYmd),
     };
 };
 

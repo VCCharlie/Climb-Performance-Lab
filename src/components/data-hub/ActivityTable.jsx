@@ -6,6 +6,7 @@ import {
     Edit2, Trash2, ExternalLink, Route, Trophy, Crown, Play, TrendingUp, Zap,
 } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
+import { activityCalendarYmd } from '../../utils/activityLogDayFilter';
 import { resolveStravaGearDisplay } from '../../utils/stravaBikesLocalMap';
 import { stravaActivityUrl, stravaFlybyUrl, openExternalUrl, openStravaFlyby, resolveFlybyStravaId } from '../../utils/strava';
 import { getKomBadgeCountsFromSummary, getKomBadgeDisplaySlots } from '../../utils/stravaSegmentKomSummary';
@@ -209,6 +210,8 @@ export const Row = React.memo(React.forwardRef(({
     onOpenProfiler,
     profilerClimbByActivityId,
     onFilterByGearId,
+    onFilterByDay,
+    singleDayFilterYmd = null,
     showBulkSelect = false,
     profileFtp,
     profileMaxHr,
@@ -298,7 +301,28 @@ export const Row = React.memo(React.forwardRef(({
             if (val === null || val === undefined) return <span className="text-cdmuted">-</span>;
 
             switch (col.key) {
-                case 'date': return <span className="text-cdtext whitespace-nowrap">{formatDateDDMMYYYY(val)}</span>;
+                case 'date': {
+                    const formatted = formatDateDDMMYYYY(val);
+                    const canFilterByDay = !isPreview && onFilterByDay;
+                    if (canFilterByDay) {
+                        const isActiveDay = singleDayFilterYmd
+                            && activityCalendarYmd(val) === singleDayFilterYmd;
+                        return (
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onFilterByDay(val);
+                                }}
+                                className={`text-cdtext whitespace-nowrap hover:text-cdaccent hover:underline cd-focus-ring rounded tabular-nums text-left ${isActiveDay ? 'font-semibold text-cdaccent underline' : ''}`}
+                                title="Show all activities on this day"
+                            >
+                                {formatted}
+                            </button>
+                        );
+                    }
+                    return <span className="text-cdtext whitespace-nowrap">{formatted}</span>;
+                }
                 case 'type': {
                     const resolvedType = resolveActivityType(act);
                     return (
@@ -613,7 +637,9 @@ export const Row = React.memo(React.forwardRef(({
         prevProps.profileFtp === nextProps.profileFtp &&
         prevProps.profileMaxHr === nextProps.profileMaxHr &&
         prevProps.onOpenProfiler === nextProps.onOpenProfiler &&
-        prevProps.onViewDetail === nextProps.onViewDetail
+        prevProps.onViewDetail === nextProps.onViewDetail &&
+        prevProps.onFilterByDay === nextProps.onFilterByDay &&
+        prevProps.singleDayFilterYmd === nextProps.singleDayFilterYmd
     );
 }));
 
@@ -634,6 +660,8 @@ const ActivityTable = React.memo(({
     onOpenProfiler,
     profilerClimbByActivityId,
     onFilterByGearId,
+    onFilterByDay,
+    singleDayFilterYmd = null,
     showBulkSelect = false,
     allVisibleSelected = false,
     onToggleSelectAllVisible,
@@ -755,6 +783,9 @@ const ActivityTable = React.memo(({
                 showBulkSelect={showBulkSelect}
                 onOpenProfiler={onOpenProfiler}
                 profilerClimbByActivityId={profilerClimbByActivityId}
+                onFilterByGearId={onFilterByGearId}
+                onFilterByDay={onFilterByDay}
+                singleDayFilterYmd={singleDayFilterYmd}
                 profileFtp={profileFtp}
                 profileMaxHr={profileMaxHr}
                 getStravaToken={getStravaToken}
@@ -843,6 +874,8 @@ const ActivityTable = React.memo(({
                                         onOpenProfiler={onOpenProfiler}
                                         profilerClimbByActivityId={profilerClimbByActivityId}
                                         onFilterByGearId={onFilterByGearId}
+                                        onFilterByDay={onFilterByDay}
+                                        singleDayFilterYmd={singleDayFilterYmd}
                                         profileFtp={profileFtp}
                                         profileMaxHr={profileMaxHr}
                                         getStravaToken={getStravaToken}
@@ -876,6 +909,9 @@ const ActivityTable = React.memo(({
                                                 showBulkSelect={showBulkSelect}
                                                 onOpenProfiler={onOpenProfiler}
                                                 profilerClimbByActivityId={profilerClimbByActivityId}
+                                                onFilterByGearId={onFilterByGearId}
+                                                onFilterByDay={onFilterByDay}
+                                                singleDayFilterYmd={singleDayFilterYmd}
                                                 profileFtp={profileFtp}
                                                 profileMaxHr={profileMaxHr}
                                                 getStravaToken={getStravaToken}
@@ -900,6 +936,9 @@ const ActivityTable = React.memo(({
                                 showBulkSelect={showBulkSelect}
                                 onOpenProfiler={onOpenProfiler}
                                 profilerClimbByActivityId={profilerClimbByActivityId}
+                                onFilterByGearId={onFilterByGearId}
+                                onFilterByDay={onFilterByDay}
+                                singleDayFilterYmd={singleDayFilterYmd}
                                 profileFtp={profileFtp}
                                 profileMaxHr={profileMaxHr}
                                 getStravaToken={getStravaToken}
