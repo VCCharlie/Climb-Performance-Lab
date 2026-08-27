@@ -25,7 +25,7 @@
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getValidStravaAccessToken } from './stravaTokenManager.js';
-import { shouldPreferStravaTitle } from '../src/utils/stravaTitleHeuristics.js';
+import { shouldApplyStravaTitleOnMatch } from '../src/utils/stravaTitleSameDay.js';
 import { normalizeBikeComputerProfileTitles } from '../src/utils/bikeComputerProfileTitles.js';
 import { protectEnrichedFieldsOnMerge } from '../src/utils/firestoreActivityMerge.js';
 
@@ -352,6 +352,10 @@ function matchStravaToFirestore(stravaActivities, firestoreActivities) {
         // Al gekoppeld via strava_id?
         const linked = byStravaId.get(stravaIdStr);
         if (linked) {
+            const siteDay = linked.date?.split('T')[0];
+            if (siteDay && stravaDate && siteDay !== stravaDate) {
+                continue;
+            }
             results.push({ strava, site: linked, type: 'linked' });
             usedFirestoreIds.add(linked.firestoreId || linked.id);
             continue;
@@ -407,7 +411,7 @@ async function enrichWithStrava(db, firestoreActivities, startDate, endDate, isD
     let enrichedCount = 0;
 
     for (const { strava, site, type } of matches) {
-        const needsTitle = shouldPreferStravaTitle(site.title, strava.name, {
+        const needsTitle = shouldApplyStravaTitleOnMatch(site, strava, {
             gearName: site.gear_name,
             deviceProfileTitles,
         });

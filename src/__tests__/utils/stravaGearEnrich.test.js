@@ -122,10 +122,18 @@ describe('already-linked Strava enrichment helpers', () => {
   it('builds a Firestore patch from detailed gear/RPE/HR data for already-linked rows', () => {
     const patch = buildAlreadyLinkedStravaUpdate(
       {
-        site: { id: '10', rpe: 0, avg_hr: 0, max_hr: 0 },
+        site: {
+            id: '10',
+            date: '2026-05-01T10:00:00',
+            rpe: 0,
+            avg_hr: 0,
+            max_hr: 0,
+            title: 'Morning Ride',
+        },
         strava: {
           id: 999,
           name: 'Hill reps',
+          start_date_local: '2026-05-01T10:05:00',
           gear_id: 'bike99',
           perceived_exertion: 7,
           average_heartrate: 149.4,
@@ -138,11 +146,32 @@ describe('already-linked Strava enrichment helpers', () => {
     expect(patch).toEqual({
       gear_id: 'bike99',
       gear_name: 'Tarmac SL8',
+      strava_start_date: '2026-05-01T10:05:00',
       title: 'Hill reps',
       rpe: 7,
       avg_hr: 149,
       max_hr: 181,
     });
+  });
+
+  it('buildAlreadyLinkedStravaUpdate skips title when Strava activity is on a different day', () => {
+    const patch = buildAlreadyLinkedStravaUpdate(
+      {
+        site: {
+            id: '10',
+            date: '2025-04-13T09:10:00',
+            title: 'My whoosh',
+        },
+        strava: {
+          id: 14177055045,
+          name: 'Ja, wat eigenlijk precies?',
+          start_date_local: '2025-04-14T09:15:00',
+        },
+      },
+      {},
+    );
+
+    expect(patch.title).toBeUndefined();
   });
 });
 

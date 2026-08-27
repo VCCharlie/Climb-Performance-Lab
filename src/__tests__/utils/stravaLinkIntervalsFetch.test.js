@@ -14,7 +14,8 @@ describe('stravaLinkIntervalsFetch', () => {
         const out = linkIntervalsActivitiesToStravaList(intervals, strava);
         expect(out[0].strava_id).toBe('111');
         expect(out[0].gear_id).toBe('b1');
-        expect(out[0].title).toBe('Strava A');
+        expect(out[0].title).toBe('Ride A');
+        expect(out[0].strava_start_date).toBe('2026-05-01T10:02:00');
         expect(out[0].climbing).toBe(890);
         expect(out[0].climbing_from_strava).toBe(true);
         expect(out[1].strava_id).toBe('999');
@@ -32,7 +33,7 @@ describe('stravaLinkIntervalsFetch', () => {
         const out = linkIntervalsActivitiesToStravaList(intervals, strava);
 
         expect(out[0].strava_id).toBe('222');
-        expect(out[0].title).toBe('Correct Ride');
+        expect(out[0].title).toBe('Ride A');
     });
 
     it('does not link a ride to a nearby Strava activity with a very different distance', () => {

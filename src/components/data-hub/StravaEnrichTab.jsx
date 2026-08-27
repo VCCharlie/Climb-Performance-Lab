@@ -9,6 +9,7 @@ import {
     applyStravaDetailFieldsToAlreadyLinkedMatch,
     buildAlreadyLinkedStravaUpdate,
 } from '../../utils/stravaGearEnrich';
+import { shouldApplyStravaTitleOnMatch, stravaStartDatePatch } from '../../utils/stravaTitleSameDay.js';
 import { safeLocalStorageSet } from '../../utils/safeStorage.js';
 
 // Strava logo SVG
@@ -285,13 +286,15 @@ const StravaEnrichTab = ({
                     const gearId = strava.gear_id || null;
                     const gearName = gearId ? (bikesMap[gearId] || 'Strava bike') : null;
                     const stravaTitle = (strava.name || '').trim();
+                    const applyTitle = shouldApplyStravaTitleOnMatch(site, strava);
                     await setDoc(
                         doc(db, 'activities', String(site.id)),
                         {
                             strava_id: String(strava.id),
+                            ...stravaStartDatePatch(strava),
                             strava_map: strava.map?.summary_polyline || null,
                             ...(gearId && { gear_id: gearId, gear_name: gearName }),
-                            ...(stravaTitle && { title: stravaTitle }),
+                            ...(applyTitle && stravaTitle && { title: stravaTitle }),
                             ...((!site.rpe || site.rpe === 0) && strava.perceived_exertion && { rpe: strava.perceived_exertion }),
                             ...((!site.avg_hr || site.avg_hr === 0) && strava.average_heartrate && { avg_hr: Math.round(strava.average_heartrate) }),
                             ...((!site.max_hr || site.max_hr === 0) && strava.max_heartrate && { max_hr: Math.round(strava.max_heartrate) })
