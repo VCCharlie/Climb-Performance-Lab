@@ -95,6 +95,7 @@ def strava_oauth(request):
                     "athlete_id": token_payload.get("athlete_id"),
                     "athlete_name": token_payload.get("athlete_name"),
                     "expires_at": token_payload.get("expires_at"),
+                    "scopes": token_payload.get("scopes"),
                 }), 200, cors_headers)
 
             if action == "token":

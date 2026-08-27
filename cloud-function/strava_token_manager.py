@@ -50,16 +50,16 @@ def load_stored_strava_tokens(db) -> dict[str, Any] | None:
 
 
 def persist_strava_tokens(db, payload: dict[str, Any]) -> None:
-    db.document(STRAVA_TOKENS_DOC_PATH).set(
-        {
-            "refresh_token": payload["refresh_token"],
-            "access_token": payload.get("access_token"),
-            "expires_at": payload.get("expires_at"),
-            "athlete_id": payload.get("athlete_id"),
-            "updated_at": admin_firestore.SERVER_TIMESTAMP,
-        },
-        merge=True,
-    )
+    doc = {
+        "refresh_token": payload["refresh_token"],
+        "access_token": payload.get("access_token"),
+        "expires_at": payload.get("expires_at"),
+        "athlete_id": payload.get("athlete_id"),
+        "updated_at": admin_firestore.SERVER_TIMESTAMP,
+    }
+    if payload.get("scopes"):
+        doc["scopes"] = payload["scopes"]
+    db.document(STRAVA_TOKENS_DOC_PATH).set(doc, merge=True)
 
 
 def clear_stored_strava_tokens(db) -> None:
@@ -100,6 +100,7 @@ def exchange_authorization_code(code: str, redirect_uri: str) -> dict[str, Any]:
         "expires_at": data["expires_at"],
         "athlete_id": athlete.get("id"),
         "athlete_name": athlete_name,
+        "scopes": (data.get("scope") or "").strip() or None,
     }
 
 

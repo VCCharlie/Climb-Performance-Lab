@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { Settings, Activity, Save, Moon, Sun, Shield, Target, Bell, Database, Download, Upload, Zap, X, Link, Unlink, List, ExternalLink } from 'lucide-react';
+import { Settings, Activity, Save, Moon, Sun, Shield, Target, Bell, Database, Download, Upload, Zap, X, Link, Unlink, List, ExternalLink, AlertCircle } from 'lucide-react';
 import { calculatePowerZones } from '../utils';
 import { DEFAULT_RECOVERY_TSS } from '../config';
 import {
@@ -29,6 +29,7 @@ import {
     parseBikeComputerProfileTitlesInput,
 } from '../utils/bikeComputerProfileTitles';
 import QuickLinksSettings from './settings/QuickLinksSettings';
+import { stravaConfigHasPrivateRead, STRAVA_RECONNECT_PRIVATE_READ_MSG } from '../utils/stravaOAuthScopes';
 import HistoricalFtpSettings from './settings/HistoricalFtpSettings';
 import {
     TERRAIN_PROFILE_FLAT,
@@ -469,6 +470,12 @@ const SettingsModal = ({
                                                         <span className="text-orange-400"><StravaIcon size={14} /></span>
                                                         {stravaConfig.athlete_name}
                                                     </span>
+                                                )}
+                                                {stravaConfigHasPrivateRead(stravaConfig) === false && (
+                                                    <p className="w-full flex items-start gap-2 text-xs text-amber-700 dark:text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
+                                                        <AlertCircle size={14} className="shrink-0 mt-0.5" aria-hidden />
+                                                        <span>{STRAVA_RECONNECT_PRIVATE_READ_MSG}</span>
+                                                    </p>
                                                 )}
                                                 <button
                                                     type="button"

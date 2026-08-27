@@ -37,6 +37,7 @@ export function resolveDataHubInternalTab(tab) {
 export function useDataHubController({
     intervalsConfig,
     stravaGetToken,
+    stravaConfig,
     timeRange = '1Y',
     customStart = '',
     customEnd = '',
@@ -153,6 +154,7 @@ export function useDataHubController({
         onDelete,
         onImport,
         stravaGetToken,
+        stravaConfig,
         intervalsConfig,
         visibleActivityIdsFlat: logDerivations.visibleActivityIdsFlat,
         setIsDeleting,

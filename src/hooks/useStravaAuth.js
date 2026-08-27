@@ -18,6 +18,10 @@ import {
     fetchStravaAccessTokenViaCloud,
     disconnectStravaViaCloud,
 } from '../services/stravaCloudApi.js';
+import {
+    STRAVA_OAUTH_REQUEST_SCOPES,
+    scopeGrantsPrivateActivityRead,
+} from '../utils/stravaOAuthScopes.js';
 import { notify } from '../utils/notify.js';
 
 const STRAVA_AUTH_BASE = 'https://www.strava.com/oauth/authorize';
@@ -58,11 +62,11 @@ const useStravaAuth = (stravaConfig, setStravaConfig) => {
         const state = Array.from(array, (dec) => ('0' + dec.toString(16)).substr(-8)).join('');
         safeSessionStorageSet(STRAVA_OAUTH_STATE_KEY, state);
 
-        const url = `${STRAVA_AUTH_BASE}?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=activity:read_all&approval_prompt=auto&state=${encodeURIComponent(state)}`;
+        const url = `${STRAVA_AUTH_BASE}?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(STRAVA_OAUTH_REQUEST_SCOPES)}&approval_prompt=auto&state=${encodeURIComponent(state)}`;
         window.location.href = url;
     }, []);
 
-    const handleOAuthCallback = useCallback(async (code, state) => {
+    const handleOAuthCallback = useCallback(async (code, state, scopeFromUrl) => {
         const savedState = sessionStorage.getItem(STRAVA_OAUTH_STATE_KEY);
         clearPendingStravaOAuthState();
 
@@ -80,10 +84,15 @@ const useStravaAuth = (stravaConfig, setStravaConfig) => {
         const redirectUri = window.location.origin + window.location.pathname;
         const data = await exchangeStravaCodeViaCloud({ code, redirectUri });
 
+        const grantedScopes = (data.scopes || scopeFromUrl || '').trim();
+        const hasPrivateRead = scopeGrantsPrivateActivityRead(grantedScopes);
+
         const updated = {
             athlete_id: data.athlete_id ?? null,
             athlete_name: data.athlete_name ?? null,
             expires_at: data.expires_at ?? null,
+            scopes: grantedScopes || null,
+            has_private_read: hasPrivateRead,
         };
         setStravaConfig(updated);
         safeLocalStorageSet('stravaConfig', JSON.stringify(updated));
