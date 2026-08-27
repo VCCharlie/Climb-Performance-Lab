@@ -17,7 +17,6 @@ import {
     bestInRange,
     movingTimeSec,
     todayYmd,
-    weeklyTssTarget,
 } from './coachHelpers';
 import { buildCoachPowerHistory } from './coachPowerHistory';
 import { buildCoachActivityLog } from './coachActivityLog';
@@ -27,6 +26,7 @@ import { buildFitnessHistoryForCoach } from './coachFitnessHistory';
 import { buildCoachPlanOutlook } from './coachPlanOutlook';
 import { estimateSessionTss } from './coachSessionTss';
 import { readCoachWeek2Enabled } from './coachWeekState';
+import { buildWeeklyLoadSnapshot } from '../trainingStatusOverview';
 
 function computeIntensityProfile(activities, ftp, lookbackDays = 14) {
     const endYmd = todayYmd();
@@ -125,8 +125,11 @@ export function buildCoachContext(activities, userSettings, options = {}) {
     const best60min = bestInRange(activities28d, 'best_60min');
     const best5min = bestInRange(activities28d, 'best_5min');
 
-    const targetTss = weeklyTssTarget(weeklyHours);
-    const actualTss7d = sumTss(activities7d);
+    const weeklyLoadSnapshot = buildWeeklyLoadSnapshot({
+        activities,
+        userSettings,
+        referenceYmd: endYmd,
+    });
 
     const ctl = latestFitness?.ctl ?? 0;
     const atl = latestFitness?.atl ?? 0;
@@ -163,9 +166,11 @@ export function buildCoachContext(activities, userSettings, options = {}) {
         },
         fitnessHistory,
         weeklyLoad: {
-            targetTss,
-            actualTss: Math.round(actualTss7d),
-            compliancePct: targetTss > 0 ? Math.round((actualTss7d / targetTss) * 100) : 0,
+            targetTss: weeklyLoadSnapshot.targetTss,
+            actualTss: weeklyLoadSnapshot.actualTss,
+            compliancePct: weeklyLoadSnapshot.compliancePct,
+            targetSource: weeklyLoadSnapshot.targetSource,
+            weekLabel: weeklyLoadSnapshot.weekLabel,
         },
         intensityProfile,
         powerCeiling: {

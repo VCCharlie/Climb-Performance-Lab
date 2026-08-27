@@ -38,7 +38,14 @@ const TodaysFocusCard = ({ coachContext }) => {
                         {workout.rpeTarget}
                     </span>
                     <span className="tabular-nums text-cdmuted">
-                        TSB {fitness.tsb} · {weeklyLoad.actualTss}/{weeklyLoad.targetTss} TSS
+                        TSB {fitness.tsb}
+                        {weeklyLoad.targetTss > 0 ? (
+                            <>
+                                {' · Week TSS '}
+                                {weeklyLoad.actualTss}/{weeklyLoad.targetTss}
+                                {weeklyLoad.compliancePct != null ? ` (${weeklyLoad.compliancePct}%)` : ''}
+                            </>
+                        ) : null}
                     </span>
                 </div>
             </div>

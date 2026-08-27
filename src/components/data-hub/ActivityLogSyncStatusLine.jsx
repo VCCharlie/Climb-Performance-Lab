@@ -50,7 +50,7 @@ const ActivityLogSyncStatusLine = ({
                     onSync={onSyncToday}
                     isBusy={isTodaySyncBusy || isIntervalsBusy}
                     size="sm"
-                    className="shrink-0 hidden sm:flex"
+                    className="shrink-0 hidden sm:flex lg:hidden"
                 />
             ) : null}
         </div>

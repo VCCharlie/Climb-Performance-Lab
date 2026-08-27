@@ -41,6 +41,48 @@ export function weekTssPercentOfTarget(weekTss, targetTss) {
 }
 
 /**
+ * Calendar-week TSS vs fluid week target (event goal or hours budget).
+ * Shared by dashboard training status and coach "today's focus".
+ *
+ * @param {object} params
+ * @param {object[]} params.activities
+ * @param {object} [params.userSettings]
+ * @param {string} [params.referenceYmd]
+ * @returns {{
+ *   actualTss: number,
+ *   targetTss: number,
+ *   compliancePct: number,
+ *   targetSource: 'event-goal' | 'hours-budget',
+ *   weekLabel: string,
+ *   weekStartYmd: string,
+ *   weekEndYmd: string,
+ * }}
+ */
+export function buildWeeklyLoadSnapshot({
+    activities,
+    userSettings,
+    referenceYmd = todayYmd(),
+}) {
+    const week = currentWeekRange(new Date(`${referenceYmd}T12:00:00`));
+    const weekActs = filterActivitiesInRange(activities, week.startYmd, week.endYmd);
+    const actualTss = Math.round(sumTss(weekActs));
+
+    const weekTarget = resolveFluidWeekTarget({ userSettings, referenceYmd });
+    const targetTss = weekTarget.targetTss || 0;
+    const compliancePct = weekTssPercentOfTarget(actualTss, targetTss) ?? 0;
+
+    return {
+        actualTss,
+        targetTss,
+        compliancePct,
+        targetSource: weekTarget.source,
+        weekLabel: week.label,
+        weekStartYmd: week.startYmd,
+        weekEndYmd: week.endYmd,
+    };
+}
+
+/**
  * @param {object} params
  * @param {object[]} params.activities
  * @param {object} [params.userSettings]
@@ -56,15 +98,9 @@ export function buildTrainingStatusOverview({
     if (!activities?.length) return null;
 
     const fitness = getFitnessAtDate(activities, referenceYmd);
-    const week = currentWeekRange(new Date(`${referenceYmd}T12:00:00`));
-    const weekActs = filterActivitiesInRange(activities, week.startYmd, week.endYmd);
-    const weekTss = Math.round(sumTss(weekActs));
-
-    const weekTarget = resolveFluidWeekTarget({
-        userSettings,
-        referenceYmd,
-    });
-    const targetTss = weekTarget.targetTss || 0;
+    const weeklyLoad = buildWeeklyLoadSnapshot({ activities, userSettings, referenceYmd });
+    const weekTss = weeklyLoad.actualTss;
+    const targetTss = weeklyLoad.targetTss;
     const weekTssPct = weekTssPercentOfTarget(weekTss, targetTss);
     const optimalBand = computeWeeklyTssOptimalBand(targetTss);
 
@@ -84,10 +120,10 @@ export function buildTrainingStatusOverview({
         weekTss,
         targetTss,
         weekTssPct,
-        targetSource: weekTarget.source,
+        targetSource: weeklyLoad.targetSource,
         optimalBand,
         readinessBadge: readiness.badge,
         readinessComposite: readiness.composite,
-        weekLabel: week.label,
+        weekLabel: weeklyLoad.weekLabel,
     };
 }

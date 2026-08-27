@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
     buildTrainingStatusOverview,
+    buildWeeklyLoadSnapshot,
     computeWeeklyTssOptimalBand,
     weekTssPercentOfTarget,
     WEEK_TSS_OPTIMAL_BAND,
@@ -27,6 +28,30 @@ describe('weekTssPercentOfTarget', () => {
 
     it('rounds percent of weekly target', () => {
         expect(weekTssPercentOfTarget(125, 250)).toBe(50);
+    });
+});
+
+describe('buildWeeklyLoadSnapshot', () => {
+    it('uses calendar week TSS, not rolling last-7-days', () => {
+        const activities = [
+            { date: '2026-08-20', load: 120, type: 'Ride' },
+            { date: '2026-08-21', load: 130, type: 'Ride' },
+            { date: '2026-08-22', load: 119, type: 'Ride' },
+            { date: '2026-08-24', load: 30, type: 'Ride' },
+            { date: '2026-08-26', load: 27, type: 'Ride' },
+        ];
+
+        const snapshot = buildWeeklyLoadSnapshot({
+            activities,
+            userSettings: { weeklyHoursTarget: 5 },
+            referenceYmd: '2026-08-26',
+        });
+
+        expect(snapshot.actualTss).toBe(57);
+        expect(snapshot.targetTss).toBe(250);
+        expect(snapshot.compliancePct).toBe(Math.round((57 / 250) * 100));
+        expect(snapshot.weekStartYmd).toBe('2026-08-24');
+        expect(snapshot.weekEndYmd).toBe('2026-08-30');
     });
 });
 
