@@ -643,7 +643,7 @@ const App = () => {
         }
 
         stravaOAuthHandledRef.current = true;
-        stravaAuth.handleOAuthCallback(code, state)
+        stravaAuth.handleOAuthCallback(code, state, params.get('scope'))
             .then((result) => {
                 if (result?.stale) {
                     console.info('[Strava] Ignored stale OAuth redirect params in URL.');
@@ -1306,6 +1306,7 @@ const App = () => {
                                                 key={dataHubMountKey}
                                                 intervalsConfig={intervalsConfig}
                                                 stravaGetToken={stravaAuth.isConnected ? stravaAuth.getValidToken : null}
+                                                stravaConfig={stravaConfig}
                                                 timeRange={timeRange}
                                                 customStart={customStart}
                                                 customEnd={customEnd}

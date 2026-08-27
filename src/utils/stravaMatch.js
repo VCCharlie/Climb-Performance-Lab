@@ -5,20 +5,65 @@
  */
 
 import { climbingMetersFromStrava } from './stravaElevation';
+import { adjacentLocalDateKeys } from './stravaFetchRange';
 
 // Fietstypes die we willen ophalen / koppelen
 export const STRAVA_BIKE_TYPES = new Set([
-    'Ride', 'VirtualRide', 'GravelRide', 'MountainBikeRide', 'Cycling'
+    'Ride', 'VirtualRide', 'GravelRide', 'MountainBikeRide', 'Cycling',
 ]);
 
 // Typen die we expliciet overslaan
 const STRAVA_EXCLUDED_TYPES = new Set([
     'Run', 'Walk', 'Hike', 'EBikeRide', 'Swim', 'Workout',
-    'WeightTraining', 'Yoga', 'Rowing', 'Kayaking', 'Skiing'
+    'WeightTraining', 'Yoga', 'Rowing', 'Kayaking', 'Skiing',
 ]);
+
+const INDOOR_BIKE_TYPES = new Set(['VirtualRide']);
 
 export const isIncludedStravaType = (type) =>
     STRAVA_BIKE_TYPES.has(type) && !STRAVA_EXCLUDED_TYPES.has(type);
+
+/**
+ * @param {string | null | undefined} siteType
+ * @param {object} stravaAct
+ * @returns {boolean}
+ */
+export function isIndoorOrVirtualRide(siteType, stravaAct) {
+    const st = String(siteType || '').trim();
+    const stravaType = String(stravaAct?.sport_type || stravaAct?.type || '').trim();
+    return INDOOR_BIKE_TYPES.has(st)
+        || INDOOR_BIKE_TYPES.has(stravaType)
+        || stravaAct?.trainer === true;
+}
+
+/**
+ * Simple token overlap for titles (e.g. "My whoosh" ↔ "My Whoosh - indoor").
+ * @param {string | null | undefined} a
+ * @param {string | null | undefined} b
+ * @returns {number} 0–1
+ */
+export function stravaTitleSimilarity(a, b) {
+    const normalize = (s) => String(s || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    const left = normalize(a);
+    const right = normalize(b);
+    if (!left || !right) return 0;
+    if (left === right) return 1;
+    if (left.includes(right) || right.includes(left)) return 0.85;
+
+    const leftTokens = new Set(left.split(' ').filter((t) => t.length > 2));
+    const rightTokens = new Set(right.split(' ').filter((t) => t.length > 2));
+    if (leftTokens.size === 0 || rightTokens.size === 0) return 0;
+
+    let overlap = 0;
+    for (const token of leftTokens) {
+        if (rightTokens.has(token)) overlap += 1;
+    }
+    return overlap / Math.max(leftTokens.size, rightTokens.size);
+}
 
 // Strava type → intern type
 const mapType = (stravaType) => {
@@ -49,6 +94,65 @@ const parseMovingTime = (timeStr) => {
     return !Number.isNaN(n) && n > 0 ? Math.floor(n) : 0;
 };
 
+function distanceDiffRatio(siteDistKm, stravaDistKm) {
+    if (siteDistKm > 0 && stravaDistKm > 0) {
+        return Math.abs(siteDistKm - stravaDistKm) / Math.max(siteDistKm, stravaDistKm);
+    }
+    return 1;
+}
+
+function timeDiffRatio(siteTimeSec, stravaTimeSec) {
+    if (stravaTimeSec > 0 && siteTimeSec > 0) {
+        return Math.abs(stravaTimeSec - siteTimeSec) / Math.max(stravaTimeSec, siteTimeSec);
+    }
+    return 0.5;
+}
+
+/**
+ * Score a site candidate against a Strava list item.
+ * Indoor/virtual rides lean on duration (+ title) when distance is unreliable.
+ */
+export function scoreStravaSiteMatch(site, stravaAct) {
+    const siteDistKm = site.distance || 0;
+    const stravaDistKm = (stravaAct.distance || 0) / 1000;
+    const distDiff = distanceDiffRatio(siteDistKm, stravaDistKm);
+    const siteTimeSec = parseMovingTime(site.moving_time);
+    const stravaTimeSec = stravaAct.moving_time || 0;
+    const timeDiff = timeDiffRatio(siteTimeSec, stravaTimeSec);
+    const titleSim = stravaTitleSimilarity(site.title, stravaAct.name);
+    const indoor = isIndoorOrVirtualRide(site.type, stravaAct);
+    const distanceUnreliable = indoor || siteDistKm < 1 || stravaDistKm < 1;
+
+    let confidence = null;
+    let score;
+
+    if (distanceUnreliable) {
+        if (timeDiff < 0.03 || (timeDiff < 0.06 && titleSim >= 0.5)) {
+            confidence = 'high';
+        } else if (timeDiff < 0.08 || (timeDiff < 0.12 && titleSim >= 0.5)) {
+            confidence = 'medium';
+        } else if (timeDiff < 0.15 || (timeDiff < 0.2 && titleSim >= 0.65)) {
+            confidence = 'low';
+        }
+        score = timeDiff * 0.65 + (1 - titleSim) * 0.25 + distDiff * 0.1;
+    } else {
+        if (distDiff < 0.02 && timeDiff < 0.05) {
+            confidence = 'high';
+        } else if (distDiff < 0.05) {
+            confidence = 'medium';
+        } else if (distDiff < 0.10) {
+            confidence = 'low';
+        } else if (timeDiff < 0.04 && titleSim >= 0.6) {
+            confidence = 'medium';
+        } else if (timeDiff < 0.08 && titleSim >= 0.75) {
+            confidence = 'low';
+        }
+        score = distDiff * 0.7 + timeDiff * 0.3 - titleSim * 0.05;
+    }
+
+    return { confidence, distDiff, timeDiff, score, titleSim, indoor, distanceUnreliable };
+}
+
 // Converteer Strava API activiteit naar site-formaat
 export const normalizeStravaActivity = (act) => {
     // Only mark climbing_from_strava when total_elevation_gain is present.
@@ -72,9 +176,24 @@ export const normalizeStravaActivity = (act) => {
         max_hr: Math.round(act.max_heartrate || 0),
         load: 0,
         rpe: act.perceived_exertion || 0,
-        moving_time: formatMovingTime(act.moving_time || 0)
+        moving_time: formatMovingTime(act.moving_time || 0),
     };
 };
+
+function collectCandidatesOnDates(siteByDate, dateKeys, usedSiteIds) {
+    const seen = new Set();
+    const candidates = [];
+    for (const dateKey of dateKeys) {
+        for (const site of siteByDate.get(dateKey) || []) {
+            const key = String(site.id);
+            if (seen.has(key)) continue;
+            seen.add(key);
+            if (usedSiteIds.has(site.id) || site.strava_id) continue;
+            candidates.push(site);
+        }
+    }
+    return candidates;
+}
 
 /**
  * Koppel Strava-activiteiten aan bestaande site-activiteiten via fuzzy matching.
@@ -113,8 +232,6 @@ export const matchStravaToSite = (stravaActivities, siteActivities) => {
     for (const stravaAct of stravaActivities) {
         const stravaIdStr = String(stravaAct.id);
         const stravaDate = stravaAct.start_date_local.split('T')[0];
-        const stravaDistKm = stravaAct.distance / 1000;
-        const stravaTimeSec = stravaAct.moving_time || 0;
 
         // Efficient O(1) Check: Al gekoppeld?
         const existing = siteByStravaId.get(stravaIdStr);
@@ -123,48 +240,33 @@ export const matchStravaToSite = (stravaActivities, siteActivities) => {
                 strava: stravaAct,
                 site: existing,
                 needsGear: !!stravaAct.gear_id && !existing.gear_id,
-                needsHr: !!stravaAct.average_heartrate && (!existing.avg_hr || existing.avg_hr === 0)
+                needsHr: !!stravaAct.average_heartrate && (!existing.avg_hr || existing.avg_hr === 0),
             });
             usedSiteIds.add(existing.id);
             continue;
         }
 
-        // Efficient O(1) Group lookup: Kandidaten op dezelfde datum
-        const candidatesOnDate = siteByDate.get(stravaDate) || [];
-        const candidates = candidatesOnDate.filter(site => {
-            return !usedSiteIds.has(site.id) && !site.strava_id;
-        });
+        const candidates = collectCandidatesOnDates(
+            siteByDate,
+            adjacentLocalDateKeys(stravaDate),
+            usedSiteIds,
+        );
 
         if (candidates.length === 0) continue;
 
-        // Scoor elke kandidaat: 70% gewicht op afstand, 30% op duur
         let best = null;
 
         for (const site of candidates) {
-            const siteDist = site.distance || 0;
-            const distDiff = siteDist > 0 && stravaDistKm > 0
-                ? Math.abs(siteDist - stravaDistKm) / Math.max(siteDist, stravaDistKm)
-                : 1;
-
-            const siteTimeSec = parseMovingTime(site.moving_time);
-            const timeDiff = stravaTimeSec > 0 && siteTimeSec > 0
-                ? Math.abs(stravaTimeSec - siteTimeSec) / Math.max(stravaTimeSec, siteTimeSec)
-                : 0.5;
-
-            const score = distDiff * 0.7 + timeDiff * 0.3;
-
-            // Bepaal confidence op basis van afstandsverschil (primair)
-            let confidence = null;
-            if (distDiff < 0.02 && timeDiff < 0.05) {
-                confidence = 'high';
-            } else if (distDiff < 0.05) {
-                confidence = 'medium';
-            } else if (distDiff < 0.10) {
-                confidence = 'low';
-            }
-
-            if (confidence && (!best || score < best.score)) {
-                best = { site, confidence, distDiff, timeDiff, score };
+            const scored = scoreStravaSiteMatch(site, stravaAct);
+            if (scored.confidence && (!best || scored.score < best.score)) {
+                best = {
+                    site,
+                    confidence: scored.confidence,
+                    distDiff: scored.distDiff,
+                    timeDiff: scored.timeDiff,
+                    score: scored.score,
+                    titleSim: scored.titleSim,
+                };
             }
         }
 
@@ -174,7 +276,7 @@ export const matchStravaToSite = (stravaActivities, siteActivities) => {
                 site: best.site,
                 confidence: best.confidence,
                 distDiff: best.distDiff,
-                timeDiff: best.timeDiff
+                timeDiff: best.timeDiff,
             });
             usedSiteIds.add(best.site.id);
         }
@@ -182,7 +284,7 @@ export const matchStravaToSite = (stravaActivities, siteActivities) => {
 
     const matchedStravaIds = new Set([
         ...matched.map(m => m.strava.id),
-        ...alreadyLinked.map(m => m.strava.id)
+        ...alreadyLinked.map(m => m.strava.id),
     ]);
     const unmatchedStrava = stravaActivities.filter(s => !matchedStravaIds.has(s.id));
 

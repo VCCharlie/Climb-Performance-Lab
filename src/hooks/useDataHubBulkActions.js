@@ -11,6 +11,7 @@ import {
 } from '../utils/mergeActivities';
 import { enrichActivityGearFromStrava } from '../utils/stravaGearEnrich';
 import { enrichSelectedActivitiesFromStrava } from '../utils/stravaSelectedEnrich';
+import { buildStravaEnrichFailureMessage } from '../utils/stravaEnrichMessages';
 import { buildStravaDescriptionBackfillUpdates } from '../utils/stravaDescriptionBackfill';
 import { buildDecouplingBackfillUpdates, buildDecouplingBackfillStats, formatDecouplingBackfillIntro } from '../utils/decouplingStreamBackfill';
 import { formatNlNumber } from '../utils/formatters';
@@ -27,6 +28,7 @@ export function useDataHubBulkActions({
     onDelete,
     onImport,
     stravaGetToken,
+    stravaConfig,
     intervalsConfig,
     visibleActivityIdsFlat,
     setIsDeleting,
@@ -239,6 +241,9 @@ export function useDataHubBulkActions({
                 unchanged,
                 failed,
                 rateLimitHits,
+                stravaTotalFetched,
+                bikeActivitiesFound,
+                matchCount,
             } = await enrichSelectedActivitiesFromStrava(list, token, {
                 concurrency: 3,
                 forceStravaDetail: true,
@@ -249,20 +254,24 @@ export function useDataHubBulkActions({
                 ? ' Strava rate limit hit — some details may be incomplete; try again in ~15 minutes.'
                 : '';
             if (updates.length === 0) {
-                if (failed > 0 || rateLimitHits > 0) {
-                    setStravaEnrichMsg(
-                        `No fields updated (${formatNlNumber(failed)} Strava request(s) failed — check connection or rate limits). ${formatNlNumber(unchanged)} ride(s) already matched Strava.${rateLimitNote}`,
-                    );
-                } else if (ridesProcessed === 0 && linkedCount === 0) {
-                    setStravaEnrichMsg(
-                        'No matching Strava bike activities found for the selected date span. Try linking manually via Find on Strava on a single row.',
-                    );
-                } else {
-                    setStravaEnrichMsg(
-                        `Nothing new from Strava for ${formatNlNumber(unchanged || list.length)} selected ride(s) — link, gear, route, HR, RPE, and segments already match.`,
-                    );
+                const failureMsg = buildStravaEnrichFailureMessage(
+                    {
+                        updates,
+                        linkedCount,
+                        ridesProcessed,
+                        unchanged,
+                        failed,
+                        rateLimitHits,
+                        stravaTotalFetched,
+                        bikeActivitiesFound,
+                        matchCount,
+                    },
+                    { stravaConfig },
+                );
+                if (failureMsg) {
+                    setStravaEnrichMsg(failureMsg + rateLimitNote);
+                    return;
                 }
-                return;
             }
             setStravaEnrichMsg(`Writing ${updates.length} activities…`);
             await persistStravaEnrichUpdates(updates, list);
@@ -281,7 +290,7 @@ export function useDataHubBulkActions({
         } finally {
             setIsStravaEnriching(false);
         }
-    }, [stravaGetToken, persistStravaEnrichUpdates, deviceProfileTitles]);
+    }, [stravaGetToken, stravaConfig, persistStravaEnrichUpdates, deviceProfileTitles]);
 
     const runStravaDescriptionBackfill = useCallback(async (subset) => {
         if (!stravaGetToken) {

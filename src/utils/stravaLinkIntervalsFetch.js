@@ -1,6 +1,7 @@
 import { stravaHttpErrorMessage } from './stravaHttp.js';
 import { isIncludedStravaType, matchStravaToSite } from './stravaMatch.js';
 import { climbingPatchFromStravaActivity } from './stravaElevation.js';
+import { stravaListTimestampsForYmdRange } from './stravaFetchRange.js';
 
 const DEFAULT_MATCH_MS = 900000; // 15 minutes — Strava/Intervals time-match window
 const MAX_DISTANCE_DIFF_RATIO = 0.25;
@@ -45,9 +46,8 @@ function compatibleSportType(intervalsActivity, stravaActivity) {
  * @param {string} endYmd
  * @returns {Promise<object[]>}
  */
-export async function fetchStravaActivitiesInRange(token, startYmd, endYmd) {
-    const afterTs = Math.floor(new Date(startYmd).getTime() / 1000);
-    const beforeTs = Math.floor(new Date(endYmd).getTime() / 1000) + 86400;
+export async function fetchStravaActivitiesInRange(token, startYmd, endYmd, opts = {}) {
+    const { afterTs, beforeTs } = stravaListTimestampsForYmdRange(startYmd, endYmd, opts);
     const all = [];
     let page = 1;
     while (true) {

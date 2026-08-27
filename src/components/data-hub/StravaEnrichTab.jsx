@@ -4,7 +4,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { runInBatches } from '../../utils';
 import { matchStravaToSite, normalizeStravaActivity, STRAVA_BIKE_TYPES } from '../../utils/stravaMatch';
-import { stravaHttpErrorMessage } from '../../utils/stravaHttp';
+import { fetchStravaActivitiesInRange } from '../../utils/stravaLinkIntervalsFetch';
 import {
     applyStravaDetailFieldsToAlreadyLinkedMatch,
     buildAlreadyLinkedStravaUpdate,
@@ -183,31 +183,10 @@ const StravaEnrichTab = ({
 
         try {
             const token = await getStravaToken();
-            const afterTs = Math.floor(new Date(startDate).getTime() / 1000);
-            const beforeTs = Math.floor(new Date(endDate).getTime() / 1000) + 86400;
 
-            // Haal alle activiteiten op, gepagineerd (max 200 per pagina)
-            let page = 1;
-            let allActivities = [];
-            let bikeSoFar = 0;
-            while (true) {
-                const resp = await fetch(
-                    `https://www.strava.com/api/v3/athlete/activities?after=${afterTs}&before=${beforeTs}&per_page=200&page=${page}`,
-                    { headers: { Authorization: `Bearer ${token}` } }
-                );
-                if (!resp.ok) throw new Error(stravaHttpErrorMessage(resp, 'Strava API error'));
-                const data = await resp.json();
-                if (!Array.isArray(data) || data.length === 0) break;
-                allActivities = allActivities.concat(data);
-                // ⚡ Bolt Optimization: Avoid O(N²) scaling by filtering only the new data page
-                // instead of re-filtering the growing accumulated array every loop iteration.
-                bikeSoFar += data.filter((a) => STRAVA_BIKE_TYPES.has(a.sport_type || a.type)).length;
-                setFetchProgress(`Strava list page ${page} · ~${bikeSoFar} bike activities so far…`);
-                if (data.length < 200) break;
-                page++;
-            }
+            setFetchProgress('Fetching Strava activities…');
+            const allActivities = await fetchStravaActivitiesInRange(token, startDate, endDate);
 
-            // Alleen fietstypes (Ride, VirtualRide, GravelRide, MountainBikeRide)
             const bikeActivities = allActivities.filter(a =>
                 STRAVA_BIKE_TYPES.has(a.sport_type || a.type)
             );

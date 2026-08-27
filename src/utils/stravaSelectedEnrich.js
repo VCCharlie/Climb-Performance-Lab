@@ -7,7 +7,7 @@
 import { safeLocalStorageSet } from './safeStorage.js';
 
 import { runInBatches } from './async';
-import { matchStravaToSite, STRAVA_BIKE_TYPES } from './stravaMatch';
+import { matchStravaToSite, STRAVA_BIKE_TYPES, isIndoorOrVirtualRide } from './stravaMatch';
 import { fetchStravaActivitiesInRange } from './stravaLinkIntervalsFetch';
 import { buildStravaKomSummaryFromActivityDetail } from './stravaSegmentKomSummary';
 import { buildStravaDetailEnrichmentUpdates } from './stravaGearEnrich';
@@ -30,8 +30,10 @@ export function dateSpanFromActivities(activities) {
 
 function filterBikeActivities(stravaList, { skipShortNoPowerRides = false } = {}) {
     return (stravaList || []).filter((a) => {
-        if (!STRAVA_BIKE_TYPES.has(a.sport_type || a.type)) return false;
+        const type = a.sport_type || a.type;
+        if (!STRAVA_BIKE_TYPES.has(type)) return false;
         if (!skipShortNoPowerRides) return true;
+        if (isIndoorOrVirtualRide(type, a)) return true;
         const noPower = !a.average_watts || a.average_watts === 0;
         const isShort = !a.distance || (a.distance / 1000) < 5;
         if (noPower && isShort) return false;
@@ -104,7 +106,7 @@ async function buildStravaLinkPhaseUpdates(siteActivities, bikeActivities, bikes
     }
 
     if (candidates.length === 0) {
-        return { updates: [], linkedCount: 0, rateLimitHits: 0 };
+        return { updates: [], linkedCount: 0, rateLimitHits: 0, matchCount: 0 };
     }
 
     const linkPatches = [];
@@ -184,7 +186,12 @@ async function buildStravaLinkPhaseUpdates(siteActivities, bikeActivities, bikes
         }
     });
 
-    return { updates: linkPatches, linkedCount, rateLimitHits };
+    return {
+        updates: linkPatches,
+        linkedCount,
+        rateLimitHits,
+        matchCount: candidates.length,
+    };
 }
 
 function mergeUpdatePatches(...patchLists) {
@@ -223,30 +230,27 @@ function applyUpdatesToActivities(activities, updates) {
  * }} [opts]
  */
 export async function enrichSelectedActivitiesFromStrava(selectedActivities, token, opts = {}) {
+    const emptyResult = {
+        updates: [],
+        linkedCount: 0,
+        detailUpdatedCount: 0,
+        ridesProcessed: 0,
+        unchanged: 0,
+        failed: 0,
+        rateLimitHits: 0,
+        stravaTotalFetched: 0,
+        bikeActivitiesFound: 0,
+        matchCount: 0,
+    };
+
     const list = (selectedActivities || []).filter((a) => a?.id != null);
     if (!token || list.length === 0) {
-        return {
-            updates: [],
-            linkedCount: 0,
-            detailUpdatedCount: 0,
-            ridesProcessed: 0,
-            unchanged: 0,
-            failed: 0,
-            rateLimitHits: 0,
-        };
+        return emptyResult;
     }
 
     const span = dateSpanFromActivities(list);
     if (!span) {
-        return {
-            updates: [],
-            linkedCount: 0,
-            detailUpdatedCount: 0,
-            ridesProcessed: 0,
-            unchanged: 0,
-            failed: 0,
-            rateLimitHits: 0,
-        };
+        return emptyResult;
     }
 
     opts.onProgress?.(`Strava list ${span.start} → ${span.end}…`);
@@ -257,13 +261,9 @@ export async function enrichSelectedActivitiesFromStrava(selectedActivities, tok
 
     if (bikeActivities.length === 0) {
         return {
-            updates: [],
-            linkedCount: 0,
-            detailUpdatedCount: 0,
-            ridesProcessed: 0,
-            unchanged: 0,
-            failed: 0,
-            rateLimitHits: 0,
+            ...emptyResult,
+            stravaTotalFetched: allStrava.length,
+            bikeActivitiesFound: 0,
         };
     }
 
@@ -281,6 +281,7 @@ export async function enrichSelectedActivitiesFromStrava(selectedActivities, tok
     const linkUpdates = linkPhase.updates;
     const linkedCount = linkPhase.linkedCount;
     let rateLimitHits = linkPhase.rateLimitHits || 0;
+    const matchCount = linkPhase.matchCount || 0;
 
     const mergedSelected = applyUpdatesToActivities(list, linkUpdates);
     const withStrava = mergedSelected.filter((a) => a?.strava_id);
@@ -320,5 +321,8 @@ export async function enrichSelectedActivitiesFromStrava(selectedActivities, tok
         unchanged,
         failed,
         rateLimitHits,
+        stravaTotalFetched: allStrava.length,
+        bikeActivitiesFound: bikeActivities.length,
+        matchCount,
     };
 }

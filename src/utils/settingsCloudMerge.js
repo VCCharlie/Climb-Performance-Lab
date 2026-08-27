@@ -14,6 +14,12 @@ export function stravaConfigForCloud(stravaConfig = {}) {
     if (stravaConfig.expires_at != null) {
         out.expires_at = stravaConfig.expires_at;
     }
+    if (stravaConfig.scopes) {
+        out.scopes = stravaConfig.scopes;
+    }
+    if (stravaConfig.has_private_read != null) {
+        out.has_private_read = stravaConfig.has_private_read;
+    }
     return out;
 }
 
