@@ -10,7 +10,7 @@ import { useToast } from '../context/ToastContext';
 import { IconButton, cn } from './ui';
 import SiteQuickLinks from './shell/SiteQuickLinks';
 import MainNavTabs from './shell/MainNavTabs';
-import { buildMobileHeaderToolbar } from './shell/MobileContextToolbar';
+import { buildDesktopHeaderToolbar, buildMobileHeaderToolbar } from './shell/MobileContextToolbar';
 import { useTodayIntervalsSync } from '../context/IntervalsSyncContext';
 
 function initialsFromUser(user) {
@@ -121,19 +121,20 @@ function Header({
     const showAppChrome = Boolean(user);
     const { syncTodayActivities, isTodaySyncBusy } = useTodayIntervalsSync();
 
-    const mobileToolbar = user && activeTab
-        ? buildMobileHeaderToolbar({
-            activeTab,
-            timeRange,
-            onTimeRangeChange,
-            customStart,
-            customEnd,
-            onCustomStart,
-            onCustomEnd,
-            syncTodayActivities,
-            isTodaySyncBusy,
-        })
-        : null;
+    const toolbarProps = {
+        activeTab,
+        timeRange,
+        onTimeRangeChange,
+        customStart,
+        customEnd,
+        onCustomStart,
+        onCustomEnd,
+        syncTodayActivities,
+        isTodaySyncBusy,
+    };
+
+    const mobileToolbar = user && activeTab ? buildMobileHeaderToolbar(toolbarProps) : null;
+    const desktopToolbar = user && activeTab ? buildDesktopHeaderToolbar(toolbarProps) : null;
 
     return (
         <header
@@ -174,6 +175,12 @@ function Header({
                 ) : null}
 
                 <div className="flex items-center gap-1 md:gap-2 shrink-0">
+                    {desktopToolbar?.actions ? (
+                        <div className="hidden lg:flex items-center gap-1.5 mr-0.5">
+                            {desktopToolbar.actions}
+                        </div>
+                    ) : null}
+
                     {showAppChrome && (
                         <div
                             className="hidden sm:flex items-center gap-1.5 rounded-full bg-cdsurfacelow px-2.5 py-1.5"
@@ -264,6 +271,11 @@ function Header({
             {mobileToolbar?.footer ? (
                 <div className="md:hidden max-w-7xl mx-auto px-3 pb-2">
                     {mobileToolbar.footer}
+                </div>
+            ) : null}
+            {desktopToolbar?.footer ? (
+                <div className="hidden lg:block max-w-7xl mx-auto px-4 pb-2">
+                    {desktopToolbar.footer}
                 </div>
             ) : null}
         </header>

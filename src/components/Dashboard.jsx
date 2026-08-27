@@ -165,7 +165,7 @@ const Dashboard = ({
                 <DashboardTodaySyncButton
                     onSync={syncTodayActivities}
                     isBusy={isTodaySyncBusy}
-                    className="shrink-0 hidden md:flex"
+                    className="shrink-0 hidden md:flex lg:hidden"
                 />
             )}
             subNav={(
