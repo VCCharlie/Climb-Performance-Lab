@@ -1,6 +1,6 @@
 ﻿
 import React, { useState, useMemo } from 'react';
-import { X, Edit2, Save, Bike, ArrowUpRight } from 'lucide-react';
+import { X, Edit2, Save, Bike, ArrowUpRight, Unlink } from 'lucide-react';
 import { formatTime } from '../../utils';
 import NlDateInput from '../NlDateInput';
 import { SPORT_TYPES } from '../../config';
@@ -27,6 +27,15 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
         }
 
         setFormData(prev => ({ ...prev, [name]: val }));
+    };
+
+    const handleUnlinkStrava = () => {
+        setFormData((prev) => ({
+            ...prev,
+            strava_id: null,
+            strava_map: null,
+            strava_kom_summary: null,
+        }));
     };
 
     const handleSubmit = (e) => {
@@ -73,16 +82,27 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                                     <span>Intervals</span>
                                 </a>
                             )}
-                            {activity.strava_id && (
-                                <a
-                                    href={`https://www.strava.com/activities/${activity.strava_id}`}
-                                    target="_blank" rel="noopener noreferrer"
-                                    className="flex items-center gap-1.5 px-2 py-1 rounded text-xs bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 border border-orange-500/30"
-                                    title="Open this activity on Strava"
-                                >
-                                    <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" /></svg>
-                                    <span>Strava</span>
-                                </a>
+                            {formData.strava_id && (
+                                <>
+                                    <a
+                                        href={`https://www.strava.com/activities/${formData.strava_id}`}
+                                        target="_blank" rel="noopener noreferrer"
+                                        className="flex items-center gap-1.5 px-2 py-1 rounded text-xs bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 border border-orange-500/30"
+                                        title="Open this activity on Strava"
+                                    >
+                                        <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" /></svg>
+                                        <span>Strava</span>
+                                    </a>
+                                    <button
+                                        type="button"
+                                        onClick={handleUnlinkStrava}
+                                        className="flex items-center gap-1.5 px-2 py-1 rounded text-xs bg-cdsurfacehigh/30 text-cdmuted hover:bg-red-500/10 hover:text-red-400 border border-cdborder"
+                                        title="Remove Strava link from this activity (save to apply)"
+                                    >
+                                        <Unlink size={12} />
+                                        <span>Unlink Strava</span>
+                                    </button>
+                                </>
                             )}
                             {onFindOnStrava && activity.date && (
                                 <button
