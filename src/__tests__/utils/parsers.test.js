@@ -156,13 +156,13 @@ describe('smartParseJSON', () => {
     const result = smartParseJSON(fixture);
 
     // Activity 0: uses startDate, icu_average_watts, etc.
-    expect(result[0].date).toBe('2025-06-15');
+    expect(result[0].date).toBe('2025-06-15T08:30:00.000Z');
     expect(result[0].avg_power).toBe(218);
     expect(result[0].norm_power).toBe(245);
     expect(result[0].avg_hr).toBe(152);
 
     // Activity 1: uses start_date_local, average_watts, avg_hr
-    expect(result[1].date).toBe('2025-06-16');
+    expect(result[1].date).toBe('2025-06-16T07:00:00.000Z');
     expect(result[1].avg_power).toBe(195);
     expect(result[1].avg_hr).toBe(145);
 
@@ -191,5 +191,24 @@ describe('smartParseJSON', () => {
     const result = smartParseJSON(single);
     expect(result.length).toBe(1);
     expect(result[0].title).toBe('Solo');
+  });
+
+  it('normalizes cloud-shaped payloads via normalizeIntervalsActivityFromAny', () => {
+    const cloud = JSON.stringify([{
+      id: 'cloud_1',
+      date: '2025-06-15',
+      title: 'Cloud ride',
+      type: 'Ride',
+      moving_time: 3600,
+      distance: 42.5,
+      climbing: 500,
+      avg_power: 200,
+      norm_power: 210,
+    }]);
+    const result = smartParseJSON(cloud);
+    expect(result).toHaveLength(1);
+    expect(result[0].distance).toBe(42.5);
+    expect(result[0].avg_power).toBe(200);
+    expect(result[0].title).toBe('Cloud ride');
   });
 });

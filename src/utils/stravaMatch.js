@@ -36,13 +36,17 @@ const formatMovingTime = (seconds) => {
     return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 };
 
-// "H:MM:SS" of "MM:SS" → seconden
+// "H:MM:SS", "MM:SS", or seconds (number) → seconds
 const parseMovingTime = (timeStr) => {
-    if (!timeStr) return 0;
+    if (timeStr == null || timeStr === '') return 0;
+    if (typeof timeStr === 'number' && !Number.isNaN(timeStr) && timeStr > 0) {
+        return Math.floor(timeStr);
+    }
     const parts = String(timeStr).split(':').map(Number);
     if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
     if (parts.length === 2) return parts[0] * 60 + parts[1];
-    return 0;
+    const n = Number(String(timeStr).trim());
+    return !Number.isNaN(n) && n > 0 ? Math.floor(n) : 0;
 };
 
 // Converteer Strava API activiteit naar site-formaat
@@ -55,7 +59,7 @@ export const normalizeStravaActivity = (act) => {
         id: `strava_${act.id}`,
         strava_id: String(act.id),
         strava_map: act.map?.summary_polyline || null,
-        date: act.start_date_local.split('T')[0],
+        date: act.start_date_local || null,
         type: mapType(act.sport_type || act.type),
         title: act.name,
         distance: Math.round((act.distance / 1000) * 10) / 10,

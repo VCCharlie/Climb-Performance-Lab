@@ -98,13 +98,17 @@ export function useDataHubStravaEnrich({
 
             if (result.updates.length > 0 && db) {
                 const activitiesMap = new Map((activities || []).map((a) => [String(a.id), a]));
+                const mergedUpdates = result.updates.map(({ id, data }) => {
+                    const existing = activitiesMap.get(String(id));
+                    const payload = protectEnrichedFieldsOnMerge(data, existing);
+                    return { id, payload, merged: existing ? { ...existing, ...payload } : payload };
+                });
                 await Promise.all(
-                    result.updates.map(({ id, data }) => {
-                        const existing = activitiesMap.get(String(id));
-                        const payload = protectEnrichedFieldsOnMerge(data, existing);
-                        return setDoc(doc(db, 'activities', String(id)), payload, { merge: true });
-                    }),
+                    mergedUpdates.map(({ id, payload }) =>
+                        setDoc(doc(db, 'activities', String(id)), payload, { merge: true }),
+                    ),
                 );
+                onImport(mergedUpdates.map(({ merged }) => merged));
                 return result.updates.length;
             }
         } catch (err) {
@@ -114,9 +118,12 @@ export function useDataHubStravaEnrich({
                 setStravaAutoEnrichNotice(RATE_LIMIT_NOTICE);
                 throw err;
             }
+            setStravaAutoEnrichNotice(
+                err?.message || 'Strava enrichment failed. Connect Strava in Settings and try again.',
+            );
         }
         return 0;
-    }, [stravaGetToken, startDate, endDate, deviceProfileTitles, activities]);
+    }, [stravaGetToken, startDate, endDate, deviceProfileTitles, activities, onImport]);
 
     useEffect(() => {
         if (autoEnrichRanRef.current) return;

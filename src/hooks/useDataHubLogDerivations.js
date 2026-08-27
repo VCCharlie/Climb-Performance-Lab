@@ -82,9 +82,9 @@ export function useDataHubLogDerivations({
         if (!s || !e || !activities?.length) return null;
         const list = activities.filter((a) => {
             const d = normalizeDate(a?.date);
-            return d >= s && d <= e;
+            return d && d >= s && d <= e;
         });
-        return [...list].sort((a, b) => normalizeDate(b.date).localeCompare(normalizeDate(a.date)));
+        return [...list].sort((a, b) => (normalizeDate(b.date) || '').localeCompare(normalizeDate(a.date) || ''));
     }, [activities, logDateRangeFilter]);
 
     const logTableActivities = isolateActivityId

@@ -190,6 +190,7 @@ export function useDataHubIntervalsSync({
 
             const enrichOptions = await buildSyncEnrichOptions();
             const syncResult = await syncIntervals(syncStart, syncEnd, selectedTypes, enrichOptions);
+            const syncStats = syncResult.stats;
             const newActivitiesRaw = syncResult.activities || [];
             const newActivities = newActivitiesRaw.filter((a) => bulkIdSet.has(String(a.id)));
 
@@ -236,6 +237,7 @@ export function useDataHubIntervalsSync({
             let enrichedLinkCount = 0;
             let segmentRefreshCount = 0;
             let detailFailed = 0;
+            let stravaEnrichWarning = null;
             if (stravaEnrichEnabled && stravaGetToken) {
                 try {
                     const token = await stravaGetToken();
@@ -286,6 +288,7 @@ export function useDataHubIntervalsSync({
                     }
                 } catch (e) {
                     console.warn('[Sync] Strava enrich failed:', e);
+                    stravaEnrichWarning = e?.message || 'Strava enrichment failed during sync.';
                 }
             }
 
@@ -301,9 +304,14 @@ export function useDataHubIntervalsSync({
             if (newActivitiesRaw.length > mergedNews.length) {
                 parts.push(`${newActivitiesRaw.length - mergedNews.length} fetched id(s) not in selection`);
             }
+            const skippedEmpty = Number(syncStats?.skippedEmpty) || 0;
+            if (skippedEmpty > 0) {
+                parts.push(`${skippedEmpty} skipped (no distance/time/power)`);
+            }
             if (enrichedLinkCount > 0) parts.push(`${enrichedLinkCount} Strava link update(s)`);
             if (segmentRefreshCount > 0) parts.push(`${segmentRefreshCount} Strava detail + segment refresh`);
             if (detailFailed > 0) parts.push(`${detailFailed} detail error(s)`);
+            if (stravaEnrichWarning) parts.push(`Strava enrich warning: ${stravaEnrichWarning}`);
             if (driftResult.driftEnrichedCount > 0) {
                 parts.push(`${driftResult.driftEnrichedCount} HR drift analysis update(s)`);
             }
@@ -415,6 +423,7 @@ export function useDataHubIntervalsSync({
             let enrichCount = 0;
             let segmentRefreshCount = 0;
             let detailFailed = 0;
+            let stravaEnrichWarning = null;
             if (stravaEnrichEnabled && stravaGetToken && merged.length > 0) {
                 setSyncStatus('enriching');
                 setSyncErrorDetail('Strava: auto-link + gear/HR/RPE/KOM for fetched rides…');
@@ -467,6 +476,7 @@ export function useDataHubIntervalsSync({
                     }
                 } catch (e) {
                     console.warn('[Fetch new] Strava enrich failed:', e);
+                    stravaEnrichWarning = e?.message || 'Strava enrichment failed during fetch.';
                 }
                 onImport(merged);
             }
@@ -489,6 +499,7 @@ export function useDataHubIntervalsSync({
                 if (enrichCount > 0) parts.push(`${enrichCount} field update(s) from Strava`);
                 if (segmentRefreshCount > 0) parts.push(`${segmentRefreshCount} detail/KOM refresh`);
                 if (detailFailed > 0) parts.push(`${detailFailed} detail error(s)`);
+                if (stravaEnrichWarning) parts.push(`Strava enrich warning: ${stravaEnrichWarning}`);
             } else if (merged.length > 0 && !stravaEnrichEnabled) {
                 parts.push('Strava enrich skipped');
             } else if (merged.length > 0) {
@@ -505,7 +516,11 @@ export function useDataHubIntervalsSync({
             setSyncErrorDetail(detailText);
             showToast(
                 merged.length > 0 ? parts.join(' · ') : summary,
-                { variant: merged.length > 0 ? 'success' : 'info' },
+                {
+                    variant: merged.length > 0
+                        ? ((Number(syncStats?.skippedEmpty) || 0) > 0 ? 'warning' : 'success')
+                        : 'info',
+                },
             );
             setTimeout(() => setSyncStatus(null), 9000);
         } catch (e) {
