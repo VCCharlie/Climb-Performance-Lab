@@ -8,6 +8,7 @@ const FuelingStrategy = ({
     initialTotalCarbs,
     initialAltitude,
     fromRacePacing = false,
+    onStateChange,
 }) => {
     // --- BASIC INPUTS ---
     const [duration, setDuration] = useState(initialDuration || 180); // minutes
@@ -15,6 +16,7 @@ const FuelingStrategy = ({
     const [useRaceCarbs, setUseRaceCarbs] = useState(
         fromRacePacing && initialCarbsPerHour != null && initialCarbsPerHour > 0,
     );
+    const [fromRaceHandoff, setFromRaceHandoff] = useState(fromRacePacing);
 
     // --- EQUIPMENT ---
     const [bidonSize, setBidonSize] = useState(750); // ml
@@ -32,7 +34,29 @@ const FuelingStrategy = ({
             setUseRaceCarbs(true);
         }
         if (initialAltitude != null && initialAltitude > 0) setAltitude(initialAltitude);
+        setFromRaceHandoff(fromRacePacing);
     }, [initialDuration, initialIntensity, initialCarbsPerHour, initialAltitude, fromRacePacing]);
+
+    React.useEffect(() => {
+        if (!onStateChange) return;
+        onStateChange({
+            duration,
+            intensity,
+            carbsPerHour: useRaceCarbs && initialCarbsPerHour != null ? initialCarbsPerHour : null,
+            totalCarbs: initialTotalCarbs ?? null,
+            altitude,
+            fromRacePacing: fromRaceHandoff,
+        });
+    }, [
+        duration,
+        intensity,
+        altitude,
+        useRaceCarbs,
+        initialCarbsPerHour,
+        initialTotalCarbs,
+        fromRaceHandoff,
+        onStateChange,
+    ]);
 
     // --- NUTRITION PRODUCT CONFIG ---
     const [productConfig, setProductConfig] = useState({

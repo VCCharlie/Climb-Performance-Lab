@@ -1,8 +1,12 @@
-import React, { useId, useState } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 import { ChevronDown, ChevronRight, Download, RefreshCw } from 'lucide-react';
 import NlDateInput from '../NlDateInput';
 import { SPORT_TYPES } from '../../config';
 import { Button, Chip, SegmentedControl, inputBaseClass, cn } from '../ui';
+import { safeLocalStorageSet } from '../../utils/safeStorage';
+import { formatIntervalsSyncHealthLine } from '../../utils/intervalsSyncHealth';
+
+const SYNC_PANEL_EXPANDED_KEY = 'cpl.intervalsSyncPanel.expanded.v1';
 
 const SYNC_MODE_OPTIONS = (selectedCount) => [
     { value: 'fetch-range', label: 'Date range' },
@@ -25,11 +29,24 @@ const IntervalsSyncPanel = ({
     stravaEnrichEnabled,
     onStravaEnrichEnabledChange,
     onOpenImportTab,
+    lastIntervalsSyncAt = null,
+    lastSyncHealthSummary = null,
 }) => {
     const fromDateId = useId();
     const toDateId = useId();
     const panelId = useId();
-    const [expanded, setExpanded] = useState(false);
+    const [expanded, setExpanded] = useState(() => {
+        if (typeof localStorage === 'undefined') return true;
+        const saved = localStorage.getItem(SYNC_PANEL_EXPANDED_KEY);
+        if (saved === 'false') return false;
+        return true;
+    });
+
+    useEffect(() => {
+        safeLocalStorageSet(SYNC_PANEL_EXPANDED_KEY, String(expanded));
+    }, [expanded]);
+
+    const syncHealthLine = formatIntervalsSyncHealthLine(lastSyncHealthSummary, lastIntervalsSyncAt);
     const isRefreshMode = syncMode === 'refresh-selected';
     const refreshDisabled = isRefreshMode && selectedCount === 0;
     const datesDisabled = isRefreshMode;
@@ -56,6 +73,9 @@ const IntervalsSyncPanel = ({
                     <div className="min-w-0">
                         <h4 className="cd-type-subsection">Intervals.icu sync</h4>
                         <p className="cd-type-caption mt-0.5">{subtitle}</p>
+                        {syncHealthLine ? (
+                            <p className="cd-type-caption mt-0.5 text-cdmuted">{syncHealthLine}</p>
+                        ) : null}
                     </div>
                     {expanded ? (
                         <ChevronDown size={16} className="text-cdmuted shrink-0 mt-0.5" aria-hidden />

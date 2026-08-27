@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useMemo } from 'react';
 import { useActivities } from '../hooks/useActivities';
 import { useDataHubIntervalsSync } from '../hooks/useDataHubIntervalsSync';
+import { useDuplicatePrompt } from './DuplicatePromptContext';
 
 const IntervalsSyncContext = createContext(null);
 
@@ -16,6 +17,7 @@ export function IntervalsSyncProvider({
     userSettings,
 }) {
     const { activities, importActivities, getActivitiesSnapshot } = useActivities();
+    const { promptDuplicatesAfterImport } = useDuplicatePrompt();
 
     const intervalsSync = useDataHubIntervalsSync({
         intervalsConfig,
@@ -26,6 +28,7 @@ export function IntervalsSyncProvider({
         bulkSelectedIds: EMPTY_BULK_SET,
         selectedActivitiesForBulk: [],
         userSettings,
+        onImportFinished: promptDuplicatesAfterImport,
     });
 
     const syncTodayActivities = useCallback(() => {

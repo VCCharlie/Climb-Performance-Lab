@@ -166,7 +166,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
             setTemperature(Math.round(data.main.temp));
             setHumidity(data.main.humidity);
             setWindSpeed(Math.round(data.wind.speed * 3.6)); // m/s to km/h
-            setWindDirection('none');
+            // Preserve user-selected wind direction (headwind/tailwind) after fetch
             setWeatherSuccess(`Weather data loaded for ${data.name} (${data.sys?.country || ''})`);
             setWeatherError(null);
 

@@ -112,6 +112,8 @@ export default function ActivityLogTab({
                 stravaEnrichEnabled={intervalsSync.stravaEnrichEnabled}
                 onStravaEnrichEnabledChange={intervalsSync.setStravaEnrichEnabled}
                 onOpenImportTab={onOpenImportTab}
+                lastIntervalsSyncAt={lastIntervalsSyncAt}
+                lastSyncHealthSummary={intervalsSync.lastSyncHealthSummary}
             />
 
             <ActivityLogFilterBar {...filterBarProps} />

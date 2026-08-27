@@ -17,6 +17,11 @@ import { safeLocalStorageSet } from '../utils/safeStorage';
 import { ACTIVITY_LOG_INTERVALS_LAST_SYNC_KEY, readLastIntervalsSyncAt } from '../utils/activityLogSyncLabel';
 import { countMergeCategories, formatIntervalsSyncSummary } from '../utils/importSyncStats';
 import { enrichSyncedActivitiesDrift, formatSyncDriftRemainderNote, SYNC_DRIFT_MAX_FETCHES_DEFAULT, SYNC_DRIFT_MAX_FETCHES_TODAY } from '../utils/syncDriftEnrich';
+import { buildPostImportActivityList } from '../utils/postImportActivityList';
+import {
+    readIntervalsSyncHealthSummary,
+    writeIntervalsSyncHealthSummary,
+} from '../utils/intervalsSyncHealth';
 
 /**
  * Intervals.icu sync + fetch-new flows for DataHub (selected-row sync and date-range fetch).
@@ -37,19 +42,26 @@ export function useDataHubIntervalsSync({
     selectedActivitiesForBulk,
     userSettings,
     getActivitiesSnapshot,
+    onImportFinished,
 }) {
     const deviceProfileTitles = resolveDeviceProfileTitlesFromSettings(userSettings);
     const { showToast } = useToast();
 
-    const recordIntervalsSyncSuccess = useCallback(() => {
+    const recordIntervalsSyncSuccess = useCallback((healthSummary) => {
         const now = new Date().toISOString();
         safeLocalStorageSet(ACTIVITY_LOG_INTERVALS_LAST_SYNC_KEY, now);
         setLastIntervalsSyncAt(now);
+        if (healthSummary) {
+            const stamped = { ...healthSummary, at: now };
+            writeIntervalsSyncHealthSummary(stamped);
+            setLastSyncHealthSummary(stamped);
+        }
     }, []);
     const { syncIntervals, isSyncing, syncProgress } = useIntervalsSync(intervalsConfig);
     const [syncStatus, setSyncStatus] = useState(null);
     const [syncErrorDetail, setSyncErrorDetail] = useState(null);
     const [lastIntervalsSyncAt, setLastIntervalsSyncAt] = useState(() => readLastIntervalsSyncAt());
+    const [lastSyncHealthSummary, setLastSyncHealthSummary] = useState(() => readIntervalsSyncHealthSummary());
     const [syncDates, setSyncDates] = useState(() => ({
         start: new Date(new Date().setDate(new Date().getDate() - 14)).toISOString().split('T')[0],
         end: new Date().toISOString().split('T')[0],
@@ -297,14 +309,20 @@ export function useDataHubIntervalsSync({
             const driftResult = await applyPostSyncDriftEnrich(working, activitiesMap, enrichOptions);
             working = driftResult.list;
 
-            recordIntervalsSyncSuccess();
+            const skippedEmpty = Number(syncStats?.skippedEmpty) || 0;
+            recordIntervalsSyncSuccess({
+                added: 0,
+                updated: mergedNews.length,
+                skipped: skippedEmpty,
+            });
+            onImportFinished?.(buildPostImportActivityList(activities, working));
+
             setSyncStatus('done');
             const parts = [];
             if (mergedNews.length > 0) parts.push(`${mergedNews.length} Intervals row(s) saved`);
             if (newActivitiesRaw.length > mergedNews.length) {
                 parts.push(`${newActivitiesRaw.length - mergedNews.length} fetched id(s) not in selection`);
             }
-            const skippedEmpty = Number(syncStats?.skippedEmpty) || 0;
             if (skippedEmpty > 0) {
                 parts.push(`${skippedEmpty} skipped (no distance/time/power)`);
             }
@@ -350,6 +368,7 @@ export function useDataHubIntervalsSync({
         buildSyncEnrichOptions,
         applyPostSyncDriftEnrich,
         getActivitiesSnapshot,
+        onImportFinished,
     ]);
 
     const fetchAndMergeIntervalsRange = useCallback(async (syncStart, syncEnd) => {
@@ -490,7 +509,13 @@ export function useDataHubIntervalsSync({
             );
             merged = driftResult.list;
 
-            recordIntervalsSyncSuccess();
+            recordIntervalsSyncSuccess({
+                added: mergeCounts.newCount,
+                updated: mergeCounts.updatedCount,
+                skipped: Number(syncStats?.skippedEmpty) || 0,
+            });
+            onImportFinished?.(buildPostImportActivityList(activities, merged));
+
             setSyncStatus('done');
             const summary = formatIntervalsSyncSummary(syncStats, mergeCounts);
             const parts = [summary];
@@ -545,6 +570,7 @@ export function useDataHubIntervalsSync({
         buildSyncEnrichOptions,
         applyPostSyncDriftEnrich,
         getActivitiesSnapshot,
+        onImportFinished,
     ]);
 
     const handleFetchNewFromIntervals = useCallback(async () => {
@@ -580,5 +606,6 @@ export function useDataHubIntervalsSync({
         isSyncing,
         syncProgress,
         lastIntervalsSyncAt,
+        lastSyncHealthSummary,
     };
 }

@@ -12,6 +12,12 @@ export const ALLOWED_BACKUP_TOP_KEYS = new Set([
     'strava',
     'stravaProfile',
     'theme',
+    'racePacing',
+    'gearOptimizer',
+    'climbProfiler',
+    'weatherClimb',
+    'fueling',
+    'activityLogFilter',
     '_security_notice',
 ]);
 
@@ -26,6 +32,12 @@ const IMPORT_LABELS = {
     strava: 'Strava connection',
     stravaProfile: 'Strava profile cache',
     theme: 'Theme (light/dark)',
+    racePacing: 'Race pacing planner',
+    gearOptimizer: 'Gear optimizer tab',
+    climbProfiler: 'Climb profiler tab',
+    weatherClimb: 'Weather climb tab',
+    fueling: 'Race fueling tab',
+    activityLogFilter: 'Activity log filters',
 };
 
 /**

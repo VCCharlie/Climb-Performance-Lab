@@ -1,6 +1,7 @@
 import React from 'react';
 import { ToastProvider } from '../context/ToastContext';
 import { ConfirmProvider } from '../context/ConfirmContext';
+import { DuplicatePromptProvider } from '../context/DuplicatePromptContext';
 import { ActivitiesProvider } from '../context/ActivitiesContext';
 import { ActivityLogNavigationProvider } from '../context/ActivityLogNavigationContext';
 import { ProfileFtpProvider } from '../context/ProfileFtpContext';
@@ -21,19 +22,21 @@ export function AppProviders({
     return (
         <ToastProvider>
             <ConfirmProvider>
-                <ActivitiesProvider key={user?.uid ?? 'signed-out'} user={user}>
-                    <ActivityLogNavigationProvider onNavigateToActivities={onNavigateToActivities}>
-                        <ProfileFtpProvider userSettings={userSettings}>
-                            <IntervalsSyncProvider
-                                intervalsConfig={intervalsConfig}
-                                stravaGetToken={stravaGetToken}
-                                userSettings={userSettings}
-                            >
-                                {children}
-                            </IntervalsSyncProvider>
-                        </ProfileFtpProvider>
-                    </ActivityLogNavigationProvider>
-                </ActivitiesProvider>
+                <DuplicatePromptProvider>
+                    <ActivitiesProvider key={user?.uid ?? 'signed-out'} user={user}>
+                        <ActivityLogNavigationProvider onNavigateToActivities={onNavigateToActivities}>
+                            <ProfileFtpProvider userSettings={userSettings}>
+                                <IntervalsSyncProvider
+                                    intervalsConfig={intervalsConfig}
+                                    stravaGetToken={stravaGetToken}
+                                    userSettings={userSettings}
+                                >
+                                    {children}
+                                </IntervalsSyncProvider>
+                            </ProfileFtpProvider>
+                        </ActivityLogNavigationProvider>
+                    </ActivitiesProvider>
+                </DuplicatePromptProvider>
             </ConfirmProvider>
         </ToastProvider>
     );
