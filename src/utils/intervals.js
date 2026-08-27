@@ -3,7 +3,7 @@
  * Intervals.icu specific logic
  */
 
-import { normalizeDate, parseDurationToSeconds } from './formatters';
+import { normalizeActivityDate, parseDurationToSeconds } from './formatters';
 import { determineActivityType } from './activityTypes';
 import { extractStravaId } from './strava';
 import { buildZoneTimesFields } from './zoneTimes';
@@ -226,7 +226,7 @@ export const normalizeIntervalsActivity = (item) => {
             ? getVal('icu_distance', 'distance', 'total_distance')
             : getVal('distance', 'icu_distance', 'total_distance'),
     );
-    const climbing = getNum(getVal('elevationGain', 'total_elevation_gain', 'total_elevation_loss', 'climbing'));
+    const climbing = getNum(getVal('elevationGain', 'total_elevation_gain', 'climbing'));
     const avgSpeedMs = getNum(getVal('avg_speed', 'avgSpeed', 'average_speed', 'velocity_smooth'));
     const normPower = getNum(getVal('norm_power', 'normalizedPower', 'icu_weighted_avg_watts', 'weighted_average_watts', 'np', 'normalized_power'));
     const avgPower = getNum(getVal('avgWatts', 'icu_average_watts', 'average_watts', 'device_watts', 'avg_power', 'power'));
@@ -322,7 +322,7 @@ export const normalizeIntervalsActivity = (item) => {
     return {
         id: id,
         strava_id: stravaId,
-        date: normalizeDate(dateStr),
+        date: normalizeActivityDate(dateStr),
         title: title,
         ...(description ? { description } : {}),
         type: finalType,

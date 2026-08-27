@@ -13,12 +13,14 @@ import {
 } from '../../utils/activityFilterMetrics';
 
 describe('activityDistanceKm', () => {
-  it('treats large numbers as meters', () => {
-    expect(activityDistanceKm({ distance: 50000 })).toBe(50);
+  it('returns stored distance as km (normalized activities)', () => {
+    expect(activityDistanceKm({ distance: 50 })).toBe(50);
+    expect(activityDistanceKm({ distance: 0.76 })).toBe(0.76);
   });
 
-  it('treats small numbers as km', () => {
-    expect(activityDistanceKm({ distance: 45.2 })).toBe(45.2);
+  it('returns null for missing or zero distance', () => {
+    expect(activityDistanceKm({ distance: 0 })).toBeNull();
+    expect(activityDistanceKm({})).toBeNull();
   });
 });
 

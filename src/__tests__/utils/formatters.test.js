@@ -5,6 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   normalizeDate,
+  normalizeActivityDate,
   formatDateDDMMYYYY,
   formatTime,
   parseDurationToSeconds,
@@ -31,11 +32,10 @@ describe('normalizeDate', () => {
     expect(normalizeDate('2025-06-15')).toBe('2025-06-15');
   });
 
-  it('returns today for null/undefined', () => {
-    const today = new Date().toISOString().split('T')[0];
-    expect(normalizeDate(null)).toBe(today);
-    expect(normalizeDate(undefined)).toBe(today);
-    expect(normalizeDate('')).toBe(today);
+  it('returns null for null/undefined/empty', () => {
+    expect(normalizeDate(null)).toBeNull();
+    expect(normalizeDate(undefined)).toBeNull();
+    expect(normalizeDate('')).toBeNull();
   });
 
   it('handles DD-MM-YYYY with dashes', () => {
@@ -56,6 +56,21 @@ describe('normalizeDate', () => {
     const result = normalizeDate('not-a-date-at-all');
     // Date('not-a-date-at-all') → Invalid Date → returns raw string
     expect(result).toBe('not-a-date-at-all');
+  });
+});
+
+describe('normalizeActivityDate', () => {
+  it('preserves ISO datetime for activity storage', () => {
+    expect(normalizeActivityDate('2025-06-15T08:30:00Z')).toBe('2025-06-15T08:30:00.000Z');
+  });
+
+  it('returns date-only ISO when no time component', () => {
+    expect(normalizeActivityDate('2025-06-15')).toBe('2025-06-15');
+  });
+
+  it('returns null for empty input', () => {
+    expect(normalizeActivityDate(null)).toBeNull();
+    expect(normalizeActivityDate('')).toBeNull();
   });
 });
 

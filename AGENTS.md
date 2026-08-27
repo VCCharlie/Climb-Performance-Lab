@@ -50,6 +50,5 @@ This is a **client-side SPA** — no backend services to start. The only require
 - **Node 20 required.** The devcontainer specifies Node 20; Vite 7 and the ESLint flat config require at least Node 18.
 - **Base path:** Vite is configured with `base: '/Climb-Performance-Lab/'` for GitHub Pages. The dev server URL includes this path suffix.
 - **ESLint false positives:** Root-level `.js` files (e.g. `run_*.js`, `bootstrap_and_run.js`) use CommonJS but ESLint is configured for browser globals. Lint errors in those files are pre-existing and not caused by `src/` changes.
-- **3 pre-existing test failures** (as of May 2026): `haversineDistance` date-line test, `stravaGearEnrich` detail-fetch test, and `volumeGoals` elapsed-ratio timing test. These are not environment issues.
 - **Firebase / Intervals.icu:** Both are remote SaaS consumed via client SDK. No local emulators or cloud-function deployments are needed for core app development.
 - **No Docker or external services required** for the main SPA development workflow.

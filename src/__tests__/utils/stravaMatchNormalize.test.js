@@ -37,4 +37,9 @@ describe('normalizeStravaActivity elevation', () => {
         expect(out.climbing).toBe(0);
         expect(out.climbing_from_strava).toBe(true);
     });
+
+    it('preserves start_date_local datetime on normalized activity', () => {
+        const out = normalizeStravaActivity({ ...baseAct });
+        expect(out.date).toBe('2026-07-01T08:00:00Z');
+    });
 });

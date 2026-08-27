@@ -16,7 +16,7 @@ describe('normalizeIntervalsActivity - field extraction', () => {
     it('extracts from primary field names (activity 0)', () => {
     const norm = normalizeIntervalsActivity(fixture[0]);
     expect(norm.id).toBe('i12345');
-    expect(norm.date).toBe('2025-06-15');
+    expect(norm.date).toBe('2025-06-15T08:30:00.000Z');
     expect(norm.title).toBe('Morning Ride - Col du Galibier');
     expect(norm.moving_time).toBe(7200);
     expect(norm.avg_power).toBe(218);
@@ -34,7 +34,7 @@ describe('normalizeIntervalsActivity - field extraction', () => {
 
   it('extracts from secondary field names (activity 1)', () => {
     const norm = normalizeIntervalsActivity(fixture[1]);
-    expect(norm.date).toBe('2025-06-16');
+    expect(norm.date).toBe('2025-06-16T07:00:00.000Z');
     expect(norm.avg_power).toBe(195);    // average_watts
     expect(norm.norm_power).toBe(210);   // weighted_average_watts
     expect(norm.avg_hr).toBe(145);       // avg_hr
@@ -84,9 +84,10 @@ describe('normalizeIntervalsActivity - field extraction', () => {
 
   it('handles sparse data without crashing', () => {
     const norm = normalizeIntervalsActivity(fixture[3]);
-    expect(norm.date).toBe('2025-06-18');
+    expect(norm.date).toBe('2025-06-18T09:00:00.000Z');
     expect(norm.title).toBe('Sparse Data Ride');
     expect(norm.moving_time).toBe(5400);
+    expect(norm.climbing).toBe(0);
     expect(norm.avg_power).toBe(0);
     expect(norm.avg_hr).toBe(0);
     expect(norm.norm_power).toBe(0);
@@ -283,7 +284,13 @@ describe('normalizeIntervalsActivity - edge cases', () => {
     expect(norm.type).toBe('Ride');
     expect(norm.avg_power).toBe(0);
     expect(norm.moving_time).toBe(0);
+    expect(norm.date).toBeNull();
     expect(norm.id).toBeTruthy(); // random generated
+  });
+
+  it('ignores total_elevation_loss when gain fields are absent', () => {
+    const norm = normalizeIntervalsActivity(fixture[3]);
+    expect(norm.climbing).toBe(0);
   });
 
   it('generates ID when none provided', () => {
