@@ -3,7 +3,7 @@
  * Parsing logic for JSON imports and data cleaning.
  */
 
-import { normalizeIntervalsActivity } from './intervals';
+import { normalizeIntervalsActivityFromAny } from './intervals';
 // determineActivityType is defined in activityTypes.js to break the circular
 // dependency (intervals.js → parsers.js → intervals.js). Imported for local
 // use and re-exported so existing imports from parsers.js keep working.
@@ -66,7 +66,7 @@ export const smartParseJSON = (jsonText) => {
         const rawData = JSON.parse(jsonText);
         const dataArray = Array.isArray(rawData) ? rawData : [rawData];
         if (dataArray.length === 0) return [];
-        return dataArray.map(normalizeIntervalsActivity);
+        return dataArray.map(normalizeIntervalsActivityFromAny);
     } catch (e) {
         console.error("JSON Parse Error:", e);
         return [];

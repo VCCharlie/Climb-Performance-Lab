@@ -21,21 +21,27 @@ export function formatNlNumber(value, options = {}) {
     });
 }
 
+/**
+ * Calendar date (YYYY-MM-DD) for filters, grouping, and comparisons.
+ * @param {string | Date | number | null | undefined} dateStr
+ * @returns {string | null}
+ */
 export const normalizeDate = (dateStr) => {
-    if (!dateStr) return new Date().toISOString().split('T')[0];
+    if (dateStr == null || dateStr === '') return null;
 
-    // Safely handle if it's already a Date object or numeric timestamp
     if (dateStr instanceof Date) {
-        if (!isNaN(dateStr.getTime())) return dateStr.toISOString().split('T')[0];
-        return String(dateStr);
+        if (!Number.isNaN(dateStr.getTime())) return dateStr.toISOString().split('T')[0];
+        return null;
     }
     if (typeof dateStr === 'number') {
         const d = new Date(dateStr);
-        if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
-        return String(dateStr);
+        if (!Number.isNaN(d.getTime())) return d.toISOString().split('T')[0];
+        return null;
     }
 
-    const str = String(dateStr);
+    const str = String(dateStr).trim();
+    if (!str) return null;
+
     if (str.includes('T')) return str.split('T')[0];
     if (str.includes('/') || str.includes('-')) {
         const sep = str.includes('/') ? '/' : '-';
@@ -44,12 +50,45 @@ export const normalizeDate = (dateStr) => {
             if (parts[0].length <= 2 && parts[2].length === 4) {
                 return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
             }
+            if (/^\d{4}$/.test(parts[0]) && parts[0].length === 4) {
+                return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+            }
             return str;
         }
     }
     const d = new Date(str);
-    if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+    if (!Number.isNaN(d.getTime())) return d.toISOString().split('T')[0];
     return str;
+};
+
+/**
+ * Activity start date/time for storage — preserves ISO datetime when the source includes time.
+ * @param {string | Date | number | null | undefined} dateStr
+ * @returns {string | null}
+ */
+export const normalizeActivityDate = (dateStr) => {
+    if (dateStr == null || dateStr === '') return null;
+
+    if (dateStr instanceof Date) {
+        if (!Number.isNaN(dateStr.getTime())) return dateStr.toISOString();
+        return null;
+    }
+    if (typeof dateStr === 'number') {
+        const d = new Date(dateStr);
+        if (!Number.isNaN(d.getTime())) return d.toISOString();
+        return null;
+    }
+
+    const str = String(dateStr).trim();
+    if (!str) return null;
+
+    if (str.includes('T')) {
+        const d = new Date(str);
+        if (!Number.isNaN(d.getTime())) return d.toISOString();
+        return str;
+    }
+
+    return normalizeDate(str);
 };
 
 export const formatDateDDMMYYYY = (isoString) => {

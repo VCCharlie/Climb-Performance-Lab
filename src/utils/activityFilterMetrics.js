@@ -11,7 +11,7 @@ import { parseDurationToSeconds } from './formatters';
 export function activityDistanceKm(a) {
     const d = Number(a?.distance);
     if (!d || Number.isNaN(d)) return null;
-    return d > 2000 ? d / 1000 : d;
+    return d;
 }
 
 /**
