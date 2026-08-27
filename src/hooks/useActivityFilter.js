@@ -37,6 +37,7 @@ import {
     mergePresetsToFilterState,
     toggleMetricPresetIds,
 } from '../utils/metricRangePresets';
+import { duplicateActivityIdSet } from '../utils/dedup';
 
 // Helper inside hook or import
 const isValid = (act) => act && act.id && act.date;
@@ -79,6 +80,8 @@ const FILTER_FIELD_DEFAULTS = {
     thisWeekOnly: initialChipState.thisWeekOnly,
     rollingDays: initialChipState.rollingDays,
     stravaLinkedOnly: initialChipState.stravaLinkedOnly,
+    noStravaLinkOnly: initialChipState.noStravaLinkOnly,
+    possibleDuplicatesOnly: initialChipState.possibleDuplicatesOnly,
     noPowerOnly: initialChipState.noPowerOnly,
     withPowerOnly: initialChipState.withPowerOnly,
     highLoadOnly: initialChipState.highLoadOnly,
@@ -122,6 +125,8 @@ const useActivityFilter = (activities, profileFtp) => {
     const [thisWeekOnly, setThisWeekOnly] = useState(initialFilterFields.thisWeekOnly);
     const [rollingDays, setRollingDays] = useState(initialFilterFields.rollingDays);
     const [stravaLinkedOnly, setStravaLinkedOnly] = useState(initialFilterFields.stravaLinkedOnly);
+    const [noStravaLinkOnly, setNoStravaLinkOnly] = useState(initialFilterFields.noStravaLinkOnly);
+    const [possibleDuplicatesOnly, setPossibleDuplicatesOnly] = useState(initialFilterFields.possibleDuplicatesOnly);
     const [noPowerOnly, setNoPowerOnly] = useState(initialFilterFields.noPowerOnly);
     const [withPowerOnly, setWithPowerOnly] = useState(initialFilterFields.withPowerOnly);
     const [highLoadOnly, setHighLoadOnly] = useState(initialFilterFields.highLoadOnly);
@@ -225,6 +230,11 @@ const useActivityFilter = (activities, profileFtp) => {
     }, [activities]);
 
     // -- Derived State --
+    const duplicateIds = useMemo(
+        () => (possibleDuplicatesOnly ? duplicateActivityIdSet(activities) : null),
+        [activities, possibleDuplicatesOnly],
+    );
+
     const { processedActivities, activitiesForGearFilterOptions } = useMemo(() => {
         if (!activities) {
             return { processedActivities: [], activitiesForGearFilterOptions: [] };
@@ -299,6 +309,10 @@ const useActivityFilter = (activities, profileFtp) => {
             }
 
             if (stravaLinkedOnly && !a.strava_id) return false;
+
+            if (noStravaLinkOnly && a.strava_id) return false;
+
+            if (possibleDuplicatesOnly && duplicateIds && !duplicateIds.has(String(a.id))) return false;
 
             if (noPowerOnly) {
                 const ap = Number(a.avg_power) || 0;
@@ -388,7 +402,7 @@ const useActivityFilter = (activities, profileFtp) => {
             filtered.sort((a, b) => compareActivitiesForSort(a, b, sortConfig, profileFtp));
         }
         return { processedActivities: filtered, activitiesForGearFilterOptions: forGearOptions };
-    }, [activities, search, sortConfig, profileFtp, indoorFilter, virtualRideChip, gravelRideChip, mtbRideChip, ebikeRideChip, thisWeekOnly, rollingDays, stravaLinkedOnly, noPowerOnly, withPowerOnly, highLoadOnly, longRideOnly, missingHrOnly, minTss, filterGearId, filterDistMin, filterDistMax, filterSpeedMin, filterSpeedMax, filterPowerMin, filterPowerMax, filterDurMinMin, filterDurMaxMin, filterElevMin, filterElevMax, filterKjMin, filterKjMax, filterDecMin, filterDecMax, filterThrMin, filterThrMax, filterRaceMin, filterRaceMax]);
+    }, [activities, search, sortConfig, profileFtp, indoorFilter, virtualRideChip, gravelRideChip, mtbRideChip, ebikeRideChip, thisWeekOnly, rollingDays, stravaLinkedOnly, noStravaLinkOnly, possibleDuplicatesOnly, duplicateIds, noPowerOnly, withPowerOnly, highLoadOnly, longRideOnly, missingHrOnly, minTss, filterGearId, filterDistMin, filterDistMax, filterSpeedMin, filterSpeedMax, filterPowerMin, filterPowerMax, filterDurMinMin, filterDurMaxMin, filterElevMin, filterElevMax, filterKjMin, filterKjMax, filterDecMin, filterDecMax, filterThrMin, filterThrMax, filterRaceMin, filterRaceMax]);
 
     const gearFilterOptions = useMemo(() => {
         const base = buildGearFilterOptionsFromActivities(activitiesForGearFilterOptions);
@@ -550,6 +564,8 @@ const useActivityFilter = (activities, profileFtp) => {
         setThisWeekOnly(chips.thisWeekOnly);
         setRollingDays(chips.rollingDays);
         setStravaLinkedOnly(chips.stravaLinkedOnly);
+        setNoStravaLinkOnly(chips.noStravaLinkOnly);
+        setPossibleDuplicatesOnly(chips.possibleDuplicatesOnly);
         setNoPowerOnly(chips.noPowerOnly);
         setWithPowerOnly(chips.withPowerOnly);
         setHighLoadOnly(chips.highLoadOnly);
@@ -580,6 +596,8 @@ const useActivityFilter = (activities, profileFtp) => {
                 thisWeekOnly,
                 rollingDays,
                 stravaLinkedOnly,
+                noStravaLinkOnly,
+                possibleDuplicatesOnly,
                 noPowerOnly,
                 withPowerOnly,
                 highLoadOnly,
@@ -619,6 +637,8 @@ const useActivityFilter = (activities, profileFtp) => {
         thisWeekOnly,
         rollingDays,
         stravaLinkedOnly,
+        noStravaLinkOnly,
+        possibleDuplicatesOnly,
         noPowerOnly,
         withPowerOnly,
         highLoadOnly,
@@ -660,6 +680,8 @@ const useActivityFilter = (activities, profileFtp) => {
         thisWeekOnly,
         rollingDays,
         stravaLinkedOnly,
+        noStravaLinkOnly,
+        possibleDuplicatesOnly,
         noPowerOnly,
         withPowerOnly,
         highLoadOnly,
@@ -675,6 +697,8 @@ const useActivityFilter = (activities, profileFtp) => {
         thisWeekOnly,
         rollingDays,
         stravaLinkedOnly,
+        noStravaLinkOnly,
+        possibleDuplicatesOnly,
         noPowerOnly,
         withPowerOnly,
         highLoadOnly,
@@ -704,6 +728,8 @@ const useActivityFilter = (activities, profileFtp) => {
         thisWeekOnly, setThisWeekOnly,
         rollingDays, setRollingDays,
         stravaLinkedOnly, setStravaLinkedOnly,
+        noStravaLinkOnly, setNoStravaLinkOnly,
+        possibleDuplicatesOnly, setPossibleDuplicatesOnly,
         noPowerOnly, setNoPowerOnly,
         withPowerOnly, setWithPowerOnly,
         highLoadOnly, setHighLoadOnly,

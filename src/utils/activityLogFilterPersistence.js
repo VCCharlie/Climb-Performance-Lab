@@ -34,6 +34,8 @@ export function buildActivityLogFilterSnapshot(filterState) {
         thisWeekOnly: Boolean(filterState.thisWeekOnly),
         rollingDays: filterState.rollingDays ?? null,
         stravaLinkedOnly: Boolean(filterState.stravaLinkedOnly),
+        noStravaLinkOnly: Boolean(filterState.noStravaLinkOnly),
+        possibleDuplicatesOnly: Boolean(filterState.possibleDuplicatesOnly),
         noPowerOnly: Boolean(filterState.noPowerOnly),
         withPowerOnly: Boolean(filterState.withPowerOnly),
         highLoadOnly: Boolean(filterState.highLoadOnly),

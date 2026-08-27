@@ -14,6 +14,10 @@ export default function QuickFilterChips({
     stravaGetToken,
     stravaLinkedOnly,
     onStravaLinkedOnlyChange,
+    noStravaLinkOnly,
+    onNoStravaLinkOnlyChange,
+    possibleDuplicatesOnly,
+    onPossibleDuplicatesOnlyChange,
     noPowerOnly,
     onNoPowerOnlyChange,
     withPowerOnly,
@@ -46,6 +50,8 @@ export default function QuickFilterChips({
     const secondaryActive = Boolean(
         rollingDays === 14
         || stravaLinkedOnly
+        || noStravaLinkOnly
+        || possibleDuplicatesOnly
         || longRideOnly
         || missingHrOnly
         || virtualRideChip
@@ -154,9 +160,37 @@ export default function QuickFilterChips({
                             size="xs"
                             selected={stravaLinkedOnly}
                             disabled={!stravaGetToken}
-                            onClick={() => onStravaLinkedOnlyChange((v) => !v)}
+                            onClick={() => {
+                                onStravaLinkedOnlyChange((v) => {
+                                    const next = !v;
+                                    if (next) onNoStravaLinkOnlyChange(false);
+                                    return next;
+                                });
+                            }}
                         >
                             Strava link
+                        </Chip>
+                        <Chip
+                            size="xs"
+                            selected={noStravaLinkOnly}
+                            onClick={() => {
+                                onNoStravaLinkOnlyChange((v) => {
+                                    const next = !v;
+                                    if (next) onStravaLinkedOnlyChange(false);
+                                    return next;
+                                });
+                            }}
+                            title="Activities without a linked Strava id"
+                        >
+                            No Strava link
+                        </Chip>
+                        <Chip
+                            size="xs"
+                            selected={possibleDuplicatesOnly}
+                            onClick={() => onPossibleDuplicatesOnlyChange((v) => !v)}
+                            title="Show rows that match another activity on the same day (same title + duration)"
+                        >
+                            Possible duplicates
                         </Chip>
                         <Chip
                             size="xs"
@@ -281,9 +315,37 @@ export default function QuickFilterChips({
                         size="xs"
                         selected={stravaLinkedOnly}
                         disabled={!stravaGetToken}
-                        onClick={() => onStravaLinkedOnlyChange((v) => !v)}
+                        onClick={() => {
+                            onStravaLinkedOnlyChange((v) => {
+                                const next = !v;
+                                if (next) onNoStravaLinkOnlyChange(false);
+                                return next;
+                            });
+                        }}
                     >
                         Strava link
+                    </Chip>
+                    <Chip
+                        size="xs"
+                        selected={noStravaLinkOnly}
+                        onClick={() => {
+                            onNoStravaLinkOnlyChange((v) => {
+                                const next = !v;
+                                if (next) onStravaLinkedOnlyChange(false);
+                                return next;
+                            });
+                        }}
+                        title="Activities without a linked Strava id"
+                    >
+                        No Strava link
+                    </Chip>
+                    <Chip
+                        size="xs"
+                        selected={possibleDuplicatesOnly}
+                        onClick={() => onPossibleDuplicatesOnlyChange((v) => !v)}
+                        title="Show rows that match another activity on the same day (same title + duration)"
+                    >
+                        Possible duplicates
                     </Chip>
                     <Chip
                         size="xs"

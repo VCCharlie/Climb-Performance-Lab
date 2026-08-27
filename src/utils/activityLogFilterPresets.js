@@ -12,6 +12,8 @@ export const BUILTIN_ACTIVITY_LOG_FILTER_PRESETS = [
     { id: 'ebike', label: 'E-bike rides' },
     { id: 'this_week', label: 'This week' },
     { id: 'with_power', label: 'With power data' },
+    { id: 'no_strava_link', label: 'No Strava link' },
+    { id: 'possible_duplicates', label: 'Possible duplicates' },
 ];
 
 /** Default chip / venue state when no preset is active. */
@@ -25,6 +27,8 @@ export function defaultLogFilterChipState() {
         thisWeekOnly: false,
         rollingDays: null,
         stravaLinkedOnly: false,
+        noStravaLinkOnly: false,
+        possibleDuplicatesOnly: false,
         noPowerOnly: false,
         withPowerOnly: false,
         highLoadOnly: false,
@@ -55,6 +59,10 @@ export function chipStateForPreset(presetId) {
             return { ...base, thisWeekOnly: true };
         case 'with_power':
             return { ...base, withPowerOnly: true };
+        case 'no_strava_link':
+            return { ...base, noStravaLinkOnly: true };
+        case 'possible_duplicates':
+            return { ...base, possibleDuplicatesOnly: true };
         case 'all':
         default:
             return base;
@@ -87,6 +95,8 @@ export function detectActiveLogFilterPreset(state) {
         thisWeekOnly: Boolean(state.thisWeekOnly),
         rollingDays: state.rollingDays ?? null,
         stravaLinkedOnly: Boolean(state.stravaLinkedOnly),
+        noStravaLinkOnly: Boolean(state.noStravaLinkOnly),
+        possibleDuplicatesOnly: Boolean(state.possibleDuplicatesOnly),
         noPowerOnly: Boolean(state.noPowerOnly),
         withPowerOnly: Boolean(state.withPowerOnly),
         highLoadOnly: Boolean(state.highLoadOnly),
