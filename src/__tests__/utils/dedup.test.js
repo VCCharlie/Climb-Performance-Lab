@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { isSameActivity, findDuplicatesInList } from '../../utils/dedup';
+import { isSameActivity, findDuplicatesInList, isCrossSourceDuplicatePattern, normalizeActivityTitleForDedup, activityDurationSec } from '../../utils/dedup';
 
 const fixturesDir = resolve(__dirname, '../fixtures');
 const activities = JSON.parse(readFileSync(resolve(fixturesDir, 'activities-with-duplicates.json'), 'utf-8'));
@@ -111,6 +111,85 @@ describe('isSameActivity', () => {
     // Power check skipped when one has no data → fall back to duration + distance
     expect(isSameActivity(a, b)).toBe(true);
   });
+
+  it('matches FulGaz + Strava-enriched Intervals row (distance 0 vs real km, same title)', () => {
+    const stravaEnriched = {
+      id: 'i53534754',
+      date: '2019-05-05',
+      type: 'VirtualRide',
+      title: 'FulGaz - Col de la Madeleine from...',
+      moving_time: '32:50',
+      distance: 0,
+      strava_id: '12345678',
+      load: 28,
+      avg_hr: 145,
+    };
+    const fulgazRaw = {
+      id: 'i53534001',
+      date: '2019-05-05',
+      type: 'VirtualRide',
+      title: 'FulGaz - Col de la Madeleine from Saint-Martin',
+      moving_time: '31:59',
+      distance: 6.5,
+      gear_name: 'Gilbertson Allure',
+      load: 0,
+    };
+    expect(isSameActivity(stravaEnriched, fulgazRaw)).toBe(true);
+  });
+
+  it('matches identical-duration FulGaz pairs with zero vs non-zero distance', () => {
+    const a = {
+      id: 'i1',
+      date: '2019-05-04',
+      type: 'VirtualRide',
+      title: 'FulGaz - Col du Chaussy',
+      moving_time: '43:21',
+      distance: 0,
+      strava_id: '999',
+      load: 53,
+    };
+    const b = {
+      id: 'i2',
+      date: '2019-05-04',
+      type: 'VirtualRide',
+      title: 'FulGaz - Col du Chaussy',
+      moving_time: '43:21',
+      distance: 10.0,
+      load: 0,
+    };
+    expect(isSameActivity(a, b)).toBe(true);
+  });
+
+  it('does not match different FulGaz rides on the same day', () => {
+    const a = {
+      id: 'i1',
+      date: '2019-05-04',
+      type: 'VirtualRide',
+      title: 'FulGaz - Col du Chaussy',
+      moving_time: '43:21',
+      distance: 0,
+    };
+    const b = {
+      id: 'i2',
+      date: '2019-05-04',
+      type: 'VirtualRide',
+      title: 'FulGaz - Old Willunga Hill',
+      moving_time: '14:33',
+      distance: 3.6,
+    };
+    expect(isSameActivity(a, b)).toBe(false);
+  });
+
+  it('parses H:MM:SS moving_time for duration comparison', () => {
+    expect(activityDurationSec({ moving_time: '32:50' })).toBe(1970);
+    expect(activityDurationSec({ moving_time: 1970 })).toBe(1970);
+  });
+
+  it('normalizes truncated titles for dedup', () => {
+    expect(normalizeActivityTitleForDedup('FulGaz - Col de la Madeleine from...')).toBe(
+      'fulgaz - col de la madeleine from',
+    );
+  });
 });
 
 // ─── findDuplicatesInList ───────────────────────────────────────────────────
@@ -174,5 +253,32 @@ describe('findDuplicatesInList', () => {
     expect(findDuplicatesInList(null)).toEqual([]);
     expect(findDuplicatesInList(undefined)).toEqual([]);
     expect(findDuplicatesInList([])).toEqual([]);
+  });
+
+  it('finds FulGaz-style cross-source duplicate pairs', () => {
+    const list = [
+      {
+        id: 'i1',
+        date: '2019-05-04',
+        type: 'VirtualRide',
+        title: 'FulGaz - Old Willunga Hill',
+        moving_time: '14:33',
+        distance: 0,
+        strava_id: '888',
+        load: 19,
+      },
+      {
+        id: 'i2',
+        date: '2019-05-04',
+        type: 'VirtualRide',
+        title: 'FulGaz - Old Willunga Hill',
+        moving_time: '14:33',
+        distance: 3.6,
+        load: 0,
+      },
+    ];
+    const dupes = findDuplicatesInList(list);
+    expect(dupes).toHaveLength(1);
+    expect(isCrossSourceDuplicatePattern(dupes[0].a, dupes[0].b)).toBe(true);
   });
 });
