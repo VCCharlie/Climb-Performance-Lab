@@ -58,6 +58,9 @@ export default function ActivityLogTab({
     getStravaToken,
     visibleColumns,
     onFilterByGearId,
+    onFilterByDay,
+    singleDayFilterYmd,
+    clearDayFilter,
     onRunSync,
 }) {
     const { syncTodayActivities, isTodaySyncBusy } = useTodayIntervalsSync();
@@ -118,7 +121,7 @@ export default function ActivityLogTab({
 
             <ActivityLogFilterBar {...filterBarProps} />
 
-            {isGroupedView && !isolateActivityId && !(logDateRangeFilter?.startYmd && logDateRangeFilter?.endYmd) && (
+            {isGroupedView && !isolateActivityId && !(logDateRangeFilter?.startYmd && logDateRangeFilter?.endYmd) && !singleDayFilterYmd && (
                 <div className="flex flex-col gap-2 shrink-0 mb-2 lg:mb-0">
                     <div className="flex flex-wrap items-center gap-2">
                         <button
@@ -164,6 +167,26 @@ export default function ActivityLogTab({
                                 className="shrink-0 px-3 py-1.5 rounded-md border border-cdborder bg-cdsurface text-xs font-bold text-cdaccent hover:bg-cdborder/40"
                             >
                                 Show full log
+                            </button>
+                        )}
+                    </div>
+                )}
+
+                {singleDayFilterYmd && (
+                    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-cdaccent/40 bg-cdaccent/10 px-3 py-2 text-sm text-cdtext">
+                        <span>
+                            Showing activities on{' '}
+                            <strong className="text-cdtext">
+                                {formatDateDDMMYYYY(`${singleDayFilterYmd}T12:00:00`)}
+                            </strong>
+                        </span>
+                        {typeof clearDayFilter === 'function' && (
+                            <button
+                                type="button"
+                                onClick={() => clearDayFilter()}
+                                className="shrink-0 px-3 py-1.5 rounded-md border border-cdborder bg-cdsurface text-xs font-bold text-cdaccent hover:bg-cdborder/40 cd-focus-ring"
+                            >
+                                Back to previous view
                             </button>
                         )}
                     </div>
@@ -224,7 +247,24 @@ export default function ActivityLogTab({
                             </button>
                         )}
                     </div>
-                ) : !isolateActivityId && !(logDateRangeFilter?.startYmd && logDateRangeFilter?.endYmd) && processedActivities.length === 0 ? (
+                ) : singleDayFilterYmd && processedActivities.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-cdmuted gap-3 border border-dashed border-cdborder rounded-lg p-6">
+                        <AlertTriangle size={32} className="text-amber-500/90" />
+                        <p className="text-sm text-cdtext text-center">
+                            No activities on{' '}
+                            {formatDateDDMMYYYY(`${singleDayFilterYmd}T12:00:00`)} in your log.
+                        </p>
+                        {typeof clearDayFilter === 'function' && (
+                            <button
+                                type="button"
+                                onClick={() => clearDayFilter()}
+                                className="px-4 py-2 rounded-lg border border-cdborder bg-cdsurface text-sm font-bold text-cdaccent hover:bg-cdborder/30 cd-focus-ring"
+                            >
+                                Back to previous view
+                            </button>
+                        )}
+                    </div>
+                ) : !isolateActivityId && !(logDateRangeFilter?.startYmd && logDateRangeFilter?.endYmd) && !singleDayFilterYmd && processedActivities.length === 0 ? (
                     <div className="flex-1 flex flex-col items-center justify-center gap-4 border border-dashed border-cdborder rounded-lg p-6">
                         <AlertTriangle size={32} className="text-cdmuted" aria-hidden />
                         <div className="text-center space-y-1">
@@ -267,6 +307,8 @@ export default function ActivityLogTab({
                             getStravaToken={getStravaToken}
                             visibleColumns={visibleColumns}
                             onFilterByGearId={onFilterByGearId}
+                            onFilterByDay={onFilterByDay}
+                            singleDayFilterYmd={singleDayFilterYmd}
                         />
                     </div>
                 )}
