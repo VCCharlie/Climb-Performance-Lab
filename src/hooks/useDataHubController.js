@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { getCoreClimbDatabase } from '../services/climbDatabase';
 import useActivityFilter from './useActivityFilter';
 import useActivityColumnVisibility from './useActivityColumnVisibility';
@@ -17,6 +17,7 @@ import { resolveRecoveryTss } from '../utils/recoveryTss';
 import { readLastCloudSyncAt } from '../utils/activityLogSyncLabel';
 import { filterActivitiesByDashboardTimeRange } from '../utils/dashboardActivityWindow';
 import { useTabListKeyboard } from './useTabListKeyboard';
+import { useDuplicatePrompt } from '../context/DuplicatePromptContext';
 
 export const DATA_HUB_INTERNAL_TABS = ['log', 'import'];
 
@@ -186,6 +187,11 @@ export function useDataHubController({
         onImportComplete: () => setInternalTab('log'),
         profileFtp: resolvedProfileFtp,
     });
+
+    const { registerOpenDuplicateResolver } = useDuplicatePrompt();
+    useEffect(() => {
+        return registerOpenDuplicateResolver(dataImport.openDuplicateResolver);
+    }, [registerOpenDuplicateResolver, dataImport.openDuplicateResolver]);
 
     const maintenance = useDataHubMaintenance({
         activities,

@@ -65,6 +65,18 @@ import {
     getDefaultBucketListState,
 } from './utils/sessionData';
 import { safeLocalStorageSet } from './utils/safeStorage.js';
+import {
+    TAB_STATE_STORAGE_KEYS,
+    TAB_STATE_PERSIST_DEBOUNCE_MS,
+    defaultTargetPowerFromFtp,
+    readPersistedTabState,
+    writePersistedTabState,
+} from './utils/tabStatePersistence';
+import {
+    ACTIVITY_LOG_FILTER_STATE_KEY,
+    readActivityLogFilterState,
+    writeActivityLogFilterState,
+} from './utils/activityLogFilterPersistence';
 import { migrateLegacyBucketState, setClimbBucketStatus } from './utils/bucketListState';
 import {
     syncBucketListToFirestore,
@@ -312,24 +324,39 @@ const App = () => {
     }, [user]);
 
     // State for new features (persistent across tab switches)
-    const [racePacingState, setRacePacingState] = useState({
-        selectedClimbs: [],
-        recoveryMinutes: {},
-        targetIntensity: 0.85
+    const [racePacingState, setRacePacingState] = useState(() =>
+        readPersistedTabState(TAB_STATE_STORAGE_KEYS.racePacing, {
+            selectedClimbs: [],
+            recoveryMinutes: {},
+            targetIntensity: 0.85,
+        }),
+    );
+    const [gearOptimizerState, setGearOptimizerState] = useState(() => {
+        const savedSettings = localStorage.getItem('userSettings');
+        let ftp = 280;
+        if (savedSettings) {
+            try {
+                const parsed = JSON.parse(savedSettings);
+                if (parsed?.ftp) ftp = parsed.ftp;
+            } catch { /* ignore */ }
+        }
+        return readPersistedTabState(TAB_STATE_STORAGE_KEYS.gearOptimizer, {
+            selectedClimb: getDefaultClimb(),
+            chainrings: [50, 34],
+            cassette: [11, 12, 13, 14, 15, 16, 17, 19, 21, 24, 28],
+            wheelDiameter: 700,
+            tyreMm: 25,
+            targetCadence: 80,
+            targetPower: defaultTargetPowerFromFtp(ftp),
+        });
     });
-    const [gearOptimizerState, setGearOptimizerState] = useState({
-        selectedClimb: getDefaultClimb(),
-        chainrings: [50, 34],
-        cassette: [11, 12, 13, 14, 15, 16, 17, 19, 21, 24, 28],
-        wheelDiameter: 700,
-        tyreMm: 25,
-        targetCadence: 80
-    });
-    const [climbProfilerState, setClimbProfilerState] = useState({
-        selectedClimb: getDefaultClimb(),
-        showPowerZones: true,
-        targetIntensity: 0.85
-    });
+    const [climbProfilerState, setClimbProfilerState] = useState(() =>
+        readPersistedTabState(TAB_STATE_STORAGE_KEYS.climbProfiler, {
+            selectedClimb: getDefaultClimb(),
+            showPowerZones: true,
+            targetIntensity: 0.85,
+        }),
+    );
 
     const handleOpenProfilerFromActivity = useCallback((_activity, climb) => {
         const target = climb && climb.id ? climb : getDefaultClimb();
@@ -351,14 +378,16 @@ const App = () => {
         persistMainTab('profiler');
     }, []);
 
-    const [fuelingState, setFuelingState] = useState({
-        duration: 180,
-        intensity: 0.85,
-        carbsPerHour: null,
-        totalCarbs: null,
-        altitude: 0,
-        fromRacePacing: false,
-    });
+    const [fuelingState, setFuelingState] = useState(() =>
+        readPersistedTabState(TAB_STATE_STORAGE_KEYS.fueling, {
+            duration: 180,
+            intensity: 0.85,
+            carbsPerHour: null,
+            totalCarbs: null,
+            altitude: 0,
+            fromRacePacing: false,
+        }),
+    );
     const [bucketListState, setBucketListState] = useState(() => {
         const saved = localStorage.getItem('bucketListState');
         if (saved) {
@@ -430,14 +459,86 @@ const App = () => {
         }
     }, [user]);
 
-    const [weatherClimbState, setWeatherClimbState] = useState({
-        selectedClimb: getDefaultClimb(),
-        targetPower: 280 * 0.85,
-        temperature: 20,
-        windSpeed: 0,
-        windDirection: 'none',
-        humidity: 50
+    const [weatherClimbState, setWeatherClimbState] = useState(() => {
+        const savedSettings = localStorage.getItem('userSettings');
+        let ftp = 280;
+        if (savedSettings) {
+            try {
+                const parsed = JSON.parse(savedSettings);
+                if (parsed?.ftp) ftp = parsed.ftp;
+            } catch { /* ignore */ }
+        }
+        return readPersistedTabState(TAB_STATE_STORAGE_KEYS.weatherClimb, {
+            selectedClimb: getDefaultClimb(),
+            targetPower: defaultTargetPowerFromFtp(ftp),
+            temperature: 20,
+            windSpeed: 0,
+            windDirection: 'none',
+            humidity: 50,
+        });
     });
+
+    const previousFtpRef = useRef(userSettings.ftp);
+    useEffect(() => {
+        const previousFtp = previousFtpRef.current;
+        const nextFtp = userSettings.ftp;
+        if (previousFtp === nextFtp) return;
+        previousFtpRef.current = nextFtp;
+
+        const previousDefaultPower = defaultTargetPowerFromFtp(previousFtp);
+        const nextDefaultPower = defaultTargetPowerFromFtp(nextFtp);
+
+        setWeatherClimbState((prev) => {
+            if (Math.abs(prev.targetPower - previousDefaultPower) >= 0.5) return prev;
+            return { ...prev, targetPower: nextDefaultPower };
+        });
+        setGearOptimizerState((prev) => {
+            if (prev.targetPower != null && Math.abs(prev.targetPower - previousDefaultPower) >= 0.5) {
+                return prev;
+            }
+            return { ...prev, targetPower: nextDefaultPower };
+        });
+    }, [userSettings.ftp]);
+
+    useEffect(() => {
+        const timer = setTimeout(
+            () => writePersistedTabState(TAB_STATE_STORAGE_KEYS.racePacing, racePacingState),
+            TAB_STATE_PERSIST_DEBOUNCE_MS,
+        );
+        return () => clearTimeout(timer);
+    }, [racePacingState]);
+
+    useEffect(() => {
+        const timer = setTimeout(
+            () => writePersistedTabState(TAB_STATE_STORAGE_KEYS.gearOptimizer, gearOptimizerState),
+            TAB_STATE_PERSIST_DEBOUNCE_MS,
+        );
+        return () => clearTimeout(timer);
+    }, [gearOptimizerState]);
+
+    useEffect(() => {
+        const timer = setTimeout(
+            () => writePersistedTabState(TAB_STATE_STORAGE_KEYS.climbProfiler, climbProfilerState),
+            TAB_STATE_PERSIST_DEBOUNCE_MS,
+        );
+        return () => clearTimeout(timer);
+    }, [climbProfilerState]);
+
+    useEffect(() => {
+        const timer = setTimeout(
+            () => writePersistedTabState(TAB_STATE_STORAGE_KEYS.weatherClimb, weatherClimbState),
+            TAB_STATE_PERSIST_DEBOUNCE_MS,
+        );
+        return () => clearTimeout(timer);
+    }, [weatherClimbState]);
+
+    useEffect(() => {
+        const timer = setTimeout(
+            () => writePersistedTabState(TAB_STATE_STORAGE_KEYS.fueling, fuelingState),
+            TAB_STATE_PERSIST_DEBOUNCE_MS,
+        );
+        return () => clearTimeout(timer);
+    }, [fuelingState]);
 
     // Sub-tab states for merged tabs
     const [trainingSubTab, setTrainingSubTab] = useState('coach'); // 'coach' | 'goal' | 'recovery'
@@ -1005,6 +1106,69 @@ const App = () => {
             setTheme(backupData.theme);
             safeLocalStorageSet('theme', backupData.theme);
         }
+        if (backupData.racePacing) {
+            const restored = {
+                selectedClimbs: [],
+                recoveryMinutes: {},
+                targetIntensity: 0.85,
+                ...backupData.racePacing,
+            };
+            setRacePacingState(restored);
+            writePersistedTabState(TAB_STATE_STORAGE_KEYS.racePacing, restored);
+        }
+        if (backupData.gearOptimizer) {
+            const restored = {
+                selectedClimb: getDefaultClimb(),
+                chainrings: [50, 34],
+                cassette: [11, 12, 13, 14, 15, 16, 17, 19, 21, 24, 28],
+                wheelDiameter: 700,
+                tyreMm: 25,
+                targetCadence: 80,
+                targetPower: defaultTargetPowerFromFtp(userSettings.ftp),
+                ...backupData.gearOptimizer,
+            };
+            setGearOptimizerState(restored);
+            writePersistedTabState(TAB_STATE_STORAGE_KEYS.gearOptimizer, restored);
+        }
+        if (backupData.climbProfiler) {
+            const restored = {
+                selectedClimb: getDefaultClimb(),
+                showPowerZones: true,
+                targetIntensity: 0.85,
+                ...backupData.climbProfiler,
+            };
+            setClimbProfilerState(restored);
+            writePersistedTabState(TAB_STATE_STORAGE_KEYS.climbProfiler, restored);
+        }
+        if (backupData.weatherClimb) {
+            const restored = {
+                selectedClimb: getDefaultClimb(),
+                targetPower: defaultTargetPowerFromFtp(userSettings.ftp),
+                temperature: 20,
+                windSpeed: 0,
+                windDirection: 'none',
+                humidity: 50,
+                ...backupData.weatherClimb,
+            };
+            setWeatherClimbState(restored);
+            writePersistedTabState(TAB_STATE_STORAGE_KEYS.weatherClimb, restored);
+        }
+        if (backupData.fueling) {
+            const restored = {
+                duration: 180,
+                intensity: 0.85,
+                carbsPerHour: null,
+                totalCarbs: null,
+                altitude: 0,
+                fromRacePacing: false,
+                ...backupData.fueling,
+            };
+            setFuelingState(restored);
+            writePersistedTabState(TAB_STATE_STORAGE_KEYS.fueling, restored);
+        }
+        if (backupData.activityLogFilter) {
+            writeActivityLogFilterState(backupData.activityLogFilter);
+        }
         notify('Backup restored successfully!', { variant: 'success' });
     };
 
@@ -1241,6 +1405,7 @@ const App = () => {
                                                 initialTotalCarbs={fuelingState.totalCarbs}
                                                 initialAltitude={fuelingState.altitude}
                                                 fromRacePacing={fuelingState.fromRacePacing}
+                                                onStateChange={setFuelingState}
                                             />
                                         )}
                                         {raceSubTab === 'racepacing' && (
@@ -1370,6 +1535,12 @@ const App = () => {
                                     strava: stravaConfig,
                                     stravaProfile: stravaProfileData,
                                     theme,
+                                    racePacing: racePacingState,
+                                    gearOptimizer: gearOptimizerState,
+                                    climbProfiler: climbProfilerState,
+                                    weatherClimb: weatherClimbState,
+                                    fueling: fuelingState,
+                                    activityLogFilter: readActivityLogFilterState(),
                                 }}
                                 onImportBackup={handleImportBackup}
                                 onCleanupCloudTokens={cleanupCloudTokens}

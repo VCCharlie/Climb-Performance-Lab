@@ -11,6 +11,8 @@ import {
     recordDuplicatePairResolution,
 } from '../utils/duplicateResolutions';
 import { useToast } from '../context/ToastContext';
+import { useDuplicatePromptOptional } from '../context/DuplicatePromptContext';
+import { buildPostImportActivityList } from '../utils/postImportActivityList';
 
 /**
  * JSON import preview, confirm flow, and duplicate resolution (Bolt 3d-bis follow-up).
@@ -23,6 +25,7 @@ export function useDataHubImport({
     profileFtp,
 }) {
     const { showToast } = useToast();
+    const duplicatePrompt = useDuplicatePromptOptional();
     const [fetchedActivities, setFetchedActivities] = useState([]);
     const [selectedActivities, setSelectedActivities] = useState([]);
     const [showModal, setShowModal] = useState(false);
@@ -30,6 +33,11 @@ export function useDataHubImport({
     const [showDuplicateModal, setShowDuplicateModal] = useState(false);
     const [duplicates, setDuplicates] = useState([]);
     const [previewSortConfig, setPreviewSortConfig] = useState({ key: 'date', direction: 'desc' });
+
+    const openDuplicateResolver = useCallback((foundDups) => {
+        setDuplicates(foundDups);
+        setShowDuplicateModal(true);
+    }, []);
 
     const requestPreviewSort = useCallback((key) => {
         setPreviewSortConfig((prev) => ({
@@ -130,11 +138,30 @@ export function useDataHubImport({
         setShowModal(false);
         setFetchedActivities([]);
         onImportComplete?.();
+
+        const postImportList = buildPostImportActivityList(
+            activities,
+            importPayloads,
+            replacementPlan.idsToDelete,
+        );
+        if (duplicatePrompt?.promptDuplicatesAfterImport) {
+            await duplicatePrompt.promptDuplicatesAfterImport(postImportList);
+        }
+
         showToast(
             `Imported ${savedCount} activit${savedCount === 1 ? 'y' : 'ies'}. Replaced ${cloudPersisted ? replacementPlan.replacedCount : 0} duplicate(s).`,
             { variant: 'success', durationMs: 8000 },
         );
-    }, [fetchedActivities, selectedActivities, activities, onImport, onDelete, onImportComplete, showToast]);
+    }, [
+        fetchedActivities,
+        selectedActivities,
+        activities,
+        onImport,
+        onDelete,
+        onImportComplete,
+        showToast,
+        duplicatePrompt,
+    ]);
 
     const findDuplicates = useCallback(() => {
         if (!activities || activities.length === 0) return;
@@ -194,5 +221,6 @@ export function useDataHubImport({
         duplicates,
         findDuplicates,
         resolveDuplicate,
+        openDuplicateResolver,
     };
 }

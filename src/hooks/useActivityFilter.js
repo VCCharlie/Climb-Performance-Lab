@@ -22,6 +22,13 @@ import {
 } from '../utils/activityLogFilterPresets';
 import { safeLocalStorageSet } from '../utils/safeStorage';
 import {
+    ACTIVITY_LOG_FILTER_STATE_KEY,
+    buildActivityLogFilterSnapshot,
+    mergeActivityLogFilterDefaults,
+    readActivityLogFilterState,
+    writeActivityLogFilterState,
+} from '../utils/activityLogFilterPersistence';
+import {
     buildGearFilterOptionsFromActivities,
     mergeActiveGearFilterOption,
 } from '../utils/activityGearFilterOptions';
@@ -64,49 +71,90 @@ function toLocalYmd(d) {
 
 const storedPresetId = typeof window !== 'undefined' ? parseStoredFilterPresetId() : null;
 const initialChipState = chipStateForPreset(storedPresetId || 'all');
+const savedFilterState = typeof window !== 'undefined' ? readActivityLogFilterState() : null;
+
+const FILTER_FIELD_DEFAULTS = {
+    search: '',
+    indoorFilter: initialChipState.indoorFilter,
+    thisWeekOnly: initialChipState.thisWeekOnly,
+    rollingDays: initialChipState.rollingDays,
+    stravaLinkedOnly: initialChipState.stravaLinkedOnly,
+    noPowerOnly: initialChipState.noPowerOnly,
+    withPowerOnly: initialChipState.withPowerOnly,
+    highLoadOnly: initialChipState.highLoadOnly,
+    longRideOnly: initialChipState.longRideOnly,
+    missingHrOnly: initialChipState.missingHrOnly,
+    virtualRideChip: initialChipState.virtualRideChip,
+    gravelRideChip: initialChipState.gravelRideChip,
+    mtbRideChip: initialChipState.mtbRideChip,
+    ebikeRideChip: initialChipState.ebikeRideChip,
+    minTss: initialChipState.minTss,
+    filterDistMin: '',
+    filterDistMax: '',
+    filterSpeedMin: '',
+    filterSpeedMax: '',
+    filterPowerMin: '',
+    filterPowerMax: '',
+    filterDurMinMin: '',
+    filterDurMaxMin: '',
+    filterElevMin: '',
+    filterElevMax: '',
+    filterKjMin: '',
+    filterKjMax: '',
+    filterDecMin: '',
+    filterDecMax: '',
+    filterThrMin: '',
+    filterThrMax: '',
+    filterRaceMin: '',
+    filterRaceMax: '',
+    filterGearId: '',
+    activeMetricPresetIds: [],
+};
+
+const initialFilterFields = mergeActivityLogFilterDefaults(savedFilterState, FILTER_FIELD_DEFAULTS);
 
 const useActivityFilter = (activities, profileFtp) => {
-    const [search, setSearch] = useState("");
-    const [indoorFilter, setIndoorFilter] = useState(initialChipState.indoorFilter);
+    const [search, setSearch] = useState(initialFilterFields.search);
+    const [indoorFilter, setIndoorFilter] = useState(initialFilterFields.indoorFilter);
     const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
 
     /** Quick chips */
-    const [thisWeekOnly, setThisWeekOnly] = useState(initialChipState.thisWeekOnly);
-    const [rollingDays, setRollingDays] = useState(initialChipState.rollingDays);
-    const [stravaLinkedOnly, setStravaLinkedOnly] = useState(initialChipState.stravaLinkedOnly);
-    const [noPowerOnly, setNoPowerOnly] = useState(initialChipState.noPowerOnly);
-    const [withPowerOnly, setWithPowerOnly] = useState(initialChipState.withPowerOnly);
-    const [highLoadOnly, setHighLoadOnly] = useState(initialChipState.highLoadOnly);
-    const [longRideOnly, setLongRideOnly] = useState(initialChipState.longRideOnly);
-    const [missingHrOnly, setMissingHrOnly] = useState(initialChipState.missingHrOnly);
-    const [virtualRideChip, setVirtualRideChip] = useState(initialChipState.virtualRideChip);
-    const [gravelRideChip, setGravelRideChip] = useState(initialChipState.gravelRideChip);
-    const [mtbRideChip, setMtbRideChip] = useState(initialChipState.mtbRideChip);
-    const [ebikeRideChip, setEbikeRideChip] = useState(initialChipState.ebikeRideChip);
-    const [minTss, setMinTss] = useState(initialChipState.minTss);
+    const [thisWeekOnly, setThisWeekOnly] = useState(initialFilterFields.thisWeekOnly);
+    const [rollingDays, setRollingDays] = useState(initialFilterFields.rollingDays);
+    const [stravaLinkedOnly, setStravaLinkedOnly] = useState(initialFilterFields.stravaLinkedOnly);
+    const [noPowerOnly, setNoPowerOnly] = useState(initialFilterFields.noPowerOnly);
+    const [withPowerOnly, setWithPowerOnly] = useState(initialFilterFields.withPowerOnly);
+    const [highLoadOnly, setHighLoadOnly] = useState(initialFilterFields.highLoadOnly);
+    const [longRideOnly, setLongRideOnly] = useState(initialFilterFields.longRideOnly);
+    const [missingHrOnly, setMissingHrOnly] = useState(initialFilterFields.missingHrOnly);
+    const [virtualRideChip, setVirtualRideChip] = useState(initialFilterFields.virtualRideChip);
+    const [gravelRideChip, setGravelRideChip] = useState(initialFilterFields.gravelRideChip);
+    const [mtbRideChip, setMtbRideChip] = useState(initialFilterFields.mtbRideChip);
+    const [ebikeRideChip, setEbikeRideChip] = useState(initialFilterFields.ebikeRideChip);
+    const [minTss, setMinTss] = useState(initialFilterFields.minTss);
     const [activeLogFilterPresetId, setActiveLogFilterPresetId] = useState(storedPresetId || 'all');
 
     /** Min/max filters (empty string = no bound). Distance km, speed km/h, power W, duration minutes, elev m, kJ */
-    const [filterDistMin, setFilterDistMin] = useState('');
-    const [filterDistMax, setFilterDistMax] = useState('');
-    const [filterSpeedMin, setFilterSpeedMin] = useState('');
-    const [filterSpeedMax, setFilterSpeedMax] = useState('');
-    const [filterPowerMin, setFilterPowerMin] = useState('');
-    const [filterPowerMax, setFilterPowerMax] = useState('');
-    const [filterDurMinMin, setFilterDurMinMin] = useState('');
-    const [filterDurMaxMin, setFilterDurMaxMin] = useState('');
-    const [filterElevMin, setFilterElevMin] = useState('');
-    const [filterElevMax, setFilterElevMax] = useState('');
-    const [filterKjMin, setFilterKjMin] = useState('');
-    const [filterKjMax, setFilterKjMax] = useState('');
-    const [filterDecMin, setFilterDecMin] = useState('');
-    const [filterDecMax, setFilterDecMax] = useState('');
-    const [filterThrMin, setFilterThrMin] = useState('');
-    const [filterThrMax, setFilterThrMax] = useState('');
-    const [filterRaceMin, setFilterRaceMin] = useState('');
-    const [filterRaceMax, setFilterRaceMax] = useState('');
+    const [filterDistMin, setFilterDistMin] = useState(initialFilterFields.filterDistMin);
+    const [filterDistMax, setFilterDistMax] = useState(initialFilterFields.filterDistMax);
+    const [filterSpeedMin, setFilterSpeedMin] = useState(initialFilterFields.filterSpeedMin);
+    const [filterSpeedMax, setFilterSpeedMax] = useState(initialFilterFields.filterSpeedMax);
+    const [filterPowerMin, setFilterPowerMin] = useState(initialFilterFields.filterPowerMin);
+    const [filterPowerMax, setFilterPowerMax] = useState(initialFilterFields.filterPowerMax);
+    const [filterDurMinMin, setFilterDurMinMin] = useState(initialFilterFields.filterDurMinMin);
+    const [filterDurMaxMin, setFilterDurMaxMin] = useState(initialFilterFields.filterDurMaxMin);
+    const [filterElevMin, setFilterElevMin] = useState(initialFilterFields.filterElevMin);
+    const [filterElevMax, setFilterElevMax] = useState(initialFilterFields.filterElevMax);
+    const [filterKjMin, setFilterKjMin] = useState(initialFilterFields.filterKjMin);
+    const [filterKjMax, setFilterKjMax] = useState(initialFilterFields.filterKjMax);
+    const [filterDecMin, setFilterDecMin] = useState(initialFilterFields.filterDecMin);
+    const [filterDecMax, setFilterDecMax] = useState(initialFilterFields.filterDecMax);
+    const [filterThrMin, setFilterThrMin] = useState(initialFilterFields.filterThrMin);
+    const [filterThrMax, setFilterThrMax] = useState(initialFilterFields.filterThrMax);
+    const [filterRaceMin, setFilterRaceMin] = useState(initialFilterFields.filterRaceMin);
+    const [filterRaceMax, setFilterRaceMax] = useState(initialFilterFields.filterRaceMax);
     /** Strava gear_id (string); empty = no filter */
-    const [filterGearId, setFilterGearId] = useState('');
+    const [filterGearId, setFilterGearId] = useState(initialFilterFields.filterGearId);
 
     // We store explicit collapse state.
     const [expandedYears, setExpandedYears] = useState(null);
@@ -452,7 +500,7 @@ const useActivityFilter = (activities, profileFtp) => {
         return () => clearTimeout(timer);
     }, [groupedActivities]);
 
-    const [activeMetricPresetIds, setActiveMetricPresetIds] = useState([]);
+    const [activeMetricPresetIds, setActiveMetricPresetIds] = useState(initialFilterFields.activeMetricPresetIds);
 
     const applyMetricFilterState = useCallback((state) => {
         setFilterDistMin(state.filterDistMin ?? '');
@@ -518,7 +566,90 @@ const useActivityFilter = (activities, profileFtp) => {
         setSearch('');
         setFilterGearId('');
         clearMetricFilters();
+        writeActivityLogFilterState(buildActivityLogFilterSnapshot({
+            ...FILTER_FIELD_DEFAULTS,
+            indoorFilter: 'all',
+        }));
     }, [applyLogFilterPreset, clearMetricFilters]);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            writeActivityLogFilterState(buildActivityLogFilterSnapshot({
+                search,
+                indoorFilter,
+                thisWeekOnly,
+                rollingDays,
+                stravaLinkedOnly,
+                noPowerOnly,
+                withPowerOnly,
+                highLoadOnly,
+                longRideOnly,
+                missingHrOnly,
+                virtualRideChip,
+                gravelRideChip,
+                mtbRideChip,
+                ebikeRideChip,
+                minTss,
+                filterDistMin,
+                filterDistMax,
+                filterSpeedMin,
+                filterSpeedMax,
+                filterPowerMin,
+                filterPowerMax,
+                filterDurMinMin,
+                filterDurMaxMin,
+                filterElevMin,
+                filterElevMax,
+                filterKjMin,
+                filterKjMax,
+                filterDecMin,
+                filterDecMax,
+                filterThrMin,
+                filterThrMax,
+                filterRaceMin,
+                filterRaceMax,
+                filterGearId,
+                activeMetricPresetIds,
+            }));
+        }, 400);
+        return () => clearTimeout(timer);
+    }, [
+        search,
+        indoorFilter,
+        thisWeekOnly,
+        rollingDays,
+        stravaLinkedOnly,
+        noPowerOnly,
+        withPowerOnly,
+        highLoadOnly,
+        longRideOnly,
+        missingHrOnly,
+        virtualRideChip,
+        gravelRideChip,
+        mtbRideChip,
+        ebikeRideChip,
+        minTss,
+        filterDistMin,
+        filterDistMax,
+        filterSpeedMin,
+        filterSpeedMax,
+        filterPowerMin,
+        filterPowerMax,
+        filterDurMinMin,
+        filterDurMaxMin,
+        filterElevMin,
+        filterElevMax,
+        filterKjMin,
+        filterKjMax,
+        filterDecMin,
+        filterDecMax,
+        filterThrMin,
+        filterThrMax,
+        filterRaceMin,
+        filterRaceMax,
+        filterGearId,
+        activeMetricPresetIds,
+    ]);
 
     const detectedLogFilterPresetId = useMemo(() => detectActiveLogFilterPreset({
         indoorFilter,

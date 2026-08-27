@@ -4,25 +4,6 @@ import { getDefaultClimb } from '../services/climbDatabase';
 import ClimbSelector from './shared/ClimbSelector';
 
 const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
-    // Gearing configuration
-    const [chainrings, setChainrings] = useState(initialState?.chainrings || [50, 34]);
-    const [cassette, setCassette] = useState(initialState?.cassette || [11, 12, 13, 14, 15, 16, 17, 19, 21, 24, 28]);
-    const [wheelDiameter, setWheelDiameter] = useState(initialState?.wheelDiameter || 700);
-    const [tyreMm, setTyreMm] = useState(initialState?.tyreMm || 25);
-
-    // Climb selection
-    const [selectedClimb, setSelectedClimb] = useState(initialState?.selectedClimb || getDefaultClimb());
-    const [targetPower, setTargetPower] = useState(userSettings.ftp * 0.85);
-    const [targetCadence, setTargetCadence] = useState(initialState?.targetCadence || 80);
-
-    // Sync state changes to parent
-    React.useEffect(() => {
-        if (onStateChange) {
-            onStateChange({ chainrings, cassette, wheelDiameter, tyreMm, selectedClimb, targetCadence });
-        }
-    }, [chainrings, cassette, wheelDiameter, tyreMm, selectedClimb, targetCadence, onStateChange]);
-
-    // Common gearing presets
     const gearingPresets = {
         compact: { name: 'Compact (50/34)', chainrings: [50, 34] },
         standard: { name: 'Standard (53/39)', chainrings: [53, 39] },
@@ -30,6 +11,47 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
         gravel: { name: 'Gravel (48/32)', chainrings: [48, 32] },
         mtb: { name: 'MTB 1x (32)', chainrings: [32] }
     };
+
+    const detectChainringPresetKey = (chainrings) => {
+        const match = Object.keys(gearingPresets).find((key) => {
+            const preset = gearingPresets[key].chainrings;
+            return preset.length === chainrings.length && preset.every((cog, i) => cog === chainrings[i]);
+        });
+        return match || 'compact';
+    };
+
+    // Gearing configuration
+    const [chainrings, setChainrings] = useState(initialState?.chainrings || [50, 34]);
+    const [chainringPreset, setChainringPreset] = useState(() =>
+        detectChainringPresetKey(initialState?.chainrings || [50, 34]),
+    );
+    const [cassette, setCassette] = useState(initialState?.cassette || [11, 12, 13, 14, 15, 16, 17, 19, 21, 24, 28]);
+    const [wheelDiameter, setWheelDiameter] = useState(initialState?.wheelDiameter || 700);
+    const [tyreMm, setTyreMm] = useState(initialState?.tyreMm || 25);
+
+    // Climb selection
+    const [selectedClimb, setSelectedClimb] = useState(initialState?.selectedClimb || getDefaultClimb());
+    const [targetPower, setTargetPower] = useState(
+        initialState?.targetPower ?? (userSettings.ftp * 0.85),
+    );
+    const [targetCadence, setTargetCadence] = useState(initialState?.targetCadence || 80);
+
+    // Sync state changes to parent
+    React.useEffect(() => {
+        if (onStateChange) {
+            onStateChange({
+                chainrings,
+                cassette,
+                wheelDiameter,
+                tyreMm,
+                selectedClimb,
+                targetCadence,
+                targetPower,
+            });
+        }
+    }, [chainrings, cassette, wheelDiameter, tyreMm, selectedClimb, targetCadence, targetPower, onStateChange]);
+
+    // Common gearing presets — names only; chainrings live in gearingPresets above
 
     const cassettePresets = {
         race: { name: '11-28 (Race)', cogs: [11, 12, 13, 14, 15, 16, 17, 19, 21, 24, 28] },
@@ -186,7 +208,12 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
                     <div className="bg-cdbg/50 p-4 rounded border border-cdborder space-y-3">
                         <label className="text-xs text-cdmuted uppercase">Chainrings</label>
                         <select
-                            onChange={(e) => setChainrings(gearingPresets[e.target.value].chainrings)}
+                            value={chainringPreset}
+                            onChange={(e) => {
+                                const key = e.target.value;
+                                setChainringPreset(key);
+                                setChainrings(gearingPresets[key].chainrings);
+                            }}
                             className="w-full bg-cdborder border border-cdborder rounded px-3 py-2 text-cdtext text-sm"
                         >
                             {Object.keys(gearingPresets).map(key => (

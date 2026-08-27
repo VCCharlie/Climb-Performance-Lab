@@ -24,10 +24,16 @@ describe('backupSchema', () => {
             settings: {},
             intervals: {},
             bucketList: {},
+            racePacing: {},
+            gearOptimizer: {},
+            climbProfiler: {},
+            weatherClimb: {},
+            fueling: {},
+            activityLogFilter: {},
             _security_notice: 'x',
         });
         expect(result.ok).toBe(true);
-        expect(result.keys).toContain('activities');
+        expect(result.keys).toContain('racePacing');
     });
 
     it('describes import sections', () => {
