@@ -15,6 +15,22 @@ const STRAVA_ACTIVITY_RE = /strava\.com\/(?:activities|activity)\/(\d+)/i;
 const INTERVALS_ACTIVITY_RE = /intervals\.icu\/(?:i\d+\/)?activities\/(i\d+|\d+)/i;
 
 /**
+ * Resolve Strava OAuth token from opts.stravaToken or opts.stravaGetToken().
+ * @param {{ stravaToken?: string | null, stravaGetToken?: () => Promise<string> }} opts
+ * @returns {Promise<string | null>}
+ */
+async function resolveStravaToken(opts = {}) {
+    if (opts.stravaToken) return opts.stravaToken;
+    if (!opts.stravaGetToken) return null;
+    try {
+        const token = await opts.stravaGetToken();
+        return token || null;
+    } catch {
+        throw new Error('Strava session expired — reconnect in Settings.');
+    }
+}
+
+/**
  * @param {string} raw
  * @returns {{ kind: 'strava' | 'intervals', id: string } | null}
  */
@@ -107,7 +123,7 @@ export async function fetchIntervalsActivityAsSiteActivity(intervalsActivityId, 
 
 /**
  * @param {string} urlOrText
- * @param {{ intervalsConfig?: object, stravaToken?: string | null }} opts
+ * @param {{ intervalsConfig?: object, stravaToken?: string | null, stravaGetToken?: () => Promise<string> }} opts
  * @returns {Promise<object>} one site-format activity
  */
 export async function fetchSingleActivityFromUrl(urlOrText, opts = {}) {
@@ -121,10 +137,11 @@ export async function fetchSingleActivityFromUrl(urlOrText, opts = {}) {
     }
 
     if (parsed.kind === 'strava') {
-        if (!opts.stravaToken) {
+        const stravaToken = await resolveStravaToken(opts);
+        if (!stravaToken) {
             throw new Error('Connect Strava (Settings) to fetch activities by Strava URL.');
         }
-        return fetchStravaActivityDetailAsSiteActivity(parsed.id, opts.stravaToken);
+        return fetchStravaActivityDetailAsSiteActivity(parsed.id, stravaToken);
     }
 
     return fetchIntervalsActivityAsSiteActivity(parsed.id, opts.intervalsConfig || {});
@@ -133,13 +150,23 @@ export async function fetchSingleActivityFromUrl(urlOrText, opts = {}) {
 /**
  * Strava detail + optional gear/KOM enrich when token is available.
  * @param {string} urlOrText
- * @param {{ intervalsConfig?: object, stravaToken?: string | null }} opts
+ * @param {{ intervalsConfig?: object, stravaToken?: string | null, stravaGetToken?: () => Promise<string> }} opts
  */
 export async function fetchAndEnrichSingleActivityFromUrl(urlOrText, opts = {}) {
-    let act = await fetchSingleActivityFromUrl(urlOrText, opts);
-    if (act.strava_id && opts.stravaToken) {
+    const parsed = parseActivityUrl(urlOrText);
+    let resolvedOpts = opts;
+    if (parsed?.kind === 'strava') {
+        const stravaToken = await resolveStravaToken(opts);
+        if (!stravaToken) {
+            throw new Error('Connect Strava (Settings) to fetch activities by Strava URL.');
+        }
+        resolvedOpts = { ...opts, stravaToken };
+    }
+
+    let act = await fetchSingleActivityFromUrl(urlOrText, resolvedOpts);
+    if (act.strava_id && resolvedOpts.stravaToken) {
         try {
-            act = await enrichActivityGearFromStrava(act, null, opts.stravaToken);
+            act = await enrichActivityGearFromStrava(act, null, resolvedOpts.stravaToken);
         } catch {
             /* keep base activity */
         }
@@ -153,7 +180,7 @@ export async function fetchAndEnrichSingleActivityFromUrl(urlOrText, opts = {}) 
  *
  * @param {string} primaryUrl
  * @param {string} [secondaryUrl] - trimmed; empty = single-URL behaviour
- * @param {{ intervalsConfig?: object, stravaToken?: string | null }} opts
+ * @param {{ intervalsConfig?: object, stravaToken?: string | null, stravaGetToken?: () => Promise<string> }} opts
  */
 export async function fetchMergedActivityFromPrimaryAndOptionalUrl(primaryUrl, secondaryUrl, opts = {}) {
     const primary = (primaryUrl || '').trim();
@@ -174,16 +201,12 @@ export async function fetchMergedActivityFromPrimaryAndOptionalUrl(primaryUrl, s
         throw new Error('Primary and optional URL must be from different services (one Strava, one Intervals.icu).');
     }
 
-    let stravaToken = opts.stravaToken ?? null;
-    if ((a.kind === 'strava' || b.kind === 'strava') && opts.stravaGetToken) {
-        try {
-            stravaToken = await opts.stravaGetToken();
-        } catch {
-            stravaToken = null;
+    let stravaToken = null;
+    if (a.kind === 'strava' || b.kind === 'strava') {
+        stravaToken = await resolveStravaToken(opts);
+        if (!stravaToken) {
+            throw new Error('Connect Strava (Settings) to fetch the Strava side of a merged import.');
         }
-    }
-    if (!stravaToken && (a.kind === 'strava' || b.kind === 'strava')) {
-        throw new Error('Connect Strava (Settings) to fetch the Strava side of a merged import.');
     }
 
     let intervalsAct;
