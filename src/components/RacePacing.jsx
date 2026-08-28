@@ -3,6 +3,11 @@ import { Mountain, Plus, Trash2, AlertTriangle, TrendingDown, Battery, Zap, Cloc
 import ClimbSelector from './shared/ClimbSelector';
 import FlagIcon from './FlagIcon';
 import { buildFuelingHandoff } from '../utils/raceFuelingHandoff';
+import {
+    DEFAULT_AIR_DENSITY,
+    DEFAULT_GRAVITY,
+    resolvePhysicsParams,
+} from '../utils/physicsConstants';
 
 const RacePacingMap = lazy(() => import('./RacePacingMap'));
 
@@ -19,12 +24,13 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
         }
     }, [selectedClimbs, recoveryMinutes, targetIntensity, onStateChange]);
 
-    // Physics constants
-    const CRR = 0.004; // Rolling resistance
-    const CDA = 0.32; // Drag coefficient (mÂ²)
-    const AIR_DENSITY = 1.225; // kg/mÂ³
-    const DRIVETRAIN_LOSS = 0.975; // 2.5% loss
-    const GRAVITY = 9.81;
+    // Physics constants (from user settings with app defaults)
+    const physics = resolvePhysicsParams(userSettings);
+    const CRR = physics.crr;
+    const CDA = physics.cda;
+    const AIR_DENSITY = DEFAULT_AIR_DENSITY;
+    const DRIVETRAIN_EFFICIENCY = 1 - physics.drivetrainLossFraction;
+    const GRAVITY = DEFAULT_GRAVITY;
 
     // Calculate time for a single climb
     const calculateClimbTime = (climb, power) => {
@@ -41,7 +47,7 @@ const RacePacing = ({ userSettings, initialState, onStateChange, onExportToFueli
         for (let i = 0; i < 10; i++) {
             const airResistance = 0.5 * CDA * AIR_DENSITY * v * v;
             const totalForce = gravityForce + rollingForce + airResistance;
-            const powerNeeded = totalForce * v / DRIVETRAIN_LOSS;
+            const powerNeeded = totalForce * v / DRIVETRAIN_EFFICIENCY;
 
             if (Math.abs(powerNeeded - power) < 1) break;
             v = v * (power / powerNeeded) ** 0.3; // Adjust speed

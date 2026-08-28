@@ -2,6 +2,11 @@
 import { Settings, TrendingUp, AlertCircle, CheckCircle, Bike } from 'lucide-react';
 import { getDefaultClimb } from '../services/climbDatabase';
 import ClimbSelector from './shared/ClimbSelector';
+import {
+    DEFAULT_AIR_DENSITY,
+    DEFAULT_GRAVITY,
+    resolvePhysicsParams,
+} from '../utils/physicsConstants';
 
 const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
     const gearingPresets = {
@@ -71,14 +76,15 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
 
     // Calculate gear ratio and resulting cadence/speed
     const gearAnalysis = useMemo(() => {
+        const physics = resolvePhysicsParams(userSettings);
+        const CRR = physics.crr;
+        const CDA = physics.cda;
+        const AIR_DENSITY = DEFAULT_AIR_DENSITY;
+        const DRIVETRAIN_EFFICIENCY = 1 - physics.drivetrainLossFraction;
+        const GRAVITY = DEFAULT_GRAVITY;
+
         // Local calculateSpeed function
         const calculateSpeed = (power) => {
-            const CRR = 0.004;
-            const CDA = 0.32;
-            const AIR_DENSITY = 1.225;
-            const DRIVETRAIN_LOSS = 0.975;
-            const GRAVITY = 9.81;
-
             const totalMass = userSettings.weight + userSettings.bikeWeight;
             const gradeRad = Math.atan(selectedClimb.avgGrade / 100);
 
@@ -90,7 +96,7 @@ const GearOptimizer = ({ userSettings, initialState, onStateChange }) => {
             for (let i = 0; i < 20; i++) {
                 const airResistance = 0.5 * CDA * AIR_DENSITY * v * v;
                 const totalForce = gravityForce + rollingForce + airResistance;
-                const powerNeeded = totalForce * v / DRIVETRAIN_LOSS;
+                const powerNeeded = totalForce * v / DRIVETRAIN_EFFICIENCY;
 
                 if (Math.abs(powerNeeded - power) < 0.5) break;
                 v = v * Math.pow(power / powerNeeded, 0.3);

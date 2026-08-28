@@ -25,6 +25,7 @@ import {
 } from '../utils/trainingPlanSnapshot';
 import { useProfileFtp } from '../context/ProfileFtpContext';
 import { downloadZwoWorkout } from '../utils/zwoExport';
+import { resolveCoachThresholds, scaleCoachPeriodThresholds } from '../utils/coachThresholds';
 
 /** moving_time: seconden (number) of "H:MM:SS" uit CSV */
 function movingTimeToSeconds(val) {
@@ -100,11 +101,13 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
         const weeksInPeriod = Math.max(1, periodDays / 7);
         const ftp = effectiveFtp;
 
-        // Drempelwaarden schalen naar de periodelengte (basisreferentie = 30 dagen)
-        const consistencyHigh = Math.round(12 * periodDays / 30);  // >3x/week
-        const consistencyLow  = Math.round(4  * periodDays / 30);  // <2x/week
-        const intensityHigh   = Math.round(8  * periodDays / 30);  // te veel intensiteit
-        const intensityLow    = Math.round(2  * periodDays / 30);  // te weinig intensiteit
+        const coachThresholds = resolveCoachThresholds(userSettings);
+        const {
+            consistencyHigh,
+            consistencyLow,
+            intensityHigh,
+            intensityLow,
+        } = scaleCoachPeriodThresholds(coachThresholds, periodDays);
 
         const periodLabel = (startDate || endDate)
             ? `${formatDateDDMMYYYY(startD)} – ${formatDateDDMMYYYY(endD)}`
@@ -155,12 +158,12 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
         }
 
         // Load Trend (TSB proxy)
-        if (avgWeeklyLoad > 400) {
+        if (avgWeeklyLoad > coachThresholds.highWeeklyLoadTss) {
             strengths.push({
                 label: "Strong base fitness (CTL)",
                 context: `Your average weekly load is ${Math.round(avgWeeklyLoad)} TSS. This indicates a solid Chronic Training Load (CTL), meaning your body can handle heavier training blocks.`
             });
-        } else if (avgWeeklyLoad < 100) {
+        } else if (avgWeeklyLoad < coachThresholds.lowWeeklyLoadTss) {
             opportunities.push({
                 label: "Room to increase volume",
                 context: `With a load of only ${Math.round(avgWeeklyLoad)} TSS/week, you still have plenty of room to progress by simply adding more volume or frequency.`
@@ -365,8 +368,8 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
             fewLongRides: weeksInPeriod >= 3 && longRideCount < expectedLongRidesLo && periodActivities.length >= 4,
             mostlyVirtual: periodActivities.length >= 5 && virtualCount / periodActivities.length > 0.65,
             lowElevationOpportunity: periodActivities.length >= 4 && avgElevPerWeek < 200 && avgKmPerWeek > 50,
-            lowWeeklyLoad: avgWeeklyLoad < 100,
-            highWeeklyLoad: avgWeeklyLoad > 400,
+            lowWeeklyLoad: avgWeeklyLoad < coachThresholds.lowWeeklyLoadTss,
+            highWeeklyLoad: avgWeeklyLoad > coachThresholds.highWeeklyLoadTss,
             loadTrendUp,
             loadTrendDown,
         };

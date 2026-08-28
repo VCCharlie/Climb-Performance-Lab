@@ -22,6 +22,7 @@ import {
     buildStravaSyncMatchSummary,
     formatStravaSyncMatchSummary,
 } from '../utils/stravaSyncMatchSummary';
+import { buildDefaultSyncDates } from '../utils/syncDateRange';
 
 /**
  * Intervals.icu sync + fetch-new flows for DataHub (selected-row sync and date-range fetch).
@@ -62,10 +63,10 @@ export function useDataHubIntervalsSync({
     const [syncErrorDetail, setSyncErrorDetail] = useState(null);
     const [lastIntervalsSyncAt, setLastIntervalsSyncAt] = useState(() => readLastIntervalsSyncAt());
     const [lastSyncHealthSummary, setLastSyncHealthSummary] = useState(() => readIntervalsSyncHealthSummary());
-    const [syncDates, setSyncDates] = useState(() => ({
-        start: new Date(new Date().setDate(new Date().getDate() - 14)).toISOString().split('T')[0],
-        end: new Date().toISOString().split('T')[0],
-    }));
+    const defaultSyncRangeDays = Number(userSettings?.defaultSyncRangeDays) > 0
+        ? Math.round(Number(userSettings.defaultSyncRangeDays))
+        : 14;
+    const [syncDates, setSyncDates] = useState(() => buildDefaultSyncDates(defaultSyncRangeDays));
     const [syncMode, setSyncMode] = useState('fetch-range');
     const [sportFilters, setSportFilters] = useState(() =>
         SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: true }), {}),
