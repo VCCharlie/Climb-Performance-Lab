@@ -12,11 +12,14 @@ import {
   Timer,
   Flame,
   Ruler,
-  Route
+  Route,
+  Activity
 } from 'lucide-react';
 import { COGGAN_ZONES } from '../cogganZones';
 import { summarizeClimbPhysics } from '../utils';
 import ClimbSelector from './shared/ClimbSelector';
+import { useActivitiesList } from '../hooks/useActivities';
+import { estimateClimbWithPowerCurve } from '../utils/climbPowerDuration';
 import {
   computePhysicsClimb,
   estimateSteadyTss,
@@ -49,6 +52,7 @@ const physicsParams = (selectedClimb, userSettings, mode, targetTimeStr, targetW
 });
 
 const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateClimb }) => {
+  const activities = useActivitiesList();
   const markerFilterId = `physics-marker-glow-${useId().replace(/:/g, '')}`;
   const physicsDefaults = resolvePhysicsParams(userSettings);
 
@@ -163,6 +167,22 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
     () => estimateSteadyTss(compareCalc.seconds, compareCalc.watts, userSettings.ftp),
     [compareCalc.seconds, compareCalc.watts, userSettings.ftp]
   );
+
+  const powerCurveEstimate = useMemo(() => {
+    if (!selectedClimb) return null;
+    const intensity = mode === 'predict' && Number(targetWatts) > 0
+      ? Number(targetWatts) / (userSettings.ftp || 1)
+      : 0.85;
+    return estimateClimbWithPowerCurve({
+      selectedClimb,
+      userSettings,
+      activities,
+      intensityFraction: intensity,
+      cda,
+      crr,
+      loss,
+    });
+  }, [selectedClimb, userSettings, activities, mode, targetWatts, cda, crr, loss]);
 
   const climbLenM = selectedClimb ? selectedClimb.lengthKm * 1000 : 0;
 
@@ -536,6 +556,28 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                 Rider power: <span className="text-cdtext tabular-nums font-bold">{calc.watts} W</span> (
                 {climbInsights.wkg.toFixed(2)} W/kg) · VAM <span className="text-cdtext tabular-nums">{calc.vam}</span> m/h
               </p>
+            )}
+            {powerCurveEstimate?.usedPowerCurve && powerCurveEstimate.curveEstimate && (
+              <div className="rounded-lg border border-cdaccent/30 bg-cdaccent/5 p-3 space-y-1">
+                <p className="text-xs font-bold text-cdaccent flex items-center gap-1.5">
+                  <Activity size={13} />
+                  Power-curve estimate
+                </p>
+                <p className="text-xs text-cdtext">
+                  Sustainable{' '}
+                  <span className="font-bold tabular-nums">{powerCurveEstimate.curvePowerW} W</span>
+                  {' '}for ~{Math.round((powerCurveEstimate.ftpEstimate.seconds || 0) / 60)} min (from your activity bests)
+                  → time{' '}
+                  <span className="font-bold tabular-nums">
+                    {powerCurveEstimate.curveEstimate.time?.slice(0, 5)}
+                  </span>
+                  {' '}· VAM{' '}
+                  <span className="font-bold tabular-nums">{powerCurveEstimate.curveEstimate.vam}</span> m/h
+                </p>
+                <p className="text-[10px] text-cdmuted">
+                  Refines the FTP×IF physics line using interpolated best efforts from imported rides.
+                </p>
+              </div>
             )}
             {climbInsights.gradientNote && (
               <p className="text-xs text-cdmuted border-l-2 border-cdprimary/50 pl-3 py-0.5">{climbInsights.gradientNote}</p>

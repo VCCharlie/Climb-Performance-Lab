@@ -14,6 +14,7 @@ import { getDefaultClimb } from '../services/climbDatabase';
 import ClimbSelector from './shared/ClimbSelector';
 import ProfilerCharts from './profiler/ProfilerCharts';
 import ProfilerInsights from './profiler/ProfilerInsights';
+import ClimbComparePanel from './profiler/ClimbComparePanel';
 import {
     buildSyntheticProfile,
     computeTacticalZones,
@@ -147,6 +148,11 @@ const ClimbProfiler = ({ userSettings, initialState, onStateChange, theme = 'lig
                     Climb
                 </label>
                 <ClimbSelector mode="single" selected={selectedClimb} onSelect={setSelectedClimb} />
+                <ClimbComparePanel
+                    userSettings={userSettings}
+                    primaryClimb={selectedClimb}
+                    intensityFraction={targetIntensity}
+                />
                 <div className="flex flex-wrap items-center gap-2 mt-3">
                     {selectedClimb.flag && (
                         <span className="text-lg" aria-hidden>
