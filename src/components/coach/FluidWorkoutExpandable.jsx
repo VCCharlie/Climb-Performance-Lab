@@ -5,7 +5,7 @@ import { getStimulusStyle } from './coachStimulusStyles';
 /**
  * Compact or full fluid workout detail — used in week plan rows and focus card.
  */
-const FluidWorkoutExpandable = ({ workout, compact = false, defaultOpen = false }) => {
+const FluidWorkoutExpandable = ({ workout, compact = false, defaultOpen = false, embedded = false }) => {
     const [open, setOpen] = React.useState(defaultOpen);
     if (!workout) return null;
 
@@ -24,8 +24,10 @@ const FluidWorkoutExpandable = ({ workout, compact = false, defaultOpen = false 
         );
     }
 
+    const rootMarginClass = embedded ? 'mt-0' : 'mt-3';
+
     return (
-        <div className={`mt-3 rounded-lg border border-cdborder bg-cdborder/10 overflow-hidden ${compact ? '' : ''}`}>
+        <div className={`${rootMarginClass} max-w-full min-w-0 rounded-lg border border-cdborder bg-cdborder/10 overflow-hidden`}>
             {compact && (
                 <button
                     type="button"

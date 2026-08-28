@@ -151,7 +151,7 @@ describe('CoachFluidWeekPlan calendar view', () => {
 describe('FluidWeekPanel horizon list expand', () => {
     const noop = () => {};
 
-    it('does not use fixed grid rows and shows expanded details in alignHorizon mode', () => {
+    it('uses flex column without z-index stacking when expanded in alignHorizon mode', () => {
         const weekPlan = buildMockWeekPlan(true);
         const { container } = render(
             <FluidWeekPanel
@@ -172,15 +172,47 @@ describe('FluidWeekPanel horizon list expand', () => {
         const listScroller = container.querySelector('.overflow-y-auto');
         expect(listScroller?.className).not.toMatch(/grid-rows-7/);
         expect(listScroller?.className).toMatch(/flex flex-col/);
+        expect(listScroller?.className).toMatch(/overflow-x-hidden/);
 
-        const expandedRow = screen.getByText('Threshold intervals').closest('div.min-h-\\[58px\\]');
-        expect(expandedRow?.className).toMatch(/relative z-10/);
+        const expandedRow = screen.getByText('Threshold intervals').closest('div.max-w-full');
+        expect(expandedRow?.className).not.toMatch(/z-10/);
+        expect(expandedRow?.className).not.toMatch(/\bh-full\b/);
 
         const card = screen.getByText('Threshold intervals').closest('article');
-        expect(card?.className).toMatch(/overflow-visible/);
-        expect(card?.className).not.toMatch(/\bh-full\b/);
+        expect(card?.className).toMatch(/max-w-full/);
+        expect(card?.className).not.toMatch(/overflow-visible/);
 
         expect(within(card).getByText('Main set')).toBeInTheDocument();
+    });
+
+    it('keeps following days below expanded session in list view', () => {
+        const weekPlan = buildMockWeekPlan(true);
+        const { container } = render(
+            <FluidWeekPanel
+                title="This week"
+                weekPlan={weekPlan}
+                expandedDate="2026-08-06"
+                onToggleExpand={noop}
+                onToggleDone={noop}
+                onSwapRecovery={noop}
+                onMoveToToday={noop}
+                onUndoMove={noop}
+                onToggleUnavailable={noop}
+                onToggleAvailable={noop}
+            />,
+        );
+
+        const rows = container.querySelectorAll('.overflow-y-auto > div.max-w-full');
+        expect(rows.length).toBeGreaterThanOrEqual(7);
+
+        const thuIndex = weekPlan.sessions.findIndex((s) => s.date === '2026-08-06');
+        const friIndex = thuIndex + 1;
+        const thuRow = rows[thuIndex];
+        const friRow = rows[friIndex];
+
+        expect(thuRow?.contains(screen.getByText('Main set'))).toBe(true);
+        expect(friRow?.textContent).toMatch(/Friday|Fri/i);
+        expect(friRow?.contains(screen.getByText('Main set'))).toBe(false);
     });
 });
 

@@ -210,11 +210,13 @@ const CoachFluidWeekPlan = ({
                     </p>
                 )}
 
-                <div className="-mx-1 px-1 pt-2 pb-1 overflow-visible">
+                <div className="-mx-1 px-1 pt-2 pb-1 overflow-x-hidden max-w-full">
                     <div
                         className={[
-                            'flex gap-4 sm:gap-5 overflow-x-auto overflow-y-visible snap-x snap-mandatory pb-4 pt-1 items-start',
-                            visibleWeeks.length > 1 ? 'scroll-smooth' : '',
+                            'flex gap-4 sm:gap-5 pb-4 pt-1 items-start max-w-full',
+                            visibleWeeks.length > 1
+                                ? 'overflow-x-auto overflow-y-visible snap-x snap-mandatory scroll-smooth'
+                                : 'overflow-x-hidden',
                         ].join(' ')}
                     >
                     {visibleWeeks.map((plan, index) => {
@@ -237,10 +239,12 @@ const CoachFluidWeekPlan = ({
                                 alignHorizon={alignHorizon}
                                 showClimbingHint={!isCompareColumn}
                                 className={[
-                                    'max-w-full flex-shrink-0 snap-center overflow-visible',
+                                    'w-full max-w-full min-w-0 flex-shrink-0 snap-center overflow-x-hidden',
                                     isCompareColumn
-                                        ? 'min-w-[min(78%,280px)] border-l border-cdborder/40 pl-4'
-                                        : 'min-w-[min(100%,300px)]',
+                                        ? 'sm:min-w-[min(78%,280px)] sm:w-auto border-l border-cdborder/40 pl-4'
+                                        : visibleWeeks.length > 1
+                                            ? 'min-w-[min(100%,300px)]'
+                                            : '',
                                 ].join(' ')}
                                 viewMode={viewMode}
                                 activities={activities}

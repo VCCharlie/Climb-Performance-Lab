@@ -124,14 +124,14 @@ export default function FluidWeekSessionCard({
         ? 'border-l-cdaccent'
         : styles.border;
 
-    const rowFillClass = alignRow && !expanded ? 'h-full min-h-[52px]' : alignRow ? 'min-h-[52px]' : '';
+    const rowFillClass = alignRow ? 'min-h-[52px]' : '';
     const mobileMinHeightClass = !expanded && !alignRow ? 'min-h-[48px] md:min-h-0' : '';
-    const overflowClass = expanded ? 'overflow-visible' : 'overflow-hidden';
+    const overflowClass = expanded ? 'overflow-x-hidden' : 'overflow-hidden';
 
     return (
         <article
             className={[
-                'rounded-md border border-cdborder/40 border-l-2 transition-colors',
+                'relative max-w-full min-w-0 rounded-md border border-cdborder/40 border-l-2 transition-colors',
                 overflowClass,
                 rowFillClass,
                 mobileMinHeightClass,
@@ -318,8 +318,8 @@ export default function FluidWeekSessionCard({
                         )}
 
                         {expanded && session.fluidWorkout && (
-                            <div className="mt-1.5">
-                                <FluidWorkoutExpandable workout={session.fluidWorkout} />
+                            <div className="mt-1.5 max-w-full min-w-0 overflow-x-hidden">
+                                <FluidWorkoutExpandable workout={session.fluidWorkout} embedded />
                             </div>
                         )}
                     </div>

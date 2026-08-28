@@ -241,7 +241,7 @@ export default function FluidWeekPanel({
             </div>
 
             {viewMode === COACH_WEEK_VIEW_MODES.CALENDAR ? (
-                <div className="flex-1 overflow-y-auto overflow-x-visible max-h-[min(70vh,480px)] pr-0.5 pt-1">
+                <div className="flex-1 overflow-y-auto overflow-x-hidden max-h-[min(70vh,480px)] pr-0.5 pt-1">
                     <FluidWeekCalendar
                         weekPlan={weekPlan}
                         expandedDate={expandedDate}
@@ -260,7 +260,7 @@ export default function FluidWeekPanel({
                     />
                 </div>
             ) : (
-                <div className={`flex-1 overflow-y-auto overflow-x-visible max-h-[min(70vh,480px)] pr-0.5 ${
+                <div className={`flex-1 overflow-y-auto overflow-x-hidden max-h-[min(70vh,480px)] pr-0.5 ${
                     alignHorizon ? 'flex flex-col gap-2' : compact ? 'space-y-2' : 'space-y-2.5'
                 }`}>
                     {weekPlan.sessions.map((session) => {
@@ -271,13 +271,13 @@ export default function FluidWeekPanel({
                             minPx: compact ? 4 : 6,
                             maxPx: compact ? 12 : 16,
                         });
+                        const rowClass = isExpanded
+                            ? 'min-h-0'
+                            : dayRowMinClass;
                         return (
                             <div
                                 key={session.date}
-                                className={[
-                                    dayRowMinClass,
-                                    isExpanded ? 'relative z-10' : '',
-                                ].filter(Boolean).join(' ')}
+                                className={['max-w-full min-w-0', rowClass].filter(Boolean).join(' ')}
                             >
                                 <FluidWeekSessionCard
                                     session={session}
