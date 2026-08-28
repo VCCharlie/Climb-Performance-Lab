@@ -216,6 +216,8 @@ const App = () => {
         return null;
     });
 
+    const [nightlySyncStatus, setNightlySyncStatus] = useState(null);
+
     // Globale periode-selector: gedeeld tussen Dashboard en andere tabs
     const [timeRange, setTimeRange] = useState(() => localStorage.getItem('dashboard_timeRange') || '1Y');
     const [customStart, setCustomStart] = useState('');
@@ -672,6 +674,9 @@ const App = () => {
                     const data = docSnap.data();
                     if (data.intervals) {
                         setIntervalsConfig((prev) => mergeIntervalsConfigFromCloud(data.intervals, prev));
+                    }
+                    if (data.lastNightlySync?.at) {
+                        setNightlySyncStatus(data.lastNightlySync);
                     }
                     if (data.body) {
                         let localPrev = getDefaultUserSettings();
@@ -1544,6 +1549,7 @@ const App = () => {
                                 updateStravaConfig={updateStravaConfig}
                                 stravaAuth={stravaAuth}
                                 onGoToActivitiesSync={navigateToActivitiesSync}
+                                nightlySyncStatus={nightlySyncStatus}
                             />
                         )}
                     </main>

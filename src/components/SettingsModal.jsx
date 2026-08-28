@@ -37,6 +37,7 @@ import {
     RESET_SETTINGS_PRESERVED_LABELS,
     RESET_SETTINGS_CLEARED_LABELS,
 } from '../utils/resetUserSettings';
+import { formatNightlySyncLine, resolveNightlySyncStatus } from '../utils/nightlySyncStatus';
 import {
     TERRAIN_PROFILE_FLAT,
     TERRAIN_PROFILE_HILLY,
@@ -68,6 +69,7 @@ const SettingsModal = ({
     stravaConfig, stravaAuth,
     isSignedIn = false,
     onGoToActivitiesSync,
+    nightlySyncStatus = null,
 }) => {
     const { activities, restoreFromBackup } = useActivities();
     const { confirm } = useConfirm();
@@ -340,9 +342,20 @@ const SettingsModal = ({
                                 <div className="pt-2 border-t border-cdborder/30 mt-2">
                                     <p className="text-xs font-semibold text-cdtext mb-1">Nightly server sync</p>
                                     <p className="text-xs text-cdmuted mb-2">
-                                        Automated sync uses repository secrets (<code className="bg-cdborder px-1 rounded">INTERVALS_API_KEY</code>).
-                                        Trigger a manual run on GitHub:
+                                        GitHub Actions runs <code className="bg-cdborder px-1 rounded">scripts/nightlySync.js</code> daily
+                                        (last 14 days → Firestore, then Strava enrich). Uses repository secrets{' '}
+                                        <code className="bg-cdborder px-1 rounded">INTERVALS_API_KEY</code>.
                                     </p>
+                                    {(() => {
+                                        const nightlyLine = formatNightlySyncLine(resolveNightlySyncStatus(nightlySyncStatus));
+                                        return nightlyLine ? (
+                                            <p className="text-xs text-cdtext mb-2">{nightlyLine}</p>
+                                        ) : (
+                                            <p className="text-xs text-cdmuted mb-2">
+                                                Last nightly run time appears here after the next successful GitHub Actions sync.
+                                            </p>
+                                        );
+                                    })()}
                                     <a
                                         href="https://github.com/VCCharlie/Climb-Performance-Lab/actions/workflows/nightly-sync.yml"
                                         target="_blank"

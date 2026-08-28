@@ -126,6 +126,11 @@ describe('activityMatchesLogSearch', () => {
     expect(activityMatchesLogSearch({ title: 'Ride', notes: 'Coffee stop at Geraardsbergen' }, 'geraardsbergen')).toBe(true);
   });
 
+  it('matches user tags and private notes in search', () => {
+    expect(activityMatchesLogSearch({ title: 'Ride', tags: ['gran-fondo'] }, 'gran')).toBe(true);
+    expect(activityMatchesLogSearch({ title: 'Ride', user_notes: 'Leg day follow-up' }, 'leg day')).toBe(true);
+  });
+
   it('matches ISO date fragments', () => {
     expect(activityMatchesLogSearch(activity, '2024-06')).toBe(true);
     expect(activityMatchesLogSearch(activity, '15-6-2024')).toBe(true);

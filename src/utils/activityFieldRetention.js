@@ -29,6 +29,8 @@
  *
  * 5. Cloud function (main.py) transforms API → activity shape only; merge protection
  *    runs client-side / nightly script — keep field names aligned with intervals.js.
+ *
+ * 6. User tags / notes (`tags`, `user_notes`) — protectActivityTagsOnMerge in activityTags.js.
  */
 
 import { normalizeStravaActivityId } from './strava.js';

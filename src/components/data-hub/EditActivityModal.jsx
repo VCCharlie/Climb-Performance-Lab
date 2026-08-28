@@ -5,13 +5,17 @@ import { formatTime } from '../../utils';
 import NlDateInput from '../NlDateInput';
 import { SPORT_TYPES } from '../../config';
 import { buildUnifiedBikesList } from '../../utils/unifiedBikesList';
+import { formatTagsForInput, normalizeActivityTags } from '../../utils/activityTags';
 import ModalPortal from '../ui/ModalPortal';
 import { useModalA11y } from '../../hooks/useModalA11y';
 
 const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFindOnStrava }) => {
     const panelRef = useModalA11y({ isOpen: true, onClose });
     // Lokale state voor het formulier
-    const [formData, setFormData] = useState(activity);
+    const [formData, setFormData] = useState({
+        ...activity,
+        tags: formatTagsForInput(activity?.tags),
+    });
     const [isCustomGear, setIsCustomGear] = useState(false);
 
 
@@ -40,7 +44,10 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        onSave(formData);
+        onSave({
+            ...formData,
+            tags: normalizeActivityTags(formData.tags),
+        });
     };
 
     // Custom alleen als gear echt niet in de lijst valt (id noch naam)
@@ -289,6 +296,32 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Avg Speed (km/h)</label>
                             <input name="avg_speed" type="number" step="0.1" value={formData.avg_speed || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none" />
+                        </div>
+
+                        <div className="col-span-full">
+                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Tags</label>
+                            <input
+                                name="tags"
+                                type="text"
+                                value={formData.tags || ''}
+                                onChange={handleChange}
+                                placeholder="race, training, coffee-stop (comma-separated)"
+                                className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none"
+                            />
+                            <p className="text-[10px] text-cdmuted mt-1 leading-snug">
+                                Free labels for filtering and search. Stored on this activity and synced to the cloud.
+                            </p>
+                        </div>
+                        <div className="col-span-full">
+                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Notes</label>
+                            <textarea
+                                name="user_notes"
+                                rows={3}
+                                value={formData.user_notes || ''}
+                                onChange={handleChange}
+                                placeholder="Private notes (not overwritten by Intervals.icu sync)"
+                                className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none resize-y min-h-[72px]"
+                            />
                         </div>
 
                         {/* BEST EFFORTS — gebruikt voor MMP curve */}
