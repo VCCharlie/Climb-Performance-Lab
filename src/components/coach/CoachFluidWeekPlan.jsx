@@ -213,7 +213,7 @@ const CoachFluidWeekPlan = ({
                 <div className="-mx-1 px-1 pt-2 pb-1 overflow-visible">
                     <div
                         className={[
-                            'flex gap-4 sm:gap-5 overflow-x-auto overflow-y-visible snap-x snap-mandatory pb-4 pt-1',
+                            'flex gap-4 sm:gap-5 overflow-x-auto overflow-y-visible snap-x snap-mandatory pb-4 pt-1 items-start',
                             visibleWeeks.length > 1 ? 'scroll-smooth' : '',
                         ].join(' ')}
                     >
@@ -223,6 +223,7 @@ const CoachFluidWeekPlan = ({
                         const isPreview = plan.isHorizonPreview
                             || (plan.mondayYmd > today);
                         const isCompareColumn = visibleWeeks.length > 1 && index > 0;
+                        const alignHorizon = visibleWeeks.length > 1;
                         return (
                             <FluidWeekPanel
                                 key={plan.mondayYmd || index}
@@ -233,6 +234,8 @@ const CoachFluidWeekPlan = ({
                                 expandKeyPrefix={expandKeyPrefix}
                                 isPreview={isPreview}
                                 compact={isCompareColumn}
+                                alignHorizon={alignHorizon}
+                                showClimbingHint={!isCompareColumn}
                                 className={[
                                     'max-w-full flex-shrink-0 snap-center overflow-visible',
                                     isCompareColumn
