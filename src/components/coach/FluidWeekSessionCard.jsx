@@ -124,22 +124,24 @@ export default function FluidWeekSessionCard({
         ? 'border-l-cdaccent'
         : styles.border;
 
-    const rowFillClass = alignRow ? 'min-h-[52px]' : '';
-    const mobileMinHeightClass = !expanded && !alignRow ? 'min-h-[48px] md:min-h-0' : '';
-    const overflowClass = expanded ? 'overflow-x-hidden' : 'overflow-hidden';
+    const headerMinHeightClass = alignRow && !expanded
+        ? 'min-h-[52px]'
+        : !expanded && !alignRow
+            ? 'min-h-[48px] md:min-h-0'
+            : '';
+
+    const paddingClass = compact ? 'px-2 py-1.5' : 'px-2.5 py-1.5';
 
     return (
         <article
+            data-testid="day-session-card"
             className={[
-                'relative max-w-full min-w-0 rounded-md border border-cdborder/40 border-l-2 transition-colors',
-                overflowClass,
-                rowFillClass,
-                mobileMinHeightClass,
+                'flex flex-col w-full max-w-full min-w-0 rounded-md border border-cdborder/40 border-l-2 transition-colors',
                 session.isToday ? 'bg-cdaccent/8 ring-1 ring-inset ring-cdaccent/30' : 'bg-cdsurface',
                 leftAccent,
             ].join(' ')}
         >
-            <div className={compact ? 'px-2 py-1.5' : 'px-2.5 py-1.5'}>
+            <div className={[paddingClass, headerMinHeightClass, 'overflow-hidden'].filter(Boolean).join(' ')}>
                 <div className="flex items-start gap-1.5">
                     <button
                         type="button"
@@ -316,15 +318,18 @@ export default function FluidWeekSessionCard({
                                 </span>
                             </>
                         )}
-
-                        {expanded && session.fluidWorkout && (
-                            <div className="mt-1.5 max-w-full min-w-0 overflow-x-hidden">
-                                <FluidWorkoutExpandable workout={session.fluidWorkout} embedded />
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>
+
+            {expanded && session.fluidWorkout && (
+                <div
+                    data-testid="day-expand-panel"
+                    className={`${paddingClass} pt-0 w-full max-w-full min-w-0 border-t border-cdborder/30`}
+                >
+                    <FluidWorkoutExpandable workout={session.fluidWorkout} embedded />
+                </div>
+            )}
         </article>
     );
 }

@@ -210,13 +210,14 @@ const CoachFluidWeekPlan = ({
                     </p>
                 )}
 
-                <div className="-mx-1 px-1 pt-2 pb-1 overflow-x-hidden max-w-full">
+                <div className="-mx-1 px-1 pt-2 pb-1">
                     <div
+                        data-testid="horizon-week-scroll"
                         className={[
-                            'flex gap-4 sm:gap-5 pb-4 pt-1 items-start max-w-full',
+                            'flex flex-row gap-4 sm:gap-5 pb-4 pt-1 items-start',
                             visibleWeeks.length > 1
                                 ? 'overflow-x-auto overflow-y-visible snap-x snap-mandatory scroll-smooth'
-                                : 'overflow-x-hidden',
+                                : '',
                         ].join(' ')}
                     >
                     {visibleWeeks.map((plan, index) => {
@@ -239,12 +240,11 @@ const CoachFluidWeekPlan = ({
                                 alignHorizon={alignHorizon}
                                 showClimbingHint={!isCompareColumn}
                                 className={[
-                                    'w-full max-w-full min-w-0 flex-shrink-0 snap-center overflow-x-hidden',
-                                    isCompareColumn
-                                        ? 'sm:min-w-[min(78%,280px)] sm:w-auto border-l border-cdborder/40 pl-4'
-                                        : visibleWeeks.length > 1
-                                            ? 'min-w-[min(100%,300px)]'
-                                            : '',
+                                    'flex flex-col min-h-0 flex-shrink-0 snap-start',
+                                    visibleWeeks.length > 1
+                                        ? 'w-[280px] min-w-[280px]'
+                                        : 'w-full min-w-0 max-w-full',
+                                    isCompareColumn ? 'border-l border-cdborder/40 pl-4' : '',
                                 ].join(' ')}
                                 viewMode={viewMode}
                                 activities={activities}

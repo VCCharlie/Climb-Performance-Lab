@@ -7,7 +7,7 @@ import FluidWeekSessionCard from '../../components/coach/FluidWeekSessionCard';
 import { COACH_WEEK_VIEW_STORAGE_KEY } from '../../utils/coach/coachWeekCalendar';
 import { buildFluidWorkout } from '../../utils/coach/fluidWorkoutTemplates';
 
-function buildMockWeekPlan(withFluidWorkout = false) {
+function buildMockWeekPlan(withFluidWorkout = false, mondayYmd = '2026-08-03') {
     const thresholdWorkout = withFluidWorkout ? buildFluidWorkout('threshold', { ftp: 250 }) : null;
     const sessions = [
         { date: '2026-08-03', day: 'Monday', stimulus: 'endurance', plannedStimulus: 'endurance', workoutName: 'Z2 endurance', completed: false, isToday: false, isPast: true },
@@ -30,7 +30,7 @@ function buildMockWeekPlan(withFluidWorkout = false) {
     ];
 
     return {
-        mondayYmd: '2026-08-03',
+        mondayYmd,
         sundayYmd: '2026-08-09',
         targetTss: 350,
         actualTss: 120,
@@ -148,6 +148,68 @@ describe('CoachFluidWeekPlan calendar view', () => {
     });
 });
 
+describe('CoachFluidWeekPlan horizon layout', () => {
+    beforeEach(() => {
+        vi.stubGlobal('localStorage', {
+            store: {},
+            getItem(k) { return this.store[k] ?? null; },
+            setItem(k, v) { this.store[k] = v; },
+            removeItem(k) { delete this.store[k]; },
+        });
+    });
+
+    it('uses fixed-width week columns with horizontal scroll when multiple weeks shown', () => {
+        const week1 = buildMockWeekPlan(false, '2026-08-03');
+        const week2 = buildMockWeekPlan(false, '2026-08-10');
+        week2.sundayYmd = '2026-08-16';
+        week2.isHorizonPreview = true;
+
+        const { container } = render(
+            <CoachFluidWeekPlan
+                activities={[]}
+                userSettings={{ weeklyHoursTarget: 5, ftp: 250 }}
+                coachContext={{ athlete: { ftp: 250 }, fitness: { tsb: 0 } }}
+                weekPlan={week1}
+                horizonWeeks={[week1, week2]}
+                showHorizon
+                horizonWeekCount={2}
+            />,
+        );
+
+        const scroller = container.querySelector('[data-testid="horizon-week-scroll"]');
+        expect(scroller?.className).toMatch(/overflow-x-auto/);
+        expect(scroller?.className).not.toMatch(/overflow-x-hidden/);
+
+        const columns = scroller?.querySelectorAll('section');
+        expect(columns?.length).toBe(2);
+        columns?.forEach((col) => {
+            expect(col.className).toMatch(/w-\[280px\]/);
+            expect(col.className).toMatch(/min-w-\[280px\]/);
+            expect(col.className).not.toMatch(/\bw-full\b/);
+        });
+    });
+
+    it('uses full width for single week column', () => {
+        const week1 = buildMockWeekPlan();
+
+        const { container } = render(
+            <CoachFluidWeekPlan
+                activities={[]}
+                userSettings={{ weeklyHoursTarget: 5, ftp: 250 }}
+                coachContext={{ athlete: { ftp: 250 }, fitness: { tsb: 0 } }}
+                weekPlan={week1}
+            />,
+        );
+
+        const scroller = container.querySelector('[data-testid="horizon-week-scroll"]');
+        expect(scroller?.className).not.toMatch(/overflow-x-auto/);
+
+        const column = scroller?.querySelector('section');
+        expect(column?.className).toMatch(/\bw-full\b/);
+        expect(column?.className).not.toMatch(/w-\[280px\]/);
+    });
+});
+
 describe('FluidWeekPanel horizon list expand', () => {
     const noop = () => {};
 
@@ -169,20 +231,18 @@ describe('FluidWeekPanel horizon list expand', () => {
             />,
         );
 
-        const listScroller = container.querySelector('.overflow-y-auto');
+        const listScroller = container.querySelector('[data-testid="week-day-list"]');
         expect(listScroller?.className).not.toMatch(/grid-rows-7/);
         expect(listScroller?.className).toMatch(/flex flex-col/);
-        expect(listScroller?.className).toMatch(/overflow-x-hidden/);
 
-        const expandedRow = screen.getByText('Threshold intervals').closest('div.max-w-full');
-        expect(expandedRow?.className).not.toMatch(/z-10/);
-        expect(expandedRow?.className).not.toMatch(/\bh-full\b/);
+        const thuRow = container.querySelector('[data-testid="day-row-2026-08-06"]');
+        expect(thuRow?.className).not.toMatch(/z-10/);
+        expect(thuRow?.className).not.toMatch(/\bh-full\b/);
+        expect(thuRow?.className).toMatch(/flex flex-col/);
 
-        const card = screen.getByText('Threshold intervals').closest('article');
-        expect(card?.className).toMatch(/max-w-full/);
-        expect(card?.className).not.toMatch(/overflow-visible/);
-
-        expect(within(card).getByText('Main set')).toBeInTheDocument();
+        const expandPanel = within(thuRow).getByTestId('day-expand-panel');
+        expect(expandPanel).toBeInTheDocument();
+        expect(within(expandPanel).getByText('Main set')).toBeInTheDocument();
     });
 
     it('keeps following days below expanded session in list view', () => {
@@ -202,17 +262,63 @@ describe('FluidWeekPanel horizon list expand', () => {
             />,
         );
 
-        const rows = container.querySelectorAll('.overflow-y-auto > div.max-w-full');
-        expect(rows.length).toBeGreaterThanOrEqual(7);
+        const rows = container.querySelectorAll('[data-testid^="day-row-"]');
+        expect(rows.length).toBe(7);
 
-        const thuIndex = weekPlan.sessions.findIndex((s) => s.date === '2026-08-06');
-        const friIndex = thuIndex + 1;
-        const thuRow = rows[thuIndex];
-        const friRow = rows[friIndex];
+        const thuRow = container.querySelector('[data-testid="day-row-2026-08-06"]');
+        const friRow = container.querySelector('[data-testid="day-row-2026-08-07"]');
 
         expect(thuRow?.contains(screen.getByText('Main set'))).toBe(true);
         expect(friRow?.textContent).toMatch(/Friday|Fri/i);
         expect(friRow?.contains(screen.getByText('Main set'))).toBe(false);
+
+        const thuIndex = Array.from(rows).indexOf(thuRow);
+        const friIndex = Array.from(rows).indexOf(friRow);
+        expect(friIndex).toBe(thuIndex + 1);
+    });
+});
+
+describe('FluidWeekSessionCard accordion layout', () => {
+    const noop = () => {};
+
+    it('renders expand panel as sibling block after session header', () => {
+        const workout = buildFluidWorkout('threshold', { ftp: 250 });
+        render(
+            <FluidWeekSessionCard
+                session={{
+                    date: '2026-08-06',
+                    day: 'Thursday',
+                    stimulus: 'threshold',
+                    plannedStimulus: 'threshold',
+                    workoutName: 'Threshold intervals',
+                    fluidWorkout: workout,
+                    completed: false,
+                    isToday: true,
+                    isPast: false,
+                }}
+                dayTss={90}
+                expanded
+                onToggleExpand={noop}
+                onToggleDone={noop}
+                onSwapRecovery={noop}
+                onMoveToToday={noop}
+                onUndoMove={noop}
+                onToggleUnavailable={noop}
+                onToggleAvailable={noop}
+            />,
+        );
+
+        const card = screen.getByTestId('day-session-card');
+        expect(card.className).toMatch(/flex flex-col/);
+        expect(card.className).not.toMatch(/relative/);
+        expect(card.className).not.toMatch(/overflow-hidden/);
+
+        const expandPanel = screen.getByTestId('day-expand-panel');
+        const headerBlock = card.firstElementChild;
+        expect(headerBlock?.contains(screen.getByText('Threshold intervals'))).toBe(true);
+        expect(headerBlock?.contains(expandPanel)).toBe(false);
+        expect(card.children.length).toBe(2);
+        expect(card.children[1]).toBe(expandPanel);
     });
 });
 
