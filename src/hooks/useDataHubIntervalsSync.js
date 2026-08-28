@@ -22,6 +22,10 @@ import {
     readIntervalsSyncHealthSummary,
     writeIntervalsSyncHealthSummary,
 } from '../utils/intervalsSyncHealth';
+import {
+    buildStravaSyncMatchSummary,
+    formatStravaSyncMatchSummary,
+} from '../utils/stravaSyncMatchSummary';
 
 /**
  * Intervals.icu sync + fetch-new flows for DataHub (selected-row sync and date-range fetch).
@@ -411,6 +415,7 @@ export function useDataHubIntervalsSync({
                 return existing ? protectEnrichedFieldsOnMerge(act, existing) : act;
             };
             let merged = (newActivitiesRaw || []).map(mergeNewInto);
+            let stravaListForSummary = null;
 
             if (stravaEnrichEnabled && stravaGetToken && merged.length > 0) {
                 setSyncErrorDetail(`Linking Strava for ${syncStart} → ${syncEnd}…`);
@@ -418,6 +423,7 @@ export function useDataHubIntervalsSync({
                     const token = await stravaGetToken();
                     if (token) {
                         const stravaList = await fetchStravaActivitiesInRange(token, syncStart, syncEnd);
+                        stravaListForSummary = stravaList;
                         merged = linkIntervalsActivitiesToStravaList(merged, stravaList);
                         applyStravaFuzzyMatchesToIntervals(merged, stravaList);
                     }
@@ -519,8 +525,21 @@ export function useDataHubIntervalsSync({
             setSyncStatus('done');
             const summary = formatIntervalsSyncSummary(syncStats, mergeCounts);
             const parts = [summary];
+            let stravaUnmatchedCount = 0;
+            if (stravaListForSummary) {
+                const stravaMatchSummary = buildStravaSyncMatchSummary({
+                    siteActivities: merged,
+                    stravaList: stravaListForSummary,
+                    startYmd: syncStart,
+                    endYmd: syncEnd,
+                    intervalsImported: Number(syncStats?.imported) || merged.length,
+                });
+                stravaUnmatchedCount = stravaMatchSummary.unmatchedCount;
+                const stravaSummaryText = formatStravaSyncMatchSummary(stravaMatchSummary);
+                if (stravaSummaryText) parts.push(stravaSummaryText);
+            }
             if (stravaEnrichEnabled && stravaGetToken && merged.length > 0) {
-                parts.push('Strava link + enrich');
+                if (!stravaListForSummary) parts.push('Strava link + enrich');
                 if (enrichCount > 0) parts.push(`${enrichCount} field update(s) from Strava`);
                 if (segmentRefreshCount > 0) parts.push(`${segmentRefreshCount} detail/KOM refresh`);
                 if (detailFailed > 0) parts.push(`${detailFailed} detail error(s)`);
@@ -539,13 +558,12 @@ export function useDataHubIntervalsSync({
                 ? `✅ ${parts.join(' · ')}.`
                 : summary;
             setSyncErrorDetail(detailText);
+            const toastVariant = merged.length > 0
+                ? ((Number(syncStats?.skippedEmpty) || 0) > 0 || stravaUnmatchedCount > 0 ? 'warning' : 'success')
+                : 'info';
             showToast(
                 merged.length > 0 ? parts.join(' · ') : summary,
-                {
-                    variant: merged.length > 0
-                        ? ((Number(syncStats?.skippedEmpty) || 0) > 0 ? 'warning' : 'success')
-                        : 'info',
-                },
+                { variant: toastVariant },
             );
             setTimeout(() => setSyncStatus(null), 9000);
         } catch (e) {
