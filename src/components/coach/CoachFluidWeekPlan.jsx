@@ -210,10 +210,10 @@ const CoachFluidWeekPlan = ({
                     </p>
                 )}
 
-                <div className="-mx-1 px-1 pt-1 overflow-visible">
+                <div className="-mx-1 px-1 pt-2 pb-1 overflow-visible">
                     <div
                         className={[
-                            'flex gap-3 overflow-x-auto overflow-y-visible snap-x snap-mandatory pb-1.5',
+                            'flex gap-4 sm:gap-5 overflow-x-auto overflow-y-visible snap-x snap-mandatory pb-4 pt-1',
                             visibleWeeks.length > 1 ? 'scroll-smooth' : '',
                         ].join(' ')}
                     >
@@ -236,7 +236,7 @@ const CoachFluidWeekPlan = ({
                                 className={[
                                     'max-w-full flex-shrink-0 snap-center overflow-visible',
                                     isCompareColumn
-                                        ? 'min-w-[min(72%,240px)] border-l border-cdborder/40 pl-3'
+                                        ? 'min-w-[min(78%,280px)] border-l border-cdborder/40 pl-4'
                                         : 'min-w-[min(100%,300px)]',
                                 ].join(' ')}
                                 viewMode={viewMode}

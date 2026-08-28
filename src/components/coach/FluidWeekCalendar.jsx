@@ -49,7 +49,7 @@ function CalendarDayCell({
                 ? `${cell.weekdayLabel} ${cell.dayOfMonth}, ${label}${dayTss > 0 ? `, ${Math.round(dayTss)} TSS` : ''}`
                 : `${cell.weekdayLabel}, no session`}
             className={[
-                'relative flex flex-col items-stretch rounded-lg border p-1 pb-0.5 text-left transition-colors overflow-visible',
+                'relative flex flex-col items-stretch rounded-lg border p-1.5 pb-1 text-left transition-colors overflow-visible',
                 compact ? 'min-h-[72px]' : 'min-h-[92px] sm:min-h-[96px]',
                 isEmpty ? 'border-cdborder/20 bg-cdborder/5 opacity-40 cursor-default' : 'cursor-pointer hover:bg-cdborder/10',
                 selected ? 'ring-1 ring-cdaccent/40 border-cdborder/60 bg-cdsurface' : 'border-cdborder/40',
@@ -142,7 +142,7 @@ export default function FluidWeekCalendar({
     return (
         <div className="flex flex-col gap-3 overflow-visible">
             <div
-                className="grid grid-cols-7 gap-1 sm:gap-1.5 overflow-visible pt-0.5"
+                className="grid grid-cols-7 gap-1.5 sm:gap-2 overflow-visible pt-1"
                 role="grid"
                 aria-label="Week training calendar"
             >
