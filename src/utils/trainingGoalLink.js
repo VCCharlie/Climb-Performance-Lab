@@ -3,7 +3,8 @@
  * Yearly volume goals (km / hours / elevation) stay separate — see volumeGoals.js.
  */
 
-import { weeklyTssTarget } from './coach/coachHelpers';
+import { weeklyTssTarget, todayYmd } from './coach/coachHelpers';
+import { isoWeekKey } from './coach/coachWeekState';
 import {
     hydrateTrainingPlanSnapshot,
     readTrainingPlanSnapshot,
@@ -61,16 +62,38 @@ export function getActiveTrainingGoal(referenceYmd) {
     };
 }
 
+/** User-facing labels for weekly TSS target sources. */
+export const WEEKLY_TSS_TARGET_SOURCE_LABELS = {
+    manual: 'Manual',
+    'event-goal': 'Event goal',
+    'hours-budget': 'Hours budget',
+};
+
+/**
+ * Resolve manual TSS override for the ISO week containing referenceYmd.
+ * @param {object} [userSettings]
+ * @param {string} [referenceYmd]
+ * @returns {{ weekKey: string, targetTss: number } | null}
+ */
+export function getWeeklyTssOverride(userSettings, referenceYmd = todayYmd()) {
+    const weekKey = isoWeekKey(referenceYmd);
+    const raw = userSettings?.weeklyTssOverrides?.[weekKey];
+    const targetTss = Math.round(Number(raw));
+    if (!Number.isFinite(targetTss) || targetTss <= 0) return null;
+    return { weekKey, targetTss };
+}
+
 /**
  * Resolve weekly TSS + phase for the fluid week planner.
- * Event goal takes precedence over the hours-budget table when active.
+ * Manual override > event goal > hours-budget table.
  *
  * @param {object} params
  * @param {object} [params.userSettings]
  * @param {string} [params.referenceYmd]
  * @returns {{
  *   targetTss: number,
- *   source: 'event-goal' | 'hours-budget',
+ *   source: 'manual' | 'event-goal' | 'hours-budget',
+ *   weekKey: string,
  *   phaseKey: string | null,
  *   phaseLabel: string | null,
  *   trainingGoal: object | null,
@@ -81,11 +104,33 @@ export function resolveFluidWeekTarget({ userSettings, referenceYmd }) {
     const weeklyHours = Number(userSettings?.weeklyHoursTarget) || 5;
     const hoursBudgetTss = weeklyTssTarget(weeklyHours);
     const trainingGoal = getActiveTrainingGoal(referenceYmd);
+    const weekKey = isoWeekKey(referenceYmd || todayYmd());
+    const manualOverride = getWeeklyTssOverride(userSettings, referenceYmd);
+
+    const goalPayload = trainingGoal
+        ? {
+            ...trainingGoal,
+            displayName: trainingGoalDisplayNameFromSnapshot(trainingGoal),
+        }
+        : null;
+
+    if (manualOverride) {
+        return {
+            targetTss: manualOverride.targetTss,
+            source: 'manual',
+            weekKey: manualOverride.weekKey,
+            phaseKey: trainingGoal?.currentPhaseKey || null,
+            phaseLabel: trainingGoal?.currentPhaseLabel || null,
+            trainingGoal: goalPayload,
+            hoursBudgetTss,
+        };
+    }
 
     if (!trainingGoal?.currentWeekTargetTss) {
         return {
             targetTss: hoursBudgetTss,
             source: 'hours-budget',
+            weekKey,
             phaseKey: null,
             phaseLabel: null,
             trainingGoal: null,
@@ -96,12 +141,10 @@ export function resolveFluidWeekTarget({ userSettings, referenceYmd }) {
     return {
         targetTss: trainingGoal.currentWeekTargetTss,
         source: 'event-goal',
+        weekKey,
         phaseKey: trainingGoal.currentPhaseKey || null,
         phaseLabel: trainingGoal.currentPhaseLabel || null,
-        trainingGoal: {
-            ...trainingGoal,
-            displayName: trainingGoalDisplayNameFromSnapshot(trainingGoal),
-        },
+        trainingGoal: goalPayload,
         hoursBudgetTss,
     };
 }

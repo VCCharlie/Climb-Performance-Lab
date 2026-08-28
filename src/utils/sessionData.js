@@ -93,6 +93,8 @@ export function getDefaultUserSettings() {
         ftpLookbackWindow: '6months',
         /** Weekly training hours budget for AI Coach (4–7) */
         weeklyHoursTarget: 5,
+        /** Per ISO week manual TSS targets, e.g. { "2026-W35": 320 } */
+        weeklyTssOverrides: {},
         /** Optional — enables age axis on long-term power charts */
         birthYear: null,
         /** 'hilly' | 'flat' | 'mixed' — climbing readiness elevation targets and coach hints */

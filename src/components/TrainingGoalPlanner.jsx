@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Mountain, CalendarDays, ChevronRight, Heart, Target, X } from 'lucide-react';
+import { Mountain, CalendarDays, ChevronRight, Heart, Target, X, Brain } from 'lucide-react';
 import { useClimbDatabase } from '../hooks/useClimbDatabase';
 import { computeTrainingGoalPlan } from '../utils/trainingGoalPlan';
 import { calculatePowerZones } from '../utils/calculations';
@@ -27,7 +27,7 @@ function readStoredGoalFormDefaults() {
     return trainingGoalFormDefaultsFromSnapshot(readTrainingPlanSnapshot());
 }
 
-const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDate, endDate, isSignedIn = false, onOpenRecovery }) => {
+const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDate, endDate, isSignedIn = false, onOpenRecovery, onOpenCoach }) => {
     const activitiesFromContext = useActivitiesList();
     const activities = activitiesProp ?? activitiesFromContext;
     const profileFtp = useProfileFtp();
@@ -200,7 +200,6 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
         planResult,
     ]);
 
-    const currentWeekNum = activeGoalSnapshot?.currentWeekNum ?? null;
 
     return (
         <div className="space-y-4 md:space-y-6 animate-in fade-in min-w-0 max-w-full">
@@ -213,7 +212,8 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
             >
                 <p className="text-sm text-cdmuted leading-relaxed">
                     Set a <strong className="text-cdtext font-medium">date</strong> and the <strong className="text-cdtext font-medium">profile</strong> of your target (distance, elevation, optional duration, expected average intensity as % FTP).
-                    We estimate <strong className="text-cdtext font-medium">event-day TSS</strong> and provide a <strong className="text-cdtext font-medium">weekly schedule</strong> with rising load and taper — aligned with your recent TSS (last 4 weeks in your selected dashboard period).
+                    We estimate <strong className="text-cdtext font-medium">event-day TSS</strong> and build a multi-week schedule with rising load and taper — aligned with your recent TSS (last 4 weeks in your selected dashboard period).
+                    Your actionable week plan lives on the <strong className="text-cdtext font-medium">Coach</strong> tab next to the fluid schedule.
                 </p>
                 {isSignedIn ? (
                     <p className="text-xs text-cdmuted mt-2">
@@ -247,7 +247,7 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
                             {activeGoalSnapshot.isTaperPhase ? ' (taper)' : ''}
                             {' · '}
                             <span className="font-bold tabular-nums text-cdtext">{activeGoalSnapshot.currentWeekTargetTss} TSS</span>
-                            {' '}this week — also drives your fluid week plan in Coach.
+                            {' '}this week — view the full schedule on the Coach tab.
                         </p>
                         {planResult.plan?.developmentMode === 'develop-aerobic' && (
                             <p className="text-xs text-cdaccent mt-2 leading-relaxed">
@@ -462,89 +462,34 @@ const TrainingGoalPlanner = ({ activities: activitiesProp, userSettings, startDa
             </div>
 
             {!planResult.error && planResult.plan?.weeks?.length > 0 && (
-                <div className="bg-cdsurface p-5 rounded-xl border border-cdborder space-y-4">
-                    <div className="flex flex-wrap items-baseline justify-between gap-2">
-                        <h3 className="text-sm font-bold text-cdtext uppercase tracking-wide">
-                            Weekly plan toward your goal
-                        </h3>
-                        {activeGoalSnapshot && (
-                            <span className="text-xs text-cdmuted">
-                                <span className="font-semibold text-cdtext">{displayEventName}</span>
-                                {' · '}
-                                {formatDateDDMMYYYY(activeGoalSnapshot.goalDate)}
-                            </span>
-                        )}
-                    </div>
-                    <p className="text-sm text-cdmuted">{planResult.plan.summary}</p>
-
-                    {planResult.plan?.developmentMode !== 'progress' && (
-                        <p className="text-xs text-cdaccent leading-relaxed rounded-lg border border-cdaccent/30 bg-cdaccent/5 px-3 py-2">
-                            {planResult.plan.developmentRationale
-                                || 'This plan deliberately keeps weekly TSS below your recent habit so aerobic fitness can rebuild.'}
+                <div className="bg-cdsurface p-5 rounded-xl border border-cdborder space-y-3">
+                    <h3 className="text-sm font-bold text-cdtext uppercase tracking-wide">
+                        Weekly plan toward your goal
+                    </h3>
+                    <p className="text-sm text-cdmuted leading-relaxed">
+                        Your full multi-week schedule toward{' '}
+                        <span className="font-semibold text-cdtext">{displayEventName}</span>
+                        {' '}is on the Coach tab, directly below the fluid week plan — one place to follow each week.
+                    </p>
+                    {activeGoalSnapshot && (
+                        <p className="text-xs text-cdmuted">
+                            Current: week {activeGoalSnapshot.currentWeekNum} · {activeGoalSnapshot.currentPhaseLabel}
+                            {' · '}
+                            <span className="font-bold tabular-nums text-cdtext">{activeGoalSnapshot.currentWeekTargetTss} TSS</span>
+                            {' '}target this week
                         </p>
                     )}
-
-                    <div className="md:hidden space-y-2">
-                        {planResult.plan.weeks.map((w) => {
-                            const isCurrent = currentWeekNum === w.weekNum;
-                            return (
-                                <div
-                                    key={w.weekNum}
-                                    className={`rounded-lg border p-3 space-y-1 ${
-                                        isCurrent
-                                            ? 'border-cdaccent bg-cdaccent/5'
-                                            : 'border-cdborder bg-cdborder/10'
-                                    }`}
-                                >
-                                    <div className="flex items-center justify-between gap-2">
-                                        <span className="text-xs font-bold uppercase tracking-wide text-cdmuted">
-                                            Week {w.weekNum}
-                                            {isCurrent ? ' · now' : ''}
-                                        </span>
-                                        <span className="font-bold tabular-nums text-cdtext">{w.targetTss} TSS</span>
-                                    </div>
-                                    <p className="text-sm font-semibold text-cdtext">{w.phaseLabel}</p>
-                                    <p className="text-xs text-cdmuted leading-relaxed">{w.focus}</p>
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                    <div className="hidden md:block -mx-1 overflow-x-auto rounded-lg border border-cdborder overscroll-x-contain">
-                        <table className="w-full text-sm text-left min-w-[640px]">
-                            <thead>
-                                <tr className="bg-cdborder/40 text-cdmuted text-xs uppercase">
-                                    <th className="px-3 py-2 font-semibold">Week</th>
-                                    <th className="px-3 py-2 font-semibold">Phase</th>
-                                    <th className="px-3 py-2 font-semibold text-right">Target TSS/wk</th>
-                                    <th className="px-3 py-2 font-semibold min-w-[280px]">Focus</th>
-                                </tr>
-                            </thead>
-                            <tbody className="text-cdtext">
-                                {planResult.plan.weeks.map((w) => {
-                                    const isCurrent = currentWeekNum === w.weekNum;
-                                    return (
-                                        <tr
-                                            key={w.weekNum}
-                                            className={`border-t border-cdborder ${
-                                                isCurrent ? 'bg-cdaccent/10' : ''
-                                            }`}
-                                        >
-                                            <td className="px-3 py-2 font-bold tabular-nums">
-                                                {w.weekNum}
-                                                {isCurrent ? (
-                                                    <span className="ml-1 text-[10px] uppercase text-cdaccent">now</span>
-                                                ) : null}
-                                            </td>
-                                            <td className="px-3 py-2 text-cdmuted">{w.phaseLabel}</td>
-                                            <td className="px-3 py-2 text-right tabular-nums">{w.targetTss}</td>
-                                            <td className="px-3 py-2 text-xs text-cdmuted">{w.focus}</td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
+                    {typeof onOpenCoach === 'function' && (
+                        <button
+                            type="button"
+                            onClick={onOpenCoach}
+                            className="inline-flex items-center gap-1.5 text-sm font-bold text-cdaccent hover:underline cd-min-touch-y cd-focus-ring"
+                        >
+                            <Brain size={16} aria-hidden />
+                            View plan on Coach tab
+                            <ChevronRight size={16} aria-hidden />
+                        </button>
+                    )}
                 </div>
             )}
 

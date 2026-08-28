@@ -36,5 +36,10 @@ export function mergeUserSettingsWithDefaults(parsed) {
         defaultSyncRangeDays: Number.isFinite(Number(parsed.defaultSyncRangeDays)) && Number(parsed.defaultSyncRangeDays) > 0
             ? Math.round(Number(parsed.defaultSyncRangeDays))
             : defaults.defaultSyncRangeDays,
+        weeklyTssOverrides: parsed.weeklyTssOverrides
+            && typeof parsed.weeklyTssOverrides === 'object'
+            && !Array.isArray(parsed.weeklyTssOverrides)
+            ? { ...parsed.weeklyTssOverrides }
+            : defaults.weeklyTssOverrides,
     };
 }

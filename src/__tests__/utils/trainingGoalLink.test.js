@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
     isTrainingGoalActive,
     resolveFluidWeekTarget,
+    getWeeklyTssOverride,
     resolveTrainingGoalDisplayName,
     trainingGoalFormDefaultsFromSnapshot,
 } from '../../utils/trainingGoalLink';
@@ -62,6 +63,57 @@ describe('trainingGoalLink', () => {
         expect(result.trainingGoal?.displayName).toBe('Gran Fondo');
         expect(result.trainingGoal?.eventName).toBe('Gran Fondo');
         expect(result.hoursBudgetTss).toBe(250);
+    });
+
+    it('resolveFluidWeekTarget prefers manual override over event goal and hours budget', () => {
+        const planResult = computeTrainingGoalPlan({
+            goalDateStr: '2026-09-15',
+            activities: [{ date: '2026-07-01', load: 100 }],
+            today: new Date('2026-07-23'),
+            goalInputs: { distanceKm: 80, elevationM: 1200, durationHours: 4, targetPctFtp: 75 },
+        });
+
+        const snapshot = buildTrainingPlanSnapshot({
+            goalDate: '2026-09-15',
+            eventName: 'Gran Fondo',
+            goalInputs: {
+                source: 'custom',
+                distanceKm: 80,
+                elevationM: 1200,
+                durationHours: 4,
+                targetPctFtp: 75,
+            },
+            planResult,
+        });
+
+        writeTrainingPlanSnapshot(snapshot);
+
+        const result = resolveFluidWeekTarget({
+            userSettings: {
+                weeklyHoursTarget: 5,
+                weeklyTssOverrides: { '2026-W30': 320 },
+            },
+            referenceYmd: '2026-07-23',
+        });
+
+        expect(result.source).toBe('manual');
+        expect(result.targetTss).toBe(320);
+        expect(result.weekKey).toBe('2026-W30');
+        expect(result.trainingGoal?.displayName).toBe('Gran Fondo');
+    });
+
+    it('getWeeklyTssOverride returns null for invalid or missing values', () => {
+        expect(getWeeklyTssOverride({}, '2026-08-28')).toBeNull();
+        expect(getWeeklyTssOverride({ weeklyTssOverrides: { '2026-W35': 0 } }, '2026-08-28')).toBeNull();
+        expect(getWeeklyTssOverride({ weeklyTssOverrides: { '2026-W35': 'abc' } }, '2026-08-28')).toBeNull();
+    });
+
+    it('getWeeklyTssOverride uses ISO week key for reference date', () => {
+        const override = getWeeklyTssOverride(
+            { weeklyTssOverrides: { '2026-W35': 275 } },
+            '2026-08-28',
+        );
+        expect(override).toEqual({ weekKey: '2026-W35', targetTss: 275 });
     });
 
     it('resolveTrainingGoalDisplayName prefers customEventName over generic stored title', () => {
