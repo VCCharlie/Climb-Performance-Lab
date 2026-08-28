@@ -281,4 +281,12 @@ describe('protectEnrichedFieldsOnMerge', () => {
     expect(out.tags).toEqual(['race', 'hilly']);
     expect(out.user_notes).toBe('Felt good');
   });
+
+  it('clears user tags when incoming explicitly sends an empty tags array', () => {
+    const out = protectEnrichedFieldsOnMerge(
+      { id: '1', title: 'Morning Ride', tags: [] },
+      { id: '1', tags: ['race', 'hilly'] },
+    );
+    expect(out.tags).toEqual([]);
+  });
 });
