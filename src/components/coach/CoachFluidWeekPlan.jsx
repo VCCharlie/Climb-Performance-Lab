@@ -205,15 +205,15 @@ const CoachFluidWeekPlan = ({
                 </div>
 
                 {showHorizon && horizonWeekCount > 1 && (
-                    <p className="text-[11px] text-cdmuted mb-2">
-                        Scroll sideways through each week until your event — phases and TSS targets follow your Goals plan.
+                    <p className="text-[10px] text-cdmuted mb-1.5">
+                        Scroll sideways — phases and TSS follow your Goals plan.
                     </p>
                 )}
 
-                <div className="-mx-1 px-1 pt-2 overflow-visible">
+                <div className="-mx-1 px-1 pt-1 overflow-visible">
                     <div
                         className={[
-                            'flex gap-4 overflow-x-auto overflow-y-visible snap-x snap-mandatory pb-2',
+                            'flex gap-3 overflow-x-auto overflow-y-visible snap-x snap-mandatory pb-1.5',
                             visibleWeeks.length > 1 ? 'scroll-smooth' : '',
                         ].join(' ')}
                     >
@@ -222,6 +222,7 @@ const CoachFluidWeekPlan = ({
                         const handlers = makeWeekHandlers(plan);
                         const isPreview = plan.isHorizonPreview
                             || (plan.mondayYmd > today);
+                        const isCompareColumn = visibleWeeks.length > 1 && index > 0;
                         return (
                             <FluidWeekPanel
                                 key={plan.mondayYmd || index}
@@ -231,9 +232,12 @@ const CoachFluidWeekPlan = ({
                                 onToggleExpand={toggleExpand}
                                 expandKeyPrefix={expandKeyPrefix}
                                 isPreview={isPreview}
+                                compact={isCompareColumn}
                                 className={[
-                                    'min-w-[min(100%,340px)] max-w-full flex-shrink-0 snap-center overflow-visible',
-                                    index > 0 ? 'border-l border-cdborder/50 pl-4' : '',
+                                    'max-w-full flex-shrink-0 snap-center overflow-visible',
+                                    isCompareColumn
+                                        ? 'min-w-[min(72%,240px)] border-l border-cdborder/40 pl-3'
+                                        : 'min-w-[min(100%,300px)]',
                                 ].join(' ')}
                                 viewMode={viewMode}
                                 activities={activities}
@@ -249,7 +253,7 @@ const CoachFluidWeekPlan = ({
                 </div>
 
                 {visibleWeeks.length > 1 && (
-                    <p className="text-[10px] text-cdmuted text-center mt-2">
+                    <p className="text-[9px] text-cdmuted text-center mt-1">
                         Swipe or scroll sideways to compare weeks
                     </p>
                 )}
