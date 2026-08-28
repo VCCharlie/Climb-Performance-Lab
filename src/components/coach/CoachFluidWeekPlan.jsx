@@ -161,8 +161,8 @@ const CoachFluidWeekPlan = ({
                     }}
                     className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded-full border transition-colors ${
                         showHorizon
-                            ? 'border-cdaccent bg-cdaccent/15 text-cdaccent'
-                            : 'border-cdborder text-cdmuted hover:text-cdtext'
+                            ? 'border-cdaccent/40 text-cdtext bg-cdborder/10'
+                            : 'border-cdborder text-cdmuted hover:text-cdtext hover:border-cdborder/80'
                     }`}
                 >
                     {horizonToggleLabel}
@@ -181,8 +181,8 @@ const CoachFluidWeekPlan = ({
                         title="List view"
                         className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2.5 py-1 rounded-full border transition-colors ${
                             viewMode === COACH_WEEK_VIEW_MODES.LIST
-                                ? 'border-cdaccent bg-cdaccent/15 text-cdaccent'
-                                : 'border-cdborder text-cdmuted hover:text-cdtext'
+                                ? 'border-cdaccent/40 text-cdtext bg-cdborder/10'
+                                : 'border-cdborder text-cdmuted hover:text-cdtext hover:border-cdborder/80'
                         }`}
                     >
                         <LayoutList size={12} aria-hidden />
@@ -195,8 +195,8 @@ const CoachFluidWeekPlan = ({
                         title="Calendar view"
                         className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2.5 py-1 rounded-full border transition-colors ${
                             viewMode === COACH_WEEK_VIEW_MODES.CALENDAR
-                                ? 'border-cdaccent bg-cdaccent/15 text-cdaccent'
-                                : 'border-cdborder text-cdmuted hover:text-cdtext'
+                                ? 'border-cdaccent/40 text-cdtext bg-cdborder/10'
+                                : 'border-cdborder text-cdmuted hover:text-cdtext hover:border-cdborder/80'
                         }`}
                     >
                         <LayoutGrid size={12} aria-hidden />
