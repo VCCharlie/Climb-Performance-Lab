@@ -94,6 +94,27 @@ describe('stravaMatch indoor / private-style rides', () => {
         expect(unmatchedStrava[0].id).toBe(14177055045);
     });
 
+    it('does not link VirtualRide site to outdoor Strava Ride on duration alone (Apr 13 regression)', () => {
+        const stravaOutdoor = {
+            id: 14163153066,
+            start_date_local: '2025-04-13T14:32:00',
+            sport_type: 'Ride',
+            name: 'Ja, wat eigenlijk precies?',
+            distance: 37400,
+            moving_time: 4620,
+        };
+        const siteWhoosh = [{
+            id: 'i122256635',
+            date: '2025-04-13T09:10:00',
+            type: 'VirtualRide',
+            title: 'My whoosh',
+            distance: 5.4,
+            moving_time: '1:17:44',
+        }];
+        const { matched } = matchStravaToSite([stravaOutdoor], siteWhoosh);
+        expect(matched).toHaveLength(0);
+    });
+
     it('matchStravaToSite does not cross calendar days for TZ drift (manual link required)', () => {
         const stravaList = [{
             id: 777,
