@@ -7,6 +7,8 @@
 import { mergeVolumeGoals } from './volumeGoals.js';
 import { ACTIVITY_COLUMN_STORAGE_KEY } from './activityColumnVisibility.js';
 import { getDefaultHistoricalFtpSettings } from './historicalFtp.js';
+import { DEFAULT_PHYSICS_SETTINGS } from './physicsConstants.js';
+import { DEFAULT_COACH_THRESHOLDS, DEFAULT_RECOVERY_THRESHOLDS } from './coachThresholds.js';
 
 /** Keys removed on logout. Theme and PWA UI prefs are preserved. */
 export const SENSITIVE_LOCAL_STORAGE_KEYS = [
@@ -91,6 +93,8 @@ export function getDefaultUserSettings() {
         ftpLookbackWindow: '6months',
         /** Weekly training hours budget for AI Coach (4–7) */
         weeklyHoursTarget: 5,
+        /** Per ISO week manual TSS targets, e.g. { "2026-W35": 320 } */
+        weeklyTssOverrides: {},
         /** Optional — enables age axis on long-term power charts */
         birthYear: null,
         /** 'hilly' | 'flat' | 'mixed' — climbing readiness elevation targets and coach hints */
@@ -99,6 +103,14 @@ export function getDefaultUserSettings() {
         quickLinks: null,
         /** Per-year FTP for historical power caps — config + manual overrides */
         historicalFtp: getDefaultHistoricalFtpSettings(),
+        /** Default Intervals.icu fetch window (days back from today). */
+        defaultSyncRangeDays: 14,
+        /** Physics model defaults (CdA, CRR, drivetrain loss). */
+        physics: { ...DEFAULT_PHYSICS_SETTINGS },
+        /** Coach SWOT analysis thresholds. */
+        coachThresholds: { ...DEFAULT_COACH_THRESHOLDS },
+        /** Recovery advisor TSB / CTL thresholds. */
+        recoveryThresholds: { ...DEFAULT_RECOVERY_THRESHOLDS },
     };
 }
 

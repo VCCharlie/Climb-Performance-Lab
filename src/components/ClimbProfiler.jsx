@@ -14,6 +14,7 @@ import { getDefaultClimb } from '../services/climbDatabase';
 import ClimbSelector from './shared/ClimbSelector';
 import ProfilerCharts from './profiler/ProfilerCharts';
 import ProfilerInsights from './profiler/ProfilerInsights';
+import ClimbComparePanel from './profiler/ClimbComparePanel';
 import {
     buildSyntheticProfile,
     computeTacticalZones,
@@ -99,6 +100,21 @@ const ClimbProfiler = ({ userSettings, initialState, onStateChange, theme = 'lig
 
     return (
         <div className="bg-cdsurface p-5 md:p-6 rounded-xl border border-cdborder shadow-xl space-y-6">
+            <div
+                role="note"
+                className="rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-3 flex items-start gap-3"
+            >
+                <Info size={18} className="text-amber-400 shrink-0 mt-0.5" aria-hidden />
+                <div>
+                    <p className="text-sm font-bold text-cdtext">Synthetic climb profile</p>
+                    <p className="text-sm text-cdtext mt-1">
+                        This chart is generated from average gradient, length, and elevation — not GPS or barometric
+                        segment data. Use it for tactical pacing and zone planning; do not treat it as an exact
+                        elevation trace.
+                    </p>
+                </div>
+            </div>
+
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 border-b border-cdborder pb-5">
                 <div>
                     <h2 className="text-xl md:text-2xl font-bold text-cdtext flex items-center gap-2">
@@ -132,6 +148,11 @@ const ClimbProfiler = ({ userSettings, initialState, onStateChange, theme = 'lig
                     Climb
                 </label>
                 <ClimbSelector mode="single" selected={selectedClimb} onSelect={setSelectedClimb} />
+                <ClimbComparePanel
+                    userSettings={userSettings}
+                    primaryClimb={selectedClimb}
+                    intensityFraction={targetIntensity}
+                />
                 <div className="flex flex-wrap items-center gap-2 mt-3">
                     {selectedClimb.flag && (
                         <span className="text-lg" aria-hidden>

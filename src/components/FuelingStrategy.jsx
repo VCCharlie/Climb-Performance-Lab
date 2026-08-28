@@ -1,5 +1,13 @@
 ﻿import React, { useState, useMemo } from 'react';
 import { Utensils, Zap, Droplets, Battery, CheckCircle, Thermometer, CloudRain, Mountain, Clock, Route } from 'lucide-react';
+import { resolveFuelingTimeline } from '../utils/fuelingTimeline';
+
+const TIMELINE_ICON_BY_KIND = {
+    drink: Droplets,
+    gel: Zap,
+    bar: Utensils,
+    climb: Mountain,
+};
 
 const FuelingStrategy = ({
     initialDuration,
@@ -7,6 +15,7 @@ const FuelingStrategy = ({
     initialCarbsPerHour,
     initialTotalCarbs,
     initialAltitude,
+    initialClimbTimeline,
     fromRacePacing = false,
     onStateChange,
 }) => {
@@ -17,6 +26,9 @@ const FuelingStrategy = ({
         fromRacePacing && initialCarbsPerHour != null && initialCarbsPerHour > 0,
     );
     const [fromRaceHandoff, setFromRaceHandoff] = useState(fromRacePacing);
+    const [raceClimbTimeline, setRaceClimbTimeline] = useState(
+        Array.isArray(initialClimbTimeline) ? initialClimbTimeline : [],
+    );
 
     // --- EQUIPMENT ---
     const [bidonSize, setBidonSize] = useState(750); // ml
@@ -34,8 +46,11 @@ const FuelingStrategy = ({
             setUseRaceCarbs(true);
         }
         if (initialAltitude != null && initialAltitude > 0) setAltitude(initialAltitude);
+        if (Array.isArray(initialClimbTimeline)) {
+            setRaceClimbTimeline(initialClimbTimeline);
+        }
         setFromRaceHandoff(fromRacePacing);
-    }, [initialDuration, initialIntensity, initialCarbsPerHour, initialAltitude, fromRacePacing]);
+    }, [initialDuration, initialIntensity, initialCarbsPerHour, initialAltitude, initialClimbTimeline, fromRacePacing]);
 
     React.useEffect(() => {
         if (!onStateChange) return;
@@ -46,6 +61,7 @@ const FuelingStrategy = ({
             totalCarbs: initialTotalCarbs ?? null,
             altitude,
             fromRacePacing: fromRaceHandoff,
+            climbTimeline: raceClimbTimeline,
         });
     }, [
         duration,
@@ -55,6 +71,7 @@ const FuelingStrategy = ({
         initialCarbsPerHour,
         initialTotalCarbs,
         fromRaceHandoff,
+        raceClimbTimeline,
         onStateChange,
     ]);
 
@@ -144,32 +161,16 @@ const FuelingStrategy = ({
         };
     }, [duration, intensity, bidonSize, temp, humidity, altitude, productConfig, useRaceCarbs, initialCarbsPerHour]);
 
-    // Timeline Generation
-    const timeline = useMemo(() => {
-        const events = [];
-        const startTime = 0; // minutes
-        const numEvents = Math.floor(duration / 20); // Interval every 20 mins
-
-        for (let i = 1; i <= numEvents; i++) {
-            const time = i * 20;
-            let action = "Drink";
-            let icon = Droplets;
-
-            // Every 40 mins roughly, take a gel/bar
-            if (time % 40 === 0) {
-                action = "Drink + Gel";
-                icon = Zap;
-            }
-            // Every 60-80 mins, take solid if needed
-            if (time % 80 === 0 && intensity < 0.85) {
-                action = "Drink + Solid Bar";
-                icon = Utensils;
-            }
-
-            events.push({ time, action, icon });
-        }
-        return events;
-    }, [duration, intensity]);
+    // Timeline Generation — climb order from Race Pacing, else generic 20/40/80 min cadence
+    const timeline = useMemo(() => resolveFuelingTimeline({
+        fromRacePacing: fromRaceHandoff,
+        raceClimbTimeline,
+        durationMinutes: duration,
+        intensity,
+    }).map((event) => ({
+        ...event,
+        icon: TIMELINE_ICON_BY_KIND[event.kind] || Droplets,
+    })), [fromRaceHandoff, raceClimbTimeline, duration, intensity]);
 
     const handleConfigChange = (key, val) => {
         setProductConfig(prev => ({ ...prev, [key]: parseInt(val) || 0 }));
@@ -347,6 +348,11 @@ const FuelingStrategy = ({
                     {/* Timeline */}
                     <div className="flex-1 bg-cdbg border border-cdborder rounded-lg p-6 overflow-hidden flex flex-col">
                         <h3 className="text-cdtext font-bold mb-4 flex items-center gap-2"><Clock size={16} /> Nutrition Timeline</h3>
+                        {fromRaceHandoff && raceClimbTimeline.length > 0 && (
+                            <p className="text-xs text-cdmuted mb-3">
+                                Timed to your Race Pacing climb order. Generic 20/40/80 min reminders apply when no race plan is linked.
+                            </p>
+                        )}
                         <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
                             {/* Pre-Load */}
                             <div className="flex items-center gap-4 text-cdmuted border-l-2 border-cdborder pl-4 py-1">

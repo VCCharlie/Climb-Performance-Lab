@@ -6,6 +6,8 @@ import { normalizeDate, formatDateDDMMYYYY } from '../utils/formatters';
 import { useActivitiesList } from '../hooks/useActivities';
 import { buildCoachContext } from '../utils/coach/coachPayloadBuilder';
 import TodaysFocusCard from './coach/TodaysFocusCard';
+import WeeklyTssBudgetCard from './coach/WeeklyTssBudgetCard';
+import GoalWeeklyPlanSection from './coach/GoalWeeklyPlanSection';
 import CoachAskPanel from './coach/CoachAskPanel';
 import CoachDataPlayground from './coach/CoachDataPlayground';
 import CoachPeriodReview from './coach/CoachPeriodReview';
@@ -19,12 +21,14 @@ import { useToast } from '../context/ToastContext';
 import { buildFluidWeekPlan } from '../utils/coach/coachWeekPlan';
 import { buildEventHorizonFluidPlans } from '../utils/coach/coachHorizonPlan';
 import { todayYmd } from '../utils/coach/coachHelpers';
+import { getActiveTrainingGoal } from '../utils/trainingGoalLink';
 import { COACH_WEEK_UPDATED_EVENT, readCoachWeek2Enabled, writeCoachWeek2Enabled } from '../utils/coach/coachWeekState';
 import {
     TRAINING_PLAN_UPDATED_EVENT,
 } from '../utils/trainingPlanSnapshot';
 import { useProfileFtp } from '../context/ProfileFtpContext';
 import { downloadZwoWorkout } from '../utils/zwoExport';
+import { resolveCoachThresholds, scaleCoachPeriodThresholds } from '../utils/coachThresholds';
 
 /** moving_time: seconden (number) of "H:MM:SS" uit CSV */
 function movingTimeToSeconds(val) {
@@ -100,11 +104,13 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
         const weeksInPeriod = Math.max(1, periodDays / 7);
         const ftp = effectiveFtp;
 
-        // Drempelwaarden schalen naar de periodelengte (basisreferentie = 30 dagen)
-        const consistencyHigh = Math.round(12 * periodDays / 30);  // >3x/week
-        const consistencyLow  = Math.round(4  * periodDays / 30);  // <2x/week
-        const intensityHigh   = Math.round(8  * periodDays / 30);  // te veel intensiteit
-        const intensityLow    = Math.round(2  * periodDays / 30);  // te weinig intensiteit
+        const coachThresholds = resolveCoachThresholds(userSettings);
+        const {
+            consistencyHigh,
+            consistencyLow,
+            intensityHigh,
+            intensityLow,
+        } = scaleCoachPeriodThresholds(coachThresholds, periodDays);
 
         const periodLabel = (startDate || endDate)
             ? `${formatDateDDMMYYYY(startD)} – ${formatDateDDMMYYYY(endD)}`
@@ -155,12 +161,12 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
         }
 
         // Load Trend (TSB proxy)
-        if (avgWeeklyLoad > 400) {
+        if (avgWeeklyLoad > coachThresholds.highWeeklyLoadTss) {
             strengths.push({
                 label: "Strong base fitness (CTL)",
                 context: `Your average weekly load is ${Math.round(avgWeeklyLoad)} TSS. This indicates a solid Chronic Training Load (CTL), meaning your body can handle heavier training blocks.`
             });
-        } else if (avgWeeklyLoad < 100) {
+        } else if (avgWeeklyLoad < coachThresholds.lowWeeklyLoadTss) {
             opportunities.push({
                 label: "Room to increase volume",
                 context: `With a load of only ${Math.round(avgWeeklyLoad)} TSS/week, you still have plenty of room to progress by simply adding more volume or frequency.`
@@ -365,8 +371,8 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
             fewLongRides: weeksInPeriod >= 3 && longRideCount < expectedLongRidesLo && periodActivities.length >= 4,
             mostlyVirtual: periodActivities.length >= 5 && virtualCount / periodActivities.length > 0.65,
             lowElevationOpportunity: periodActivities.length >= 4 && avgElevPerWeek < 200 && avgKmPerWeek > 50,
-            lowWeeklyLoad: avgWeeklyLoad < 100,
-            highWeeklyLoad: avgWeeklyLoad > 400,
+            lowWeeklyLoad: avgWeeklyLoad < coachThresholds.lowWeeklyLoadTss,
+            highWeeklyLoad: avgWeeklyLoad > coachThresholds.highWeeklyLoadTss,
             loadTrendUp,
             loadTrendDown,
         };
@@ -422,6 +428,11 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
     const linkedEventGoal = fluidWeekPlan?.targetTssSource === 'event-goal'
         ? fluidWeekPlan.trainingGoal
         : null;
+
+    const activeEventGoal = useMemo(
+        () => getActiveTrainingGoal(referenceYmd),
+        [referenceYmd, planRevision],
+    );
 
     const horizonBundle = useMemo(
         () => buildEventHorizonFluidPlans({
@@ -491,6 +502,13 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
                 </div>
             </div>
 
+            <WeeklyTssBudgetCard
+                activities={activities}
+                userSettings={userSettings}
+                setUserSettings={setUserSettings}
+                referenceYmd={referenceYmd}
+            />
+
             {swot.coachFlags?.noData && (
                 <EmptyStateCard
                     icon={Activity}
@@ -555,9 +573,11 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
                     </select>
                 </label>
                 <p className="text-xs text-cdmuted mt-3">
-                    {linkedEventGoal
-                        ? `Shapes which days you train. Weekly TSS (${fluidWeekPlan.targetTss}) comes from your event goal in Goals & Planning — not the hours table (~${fluidWeekPlan.hoursBudgetTss} TSS at ${weeklyHoursTarget} h/wk). Yearly km/elevation goals on the Dashboard stay separate.`
-                        : 'Saved in Settings. Drives TSS targets, fluid workouts, and week rebalancing when no event goal is set.'}
+                    {fluidWeekPlan.targetTssSource === 'manual'
+                        ? `Manual TSS target (${fluidWeekPlan.targetTss}) overrides calculated targets this week. Fluid sessions still follow your schedule below.`
+                        : linkedEventGoal
+                            ? `Shapes which days you train. Weekly TSS (${fluidWeekPlan.targetTss}) comes from your event goal in Goals & Planning — not the hours table (~${fluidWeekPlan.hoursBudgetTss} TSS at ${weeklyHoursTarget} h/wk). Yearly km/elevation goals on the Dashboard stay separate.`
+                            : 'Saved in Settings. Drives TSS targets, fluid workouts, and week rebalancing when no event goal is set.'}
                 </p>
             </CollapsibleInfoCard>
 
@@ -579,6 +599,10 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
                     });
                 }}
             />
+
+            {activeEventGoal && (
+                <GoalWeeklyPlanSection goalSnapshot={activeEventGoal} />
+            )}
 
             <CoachFitnessForecast
                 activities={activities}
@@ -689,10 +713,10 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
                 )}
             </CollapsibleSection>
 
-            {/* --- Coachplan: acties + week + .zwo gekoppeld aan SWOT/data --- */}
+            {/* --- SWOT actions + structured workout downloads (.zwo) --- */}
             <CollapsibleSection
                 title={coachPlan.headline}
-                subtitle="Weekly proposal from your SWOT signals — adjust for schedule, weather, and recovery."
+                subtitle="Concrete actions from your SWOT signals. Your interactive week schedule is above — use these structured workouts for .zwo export."
                 icon={Target}
                 iconClassName="text-purple-400"
                 defaultExpanded={false}
@@ -714,58 +738,15 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
                     </label>
                 )}
             >
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div>
-                        <h4 className="text-sm font-bold text-cdtext uppercase tracking-wide mb-2 flex items-center gap-2">
-                            <ListChecks size={16} className="text-cdaccent" /> Concrete actions
-                        </h4>
-                        <ul className="list-disc list-inside space-y-2 text-sm text-cdtext leading-relaxed">
-                            {coachPlan.actions.map((line, i) => (
-                                <li key={i}>{line}</li>
-                            ))}
-                        </ul>
-                    </div>
-                    <div>
-                        <h4 className="text-sm font-bold text-cdtext uppercase tracking-wide mb-2">Example week (Mon–Sun)</h4>
-                        <div className="rounded-lg border border-cdborder overflow-hidden text-sm">
-                            <table className="w-full text-left">
-                                <thead>
-                                    <tr className="bg-cdborder/40 text-cdmuted text-xs uppercase">
-                                        <th className="px-3 py-2 font-semibold">Day</th>
-                                        <th className="px-3 py-2 font-semibold">Focus</th>
-                                        <th className="px-3 py-2 font-semibold w-24 text-right">.zwo</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="text-cdtext">
-                                    {coachPlan.weekPlan.map((row, i) => (
-                                        <tr key={i} className="border-t border-cdborder">
-                                            <td className="px-3 py-2 font-medium whitespace-nowrap">{row.day}</td>
-                                            <td className="px-3 py-2 text-cdmuted">
-                                                <span className="text-cdtext font-medium">{row.session}</span>
-                                                {row.detail ? (
-                                                    <span className="block text-xs mt-0.5">{row.detail}</span>
-                                                ) : null}
-                                            </td>
-                                            <td className="px-3 py-2 text-right align-top">
-                                                {row.workoutId && COACH_WORKOUT_LIBRARY[row.workoutId] ? (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleDownloadZwo(COACH_WORKOUT_LIBRARY[row.workoutId])}
-                                                        className="text-xs font-bold text-cdaccent hover:underline inline-flex items-center gap-1"
-                                                    >
-                                                        <Download size={12} />
-                                                        Download
-                                                    </button>
-                                                ) : (
-                                                    <span className="text-cdmuted text-xs">—</span>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                <div>
+                    <h4 className="text-sm font-bold text-cdtext uppercase tracking-wide mb-2 flex items-center gap-2">
+                        <ListChecks size={16} className="text-cdaccent" /> Concrete actions
+                    </h4>
+                    <ul className="list-disc list-inside space-y-2 text-sm text-cdtext leading-relaxed">
+                        {coachPlan.actions.map((line, i) => (
+                            <li key={i}>{line}</li>
+                        ))}
+                    </ul>
                 </div>
 
                 {coachPlan.workouts.length > 0 && (

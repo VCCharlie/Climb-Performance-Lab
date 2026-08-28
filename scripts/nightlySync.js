@@ -25,9 +25,11 @@
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getValidStravaAccessToken } from './stravaTokenManager.js';
-import { shouldPreferStravaTitle } from '../src/utils/stravaTitleHeuristics.js';
+import { shouldApplyStravaTitleOnMatch } from '../src/utils/stravaTitleSameDay.js';
 import { normalizeBikeComputerProfileTitles } from '../src/utils/bikeComputerProfileTitles.js';
 import { protectEnrichedFieldsOnMerge } from '../src/utils/firestoreActivityMerge.js';
+import { runIntervalsSyncWithStravaGapFill } from '../src/utils/runIntervalsSyncWithStravaGapFill.js';
+import { formatStravaGapFillSummary } from '../src/utils/importSyncStats.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -352,6 +354,10 @@ function matchStravaToFirestore(stravaActivities, firestoreActivities) {
         // Al gekoppeld via strava_id?
         const linked = byStravaId.get(stravaIdStr);
         if (linked) {
+            const siteDay = linked.date?.split('T')[0];
+            if (siteDay && stravaDate && siteDay !== stravaDate) {
+                continue;
+            }
             results.push({ strava, site: linked, type: 'linked' });
             usedFirestoreIds.add(linked.firestoreId || linked.id);
             continue;
@@ -407,7 +413,7 @@ async function enrichWithStrava(db, firestoreActivities, startDate, endDate, isD
     let enrichedCount = 0;
 
     for (const { strava, site, type } of matches) {
-        const needsTitle = shouldPreferStravaTitle(site.title, strava.name, {
+        const needsTitle = shouldApplyStravaTitleOnMatch(site, strava, {
             gearName: site.gear_name,
             deviceProfileTitles,
         });
@@ -489,6 +495,33 @@ async function enrichWithStrava(db, firestoreActivities, startDate, endDate, isD
     return enrichedCount;
 }
 
+async function resolveSettingsDocRef(db) {
+    const explicitId = process.env.FIREBASE_SETTINGS_DOC_ID;
+    if (explicitId) {
+        return db.doc(`settings/${explicitId}`);
+    }
+    const settingsSnaps = await db.collection('settings').limit(20).get();
+    const first = settingsSnaps.docs[0];
+    return first ? first.ref : null;
+}
+
+async function recordNightlySyncStatus(db, { activitiesSaved, isDryRun }) {
+    if (isDryRun) return;
+    try {
+        const ref = await resolveSettingsDocRef(db);
+        if (!ref) return;
+        await ref.set({
+            lastNightlySync: {
+                at: new Date().toISOString(),
+                activitiesSaved: Number(activitiesSaved) || 0,
+                summary: 'GitHub Actions nightly sync',
+            },
+        }, { merge: true });
+    } catch (err) {
+        console.warn('[SYNC] Could not record lastNightlySync on settings doc:', err.message);
+    }
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function runNightlySync() {
@@ -519,19 +552,49 @@ async function runNightlySync() {
             endDate,
         });
 
-        if (activities.length === 0) {
+        const existingDocs = await db.collection(FIRESTORE_COLLECTION).get();
+        const existingActivities = existingDocs.docs.map((d) => ({ ...d.data(), firestoreId: d.id }));
+
+        let intervalsToSave = activities;
+        let orphansToSave = [];
+
+        try {
+            const stravaToken = await getValidStravaAccessToken(db);
+            const gapResult = await runIntervalsSyncWithStravaGapFill({
+                intervalsActivities: activities,
+                existingActivities,
+                stravaToken,
+                startYmd: startDate,
+                endYmd: endDate,
+                allowedSportTypes: ACCEPTED_TYPES,
+            });
+            intervalsToSave = gapResult.intervalsActivities;
+            orphansToSave = gapResult.orphanActivities;
+            const gapSummary = formatStravaGapFillSummary(gapResult.stats);
+            if (gapSummary) {
+                console.log(`[STRAVA] Gap fill: ${gapSummary}`);
+            }
+        } catch (gapErr) {
+            console.warn('[STRAVA] Gap fill skipped:', gapErr.message);
+        }
+
+        const combinedActivities = [...intervalsToSave, ...orphansToSave];
+
+        let savedCount = 0;
+
+        if (combinedActivities.length === 0) {
             console.log('[SYNC] Geen activiteiten gevonden in de afgelopen 14 dagen.');
         } else {
-            console.log(`[SYNC] ${activities.length} activiteiten ontvangen.`);
+            console.log(`[SYNC] ${combinedActivities.length} activiteiten ontvangen (${intervalsToSave.length} Intervals, ${orphansToSave.length} Strava orphans).`);
 
-            const savedCount = await upsertToFirestore(db, activities, config.isDryRun);
+            savedCount = await upsertToFirestore(db, combinedActivities, config.isDryRun);
             const action = config.isDryRun ? 'zouden worden opgeslagen' : 'opgeslagen/bijgewerkt';
             console.log(`[SYNC] ✅ Succes! ${savedCount} activiteiten ${action} in Firebase.`);
         }
 
         // Stap 2: Strava verrijking — altijd draaien, ook als er geen nieuwe Intervals ritten zijn
-        const existingDocs = await db.collection(FIRESTORE_COLLECTION).get();
-        const allActivities = existingDocs.docs.map(d => ({ ...d.data(), firestoreId: d.id }));
+        const refreshedDocs = await db.collection(FIRESTORE_COLLECTION).get();
+        const allActivities = refreshedDocs.docs.map(d => ({ ...d.data(), firestoreId: d.id }));
         const windowActivities = allActivities.filter(a => {
             const d = a.date?.split('T')[0];
             return d && d >= startDate && d <= endDate;
@@ -542,6 +605,8 @@ async function runNightlySync() {
         } else {
             console.log('[STRAVA] Geen activiteiten in het sync-venster om te verrijken.');
         }
+
+        await recordNightlySyncStatus(db, { activitiesSaved: savedCount, isDryRun: config.isDryRun });
     } catch (error) {
         console.error('[ERROR] Sync mislukt:', error.message);
         process.exit(1);

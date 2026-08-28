@@ -272,4 +272,21 @@ describe('protectEnrichedFieldsOnMerge', () => {
     expect(out.gear_name).toBe('Road bike');
     expect(out.type).toBe('VirtualRide');
   });
+
+  it('preserves user tags when incoming sync omits them', () => {
+    const out = protectEnrichedFieldsOnMerge(
+      { id: '1', title: 'Morning Ride' },
+      { id: '1', tags: ['race', 'hilly'], user_notes: 'Felt good' },
+    );
+    expect(out.tags).toEqual(['race', 'hilly']);
+    expect(out.user_notes).toBe('Felt good');
+  });
+
+  it('clears user tags when incoming explicitly sends an empty tags array', () => {
+    const out = protectEnrichedFieldsOnMerge(
+      { id: '1', title: 'Morning Ride', tags: [] },
+      { id: '1', tags: ['race', 'hilly'] },
+    );
+    expect(out.tags).toEqual([]);
+  });
 });

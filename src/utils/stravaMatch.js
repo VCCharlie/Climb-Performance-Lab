@@ -5,6 +5,7 @@
  */
 
 import { climbingMetersFromStrava } from './stravaElevation';
+import { isSameCalendarDay } from './stravaTitleSameDay.js';
 
 // Fietstypes die we willen ophalen / koppelen
 export const STRAVA_BIKE_TYPES = new Set([
@@ -19,6 +20,23 @@ const STRAVA_EXCLUDED_TYPES = new Set([
 
 const INDOOR_BIKE_TYPES = new Set(['VirtualRide']);
 
+function isSiteIndoorVirtual(siteType) {
+    return INDOOR_BIKE_TYPES.has(String(siteType || '').trim());
+}
+
+function isStravaIndoorVirtual(stravaAct) {
+    const stravaType = String(stravaAct?.sport_type || stravaAct?.type || '').trim();
+    return INDOOR_BIKE_TYPES.has(stravaType) || stravaAct?.trainer === true;
+}
+
+/**
+ * Both sides are indoor/virtual — duration-based scoring is appropriate.
+ * A VirtualRide log row must not fuzzy-match an outdoor Strava Ride on duration alone.
+ */
+export function isIndoorVirtualPair(siteType, stravaAct) {
+    return isSiteIndoorVirtual(siteType) && isStravaIndoorVirtual(stravaAct);
+}
+
 export const isIncludedStravaType = (type) =>
     STRAVA_BIKE_TYPES.has(type) && !STRAVA_EXCLUDED_TYPES.has(type);
 
@@ -28,11 +46,8 @@ export const isIncludedStravaType = (type) =>
  * @returns {boolean}
  */
 export function isIndoorOrVirtualRide(siteType, stravaAct) {
-    const st = String(siteType || '').trim();
-    const stravaType = String(stravaAct?.sport_type || stravaAct?.type || '').trim();
-    return INDOOR_BIKE_TYPES.has(st)
-        || INDOOR_BIKE_TYPES.has(stravaType)
-        || stravaAct?.trainer === true;
+    return isSiteIndoorVirtual(siteType)
+        || isStravaIndoorVirtual(stravaAct);
 }
 
 /**
@@ -120,7 +135,8 @@ export function scoreStravaSiteMatch(site, stravaAct) {
     const timeDiff = timeDiffRatio(siteTimeSec, stravaTimeSec);
     const titleSim = stravaTitleSimilarity(site.title, stravaAct.name);
     const indoor = isIndoorOrVirtualRide(site.type, stravaAct);
-    const distanceUnreliable = indoor || siteDistKm < 1 || stravaDistKm < 1;
+    const indoorPair = isIndoorVirtualPair(site.type, stravaAct);
+    const distanceUnreliable = indoorPair || siteDistKm < 1 || stravaDistKm < 1;
 
     let confidence = null;
     let score;
@@ -243,6 +259,11 @@ export const matchStravaToSite = (stravaActivities, siteActivities) => {
         // Efficient O(1) Check: Al gekoppeld?
         const existing = siteByStravaId.get(stravaIdStr);
         if (existing) {
+            // Skip stale cross-day strava_id links (legacy adjacent-day auto-match).
+            // User must Unlink Strava and re-link via Find on Strava.
+            if (!isSameCalendarDay(existing, stravaAct)) {
+                continue;
+            }
             alreadyLinked.push({
                 strava: stravaAct,
                 site: existing,
@@ -266,6 +287,7 @@ export const matchStravaToSite = (stravaActivities, siteActivities) => {
         let best = null;
 
         for (const site of candidates) {
+            if (!isSameCalendarDay(site, stravaAct)) continue;
             const scored = scoreStravaSiteMatch(site, stravaAct);
             if (scored.confidence && (!best || scored.score < best.score)) {
                 best = {

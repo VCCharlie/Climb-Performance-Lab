@@ -14,7 +14,8 @@ describe('stravaLinkIntervalsFetch', () => {
         const out = linkIntervalsActivitiesToStravaList(intervals, strava);
         expect(out[0].strava_id).toBe('111');
         expect(out[0].gear_id).toBe('b1');
-        expect(out[0].title).toBe('Strava A');
+        expect(out[0].title).toBe('Ride A');
+        expect(out[0].strava_start_date).toBe('2026-05-01T10:02:00');
         expect(out[0].climbing).toBe(890);
         expect(out[0].climbing_from_strava).toBe(true);
         expect(out[1].strava_id).toBe('999');
@@ -32,7 +33,7 @@ describe('stravaLinkIntervalsFetch', () => {
         const out = linkIntervalsActivitiesToStravaList(intervals, strava);
 
         expect(out[0].strava_id).toBe('222');
-        expect(out[0].title).toBe('Correct Ride');
+        expect(out[0].title).toBe('Ride A');
     });
 
     it('does not link a ride to a nearby Strava activity with a very different distance', () => {
@@ -77,6 +78,19 @@ describe('stravaLinkIntervalsFetch', () => {
 
         expect(out[0].strava_id).toBe('111');
         expect(out[1].strava_id).toBeUndefined();
+    });
+
+    it('does not link a Strava id reserved by another log row', () => {
+        const intervals = [
+            { id: 'i1', date: '2026-05-01T10:00:00', title: 'Candidate', type: 'Ride', distance: 50 },
+        ];
+        const strava = [
+            { id: 111, start_date_local: '2026-05-01T10:02:00', name: 'Taken', sport_type: 'Ride', distance: 50000 },
+        ];
+
+        const out = linkIntervalsActivitiesToStravaList(intervals, strava, { reservedStravaIds: ['111'] });
+
+        expect(out[0].strava_id).toBeUndefined();
     });
 
     it('applyStravaFuzzyMatchesToIntervals links same-day ride by distance/duration', () => {

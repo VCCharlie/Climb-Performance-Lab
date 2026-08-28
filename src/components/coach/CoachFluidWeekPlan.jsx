@@ -161,8 +161,8 @@ const CoachFluidWeekPlan = ({
                     }}
                     className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded-full border transition-colors ${
                         showHorizon
-                            ? 'border-cdaccent bg-cdaccent/15 text-cdaccent'
-                            : 'border-cdborder text-cdmuted hover:text-cdtext'
+                            ? 'border-cdaccent/40 text-cdtext bg-cdborder/10'
+                            : 'border-cdborder text-cdmuted hover:text-cdtext hover:border-cdborder/80'
                     }`}
                 >
                     {horizonToggleLabel}
@@ -181,8 +181,8 @@ const CoachFluidWeekPlan = ({
                         title="List view"
                         className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2.5 py-1 rounded-full border transition-colors ${
                             viewMode === COACH_WEEK_VIEW_MODES.LIST
-                                ? 'border-cdaccent bg-cdaccent/15 text-cdaccent'
-                                : 'border-cdborder text-cdmuted hover:text-cdtext'
+                                ? 'border-cdaccent/40 text-cdtext bg-cdborder/10'
+                                : 'border-cdborder text-cdmuted hover:text-cdtext hover:border-cdborder/80'
                         }`}
                     >
                         <LayoutList size={12} aria-hidden />
@@ -195,8 +195,8 @@ const CoachFluidWeekPlan = ({
                         title="Calendar view"
                         className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2.5 py-1 rounded-full border transition-colors ${
                             viewMode === COACH_WEEK_VIEW_MODES.CALENDAR
-                                ? 'border-cdaccent bg-cdaccent/15 text-cdaccent'
-                                : 'border-cdborder text-cdmuted hover:text-cdtext'
+                                ? 'border-cdaccent/40 text-cdtext bg-cdborder/10'
+                                : 'border-cdborder text-cdmuted hover:text-cdtext hover:border-cdborder/80'
                         }`}
                     >
                         <LayoutGrid size={12} aria-hidden />
@@ -205,16 +205,18 @@ const CoachFluidWeekPlan = ({
                 </div>
 
                 {showHorizon && horizonWeekCount > 1 && (
-                    <p className="text-[11px] text-cdmuted mb-2">
-                        Scroll sideways through each week until your event — phases and TSS targets follow your Goals plan.
+                    <p className="text-[10px] text-cdmuted mb-1.5">
+                        Scroll sideways — phases and TSS follow your Goals plan.
                     </p>
                 )}
 
-                <div className="-mx-1 px-1 pt-2 overflow-visible">
+                <div className="-mx-1 px-1 pt-2 pb-1 overflow-x-hidden max-w-full">
                     <div
                         className={[
-                            'flex gap-4 overflow-x-auto overflow-y-visible snap-x snap-mandatory pb-2',
-                            visibleWeeks.length > 1 ? 'scroll-smooth' : '',
+                            'flex gap-4 sm:gap-5 pb-4 pt-1 items-start max-w-full',
+                            visibleWeeks.length > 1
+                                ? 'overflow-x-auto overflow-y-visible snap-x snap-mandatory scroll-smooth'
+                                : 'overflow-x-hidden',
                         ].join(' ')}
                     >
                     {visibleWeeks.map((plan, index) => {
@@ -222,6 +224,8 @@ const CoachFluidWeekPlan = ({
                         const handlers = makeWeekHandlers(plan);
                         const isPreview = plan.isHorizonPreview
                             || (plan.mondayYmd > today);
+                        const isCompareColumn = visibleWeeks.length > 1 && index > 0;
+                        const alignHorizon = visibleWeeks.length > 1;
                         return (
                             <FluidWeekPanel
                                 key={plan.mondayYmd || index}
@@ -231,9 +235,16 @@ const CoachFluidWeekPlan = ({
                                 onToggleExpand={toggleExpand}
                                 expandKeyPrefix={expandKeyPrefix}
                                 isPreview={isPreview}
+                                compact={isCompareColumn}
+                                alignHorizon={alignHorizon}
+                                showClimbingHint={!isCompareColumn}
                                 className={[
-                                    'min-w-[min(100%,340px)] max-w-full flex-shrink-0 snap-center overflow-visible',
-                                    index > 0 ? 'border-l border-cdborder/50 pl-4' : '',
+                                    'w-full max-w-full min-w-0 flex-shrink-0 snap-center overflow-x-hidden',
+                                    isCompareColumn
+                                        ? 'sm:min-w-[min(78%,280px)] sm:w-auto border-l border-cdborder/40 pl-4'
+                                        : visibleWeeks.length > 1
+                                            ? 'min-w-[min(100%,300px)]'
+                                            : '',
                                 ].join(' ')}
                                 viewMode={viewMode}
                                 activities={activities}
@@ -249,7 +260,7 @@ const CoachFluidWeekPlan = ({
                 </div>
 
                 {visibleWeeks.length > 1 && (
-                    <p className="text-[10px] text-cdmuted text-center mt-2">
+                    <p className="text-[9px] text-cdmuted text-center mt-1">
                         Swipe or scroll sideways to compare weeks
                     </p>
                 )}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshCw, Sparkles, Ban, TrendingUp, Bike, Flame, Mountain } from 'lucide-react';
+import { RefreshCw, Sparkles, Ban, Bike, Flame, Mountain } from 'lucide-react';
 import { formatDateDDMMYYYY } from '../../utils/formatters';
 import { COACH_WEEK_VIEW_MODES } from '../../utils/coach/coachWeekCalendar';
 import { computeCtlWeekOverWeekDelta } from '../../utils/coach/coachWeekCtlDelta';
@@ -10,17 +10,14 @@ import {
     buildWeekDayTssMap,
     tssBubbleSizePx,
 } from '../../utils/coach/coachWeekCalendarTss';
+import {
+    computeWeekTssProjection,
+    computeWeekPlannedHours,
+    planHoursExceedBudget,
+} from '../../utils/coach/fluidWeekStats';
 import FluidWeekSessionCard from './FluidWeekSessionCard';
 import FluidWeekCalendar from './FluidWeekCalendar';
-
-function StatPill({ icon: Icon, label }) {
-    return (
-        <span className="inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-cdborder/25 text-cdmuted">
-            <Icon size={10} className="text-cdaccent shrink-0" />
-            {label}
-        </span>
-    );
-}
+import CollapsibleCoachNote from './CollapsibleCoachNote';
 
 export default function FluidWeekPanel({
     title,
@@ -36,6 +33,7 @@ export default function FluidWeekPanel({
     onClearAvailability,
     expandKeyPrefix = '',
     isPreview = false,
+    compact = false,
     className = '',
     viewMode = COACH_WEEK_VIEW_MODES.LIST,
     activities = [],
@@ -43,6 +41,8 @@ export default function FluidWeekPanel({
     referenceYmd = todayYmd(),
     userSettings = null,
     compactCalendar = false,
+    alignHorizon = false,
+    showClimbingHint = true,
 }) {
     const ctlDelta = React.useMemo(
         () => computeCtlWeekOverWeekDelta(activities, weekPlan.mondayYmd, referenceYmd),
@@ -62,13 +62,28 @@ export default function FluidWeekPanel({
         [weekPlan, activities, weeklyHours],
     );
 
+    const tssProjection = React.useMemo(
+        () => computeWeekTssProjection(weekPlan, activities, weeklyHours),
+        [weekPlan, activities, weeklyHours],
+    );
+
+    const plannedHoursStats = React.useMemo(
+        () => computeWeekPlannedHours(weekPlan, weeklyHours),
+        [weekPlan, weeklyHours],
+    );
+
+    const hoursExceedBudget = React.useMemo(
+        () => planHoursExceedBudget(plannedHoursStats.plannedHours, weeklyHours),
+        [plannedHoursStats.plannedHours, weeklyHours],
+    );
+
     const maxDayTss = React.useMemo(() => {
         const values = Object.values(dayTssMap);
         return values.length ? Math.max(...values) : 0;
     }, [dayTssMap]);
 
     const climbingReadinessHint = React.useMemo(() => {
-        if (!activities?.length) return null;
+        if (!showClimbingHint || !activities?.length) return null;
         const ftp = resolveEffectiveProfileFtp(userSettings || {}, activities).ftp || 0;
         const referenceDate = new Date(`${referenceYmd}T12:00:00`);
         const readiness = computeClimbingReadiness({
@@ -82,104 +97,151 @@ export default function FluidWeekPanel({
         return readiness.hints?.[0] || readiness.badge?.label || null;
     }, [activities, userSettings, referenceYmd]);
 
-    const progressColor = weekPlan.compliancePct > 115
-        ? 'bg-orange-400'
-        : weekPlan.compliancePct > 100
-            ? 'bg-cdprimary'
-            : 'bg-cdaccent';
+    const progressFill = weekPlan.compliancePct > 100 ? 'bg-cdborder/70' : 'bg-cdaccent/70';
+
+    const dateRange = `${formatDateDDMMYYYY(weekPlan.mondayYmd)} – ${formatDateDDMMYYYY(weekPlan.sundayYmd)}`;
+    const metaParts = [
+        weekPlan.phaseLabel,
+        weekPlan.plannedSkeletonTss > 0 ? `~${weekPlan.plannedSkeletonTss} TSS` : null,
+    ].filter(Boolean);
+
+    const noteSlotClass = alignHorizon ? 'min-h-[28px]' : '';
+    const headerClass = alignHorizon ? 'min-h-[96px]' : '';
+    const ctlRowClass = alignHorizon ? 'min-h-[14px]' : '';
+    const clearRowClass = alignHorizon ? 'min-h-[18px]' : '';
+    const dayRowMinClass = alignHorizon
+        ? (compact ? 'min-h-[52px]' : 'min-h-[58px]')
+        : 'min-h-[48px] md:min-h-0';
 
     return (
         <section className={`flex flex-col min-h-0 ${className}`}>
-            <header className="mb-3">
-                <div className="flex items-baseline justify-between gap-2">
-                    <div className="min-w-0">
-                        <h4 className="text-sm font-bold text-cdtext">{title}</h4>
-                        {isPreview && (
-                            <span className="text-[9px] font-bold uppercase tracking-wide text-cdmuted">
-                                Preview
-                            </span>
+            <header className={`mb-3 ${headerClass}`}>
+                <div className="flex items-center gap-2 min-w-0">
+                    <div className="min-w-0 flex-1">
+                        <div className="flex items-baseline gap-1.5 min-w-0">
+                            <h4 className={`font-bold text-cdtext truncate ${compact ? 'text-[11px]' : 'text-xs'}`}>
+                                {title}
+                            </h4>
+                            {isPreview && (
+                                <span className="text-[8px] font-bold uppercase tracking-wide text-cdmuted shrink-0">
+                                    Preview
+                                </span>
+                            )}
+                        </div>
+                        <p className={`text-cdmuted truncate ${compact ? 'text-[9px]' : 'text-[10px]'}`}>
+                            {dateRange}
+                            {metaParts.length > 0 ? ` · ${metaParts.join(' · ')}` : ''}
+                        </p>
+                        <p
+                            className={`text-cdmuted tabular-nums leading-snug ${compact ? 'text-[8px] mt-0.5' : 'text-[9px] mt-0.5'}`}
+                            title="Logged TSS from rides · projected if you finish remaining sessions (excl. missed/blocked) · weekly target · planned moving time vs hours budget"
+                        >
+                            Logged {tssProjection.loggedTss}
+                            {' · '}
+                            Projected {tssProjection.projectedTss}
+                            {' · '}
+                            Target {tssProjection.targetTss}
+                            {' · '}
+                            ~{plannedHoursStats.plannedHours} h planned / {weeklyHours} h budget
+                        </p>
+                        {hoursExceedBudget && (
+                            <p className={`text-cdmuted leading-snug ${compact ? 'text-[8px] mt-0.5' : 'text-[9px] mt-0.5'}`}>
+                                Plan hours exceed weekly budget — TSS target driven by event goal.
+                            </p>
                         )}
                     </div>
-                    <div className="text-right tabular-nums">
-                        <span className="text-lg font-bold text-cdtext">{weekPlan.actualTss}</span>
-                        <span className="text-cdmuted text-sm"> / {weekPlan.targetTss}</span>
-                        <span className="text-[9px] text-cdmuted uppercase block">TSS</span>
-                        {ctlDelta && (
-                            <span
-                                className={`text-[9px] font-bold tabular-nums block mt-0.5 ${
-                                    ctlDelta.delta > 0 ? 'text-emerald-400' : ctlDelta.delta < 0 ? 'text-orange-400' : 'text-cdmuted'
-                                }`}
-                            >
-                                CTL {ctlDelta.delta > 0 ? '+' : ''}{ctlDelta.delta} vs last week
+
+                    <div className="flex flex-col items-end gap-0.5 shrink-0 tabular-nums">
+                        <div className="flex items-center gap-1.5">
+                            <span className={`font-bold text-cdtext ${compact ? 'text-xs' : 'text-sm'}`}>
+                                {weekPlan.actualTss}
+                                <span className="text-cdmuted font-normal text-[10px]">/{weekPlan.targetTss}</span>
                             </span>
-                        )}
+                            <div
+                                className={`rounded-full bg-cdborder/30 overflow-hidden ${compact ? 'w-10 h-0.5' : 'w-14 h-1'}`}
+                                title={`${weekPlan.compliancePct}% of weekly target`}
+                            >
+                                <div
+                                    className={`h-full rounded-full transition-all duration-500 ${progressFill}`}
+                                    style={{ width: `${Math.min(100, weekPlan.compliancePct)}%` }}
+                                />
+                            </div>
+                            <span className="text-[9px] text-cdmuted" title="Sessions done">
+                                <Bike size={9} className="inline -mt-px mr-0.5 text-cdmuted" aria-hidden />
+                                {stats.done}/{stats.planned}
+                            </span>
+                            <span className="text-[9px] text-cdmuted" title="Hard sessions">
+                                <Flame size={9} className="inline -mt-px mr-0.5 text-cdmuted" aria-hidden />
+                                {weekPlan.hardSessions}
+                            </span>
+                        </div>
+                        <span className={`text-cdmuted ${compact ? 'text-[8px]' : 'text-[9px]'}`}>
+                            Proj. {tssProjection.projectedTss} TSS
+                        </span>
                     </div>
                 </div>
-                <p className="text-[11px] text-cdmuted mt-0.5">
-                    {formatDateDDMMYYYY(weekPlan.mondayYmd)} – {formatDateDDMMYYYY(weekPlan.sundayYmd)}
-                    {weekPlan.phaseLabel ? ` · ${weekPlan.phaseLabel}` : ''}
-                    {weekPlan.plannedSkeletonTss > 0 && (
-                        <>
-                            {' · '}
-                            <span title="Estimated TSS if you complete all planned sessions">
-                                ~{weekPlan.plannedSkeletonTss} TSS planned
-                            </span>
-                        </>
+
+                <div className={ctlRowClass}>
+                    {ctlDelta && !compact && (
+                        <p className="text-[9px] font-semibold tabular-nums mt-0.5 text-cdmuted">
+                            CTL {ctlDelta.delta > 0 ? '+' : ''}{ctlDelta.delta} vs last week
+                        </p>
                     )}
-                </p>
+                </div>
             </header>
 
-            <div className="flex flex-wrap gap-1.5 mb-2">
-                <StatPill icon={TrendingUp} label={`${weekPlan.compliancePct}%`} />
-                <StatPill icon={Bike} label={`${stats.done}/${stats.planned}`} />
-                <StatPill icon={Flame} label={`${weekPlan.hardSessions} hard`} />
-            </div>
-
-            <div className="h-1.5 rounded-full bg-cdborder/40 overflow-hidden mb-3">
-                <div
-                    className={`h-full rounded-full transition-all duration-500 ${progressColor}`}
-                    style={{ width: `${Math.min(100, weekPlan.compliancePct)}%` }}
-                />
-            </div>
-
-            {weekPlan.availabilityNote && (
-                <p className="text-[11px] text-orange-300 mb-2 flex items-start gap-1.5 bg-orange-500/10 rounded-md px-2 py-1.5">
-                    <Ban size={11} className="shrink-0 mt-0.5" />
-                    {weekPlan.availabilityNote}
-                </p>
-            )}
-
-            {weekPlan.rebalanceNote && (
-                <div className="text-[11px] text-cdaccent mb-2 flex items-start gap-1.5 bg-cdaccent/10 rounded-md px-2 py-1.5 leading-relaxed">
-                    <RefreshCw size={11} className="shrink-0 mt-0.5" aria-hidden />
-                    <p className="min-w-0">{weekPlan.rebalanceNote}</p>
+            <div className={alignHorizon ? 'min-h-[92px] mb-1' : 'mb-0'}>
+                <div className={noteSlotClass}>
+                    {weekPlan.availabilityNote && (
+                        <CollapsibleCoachNote
+                            text={weekPlan.availabilityNote}
+                            icon={Ban}
+                            expandLabel="Details"
+                            tone="warn"
+                            maxSummaryLen={compact ? 72 : 96}
+                        />
+                    )}
                 </div>
-            )}
 
-            {climbingReadinessHint && (
-                <p className="text-[11px] text-cdmuted mb-2 flex items-start gap-1.5 bg-cdborder/20 rounded-md px-2 py-1.5 leading-relaxed">
-                    <Mountain size={11} className="shrink-0 mt-0.5 text-cdaccent" aria-hidden />
-                    <span>
-                        <span className="font-semibold text-cdtext">Climbing readiness: </span>
-                        {climbingReadinessHint}
-                    </span>
-                </p>
-            )}
+                <div className={noteSlotClass}>
+                    {weekPlan.rebalanceNote && (
+                        <CollapsibleCoachNote
+                            text={weekPlan.rebalanceNote}
+                            icon={RefreshCw}
+                            expandLabel="Why?"
+                            tone="muted"
+                            maxSummaryLen={compact ? 72 : 96}
+                        />
+                    )}
+                </div>
 
-            {(weekPlan.hasAvailabilityBlocks || weekPlan.hasExplicitAvailability) && onClearAvailability && (
-                <div className="mb-2 flex justify-end">
+                <div className={noteSlotClass}>
+                    {climbingReadinessHint && (
+                        <CollapsibleCoachNote
+                            text={climbingReadinessHint}
+                            icon={Mountain}
+                            expandLabel="Climbing tip"
+                            tone="muted"
+                            maxSummaryLen={80}
+                        />
+                    )}
+                </div>
+            </div>
+
+            <div className={`mb-1 flex justify-end ${clearRowClass}`}>
+                {(weekPlan.hasAvailabilityBlocks || weekPlan.hasExplicitAvailability) && onClearAvailability ? (
                     <button
                         type="button"
                         onClick={onClearAvailability}
-                        className="text-[10px] text-cdmuted hover:text-cdtext underline"
+                        className="text-[9px] text-cdmuted hover:text-cdtext underline"
                     >
                         Clear availability
                     </button>
-                </div>
-            )}
+                ) : null}
+            </div>
 
             {viewMode === COACH_WEEK_VIEW_MODES.CALENDAR ? (
-                <div className="flex-1 overflow-y-auto overflow-x-visible max-h-[min(70vh,520px)] pr-0.5 pt-1">
+                <div className="flex-1 overflow-y-auto overflow-x-hidden max-h-[min(70vh,480px)] pr-0.5 pt-1">
                     <FluidWeekCalendar
                         weekPlan={weekPlan}
                         expandedDate={expandedDate}
@@ -193,30 +255,46 @@ export default function FluidWeekPanel({
                         expandKeyPrefix={expandKeyPrefix}
                         activities={activities}
                         weeklyHours={weeklyHours}
-                        compactBubble={compactCalendar}
+                        compactBubble={compactCalendar || compact}
+                        compact={compact}
                     />
                 </div>
             ) : (
-                <div className="space-y-1 flex-1 overflow-y-auto max-h-[min(70vh,520px)] pr-0.5">
+                <div className={`flex-1 overflow-y-auto overflow-x-hidden max-h-[min(70vh,480px)] pr-0.5 ${
+                    alignHorizon ? 'flex flex-col gap-2' : compact ? 'space-y-2' : 'space-y-2.5'
+                }`}>
                     {weekPlan.sessions.map((session) => {
                         const expandKey = `${expandKeyPrefix}${session.date}`;
+                        const isExpanded = expandedDate === expandKey;
                         const dayTss = dayTssMap[session.date] || 0;
-                        const bubbleSize = tssBubbleSizePx(dayTss, maxDayTss, { minPx: 6, maxPx: 16 });
+                        const bubbleSize = tssBubbleSizePx(dayTss, maxDayTss, {
+                            minPx: compact ? 4 : 6,
+                            maxPx: compact ? 12 : 16,
+                        });
+                        const rowClass = isExpanded
+                            ? 'min-h-0'
+                            : dayRowMinClass;
                         return (
-                            <FluidWeekSessionCard
+                            <div
                                 key={session.date}
-                                session={session}
-                                dayTss={dayTss}
-                                tssBubbleSizePx={bubbleSize}
-                                expanded={expandedDate === expandKey}
-                                onToggleExpand={() => onToggleExpand(expandKey)}
-                                onToggleDone={() => onToggleDone(session.date)}
-                                onSwapRecovery={() => onSwapRecovery(session.date)}
-                                onMoveToToday={() => onMoveToToday(session.movedFromDate || session.date)}
-                                onUndoMove={() => onUndoMove(session.movedFromDate || session.date)}
-                                onToggleUnavailable={() => onToggleUnavailable(session.date)}
-                                onToggleAvailable={() => onToggleAvailable(session.date)}
-                            />
+                                className={['max-w-full min-w-0', rowClass].filter(Boolean).join(' ')}
+                            >
+                                <FluidWeekSessionCard
+                                    session={session}
+                                    dayTss={dayTss}
+                                    tssBubbleSizePx={bubbleSize}
+                                    expanded={isExpanded}
+                                    onToggleExpand={() => onToggleExpand(expandKey)}
+                                    onToggleDone={() => onToggleDone(session.date)}
+                                    onSwapRecovery={() => onSwapRecovery(session.date)}
+                                    onMoveToToday={() => onMoveToToday(session.movedFromDate || session.date)}
+                                    onUndoMove={() => onUndoMove(session.movedFromDate || session.date)}
+                                    onToggleUnavailable={() => onToggleUnavailable(session.date)}
+                                    onToggleAvailable={() => onToggleAvailable(session.date)}
+                                    compact={compact}
+                                    alignRow={alignHorizon}
+                                />
+                            </div>
                         );
                     })}
                 </div>
@@ -227,10 +305,10 @@ export default function FluidWeekPanel({
 
 export function FluidWeekSyncNote({ isSignedIn }) {
     return (
-        <p className="text-[11px] text-cdmuted mb-3 flex items-start gap-1.5">
-            <Sparkles size={12} className="shrink-0 mt-0.5 text-cdaccent" />
+        <p className="text-[10px] text-cdmuted mb-2 flex items-start gap-1">
+            <Sparkles size={10} className="shrink-0 mt-0.5 text-cdmuted" aria-hidden />
             {isSignedIn
-                ? 'Blocked days and moves sync when signed in. Sessions reschedule to open days.'
+                ? 'Blocked days and moves sync when signed in.'
                 : 'Sign in to sync blocked days across devices.'}
         </p>
     );

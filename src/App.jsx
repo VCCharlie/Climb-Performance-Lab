@@ -54,7 +54,8 @@ import useStravaAuth from './hooks/useStravaAuth';
 import useTouchFocusRelease from './hooks/useTouchFocusRelease';
 import { applyTheme } from './theme/applyTheme';
 import { consumeNavRestore, persistMainTab, readPersistedMainTab, resolveInitialMainTab, resolveInitialDataHubInternalTab } from './utils/sessionNavRestore';
-import { mergeVolumeGoals, hydrateYearlyGoalsFromLegacy } from './utils/volumeGoals';
+import { mergeUserSettingsWithDefaults } from './utils/userSettingsMerge';
+import { resetUserSettingsPreservingSecrets } from './utils/resetUserSettings';
 import {
     clearSensitiveLocalStorage,
     consumeExplicitSignOut,
@@ -167,19 +168,7 @@ const App = () => {
         if (saved) {
             try {
                 const parsed = JSON.parse(saved);
-                // Corrupt localStorage (non-object JSON) must not crash the app on spread.
-                if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-                    return defaults;
-                }
-                return {
-                    ...defaults,
-                    ...parsed,
-                    volumeGoals: mergeVolumeGoals(parsed.volumeGoals),
-                    goals: hydrateYearlyGoalsFromLegacy(
-                        { ...defaults.goals, ...parsed.goals },
-                        parsed.volumeGoals,
-                    ),
-                };
+                return mergeUserSettingsWithDefaults(parsed);
             } catch { /* */ }
         }
         return defaults;
@@ -226,6 +215,8 @@ const App = () => {
         if (saved) { try { return JSON.parse(saved); } catch { /* */ } }
         return null;
     });
+
+    const [nightlySyncStatus, setNightlySyncStatus] = useState(null);
 
     // Globale periode-selector: gedeeld tussen Dashboard en andere tabs
     const [timeRange, setTimeRange] = useState(() => localStorage.getItem('dashboard_timeRange') || '1Y');
@@ -386,6 +377,7 @@ const App = () => {
             totalCarbs: null,
             altitude: 0,
             fromRacePacing: false,
+            climbTimeline: [],
         }),
     );
     const [bucketListState, setBucketListState] = useState(() => {
@@ -683,6 +675,9 @@ const App = () => {
                     if (data.intervals) {
                         setIntervalsConfig((prev) => mergeIntervalsConfigFromCloud(data.intervals, prev));
                     }
+                    if (data.lastNightlySync?.at) {
+                        setNightlySyncStatus(data.lastNightlySync);
+                    }
                     if (data.body) {
                         let localPrev = getDefaultUserSettings();
                         try {
@@ -697,12 +692,7 @@ const App = () => {
                             user.uid,
                         );
                         if (cancelled) return;
-                        setUserSettings((prev) => {
-                            const merged = { ...prev, ...mergedBody };
-                            merged.volumeGoals = mergeVolumeGoals(data.body.volumeGoals ?? prev.volumeGoals);
-                            merged.goals = hydrateYearlyGoalsFromLegacy(merged.goals, merged.volumeGoals);
-                            return merged;
-                        });
+                        setUserSettings((prev) => mergeUserSettingsWithDefaults({ ...prev, ...mergedBody }));
                     }
                     if (data.theme) {
                         setTheme(data.theme);
@@ -1080,9 +1070,14 @@ const App = () => {
         }
     };
 
+    const handleResetUserSettings = async () => {
+        setUserSettings((prev) => resetUserSettingsPreservingSecrets(prev));
+        notify('Settings reset to defaults. API keys were kept.', { variant: 'success' });
+    };
+
     const handleImportBackup = (backupData) => {
         if (backupData.settings) {
-            setUserSettings((prev) => ({ ...prev, ...backupData.settings }));
+            setUserSettings((prev) => mergeUserSettingsWithDefaults({ ...prev, ...backupData.settings }));
         }
         if (backupData.intervals) {
             setIntervalsConfig((prev) => ({ ...prev, ...backupData.intervals }));
@@ -1366,10 +1361,12 @@ const App = () => {
                                                         endDate={globalEndDate}
                                                         isSignedIn={Boolean(user)}
                                                         onOpenRecovery={() => setTrainingSubTab('recovery')}
+                                                        onOpenCoach={() => setTrainingSubTab('coach')}
                                                     />
                                                 )}
                                                 {trainingSubTab === 'recovery' && (
                                                     <RecoveryAdvisor
+                                                        userSettings={userSettings}
                                                         startDate={globalStartDate}
                                                         endDate={globalEndDate}
                                                         onGoToActivities={navigateToActivities}
@@ -1405,6 +1402,7 @@ const App = () => {
                                                 initialCarbsPerHour={fuelingState.carbsPerHour}
                                                 initialTotalCarbs={fuelingState.totalCarbs}
                                                 initialAltitude={fuelingState.altitude}
+                                                initialClimbTimeline={fuelingState.climbTimeline}
                                                 fromRacePacing={fuelingState.fromRacePacing}
                                                 onStateChange={setFuelingState}
                                             />
@@ -1423,6 +1421,7 @@ const App = () => {
                                                         totalCarbs: handoff.totalCarbs,
                                                         altitude: handoff.altitude,
                                                         fromRacePacing: true,
+                                                        climbTimeline: handoff.climbTimeline || [],
                                                     });
                                                     setRaceSubTab('fueling');
                                                 }}
@@ -1544,12 +1543,14 @@ const App = () => {
                                     activityLogFilter: readActivityLogFilterState(),
                                 }}
                                 onImportBackup={handleImportBackup}
+                                onResetUserSettings={handleResetUserSettings}
                                 onCleanupCloudTokens={cleanupCloudTokens}
                                 stravaConfig={stravaConfig}
                                 isSignedIn={Boolean(user)}
                                 updateStravaConfig={updateStravaConfig}
                                 stravaAuth={stravaAuth}
                                 onGoToActivitiesSync={navigateToActivitiesSync}
+                                nightlySyncStatus={nightlySyncStatus}
                             />
                         )}
                     </main>

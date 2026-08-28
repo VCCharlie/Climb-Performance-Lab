@@ -44,3 +44,43 @@ export function countMergeCategories(incoming, existingActivities) {
     }
     return { newCount, updatedCount };
 }
+
+/**
+ * Summarize Strava gap-fill results for sync feedback.
+ * @param {{ intervalsCount?: number, orphansAdded?: number, stravaAlreadyLinked?: number, stravaLinkedToIntervals?: number, importReplacedCount?: number }} gapStats
+ * @returns {string[]}
+ */
+export function formatStravaGapFillSummaryParts(gapStats = {}) {
+    const parts = [];
+    const intervalsCount = Number(gapStats.intervalsCount) || 0;
+    const orphansAdded = Number(gapStats.orphansAdded) || 0;
+    const alreadyLinked = Number(gapStats.stravaAlreadyLinked) || 0;
+    const linkedToIntervals = Number(gapStats.stravaLinkedToIntervals) || 0;
+    const replaced = Number(gapStats.importReplacedCount) || 0;
+
+    if (intervalsCount > 0) {
+        parts.push(`${intervalsCount} from Intervals`);
+    }
+    if (orphansAdded > 0) {
+        parts.push(`${orphansAdded} Strava orphan${orphansAdded === 1 ? '' : 's'} added`);
+    }
+    if (alreadyLinked > 0) {
+        parts.push(`${alreadyLinked} Strava unmatched (already linked)`);
+    }
+    if (linkedToIntervals > 0 && orphansAdded === 0 && alreadyLinked === 0) {
+        parts.push(`${linkedToIntervals} Strava linked to Intervals`);
+    }
+    if (replaced > 0) {
+        parts.push(`${replaced} orphan merge(s) with existing Strava row(s)`);
+    }
+    return parts;
+}
+
+/**
+ * @param {{ intervalsCount?: number, orphansAdded?: number, stravaAlreadyLinked?: number }} gapStats
+ * @returns {string}
+ */
+export function formatStravaGapFillSummary(gapStats = {}) {
+    const parts = formatStravaGapFillSummaryParts(gapStats);
+    return parts.length > 0 ? parts.join(' · ') : '';
+}

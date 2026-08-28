@@ -73,6 +73,7 @@ export function applyFilterSnapshotToSetters(snapshot, setters) {
     apply('setGravelRideChip', 'gravelRideChip', false);
     apply('setMtbRideChip', 'mtbRideChip', false);
     apply('setEbikeRideChip', 'ebikeRideChip', false);
+    apply('setHasTagOnly', 'hasTagOnly', false);
     apply('setMinTss', 'minTss', '');
     apply('setFilterGearId', 'filterGearId', '');
     apply('setActiveMetricPresetIds', 'activeMetricPresetIds', []);

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useId } from 'react';
+import React, { useState, useMemo, useCallback, useId, useEffect } from 'react';
 import {
   Mountain,
   Info,
@@ -12,11 +12,14 @@ import {
   Timer,
   Flame,
   Ruler,
-  Route
+  Route,
+  Activity
 } from 'lucide-react';
 import { COGGAN_ZONES } from '../cogganZones';
 import { summarizeClimbPhysics } from '../utils';
 import ClimbSelector from './shared/ClimbSelector';
+import { useActivitiesList } from '../hooks/useActivities';
+import { estimateClimbWithPowerCurve } from '../utils/climbPowerDuration';
 import {
   computePhysicsClimb,
   estimateSteadyTss,
@@ -28,6 +31,7 @@ import {
   formatSignedHorizontalDelta,
   EMPTY_PHYSICS_CALC
 } from '../utils/physicsEngineCore';
+import { resolvePhysicsParams } from '../utils/physicsConstants';
 import PhysicsStagePanel from './physics/PhysicsStagePanel';
 
 const VISUAL_MAX = 1.6;
@@ -48,16 +52,33 @@ const physicsParams = (selectedClimb, userSettings, mode, targetTimeStr, targetW
 });
 
 const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateClimb }) => {
+  const activities = useActivitiesList();
   const markerFilterId = `physics-marker-glow-${useId().replace(/:/g, '')}`;
+  const physicsDefaults = resolvePhysicsParams(userSettings);
 
   const [mode, setMode] = useState('target');
   const [targetTimeStr, setTargetTimeStr] = useState('59:00');
   const [targetWatts, setTargetWatts] = useState(userSettings.ftp);
 
-  const [cda, setCda] = useState(0.32);
-  const [crr, setCrr] = useState(0.004);
-  const [loss, setLoss] = useState(0.03);
+  const [cda, setCda] = useState(physicsDefaults.cda);
+  const [crr, setCrr] = useState(physicsDefaults.crr);
+  const [loss, setLoss] = useState(physicsDefaults.drivetrainLossFraction);
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  useEffect(() => {
+    const next = resolvePhysicsParams(userSettings);
+    setCda(next.cda);
+    setCrr(next.crr);
+    setLoss(next.drivetrainLossFraction);
+  }, [userSettings?.physics]);
+
+  const persistPhysics = useCallback((patch) => {
+    if (!setUserSettings) return;
+    setUserSettings((prev) => ({
+      ...prev,
+      physics: { ...resolvePhysicsParams(prev), ...patch },
+    }));
+  }, [setUserSettings]);
 
   const [showCompare, setShowCompare] = useState(false);
   const [showStage, setShowStage] = useState(false);
@@ -147,6 +168,22 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
     [compareCalc.seconds, compareCalc.watts, userSettings.ftp]
   );
 
+  const powerCurveEstimate = useMemo(() => {
+    if (!selectedClimb) return null;
+    const intensity = mode === 'predict' && Number(targetWatts) > 0
+      ? Number(targetWatts) / (userSettings.ftp || 1)
+      : 0.85;
+    return estimateClimbWithPowerCurve({
+      selectedClimb,
+      userSettings,
+      activities,
+      intensityFraction: intensity,
+      cda,
+      crr,
+      loss,
+    });
+  }, [selectedClimb, userSettings, activities, mode, targetWatts, cda, crr, loss]);
+
   const climbLenM = selectedClimb ? selectedClimb.lengthKm * 1000 : 0;
 
   const distDeltaInATime = useMemo(
@@ -228,7 +265,11 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                 type="number"
                 step="0.01"
                 value={cda}
-                onChange={e => setCda(parseFloat(e.target.value))}
+                onChange={e => {
+                  const val = parseFloat(e.target.value);
+                  setCda(val);
+                  persistPhysics({ cda: val });
+                }}
                 className="w-full bg-cdsurface text-cdtext rounded p-2 border border-cdborder focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none"
               />
             </div>
@@ -238,7 +279,11 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                 type="number"
                 step="0.001"
                 value={crr}
-                onChange={e => setCrr(parseFloat(e.target.value))}
+                onChange={e => {
+                  const val = parseFloat(e.target.value);
+                  setCrr(val);
+                  persistPhysics({ crr: val });
+                }}
                 className="w-full bg-cdsurface text-cdtext rounded p-2 border border-cdborder focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none"
               />
             </div>
@@ -248,7 +293,11 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                 type="number"
                 step="0.01"
                 value={loss}
-                onChange={e => setLoss(parseFloat(e.target.value))}
+                onChange={e => {
+                  const val = parseFloat(e.target.value);
+                  setLoss(val);
+                  persistPhysics({ drivetrainLossFraction: val });
+                }}
                 className="w-full bg-cdsurface text-cdtext rounded p-2 border border-cdborder focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none"
               />
             </div>
@@ -507,6 +556,28 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                 Rider power: <span className="text-cdtext tabular-nums font-bold">{calc.watts} W</span> (
                 {climbInsights.wkg.toFixed(2)} W/kg) · VAM <span className="text-cdtext tabular-nums">{calc.vam}</span> m/h
               </p>
+            )}
+            {powerCurveEstimate?.usedPowerCurve && powerCurveEstimate.curveEstimate && (
+              <div className="rounded-lg border border-cdaccent/30 bg-cdaccent/5 p-3 space-y-1">
+                <p className="text-xs font-bold text-cdaccent flex items-center gap-1.5">
+                  <Activity size={13} />
+                  Power-curve estimate
+                </p>
+                <p className="text-xs text-cdtext">
+                  Sustainable{' '}
+                  <span className="font-bold tabular-nums">{powerCurveEstimate.curvePowerW} W</span>
+                  {' '}for ~{Math.round((powerCurveEstimate.ftpEstimate.seconds || 0) / 60)} min (from your activity bests)
+                  → time{' '}
+                  <span className="font-bold tabular-nums">
+                    {powerCurveEstimate.curveEstimate.time?.slice(0, 5)}
+                  </span>
+                  {' '}· VAM{' '}
+                  <span className="font-bold tabular-nums">{powerCurveEstimate.curveEstimate.vam}</span> m/h
+                </p>
+                <p className="text-[10px] text-cdmuted">
+                  Refines the FTP×IF physics line using interpolated best efforts from imported rides.
+                </p>
+              </div>
             )}
             {climbInsights.gradientNote && (
               <p className="text-xs text-cdmuted border-l-2 border-cdprimary/50 pl-3 py-0.5">{climbInsights.gradientNote}</p>

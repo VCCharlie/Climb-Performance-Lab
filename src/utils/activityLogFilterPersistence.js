@@ -45,6 +45,7 @@ export function buildActivityLogFilterSnapshot(filterState) {
         gravelRideChip: Boolean(filterState.gravelRideChip),
         mtbRideChip: Boolean(filterState.mtbRideChip),
         ebikeRideChip: Boolean(filterState.ebikeRideChip),
+        hasTagOnly: Boolean(filterState.hasTagOnly),
         minTss: filterState.minTss ?? '',
         filterDistMin: filterState.filterDistMin ?? '',
         filterDistMax: filterState.filterDistMax ?? '',

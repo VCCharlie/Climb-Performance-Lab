@@ -31,6 +31,13 @@ import {
 import QuickLinksSettings from './settings/QuickLinksSettings';
 import { stravaConfigHasPrivateRead, STRAVA_RECONNECT_PRIVATE_READ_MSG } from '../utils/stravaOAuthScopes';
 import HistoricalFtpSettings from './settings/HistoricalFtpSettings';
+import AdvancedCoachSettings from './settings/AdvancedCoachSettings';
+import PhysicsDefaultsSettings from './settings/PhysicsDefaultsSettings';
+import {
+    RESET_SETTINGS_PRESERVED_LABELS,
+    RESET_SETTINGS_CLEARED_LABELS,
+} from '../utils/resetUserSettings';
+import { formatNightlySyncLine, resolveNightlySyncStatus } from '../utils/nightlySyncStatus';
 import {
     TERRAIN_PROFILE_FLAT,
     TERRAIN_PROFILE_HILLY,
@@ -58,10 +65,11 @@ const SettingsModal = ({
     intervalsConfig, updateIntervalsConfig,
     userSettings, updateUserSettings,
     onSaveToCloud, theme, setTheme,
-    backupExtras, onImportBackup, onCleanupCloudTokens,
+    backupExtras, onImportBackup, onResetUserSettings, onCleanupCloudTokens,
     stravaConfig, stravaAuth,
     isSignedIn = false,
     onGoToActivitiesSync,
+    nightlySyncStatus = null,
 }) => {
     const { activities, restoreFromBackup } = useActivities();
     const { confirm } = useConfirm();
@@ -109,6 +117,22 @@ const SettingsModal = ({
         link.href = url;
         link.click();
         URL.revokeObjectURL(url);
+    };
+
+    const handleResetSettings = async () => {
+        if (!onResetUserSettings) return;
+        const preserved = RESET_SETTINGS_PRESERVED_LABELS.map((l) => `• ${l}`).join('\n');
+        const cleared = RESET_SETTINGS_CLEARED_LABELS.map((l) => `• ${l}`).join('\n');
+        const ok = await confirm({
+            title: 'Reset settings to defaults?',
+            message: `This resets profile, goals, physics defaults, coach thresholds, and notification limits.\n\nPreserved:\n${preserved}\n\nReset:\n${cleared}`,
+            confirmLabel: 'Reset settings',
+            variant: 'danger',
+        });
+        if (ok) {
+            await onResetUserSettings();
+            showToast('Settings reset to defaults.', { variant: 'success' });
+        }
     };
 
     const handleImportFile = (e) => {
@@ -318,9 +342,20 @@ const SettingsModal = ({
                                 <div className="pt-2 border-t border-cdborder/30 mt-2">
                                     <p className="text-xs font-semibold text-cdtext mb-1">Nightly server sync</p>
                                     <p className="text-xs text-cdmuted mb-2">
-                                        Automated sync uses repository secrets (<code className="bg-cdborder px-1 rounded">INTERVALS_API_KEY</code>).
-                                        Trigger a manual run on GitHub:
+                                        GitHub Actions runs <code className="bg-cdborder px-1 rounded">scripts/nightlySync.js</code> daily
+                                        (last 14 days → Firestore, then Strava enrich). Uses repository secrets{' '}
+                                        <code className="bg-cdborder px-1 rounded">INTERVALS_API_KEY</code>.
                                     </p>
+                                    {(() => {
+                                        const nightlyLine = formatNightlySyncLine(resolveNightlySyncStatus(nightlySyncStatus));
+                                        return nightlyLine ? (
+                                            <p className="text-xs text-cdtext mb-2">{nightlyLine}</p>
+                                        ) : (
+                                            <p className="text-xs text-cdmuted mb-2">
+                                                Last nightly run time appears here after the next successful GitHub Actions sync.
+                                            </p>
+                                        );
+                                    })()}
                                     <a
                                         href="https://github.com/VCCharlie/Climb-Performance-Lab/actions/workflows/nightly-sync.yml"
                                         target="_blank"
@@ -329,6 +364,22 @@ const SettingsModal = ({
                                     >
                                         Open GitHub Actions workflow
                                     </a>
+                                </div>
+                                <div className="pt-2 border-t border-cdborder/30 mt-2">
+                                    <label className="block text-xs font-semibold mb-1 text-cdmuted">
+                                        Default sync range (days)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        max={365}
+                                        value={userSettings.defaultSyncRangeDays ?? 14}
+                                        onChange={(e) => updateUserSettings('defaultSyncRangeDays', Number(e.target.value))}
+                                        className={inputNumberClass}
+                                    />
+                                    <p className="text-xs text-cdmuted mt-1">
+                                        Pre-fills the Activities → Fetch &amp; merge date range when you open sync.
+                                    </p>
                                 </div>
                                 {/* OpenWeatherMap API Key */}
                                 <div className="pt-2 border-t border-cdborder/30 mt-2">
@@ -557,6 +608,22 @@ const SettingsModal = ({
                                 </label>
                             </div>
                         </div>
+
+                        {onResetUserSettings && (
+                            <div className={sectionClass}>
+                                <div className="flex items-center gap-2 pb-2 border-b border-cdborder/50 mb-4">
+                                    <AlertCircle className="text-orange-400" size={18} />
+                                    <h3 className="font-bold text-cdtext">Reset settings</h3>
+                                </div>
+                                <p className="text-xs text-cdmuted mb-3 leading-relaxed">
+                                    Restore profile, goals, physics defaults, and coach thresholds to factory values.
+                                    API keys (OpenWeather, Gemini, GitHub PAT) are kept. Intervals and Strava connections are not changed.
+                                </p>
+                                <Button type="button" variant="tonal" className="w-full text-red-400" onClick={handleResetSettings}>
+                                    Reset settings to defaults
+                                </Button>
+                            </div>
+                        )}
 
                         {/* CLOUD SECURITY */}
                         {onCleanupCloudTokens && (
@@ -1001,6 +1068,16 @@ const SettingsModal = ({
                                 ))}
                             </div>
                         </div>
+
+                        <PhysicsDefaultsSettings
+                            userSettings={userSettings}
+                            updateUserSettings={updateUserSettings}
+                        />
+
+                        <AdvancedCoachSettings
+                            userSettings={userSettings}
+                            updateUserSettings={updateUserSettings}
+                        />
 
                     </div>
                     )}

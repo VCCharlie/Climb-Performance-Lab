@@ -28,6 +28,8 @@ export default function QuickFilterChips({
     onLongRideOnlyChange,
     missingHrOnly,
     onMissingHrOnlyChange,
+    hasTagOnly,
+    onHasTagOnlyChange,
     virtualRideChip,
     onVirtualRideChipChange,
     gravelRideChip,
@@ -54,6 +56,7 @@ export default function QuickFilterChips({
         || possibleDuplicatesOnly
         || longRideOnly
         || missingHrOnly
+        || hasTagOnly
         || virtualRideChip
         || gravelRideChip
         || mtbRideChip
@@ -127,6 +130,14 @@ export default function QuickFilterChips({
                     title="Load (TSS) > 120"
                 >
                     High load
+                </Chip>
+                <Chip
+                    size="xs"
+                    selected={hasTagOnly}
+                    onClick={() => onHasTagOnlyChange((v) => !v)}
+                    title="Activities with at least one tag"
+                >
+                    Has tag
                 </Chip>
                 {compact ? (
                     <button

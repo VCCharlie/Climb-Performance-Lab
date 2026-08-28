@@ -74,6 +74,8 @@ const ActivityLogFilterBar = ({
     onLongRideOnlyChange,
     missingHrOnly,
     onMissingHrOnlyChange,
+    hasTagOnly,
+    onHasTagOnlyChange,
     minTss,
     onMinTssChange,
     // Gear filter
@@ -162,6 +164,7 @@ const ActivityLogFilterBar = ({
         highLoadOnly,
         longRideOnly,
         missingHrOnly,
+        hasTagOnly,
         virtualRideChip,
         gravelRideChip,
         mtbRideChip,
@@ -172,7 +175,7 @@ const ActivityLogFilterBar = ({
         indoorFilter !== 'all',
     ].filter(Boolean).length, [
         thisWeekOnly, rollingDays, stravaLinkedOnly, noStravaLinkOnly, possibleDuplicatesOnly, noPowerOnly, withPowerOnly,
-        highLoadOnly, longRideOnly, missingHrOnly, virtualRideChip, gravelRideChip,
+        highLoadOnly, longRideOnly, missingHrOnly, hasTagOnly, virtualRideChip, gravelRideChip,
         mtbRideChip, ebikeRideChip, minTss, filterGearId, metricRangeActive, indoorFilter,
     ]);
 
@@ -374,6 +377,8 @@ const ActivityLogFilterBar = ({
             onLongRideOnlyChange={onLongRideOnlyChange}
             missingHrOnly={missingHrOnly}
             onMissingHrOnlyChange={onMissingHrOnlyChange}
+            hasTagOnly={hasTagOnly}
+            onHasTagOnlyChange={onHasTagOnlyChange}
             virtualRideChip={virtualRideChip}
             onVirtualRideChipChange={onVirtualRideChipChange}
             gravelRideChip={gravelRideChip}
