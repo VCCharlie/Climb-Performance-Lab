@@ -495,6 +495,33 @@ async function enrichWithStrava(db, firestoreActivities, startDate, endDate, isD
     return enrichedCount;
 }
 
+async function resolveSettingsDocRef(db) {
+    const explicitId = process.env.FIREBASE_SETTINGS_DOC_ID;
+    if (explicitId) {
+        return db.doc(`settings/${explicitId}`);
+    }
+    const settingsSnaps = await db.collection('settings').limit(20).get();
+    const first = settingsSnaps.docs[0];
+    return first ? first.ref : null;
+}
+
+async function recordNightlySyncStatus(db, { activitiesSaved, isDryRun }) {
+    if (isDryRun) return;
+    try {
+        const ref = await resolveSettingsDocRef(db);
+        if (!ref) return;
+        await ref.set({
+            lastNightlySync: {
+                at: new Date().toISOString(),
+                activitiesSaved: Number(activitiesSaved) || 0,
+                summary: 'GitHub Actions nightly sync',
+            },
+        }, { merge: true });
+    } catch (err) {
+        console.warn('[SYNC] Could not record lastNightlySync on settings doc:', err.message);
+    }
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function runNightlySync() {
@@ -553,12 +580,14 @@ async function runNightlySync() {
 
         const combinedActivities = [...intervalsToSave, ...orphansToSave];
 
+        let savedCount = 0;
+
         if (combinedActivities.length === 0) {
             console.log('[SYNC] Geen activiteiten gevonden in de afgelopen 14 dagen.');
         } else {
             console.log(`[SYNC] ${combinedActivities.length} activiteiten ontvangen (${intervalsToSave.length} Intervals, ${orphansToSave.length} Strava orphans).`);
 
-            const savedCount = await upsertToFirestore(db, combinedActivities, config.isDryRun);
+            savedCount = await upsertToFirestore(db, combinedActivities, config.isDryRun);
             const action = config.isDryRun ? 'zouden worden opgeslagen' : 'opgeslagen/bijgewerkt';
             console.log(`[SYNC] ✅ Succes! ${savedCount} activiteiten ${action} in Firebase.`);
         }
@@ -576,6 +605,8 @@ async function runNightlySync() {
         } else {
             console.log('[STRAVA] Geen activiteiten in het sync-venster om te verrijken.');
         }
+
+        await recordNightlySyncStatus(db, { activitiesSaved: savedCount, isDryRun: config.isDryRun });
     } catch (error) {
         console.error('[ERROR] Sync mislukt:', error.message);
         process.exit(1);

@@ -6,6 +6,7 @@ import { normalizeDate, formatDateDDMMYYYY } from '../utils/formatters';
 import { useActivitiesList } from '../hooks/useActivities';
 import { buildCoachContext } from '../utils/coach/coachPayloadBuilder';
 import TodaysFocusCard from './coach/TodaysFocusCard';
+import WeeklyTssBudgetCard from './coach/WeeklyTssBudgetCard';
 import CoachAskPanel from './coach/CoachAskPanel';
 import CoachDataPlayground from './coach/CoachDataPlayground';
 import CoachPeriodReview from './coach/CoachPeriodReview';
@@ -493,6 +494,8 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
                     <div className="text-xs text-cdmuted uppercase">Avg Weekly Load</div>
                 </div>
             </div>
+
+            <WeeklyTssBudgetCard activities={activities} userSettings={userSettings} referenceYmd={referenceYmd} />
 
             {swot.coachFlags?.noData && (
                 <EmptyStateCard
