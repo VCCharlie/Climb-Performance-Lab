@@ -109,9 +109,9 @@ export default function FluidWeekPanel({
     const headerClass = alignHorizon ? 'min-h-[96px]' : '';
     const ctlRowClass = alignHorizon ? 'min-h-[14px]' : '';
     const clearRowClass = alignHorizon ? 'min-h-[18px]' : '';
-    const dayRowMinClass = alignHorizon
-        ? (compact ? 'min-h-[52px]' : 'min-h-[58px]')
-        : 'min-h-[48px] md:min-h-0';
+    const dayRowMinClass = alignHorizon && !compact
+        ? 'min-h-[58px]'
+        : '';
 
     return (
         <section className={`flex flex-col min-h-0 ${className}`}>
@@ -241,7 +241,7 @@ export default function FluidWeekPanel({
             </div>
 
             {viewMode === COACH_WEEK_VIEW_MODES.CALENDAR ? (
-                <div className="flex-1 overflow-y-auto overflow-x-hidden max-h-[min(70vh,480px)] pr-0.5 pt-1">
+                <div className="flex-1 overflow-y-auto max-h-[min(70vh,480px)] pr-0.5 pt-1">
                     <FluidWeekCalendar
                         weekPlan={weekPlan}
                         expandedDate={expandedDate}
@@ -260,9 +260,12 @@ export default function FluidWeekPanel({
                     />
                 </div>
             ) : (
-                <div className={`flex-1 overflow-y-auto overflow-x-hidden max-h-[min(70vh,480px)] pr-0.5 ${
-                    alignHorizon ? 'flex flex-col gap-2' : compact ? 'space-y-2' : 'space-y-2.5'
-                }`}>
+                <div
+                    data-testid="week-day-list"
+                    className={`flex-1 overflow-y-auto max-h-[min(70vh,480px)] pr-0.5 flex flex-col ${
+                        alignHorizon ? 'gap-2' : compact ? 'gap-2' : 'gap-2.5'
+                    }`}
+                >
                     {weekPlan.sessions.map((session) => {
                         const expandKey = `${expandKeyPrefix}${session.date}`;
                         const isExpanded = expandedDate === expandKey;
@@ -271,13 +274,12 @@ export default function FluidWeekPanel({
                             minPx: compact ? 4 : 6,
                             maxPx: compact ? 12 : 16,
                         });
-                        const rowClass = isExpanded
-                            ? 'min-h-0'
-                            : dayRowMinClass;
+                        const rowClass = !isExpanded ? dayRowMinClass : '';
                         return (
                             <div
                                 key={session.date}
-                                className={['max-w-full min-w-0', rowClass].filter(Boolean).join(' ')}
+                                data-testid={`day-row-${session.date}`}
+                                className={['flex flex-col w-full min-w-0 shrink-0', rowClass].filter(Boolean).join(' ')}
                             >
                                 <FluidWeekSessionCard
                                     session={session}
