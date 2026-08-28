@@ -119,8 +119,8 @@ export default function FluidWeekSessionCard({
                 missed ? 'opacity-85' : '',
             ].join(' ')}
         >
-            <div className={compact ? 'px-1.5 py-1' : 'px-2 py-1'}>
-                <div className="flex items-start gap-1">
+            <div className={compact ? 'px-2 py-1.5' : 'px-2.5 py-1.5'}>
+                <div className="flex items-start gap-1.5">
                     <button
                         type="button"
                         onClick={() => isActionable && onToggleDone()}
@@ -138,7 +138,8 @@ export default function FluidWeekSessionCard({
                     </button>
 
                     <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1 min-w-0">
+                        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-0.5 items-start">
+                            <div className="flex items-center gap-1 min-w-0 flex-wrap">
                             <span className={`font-semibold shrink-0 ${compact ? 'text-[10px]' : 'text-[11px]'} ${
                                 session.completed
                                     ? 'text-cdmuted line-through'
@@ -189,9 +190,10 @@ export default function FluidWeekSessionCard({
                                     {Math.round(dayTss)} TSS
                                 </span>
                             )}
+                            </div>
 
                             {hasActions && (
-                                <div className="ml-auto flex items-center shrink-0 -mr-0.5">
+                                <div className="flex items-center shrink-0 gap-0.5 self-start">
                                     {session.fluidWorkout && !isRest && (
                                         <ActionButton
                                             compact={compact}
@@ -240,7 +242,7 @@ export default function FluidWeekSessionCard({
                             )}
                         </div>
 
-                        <p className={`truncate leading-tight ${compact ? 'text-[10px] mt-px' : 'text-[11px]'} ${session.completed ? 'text-cdmuted' : 'text-cdtext'}`}>
+                        <p className={`truncate leading-snug ${compact ? 'text-[10px] mt-0.5' : 'text-[11px] mt-0.5'} ${session.completed ? 'text-cdmuted' : 'text-cdtext'} ${hasActions ? 'pr-1' : ''}`}>
                             {session.workoutName}
                             {blockSummary ? (
                                 <span className="text-cdmuted"> · {blockSummary}</span>

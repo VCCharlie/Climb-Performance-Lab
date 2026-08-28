@@ -43,13 +43,13 @@ export default function GoalWeeklyPlanSection({ goalSnapshot }) {
                 />
             )}
 
-            <div className="md:hidden space-y-1.5">
+            <div className="md:hidden space-y-2">
                 {goalSnapshot.weeks.map((w) => {
                     const isCurrent = currentWeekNum === w.weekNum;
                     return (
                         <div
                             key={w.weekNum}
-                            className={`rounded-md border px-2.5 py-2 space-y-0.5 ${
+                            className={`rounded-md border px-2.5 py-2.5 space-y-1 ${
                                 isCurrent
                                     ? 'border-cdborder border-l-2 border-l-cdaccent bg-cdaccent/8 ring-1 ring-inset ring-cdaccent/25'
                                     : 'border-cdborder/60 bg-cdsurface'
@@ -75,10 +75,10 @@ export default function GoalWeeklyPlanSection({ goalSnapshot }) {
                 <table className="w-full text-xs text-left min-w-[560px]">
                     <thead>
                         <tr className="bg-cdborder/40 text-cdmuted text-[10px] uppercase">
-                            <th className="px-2 py-1.5 font-semibold">Week</th>
-                            <th className="px-2 py-1.5 font-semibold">Phase</th>
-                            <th className="px-2 py-1.5 font-semibold text-right">Target TSS/wk</th>
-                            <th className="px-2 py-1.5 font-semibold min-w-[220px]">Focus</th>
+                            <th className="px-2.5 py-2 font-semibold">Week</th>
+                            <th className="px-2.5 py-2 font-semibold">Phase</th>
+                            <th className="px-2.5 py-2 font-semibold text-right">Target TSS/wk</th>
+                            <th className="px-2.5 py-2 font-semibold min-w-[220px]">Focus</th>
                         </tr>
                     </thead>
                     <tbody className="text-cdtext">
@@ -93,15 +93,15 @@ export default function GoalWeeklyPlanSection({ goalSnapshot }) {
                                             : ''
                                     }`}
                                 >
-                                    <td className="px-2 py-1.5 font-bold tabular-nums">
+                                    <td className="px-2.5 py-2 font-bold tabular-nums">
                                         {w.weekNum}
                                         {isCurrent ? (
                                             <span className="ml-1 text-[9px] uppercase text-cdaccent font-semibold">now</span>
                                         ) : null}
                                     </td>
-                                    <td className="px-2 py-1.5 text-cdmuted">{w.phaseLabel}</td>
-                                    <td className="px-2 py-1.5 text-right tabular-nums">{w.targetTss}</td>
-                                    <td className="px-2 py-1.5 text-[10px] text-cdmuted leading-snug">{w.focus}</td>
+                                    <td className="px-2.5 py-2 text-cdmuted">{w.phaseLabel}</td>
+                                    <td className="px-2.5 py-2 text-right tabular-nums">{w.targetTss}</td>
+                                    <td className="px-2.5 py-2 text-[10px] text-cdmuted leading-snug">{w.focus}</td>
                                 </tr>
                             );
                         })}
