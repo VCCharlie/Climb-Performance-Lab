@@ -18,6 +18,7 @@ function CalendarDayCell({
     dayTss,
     maxDayTss,
     compactBubble = false,
+    compact = false,
 }) {
     const session = cell.session;
     const styles = getStimulusStyle(session?.stimulus || 'rest');
@@ -48,7 +49,8 @@ function CalendarDayCell({
                 ? `${cell.weekdayLabel} ${cell.dayOfMonth}, ${label}${dayTss > 0 ? `, ${Math.round(dayTss)} TSS` : ''}`
                 : `${cell.weekdayLabel}, no session`}
             className={[
-                'relative flex flex-col items-stretch min-h-[92px] sm:min-h-[96px] rounded-lg border p-1.5 pb-1 text-left transition-colors overflow-visible',
+                'relative flex flex-col items-stretch rounded-lg border p-1 pb-0.5 text-left transition-colors overflow-visible',
+                compact ? 'min-h-[72px]' : 'min-h-[92px] sm:min-h-[96px]',
                 isEmpty ? 'border-cdborder/20 bg-cdborder/5 opacity-40 cursor-default' : 'cursor-pointer hover:bg-cdborder/15',
                 selected ? 'ring-2 ring-cdaccent border-cdaccent/50' : 'border-cdborder/40',
                 isToday && !selected ? 'ring-1 ring-cdaccent/40' : '',
@@ -57,13 +59,13 @@ function CalendarDayCell({
             ].join(' ')}
         >
             <div className="flex items-center justify-between gap-1 mb-0.5">
-                <span className={`text-sm font-bold tabular-nums ${isToday ? 'text-cdaccent' : 'text-cdtext'}`}>
+                <span className={`font-bold tabular-nums ${compact ? 'text-xs' : 'text-sm'} ${isToday ? 'text-cdaccent' : 'text-cdtext'}`}>
                     {cell.dayOfMonth ?? '—'}
                 </span>
-                <span className={`w-2 h-2 rounded-full shrink-0 ${styles.dot}`} aria-hidden />
+                <span className={`rounded-full shrink-0 ${styles.dot} ${compact ? 'w-1.5 h-1.5' : 'w-2 h-2'}`} aria-hidden />
             </div>
 
-            <p className={`text-[10px] leading-tight font-medium line-clamp-2 flex-1 min-h-[2rem] ${isCompleted ? 'text-cdmuted line-through' : 'text-cdtext'}`}>
+            <p className={`leading-tight font-medium line-clamp-2 flex-1 ${compact ? 'text-[9px] min-h-[1.5rem]' : 'text-[10px] min-h-[2rem]'} ${isCompleted ? 'text-cdmuted line-through' : 'text-cdtext'}`}>
                 {label}
             </p>
 
@@ -108,6 +110,7 @@ export default function FluidWeekCalendar({
     activities = [],
     weeklyHours = 5,
     compactBubble = false,
+    compact = false,
 }) {
     const cells = useMemo(() => buildWeekCalendarCells(weekPlan), [weekPlan]);
 
@@ -157,6 +160,7 @@ export default function FluidWeekCalendar({
                             dayTss={cell.dateYmd ? dayTssMap[cell.dateYmd] || 0 : 0}
                             maxDayTss={maxDayTss}
                             compactBubble={compactBubble}
+                            compact={compact}
                         />
                     </div>
                 ))}
@@ -166,6 +170,7 @@ export default function FluidWeekCalendar({
                 <FluidWeekSessionCard
                     session={selectedSession}
                     expanded
+                    compact={compact}
                     onToggleExpand={() => onToggleExpand(`${expandKeyPrefix}${selectedSession.date}`)}
                     onToggleDone={() => onToggleDone(selectedSession.date)}
                     onSwapRecovery={() => onSwapRecovery(selectedSession.date)}
