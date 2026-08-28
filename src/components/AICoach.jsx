@@ -7,6 +7,7 @@ import { useActivitiesList } from '../hooks/useActivities';
 import { buildCoachContext } from '../utils/coach/coachPayloadBuilder';
 import TodaysFocusCard from './coach/TodaysFocusCard';
 import WeeklyTssBudgetCard from './coach/WeeklyTssBudgetCard';
+import GoalWeeklyPlanSection from './coach/GoalWeeklyPlanSection';
 import CoachAskPanel from './coach/CoachAskPanel';
 import CoachDataPlayground from './coach/CoachDataPlayground';
 import CoachPeriodReview from './coach/CoachPeriodReview';
@@ -20,6 +21,7 @@ import { useToast } from '../context/ToastContext';
 import { buildFluidWeekPlan } from '../utils/coach/coachWeekPlan';
 import { buildEventHorizonFluidPlans } from '../utils/coach/coachHorizonPlan';
 import { todayYmd } from '../utils/coach/coachHelpers';
+import { getActiveTrainingGoal } from '../utils/trainingGoalLink';
 import { COACH_WEEK_UPDATED_EVENT, readCoachWeek2Enabled, writeCoachWeek2Enabled } from '../utils/coach/coachWeekState';
 import {
     TRAINING_PLAN_UPDATED_EVENT,
@@ -427,6 +429,11 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
         ? fluidWeekPlan.trainingGoal
         : null;
 
+    const activeEventGoal = useMemo(
+        () => getActiveTrainingGoal(referenceYmd),
+        [referenceYmd, planRevision],
+    );
+
     const horizonBundle = useMemo(
         () => buildEventHorizonFluidPlans({
             activities,
@@ -495,7 +502,12 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
                 </div>
             </div>
 
-            <WeeklyTssBudgetCard activities={activities} userSettings={userSettings} referenceYmd={referenceYmd} />
+            <WeeklyTssBudgetCard
+                activities={activities}
+                userSettings={userSettings}
+                setUserSettings={setUserSettings}
+                referenceYmd={referenceYmd}
+            />
 
             {swot.coachFlags?.noData && (
                 <EmptyStateCard
@@ -561,9 +573,11 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
                     </select>
                 </label>
                 <p className="text-xs text-cdmuted mt-3">
-                    {linkedEventGoal
-                        ? `Shapes which days you train. Weekly TSS (${fluidWeekPlan.targetTss}) comes from your event goal in Goals & Planning — not the hours table (~${fluidWeekPlan.hoursBudgetTss} TSS at ${weeklyHoursTarget} h/wk). Yearly km/elevation goals on the Dashboard stay separate.`
-                        : 'Saved in Settings. Drives TSS targets, fluid workouts, and week rebalancing when no event goal is set.'}
+                    {fluidWeekPlan.targetTssSource === 'manual'
+                        ? `Manual TSS target (${fluidWeekPlan.targetTss}) overrides calculated targets this week. Fluid sessions still follow your schedule below.`
+                        : linkedEventGoal
+                            ? `Shapes which days you train. Weekly TSS (${fluidWeekPlan.targetTss}) comes from your event goal in Goals & Planning — not the hours table (~${fluidWeekPlan.hoursBudgetTss} TSS at ${weeklyHoursTarget} h/wk). Yearly km/elevation goals on the Dashboard stay separate.`
+                            : 'Saved in Settings. Drives TSS targets, fluid workouts, and week rebalancing when no event goal is set.'}
                 </p>
             </CollapsibleInfoCard>
 
@@ -585,6 +599,10 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
                     });
                 }}
             />
+
+            {activeEventGoal && (
+                <GoalWeeklyPlanSection goalSnapshot={activeEventGoal} />
+            )}
 
             <CoachFitnessForecast
                 activities={activities}

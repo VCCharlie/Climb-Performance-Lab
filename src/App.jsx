@@ -1361,6 +1361,7 @@ const App = () => {
                                                         endDate={globalEndDate}
                                                         isSignedIn={Boolean(user)}
                                                         onOpenRecovery={() => setTrainingSubTab('recovery')}
+                                                        onOpenCoach={() => setTrainingSubTab('coach')}
                                                     />
                                                 )}
                                                 {trainingSubTab === 'recovery' && (
