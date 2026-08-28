@@ -49,16 +49,18 @@ export default function GoalWeeklyPlanSection({ goalSnapshot }) {
                     return (
                         <div
                             key={w.weekNum}
-                            className={`rounded-md border px-2.5 py-2 space-y-0.5 bg-cdsurface ${
+                            className={`rounded-md border px-2.5 py-2 space-y-0.5 ${
                                 isCurrent
-                                    ? 'border-cdborder border-l-[3px] border-l-cdaccent/40'
-                                    : 'border-cdborder/60'
+                                    ? 'border-cdborder border-l-2 border-l-cdaccent bg-cdaccent/8 ring-1 ring-inset ring-cdaccent/25'
+                                    : 'border-cdborder/60 bg-cdsurface'
                             }`}
                         >
                             <div className="flex items-center justify-between gap-2">
                                 <span className="text-[10px] font-bold uppercase tracking-wide text-cdmuted">
                                     Week {w.weekNum}
-                                    {isCurrent ? ' · now' : ''}
+                                    {isCurrent ? (
+                                        <span className="text-cdaccent font-semibold"> · now</span>
+                                    ) : null}
                                 </span>
                                 <span className="text-xs font-bold tabular-nums text-cdtext">{w.targetTss} TSS</span>
                             </div>
@@ -86,13 +88,15 @@ export default function GoalWeeklyPlanSection({ goalSnapshot }) {
                                 <tr
                                     key={w.weekNum}
                                     className={`border-t border-cdborder ${
-                                        isCurrent ? 'border-l-[3px] border-l-cdaccent/40' : ''
+                                        isCurrent
+                                            ? 'bg-cdaccent/8 border-l-2 border-l-cdaccent ring-1 ring-inset ring-cdaccent/20'
+                                            : ''
                                     }`}
                                 >
                                     <td className="px-2 py-1.5 font-bold tabular-nums">
                                         {w.weekNum}
                                         {isCurrent ? (
-                                            <span className="ml-1 text-[9px] uppercase text-cdmuted">now</span>
+                                            <span className="ml-1 text-[9px] uppercase text-cdaccent font-semibold">now</span>
                                         ) : null}
                                     </td>
                                     <td className="px-2 py-1.5 text-cdmuted">{w.phaseLabel}</td>
