@@ -106,15 +106,15 @@ export default function FluidWeekSessionCard({
     const leftAccent = missed
         ? 'border-l-cdborder'
         : session.isToday
-            ? 'border-l-cdaccent/50'
+            ? 'border-l-cdaccent'
             : styles.border;
 
     return (
         <article
             className={[
-                'rounded-md border border-cdborder/40 border-l-[3px] overflow-hidden transition-colors bg-cdsurface',
+                'rounded-md border border-cdborder/40 border-l-2 overflow-hidden transition-colors',
+                session.isToday ? 'bg-cdaccent/8 ring-1 ring-inset ring-cdaccent/30' : 'bg-cdsurface',
                 leftAccent,
-                session.isToday ? 'ring-1 ring-inset ring-cdaccent/20' : '',
                 session.completed ? 'opacity-75' : '',
                 missed ? 'opacity-85' : '',
             ].join(' ')}
@@ -139,7 +139,13 @@ export default function FluidWeekSessionCard({
 
                     <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1 min-w-0">
-                            <span className={`font-semibold shrink-0 ${compact ? 'text-[10px]' : 'text-[11px]'} ${session.completed ? 'text-cdmuted line-through' : 'text-cdtext'}`}>
+                            <span className={`font-semibold shrink-0 ${compact ? 'text-[10px]' : 'text-[11px]'} ${
+                                session.completed
+                                    ? 'text-cdmuted line-through'
+                                    : session.isToday
+                                        ? 'text-cdaccent'
+                                        : 'text-cdtext'
+                            }`}>
                                 {compact ? session.day.slice(0, 3) : session.day}
                             </span>
                             {!compact && (

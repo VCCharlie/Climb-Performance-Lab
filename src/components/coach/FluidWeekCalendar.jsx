@@ -49,16 +49,18 @@ function CalendarDayCell({
                 ? `${cell.weekdayLabel} ${cell.dayOfMonth}, ${label}${dayTss > 0 ? `, ${Math.round(dayTss)} TSS` : ''}`
                 : `${cell.weekdayLabel}, no session`}
             className={[
-                'relative flex flex-col items-stretch rounded-lg border p-1 pb-0.5 text-left transition-colors overflow-visible bg-cdsurface',
+                'relative flex flex-col items-stretch rounded-lg border p-1 pb-0.5 text-left transition-colors overflow-visible',
                 compact ? 'min-h-[72px]' : 'min-h-[92px] sm:min-h-[96px]',
                 isEmpty ? 'border-cdborder/20 bg-cdborder/5 opacity-40 cursor-default' : 'cursor-pointer hover:bg-cdborder/10',
-                selected ? 'ring-1 ring-cdaccent/40 border-cdborder/60' : 'border-cdborder/40',
-                isToday && !selected ? 'ring-1 ring-inset ring-cdaccent/20 border-l-[3px] border-l-cdaccent/40' : '',
+                selected ? 'ring-1 ring-cdaccent/40 border-cdborder/60 bg-cdsurface' : 'border-cdborder/40',
+                isToday && !selected
+                    ? 'bg-cdaccent/8 border-l-2 border-l-cdaccent ring-1 ring-inset ring-cdaccent/30'
+                    : 'bg-cdsurface',
                 isCompleted ? 'opacity-80' : '',
             ].join(' ')}
         >
             <div className="flex items-center justify-between gap-1 mb-0.5">
-                <span className={`font-bold tabular-nums ${compact ? 'text-xs' : 'text-sm'} text-cdtext`}>
+                <span className={`font-bold tabular-nums ${compact ? 'text-xs' : 'text-sm'} ${isToday ? 'text-cdaccent' : 'text-cdtext'}`}>
                     {cell.dayOfMonth ?? '—'}
                 </span>
                 <span className={`rounded-full shrink-0 ${styles.dot} ${compact ? 'w-1.5 h-1.5' : 'w-2 h-2'}`} aria-hidden />
