@@ -13,6 +13,7 @@ import {
     applyStravaElevationToActivity,
     climbingPatchFromStravaActivity,
 } from './stravaElevation';
+import { shouldApplyStravaTitleOnMatch, stravaStartDatePatch } from './stravaTitleSameDay.js';
 
 function storedMovingTimeSec(act) {
     const t = act?.moving_time;
@@ -137,10 +138,12 @@ export function buildAlreadyLinkedStravaUpdate(match, bikesMap = {}) {
     const gearName = gearId ? (bikesMap[gearId] || 'Strava bike') : null;
     const stravaTitle = (strava.name || '').trim();
     const elevationPatch = climbingPatchFromStravaActivity(strava);
+    const applyTitle = shouldApplyStravaTitleOnMatch(site, strava);
 
     return stripUndefinedFields({
         ...(gearId && { gear_id: gearId, gear_name: gearName }),
-        ...(stravaTitle && { title: stravaTitle }),
+        ...stravaStartDatePatch(strava),
+        ...(applyTitle && stravaTitle && { title: stravaTitle }),
         ...elevationPatch,
         ...((!site.rpe || site.rpe === 0) && strava.perceived_exertion && { rpe: strava.perceived_exertion }),
         ...((!site.avg_hr || site.avg_hr === 0) && strava.average_heartrate && { avg_hr: Math.round(strava.average_heartrate) }),

@@ -33,6 +33,7 @@
 
 import { normalizeStravaActivityId } from './strava.js';
 import { isGenericActivityTitle, shouldPreferStravaTitle } from './stravaTitleHeuristics.js';
+import { isStoredStravaLinkDayMismatch } from './stravaTitleSameDay.js';
 import { protectZoneTimesOnMerge } from './zoneTimes.js';
 
 /**
@@ -152,6 +153,12 @@ export function protectStravaLinkedTitleOnMerge(incoming, existing, out) {
     const exTitle = (existing.title || '').trim();
     const inTitle = (incoming.title || '').trim();
     if (!exTitle) return;
+
+    // Legacy wrong-day Strava link: allow Intervals re-import to restore the site title.
+    if (isStoredStravaLinkDayMismatch(existing) && inTitle && !isGenericActivityTitle(inTitle)) {
+        out.title = incoming.title;
+        return;
+    }
 
     // Custom Strava / user titles must never be replaced by Intervals device-profile names.
     if (!isGenericActivityTitle(exTitle)) {

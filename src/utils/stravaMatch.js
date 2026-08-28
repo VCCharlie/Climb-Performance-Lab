@@ -5,6 +5,7 @@
  */
 
 import { climbingMetersFromStrava } from './stravaElevation';
+import { isSameCalendarDay } from './stravaTitleSameDay.js';
 
 // Fietstypes die we willen ophalen / koppelen
 export const STRAVA_BIKE_TYPES = new Set([
@@ -243,6 +244,11 @@ export const matchStravaToSite = (stravaActivities, siteActivities) => {
         // Efficient O(1) Check: Al gekoppeld?
         const existing = siteByStravaId.get(stravaIdStr);
         if (existing) {
+            // Skip stale cross-day strava_id links (legacy adjacent-day auto-match).
+            // User must Unlink Strava and re-link via Find on Strava.
+            if (!isSameCalendarDay(existing, stravaAct)) {
+                continue;
+            }
             alreadyLinked.push({
                 strava: stravaAct,
                 site: existing,
@@ -266,6 +272,7 @@ export const matchStravaToSite = (stravaActivities, siteActivities) => {
         let best = null;
 
         for (const site of candidates) {
+            if (!isSameCalendarDay(site, stravaAct)) continue;
             const scored = scoreStravaSiteMatch(site, stravaAct);
             if (scored.confidence && (!best || scored.score < best.score)) {
                 best = {

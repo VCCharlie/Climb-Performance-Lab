@@ -12,7 +12,7 @@ import { fetchStravaActivitiesInRange } from './stravaLinkIntervalsFetch';
 import { buildStravaKomSummaryFromActivityDetail } from './stravaSegmentKomSummary';
 import { buildStravaDetailEnrichmentUpdates } from './stravaGearEnrich';
 import { stripUndefinedFields } from './mergeActivities';
-import { shouldPreferStravaTitle } from './stravaTitleHeuristics';
+import { shouldApplyStravaTitleOnMatch, stravaStartDatePatch } from './stravaTitleSameDay';
 import { climbingPatchFromStravaActivity } from './stravaElevation';
 
 /**
@@ -118,7 +118,7 @@ async function buildStravaLinkPhaseUpdates(siteActivities, bikeActivities, bikes
         const siteNeedsHr = !m.site.avg_hr || m.site.avg_hr === 0;
         const siteNeedsGear = !m.site.gear_id && !!m.strava.gear_id;
         const stravaListTitle = (m.strava.name || '').trim();
-        const needsTitle = shouldPreferStravaTitle(m.site.title, stravaListTitle, {
+        const needsTitle = shouldApplyStravaTitleOnMatch(m.site, m.strava, {
             gearName: m.site.gear_name,
             deviceProfileTitles,
         });
@@ -164,6 +164,7 @@ async function buildStravaLinkPhaseUpdates(siteActivities, bikeActivities, bikes
 
         const updateData = stripUndefinedFields({
             strava_id: String(stravaDetailed.id || m.strava.id),
+            ...stravaStartDatePatch(stravaDetailed),
             ...(needsMap && stravaDetailed.map?.summary_polyline
                 ? { strava_map: stravaDetailed.map.summary_polyline }
                 : {}),
