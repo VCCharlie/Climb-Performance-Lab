@@ -5,19 +5,15 @@ import { SPORT_TYPES } from '../config';
 import { protectEnrichedFieldsOnMerge } from '../utils/firestoreActivityMerge';
 import { stripUndefinedFields } from '../utils/mergeActivities';
 import { enrichSelectedActivitiesFromStrava } from '../utils/stravaSelectedEnrich';
-import {
-    fetchStravaActivitiesInRange,
-    linkIntervalsActivitiesToStravaList,
-    applyStravaFuzzyMatchesToIntervals,
-} from '../utils/stravaLinkIntervalsFetch';
 import useIntervalsSync from './useIntervalsSync';
 import { resolveDeviceProfileTitlesFromSettings } from '../utils/bikeComputerProfileTitles';
 import { useToast } from '../context/ToastContext';
 import { safeLocalStorageSet } from '../utils/safeStorage';
 import { ACTIVITY_LOG_INTERVALS_LAST_SYNC_KEY, readLastIntervalsSyncAt } from '../utils/activityLogSyncLabel';
-import { countMergeCategories, formatIntervalsSyncSummary } from '../utils/importSyncStats';
+import { countMergeCategories, formatIntervalsSyncSummary, formatStravaGapFillSummaryParts } from '../utils/importSyncStats';
 import { enrichSyncedActivitiesDrift, formatSyncDriftRemainderNote, SYNC_DRIFT_MAX_FETCHES_DEFAULT, SYNC_DRIFT_MAX_FETCHES_TODAY } from '../utils/syncDriftEnrich';
 import { buildPostImportActivityList } from '../utils/postImportActivityList';
+import { runIntervalsSyncWithStravaGapFill } from '../utils/runIntervalsSyncWithStravaGapFill';
 import {
     readIntervalsSyncHealthSummary,
     writeIntervalsSyncHealthSummary,
@@ -147,6 +143,51 @@ export function useDataHubIntervalsSync({
         return { list: updated, driftEnrichedCount: enrichedCount, driftRemainingCount: remainingCount };
     }, [intervalsConfig, stravaEnrichEnabled, stravaGetToken, onImport]);
 
+    const persistImportedActivities = useCallback(async (items, activitiesMap) => {
+        if (!items?.length || !db) return;
+        await Promise.all(
+            items.map((act) => {
+                const existing = activitiesMap.get(String(act.id));
+                const payload = protectEnrichedFieldsOnMerge(act, existing);
+                return setDoc(doc(db, 'activities', String(act.id)), payload, { merge: true });
+            }),
+        );
+    }, []);
+
+    const applyStravaGapFillToBatch = useCallback(async ({
+        intervalsBatch,
+        syncStart,
+        syncEnd,
+        selectedTypes,
+        activitiesMap,
+        onProgress,
+    }) => {
+        if (!stravaEnrichEnabled || !stravaGetToken) {
+            return { intervalsActivities: intervalsBatch, orphanActivities: [], stats: null };
+        }
+        try {
+            const token = await stravaGetToken();
+            if (!token) {
+                return { intervalsActivities: intervalsBatch, orphanActivities: [], stats: null };
+            }
+            const existingSnapshot = typeof getActivitiesSnapshot === 'function'
+                ? getActivitiesSnapshot()
+                : activities;
+            return runIntervalsSyncWithStravaGapFill({
+                intervalsActivities: intervalsBatch,
+                existingActivities: existingSnapshot,
+                stravaToken: token,
+                startYmd: syncStart,
+                endYmd: syncEnd,
+                allowedSportTypes: selectedTypes,
+                opts: { onProgress },
+            });
+        } catch (err) {
+            console.warn('[Sync] Strava gap fill failed:', err);
+            return { intervalsActivities: intervalsBatch, orphanActivities: [], stats: null };
+        }
+    }, [activities, getActivitiesSnapshot, stravaEnrichEnabled, stravaGetToken]);
+
     const toggleSportFilter = useCallback((type) => {
         setSportFilters((prev) => ({ ...prev, [type]: !prev[type] }));
     }, []);
@@ -212,7 +253,35 @@ export function useDataHubIntervalsSync({
                 const existing = activitiesMap.get(String(act.id));
                 return existing ? protectEnrichedFieldsOnMerge(act, existing) : act;
             };
-            const mergedNews = newActivities.map(mergeNewInto);
+
+            setSyncErrorDetail(
+                newActivities.length < newActivitiesRaw.length
+                    ? `Step 2/3: Strava link + gap fill (${newActivities.length} of ${newActivitiesRaw.length} selected)…`
+                    : `Step 2/3: Strava link + gap fill for ${selectedIdSet.size} selected ride(s)…`,
+            );
+            setSyncStatus('enriching');
+
+            const gapResult = await applyStravaGapFillToBatch({
+                intervalsBatch: newActivitiesRaw,
+                syncStart,
+                syncEnd,
+                selectedTypes,
+                activitiesMap,
+                onProgress: (m) => setSyncErrorDetail(String(m)),
+            });
+            const gapIntervalsById = new Map(
+                (gapResult.intervalsActivities || []).map((a) => [String(a.id), a]),
+            );
+            const mergedNews = newActivities.map((act) => mergeNewInto(
+                gapIntervalsById.get(String(act.id)) || act,
+            ));
+            const orphanMerged = (gapResult.orphanActivities || []).map(mergeNewInto);
+            const allPersisted = [...mergedNews, ...orphanMerged];
+
+            await persistImportedActivities(allPersisted, activitiesMap);
+            if (allPersisted.length > 0) {
+                onImport(allPersisted);
+            }
 
             const workingIndexMap = new Map();
             for (let i = 0; i < working.length; i++) {
@@ -226,25 +295,7 @@ export function useDataHubIntervalsSync({
                 }
             }
 
-            setSyncErrorDetail(
-                mergedNews.length < newActivitiesRaw.length
-                    ? `Step 2/2: ${mergedNews.length} of ${newActivitiesRaw.length} fetched id(s) match selection. Strava…`
-                    : `Step 2/2: Strava link + segment refresh for ${selectedIdSet.size} selected ride(s)…`,
-            );
-            setSyncStatus('enriching');
-
-            if (db && mergedNews.length > 0) {
-                await Promise.all(
-                    mergedNews.map((act) => {
-                        const existing = activitiesMap.get(String(act.id));
-                        const payload = protectEnrichedFieldsOnMerge(act, existing);
-                        return setDoc(doc(db, 'activities', String(act.id)), payload, { merge: true });
-                    }),
-                );
-            }
-            if (mergedNews.length > 0) {
-                onImport(mergedNews);
-            }
+            setSyncErrorDetail('Step 3/3: Strava detail enrich for selected rides…');
 
             let enrichedLinkCount = 0;
             let segmentRefreshCount = 0;
@@ -311,11 +362,11 @@ export function useDataHubIntervalsSync({
 
             const skippedEmpty = Number(syncStats?.skippedEmpty) || 0;
             recordIntervalsSyncSuccess({
-                added: 0,
+                added: orphanMerged.length,
                 updated: mergedNews.length,
                 skipped: skippedEmpty,
             });
-            onImportFinished?.(buildPostImportActivityList(activities, working));
+            onImportFinished?.(buildPostImportActivityList(activities, [...working, ...orphanMerged]));
 
             setSyncStatus('done');
             const parts = [];
@@ -323,6 +374,7 @@ export function useDataHubIntervalsSync({
             if (newActivitiesRaw.length > mergedNews.length) {
                 parts.push(`${newActivitiesRaw.length - mergedNews.length} fetched id(s) not in selection`);
             }
+            parts.push(...formatStravaGapFillSummaryParts(gapResult.stats));
             if (skippedEmpty > 0) {
                 parts.push(`${skippedEmpty} skipped (no distance/time/power)`);
             }
@@ -369,6 +421,8 @@ export function useDataHubIntervalsSync({
         applyPostSyncDriftEnrich,
         getActivitiesSnapshot,
         onImportFinished,
+        applyStravaGapFillToBatch,
+        persistImportedActivities,
     ]);
 
     const fetchAndMergeIntervalsRange = useCallback(async (syncStart, syncEnd) => {
@@ -410,46 +464,37 @@ export function useDataHubIntervalsSync({
                 const existing = activitiesMap.get(String(act.id));
                 return existing ? protectEnrichedFieldsOnMerge(act, existing) : act;
             };
-            let merged = (newActivitiesRaw || []).map(mergeNewInto);
 
-            if (stravaEnrichEnabled && stravaGetToken && merged.length > 0) {
-                setSyncErrorDetail(`Linking Strava for ${syncStart} → ${syncEnd}…`);
-                try {
-                    const token = await stravaGetToken();
-                    if (token) {
-                        const stravaList = await fetchStravaActivitiesInRange(token, syncStart, syncEnd);
-                        merged = linkIntervalsActivitiesToStravaList(merged, stravaList);
-                        applyStravaFuzzyMatchesToIntervals(merged, stravaList);
-                    }
-                } catch (err) {
-                    console.warn('[Fetch new] Strava list / link failed:', err);
-                }
-            }
+            setSyncErrorDetail(`Strava link + gap fill for ${syncStart} → ${syncEnd}…`);
+            const gapResult = await applyStravaGapFillToBatch({
+                intervalsBatch: newActivitiesRaw || [],
+                syncStart,
+                syncEnd,
+                selectedTypes,
+                activitiesMap,
+                onProgress: (m) => setSyncErrorDetail(String(m)),
+            });
 
-            if (merged.length > 0 && db) {
-                await Promise.all(
-                    merged.map((act) => {
-                        const existing = activitiesMap.get(String(act.id));
-                        const payload = protectEnrichedFieldsOnMerge(act, existing);
-                        return setDoc(doc(db, 'activities', String(act.id)), payload, { merge: true });
-                    }),
-                );
-            }
-            if (merged.length > 0) {
-                onImport(merged);
+            let merged = (gapResult.intervalsActivities || []).map(mergeNewInto);
+            const orphanMerged = (gapResult.orphanActivities || []).map(mergeNewInto);
+            const allImported = [...merged, ...orphanMerged];
+
+            await persistImportedActivities(allImported, activitiesMap);
+            if (allImported.length > 0) {
+                onImport(allImported);
             }
 
             let enrichCount = 0;
             let segmentRefreshCount = 0;
             let detailFailed = 0;
             let stravaEnrichWarning = null;
-            if (stravaEnrichEnabled && stravaGetToken && merged.length > 0) {
+            if (stravaEnrichEnabled && stravaGetToken && allImported.length > 0) {
                 setSyncStatus('enriching');
                 setSyncErrorDetail('Strava: auto-link + gear/HR/RPE/KOM for fetched rides…');
                 try {
                     const token = await stravaGetToken();
                     if (token) {
-                        const enrichResult = await enrichSelectedActivitiesFromStrava(merged, token, {
+                        const enrichResult = await enrichSelectedActivitiesFromStrava(allImported, token, {
                             forceStravaDetail: true,
                             concurrency: 3,
                             deviceProfileTitles,
@@ -497,21 +542,22 @@ export function useDataHubIntervalsSync({
                     console.warn('[Fetch new] Strava enrich failed:', e);
                     stravaEnrichWarning = e?.message || 'Strava enrichment failed during fetch.';
                 }
-                onImport(merged);
+                onImport(allImported);
             }
 
             const isSingleDaySync = syncStart === syncEnd;
             const driftResult = await applyPostSyncDriftEnrich(
-                merged,
+                allImported,
                 activitiesMap,
                 enrichOptions,
                 { maxFetches: isSingleDaySync ? SYNC_DRIFT_MAX_FETCHES_TODAY : SYNC_DRIFT_MAX_FETCHES_DEFAULT },
             );
             merged = driftResult.list;
 
+            const orphanMergeCounts = countMergeCategories(orphanMerged, activities);
             recordIntervalsSyncSuccess({
-                added: mergeCounts.newCount,
-                updated: mergeCounts.updatedCount,
+                added: mergeCounts.newCount + orphanMergeCounts.newCount,
+                updated: mergeCounts.updatedCount + orphanMergeCounts.updatedCount,
                 skipped: Number(syncStats?.skippedEmpty) || 0,
             });
             onImportFinished?.(buildPostImportActivityList(activities, merged));
@@ -519,15 +565,16 @@ export function useDataHubIntervalsSync({
             setSyncStatus('done');
             const summary = formatIntervalsSyncSummary(syncStats, mergeCounts);
             const parts = [summary];
-            if (stravaEnrichEnabled && stravaGetToken && merged.length > 0) {
+            parts.push(...formatStravaGapFillSummaryParts(gapResult.stats));
+            if (stravaEnrichEnabled && stravaGetToken && allImported.length > 0) {
                 parts.push('Strava link + enrich');
                 if (enrichCount > 0) parts.push(`${enrichCount} field update(s) from Strava`);
                 if (segmentRefreshCount > 0) parts.push(`${segmentRefreshCount} detail/KOM refresh`);
                 if (detailFailed > 0) parts.push(`${detailFailed} detail error(s)`);
                 if (stravaEnrichWarning) parts.push(`Strava enrich warning: ${stravaEnrichWarning}`);
-            } else if (merged.length > 0 && !stravaEnrichEnabled) {
+            } else if (allImported.length > 0 && !stravaEnrichEnabled) {
                 parts.push('Strava enrich skipped');
-            } else if (merged.length > 0) {
+            } else if (allImported.length > 0) {
                 parts.push('connect Strava in Settings for auto-link + details');
             }
             if (driftResult.driftEnrichedCount > 0) {
@@ -535,14 +582,14 @@ export function useDataHubIntervalsSync({
             }
             const driftRemainder = formatSyncDriftRemainderNote(driftResult.driftRemainingCount);
             if (driftRemainder) parts.push(driftRemainder);
-            const detailText = merged.length > 0
+            const detailText = allImported.length > 0
                 ? `✅ ${parts.join(' · ')}.`
                 : summary;
             setSyncErrorDetail(detailText);
             showToast(
-                merged.length > 0 ? parts.join(' · ') : summary,
+                allImported.length > 0 ? parts.join(' · ') : summary,
                 {
-                    variant: merged.length > 0
+                    variant: allImported.length > 0
                         ? ((Number(syncStats?.skippedEmpty) || 0) > 0 ? 'warning' : 'success')
                         : 'info',
                 },
@@ -571,6 +618,8 @@ export function useDataHubIntervalsSync({
         applyPostSyncDriftEnrich,
         getActivitiesSnapshot,
         onImportFinished,
+        applyStravaGapFillToBatch,
+        persistImportedActivities,
     ]);
 
     const handleFetchNewFromIntervals = useCallback(async () => {

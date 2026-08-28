@@ -80,6 +80,19 @@ describe('stravaLinkIntervalsFetch', () => {
         expect(out[1].strava_id).toBeUndefined();
     });
 
+    it('does not link a Strava id reserved by another log row', () => {
+        const intervals = [
+            { id: 'i1', date: '2026-05-01T10:00:00', title: 'Candidate', type: 'Ride', distance: 50 },
+        ];
+        const strava = [
+            { id: 111, start_date_local: '2026-05-01T10:02:00', name: 'Taken', sport_type: 'Ride', distance: 50000 },
+        ];
+
+        const out = linkIntervalsActivitiesToStravaList(intervals, strava, { reservedStravaIds: ['111'] });
+
+        expect(out[0].strava_id).toBeUndefined();
+    });
+
     it('applyStravaFuzzyMatchesToIntervals links same-day ride by distance/duration', () => {
         const intervals = [
             { id: 'i1', date: '2026-05-01T10:00:00', distance: 50.1, moving_time: 7200, type: 'Ride' },

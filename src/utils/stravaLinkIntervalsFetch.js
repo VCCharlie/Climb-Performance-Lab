@@ -82,7 +82,11 @@ export async function fetchStravaActivitiesInRange(token, startYmd, endYmd, opts
 export function linkIntervalsActivitiesToStravaList(intervalsActivities, stravaActivities, opts = {}) {
     const win = opts.matchWindowMs ?? DEFAULT_MATCH_MS;
     const list = stravaActivities || [];
-    const usedStravaIds = new Set();
+    const reservedRaw = opts.reservedStravaIds;
+    const reservedList = reservedRaw instanceof Set
+        ? [...reservedRaw]
+        : (reservedRaw || []);
+    const usedStravaIds = new Set(reservedList.map((id) => String(id)));
 
     for (const activity of intervalsActivities || []) {
         if (activity?.strava_id != null) {
@@ -148,9 +152,17 @@ export function linkIntervalsActivitiesToStravaList(intervalsActivities, stravaA
  * @param {object[]} intervalsActivities
  * @param {object[]} stravaActivities — raw Strava API list items
  */
-export function applyStravaFuzzyMatchesToIntervals(intervalsActivities, stravaActivities) {
+export function applyStravaFuzzyMatchesToIntervals(intervalsActivities, stravaActivities, opts = {}) {
     const merged = intervalsActivities || [];
-    const bikeStrava = (stravaActivities || []).filter((s) => isIncludedStravaType(s.sport_type || s.type));
+    const reservedRaw = opts.reservedStravaIds;
+    const reserved = new Set(
+        (reservedRaw instanceof Set ? [...reservedRaw] : (reservedRaw || [])).map((id) => String(id)),
+    );
+    const bikeStrava = (stravaActivities || []).filter((s) => {
+        if (!isIncludedStravaType(s.sport_type || s.type)) return false;
+        const sid = s?.id != null ? String(s.id) : null;
+        return sid && !reserved.has(sid);
+    });
     if (bikeStrava.length === 0 || merged.length === 0) return;
 
     const result = matchStravaToSite(bikeStrava, merged);
@@ -180,5 +192,6 @@ export function applyStravaFuzzyMatchesToIntervals(intervalsActivities, stravaAc
             ...(applyTitle && stravaTitle && { title: stravaTitle }),
             ...climbingPatchFromStravaActivity(m.strava),
         };
+        reserved.add(String(m.strava.id));
     }
 }
