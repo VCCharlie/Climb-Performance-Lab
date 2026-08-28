@@ -2,6 +2,8 @@
  * Race Pacing → Fueling handoff payload.
  */
 
+import { buildRaceFuelingTimeline } from './fuelingTimeline';
+
 /**
  * @param {object | null} raceStrategy output of RacePacing useMemo
  * @param {number} targetIntensity IF 0.6–1.0
@@ -24,6 +26,7 @@ export function buildFuelingHandoff(raceStrategy, targetIntensity, selectedClimb
         : null;
 
     const totalCarbs = Math.round(Number(raceStrategy.totalCarbs) || 0);
+    const climbTimeline = buildRaceFuelingTimeline(raceStrategy.climbDetails || []);
 
     return {
         duration,
@@ -33,5 +36,6 @@ export function buildFuelingHandoff(raceStrategy, targetIntensity, selectedClimb
         altitude: maxElevation >= 1200 ? Math.round(maxElevation * 0.55) : 0,
         fromRacePacing: true,
         climbCount: (selectedClimbs || []).length,
+        climbTimeline,
     };
 }

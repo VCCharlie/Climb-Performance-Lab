@@ -692,10 +692,10 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
                 )}
             </CollapsibleSection>
 
-            {/* --- Coachplan: acties + week + .zwo gekoppeld aan SWOT/data --- */}
+            {/* --- SWOT actions + structured workout downloads (.zwo) --- */}
             <CollapsibleSection
                 title={coachPlan.headline}
-                subtitle="Weekly proposal from your SWOT signals — adjust for schedule, weather, and recovery."
+                subtitle="Concrete actions from your SWOT signals. Your interactive week schedule is above — use these structured workouts for .zwo export."
                 icon={Target}
                 iconClassName="text-purple-400"
                 defaultExpanded={false}
@@ -717,58 +717,15 @@ const AICoach = ({ activities: activitiesProp, userSettings, setUserSettings, st
                     </label>
                 )}
             >
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div>
-                        <h4 className="text-sm font-bold text-cdtext uppercase tracking-wide mb-2 flex items-center gap-2">
-                            <ListChecks size={16} className="text-cdaccent" /> Concrete actions
-                        </h4>
-                        <ul className="list-disc list-inside space-y-2 text-sm text-cdtext leading-relaxed">
-                            {coachPlan.actions.map((line, i) => (
-                                <li key={i}>{line}</li>
-                            ))}
-                        </ul>
-                    </div>
-                    <div>
-                        <h4 className="text-sm font-bold text-cdtext uppercase tracking-wide mb-2">Example week (Mon–Sun)</h4>
-                        <div className="rounded-lg border border-cdborder overflow-hidden text-sm">
-                            <table className="w-full text-left">
-                                <thead>
-                                    <tr className="bg-cdborder/40 text-cdmuted text-xs uppercase">
-                                        <th className="px-3 py-2 font-semibold">Day</th>
-                                        <th className="px-3 py-2 font-semibold">Focus</th>
-                                        <th className="px-3 py-2 font-semibold w-24 text-right">.zwo</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="text-cdtext">
-                                    {coachPlan.weekPlan.map((row, i) => (
-                                        <tr key={i} className="border-t border-cdborder">
-                                            <td className="px-3 py-2 font-medium whitespace-nowrap">{row.day}</td>
-                                            <td className="px-3 py-2 text-cdmuted">
-                                                <span className="text-cdtext font-medium">{row.session}</span>
-                                                {row.detail ? (
-                                                    <span className="block text-xs mt-0.5">{row.detail}</span>
-                                                ) : null}
-                                            </td>
-                                            <td className="px-3 py-2 text-right align-top">
-                                                {row.workoutId && COACH_WORKOUT_LIBRARY[row.workoutId] ? (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleDownloadZwo(COACH_WORKOUT_LIBRARY[row.workoutId])}
-                                                        className="text-xs font-bold text-cdaccent hover:underline inline-flex items-center gap-1"
-                                                    >
-                                                        <Download size={12} />
-                                                        Download
-                                                    </button>
-                                                ) : (
-                                                    <span className="text-cdmuted text-xs">—</span>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                <div>
+                    <h4 className="text-sm font-bold text-cdtext uppercase tracking-wide mb-2 flex items-center gap-2">
+                        <ListChecks size={16} className="text-cdaccent" /> Concrete actions
+                    </h4>
+                    <ul className="list-disc list-inside space-y-2 text-sm text-cdtext leading-relaxed">
+                        {coachPlan.actions.map((line, i) => (
+                            <li key={i}>{line}</li>
+                        ))}
+                    </ul>
                 </div>
 
                 {coachPlan.workouts.length > 0 && (
