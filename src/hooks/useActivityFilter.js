@@ -39,6 +39,7 @@ import {
     toggleMetricPresetIds,
 } from '../utils/metricRangePresets';
 import { duplicateActivityIdSet } from '../utils/dedup';
+import { buildActivitiesDuplicateFingerprint } from '../utils/activitiesDuplicateFingerprint';
 import {
     activityCalendarYmd,
     activityMatchesDayFilter,
@@ -243,9 +244,14 @@ const useActivityFilter = (activities, profileFtp) => {
     }, [activities]);
 
     // -- Derived State --
+    const activitiesDuplicateFingerprint = useMemo(
+        () => buildActivitiesDuplicateFingerprint(activities),
+        [activities],
+    );
+
     const duplicateIds = useMemo(
         () => (possibleDuplicatesOnly ? duplicateActivityIdSet(activities) : null),
-        [activities, possibleDuplicatesOnly],
+        [activities, activitiesDuplicateFingerprint, possibleDuplicatesOnly],
     );
 
     const { processedActivities, activitiesForGearFilterOptions } = useMemo(() => {

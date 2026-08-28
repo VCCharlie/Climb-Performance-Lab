@@ -86,9 +86,51 @@ export default defineConfig({
         // Do not register a second handler for request.mode === 'navigate' — NavigationRoute
         // already serves index.html for SPA navigations; duplicating it caused Response.clone()
         // errors and broke Google redirect sign-in after OAuth return.
-        globPatterns: ['**/*.{js,css,ico,png,svg,woff2,webmanifest}'],
+        // Bolt Phase 1.2: precache shell + first-load chunks only; lazy tabs load via runtime cache.
+        globPatterns: [
+          'index.html',
+          'manifest.webmanifest',
+          'favicon.png',
+          'pwa-*.png',
+          'vite.svg',
+          'assets/index-*.js',
+          'assets/react-vendor-*.js',
+          'assets/firebase-*.js',
+          'assets/lucide-*.js',
+          'assets/index-*.css',
+        ],
+        globIgnores: [
+          '**/climbs_extended-*.js',
+          '**/xlsx-*.js',
+          '**/recharts-*.js',
+          '**/leaflet-*.js',
+          '**/DataHub-*.js',
+          '**/AICoach-*.js',
+        ],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         runtimeCaching: [
+          {
+            urlPattern: ({ request, url }) => (
+              request.destination === 'script'
+              && url.pathname.includes('/assets/')
+            ),
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'cpl-lazy-chunks',
+              expiration: { maxEntries: 80, maxAgeSeconds: 60 * 60 * 24 * 30 },
+            },
+          },
+          {
+            urlPattern: ({ request, url }) => (
+              request.destination === 'style'
+              && url.pathname.includes('/assets/')
+            ),
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'cpl-lazy-styles',
+              expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 30 },
+            },
+          },
           {
             urlPattern: ({ url }) => url.pathname.endsWith('index.html'),
             handler: 'NetworkFirst',

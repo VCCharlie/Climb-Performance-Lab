@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
-import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { SPORT_TYPES } from '../config';
 import { protectEnrichedFieldsOnMerge } from '../utils/firestoreActivityMerge';
+import { batchWriteDocuments } from '../utils/firestoreBatchWrite';
 import { stripUndefinedFields } from '../utils/mergeActivities';
 import { enrichSelectedActivitiesFromStrava } from '../utils/stravaSelectedEnrich';
 import useIntervalsSync from './useIntervalsSync';
@@ -32,6 +32,35 @@ function buildActivitiesLookupMap(activities, getActivitiesSnapshot) {
         ? getActivitiesSnapshot()
         : activities;
     return new Map((source || []).map((a) => [String(a.id), a]));
+}
+
+async function persistActivitiesMerge(activities, existingMap) {
+    if (!db || !activities?.length) return;
+    await batchWriteDocuments(
+        'activities',
+        activities.map((act) => {
+            const existing = existingMap.get(String(act.id));
+            return {
+                id: act.id,
+                data: protectEnrichedFieldsOnMerge(act, existing),
+            };
+        }),
+    );
+}
+
+async function persistActivityUpdates(updates, existingMap) {
+    if (!db || !updates?.length) return;
+    await batchWriteDocuments(
+        'activities',
+        updates.map(({ id, data }) => {
+            const strId = String(id);
+            const existingRow = existingMap.get(strId) || {};
+            return {
+                id,
+                data: protectEnrichedFieldsOnMerge(data, existingRow),
+            };
+        }),
+    );
 }
 
 export function useDataHubIntervalsSync({
@@ -132,16 +161,7 @@ export function useDataHubIntervalsSync({
         });
 
         if (db) {
-            await Promise.all(
-                updated.map((act) => {
-                    const existing = activitiesMap.get(String(act.id));
-                    return setDoc(
-                        doc(db, 'activities', String(act.id)),
-                        protectEnrichedFieldsOnMerge(act, existing),
-                        { merge: true },
-                    );
-                }),
-            );
+            await persistActivitiesMerge(updated, activitiesMap);
         }
         onImport(updated);
 
@@ -149,14 +169,8 @@ export function useDataHubIntervalsSync({
     }, [intervalsConfig, stravaEnrichEnabled, stravaGetToken, onImport]);
 
     const persistImportedActivities = useCallback(async (items, activitiesMap) => {
-        if (!items?.length || !db) return;
-        await Promise.all(
-            items.map((act) => {
-                const existing = activitiesMap.get(String(act.id));
-                const payload = protectEnrichedFieldsOnMerge(act, existing);
-                return setDoc(doc(db, 'activities', String(act.id)), payload, { merge: true });
-            }),
-        );
+        if (!items?.length) return;
+        await persistActivitiesMerge(items, activitiesMap);
     }, []);
 
     const applyStravaGapFillToBatch = useCallback(async ({
@@ -322,16 +336,9 @@ export function useDataHubIntervalsSync({
                         if (enrichResult.updates.length > 0) {
                             const workingMap = new Map((working || []).map((a) => [String(a.id), a]));
                             if (db) {
-                                await Promise.all(
-                                    enrichResult.updates.map(({ id, data }) => {
-                                        const strId = String(id);
-                                        const existingRow = workingMap.get(strId) || activitiesMap.get(strId) || {};
-                                        return setDoc(
-                                            doc(db, 'activities', String(id)),
-                                            protectEnrichedFieldsOnMerge(data, existingRow),
-                                            { merge: true },
-                                        );
-                                    }),
+                                await persistActivityUpdates(
+                                    enrichResult.updates,
+                                    new Map([...workingMap, ...activitiesMap]),
                                 );
                             }
                             const updatesMap = new Map(enrichResult.updates.map((u) => [String(u.id), u]));
@@ -512,16 +519,9 @@ export function useDataHubIntervalsSync({
                         if (enrichResult.updates.length > 0) {
                             const mergedMap = new Map((merged || []).map((a) => [String(a.id), a]));
                             if (db) {
-                                await Promise.all(
-                                    enrichResult.updates.map(({ id, data }) => {
-                                        const strId = String(id);
-                                        const existingRow = mergedMap.get(strId) || activitiesMap.get(strId) || {};
-                                        return setDoc(
-                                            doc(db, 'activities', String(id)),
-                                            protectEnrichedFieldsOnMerge(data, existingRow),
-                                            { merge: true },
-                                        );
-                                    }),
+                                await persistActivityUpdates(
+                                    enrichResult.updates,
+                                    new Map([...mergedMap, ...activitiesMap]),
                                 );
                             }
                             const updatesMap = new Map(enrichResult.updates.map((u) => [String(u.id), u]));
