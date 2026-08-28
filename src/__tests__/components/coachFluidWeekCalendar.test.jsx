@@ -3,6 +3,7 @@ import { render, screen, fireEvent, within } from '@testing-library/react';
 import React from 'react';
 import CoachFluidWeekPlan from '../../components/coach/CoachFluidWeekPlan';
 import FluidWeekPanel from '../../components/coach/FluidWeekPanel';
+import FluidWeekSessionCard from '../../components/coach/FluidWeekSessionCard';
 import { COACH_WEEK_VIEW_STORAGE_KEY } from '../../utils/coach/coachWeekCalendar';
 import { buildFluidWorkout } from '../../utils/coach/fluidWorkoutTemplates';
 
@@ -180,5 +181,111 @@ describe('FluidWeekPanel horizon list expand', () => {
         expect(card?.className).not.toMatch(/\bh-full\b/);
 
         expect(within(card).getByText('Main set')).toBeInTheDocument();
+    });
+});
+
+describe('FluidWeekSessionCard mobile layout', () => {
+    const noop = () => {};
+
+    it('keeps zone and TSS on one nowrap meta row', () => {
+        render(
+            <FluidWeekSessionCard
+                session={{
+                    date: '2026-08-28',
+                    day: 'Friday',
+                    stimulus: 'endurance',
+                    plannedStimulus: 'endurance',
+                    workoutName: 'Coastal/Polder Endurance Ride · 1×60m',
+                    completed: false,
+                    isToday: true,
+                    isPast: false,
+                }}
+                dayTss={70}
+                tssBubbleSizePx={8}
+                expanded={false}
+                onToggleExpand={noop}
+                onToggleDone={noop}
+                onSwapRecovery={noop}
+                onMoveToToday={noop}
+                onUndoMove={noop}
+                onToggleUnavailable={noop}
+                onToggleAvailable={noop}
+            />,
+        );
+
+        const metaRow = screen.getByTestId('day-meta-row');
+        expect(metaRow.className).toMatch(/flex-nowrap/);
+        expect(within(metaRow).getByText('70 TSS')).toBeInTheDocument();
+        expect(within(metaRow).getByText('Z2')).toBeInTheDocument();
+        expect(within(metaRow).getByText('Today')).toBeInTheDocument();
+    });
+
+    it('hides blocked flex note text and redundant rest title on mobile classes', () => {
+        const { container } = render(
+            <FluidWeekSessionCard
+                session={{
+                    date: '2026-08-27',
+                    day: 'Wednesday',
+                    stimulus: 'rest',
+                    plannedStimulus: 'rest',
+                    workoutName: 'Rest',
+                    flexNote: 'Blocked — no training this day.',
+                    isUnavailable: true,
+                    completed: false,
+                    isToday: false,
+                    isPast: false,
+                }}
+                dayTss={0}
+                expanded={false}
+                onToggleExpand={noop}
+                onToggleDone={noop}
+                onSwapRecovery={noop}
+                onMoveToToday={noop}
+                onUndoMove={noop}
+                onToggleUnavailable={noop}
+                onToggleAvailable={noop}
+            />,
+        );
+
+        expect(screen.getByText('Blocked')).toBeInTheDocument();
+        expect(screen.queryByText('Blocked — no training this day.')).not.toBeInTheDocument();
+
+        const restTitle = container.querySelector('p.truncate');
+        expect(restTitle?.className).toMatch(/hidden md:block/);
+    });
+
+    it('truncates workout title and hides block summary until md breakpoint', () => {
+        const workout = buildFluidWorkout('sweetspot', { ftp: 250 });
+        const { container } = render(
+            <FluidWeekSessionCard
+                session={{
+                    date: '2026-08-26',
+                    day: 'Thursday',
+                    stimulus: 'sweetspot',
+                    plannedStimulus: 'sweetspot',
+                    workoutName: 'Polder Power: Sweetspot Blocks',
+                    fluidWorkout: workout,
+                    completed: false,
+                    isToday: false,
+                    isPast: true,
+                }}
+                dayTss={78}
+                expanded={false}
+                onToggleExpand={noop}
+                onToggleDone={noop}
+                onSwapRecovery={noop}
+                onMoveToToday={noop}
+                onUndoMove={noop}
+                onToggleUnavailable={noop}
+                onToggleAvailable={noop}
+            />,
+        );
+
+        const title = container.querySelector('p.truncate.whitespace-nowrap');
+        expect(title).toBeTruthy();
+        expect(title?.textContent).toContain('Polder Power: Sweetspot Blocks');
+        const blockSummarySpan = title?.querySelector('span.hidden.md\\:inline');
+        expect(blockSummarySpan).toBeTruthy();
+        expect(blockSummarySpan?.textContent).toMatch(/3×8m/);
     });
 });

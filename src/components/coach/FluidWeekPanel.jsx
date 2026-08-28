@@ -109,7 +109,9 @@ export default function FluidWeekPanel({
     const headerClass = alignHorizon ? 'min-h-[96px]' : '';
     const ctlRowClass = alignHorizon ? 'min-h-[14px]' : '';
     const clearRowClass = alignHorizon ? 'min-h-[18px]' : '';
-    const dayRowMinClass = alignHorizon ? (compact ? 'min-h-[52px]' : 'min-h-[58px]') : '';
+    const dayRowMinClass = alignHorizon
+        ? (compact ? 'min-h-[52px]' : 'min-h-[58px]')
+        : 'min-h-[48px] md:min-h-0';
 
     return (
         <section className={`flex flex-col min-h-0 ${className}`}>

@@ -16,7 +16,7 @@ import { formatDateDDMMYYYY } from '../../utils/formatters';
 import { getStimulusStyle } from './coachStimulusStyles';
 import FluidWorkoutExpandable from './FluidWorkoutExpandable';
 
-function StatusLabel({ children, accent = false, tone = 'default', compact = false }) {
+function StatusLabel({ children, accent = false, tone = 'default', compact = false, title }) {
     const toneClass = tone === 'missed'
         ? 'text-red-400/70'
         : tone === 'done'
@@ -27,6 +27,7 @@ function StatusLabel({ children, accent = false, tone = 'default', compact = fal
 
     return (
         <span
+            title={title}
             className={`font-semibold uppercase tracking-wide shrink-0 ${
                 compact ? 'text-[8px]' : 'text-[9px]'
             } ${toneClass}`}
@@ -111,12 +112,20 @@ export default function FluidWeekSessionCard({
         : '';
     const secondaryNote = session.note || session.flexNote || null;
     const noteIcon = session.note ? RefreshCw : Sparkles;
+    const zoneBadgeClass = `rounded font-semibold uppercase tracking-wide shrink-0 ${
+        compact ? 'text-[8px] px-1 py-px' : 'text-[9px] px-1 py-0.5'
+    } ${styles.badge}`;
+    const titleRedundantOnMobile = isRest
+        || (session.completed && (session.workoutName === 'Done' || session.workoutName === 'Rest'));
+    const showWorkoutTitle = Boolean(session.workoutName);
+    const hideSecondaryOnMobile = isBlocked;
 
     const leftAccent = session.isToday
         ? 'border-l-cdaccent'
         : styles.border;
 
     const rowFillClass = alignRow && !expanded ? 'h-full min-h-[52px]' : alignRow ? 'min-h-[52px]' : '';
+    const mobileMinHeightClass = !expanded && !alignRow ? 'min-h-[48px] md:min-h-0' : '';
     const overflowClass = expanded ? 'overflow-visible' : 'overflow-hidden';
 
     return (
@@ -125,6 +134,7 @@ export default function FluidWeekSessionCard({
                 'rounded-md border border-cdborder/40 border-l-2 transition-colors',
                 overflowClass,
                 rowFillClass,
+                mobileMinHeightClass,
                 session.isToday ? 'bg-cdaccent/8 ring-1 ring-inset ring-cdaccent/30' : 'bg-cdsurface',
                 leftAccent,
             ].join(' ')}
@@ -148,64 +158,79 @@ export default function FluidWeekSessionCard({
                     </button>
 
                     <div className="min-w-0 flex-1">
-                        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-0.5 items-start">
-                            <div className="flex items-center gap-1 min-w-0 flex-wrap">
-                            <span className={`font-semibold shrink-0 ${compact ? 'text-[10px]' : 'text-[11px]'} ${
-                                session.completed
-                                    ? 'text-emerald-500/70 line-through'
-                                    : missed
-                                        ? 'text-red-400/70'
-                                        : session.isToday
-                                            ? 'text-cdaccent'
-                                            : 'text-cdtext'
-                            }`}>
-                                {compact ? session.day.slice(0, 3) : session.day}
-                            </span>
-                            {!compact && (
-                                <span className="text-[10px] text-cdmuted tabular-nums shrink-0">
-                                    {formatDateDDMMYYYY(session.date)}
-                                </span>
-                            )}
-                            {session.isToday && (
-                                <StatusLabel compact={compact} accent>Today</StatusLabel>
-                            )}
-                            {session.completed && !session.isToday && (
-                                <StatusLabel compact={compact} tone="done">Done</StatusLabel>
-                            )}
-                            {missed && (
-                                <StatusLabel compact={compact} tone="missed">Missed</StatusLabel>
-                            )}
-                            {isBlocked && (
-                                <StatusLabel compact={compact}>Blocked</StatusLabel>
-                            )}
-                            {isExplicitlyAvailable && (
-                                <StatusLabel compact={compact}>Open</StatusLabel>
-                            )}
-                            {(session.movedFromDate || session.relocatedFromDate) && (
-                                <StatusLabel compact={compact}>Moved</StatusLabel>
-                            )}
-                            <span className={`rounded font-semibold uppercase tracking-wide shrink-0 ${compact ? 'text-[8px] px-1 py-px' : 'text-[9px] px-1 py-0.5'} ${styles.badge}`}>
-                                {styles.label}
-                            </span>
-                            {dayTss > 0 && (
-                                <span
-                                    className="inline-flex items-center gap-0.5 text-[9px] text-cdmuted tabular-nums shrink-0"
-                                    title={`${Math.round(dayTss)} TSS`}
-                                >
-                                    {bubbleSizePx > 0 && (
-                                        <span
-                                            className="rounded-full bg-cdborder/50 border border-cdborder shrink-0"
-                                            style={{ width: bubbleSizePx, height: bubbleSizePx }}
-                                            aria-hidden
-                                        />
+                        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-0.5 items-center">
+                            <div
+                                className="flex items-center gap-1 min-w-0 flex-nowrap overflow-hidden md:flex-wrap md:overflow-visible"
+                                data-testid="day-meta-row"
+                            >
+                                <span className={`font-semibold shrink-0 uppercase ${compact ? 'text-[10px]' : 'text-[11px]'} ${
+                                    session.completed
+                                        ? 'text-emerald-500/70 line-through'
+                                        : missed
+                                            ? 'text-red-400/70'
+                                            : session.isToday
+                                                ? 'text-cdaccent'
+                                                : 'text-cdtext'
+                                }`}>
+                                    {compact ? session.day.slice(0, 3) : (
+                                        <>
+                                            <span className="md:hidden">{session.day.slice(0, 3)}</span>
+                                            <span className="hidden md:inline">{session.day}</span>
+                                        </>
                                     )}
-                                    {Math.round(dayTss)} TSS
                                 </span>
-                            )}
+                                {!compact && (
+                                    <span className="hidden md:inline text-[10px] text-cdmuted tabular-nums shrink-0">
+                                        {formatDateDDMMYYYY(session.date)}
+                                    </span>
+                                )}
+                                <span className="flex items-center gap-1 min-w-0 overflow-hidden flex-nowrap md:overflow-visible">
+                                    {session.isToday && (
+                                        <StatusLabel compact={compact} accent>Today</StatusLabel>
+                                    )}
+                                    {session.completed && !session.isToday && (
+                                        <StatusLabel compact={compact} tone="done">Done</StatusLabel>
+                                    )}
+                                    {missed && (
+                                        <StatusLabel compact={compact} tone="missed">Missed</StatusLabel>
+                                    )}
+                                    {isBlocked && (
+                                        <StatusLabel compact={compact} title="Blocked — no training this day">
+                                            Blocked
+                                        </StatusLabel>
+                                    )}
+                                    {isExplicitlyAvailable && (
+                                        <StatusLabel compact={compact}>Open</StatusLabel>
+                                    )}
+                                    {(session.movedFromDate || session.relocatedFromDate) && (
+                                        <StatusLabel compact={compact}>Moved</StatusLabel>
+                                    )}
+                                </span>
+                                <span className="inline-flex items-center gap-1 shrink-0 ml-auto md:ml-0">
+                                    <span className={zoneBadgeClass} title={styles.label}>
+                                        <span className="md:hidden">{styles.mobileLabel || styles.label}</span>
+                                        <span className="hidden md:inline">{styles.label}</span>
+                                    </span>
+                                    {dayTss > 0 && (
+                                        <span
+                                            className="inline-flex items-center gap-0.5 text-[9px] text-cdmuted tabular-nums shrink-0 whitespace-nowrap"
+                                            title={`${Math.round(dayTss)} TSS`}
+                                        >
+                                            {bubbleSizePx > 0 && (
+                                                <span
+                                                    className="hidden sm:inline-block rounded-full bg-cdborder/50 border border-cdborder shrink-0"
+                                                    style={{ width: bubbleSizePx, height: bubbleSizePx }}
+                                                    aria-hidden
+                                                />
+                                            )}
+                                            {Math.round(dayTss)} TSS
+                                        </span>
+                                    )}
+                                </span>
                             </div>
 
                             {hasActions && (
-                                <div className="flex items-center shrink-0 gap-0.5 self-start">
+                                <div className="flex items-center shrink-0 gap-0.5 self-center">
                                     {session.fluidWorkout && !isRest && (
                                         <ActionButton
                                             compact={compact}
@@ -254,24 +279,42 @@ export default function FluidWeekSessionCard({
                             )}
                         </div>
 
-                        <p className={`truncate leading-snug ${compact ? 'text-[10px] mt-0.5' : 'text-[11px] mt-0.5'} ${
-                            session.completed
-                                ? 'text-emerald-500/70 line-through'
-                                : missed
-                                    ? 'text-red-400/70'
-                                    : 'text-cdtext'
-                        } ${hasActions ? 'pr-1' : ''}`}>
-                            {session.workoutName}
-                            {blockSummary ? (
-                                <span className="text-cdmuted"> · {blockSummary}</span>
-                            ) : null}
-                        </p>
-
-                        {secondaryNote && !expanded && (
-                            <p className={`truncate leading-tight mt-px flex items-center gap-0.5 ${compact ? 'text-[9px]' : 'text-[10px]'} text-cdmuted`}>
-                                {React.createElement(noteIcon, { size: 9, className: 'shrink-0', 'aria-hidden': true })}
-                                {secondaryNote}
+                        {showWorkoutTitle && (
+                            <p
+                                className={[
+                                    'truncate leading-snug whitespace-nowrap',
+                                    compact ? 'text-[10px] mt-0.5' : 'text-[11px] mt-0.5',
+                                    session.completed
+                                        ? 'text-emerald-500/70 line-through'
+                                        : missed
+                                            ? 'text-red-400/70'
+                                            : 'text-cdtext',
+                                    hasActions ? 'pr-1' : '',
+                                    titleRedundantOnMobile ? 'hidden md:block' : '',
+                                ].join(' ')}
+                                title={session.workoutName}
+                            >
+                                {session.workoutName}
+                                {blockSummary ? (
+                                    <span className="hidden md:inline text-cdmuted"> · {blockSummary}</span>
+                                ) : null}
                             </p>
+                        )}
+
+                        {secondaryNote && !expanded && !hideSecondaryOnMobile && (
+                            <>
+                                <p className={`hidden md:flex truncate leading-tight mt-px items-center gap-0.5 ${compact ? 'text-[9px]' : 'text-[10px]'} text-cdmuted`}>
+                                    {React.createElement(noteIcon, { size: 9, className: 'shrink-0', 'aria-hidden': true })}
+                                    {secondaryNote}
+                                </p>
+                                <span
+                                    className="md:hidden inline-flex items-center mt-px text-cdmuted"
+                                    title={secondaryNote}
+                                    aria-label={secondaryNote}
+                                >
+                                    {React.createElement(noteIcon, { size: 9, className: 'shrink-0', 'aria-hidden': true })}
+                                </span>
+                            </>
                         )}
 
                         {expanded && session.fluidWorkout && (

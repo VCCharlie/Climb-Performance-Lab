@@ -6,6 +6,7 @@ const ACCENT_ZONE_PILL = 'border border-cdaccent/25 text-cdtext bg-cdborder/5';
 export const STIMULUS_STYLES = {
     rest: {
         label: 'Rest',
+        mobileLabel: 'Rest',
         border: 'border-l-cdborder/60',
         rowBg: '',
         badge: ZONE_PILL,
@@ -14,6 +15,7 @@ export const STIMULUS_STYLES = {
     },
     recovery: {
         label: 'Recovery',
+        mobileLabel: 'Rec',
         border: 'border-l-cdborder/60',
         rowBg: '',
         badge: ZONE_PILL,
@@ -22,6 +24,7 @@ export const STIMULUS_STYLES = {
     },
     endurance: {
         label: 'Endurance',
+        mobileLabel: 'Z2',
         border: 'border-l-cdborder/60',
         rowBg: '',
         badge: ZONE_PILL,
@@ -30,6 +33,7 @@ export const STIMULUS_STYLES = {
     },
     sweetspot: {
         label: 'Sweetspot',
+        mobileLabel: 'SS',
         border: 'border-l-cdaccent/40',
         rowBg: '',
         badge: ACCENT_ZONE_PILL,
@@ -38,6 +42,7 @@ export const STIMULUS_STYLES = {
     },
     threshold: {
         label: 'Threshold',
+        mobileLabel: 'Thr',
         border: 'border-l-cdaccent/50',
         rowBg: '',
         badge: ACCENT_ZONE_PILL,
@@ -46,6 +51,7 @@ export const STIMULUS_STYLES = {
     },
     vo2: {
         label: 'VO2',
+        mobileLabel: 'VO2',
         border: 'border-l-cdaccent/60',
         rowBg: '',
         badge: ACCENT_ZONE_PILL,
@@ -54,6 +60,7 @@ export const STIMULUS_STYLES = {
     },
     completed: {
         label: 'Done',
+        mobileLabel: 'Done',
         border: 'border-l-cdborder/50',
         rowBg: '',
         badge: ZONE_PILL,
