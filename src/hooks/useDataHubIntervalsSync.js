@@ -18,6 +18,10 @@ import {
     readIntervalsSyncHealthSummary,
     writeIntervalsSyncHealthSummary,
 } from '../utils/intervalsSyncHealth';
+import {
+    buildStravaSyncMatchSummary,
+    formatStravaSyncMatchSummary,
+} from '../utils/stravaSyncMatchSummary';
 
 /**
  * Intervals.icu sync + fetch-new flows for DataHub (selected-row sync and date-range fetch).
@@ -163,12 +167,12 @@ export function useDataHubIntervalsSync({
         onProgress,
     }) => {
         if (!stravaEnrichEnabled || !stravaGetToken) {
-            return { intervalsActivities: intervalsBatch, orphanActivities: [], stats: null };
+            return { intervalsActivities: intervalsBatch, orphanActivities: [], stravaList: null, stats: null };
         }
         try {
             const token = await stravaGetToken();
             if (!token) {
-                return { intervalsActivities: intervalsBatch, orphanActivities: [], stats: null };
+                return { intervalsActivities: intervalsBatch, orphanActivities: [], stravaList: null, stats: null };
             }
             const existingSnapshot = typeof getActivitiesSnapshot === 'function'
                 ? getActivitiesSnapshot()
@@ -184,7 +188,7 @@ export function useDataHubIntervalsSync({
             });
         } catch (err) {
             console.warn('[Sync] Strava gap fill failed:', err);
-            return { intervalsActivities: intervalsBatch, orphanActivities: [], stats: null };
+            return { intervalsActivities: intervalsBatch, orphanActivities: [], stravaList: null, stats: null };
         }
     }, [activities, getActivitiesSnapshot, stravaEnrichEnabled, stravaGetToken]);
 
@@ -478,6 +482,7 @@ export function useDataHubIntervalsSync({
             let merged = (gapResult.intervalsActivities || []).map(mergeNewInto);
             const orphanMerged = (gapResult.orphanActivities || []).map(mergeNewInto);
             const allImported = [...merged, ...orphanMerged];
+            const stravaListForSummary = gapResult.stravaList ?? null;
 
             await persistImportedActivities(allImported, activitiesMap);
             if (allImported.length > 0) {
@@ -566,8 +571,21 @@ export function useDataHubIntervalsSync({
             const summary = formatIntervalsSyncSummary(syncStats, mergeCounts);
             const parts = [summary];
             parts.push(...formatStravaGapFillSummaryParts(gapResult.stats));
+            let stravaUnmatchedCount = 0;
+            if (stravaListForSummary) {
+                const stravaMatchSummary = buildStravaSyncMatchSummary({
+                    siteActivities: merged,
+                    stravaList: stravaListForSummary,
+                    startYmd: syncStart,
+                    endYmd: syncEnd,
+                    intervalsImported: Number(syncStats?.imported) || (gapResult.intervalsActivities || []).length,
+                });
+                stravaUnmatchedCount = stravaMatchSummary.unmatchedCount;
+                const stravaSummaryText = formatStravaSyncMatchSummary(stravaMatchSummary);
+                if (stravaSummaryText) parts.push(stravaSummaryText);
+            }
             if (stravaEnrichEnabled && stravaGetToken && allImported.length > 0) {
-                parts.push('Strava link + enrich');
+                if (!stravaListForSummary) parts.push('Strava link + enrich');
                 if (enrichCount > 0) parts.push(`${enrichCount} field update(s) from Strava`);
                 if (segmentRefreshCount > 0) parts.push(`${segmentRefreshCount} detail/KOM refresh`);
                 if (detailFailed > 0) parts.push(`${detailFailed} detail error(s)`);
@@ -586,13 +604,12 @@ export function useDataHubIntervalsSync({
                 ? `✅ ${parts.join(' · ')}.`
                 : summary;
             setSyncErrorDetail(detailText);
+            const toastVariant = allImported.length > 0
+                ? ((Number(syncStats?.skippedEmpty) || 0) > 0 || stravaUnmatchedCount > 0 ? 'warning' : 'success')
+                : 'info';
             showToast(
                 allImported.length > 0 ? parts.join(' · ') : summary,
-                {
-                    variant: allImported.length > 0
-                        ? ((Number(syncStats?.skippedEmpty) || 0) > 0 ? 'warning' : 'success')
-                        : 'info',
-                },
+                { variant: toastVariant },
             );
             setTimeout(() => setSyncStatus(null), 9000);
         } catch (e) {

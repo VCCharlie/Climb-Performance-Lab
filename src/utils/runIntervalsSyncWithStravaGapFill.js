@@ -26,6 +26,7 @@ import {
  * @returns {Promise<{
  *   intervalsActivities: object[],
  *   orphanActivities: object[],
+ *   stravaList: object[]|null,
  *   stats: {
  *     intervalsCount: number,
  *     orphansAdded: number,
@@ -55,7 +56,7 @@ export async function runIntervalsSyncWithStravaGapFill({
     };
 
     if (!stravaToken) {
-        return { intervalsActivities: intervals, orphanActivities: [], stats: emptyStats };
+        return { intervalsActivities: intervals, orphanActivities: [], stravaList: null, stats: emptyStats };
     }
 
     onProgress?.('Fetching Strava activities for link + gap fill…');
@@ -64,7 +65,7 @@ export async function runIntervalsSyncWithStravaGapFill({
         stravaList = await fetchStravaActivitiesInRange(stravaToken, startYmd, endYmd);
     } catch (err) {
         console.warn('[Gap fill] Strava list fetch failed:', err);
-        return { intervalsActivities: intervals, orphanActivities: [], stats: emptyStats };
+        return { intervalsActivities: intervals, orphanActivities: [], stravaList: null, stats: emptyStats };
     }
 
     const reservedStravaIds = collectExistingStravaIds(existingActivities);
@@ -88,6 +89,7 @@ export async function runIntervalsSyncWithStravaGapFill({
     return {
         intervalsActivities: linked,
         orphanActivities: replacementPlan.activitiesToImport,
+        stravaList,
         stats: {
             intervalsCount: linked.length,
             orphansAdded: replacementPlan.activitiesToImport.length,
