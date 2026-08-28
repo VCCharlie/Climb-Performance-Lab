@@ -1,3 +1,6 @@
+import { batchWriteDocuments } from './firestoreBatchWrite';
+import { db } from '../firebase';
+
 /**
  * Build the rows that should be persisted when an import replaces duplicate
  * activity ids. The merge happens before deletion so the replacement row can
@@ -55,14 +58,21 @@ export async function persistImportedActivitiesReplacingDuplicates({
 }) {
     const existingById = new Map((activities || []).map((activity) => [String(activity.id), activity]));
 
-    await Promise.all(
-        (toImport || []).map((activity) => {
-            if (!activity?.id) return Promise.resolve();
+    const entries = (toImport || [])
+        .filter((activity) => activity?.id)
+        .map((activity) => {
             const existing = existingById.get(String(activity.id));
             const payload = mergePayload ? mergePayload(activity, existing) : activity;
-            return writeActivity(activity.id, payload);
-        }),
-    );
+            return { id: activity.id, data: payload };
+        });
+
+    if (entries.length > 0) {
+        if (db) {
+            await batchWriteDocuments('activities', entries, { merge: true });
+        } else if (writeActivity) {
+            await Promise.all(entries.map(({ id, data }) => writeActivity(id, data)));
+        }
+    }
 
     await Promise.all((idsToDelete || []).map((id) => deleteActivity(id)));
     return (toImport || []).length;

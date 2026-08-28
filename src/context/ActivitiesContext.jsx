@@ -12,12 +12,12 @@ import {
     doc,
     getDocsFromServer,
     onSnapshot,
-    setDoc,
     waitForPendingWrites,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { devLog } from '../utils/safeLog';
 import { notify } from '../utils/notify';
+import { batchMergeWriteActivities } from '../utils/firestoreBatchWrite';
 import {
     mergeActivitiesPreservingEnrichment,
     prepareProtectedActivityUpsertsFromCurrent,
@@ -110,10 +110,8 @@ export function ActivitiesProvider({ user, children }) {
         );
 
         if (db) {
-            await Promise.all(
-                mergedActivities
-                    .filter((act) => act?.id != null)
-                    .map((act) => setDoc(doc(db, 'activities', String(act.id)), act, { merge: true })),
+            await batchMergeWriteActivities(
+                mergedActivities.filter((act) => act?.id != null),
             );
         }
 

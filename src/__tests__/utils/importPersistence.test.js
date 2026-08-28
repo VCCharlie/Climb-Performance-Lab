@@ -1,4 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
+
+const writeCalls = [];
+
+vi.mock('../../utils/firestoreBatchWrite', () => ({
+    batchWriteDocuments: vi.fn(async (_collection, entries) => {
+        for (const { id, data } of entries) {
+            writeCalls.push(['write', id, data]);
+        }
+        return entries.length;
+    }),
+}));
+
 import {
     persistImportedActivitiesReplacingDuplicates,
     prepareImportedActivitiesForDuplicateReplacement,
@@ -7,7 +19,7 @@ import { mergeActivitiesIntervalsPrimary } from '../../utils/mergeActivities';
 
 describe('persistImportedActivitiesReplacingDuplicates', () => {
     it('writes imported replacements before deleting duplicate rows', async () => {
-        const calls = [];
+        writeCalls.length = 0;
         const incoming = { id: 'i2', date: '2026-05-01', title: 'Intervals row' };
         const existing = { id: 'i2', strava_id: '123', gear_id: 'b1' };
 
@@ -15,16 +27,14 @@ describe('persistImportedActivitiesReplacingDuplicates', () => {
             activities: [existing],
             toImport: [incoming],
             idsToDelete: ['strava_123'],
-            writeActivity: vi.fn(async (id, payload) => {
-                calls.push(['write', id, payload]);
-            }),
+            writeActivity: vi.fn(),
             deleteActivity: vi.fn(async (id) => {
-                calls.push(['delete', id]);
+                writeCalls.push(['delete', id]);
             }),
             mergePayload: (next, prev) => ({ ...prev, ...next }),
         });
 
-        expect(calls).toEqual([
+        expect(writeCalls).toEqual([
             ['write', 'i2', { id: 'i2', strava_id: '123', gear_id: 'b1', date: '2026-05-01', title: 'Intervals row' }],
             ['delete', 'strava_123'],
         ]);
@@ -32,14 +42,14 @@ describe('persistImportedActivitiesReplacingDuplicates', () => {
 
     it('does not delete duplicate rows when a replacement write fails', async () => {
         const deleteActivity = vi.fn();
+        const { batchWriteDocuments } = await import('../../utils/firestoreBatchWrite');
+        batchWriteDocuments.mockRejectedValueOnce(new Error('network down'));
 
         await expect(
             persistImportedActivitiesReplacingDuplicates({
                 toImport: [{ id: 'i2', title: 'Replacement' }],
                 idsToDelete: ['strava_123'],
-                writeActivity: vi.fn(async () => {
-                    throw new Error('network down');
-                }),
+                writeActivity: vi.fn(),
                 deleteActivity,
             }),
         ).rejects.toThrow('network down');
