@@ -258,23 +258,30 @@ export default function FluidWeekPanel({
                     />
                 </div>
             ) : (
-                <div className={`flex-1 overflow-y-auto max-h-[min(70vh,480px)] pr-0.5 ${
-                    alignHorizon ? 'grid grid-rows-7 gap-2' : compact ? 'space-y-2' : 'space-y-2.5'
+                <div className={`flex-1 overflow-y-auto overflow-x-visible max-h-[min(70vh,480px)] pr-0.5 ${
+                    alignHorizon ? 'flex flex-col gap-2' : compact ? 'space-y-2' : 'space-y-2.5'
                 }`}>
                     {weekPlan.sessions.map((session) => {
                         const expandKey = `${expandKeyPrefix}${session.date}`;
+                        const isExpanded = expandedDate === expandKey;
                         const dayTss = dayTssMap[session.date] || 0;
                         const bubbleSize = tssBubbleSizePx(dayTss, maxDayTss, {
                             minPx: compact ? 4 : 6,
                             maxPx: compact ? 12 : 16,
                         });
                         return (
-                            <div key={session.date} className={dayRowMinClass}>
+                            <div
+                                key={session.date}
+                                className={[
+                                    dayRowMinClass,
+                                    isExpanded ? 'relative z-10' : '',
+                                ].filter(Boolean).join(' ')}
+                            >
                                 <FluidWeekSessionCard
                                     session={session}
                                     dayTss={dayTss}
                                     tssBubbleSizePx={bubbleSize}
-                                    expanded={expandedDate === expandKey}
+                                    expanded={isExpanded}
                                     onToggleExpand={() => onToggleExpand(expandKey)}
                                     onToggleDone={() => onToggleDone(session.date)}
                                     onSwapRecovery={() => onSwapRecovery(session.date)}

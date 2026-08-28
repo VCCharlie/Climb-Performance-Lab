@@ -116,13 +116,17 @@ export default function FluidWeekSessionCard({
         ? 'border-l-cdaccent'
         : styles.border;
 
+    const rowFillClass = alignRow && !expanded ? 'h-full min-h-[52px]' : alignRow ? 'min-h-[52px]' : '';
+    const overflowClass = expanded ? 'overflow-visible' : 'overflow-hidden';
+
     return (
         <article
             className={[
-                'rounded-md border border-cdborder/40 border-l-2 overflow-hidden transition-colors h-full',
+                'rounded-md border border-cdborder/40 border-l-2 transition-colors',
+                overflowClass,
+                rowFillClass,
                 session.isToday ? 'bg-cdaccent/8 ring-1 ring-inset ring-cdaccent/30' : 'bg-cdsurface',
                 leftAccent,
-                alignRow ? 'min-h-[52px]' : '',
             ].join(' ')}
         >
             <div className={compact ? 'px-2 py-1.5' : 'px-2.5 py-1.5'}>
