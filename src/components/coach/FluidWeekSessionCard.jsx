@@ -16,12 +16,20 @@ import { formatDateDDMMYYYY } from '../../utils/formatters';
 import { getStimulusStyle } from './coachStimulusStyles';
 import FluidWorkoutExpandable from './FluidWorkoutExpandable';
 
-function StatusLabel({ children, accent = false, compact = false }) {
+function StatusLabel({ children, accent = false, tone = 'default', compact = false }) {
+    const toneClass = tone === 'missed'
+        ? 'text-red-400/70'
+        : tone === 'done'
+            ? 'text-emerald-500/70'
+            : accent
+                ? 'text-cdaccent'
+                : 'text-cdmuted';
+
     return (
         <span
             className={`font-semibold uppercase tracking-wide shrink-0 ${
                 compact ? 'text-[8px]' : 'text-[9px]'
-            } ${accent ? 'text-cdaccent' : 'text-cdmuted'}`}
+            } ${toneClass}`}
         >
             {children}
         </span>
@@ -64,6 +72,7 @@ export default function FluidWeekSessionCard({
     onToggleUnavailable,
     onToggleAvailable,
     compact = false,
+    alignRow = false,
 }) {
     const styles = getStimulusStyle(session.stimulus);
     const isBlocked = Boolean(session.isUnavailable);
@@ -103,20 +112,17 @@ export default function FluidWeekSessionCard({
     const secondaryNote = session.note || session.flexNote || null;
     const noteIcon = session.note ? RefreshCw : Sparkles;
 
-    const leftAccent = missed
-        ? 'border-l-cdborder'
-        : session.isToday
-            ? 'border-l-cdaccent'
-            : styles.border;
+    const leftAccent = session.isToday
+        ? 'border-l-cdaccent'
+        : styles.border;
 
     return (
         <article
             className={[
-                'rounded-md border border-cdborder/40 border-l-2 overflow-hidden transition-colors',
+                'rounded-md border border-cdborder/40 border-l-2 overflow-hidden transition-colors h-full',
                 session.isToday ? 'bg-cdaccent/8 ring-1 ring-inset ring-cdaccent/30' : 'bg-cdsurface',
                 leftAccent,
-                session.completed ? 'opacity-75' : '',
-                missed ? 'opacity-85' : '',
+                alignRow ? 'min-h-[52px]' : '',
             ].join(' ')}
         >
             <div className={compact ? 'px-2 py-1.5' : 'px-2.5 py-1.5'}>
@@ -142,10 +148,12 @@ export default function FluidWeekSessionCard({
                             <div className="flex items-center gap-1 min-w-0 flex-wrap">
                             <span className={`font-semibold shrink-0 ${compact ? 'text-[10px]' : 'text-[11px]'} ${
                                 session.completed
-                                    ? 'text-cdmuted line-through'
-                                    : session.isToday
-                                        ? 'text-cdaccent'
-                                        : 'text-cdtext'
+                                    ? 'text-emerald-500/70 line-through'
+                                    : missed
+                                        ? 'text-red-400/70'
+                                        : session.isToday
+                                            ? 'text-cdaccent'
+                                            : 'text-cdtext'
                             }`}>
                                 {compact ? session.day.slice(0, 3) : session.day}
                             </span>
@@ -158,10 +166,10 @@ export default function FluidWeekSessionCard({
                                 <StatusLabel compact={compact} accent>Today</StatusLabel>
                             )}
                             {session.completed && !session.isToday && (
-                                <StatusLabel compact={compact}>Done</StatusLabel>
+                                <StatusLabel compact={compact} tone="done">Done</StatusLabel>
                             )}
                             {missed && (
-                                <StatusLabel compact={compact}>Missed</StatusLabel>
+                                <StatusLabel compact={compact} tone="missed">Missed</StatusLabel>
                             )}
                             {isBlocked && (
                                 <StatusLabel compact={compact}>Blocked</StatusLabel>
@@ -242,7 +250,13 @@ export default function FluidWeekSessionCard({
                             )}
                         </div>
 
-                        <p className={`truncate leading-snug ${compact ? 'text-[10px] mt-0.5' : 'text-[11px] mt-0.5'} ${session.completed ? 'text-cdmuted' : 'text-cdtext'} ${hasActions ? 'pr-1' : ''}`}>
+                        <p className={`truncate leading-snug ${compact ? 'text-[10px] mt-0.5' : 'text-[11px] mt-0.5'} ${
+                            session.completed
+                                ? 'text-emerald-500/70 line-through'
+                                : missed
+                                    ? 'text-red-400/70'
+                                    : 'text-cdtext'
+                        } ${hasActions ? 'pr-1' : ''}`}>
                             {session.workoutName}
                             {blockSummary ? (
                                 <span className="text-cdmuted"> · {blockSummary}</span>
