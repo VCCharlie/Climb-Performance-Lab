@@ -74,6 +74,8 @@ export function activityMatchesTagSearch(activity, queryLower) {
 
 /**
  * Preserve user tags when Intervals re-sync omits them.
+ * When `tags` is explicitly present on incoming (including `[]`), honor that value
+ * so manual edits can clear tags without merge protection restoring them.
  *
  * @param {object} incoming
  * @param {object} existing
@@ -82,18 +84,27 @@ export function activityMatchesTagSearch(activity, queryLower) {
 export function protectActivityTagsOnMerge(incoming, existing, out) {
     if (!existing || !out) return;
 
-    const incomingTags = normalizeActivityTags(incoming?.tags);
-    const existingTags = normalizeActivityTags(existing?.tags);
+    const incomingHasTags = incoming != null
+        && Object.prototype.hasOwnProperty.call(incoming, 'tags');
 
-    if (incomingTags.length === 0 && existingTags.length > 0) {
-        out.tags = existingTags;
-    } else if (incomingTags.length > 0) {
-        out.tags = incomingTags;
+    if (incomingHasTags) {
+        out.tags = normalizeActivityTags(incoming.tags);
+    } else {
+        const existingTags = normalizeActivityTags(existing?.tags);
+        if (existingTags.length > 0) {
+            out.tags = existingTags;
+        }
     }
 
-    const incomingNotes = String(incoming?.user_notes || '').trim();
-    const existingNotes = String(existing?.user_notes || '').trim();
-    if (!incomingNotes && existingNotes) {
-        out.user_notes = existing.user_notes;
+    const incomingHasNotes = incoming != null
+        && Object.prototype.hasOwnProperty.call(incoming, 'user_notes');
+
+    if (incomingHasNotes) {
+        out.user_notes = incoming.user_notes ?? '';
+    } else {
+        const existingNotes = String(existing?.user_notes || '').trim();
+        if (existingNotes) {
+            out.user_notes = existing.user_notes;
+        }
     }
 }

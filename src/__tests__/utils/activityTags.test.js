@@ -36,4 +36,34 @@ describe('activityTags', () => {
         expect(out.tags).toEqual(['camp']);
         expect(out.user_notes).toBe('Hard day');
     });
+
+    it('allows clearing all tags when incoming explicitly sends an empty array', () => {
+        const out = { title: 'Ride', tags: ['race'] };
+        protectActivityTagsOnMerge(
+            { title: 'Ride', tags: [] },
+            { tags: ['race', 'hilly'] },
+            out,
+        );
+        expect(out.tags).toEqual([]);
+    });
+
+    it('allows removing individual tags when incoming sends the reduced list', () => {
+        const out = {};
+        protectActivityTagsOnMerge(
+            { tags: ['race'] },
+            { tags: ['race', 'hilly'] },
+            out,
+        );
+        expect(out.tags).toEqual(['race']);
+    });
+
+    it('allows clearing user notes when incoming explicitly sends an empty string', () => {
+        const out = { user_notes: 'Old note' };
+        protectActivityTagsOnMerge(
+            { user_notes: '' },
+            { user_notes: 'Old note' },
+            out,
+        );
+        expect(out.user_notes).toBe('');
+    });
 });
