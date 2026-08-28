@@ -29,7 +29,7 @@ async function boot() {
     root.render(
         <StrictMode>
             <ErrorBoundary>
-                <ClimbDatabaseProvider>
+                <ClimbDatabaseProvider prefetchOnIdle={false}>
                     <App />
                 </ClimbDatabaseProvider>
             </ErrorBoundary>
