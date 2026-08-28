@@ -2,7 +2,15 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 
 import { MONTH_ORDER } from '../config';
 import { normalizeDate } from '../utils/formatters';
-import { activityMatchesLogSearch, activityMatchesDriftRange } from '../utils/activityFilterMetrics';
+import {
+    activityMatchesLogSearch,
+    activityMatchesDriftRange,
+    parseNumericBound,
+    inNumericRange,
+    activityDistanceKm,
+    activityMovingTimeSec,
+    activityAvgSpeedKmh,
+} from '../utils/activityFilterMetrics';
 import { activityHasTags } from '../utils/activityTags';
 import { compareActivitiesForSort } from '../utils/activitySort';
 import { resolveActivityType } from '../utils/activityVenue';
