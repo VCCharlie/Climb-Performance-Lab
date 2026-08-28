@@ -27,18 +27,22 @@ export default function CollapsibleCoachNote({
     const summary = summarizeText(text, maxSummaryLen);
     const needsExpand = text.trim().length > summary.replace(/…$/, '').length + 8;
 
-    const toneClasses = tone === 'warn'
-        ? 'text-orange-300'
+    const containerTone = tone === 'warn'
+        ? 'border border-cdborder/40 border-l-[3px] border-l-cdaccent/40 bg-cdborder/10 text-cdmuted'
         : tone === 'muted'
-            ? 'text-cdmuted'
-            : 'text-cdaccent';
-
-    const iconTone = tone === 'warn' ? 'text-orange-300' : tone === 'muted' ? 'text-cdaccent' : 'text-cdaccent';
+            ? 'border border-cdborder/30 bg-cdborder/5 text-cdmuted'
+            : 'border border-cdborder/30 border-l-[3px] border-l-cdborder/60 bg-cdborder/5 text-cdmuted';
 
     return (
-        <div className={`mb-1.5 text-[10px] leading-snug ${toneClasses}`}>
+        <div className={`mb-1.5 rounded px-2 py-1 text-[10px] leading-snug ${containerTone}`}>
             <div className="flex items-start gap-1 min-w-0">
-                {Icon ? <Icon size={10} className={`shrink-0 mt-0.5 ${iconTone}`} aria-hidden /> : null}
+                {Icon ? (
+                    <Icon
+                        size={10}
+                        className="shrink-0 mt-0.5 text-cdmuted group-hover:text-cdaccent"
+                        aria-hidden
+                    />
+                ) : null}
                 <p className="min-w-0 flex-1">
                     {open ? text : summary}
                 </p>
@@ -46,7 +50,7 @@ export default function CollapsibleCoachNote({
                     <button
                         type="button"
                         onClick={() => setOpen((v) => !v)}
-                        className="shrink-0 inline-flex items-center gap-0.5 text-[9px] font-semibold uppercase tracking-wide text-cdmuted hover:text-cdtext"
+                        className="shrink-0 inline-flex items-center gap-0.5 text-[9px] font-semibold uppercase tracking-wide text-cdmuted hover:text-cdaccent focus:text-cdaccent"
                         aria-expanded={open}
                     >
                         {open ? 'Less' : expandLabel}

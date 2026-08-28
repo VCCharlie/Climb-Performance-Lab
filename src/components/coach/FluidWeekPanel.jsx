@@ -75,11 +75,7 @@ export default function FluidWeekPanel({
         return readiness.hints?.[0] || readiness.badge?.label || null;
     }, [activities, userSettings, referenceYmd]);
 
-    const progressColor = weekPlan.compliancePct > 115
-        ? 'bg-orange-400'
-        : weekPlan.compliancePct > 100
-            ? 'bg-cdprimary'
-            : 'bg-cdaccent';
+    const progressFill = weekPlan.compliancePct > 100 ? 'bg-cdborder/70' : 'bg-cdaccent/70';
 
     const dateRange = `${formatDateDDMMYYYY(weekPlan.mondayYmd)} – ${formatDateDDMMYYYY(weekPlan.sundayYmd)}`;
     const metaParts = [
@@ -114,41 +110,40 @@ export default function FluidWeekPanel({
                             <span className="text-cdmuted font-normal text-[10px]">/{weekPlan.targetTss}</span>
                         </span>
                         <div
-                            className={`rounded-full bg-cdborder/40 overflow-hidden ${compact ? 'w-10 h-1' : 'w-14 h-1.5'}`}
+                            className={`rounded-full bg-cdborder/30 overflow-hidden ${compact ? 'w-10 h-0.5' : 'w-14 h-1'}`}
                             title={`${weekPlan.compliancePct}% of weekly target`}
                         >
                             <div
-                                className={`h-full rounded-full transition-all duration-500 ${progressColor}`}
+                                className={`h-full rounded-full transition-all duration-500 ${progressFill}`}
                                 style={{ width: `${Math.min(100, weekPlan.compliancePct)}%` }}
                             />
                         </div>
                         <span className="text-[9px] text-cdmuted" title="Sessions done">
-                            <Bike size={9} className="inline -mt-px mr-0.5 text-cdaccent" aria-hidden />
+                            <Bike size={9} className="inline -mt-px mr-0.5 text-cdmuted" aria-hidden />
                             {stats.done}/{stats.planned}
                         </span>
                         <span className="text-[9px] text-cdmuted" title="Hard sessions">
-                            <Flame size={9} className="inline -mt-px mr-0.5 text-cdaccent" aria-hidden />
+                            <Flame size={9} className="inline -mt-px mr-0.5 text-cdmuted" aria-hidden />
                             {weekPlan.hardSessions}
                         </span>
                     </div>
                 </div>
 
                 {ctlDelta && !compact && (
-                    <p
-                        className={`text-[9px] font-bold tabular-nums mt-0.5 ${
-                            ctlDelta.delta > 0 ? 'text-emerald-400' : ctlDelta.delta < 0 ? 'text-orange-400' : 'text-cdmuted'
-                        }`}
-                    >
+                    <p className="text-[9px] font-semibold tabular-nums mt-0.5 text-cdmuted">
                         CTL {ctlDelta.delta > 0 ? '+' : ''}{ctlDelta.delta} vs last week
                     </p>
                 )}
             </header>
 
             {weekPlan.availabilityNote && (
-                <p className="text-[10px] text-orange-300 mb-1 flex items-center gap-1 min-w-0">
-                    <Ban size={10} className="shrink-0" aria-hidden />
-                    <span className="truncate">{weekPlan.availabilityNote}</span>
-                </p>
+                <CollapsibleCoachNote
+                    text={weekPlan.availabilityNote}
+                    icon={Ban}
+                    expandLabel="Details"
+                    tone="warn"
+                    maxSummaryLen={compact ? 72 : 96}
+                />
             )}
 
             {weekPlan.rebalanceNote && (
@@ -156,6 +151,7 @@ export default function FluidWeekPanel({
                     text={weekPlan.rebalanceNote}
                     icon={RefreshCw}
                     expandLabel="Why?"
+                    tone="muted"
                     maxSummaryLen={compact ? 72 : 96}
                 />
             )}
@@ -237,7 +233,7 @@ export default function FluidWeekPanel({
 export function FluidWeekSyncNote({ isSignedIn }) {
     return (
         <p className="text-[10px] text-cdmuted mb-2 flex items-start gap-1">
-            <Sparkles size={10} className="shrink-0 mt-0.5 text-cdaccent" aria-hidden />
+            <Sparkles size={10} className="shrink-0 mt-0.5 text-cdmuted" aria-hidden />
             {isSignedIn
                 ? 'Blocked days and moves sync when signed in.'
                 : 'Sign in to sync blocked days across devices.'}

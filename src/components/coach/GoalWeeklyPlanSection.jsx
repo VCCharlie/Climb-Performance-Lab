@@ -19,7 +19,7 @@ export default function GoalWeeklyPlanSection({ goalSnapshot }) {
         <div className="bg-cdsurface p-3 rounded-xl border border-cdborder space-y-2.5">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <h3 className="text-xs font-bold text-cdtext uppercase tracking-wide flex items-center gap-1.5">
-                    <Target size={14} className="text-cdaccent shrink-0" aria-hidden />
+                    <Target size={14} className="text-cdmuted shrink-0" aria-hidden />
                     Weekly plan toward your goal
                 </h3>
                 <span className="text-[10px] text-cdmuted">
@@ -38,7 +38,7 @@ export default function GoalWeeklyPlanSection({ goalSnapshot }) {
                     text={developmentRationale
                         || 'This plan deliberately keeps weekly TSS below your recent habit so aerobic fitness can rebuild.'}
                     expandLabel="Why this plan?"
-                    tone="accent"
+                    tone="muted"
                     maxSummaryLen={88}
                 />
             )}
@@ -49,10 +49,10 @@ export default function GoalWeeklyPlanSection({ goalSnapshot }) {
                     return (
                         <div
                             key={w.weekNum}
-                            className={`rounded-md border px-2.5 py-2 space-y-0.5 ${
+                            className={`rounded-md border px-2.5 py-2 space-y-0.5 bg-cdsurface ${
                                 isCurrent
-                                    ? 'border-cdaccent bg-cdaccent/5'
-                                    : 'border-cdborder bg-cdborder/10'
+                                    ? 'border-cdborder border-l-[3px] border-l-cdaccent/40'
+                                    : 'border-cdborder/60'
                             }`}
                         >
                             <div className="flex items-center justify-between gap-2">
@@ -86,13 +86,13 @@ export default function GoalWeeklyPlanSection({ goalSnapshot }) {
                                 <tr
                                     key={w.weekNum}
                                     className={`border-t border-cdborder ${
-                                        isCurrent ? 'bg-cdaccent/10' : ''
+                                        isCurrent ? 'border-l-[3px] border-l-cdaccent/40' : ''
                                     }`}
                                 >
                                     <td className="px-2 py-1.5 font-bold tabular-nums">
                                         {w.weekNum}
                                         {isCurrent ? (
-                                            <span className="ml-1 text-[9px] uppercase text-cdaccent">now</span>
+                                            <span className="ml-1 text-[9px] uppercase text-cdmuted">now</span>
                                         ) : null}
                                     </td>
                                     <td className="px-2 py-1.5 text-cdmuted">{w.phaseLabel}</td>

@@ -49,17 +49,16 @@ function CalendarDayCell({
                 ? `${cell.weekdayLabel} ${cell.dayOfMonth}, ${label}${dayTss > 0 ? `, ${Math.round(dayTss)} TSS` : ''}`
                 : `${cell.weekdayLabel}, no session`}
             className={[
-                'relative flex flex-col items-stretch rounded-lg border p-1 pb-0.5 text-left transition-colors overflow-visible',
+                'relative flex flex-col items-stretch rounded-lg border p-1 pb-0.5 text-left transition-colors overflow-visible bg-cdsurface',
                 compact ? 'min-h-[72px]' : 'min-h-[92px] sm:min-h-[96px]',
-                isEmpty ? 'border-cdborder/20 bg-cdborder/5 opacity-40 cursor-default' : 'cursor-pointer hover:bg-cdborder/15',
-                selected ? 'ring-2 ring-cdaccent border-cdaccent/50' : 'border-cdborder/40',
-                isToday && !selected ? 'ring-1 ring-cdaccent/40' : '',
-                styles.rowBg || 'bg-cdborder/5',
+                isEmpty ? 'border-cdborder/20 bg-cdborder/5 opacity-40 cursor-default' : 'cursor-pointer hover:bg-cdborder/10',
+                selected ? 'ring-1 ring-cdaccent/40 border-cdborder/60' : 'border-cdborder/40',
+                isToday && !selected ? 'ring-1 ring-inset ring-cdaccent/20 border-l-[3px] border-l-cdaccent/40' : '',
                 isCompleted ? 'opacity-80' : '',
             ].join(' ')}
         >
             <div className="flex items-center justify-between gap-1 mb-0.5">
-                <span className={`font-bold tabular-nums ${compact ? 'text-xs' : 'text-sm'} ${isToday ? 'text-cdaccent' : 'text-cdtext'}`}>
+                <span className={`font-bold tabular-nums ${compact ? 'text-xs' : 'text-sm'} text-cdtext`}>
                     {cell.dayOfMonth ?? '—'}
                 </span>
                 <span className={`rounded-full shrink-0 ${styles.dot} ${compact ? 'w-1.5 h-1.5' : 'w-2 h-2'}`} aria-hidden />
@@ -72,7 +71,7 @@ function CalendarDayCell({
             <div className="mt-auto flex flex-col items-center justify-end gap-0.5 pt-1 min-h-[28px]">
                 {bubbleSize > 0 && (
                     <span
-                        className="rounded-full bg-cdprimary/75 border border-cdprimary/50 shrink-0 shadow-sm"
+                        className="rounded-full bg-cdborder/50 border border-cdborder shrink-0"
                         style={{ width: bubbleSize, height: bubbleSize }}
                         title={`${Math.round(dayTss)} TSS`}
                         aria-hidden
@@ -86,8 +85,8 @@ function CalendarDayCell({
             </div>
 
             <div className="flex items-center justify-end gap-0.5 mt-0.5 min-h-[12px]">
-                {isBlocked && <Ban size={11} className="text-red-300" aria-label="Blocked" />}
-                {isCompleted && <CheckCircle2 size={11} className="text-emerald-400" aria-label="Completed" />}
+                {isBlocked && <Ban size={11} className="text-cdmuted" aria-label="Blocked" />}
+                {isCompleted && <CheckCircle2 size={11} className="text-cdmuted" aria-label="Completed" />}
                 {isMissed && (
                     <span className="text-[8px] font-bold uppercase text-cdmuted">Missed</span>
                 )}

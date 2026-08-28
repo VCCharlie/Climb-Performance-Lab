@@ -16,25 +16,31 @@ import { formatDateDDMMYYYY } from '../../utils/formatters';
 import { getStimulusStyle } from './coachStimulusStyles';
 import FluidWorkoutExpandable from './FluidWorkoutExpandable';
 
-function StatusBadge({ children, className = '', compact = false }) {
+function StatusLabel({ children, accent = false, compact = false }) {
     return (
-        <span className={`font-bold uppercase tracking-wide rounded ${compact ? 'text-[8px] px-1 py-px' : 'text-[9px] px-1.5 py-0.5'} ${className}`}>
+        <span
+            className={`font-semibold uppercase tracking-wide shrink-0 ${
+                compact ? 'text-[8px]' : 'text-[9px]'
+            } ${accent ? 'text-cdaccent' : 'text-cdmuted'}`}
+        >
             {children}
         </span>
     );
 }
 
-function ActionButton({ onClick, title, children, active = false, activeClass = '', compact = false }) {
+function ActionButton({ onClick, title, children, active = false, compact = false }) {
     return (
         <button
             type="button"
             onClick={onClick}
             title={title}
             aria-label={title}
-            className={`rounded border transition-colors ${compact ? 'p-0.5' : 'p-1'} ${
+            className={`rounded border transition-colors text-cdmuted hover:text-cdaccent focus:text-cdaccent ${
+                compact ? 'p-0.5' : 'p-1'
+            } ${
                 active
-                    ? activeClass
-                    : 'border-transparent text-cdmuted hover:text-cdtext hover:bg-cdborder/30'
+                    ? 'border-cdborder/60 bg-cdborder/10 text-cdtext'
+                    : 'border-transparent hover:bg-cdborder/20 focus:bg-cdborder/20'
             }`}
         >
             {children}
@@ -97,15 +103,20 @@ export default function FluidWeekSessionCard({
     const secondaryNote = session.note || session.flexNote || null;
     const noteIcon = session.note ? RefreshCw : Sparkles;
 
+    const leftAccent = missed
+        ? 'border-l-cdborder'
+        : session.isToday
+            ? 'border-l-cdaccent/50'
+            : styles.border;
+
     return (
         <article
             className={[
-                'rounded-md border-l-[3px] overflow-hidden transition-colors',
-                styles.border,
-                session.isToday ? 'ring-1 ring-cdaccent/40' : 'border border-cdborder/30',
+                'rounded-md border border-cdborder/40 border-l-[3px] overflow-hidden transition-colors bg-cdsurface',
+                leftAccent,
+                session.isToday ? 'ring-1 ring-inset ring-cdaccent/20' : '',
                 session.completed ? 'opacity-75' : '',
-                missed ? 'opacity-80' : '',
-                styles.rowBg || 'bg-cdborder/5',
+                missed ? 'opacity-85' : '',
             ].join(' ')}
         >
             <div className={compact ? 'px-1.5 py-1' : 'px-2 py-1'}>
@@ -114,13 +125,15 @@ export default function FluidWeekSessionCard({
                         type="button"
                         onClick={() => isActionable && onToggleDone()}
                         disabled={isRest}
-                        className={`shrink-0 ${isRest ? 'opacity-20 cursor-default' : 'hover:opacity-80'}`}
+                        className={`shrink-0 text-cdmuted hover:text-cdaccent focus:text-cdaccent ${
+                            isRest ? 'opacity-20 cursor-default' : ''
+                        }`}
                         aria-label={session.completed ? 'Mark incomplete' : 'Mark done'}
                     >
                         {session.completed ? (
-                            <CheckCircle2 size={checkSize} className="text-emerald-400" />
+                            <CheckCircle2 size={checkSize} className="text-cdmuted" />
                         ) : (
-                            <Circle size={checkSize} className={session.isToday ? 'text-cdaccent' : 'text-cdmuted'} />
+                            <Circle size={checkSize} />
                         )}
                     </button>
 
@@ -135,21 +148,26 @@ export default function FluidWeekSessionCard({
                                 </span>
                             )}
                             {session.isToday && (
-                                <StatusBadge compact={compact} className="bg-cdaccent text-slate-900">Today</StatusBadge>
+                                <StatusLabel compact={compact} accent>Today</StatusLabel>
+                            )}
+                            {session.completed && !session.isToday && (
+                                <StatusLabel compact={compact}>Done</StatusLabel>
                             )}
                             {missed && (
-                                <StatusBadge compact={compact} className="bg-cdborder/80 text-cdmuted">Missed</StatusBadge>
+                                <StatusLabel compact={compact}>Missed</StatusLabel>
                             )}
                             {isBlocked && (
-                                <StatusBadge compact={compact} className="bg-red-500/15 text-red-300">Blocked</StatusBadge>
+                                <StatusLabel compact={compact}>Blocked</StatusLabel>
                             )}
                             {isExplicitlyAvailable && (
-                                <StatusBadge compact={compact} className="bg-emerald-500/15 text-emerald-300">Open</StatusBadge>
+                                <StatusLabel compact={compact}>Open</StatusLabel>
                             )}
                             {(session.movedFromDate || session.relocatedFromDate) && (
-                                <StatusBadge compact={compact} className="bg-blue-500/15 text-blue-300">Moved</StatusBadge>
+                                <StatusLabel compact={compact}>Moved</StatusLabel>
                             )}
-                            <StatusBadge compact={compact} className={styles.badge}>{styles.label}</StatusBadge>
+                            <span className={`rounded font-semibold uppercase tracking-wide shrink-0 ${compact ? 'text-[8px] px-1 py-px' : 'text-[9px] px-1 py-0.5'} ${styles.badge}`}>
+                                {styles.label}
+                            </span>
                             {dayTss > 0 && (
                                 <span
                                     className="inline-flex items-center gap-0.5 text-[9px] text-cdmuted tabular-nums shrink-0"
@@ -157,7 +175,7 @@ export default function FluidWeekSessionCard({
                                 >
                                     {bubbleSizePx > 0 && (
                                         <span
-                                            className="rounded-full bg-cdprimary/75 border border-cdprimary/50 shrink-0"
+                                            className="rounded-full bg-cdborder/50 border border-cdborder shrink-0"
                                             style={{ width: bubbleSizePx, height: bubbleSizePx }}
                                             aria-hidden
                                         />
@@ -183,7 +201,6 @@ export default function FluidWeekSessionCard({
                                             onClick={onToggleUnavailable}
                                             title={isBlocked ? 'Mark as available' : 'Block this day'}
                                             active={isBlocked}
-                                            activeClass="border-orange-500/40 text-orange-300 bg-orange-500/10"
                                         >
                                             <Ban size={iconSize} />
                                         </ActionButton>
@@ -194,7 +211,6 @@ export default function FluidWeekSessionCard({
                                             onClick={onToggleAvailable}
                                             title={isExplicitlyAvailable ? 'Remove open day' : 'Mark as open for training'}
                                             active={isExplicitlyAvailable}
-                                            activeClass="border-emerald-500/40 text-emerald-300 bg-emerald-500/10"
                                         >
                                             <CircleCheck size={iconSize} />
                                         </ActionButton>
@@ -226,7 +242,7 @@ export default function FluidWeekSessionCard({
                         </p>
 
                         {secondaryNote && !expanded && (
-                            <p className={`truncate leading-tight mt-px flex items-center gap-0.5 ${compact ? 'text-[9px]' : 'text-[10px]'} text-cdaccent`}>
+                            <p className={`truncate leading-tight mt-px flex items-center gap-0.5 ${compact ? 'text-[9px]' : 'text-[10px]'} text-cdmuted`}>
                                 {React.createElement(noteIcon, { size: 9, className: 'shrink-0', 'aria-hidden': true })}
                                 {secondaryNote}
                             </p>
