@@ -130,6 +130,17 @@ describe('calculateTrendLine', () => {
     const result = calculateTrendLine(data, 'ftp');
     expect(result[0].load).toBe(100);
   });
+
+  it('returns flat trend when all timestamps are identical', () => {
+    const data = [
+      { date: '2025-06-01', ftp: 250 },
+      { date: '2025-06-01', ftp: 260 },
+      { date: '2025-06-01', ftp: 270 },
+    ];
+    const result = calculateTrendLine(data, 'ftp');
+    expect(result.every((row) => row.ftp_trend === 260)).toBe(true);
+    expect(result.every((row) => Number.isFinite(row.ftp_trend))).toBe(true);
+  });
 });
 
 // ─── enrichChartData ─────────────────────────────────────────────────────────

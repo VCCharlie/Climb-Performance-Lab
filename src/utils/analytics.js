@@ -63,15 +63,25 @@ export const calculateTrendLine = (data, key) => {
         sumXX += (p.x * p.x);
     });
 
-    const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+    const denominator = n * sumXX - sumX * sumX;
+    if (!Number.isFinite(denominator) || Math.abs(denominator) < 1e-10) {
+        const flatY = Math.round(sumY / n);
+        return data.map((d) => ({
+            ...d,
+            [`${key}_trend`]: flatY,
+        }));
+    }
+
+    const slope = (n * sumXY - sumX * sumY) / denominator;
     const intercept = (sumY - slope * sumX) / n;
 
     return data.map(d => {
         const x = new Date(d.date).getTime();
         const y = slope * x + intercept;
+        const trend = Number.isFinite(y) ? Math.round(y) : Math.round(sumY / n);
         return {
             ...d,
-            [`${key}_trend`]: Math.round(y)
+            [`${key}_trend`]: trend,
         };
     });
 };
