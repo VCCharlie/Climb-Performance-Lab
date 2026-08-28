@@ -251,6 +251,8 @@ export function useDataHubController({
         setLongRideOnly: filter.setLongRideOnly,
         missingHrOnly: filter.missingHrOnly,
         setMissingHrOnly: filter.setMissingHrOnly,
+        hasTagOnly: filter.hasTagOnly,
+        setHasTagOnly: filter.setHasTagOnly,
         minTss: filter.minTss,
         setMinTss: filter.setMinTss,
         gearFilterOptions: filter.gearFilterOptions,

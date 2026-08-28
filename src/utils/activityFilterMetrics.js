@@ -3,6 +3,7 @@
  */
 
 import { parseDurationToSeconds } from './formatters';
+import { activityMatchesTagSearch } from './activityTags';
 
 /**
  * @param {object} a
@@ -134,6 +135,11 @@ export function activityMatchesLogSearch(activity, searchLower) {
 
     const title = activity?.title;
     if (title && String(title).toLowerCase().includes(searchLower)) return true;
+
+    if (activityMatchesTagSearch(activity, searchLower)) return true;
+
+    const userNotes = activity?.user_notes;
+    if (userNotes && String(userNotes).toLowerCase().includes(searchLower)) return true;
 
     const description = activityDescriptionSearchText(activity);
     if (description && description.toLowerCase().includes(searchLower)) return true;

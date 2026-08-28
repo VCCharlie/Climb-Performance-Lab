@@ -2,15 +2,8 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 
 import { MONTH_ORDER } from '../config';
 import { normalizeDate } from '../utils/formatters';
-import {
-    activityDistanceKm,
-    activityMovingTimeSec,
-    activityAvgSpeedKmh,
-    parseNumericBound,
-    inNumericRange,
-    activityMatchesLogSearch,
-    activityMatchesDriftRange,
-} from '../utils/activityFilterMetrics';
+import { activityMatchesLogSearch, activityMatchesDriftRange } from '../utils/activityFilterMetrics';
+import { activityHasTags } from '../utils/activityTags';
 import { compareActivitiesForSort } from '../utils/activitySort';
 import { resolveActivityType } from '../utils/activityVenue';
 import {
@@ -97,6 +90,7 @@ const FILTER_FIELD_DEFAULTS = {
     gravelRideChip: initialChipState.gravelRideChip,
     mtbRideChip: initialChipState.mtbRideChip,
     ebikeRideChip: initialChipState.ebikeRideChip,
+    hasTagOnly: false,
     minTss: initialChipState.minTss,
     filterDistMin: '',
     filterDistMax: '',
@@ -142,6 +136,7 @@ const useActivityFilter = (activities, profileFtp) => {
     const [gravelRideChip, setGravelRideChip] = useState(initialFilterFields.gravelRideChip);
     const [mtbRideChip, setMtbRideChip] = useState(initialFilterFields.mtbRideChip);
     const [ebikeRideChip, setEbikeRideChip] = useState(initialFilterFields.ebikeRideChip);
+    const [hasTagOnly, setHasTagOnly] = useState(initialFilterFields.hasTagOnly);
     const [minTss, setMinTss] = useState(initialFilterFields.minTss);
     const [activeLogFilterPresetId, setActiveLogFilterPresetId] = useState(storedPresetId || 'all');
 
@@ -342,6 +337,8 @@ const useActivityFilter = (activities, profileFtp) => {
 
             if (missingHrOnly && (Number(a.avg_hr) || 0) > 0) return false;
 
+            if (hasTagOnly && !activityHasTags(a)) return false;
+
             if (tssOk && !((Number(a.load) || 0) > tssThreshold)) return false;
 
             if (anyMetric) {
@@ -414,7 +411,7 @@ const useActivityFilter = (activities, profileFtp) => {
             filtered.sort((a, b) => compareActivitiesForSort(a, b, sortConfig, profileFtp));
         }
         return { processedActivities: filtered, activitiesForGearFilterOptions: forGearOptions };
-    }, [activities, search, sortConfig, profileFtp, indoorFilter, virtualRideChip, gravelRideChip, mtbRideChip, ebikeRideChip, thisWeekOnly, rollingDays, stravaLinkedOnly, noStravaLinkOnly, possibleDuplicatesOnly, duplicateIds, noPowerOnly, withPowerOnly, highLoadOnly, longRideOnly, missingHrOnly, minTss, filterGearId, filterDistMin, filterDistMax, filterSpeedMin, filterSpeedMax, filterPowerMin, filterPowerMax, filterDurMinMin, filterDurMaxMin, filterElevMin, filterElevMax, filterKjMin, filterKjMax, filterDecMin, filterDecMax, filterThrMin, filterThrMax, filterRaceMin, filterRaceMax, singleDayFilterYmd]);
+    }, [activities, search, sortConfig, profileFtp, indoorFilter, virtualRideChip, gravelRideChip, mtbRideChip, ebikeRideChip, hasTagOnly, thisWeekOnly, rollingDays, stravaLinkedOnly, noStravaLinkOnly, possibleDuplicatesOnly, duplicateIds, noPowerOnly, withPowerOnly, highLoadOnly, longRideOnly, missingHrOnly, minTss, filterGearId, filterDistMin, filterDistMax, filterSpeedMin, filterSpeedMax, filterPowerMin, filterPowerMax, filterDurMinMin, filterDurMaxMin, filterElevMin, filterElevMax, filterKjMin, filterKjMax, filterDecMin, filterDecMax, filterThrMin, filterThrMax, filterRaceMin, filterRaceMax, singleDayFilterYmd]);
 
     const gearFilterOptions = useMemo(() => {
         const base = buildGearFilterOptionsFromActivities(activitiesForGearFilterOptions);
@@ -621,6 +618,7 @@ const useActivityFilter = (activities, profileFtp) => {
                 gravelRideChip,
                 mtbRideChip,
                 ebikeRideChip,
+                hasTagOnly,
                 minTss,
                 filterDistMin,
                 filterDistMax,
@@ -662,6 +660,7 @@ const useActivityFilter = (activities, profileFtp) => {
         gravelRideChip,
         mtbRideChip,
         ebikeRideChip,
+        hasTagOnly,
         minTss,
         filterDistMin,
         filterDistMax,
@@ -744,6 +743,7 @@ const useActivityFilter = (activities, profileFtp) => {
         gravelRideChip,
         mtbRideChip,
         ebikeRideChip,
+        hasTagOnly,
         minTss,
         filterDistMin,
         filterDistMax,
@@ -784,6 +784,7 @@ const useActivityFilter = (activities, profileFtp) => {
         gravelRideChip,
         mtbRideChip,
         ebikeRideChip,
+        hasTagOnly,
         minTss,
         filterDistMin,
         filterDistMax,
@@ -827,6 +828,7 @@ const useActivityFilter = (activities, profileFtp) => {
             setGravelRideChip,
             setMtbRideChip,
             setEbikeRideChip,
+            setHasTagOnly,
             setMinTss,
             setFilterGearId,
             setActiveMetricPresetIds,
@@ -892,6 +894,7 @@ const useActivityFilter = (activities, profileFtp) => {
         gravelRideChip, setGravelRideChip,
         mtbRideChip, setMtbRideChip,
         ebikeRideChip, setEbikeRideChip,
+        hasTagOnly, setHasTagOnly,
         minTss, setMinTss,
         filterDistMin, setFilterDistMin,
         filterDistMax, setFilterDistMax,
