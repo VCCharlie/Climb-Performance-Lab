@@ -375,6 +375,7 @@ const App = () => {
             totalCarbs: null,
             altitude: 0,
             fromRacePacing: false,
+            climbTimeline: [],
         }),
     );
     const [bucketListState, setBucketListState] = useState(() => {
@@ -1395,6 +1396,7 @@ const App = () => {
                                                 initialCarbsPerHour={fuelingState.carbsPerHour}
                                                 initialTotalCarbs={fuelingState.totalCarbs}
                                                 initialAltitude={fuelingState.altitude}
+                                                initialClimbTimeline={fuelingState.climbTimeline}
                                                 fromRacePacing={fuelingState.fromRacePacing}
                                                 onStateChange={setFuelingState}
                                             />
@@ -1413,6 +1415,7 @@ const App = () => {
                                                         totalCarbs: handoff.totalCarbs,
                                                         altitude: handoff.altitude,
                                                         fromRacePacing: true,
+                                                        climbTimeline: handoff.climbTimeline || [],
                                                     });
                                                     setRaceSubTab('fueling');
                                                 }}

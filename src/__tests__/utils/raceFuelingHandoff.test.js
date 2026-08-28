@@ -24,5 +24,28 @@ describe('buildFuelingHandoff', () => {
         expect(handoff.altitude).toBeGreaterThan(0);
         expect(handoff.fromRacePacing).toBe(true);
         expect(handoff.climbCount).toBe(2);
+        expect(Array.isArray(handoff.climbTimeline)).toBe(true);
+    });
+
+    it('includes climb-order timeline from race strategy details', () => {
+        const handoff = buildFuelingHandoff(
+            {
+                totalTime: 120,
+                carbsPerHour: 60,
+                totalCarbs: 120,
+                climbDetails: [
+                    {
+                        climb: { name: 'Test Climb' },
+                        timeMinutes: 45,
+                        cumulativeTime: 75,
+                        recovery: 30,
+                    },
+                ],
+            },
+            0.85,
+            [{ elevation: 900 }],
+        );
+
+        expect(handoff.climbTimeline.some((e) => e.climbName === 'Test Climb')).toBe(true);
     });
 });
