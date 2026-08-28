@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useId } from 'react';
+import React, { useState, useMemo, useCallback, useId, useEffect } from 'react';
 import {
   Mountain,
   Info,
@@ -28,6 +28,7 @@ import {
   formatSignedHorizontalDelta,
   EMPTY_PHYSICS_CALC
 } from '../utils/physicsEngineCore';
+import { resolvePhysicsParams } from '../utils/physicsConstants';
 import PhysicsStagePanel from './physics/PhysicsStagePanel';
 
 const VISUAL_MAX = 1.6;
@@ -49,15 +50,31 @@ const physicsParams = (selectedClimb, userSettings, mode, targetTimeStr, targetW
 
 const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateClimb }) => {
   const markerFilterId = `physics-marker-glow-${useId().replace(/:/g, '')}`;
+  const physicsDefaults = resolvePhysicsParams(userSettings);
 
   const [mode, setMode] = useState('target');
   const [targetTimeStr, setTargetTimeStr] = useState('59:00');
   const [targetWatts, setTargetWatts] = useState(userSettings.ftp);
 
-  const [cda, setCda] = useState(0.32);
-  const [crr, setCrr] = useState(0.004);
-  const [loss, setLoss] = useState(0.03);
+  const [cda, setCda] = useState(physicsDefaults.cda);
+  const [crr, setCrr] = useState(physicsDefaults.crr);
+  const [loss, setLoss] = useState(physicsDefaults.drivetrainLossFraction);
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  useEffect(() => {
+    const next = resolvePhysicsParams(userSettings);
+    setCda(next.cda);
+    setCrr(next.crr);
+    setLoss(next.drivetrainLossFraction);
+  }, [userSettings?.physics]);
+
+  const persistPhysics = useCallback((patch) => {
+    if (!setUserSettings) return;
+    setUserSettings((prev) => ({
+      ...prev,
+      physics: { ...resolvePhysicsParams(prev), ...patch },
+    }));
+  }, [setUserSettings]);
 
   const [showCompare, setShowCompare] = useState(false);
   const [showStage, setShowStage] = useState(false);
@@ -228,7 +245,11 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                 type="number"
                 step="0.01"
                 value={cda}
-                onChange={e => setCda(parseFloat(e.target.value))}
+                onChange={e => {
+                  const val = parseFloat(e.target.value);
+                  setCda(val);
+                  persistPhysics({ cda: val });
+                }}
                 className="w-full bg-cdsurface text-cdtext rounded p-2 border border-cdborder focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none"
               />
             </div>
@@ -238,7 +259,11 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                 type="number"
                 step="0.001"
                 value={crr}
-                onChange={e => setCrr(parseFloat(e.target.value))}
+                onChange={e => {
+                  const val = parseFloat(e.target.value);
+                  setCrr(val);
+                  persistPhysics({ crr: val });
+                }}
                 className="w-full bg-cdsurface text-cdtext rounded p-2 border border-cdborder focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none"
               />
             </div>
@@ -248,7 +273,11 @@ const PhysicsEngine = ({ userSettings, setUserSettings, selectedClimb, onUpdateC
                 type="number"
                 step="0.01"
                 value={loss}
-                onChange={e => setLoss(parseFloat(e.target.value))}
+                onChange={e => {
+                  const val = parseFloat(e.target.value);
+                  setLoss(val);
+                  persistPhysics({ drivetrainLossFraction: val });
+                }}
                 className="w-full bg-cdsurface text-cdtext rounded p-2 border border-cdborder focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none"
               />
             </div>

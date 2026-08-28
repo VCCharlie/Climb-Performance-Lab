@@ -16,6 +16,7 @@ import EmptyStateCard from './ui/EmptyStateCard';
 import CollapsibleInfoCard from './ui/CollapsibleInfoCard';
 import ChartHost from './ui/ChartHost';
 import { CHART_A11Y_PROPS } from '../utils/chartA11y';
+import { resolveRecoveryThresholds } from '../utils/coachThresholds';
 
 // ⚡ Bolt Optimization: Use array lookup instead of Date.toLocaleString() in loops
 const NL_SHORT_MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
@@ -37,7 +38,7 @@ const CustomTooltip = ({ active, payload }) => {
     return null;
 };
 
-const RecoveryAdvisor = ({ activities: activitiesProp, startDate, endDate, onGoToActivities }) => {
+const RecoveryAdvisor = ({ activities: activitiesProp, userSettings, startDate, endDate, onGoToActivities }) => {
     const activitiesFromContext = useActivitiesList();
     const activities = activitiesProp ?? activitiesFromContext;
     const [planRevision, setPlanRevision] = useState(0);
@@ -74,35 +75,37 @@ const RecoveryAdvisor = ({ activities: activitiesProp, startDate, endDate, onGoT
             return { chartData: [], current: null, recommendations: [], rangeLabel };
         }
 
+        const thresholds = resolveRecoveryThresholds(userSettings);
+
         // Generate recommendations
         const recommendations = [];
 
-        if (current.tsb < -30) {
+        if (current.tsb < thresholds.tsbCritical) {
             recommendations.push({
                 type: 'warning',
                 title: 'High overtraining risk',
-                message: 'Your TSB is very negative (<-30). Take 2–3 rest days immediately or do only light recovery rides.',
+                message: `Your TSB is very negative (<${thresholds.tsbCritical}). Take 2–3 rest days immediately or do only light recovery rides.`,
                 icon: AlertTriangle
             });
-        } else if (current.tsb < -10) {
+        } else if (current.tsb < thresholds.tsbFatigue) {
             recommendations.push({
                 type: 'caution',
                 title: 'Elevated fatigue',
                 message: 'Your TSB is negative. Consider a rest day or light training to promote recovery.',
                 icon: TrendingDown
             });
-        } else if (current.tsb > 25) {
+        } else if (current.tsb > thresholds.tsbOverRecovered) {
             recommendations.push({
                 type: 'info',
                 title: 'Too much recovery',
-                message: 'Your TSB is very positive (>25). You are fresh but may be losing fitness. Add some intensity.',
+                message: `Your TSB is very positive (>${thresholds.tsbOverRecovered}). You are fresh but may be losing fitness. Add some intensity.`,
                 icon: Calendar
             });
-        } else if (current.tsb >= 5 && current.tsb <= 25) {
+        } else if (current.tsb >= thresholds.tsbRaceMin && current.tsb <= thresholds.tsbRaceMax) {
             recommendations.push({
                 type: 'success',
                 title: 'Optimal form',
-                message: 'Your TSB is in the race zone (5–25). Perfect for races or hard training sessions!',
+                message: `Your TSB is in the race zone (${thresholds.tsbRaceMin}–${thresholds.tsbRaceMax}). Perfect for races or hard training sessions!`,
                 icon: CheckCircle
             });
         }
@@ -111,14 +114,14 @@ const RecoveryAdvisor = ({ activities: activitiesProp, startDate, endDate, onGoT
         const last7Days = chartData.slice(-7);
         const ctlTrend = last7Days[last7Days.length - 1]?.ctl - last7Days[0]?.ctl;
 
-        if (ctlTrend > 5) {
+        if (ctlTrend > thresholds.ctlTrendUp) {
             recommendations.push({
                 type: 'success',
                 title: 'Fitness rising',
                 message: `Your CTL rose ${Math.round(ctlTrend)} points this week. Good progress!`,
                 icon: TrendingUp
             });
-        } else if (ctlTrend < -5) {
+        } else if (ctlTrend < thresholds.ctlTrendDown) {
             recommendations.push({
                 type: 'warning',
                 title: 'Fitness loss',
@@ -140,7 +143,7 @@ const RecoveryAdvisor = ({ activities: activitiesProp, startDate, endDate, onGoT
             const stdDev = Math.sqrt(recentLoads.reduce((sum, load) => sum + Math.pow(load - avgLoad, 2), 0) / recentLoads.length);
             const monotony = avgLoad / (stdDev || 1);
 
-            if (monotony > 2.5) {
+            if (monotony > thresholds.monotonyHigh) {
                 recommendations.push({
                     type: 'caution',
                     title: 'High training monotony',
@@ -160,9 +163,11 @@ const RecoveryAdvisor = ({ activities: activitiesProp, startDate, endDate, onGoT
         }
 
         return { chartData, current, recommendations, rangeLabel, trainingPlan };
-    }, [activities, startDate, endDate, planRevision]);
+    }, [activities, startDate, endDate, planRevision, userSettings]);
 
 
+
+    const recoveryThresholds = resolveRecoveryThresholds(userSettings);
 
     if (!trainingMetrics.current) {
         return (
@@ -247,24 +252,24 @@ const RecoveryAdvisor = ({ activities: activitiesProp, startDate, endDate, onGoT
                     <p className="text-xs text-cdmuted mt-1">Acute Training Load</p>
                 </div>
 
-                <div className={`bg-cdbg p-4 rounded border ${trainingMetrics.current.tsb < -10
+                <div className={`bg-cdbg p-4 rounded border ${trainingMetrics.current.tsb < recoveryThresholds.tsbFatigue
                     ? 'border-red-500/50'
-                    : trainingMetrics.current.tsb > 25
+                    : trainingMetrics.current.tsb > recoveryThresholds.tsbOverRecovered
                         ? 'border-blue-500/50'
                         : 'border-green-500/50'
                     }`}>
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-xs text-cdmuted uppercase">Form (TSB)</span>
-                        <Activity className={`${trainingMetrics.current.tsb < -10
+                        <Activity className={`${trainingMetrics.current.tsb < recoveryThresholds.tsbFatigue
                             ? 'text-red-400'
-                            : trainingMetrics.current.tsb > 25
+                            : trainingMetrics.current.tsb > recoveryThresholds.tsbOverRecovered
                                 ? 'text-blue-400'
                                 : 'text-green-400'
                             }`} size={16} />
                     </div>
-                    <div className={`text-3xl font-bold ${trainingMetrics.current.tsb < -10
+                    <div className={`text-3xl font-bold ${trainingMetrics.current.tsb < recoveryThresholds.tsbFatigue
                         ? 'text-red-400'
-                        : trainingMetrics.current.tsb > 25
+                        : trainingMetrics.current.tsb > recoveryThresholds.tsbOverRecovered
                             ? 'text-blue-400'
                             : 'text-green-400'
                         }`}>
@@ -331,7 +336,7 @@ const RecoveryAdvisor = ({ activities: activitiesProp, startDate, endDate, onGoT
                         {/* Reference lines */}
                         <ReferenceLine y={0} stroke="#64748b" strokeDasharray="3 3" />
                         <ReferenceLine y={5} stroke="#22c55e" strokeDasharray="2 2" label={{ value: 'Race Ready Zone', fill: '#22c55e', fontSize: 10 }} />
-                        <ReferenceLine y={-10} stroke="#ef4444" strokeDasharray="2 2" label={{ value: 'Fatigue Zone', fill: '#ef4444', fontSize: 10 }} />
+                        <ReferenceLine y={recoveryThresholds.tsbFatigue} stroke="#ef4444" strokeDasharray="2 2" label={{ value: 'Fatigue Zone', fill: '#ef4444', fontSize: 10 }} />
 
                         <Line type="monotone" dataKey="ctl" stroke="#3b82f6" strokeWidth={2} name="CTL (Fitness)" dot={false} />
                         <Line type="monotone" dataKey="atl" stroke="#ef4444" strokeWidth={2} name="ATL (Fatigue)" dot={false} />

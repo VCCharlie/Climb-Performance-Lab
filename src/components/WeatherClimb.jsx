@@ -7,6 +7,11 @@ import FlagIcon from './FlagIcon';
 import { geocodeLocation, fetchCurrentWeather } from '../services/openWeatherProxy';
 import { WEATHER_CLIMB_LOCATIONS } from '../utils/weatherClimbLocations';
 import AnchoredDropdownPortal from './ui/AnchoredDropdownPortal';
+import {
+    DEFAULT_AIR_DENSITY,
+    DEFAULT_GRAVITY,
+    resolvePhysicsParams,
+} from '../utils/physicsConstants';
 
 // Re-export for components that imported CLIMB_LOCATIONS from here historically
 const CLIMB_LOCATIONS = WEATHER_CLIMB_LOCATIONS;
@@ -225,12 +230,12 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
         }
     };
 
-    // Physics constants
-    const CRR = 0.004;
-    const BASE_CDA = 0.32;
-    const AIR_DENSITY_BASE = 1.225;
-    const DRIVETRAIN_LOSS = 0.975;
-    const GRAVITY = 9.81;
+    const physics = resolvePhysicsParams(userSettings);
+    const CRR = physics.crr;
+    const BASE_CDA = physics.cda;
+    const AIR_DENSITY_BASE = DEFAULT_AIR_DENSITY;
+    const DRIVETRAIN_EFFICIENCY = 1 - physics.drivetrainLossFraction;
+    const GRAVITY = DEFAULT_GRAVITY;
 
     const weatherAdjustedCalculation = useMemo(() => {
         const totalMass = userSettings.weight + userSettings.bikeWeight;
@@ -249,7 +254,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
         for (let i = 0; i < 20; i++) {
             const airResistance = 0.5 * BASE_CDA * airDensity * v * v;
             const totalForce = gravityForce + rollingForce + airResistance;
-            const powerNeeded = totalForce * v / DRIVETRAIN_LOSS;
+            const powerNeeded = totalForce * v / DRIVETRAIN_EFFICIENCY;
             if (Math.abs(powerNeeded - targetPower) < 1) { effectiveSpeed = v; break; }
             v = v * Math.pow(targetPower / powerNeeded, 0.3);
         }
@@ -263,7 +268,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                 const effectiveAirSpeed = vWithWind + windSpeedMs;
                 const airResistance = 0.5 * BASE_CDA * airDensity * effectiveAirSpeed * effectiveAirSpeed;
                 const totalForce = gravityForce + rollingForce + airResistance;
-                const powerNeeded = totalForce * vWithWind / DRIVETRAIN_LOSS;
+                const powerNeeded = totalForce * vWithWind / DRIVETRAIN_EFFICIENCY;
                 if (Math.abs(powerNeeded - targetPower) < 1) break;
                 vWithWind = vWithWind * Math.pow(targetPower / powerNeeded, 0.3);
             }
@@ -272,7 +277,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                 const effectiveAirSpeed = Math.max(0.1, vWithWind - windSpeedMs);
                 const airResistance = 0.5 * BASE_CDA * airDensity * effectiveAirSpeed * effectiveAirSpeed;
                 const totalForce = gravityForce + rollingForce + airResistance;
-                const powerNeeded = totalForce * vWithWind / DRIVETRAIN_LOSS;
+                const powerNeeded = totalForce * vWithWind / DRIVETRAIN_EFFICIENCY;
                 if (Math.abs(powerNeeded - targetPower) < 1) break;
                 vWithWind = vWithWind * Math.pow(targetPower / powerNeeded, 0.3);
             }
@@ -293,7 +298,7 @@ const WeatherClimb = ({ userSettings, initialState, onStateChange }) => {
                     windDirection === 'tailwind' ? Math.max(0.1, vFinal - windSpeedMs) : vFinal;
                 const airResistance = 0.5 * BASE_CDA * airDensity * effectiveAirSpeed * effectiveAirSpeed;
                 const totalForce = gravityForce + rollingForce + airResistance;
-                const powerNeeded = totalForce * vFinal / DRIVETRAIN_LOSS;
+                const powerNeeded = totalForce * vFinal / DRIVETRAIN_EFFICIENCY;
                 if (Math.abs(powerNeeded - adjustedPower) < 1) break;
                 vFinal = vFinal * Math.pow(adjustedPower / powerNeeded, 0.3);
             }

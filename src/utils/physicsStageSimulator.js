@@ -4,6 +4,11 @@
  */
 
 import { computePhysicsClimb, estimateSteadyTss } from './physicsEngineCore';
+import {
+    DEFAULT_CDA,
+    DEFAULT_CRR,
+    DEFAULT_DRIVETRAIN_LOSS_FRACTION,
+} from './physicsConstants';
 
 /**
  * @param {number} totalSeconds
@@ -37,9 +42,9 @@ export function simulatePhysicsStage({
     watts,
     recoveryMinutesById = {},
     defaultRecoveryMinutes = 15,
-    cda = 0.32,
-    crr = 0.004,
-    loss = 0.03,
+    cda = DEFAULT_CDA,
+    crr = DEFAULT_CRR,
+    loss = DEFAULT_DRIVETRAIN_LOSS_FRACTION,
     recoveryIntensityFactor = 0.55,
 }) {
     if (!climbs?.length) return null;
