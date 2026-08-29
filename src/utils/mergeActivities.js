@@ -2,11 +2,11 @@
  * Merge two activity records: keep Intervals as the canonical id, enrich with Strava-style fields.
  */
 
-import { normalizeStravaActivityId } from './strava';
-import { parseDurationToSeconds } from './formatters';
-import { activityDistanceKm } from './activityFilterMetrics';
-import { climbingMetersFromStrava } from './stravaElevation';
-import { isSameActivity } from './dedup';
+import { normalizeStravaActivityId } from './strava.js';
+import { parseDurationToSeconds } from './formatters.js';
+import { activityDistanceKm } from './activityFilterMetrics.js';
+import { climbingMetersFromStrava } from './stravaElevation.js';
+import { isSameActivity } from './dedup.js';
 
 /** Intervals sync uses seconds (number); Strava normalize uses "H:MM:SS" string — compare in seconds. */
 function movingTimeToSeconds(val) {

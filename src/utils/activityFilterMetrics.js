@@ -2,8 +2,8 @@
  * Normalized metrics for activity log filters (handles mixed CSV/API shapes).
  */
 
-import { parseDurationToSeconds } from './formatters';
-import { activityMatchesTagSearch } from './activityTags';
+import { parseDurationToSeconds } from './formatters.js';
+import { activityMatchesTagSearch } from './activityTags.js';
 
 /**
  * @param {object} a

@@ -1,10 +1,10 @@
-import { parseDurationToSeconds } from './formatters';
-import { normalizeStravaActivityId } from './strava';
+import { parseDurationToSeconds } from './formatters.js';
+import { normalizeStravaActivityId } from './strava.js';
 import {
     isLikelyIntervalsActivityId,
     isStravaOnlyActivityId,
     mergeActivitiesIntervalsPrimary,
-} from './mergeActivities';
+} from './mergeActivities.js';
 
 export function movingTimeToSeconds(value) {
     if (value == null || value === '') return 0;
