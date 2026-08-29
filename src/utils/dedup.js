@@ -3,7 +3,7 @@
  * Deduplication Logic
  */
 
-import { parseDurationToSeconds } from './formatters';
+import { parseDurationToSeconds } from './formatters.js';
 
 /** Cross-source duplicates (FulGaz / Intervals / Strava enrich) may differ slightly in duration. */
 export const CROSS_SOURCE_DURATION_TOLERANCE_SEC = 300;

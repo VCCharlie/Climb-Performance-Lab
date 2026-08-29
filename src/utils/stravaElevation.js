@@ -2,7 +2,7 @@
  * Strava map-corrected elevation (total_elevation_gain) for site activity `climbing` (meters).
  */
 
-import { shouldApplyStravaElevationPatch } from './activityFieldRetention';
+import { shouldApplyStravaElevationPatch } from './activityFieldRetention.js';
 
 /**
  * @param {number | string | null | undefined} totalElevationGain - Strava API field

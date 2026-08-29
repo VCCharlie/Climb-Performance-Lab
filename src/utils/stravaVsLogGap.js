@@ -2,7 +2,7 @@
  * Compare Strava bike activity totals vs the local activity log for a date range,
  * and list Strava rides that are not represented in the log (by Strava ID or optional fuzzy match).
  */
-import { STRAVA_BIKE_TYPES, matchStravaToSite } from './stravaMatch';
+import { STRAVA_BIKE_TYPES, matchStravaToSite } from './stravaMatch.js';
 
 /**
  * @param {boolean} includeEbikeRide

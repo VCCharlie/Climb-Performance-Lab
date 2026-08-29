@@ -4,7 +4,7 @@
  * op basis van datum + afstand + duur (fuzzy match, geen Strava ID vereist).
  */
 
-import { climbingMetersFromStrava } from './stravaElevation';
+import { climbingMetersFromStrava } from './stravaElevation.js';
 import { isSameCalendarDay } from './stravaTitleSameDay.js';
 
 // Fietstypes die we willen ophalen / koppelen
