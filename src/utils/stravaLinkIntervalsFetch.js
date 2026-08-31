@@ -133,7 +133,9 @@ export function linkIntervalsActivitiesToStravaList(intervalsActivities, stravaA
 
         if (!bestMatch) return act;
         const stravaTitle = (bestMatch.name || '').trim();
-        const applyTitle = shouldApplyStravaTitleOnMatch(act, bestMatch);
+        const applyTitle = shouldApplyStravaTitleOnMatch(act, bestMatch, {
+            deviceProfileTitles: opts.deviceProfileTitles,
+        });
         usedStravaIds.add(String(bestMatch.id));
         return {
             ...act,
@@ -183,7 +185,9 @@ export function applyStravaFuzzyMatchesToIntervals(intervalsActivities, stravaAc
         if (row.strava_id) continue;
         if (!shouldAcceptStravaAutoLink(row, m.strava)) continue;
         const stravaTitle = (m.strava.name || '').trim();
-        const applyTitle = shouldApplyStravaTitleOnMatch(row, m.strava);
+        const applyTitle = shouldApplyStravaTitleOnMatch(row, m.strava, {
+            deviceProfileTitles: opts.deviceProfileTitles,
+        });
         merged[i] = {
             ...row,
             strava_id: String(m.strava.id),

@@ -154,6 +154,28 @@ describe('already-linked Strava enrichment helpers', () => {
     });
   });
 
+  it('buildAlreadyLinkedStravaUpdate replaces AETHOS profile title with Strava name on same day', () => {
+    const patch = buildAlreadyLinkedStravaUpdate(
+      {
+        site: {
+          id: '10',
+          date: '2026-05-01T10:00:00',
+          title: 'AETHOS',
+          strava_id: '999',
+        },
+        strava: {
+          id: 999,
+          name: 'Coffee ride',
+          start_date_local: '2026-05-01T10:05:00',
+        },
+      },
+      {},
+      { deviceProfileTitles: ['AETHOS'] },
+    );
+
+    expect(patch.title).toBe('Coffee ride');
+  });
+
   it('buildAlreadyLinkedStravaUpdate skips title when Strava activity is on a different day', () => {
     const patch = buildAlreadyLinkedStravaUpdate(
       {

@@ -38,6 +38,10 @@ export function useDataHubBulkActions({
     const { confirm } = useConfirm();
     const { showToast } = useToast();
     const deviceProfileTitles = resolveDeviceProfileTitlesFromSettings(userSettings);
+    const mergeProtectOpts = useMemo(
+        () => ({ deviceProfileTitles }),
+        [deviceProfileTitles],
+    );
     const [bulkSelectedIds, setBulkSelectedIds] = useState(() => new Set());
     const [showMergeModal, setShowMergeModal] = useState(false);
     const [mergeError, setMergeError] = useState(null);
@@ -204,7 +208,7 @@ export function useDataHubBulkActions({
                         const prev = sourceMap.get(String(id)) || activitiesMap.get(String(id)) || {};
                         return setDoc(
                             doc(db, 'activities', String(id)),
-                            protectEnrichedFieldsOnMerge(data, prev),
+                            protectEnrichedFieldsOnMerge(data, prev, mergeProtectOpts),
                             { merge: true },
                         );
                     }),
@@ -212,11 +216,11 @@ export function useDataHubBulkActions({
             }
             const mergedObjs = slice.map(({ id, data }) => {
                 const prev = sourceMap.get(String(id)) || activitiesMap.get(String(id)) || {};
-                return protectEnrichedFieldsOnMerge({ ...prev, ...data }, prev);
+                return protectEnrichedFieldsOnMerge({ ...prev, ...data }, prev, mergeProtectOpts);
             });
             onImport(mergedObjs);
         }
-    }, [activities, onImport]);
+    }, [activities, onImport, mergeProtectOpts]);
 
     const runStravaEnrichSelected = useCallback(async (subset) => {
         const list = subset && subset.length > 0 ? subset : [];

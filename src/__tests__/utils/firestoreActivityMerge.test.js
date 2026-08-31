@@ -289,4 +289,21 @@ describe('protectEnrichedFieldsOnMerge', () => {
     );
     expect(out.tags).toEqual([]);
   });
+
+  it('allows Strava enrich title to replace bike-computer profile name AETHOS', () => {
+    const profiles = ['SUPERIOR', 'AETHOS'];
+    const existing = {
+      id: 'i1',
+      strava_id: '1234567890',
+      date: '2026-05-01',
+      title: 'AETHOS',
+    };
+    const incoming = {
+      id: 'i1',
+      title: 'Long climb to the cols',
+      strava_id: '1234567890',
+    };
+    const out = protectEnrichedFieldsOnMerge(incoming, existing, { deviceProfileTitles: profiles });
+    expect(out.title).toBe('Long climb to the cols');
+  });
 });

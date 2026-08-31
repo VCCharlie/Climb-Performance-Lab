@@ -71,8 +71,12 @@ export async function runIntervalsSyncWithStravaGapFill({
     const reservedStravaIds = collectExistingStravaIds(existingActivities);
 
     onProgress?.('Linking Strava to Intervals rows…');
-    let linked = linkIntervalsActivitiesToStravaList(intervals, stravaList, { reservedStravaIds });
-    applyStravaFuzzyMatchesToIntervals(linked, stravaList, { reservedStravaIds });
+    const linkOpts = {
+        reservedStravaIds,
+        deviceProfileTitles: opts.deviceProfileTitles,
+    };
+    let linked = linkIntervalsActivitiesToStravaList(intervals, stravaList, linkOpts);
+    applyStravaFuzzyMatchesToIntervals(linked, stravaList, linkOpts);
 
     onProgress?.('Checking for Strava-only rides to import…');
     const { orphans, alreadyLinkedCount, linkedToIntervalsCount } = findStravaOrphanActivities({

@@ -119,4 +119,24 @@ describe('stravaLinkIntervalsFetch', () => {
         const out = linkIntervalsActivitiesToStravaList(intervals, strava);
         expect(out[0].strava_id).toBe('55');
     });
+
+    it('linkIntervalsActivitiesToStravaList applies Strava title when site title matches configured profile AETHOS', () => {
+        const intervals = [
+            { id: 'i1', date: '2026-05-01T10:00:00', title: 'AETHOS', type: 'Ride', distance: 50 },
+        ];
+        const strava = [
+            {
+                id: 111,
+                start_date_local: '2026-05-01T10:02:00',
+                name: 'Long climb',
+                sport_type: 'Ride',
+                distance: 50100,
+            },
+        ];
+        const out = linkIntervalsActivitiesToStravaList(intervals, strava, {
+            deviceProfileTitles: ['AETHOS'],
+        });
+        expect(out[0].strava_id).toBe('111');
+        expect(out[0].title).toBe('Long climb');
+    });
 });

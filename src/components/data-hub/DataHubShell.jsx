@@ -50,6 +50,7 @@ const DataHubShell = ({
     stravaEnrichResults,
     onStravaEnrichResults,
     onImport,
+    userSettings,
 }) => (
     <>
         <DataHubModals
@@ -165,6 +166,7 @@ const DataHubShell = ({
                 persistedResults={stravaEnrichResults}
                 onResultsChange={onStravaEnrichResults}
                 enrichmentTarget={stravaEnrich.enrichmentTarget}
+                userSettings={userSettings}
             />
 
             {internalTab === 'log' && (

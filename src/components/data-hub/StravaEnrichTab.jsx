@@ -10,6 +10,7 @@ import {
     buildAlreadyLinkedStravaUpdate,
 } from '../../utils/stravaGearEnrich';
 import { shouldApplyStravaTitleOnMatch, stravaStartDatePatch } from '../../utils/stravaTitleSameDay.js';
+import { resolveDeviceProfileTitlesFromSettings } from '../../utils/bikeComputerProfileTitles';
 import { safeLocalStorageSet } from '../../utils/safeStorage.js';
 
 // Strava logo SVG
@@ -71,7 +72,9 @@ const StravaEnrichTab = ({
     onResultsChange,
     enrichmentTarget,
     dateRangeHint = 'Set the date range in the header (dashboard period).',
+    userSettings,
 }) => {
+    const deviceProfileTitles = resolveDeviceProfileTitlesFromSettings(userSettings);
     const [isFetching, setIsFetching] = useState(false);
     const [fetchProgress, setFetchProgress] = useState('');
     const [error, setError] = useState(null);
@@ -286,7 +289,7 @@ const StravaEnrichTab = ({
                     const gearId = strava.gear_id || null;
                     const gearName = gearId ? (bikesMap[gearId] || 'Strava bike') : null;
                     const stravaTitle = (strava.name || '').trim();
-                    const applyTitle = shouldApplyStravaTitleOnMatch(site, strava);
+                    const applyTitle = shouldApplyStravaTitleOnMatch(site, strava, { deviceProfileTitles });
                     await setDoc(
                         doc(db, 'activities', String(site.id)),
                         {
@@ -331,7 +334,9 @@ const StravaEnrichTab = ({
             const successfullyUpdatedIds = new Set();
             for (const { strava, site } of toUpdate) {
                 try {
-                    const updateData = buildAlreadyLinkedStravaUpdate({ strava, site }, bikesMap);
+                    const updateData = buildAlreadyLinkedStravaUpdate({ strava, site }, bikesMap, {
+                        deviceProfileTitles,
+                    });
 
                     if (Object.keys(updateData).length > 0 && db) {
                         await setDoc(
