@@ -34,9 +34,10 @@ const hasStravaId = (v) => {
 /**
  * @param {object} incoming - Activiteit die we naar Firestore willen schrijven
  * @param {object|undefined|null} existing - Huidige activiteit uit app-state (zelfde id), indien bekend
+ * @param {{ deviceProfileTitles?: string[] }} [opts]
  * @returns {object} Payload voor setDoc(..., { merge: true })
  */
-export function protectEnrichedFieldsOnMerge(incoming, existing) {
+export function protectEnrichedFieldsOnMerge(incoming, existing, opts = {}) {
     if (!incoming || typeof incoming !== 'object') return incoming;
     const out = { ...incoming };
 
@@ -54,7 +55,7 @@ export function protectEnrichedFieldsOnMerge(incoming, existing) {
     if (isSpecificTitle(exTitle) && isGenericTitle(inTitle)) {
         out.title = existing.title;
     }
-    protectStravaLinkedTitleOnMerge(incoming, existing, out);
+    protectStravaLinkedTitleOnMerge(incoming, existing, out, opts);
 
     // Strava link + route + gear: Intervals payload often omits these; never wipe enriched data.
     if (hasStravaId(existing.strava_id) && !hasStravaId(incoming.strava_id)) {

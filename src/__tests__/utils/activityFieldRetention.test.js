@@ -90,6 +90,30 @@ describe('activityFieldRetention', () => {
         expect(out.title).toBe('Epic gravel smash');
     });
 
+    it('protectStravaLinkedTitleOnMerge allows Strava title to replace configured profile name AETHOS', () => {
+        const profiles = ['SUPERIOR', 'AETHOS'];
+        const existing = {
+            strava_id: '1234567890',
+            title: 'AETHOS',
+        };
+        const incoming = { title: 'Coffee ride with friends' };
+        const out = { ...incoming };
+        protectStravaLinkedTitleOnMerge(incoming, existing, out, { deviceProfileTitles: profiles });
+        expect(out.title).toBe('Coffee ride with friends');
+    });
+
+    it('protectStravaLinkedTitleOnMerge keeps custom title when Intervals sends profile name', () => {
+        const profiles = ['AETHOS'];
+        const existing = {
+            strava_id: '1234567890',
+            title: 'Race with friends — Galibier',
+        };
+        const incoming = { title: 'AETHOS' };
+        const out = { ...incoming };
+        protectStravaLinkedTitleOnMerge(incoming, existing, out, { deviceProfileTitles: profiles });
+        expect(out.title).toBe('Race with friends — Galibier');
+    });
+
     it('protectStravaLinkedGearOnMerge keeps Strava gear when Intervals sends bike-computer gear', () => {
         const existing = {
             strava_id: '1234567890',

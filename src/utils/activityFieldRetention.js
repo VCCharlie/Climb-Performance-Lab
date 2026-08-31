@@ -148,13 +148,19 @@ export function protectClimbingOnMerge(incoming, existing, out) {
  * @param {object} incoming
  * @param {object} existing
  * @param {object} out
+ * @param {{ deviceProfileTitles?: string[] }} [opts]
  */
-export function protectStravaLinkedTitleOnMerge(incoming, existing, out) {
+export function protectStravaLinkedTitleOnMerge(incoming, existing, out, opts = {}) {
     if (!existing || !out || !activityHasStravaLink(existing)) return;
 
     const exTitle = (existing.title || '').trim();
     const inTitle = (incoming.title || '').trim();
     if (!exTitle) return;
+
+    const titleOpts = {
+        gearName: existing.gear_name,
+        deviceProfileTitles: opts.deviceProfileTitles || [],
+    };
 
     // Legacy wrong-day Strava link: allow Intervals re-import to restore the site title.
     if (isStoredStravaLinkDayMismatch(existing) && inTitle && !isGenericActivityTitle(inTitle)) {
@@ -162,13 +168,17 @@ export function protectStravaLinkedTitleOnMerge(incoming, existing, out) {
         return;
     }
 
-    // Custom Strava / user titles must never be replaced by Intervals device-profile names.
-    if (!isGenericActivityTitle(exTitle)) {
-        out.title = existing.title;
+    // Incoming Strava title wins when existing title is replaceable and incoming is not generic.
+    if (
+        inTitle
+        && !isGenericActivityTitle(inTitle)
+        && shouldPreferStravaTitle(exTitle, inTitle, titleOpts)
+    ) {
         return;
     }
 
-    if (!shouldPreferStravaTitle(exTitle, inTitle, { gearName: existing.gear_name })) {
+    // Custom Strava / user titles must never be replaced by Intervals device-profile names.
+    if (!isGenericActivityTitle(exTitle)) {
         out.title = existing.title;
     }
 }

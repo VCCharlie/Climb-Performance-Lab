@@ -100,7 +100,7 @@ export function useDataHubStravaEnrich({
                 const activitiesMap = new Map((activities || []).map((a) => [String(a.id), a]));
                 const mergedUpdates = result.updates.map(({ id, data }) => {
                     const existing = activitiesMap.get(String(id));
-                    const payload = protectEnrichedFieldsOnMerge(data, existing);
+                    const payload = protectEnrichedFieldsOnMerge(data, existing, { deviceProfileTitles });
                     return { id, payload, merged: existing ? { ...existing, ...payload } : payload };
                 });
                 await Promise.all(
@@ -172,7 +172,7 @@ export function useDataHubStravaEnrich({
 
                 await Promise.all(newActs.map((act) => {
                     const existing = activitiesMap.get(String(act.id));
-                    const payload = protectEnrichedFieldsOnMerge(act, existing);
+                    const payload = protectEnrichedFieldsOnMerge(act, existing, { deviceProfileTitles });
                     return setDoc(doc(db, 'activities', String(act.id)), payload, { merge: true });
                 }));
             } catch (e) {

@@ -150,7 +150,7 @@ async function fetchFromIntervalsAPI({ athleteId, apiKey, startDate, endDate }) 
     return data;
 }
 
-async function upsertToFirestore(db, newActivities, isDryRun) {
+async function upsertToFirestore(db, newActivities, isDryRun, mergeOpts = {}) {
     const validActivities = newActivities.filter((act) => act && act.id);
 
     if (validActivities.length === 0) {
@@ -193,7 +193,7 @@ async function upsertToFirestore(db, newActivities, isDryRun) {
 
         if (exactMatch) {
             // SCENARIO 1: UPDATE — same id, preserve enriched fields (Strava, manual, zone times, drift).
-            const actToSave = protectEnrichedFieldsOnMerge(newAct, exactMatch);
+            const actToSave = protectEnrichedFieldsOnMerge(newAct, exactMatch, mergeOpts);
             toProcess.push(actToSave);
             updatedCount++;
             if (isDryRun) console.log(`[DRY-RUN] UPDATE: Beschermde velden behouden voor "${actToSave.title}" (${actToSave.id})`);
@@ -201,7 +201,7 @@ async function upsertToFirestore(db, newActivities, isDryRun) {
         } else if (duplicateMatch) {
             // SCENARIO 2: MERGE (dedupe) — keep Firestore doc id, apply shared retention rules.
             const actToSave = {
-                ...protectEnrichedFieldsOnMerge(newAct, duplicateMatch),
+                ...protectEnrichedFieldsOnMerge(newAct, duplicateMatch, mergeOpts),
                 id: duplicateMatch.firestoreId,
             };
             toProcess.push(actToSave);
@@ -480,7 +480,7 @@ async function enrichWithStrava(db, firestoreActivities, startDate, endDate, isD
 
         const docId = String(site.firestoreId || site.id);
 
-        const payload = protectEnrichedFieldsOnMerge(updateData, site);
+        const payload = protectEnrichedFieldsOnMerge(updateData, site, { deviceProfileTitles });
 
         if (isDryRun) {
             const fields = Object.keys(payload).join(', ');
@@ -567,6 +567,7 @@ async function runNightlySync() {
                 startYmd: startDate,
                 endYmd: endDate,
                 allowedSportTypes: ACCEPTED_TYPES,
+                opts: { deviceProfileTitles },
             });
             intervalsToSave = gapResult.intervalsActivities;
             orphansToSave = gapResult.orphanActivities;
@@ -587,7 +588,9 @@ async function runNightlySync() {
         } else {
             console.log(`[SYNC] ${combinedActivities.length} activiteiten ontvangen (${intervalsToSave.length} Intervals, ${orphansToSave.length} Strava orphans).`);
 
-            savedCount = await upsertToFirestore(db, combinedActivities, config.isDryRun);
+            savedCount = await upsertToFirestore(db, combinedActivities, config.isDryRun, {
+                deviceProfileTitles,
+            });
             const action = config.isDryRun ? 'zouden worden opgeslagen' : 'opgeslagen/bijgewerkt';
             console.log(`[SYNC] ✅ Succes! ${savedCount} activiteiten ${action} in Firebase.`);
         }

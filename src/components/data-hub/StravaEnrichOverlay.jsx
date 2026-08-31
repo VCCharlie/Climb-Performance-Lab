@@ -16,6 +16,7 @@ export default function StravaEnrichOverlay({
     persistedResults,
     onResultsChange,
     enrichmentTarget,
+    userSettings,
 }) {
     if (!open || !stravaGetToken) return null;
 
@@ -55,6 +56,7 @@ export default function StravaEnrichOverlay({
                         persistedResults={persistedResults}
                         onResultsChange={onResultsChange}
                         enrichmentTarget={enrichmentTarget}
+                        userSettings={userSettings}
                         dateRangeHint="Set the date range in the header (dashboard period)."
                     />
                 </div>

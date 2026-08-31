@@ -129,7 +129,7 @@ export function applyStravaDetailFieldsToAlreadyLinkedMatch(match, detailed) {
     };
 }
 
-export function buildAlreadyLinkedStravaUpdate(match, bikesMap = {}) {
+export function buildAlreadyLinkedStravaUpdate(match, bikesMap = {}, opts = {}) {
     const strava = match?.strava || {};
     const site = match?.site || {};
     const gearId = strava.gear_id != null && String(strava.gear_id).trim() !== ''
@@ -138,7 +138,9 @@ export function buildAlreadyLinkedStravaUpdate(match, bikesMap = {}) {
     const gearName = gearId ? (bikesMap[gearId] || 'Strava bike') : null;
     const stravaTitle = (strava.name || '').trim();
     const elevationPatch = climbingPatchFromStravaActivity(strava);
-    const applyTitle = shouldApplyStravaTitleOnMatch(site, strava);
+    const applyTitle = shouldApplyStravaTitleOnMatch(site, strava, {
+        deviceProfileTitles: opts.deviceProfileTitles,
+    });
 
     return stripUndefinedFields({
         ...(gearId && { gear_id: gearId, gear_name: gearName }),
