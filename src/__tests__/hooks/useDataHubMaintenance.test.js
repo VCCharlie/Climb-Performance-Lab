@@ -18,7 +18,7 @@ vi.mock('../../context/ToastContext', () => ({
 }));
 
 describe('useDataHubMaintenance', () => {
-    const onImport = vi.fn();
+    const onUpsert = vi.fn();
     const onClear = vi.fn();
     const setIsDeleting = vi.fn();
 
@@ -27,13 +27,51 @@ describe('useDataHubMaintenance', () => {
         confirmMock.mockResolvedValue(false);
     });
 
+    it('persists manual edits without enrichment protection', async () => {
+        const existing = {
+            id: '53534754',
+            date: '2017-06-12',
+            title: 'Morning Ride',
+            type: 'Ride',
+            strava_id: '12345678',
+            climbing: 500,
+        };
+        const setEditingActivity = vi.fn();
+
+        const { result } = renderHook(() => useDataHubMaintenance({
+            activities: [existing],
+            onUpsert,
+            onClear,
+            stravaGetToken: null,
+            setIsDeleting,
+        }));
+
+        await act(async () => {
+            await result.current.handleSaveEdit({
+                ...existing,
+                title: 'Alpine cols 2017',
+                climbing: 820,
+            }, setEditingActivity);
+        });
+
+        expect(onUpsert).toHaveBeenCalledWith([
+            expect.objectContaining({
+                id: '53534754',
+                title: 'Alpine cols 2017',
+                climbing: 820,
+                climbing_user_corrected: true,
+            }),
+        ]);
+        expect(setEditingActivity).toHaveBeenCalledWith(null);
+    });
+
     it('opens no-power modal when rides without power exist', () => {
         const { result } = renderHook(() => useDataHubMaintenance({
             activities: [
                 { id: 'pwr', avg_power: 180 },
                 { id: 'nopwr', avg_power: 0 },
             ],
-            onImport,
+            onUpsert,
             onClear,
             stravaGetToken: null,
             setIsDeleting,
@@ -48,7 +86,7 @@ describe('useDataHubMaintenance', () => {
     it('shows info toast when all activities have power', () => {
         const { result } = renderHook(() => useDataHubMaintenance({
             activities: [{ id: 'pwr', avg_power: 200 }],
-            onImport,
+            onUpsert,
             onClear,
             stravaGetToken: null,
             setIsDeleting,
@@ -66,7 +104,7 @@ describe('useDataHubMaintenance', () => {
     it('requires double confirm before clearing database', async () => {
         const { result } = renderHook(() => useDataHubMaintenance({
             activities: [{ id: 'a1' }],
-            onImport,
+            onUpsert,
             onClear,
             stravaGetToken: null,
             setIsDeleting,

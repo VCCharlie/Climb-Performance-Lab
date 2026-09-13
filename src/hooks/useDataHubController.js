@@ -61,6 +61,7 @@ export function useDataHubController({
     const {
         activities,
         importActivities: onImport,
+        upsertActivities: onUpsert,
         deleteActivity: onDelete,
         clearActivities: onClear,
         refreshFromServer: onRefresh,
@@ -153,6 +154,7 @@ export function useDataHubController({
         activities,
         onDelete,
         onImport,
+        onUpsert,
         stravaGetToken,
         stravaConfig,
         intervalsConfig,
@@ -197,7 +199,7 @@ export function useDataHubController({
 
     const maintenance = useDataHubMaintenance({
         activities,
-        onImport,
+        onUpsert,
         onClear,
         stravaGetToken,
         setIsDeleting,

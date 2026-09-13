@@ -27,6 +27,7 @@ export function useDataHubBulkActions({
     activities,
     onDelete,
     onImport,
+    onUpsert,
     stravaGetToken,
     stravaConfig,
     intervalsConfig,
@@ -529,7 +530,7 @@ export function useDataHubBulkActions({
                 return toSave;
             });
 
-            onImport(results);
+            onUpsert(results);
             setBulkSelectedIds(new Set());
             setShowBulkEditModal(false);
         } catch (e) {
@@ -537,7 +538,7 @@ export function useDataHubBulkActions({
         } finally {
             setIsBulkSaving(false);
         }
-    }, [selectedActivitiesForBulk, activities, onImport, stravaGetToken, showToast]);
+    }, [selectedActivitiesForBulk, activities, onUpsert, stravaGetToken, showToast]);
 
     const applyBulkActivityType = useCallback(async (typeValue) => {
         const list = selectedActivitiesForBulk;
