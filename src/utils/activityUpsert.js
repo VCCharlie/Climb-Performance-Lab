@@ -51,3 +51,24 @@ export function mergeActivitiesPreservingEnrichment(existingActivities = [], inc
 
     return Array.from(mergedById.values());
 }
+
+/**
+ * User-initiated edits (modal save, bulk patch): incoming rows replace fields as-is.
+ * Do not run protectEnrichedFieldsOnMerge — that guard is for Intervals/Strava re-sync only.
+ */
+export function mergeActivitiesDirectUpsert(existingActivities = [], incomingActivities = []) {
+    const mergedById = new Map();
+
+    const upsert = (activity) => {
+        const key = activityIdKey(activity);
+        if (!key) return;
+
+        const existing = mergedById.get(key);
+        mergedById.set(key, existing ? { ...existing, ...activity } : activity);
+    };
+
+    (existingActivities || []).forEach(upsert);
+    (incomingActivities || []).forEach(upsert);
+
+    return Array.from(mergedById.values());
+}

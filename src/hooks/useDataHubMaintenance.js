@@ -4,7 +4,6 @@ import { db } from '../firebase';
 import { stripUndefinedFields } from '../utils/mergeActivities';
 import { enrichActivityGearFromStrava } from '../utils/stravaGearEnrich';
 import { applyManualClimbingCorrectionFlags } from '../utils/activityFieldRetention';
-import { protectEnrichedFieldsOnMerge } from '../utils/firestoreActivityMerge';
 import { useConfirm } from '../context/ConfirmContext';
 import { useToast } from '../context/ToastContext';
 
@@ -13,7 +12,7 @@ import { useToast } from '../context/ToastContext';
  */
 export function useDataHubMaintenance({
     activities,
-    onImport,
+    onUpsert,
     onClear,
     stravaGetToken,
     setIsDeleting,
@@ -39,16 +38,15 @@ export function useDataHubMaintenance({
                     console.warn('[Edit save] Strava enrich failed:', gearErr);
                 }
             }
-            toSave = protectEnrichedFieldsOnMerge(toSave, prev);
             if (db) {
                 await setDoc(doc(db, 'activities', String(toSave.id)), toSave, { merge: true });
             }
-            onImport([toSave]);
+            onUpsert([toSave]);
             setEditingActivity(null);
         } catch (e) {
             showToast(`Could not save changes: ${e.message}`, { variant: 'error' });
         }
-    }, [activities, onImport, stravaGetToken, showToast]);
+    }, [activities, onUpsert, stravaGetToken, showToast]);
 
     const handleDeleteSingle = useCallback(async (id) => {
         if (db) {

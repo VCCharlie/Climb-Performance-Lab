@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+    mergeActivitiesDirectUpsert,
     mergeActivitiesPreservingEnrichment,
     prepareProtectedActivityUpserts,
     prepareProtectedActivityUpsertsFromCurrent,
@@ -88,6 +89,55 @@ describe('activity upsert helpers', () => {
             {
                 ...currentExisting,
                 load: 88,
+            },
+        ]);
+    });
+
+    it('direct upsert applies user edits on Strava-linked rows without protection', () => {
+        const existing = {
+            id: '100',
+            title: 'Old title',
+            type: 'Ride',
+            strava_id: '12345678',
+            climbing: 500,
+            climbing_user_corrected: true,
+        };
+        const incoming = {
+            id: '100',
+            title: 'Corrected 2017 climb',
+            type: 'VirtualRide',
+            climbing: 820,
+            climbing_user_corrected: true,
+        };
+
+        expect(mergeActivitiesDirectUpsert([existing], [incoming])).toEqual([
+            {
+                id: '100',
+                title: 'Corrected 2017 climb',
+                type: 'VirtualRide',
+                strava_id: '12345678',
+                climbing: 820,
+                climbing_user_corrected: true,
+            },
+        ]);
+    });
+
+    it('preserving enrichment still blocks Strava-linked type overwrite on sync-shaped import', () => {
+        const existing = {
+            id: '100',
+            type: 'VirtualRide',
+            strava_id: '12345678',
+        };
+        const incoming = {
+            id: '100',
+            type: 'Ride',
+        };
+
+        expect(mergeActivitiesPreservingEnrichment([existing], [incoming])).toEqual([
+            {
+                id: '100',
+                type: 'VirtualRide',
+                strava_id: '12345678',
             },
         ]);
     });

@@ -19,6 +19,7 @@ import { devLog } from '../utils/safeLog';
 import { notify } from '../utils/notify';
 import { batchMergeWriteActivities } from '../utils/firestoreBatchWrite';
 import {
+    mergeActivitiesDirectUpsert,
     mergeActivitiesPreservingEnrichment,
     prepareProtectedActivityUpsertsFromCurrent,
 } from '../utils/activityUpsert';
@@ -61,6 +62,10 @@ export function ActivitiesProvider({ user, children }) {
 
     const importActivities = useCallback((incoming) => {
         setActivitiesState((prev) => mergeActivitiesPreservingEnrichment(prev, incoming));
+    }, [setActivitiesState]);
+
+    const upsertActivities = useCallback((incoming) => {
+        setActivitiesState((prev) => mergeActivitiesDirectUpsert(prev, incoming));
     }, [setActivitiesState]);
 
     const deleteActivity = useCallback((id) => {
@@ -177,6 +182,7 @@ export function ActivitiesProvider({ user, children }) {
     const actionsValue = useMemo(
         () => ({
             importActivities,
+            upsertActivities,
             deleteActivity,
             clearActivities,
             refreshFromServer,
@@ -187,6 +193,7 @@ export function ActivitiesProvider({ user, children }) {
         }),
         [
             importActivities,
+            upsertActivities,
             deleteActivity,
             clearActivities,
             refreshFromServer,
