@@ -5,6 +5,12 @@ import {
     GENERAL_METRIC_PRESETS,
     DRIFT_METRIC_PRESETS,
 } from '../../../utils/metricRangePresets';
+import {
+    computeDistanceBoundsFromActivities,
+    computeDurationBoundsFromActivities,
+} from '../../../utils/metricRangeBounds';
+import { formatNlNumber } from '../../../utils/formatters';
+import MetricDualRangeSlider from './MetricDualRangeSlider';
 
 const RANGE_INPUT_CLASS = cn(inputBaseClass, 'w-12 !py-0.5 !px-1 !text-[10px] !leading-tight');
 
@@ -122,10 +128,28 @@ export default function MetricRangesSection({
     onFilterRaceMaxChange,
     minTss,
     onMinTssChange,
+    activities = [],
 }) {
     const [advancedOpen, setAdvancedOpen] = useState(false);
     const onManualMetricChange = clearActiveMetricPresets;
     const onMinTssManualChange = wrapManualMetricHandler(onMinTssChange, onManualMetricChange);
+
+    const distanceBounds = useMemo(
+        () => computeDistanceBoundsFromActivities(activities),
+        [activities],
+    );
+    const durationBounds = useMemo(
+        () => computeDurationBoundsFromActivities(activities),
+        [activities],
+    );
+
+    const formatDurationMinutes = (minutes) => {
+        const m = Math.round(Number(minutes) || 0);
+        if (m < 60) return `${m} min`;
+        const h = Math.floor(m / 60);
+        const rem = m % 60;
+        return rem ? `${h}h ${rem}m` : `${h}h`;
+    };
 
     const handlers = useMemo(() => ({
         onFilterDistMinChange: wrapManualMetricHandler(onFilterDistMinChange, onManualMetricChange),
@@ -220,6 +244,39 @@ export default function MetricRangesSection({
         </div>
     );
 
+    const sliderBlock = distanceBounds || durationBounds ? (
+        <div className="space-y-4 rounded-lg border border-cdborder/40 bg-cdsurfacelow/40 p-3">
+            <p className="text-[10px] text-cdmuted leading-snug">
+                Drag to narrow distance or duration. Full span clears the range filter.
+            </p>
+            {distanceBounds ? (
+                <MetricDualRangeSlider
+                    label="Distance"
+                    bounds={distanceBounds}
+                    minValue={filterDistMin}
+                    maxValue={filterDistMax}
+                    onMinChange={handlers.onFilterDistMinChange}
+                    onMaxChange={handlers.onFilterDistMaxChange}
+                    step={1}
+                    unit="km"
+                    formatValue={(v) => formatNlNumber(v, { maximumFractionDigits: 0 })}
+                />
+            ) : null}
+            {durationBounds ? (
+                <MetricDualRangeSlider
+                    label="Duration"
+                    bounds={durationBounds}
+                    minValue={filterDurMinMin}
+                    maxValue={filterDurMaxMin}
+                    onMinChange={handlers.onFilterDurMinMinChange}
+                    onMaxChange={handlers.onFilterDurMaxMinChange}
+                    step={5}
+                    formatValue={formatDurationMinutes}
+                />
+            ) : null}
+        </div>
+    ) : null;
+
     if (drawerLayout) {
         return (
             <div className="space-y-3">
@@ -237,6 +294,7 @@ export default function MetricRangesSection({
                         </Button>
                     ) : null}
                 </div>
+                {sliderBlock}
                 {presetBlock}
                 <div>
                     <button

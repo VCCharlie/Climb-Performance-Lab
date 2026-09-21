@@ -238,6 +238,7 @@ export function useDataHubFilterBar({
         canDecouplingBackfill: Boolean(intervalsConfig?.apiKey || stravaGetToken)
             && Number(userSettings?.ftp) > 0,
         filterBarRootRef,
+        activities,
     };
 
     return { filterBarProps, showUtilMenu, setShowUtilMenu };

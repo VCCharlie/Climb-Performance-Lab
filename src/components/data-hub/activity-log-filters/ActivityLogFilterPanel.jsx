@@ -57,7 +57,6 @@ export default function ActivityLogFilterPanel({
 
             <div className="px-3 py-2.5 flex flex-wrap items-center justify-between gap-2 border-b border-cdborder/30">
                 <PrimaryQuickFilterRow
-                    compact={compact}
                     {...sectionProps}
                 />
                 <button

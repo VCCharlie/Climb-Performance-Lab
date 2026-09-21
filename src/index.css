@@ -418,6 +418,41 @@ textarea:focus:not(:focus-visible) {
   color: var(--cd-text);
 }
 
+/* Activity Log metric dual-range sliders */
+.metric-dual-range-thumb::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  pointer-events: auto;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 9999px;
+  border: 2px solid var(--cd-surface);
+  background: var(--cd-primary);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--cd-primary) 40%, transparent);
+  cursor: grab;
+}
+
+.metric-dual-range-thumb::-moz-range-thumb {
+  pointer-events: auto;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 9999px;
+  border: 2px solid var(--cd-surface);
+  background: var(--cd-primary);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--cd-primary) 40%, transparent);
+  cursor: grab;
+}
+
+.metric-dual-range-thumb:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--cd-primary);
+  outline-offset: 2px;
+}
+
+.metric-dual-range-thumb:focus-visible::-moz-range-thumb {
+  outline: 2px solid var(--cd-primary);
+  outline-offset: 2px;
+}
+
 .cd-type-metric-lg {
   font-size: 1.125rem;
   font-weight: 700;

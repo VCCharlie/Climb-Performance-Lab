@@ -145,6 +145,7 @@ const ActivityLogFilterBar = ({
     isDecouplingBackfilling = false,
     canDecouplingBackfill = false,
     filterBarRootRef,
+    activities = [],
 }) => {
     const mobilePanelExpanded = useCardLayout && logFiltersPanelOpen;
 
@@ -350,6 +351,7 @@ const ActivityLogFilterBar = ({
             search={search}
             onSearchChange={onSearchChange}
             onResetLogFilters={onResetLogFilters}
+            activities={activities}
             thisWeekOnly={thisWeekOnly}
             onThisWeekOnlyChange={onThisWeekOnlyChange}
             rollingDays={rollingDays}
