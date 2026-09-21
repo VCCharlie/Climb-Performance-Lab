@@ -1,5 +1,6 @@
 import React from 'react';
 import { ChevronDown } from 'lucide-react';
+import { formatNlNumber } from '../../../utils/formatters';
 import QuickFilterChips from './QuickFilterChips';
 import MetricRangesSection from './MetricRangesSection';
 import BulkActionsSection from './BulkActionsSection';
@@ -16,6 +17,8 @@ export default function ActivityLogFilterPanel({
     compact = false,
     ...sectionProps
 }) {
+    const bulkSelectedCount = sectionProps.bulkSelectedCount ?? 0;
+
     const body = (
         <>
             <div className="px-3 py-2.5">
@@ -117,6 +120,14 @@ export default function ActivityLogFilterPanel({
                     {activeFilterCount > 0 ? (
                         <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-cdprimarycontainer text-cdonprimarycontainer text-[10px] font-bold tabular-nums">
                             {activeFilterCount}
+                        </span>
+                    ) : null}
+                    {collapsed && bulkSelectedCount > 0 ? (
+                        <span
+                            className="text-[10px] text-cdmuted tabular-nums font-normal normal-case tracking-normal"
+                            title="Activities selected for bulk actions"
+                        >
+                            {formatNlNumber(bulkSelectedCount)} selected
                         </span>
                     ) : null}
                 </span>
