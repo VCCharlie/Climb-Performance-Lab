@@ -52,8 +52,9 @@ const ManualActivityImportBlock = ({
                 Strava connection + Intervals API key in Settings when both sides are used.
             </p>
             <p className="text-xs text-cdmuted leading-relaxed border border-cdborder/60 rounded-lg px-3 py-2 bg-cdsurface/40">
-                <strong className="text-cdtext">Strava-sourced rides on Intervals.icu:</strong> Intervals cannot share Strava metrics through their API.
+                <strong className="text-cdtext">Strava-sourced rides on Intervals.icu:</strong> Intervals cannot share Strava metrics through their activity API.
                 An Intervals-only URL often previews empty — connect Strava in Settings (we auto-fill from Strava), or paste the Strava URL as primary or in the optional second field.
+                Best 1–60 min peaks come from the Intervals power curve when a FIT file exists there; otherwise we compute them from Strava watt streams (requires power data on Strava).
             </p>
             <div className="space-y-2">
                 <label className="block text-[10px] font-bold text-cdmuted uppercase">Primary URL</label>

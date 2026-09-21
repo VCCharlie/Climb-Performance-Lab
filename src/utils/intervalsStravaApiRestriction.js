@@ -9,7 +9,7 @@ import { fetchStravaActivitiesInRange } from './stravaLinkIntervalsFetch';
 import { isIncludedStravaType, normalizeStravaActivity } from './stravaMatch';
 import { mergeActivitiesIntervalsPrimary } from './mergeActivities';
 import { normalizeIntervalsActivity } from './intervals';
-import { enrichActivitiesWithPowerCurveBests } from './intervalsPowerCurveEnrich';
+import { enrichActivitiesWithBestPowerEfforts } from './enrichActivityBestPowers';
 
 function payloadHasMetrics(item) {
     if (!item || typeof item !== 'object') return false;
@@ -178,8 +178,11 @@ export async function mergeStravaApiIntoRestrictedIntervalsActivity(sparseJson, 
         }));
     }
     let merged = mergeActivitiesIntervalsPrimary(intervalsPrimary, stravaSide);
-    if (opts.intervalsConfig?.apiKey) {
-        [merged] = await enrichActivitiesWithPowerCurveBests([merged], opts.intervalsConfig, {
+    if (opts.intervalsConfig?.apiKey || opts.stravaToken || opts.stravaGetToken) {
+        [merged] = await enrichActivitiesWithBestPowerEfforts([merged], {
+            intervalsConfig: opts.intervalsConfig,
+            stravaToken: opts.stravaToken,
+            stravaGetToken: opts.stravaGetToken,
             maxFetches: 1,
             delayMs: 0,
         });
@@ -253,8 +256,11 @@ export async function backfillStravaMetricsForSparseIntervalsActivities(activiti
         }
     }
 
-    if (opts.intervalsConfig?.apiKey) {
-        return enrichActivitiesWithPowerCurveBests(out, opts.intervalsConfig, {
+    if (opts.intervalsConfig?.apiKey || token) {
+        return enrichActivitiesWithBestPowerEfforts(out, {
+            intervalsConfig: opts.intervalsConfig,
+            stravaToken: token,
+            stravaGetToken: opts.stravaGetToken,
             maxFetches: out.length,
             delayMs: 0,
         });
