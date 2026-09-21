@@ -13,6 +13,13 @@ describe('computeMaxMeanPowerForDuration', () => {
         expect(computeMaxMeanPowerForDuration(watts, time, 60)).toBe(300);
     });
 
+    it('finds a 90 min plateau in a long stream', () => {
+        const watts = Array.from({ length: 7200 }, (_, i) => (i >= 400 && i < 5800 ? 240 : 200));
+        const time = watts.map((_, i) => i);
+        expect(computeMaxMeanPowerForDuration(watts, time, 5400)).toBe(240);
+        expect(computeMaxMeanPowerForDuration(watts, time, 7200)).toBeGreaterThanOrEqual(200);
+    });
+
     it('returns 0 for empty input', () => {
         expect(computeMaxMeanPowerForDuration([], [], 60)).toBe(0);
     });

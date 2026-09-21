@@ -7,7 +7,7 @@ import { fetchWithTimeout } from './fetchWithTimeout';
 import { devLog } from './safeLog';
 import { normalizeStravaActivityId } from './strava';
 import {
-    STANDARD_POWER_CURVE_BEST_TARGETS,
+    ALL_POWER_CURVE_BEST_TARGETS,
     missingPowerCurveBestTargets,
 } from './intervalsPowerCurveEnrich';
 
@@ -86,24 +86,45 @@ export function computeMaxMeanPowerForDuration(watts, timeSec, durationSec) {
         ? timeSec
         : Array.from({ length: n }, (_, i) => i);
 
-    let best = 0;
+    const isUniformOneHz = time.every((t, i) => i === 0 || Math.abs((t - time[i - 1]) - 1) < 0.01);
 
-    for (let start = 0; start < n; start += 1) {
+    if (isUniformOneHz && n >= target) {
+        let best = 0;
         let sum = 0;
-        let count = 0;
-        for (let end = start; end < n; end += 1) {
-            const w = Number(watts[end]);
-            if (!Number.isFinite(w) || w <= 0) continue;
-            sum += w;
-            count += 1;
-            const elapsed = time[end] - time[start];
-            const oneHzWindow = count >= target && elapsed >= target - 1;
-            const timedWindow = elapsed >= target - 0.5;
-            if (oneHzWindow || timedWindow) {
-                const avg = sum / count;
+        for (let i = 0; i < n; i += 1) {
+            sum += Number(watts[i]) || 0;
+            if (i >= target) sum -= Number(watts[i - target]) || 0;
+            if (i >= target - 1) {
+                const avg = sum / target;
                 if (avg > best) best = avg;
-                break;
             }
+        }
+        return Math.round(best);
+    }
+
+    let best = 0;
+    let start = 0;
+    let sum = 0;
+
+    for (let end = 0; end < n; end += 1) {
+        const w = Number(watts[end]);
+        if (!Number.isFinite(w) || w <= 0) continue;
+
+        sum += w;
+
+        while (start < end && time[end] - time[start] > target) {
+            const ws = Number(watts[start]);
+            if (Number.isFinite(ws) && ws > 0) sum -= ws;
+            start += 1;
+        }
+
+        const elapsed = time[end] - time[start];
+        const samples = end - start + 1;
+        if (samples <= 0) continue;
+
+        if (elapsed >= target - 0.5) {
+            const avg = sum / samples;
+            if (avg > best) best = avg;
         }
     }
 
@@ -165,7 +186,7 @@ export async function fetchStravaWattsStream(stravaActivityId, token) {
  */
 export async function enrichActivityBestPowersFromStravaStream(act, token) {
     const out = { ...act };
-    const missing = missingPowerCurveBestTargets(out, STANDARD_POWER_CURVE_BEST_TARGETS);
+    const missing = missingPowerCurveBestTargets(out, ALL_POWER_CURVE_BEST_TARGETS);
     if (!missing.length || !out.strava_id || !token) return out;
 
     const stream = await fetchStravaWattsStream(out.strava_id, token);
@@ -204,7 +225,7 @@ export async function enrichActivitiesWithStravaStreamBestPowers(activities, opt
     let fetchCount = 0;
 
     for (const act of list) {
-        const missing = missingPowerCurveBestTargets(act, STANDARD_POWER_CURVE_BEST_TARGETS);
+        const missing = missingPowerCurveBestTargets(act, ALL_POWER_CURVE_BEST_TARGETS);
         if (!missing.length || !act.strava_id || fetchCount >= maxFetches) {
             out.push({ ...act });
             continue;

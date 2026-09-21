@@ -5,7 +5,7 @@
 import {
     enrichActivitiesWithPowerCurveBests,
     missingPowerCurveBestTargets,
-    STANDARD_POWER_CURVE_BEST_TARGETS,
+    ALL_POWER_CURVE_BEST_TARGETS,
 } from './intervalsPowerCurveEnrich';
 import { enrichActivitiesWithStravaStreamBestPowers } from './stravaPowerStreamBests';
 
@@ -31,7 +31,7 @@ export async function enrichActivitiesWithBestPowerEfforts(activities, opts = {}
     }
 
     const stillMissing = out.some((act) =>
-        missingPowerCurveBestTargets(act, STANDARD_POWER_CURVE_BEST_TARGETS).length > 0,
+        missingPowerCurveBestTargets(act, ALL_POWER_CURVE_BEST_TARGETS).length > 0,
     );
     if (!stillMissing) return out;
 
