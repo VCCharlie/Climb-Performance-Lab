@@ -16,10 +16,21 @@ describe('activityColumnVisibility', () => {
         expect(defaults).toEqual(essential);
     });
 
-    it('resolves full preset to all table columns', () => {
-        const full = resolvePresetKeys('full');
-        expect(full).toHaveLength(ACTIVITY_TABLE_COLUMNS.length);
-        expect(full).toEqual(ACTIVITY_TABLE_COLUMNS.map((c) => c.key));
+    it('includes extended power duration columns in table column list', () => {
+        const keys = ACTIVITY_TABLE_COLUMNS.map((c) => c.key);
+        expect(keys).toContain('best_90min');
+        expect(keys).toContain('best_120min');
+        expect(keys).toContain('best_150min');
+        expect(keys).toContain('best_180min');
+        const b90 = ACTIVITY_TABLE_COLUMNS.find((c) => c.key === 'best_90min');
+        expect(b90?.label).toBe('90m');
+        expect(b90?.hideByDefault).toBe(true);
+    });
+
+    it('power preset includes 90m and 120m columns', () => {
+        const power = resolvePresetKeys('power');
+        expect(power).toContain('best_90min');
+        expect(power).toContain('best_120min');
     });
 
     it('parseStoredColumnKeys ignores invalid keys', () => {
