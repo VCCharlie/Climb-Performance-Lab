@@ -1,13 +1,15 @@
-import React from 'react';
-import { ChevronDown } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { formatNlNumber } from '../../../utils/formatters';
-import QuickFilterChips from './QuickFilterChips';
-import MetricRangesSection from './MetricRangesSection';
+import { buildActivityLogActiveFilterPills } from '../../../utils/activityLogActiveFilterPills';
+import ActiveFiltersBar from './ActiveFiltersBar';
+import ActivityLogFilterDrawer from './ActivityLogFilterDrawer';
+import PrimaryQuickFilterRow from './PrimaryQuickFilterRow';
 import BulkActionsSection from './BulkActionsSection';
 import { cn } from '../../ui';
 
 /**
- * Unified Activity Log filter + bulk panel — one card, section dividers (no nested boxes).
+ * Compact filter shell: active pills + primary chips + drawer for full controls.
  */
 export default function ActivityLogFilterPanel({
     collapsible = false,
@@ -15,131 +17,164 @@ export default function ActivityLogFilterPanel({
     onCollapsedChange,
     activeFilterCount = 0,
     compact = false,
+    onResetLogFilters,
     ...sectionProps
 }) {
+    const [drawerOpen, setDrawerOpen] = useState(false);
     const bulkSelectedCount = sectionProps.bulkSelectedCount ?? 0;
 
-    const body = (
+    const activePills = useMemo(
+        () => buildActivityLogActiveFilterPills({
+            ...sectionProps,
+            onResetLogFilters,
+        }),
+        [sectionProps, onResetLogFilters],
+    );
+
+    const drawerSectionProps = {
+        ...sectionProps,
+        onResetLogFilters,
+    };
+
+    const openDrawer = () => setDrawerOpen(true);
+
+    const drawer = (
+        <ActivityLogFilterDrawer
+            open={drawerOpen}
+            onClose={() => setDrawerOpen(false)}
+            activeFilterCount={activeFilterCount}
+            initialTab={bulkSelectedCount > 0 ? 'bulk' : 'quick'}
+            sectionProps={drawerSectionProps}
+        />
+    );
+
+    const filterShell = (
         <>
-            <div className="px-3 py-2.5">
-                <QuickFilterChips compact={compact} {...sectionProps} />
+            <ActiveFiltersBar
+                pills={activePills}
+                onClearAll={onResetLogFilters}
+            />
+
+            <div className="px-3 py-2.5 flex flex-wrap items-center justify-between gap-2 border-b border-cdborder/30">
+                <PrimaryQuickFilterRow
+                    compact={compact}
+                    {...sectionProps}
+                />
+                <button
+                    type="button"
+                    onClick={openDrawer}
+                    className="inline-flex items-center gap-1.5 shrink-0 rounded-full border border-cdborder bg-cdsurface px-3 py-1 min-h-[28px] text-[10px] font-bold text-cdtext hover:border-cdaccent/50 cd-focus-ring cd-transition"
+                    aria-haspopup="dialog"
+                >
+                    <SlidersHorizontal size={13} aria-hidden />
+                    All filters
+                    {activeFilterCount > 0 ? (
+                        <span className="inline-flex items-center justify-center min-w-[1.1rem] h-4 px-1 rounded-full bg-cdprimarycontainer text-cdonprimarycontainer text-[9px] font-bold tabular-nums">
+                            {activeFilterCount}
+                        </span>
+                    ) : null}
+                </button>
             </div>
-            <MetricRangesSection
-                expanded={sectionProps.activityLogRangesExpanded}
-                onExpandedChange={sectionProps.onActivityLogRangesExpandedChange}
-                metricRangeActive={sectionProps.metricRangeActive}
-                clearMetricFilters={sectionProps.clearMetricFilters}
-                minTss={sectionProps.minTss}
-                onMinTssChange={sectionProps.onMinTssChange}
-                activeMetricPresetIds={sectionProps.activeMetricPresetIds}
-                toggleMetricPreset={sectionProps.toggleMetricPreset}
-                clearActiveMetricPresets={sectionProps.clearActiveMetricPresets}
-                filterDistMin={sectionProps.filterDistMin}
-                onFilterDistMinChange={sectionProps.onFilterDistMinChange}
-                filterDistMax={sectionProps.filterDistMax}
-                onFilterDistMaxChange={sectionProps.onFilterDistMaxChange}
-                filterSpeedMin={sectionProps.filterSpeedMin}
-                onFilterSpeedMinChange={sectionProps.onFilterSpeedMinChange}
-                filterSpeedMax={sectionProps.filterSpeedMax}
-                onFilterSpeedMaxChange={sectionProps.onFilterSpeedMaxChange}
-                filterPowerMin={sectionProps.filterPowerMin}
-                onFilterPowerMinChange={sectionProps.onFilterPowerMinChange}
-                filterPowerMax={sectionProps.filterPowerMax}
-                onFilterPowerMaxChange={sectionProps.onFilterPowerMaxChange}
-                filterDurMinMin={sectionProps.filterDurMinMin}
-                onFilterDurMinMinChange={sectionProps.onFilterDurMinMinChange}
-                filterDurMaxMin={sectionProps.filterDurMaxMin}
-                onFilterDurMaxMinChange={sectionProps.onFilterDurMaxMinChange}
-                filterElevMin={sectionProps.filterElevMin}
-                onFilterElevMinChange={sectionProps.onFilterElevMinChange}
-                filterElevMax={sectionProps.filterElevMax}
-                onFilterElevMaxChange={sectionProps.onFilterElevMaxChange}
-                filterKjMin={sectionProps.filterKjMin}
-                onFilterKjMinChange={sectionProps.onFilterKjMinChange}
-                filterKjMax={sectionProps.filterKjMax}
-                onFilterKjMaxChange={sectionProps.onFilterKjMaxChange}
-                filterDecMin={sectionProps.filterDecMin}
-                onFilterDecMinChange={sectionProps.onFilterDecMinChange}
-                filterDecMax={sectionProps.filterDecMax}
-                onFilterDecMaxChange={sectionProps.onFilterDecMaxChange}
-                filterThrMin={sectionProps.filterThrMin}
-                onFilterThrMinChange={sectionProps.onFilterThrMinChange}
-                filterThrMax={sectionProps.filterThrMax}
-                onFilterThrMaxChange={sectionProps.onFilterThrMaxChange}
-                filterRaceMin={sectionProps.filterRaceMin}
-                onFilterRaceMinChange={sectionProps.onFilterRaceMinChange}
-                filterRaceMax={sectionProps.filterRaceMax}
-                onFilterRaceMaxChange={sectionProps.onFilterRaceMaxChange}
-            />
-            <BulkActionsSection
-                bulkSelectedCount={sectionProps.bulkSelectedCount}
-                onBulkEdit={sectionProps.onBulkEdit}
-                onBulkSetGravelRide={sectionProps.onBulkSetGravelRide}
-                onBulkSetMtbRide={sectionProps.onBulkSetMtbRide}
-                onBulkSetEbikeRide={sectionProps.onBulkSetEbikeRide}
-                onExportCsv={sectionProps.onExportCsv}
-                onExportXlsx={sectionProps.onExportXlsx}
-                isExportingXlsx={sectionProps.isExportingXlsx}
-                onMarkRecovery={sectionProps.onMarkRecovery}
-                recoveryTss={sectionProps.recoveryTss}
-                stravaGetToken={sectionProps.stravaGetToken}
-                onStravaEnrich={sectionProps.onStravaEnrich}
-                onStravaDescriptionBackfill={sectionProps.onStravaDescriptionBackfill}
-                onDecouplingBackfill={sectionProps.onDecouplingBackfill}
-                onMergePair={sectionProps.onMergePair}
-                canMergePair={sectionProps.canMergePair}
-                mergePairHint={sectionProps.mergePairHint}
-                onDeleteSelected={sectionProps.onDeleteSelected}
-                onClearSelection={sectionProps.onClearSelection}
-                isBulkSaving={sectionProps.isBulkSaving}
-                isStravaEnriching={sectionProps.isStravaEnriching}
-                isStravaDescBackfilling={sectionProps.isStravaDescBackfilling}
-                isDecouplingBackfilling={sectionProps.isDecouplingBackfilling}
-                canDecouplingBackfill={sectionProps.canDecouplingBackfill}
-                isDeleting={sectionProps.isDeleting}
-            />
+
+            {bulkSelectedCount > 0 ? (
+                <div className="px-3 py-1.5 border-b border-cdborder/30 flex flex-wrap items-center justify-between gap-2 bg-cdaccent/5">
+                    <span className="text-[10px] text-cdtext tabular-nums">
+                        <strong>{formatNlNumber(bulkSelectedCount)}</strong> selected for bulk actions
+                    </span>
+                    <button
+                        type="button"
+                        onClick={openDrawer}
+                        className="text-[10px] font-semibold text-cdaccent hover:underline cd-focus-ring rounded px-1"
+                    >
+                        Open bulk tab
+                    </button>
+                </div>
+            ) : null}
+
+            <BulkActionsSection {...sectionProps} compactBar />
         </>
     );
 
-    if (!collapsible) {
+    if (collapsible && collapsed) {
         return (
             <div className="rounded-lg border border-cdborder/60 bg-cdsurfacelow/30 overflow-hidden">
-                {body}
+                <ActiveFiltersBar
+                    pills={activePills}
+                    onClearAll={onResetLogFilters}
+                />
+                <div className="flex items-center gap-2 px-3 py-2 min-h-9">
+                    <button
+                        type="button"
+                        onClick={() => onCollapsedChange?.((v) => !v)}
+                        className="flex flex-1 min-w-0 items-center justify-between gap-2 text-left cd-type-subsection cd-transition hover:bg-cdborder/10 cd-focus-ring rounded-sm px-1 py-0.5"
+                        aria-expanded={false}
+                    >
+                        <span className="flex items-center gap-2 min-w-0">
+                            Filters & bulk
+                            {activeFilterCount > 0 ? (
+                                <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-cdprimarycontainer text-cdonprimarycontainer text-[10px] font-bold tabular-nums">
+                                    {activeFilterCount}
+                                </span>
+                            ) : null}
+                            {bulkSelectedCount > 0 ? (
+                                <span
+                                    className="text-[10px] text-cdmuted tabular-nums font-normal normal-case tracking-normal"
+                                    title="Activities selected for bulk actions"
+                                >
+                                    {formatNlNumber(bulkSelectedCount)} selected
+                                </span>
+                            ) : null}
+                        </span>
+                        <ChevronDown size={14} className="text-cdmuted shrink-0" aria-hidden />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={openDrawer}
+                        className="inline-flex items-center gap-1 shrink-0 rounded-full border border-cdborder bg-cdsurface px-2.5 py-1 min-h-[28px] text-[10px] font-bold text-cdtext hover:border-cdaccent/50 cd-focus-ring cd-transition"
+                        aria-haspopup="dialog"
+                    >
+                        <SlidersHorizontal size={12} aria-hidden />
+                        Filters
+                    </button>
+                </div>
+                {drawer}
+            </div>
+        );
+    }
+
+    if (collapsible) {
+        return (
+            <div className="rounded-lg border border-cdborder/60 bg-cdsurfacelow/30 overflow-hidden">
+                <button
+                    type="button"
+                    onClick={() => onCollapsedChange?.((v) => !v)}
+                    className="w-full flex items-center justify-between gap-2 px-3 py-2 min-h-9 text-left cd-type-subsection cd-transition hover:bg-cdborder/10 cd-focus-ring border-b border-cdborder/30"
+                    aria-expanded
+                >
+                    <span className="flex items-center gap-2 min-w-0">
+                        Filters & bulk
+                        {activeFilterCount > 0 ? (
+                            <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-cdprimarycontainer text-cdonprimarycontainer text-[10px] font-bold tabular-nums">
+                                {activeFilterCount}
+                            </span>
+                        ) : null}
+                    </span>
+                    <ChevronDown
+                        size={14}
+                        className={cn('text-cdmuted shrink-0 cd-transition rotate-180')}
+                        aria-hidden
+                    />
+                </button>
+                {filterShell}
+                {drawer}
             </div>
         );
     }
 
     return (
         <div className="rounded-lg border border-cdborder/60 bg-cdsurfacelow/30 overflow-hidden">
-            <button
-                type="button"
-                onClick={() => onCollapsedChange?.((v) => !v)}
-                className="w-full flex items-center justify-between gap-2 px-3 py-2 min-h-9 text-left cd-type-subsection cd-transition hover:bg-cdborder/10 cd-focus-ring"
-                aria-expanded={!collapsed}
-            >
-                <span className="flex items-center gap-2 min-w-0">
-                    Filters & bulk
-                    {activeFilterCount > 0 ? (
-                        <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-cdprimarycontainer text-cdonprimarycontainer text-[10px] font-bold tabular-nums">
-                            {activeFilterCount}
-                        </span>
-                    ) : null}
-                    {collapsed && bulkSelectedCount > 0 ? (
-                        <span
-                            className="text-[10px] text-cdmuted tabular-nums font-normal normal-case tracking-normal"
-                            title="Activities selected for bulk actions"
-                        >
-                            {formatNlNumber(bulkSelectedCount)} selected
-                        </span>
-                    ) : null}
-                </span>
-                <ChevronDown
-                    size={14}
-                    className={cn('text-cdmuted shrink-0 cd-transition', !collapsed && 'rotate-180')}
-                    aria-hidden
-                />
-            </button>
-            {!collapsed ? body : null}
+            {filterShell}
+            {drawer}
         </div>
     );
 }
