@@ -1,11 +1,14 @@
 import React, { useId, useMemo, useState } from 'react';
 import { BarChart3, ChevronDown, PanelRightOpen } from 'lucide-react';
 import { cn } from '../../ui';
-import { formatTotalMovingTime } from '../../../utils/activityLogFilterAnalytics';
-import { buildFilterAnalyticsMetricChips } from '../../../utils/filterAnalyticsMetrics';
+import {
+    buildFilterAnalyticsSummaryChipKeys,
+    buildFilterAnalyticsSummaryChips,
+} from '../../../utils/filterAnalyticsYearTable';
 import { useFilterAnalyticsMetrics } from '../../../hooks/useFilterAnalyticsMetrics';
 import FilterAnalyticsMetricPicker from './FilterAnalyticsMetricPicker';
 import FilterAnalyticsInsightDrawer from './FilterAnalyticsInsightDrawer';
+import FilterAnalyticsYearTable from './FilterAnalyticsYearTable';
 
 function MetricChip({ label, value, sub, accent = false, className }) {
     return (
@@ -35,7 +38,7 @@ function MetricChip({ label, value, sub, accent = false, className }) {
 
 /**
  * Compact filter summary + aggregated cycling metrics for the Activity Log.
- * Opens an insight drawer (Concept A) for charts and year trends.
+ * Column picker controls Volume-by-year table columns; summary chips stay compact above.
  */
 export default function FilterAnalyticsBar({
     filterLabels = [],
@@ -49,10 +52,13 @@ export default function FilterAnalyticsBar({
     const [drawerOpen, setDrawerOpen] = useState(false);
     const metricPrefs = useFilterAnalyticsMetrics(filterState);
 
-    const metricChips = useMemo(
-        () => buildFilterAnalyticsMetricChips(metricPrefs.visibleKeys, analytics),
-        [metricPrefs.visibleKeys, analytics],
-    );
+    const summaryChips = useMemo(() => {
+        const keys = buildFilterAnalyticsSummaryChipKeys(
+            analytics,
+            metricPrefs.usingContextSuggestion ? metricPrefs.contextProfile : null,
+        );
+        return buildFilterAnalyticsSummaryChips(analytics, keys);
+    }, [analytics, metricPrefs.contextProfile, metricPrefs.usingContextSuggestion]);
 
     if (!analytics) return null;
 
@@ -88,18 +94,6 @@ export default function FilterAnalyticsBar({
                         )}
                     </div>
                     <div className="flex flex-wrap items-center gap-2 shrink-0">
-                        <FilterAnalyticsMetricPicker
-                            visibleKeys={metricPrefs.visibleKeys}
-                            activePreset={metricPrefs.activePreset}
-                            presetLabel={metricPrefs.presetLabel}
-                            applyPreset={metricPrefs.applyPreset}
-                            toggleMetric={metricPrefs.toggleMetric}
-                            isMetricVisible={metricPrefs.isMetricVisible}
-                            contextProfile={metricPrefs.contextProfile}
-                            usingContextSuggestion={metricPrefs.usingContextSuggestion}
-                            manualOverride={metricPrefs.manualOverride}
-                            onApplyContextSuggestion={metricPrefs.applyContextSuggestion}
-                        />
                         <button
                             type="button"
                             onClick={() => setDrawerOpen(true)}
@@ -124,7 +118,7 @@ export default function FilterAnalyticsBar({
                             onClick={() => setExpanded((v) => !v)}
                             className="inline-flex items-center gap-1 text-[10px] font-semibold text-cdmuted hover:text-cdtext cd-focus-ring rounded px-1.5 py-0.5"
                         >
-                            Table
+                            Volume by year
                             <ChevronDown
                                 size={14}
                                 className={cn('cd-transition', expanded && 'rotate-180')}
@@ -137,7 +131,7 @@ export default function FilterAnalyticsBar({
                 {metricPrefs.usingContextSuggestion && metricPrefs.contextProfile ? (
                     <div className="px-3 py-1.5 border-b border-cdborder/40 bg-cdaccent/5 flex flex-wrap items-center justify-between gap-2">
                         <p className="text-[10px] text-cdtext">
-                            Suggested metrics for{' '}
+                            Suggested table columns for{' '}
                             <strong className="text-cdaccent">{metricPrefs.contextProfile.label}</strong>
                         </p>
                         <button
@@ -145,7 +139,7 @@ export default function FilterAnalyticsBar({
                             onClick={metricPrefs.dismissContextSuggestion}
                             className="text-[10px] font-semibold text-cdmuted hover:text-cdtext cd-focus-ring rounded px-1"
                         >
-                            Use my saved metrics
+                            Use my saved columns
                         </button>
                     </div>
                 ) : null}
@@ -153,7 +147,7 @@ export default function FilterAnalyticsBar({
                 {metricPrefs.manualOverride && metricPrefs.contextProfile ? (
                     <div className="px-3 py-1.5 border-b border-cdborder/40 bg-cdsurface/50 flex flex-wrap items-center justify-between gap-2">
                         <p className="text-[10px] text-cdmuted">
-                            Using your custom metrics
+                            Using your custom table columns
                         </p>
                         <button
                             type="button"
@@ -168,11 +162,11 @@ export default function FilterAnalyticsBar({
                 <div
                     className="overflow-x-auto overscroll-x-contain px-3 py-2.5"
                     role="region"
-                    aria-label="Aggregated filter metrics"
+                    aria-label="Filter summary totals"
                 >
-                    {metricChips.length > 0 ? (
+                    {summaryChips.length > 0 ? (
                         <div className="flex flex-nowrap sm:flex-wrap gap-2 min-w-min sm:min-w-0">
-                            {metricChips.map((chip) => (
+                            {summaryChips.map((chip) => (
                                 <MetricChip
                                     key={chip.key}
                                     label={chip.label}
@@ -182,11 +176,7 @@ export default function FilterAnalyticsBar({
                                 />
                             ))}
                         </div>
-                    ) : (
-                        <p className="text-[10px] text-cdmuted">
-                            No metrics with data for this filter. Choose other metrics via the picker.
-                        </p>
-                    )}
+                    ) : null}
                 </div>
 
                 {expanded && analytics.byYear?.length > 0 ? (
@@ -194,40 +184,27 @@ export default function FilterAnalyticsBar({
                         id={detailsId}
                         className="border-t border-cdborder/50 px-3 py-2.5 bg-cdsurface/40"
                     >
-                        <p className="text-[9px] font-semibold uppercase tracking-wide text-cdmuted mb-2">
-                            Volume by year
-                        </p>
-                        <div className="overflow-x-auto">
-                            <table className="w-full min-w-[20rem] text-[11px]">
-                                <thead>
-                                    <tr className="text-left text-cdmuted border-b border-cdborder/40">
-                                        <th scope="col" className="py-1 pr-3 font-semibold">Year</th>
-                                        <th scope="col" className="py-1 pr-3 font-semibold tabular-nums">Rides</th>
-                                        <th scope="col" className="py-1 pr-3 font-semibold tabular-nums">Distance</th>
-                                        <th scope="col" className="py-1 pr-3 font-semibold tabular-nums">Time</th>
-                                        <th scope="col" className="py-1 font-semibold tabular-nums">Elev</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {analytics.byYear.map((row) => (
-                                        <tr
-                                            key={row.year}
-                                            className="border-b border-cdborder/20 last:border-0 text-cdtext"
-                                        >
-                                            <th scope="row" className="py-1.5 pr-3 font-bold text-cdtext">
-                                                {row.year}
-                                            </th>
-                                            <td className="py-1.5 pr-3 tabular-nums">{row.rideCount}</td>
-                                            <td className="py-1.5 pr-3 tabular-nums">{row.distanceKm} km</td>
-                                            <td className="py-1.5 pr-3 tabular-nums">
-                                                {formatTotalMovingTime(row.movingTimeSec)}
-                                            </td>
-                                            <td className="py-1.5 tabular-nums">{row.elevationM} m</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                            <p className="text-[9px] font-semibold uppercase tracking-wide text-cdmuted">
+                                Volume by year
+                            </p>
+                            <FilterAnalyticsMetricPicker
+                                visibleKeys={metricPrefs.visibleKeys}
+                                activePreset={metricPrefs.activePreset}
+                                presetLabel={metricPrefs.presetLabel}
+                                applyPreset={metricPrefs.applyPreset}
+                                toggleMetric={metricPrefs.toggleMetric}
+                                isMetricVisible={metricPrefs.isMetricVisible}
+                                contextProfile={metricPrefs.contextProfile}
+                                usingContextSuggestion={metricPrefs.usingContextSuggestion}
+                                manualOverride={metricPrefs.manualOverride}
+                                onApplyContextSuggestion={metricPrefs.applyContextSuggestion}
+                            />
                         </div>
+                        <FilterAnalyticsYearTable
+                            rows={analytics.byYear}
+                            visibleColumnKeys={metricPrefs.visibleKeys}
+                        />
                     </div>
                 ) : null}
             </section>
@@ -237,6 +214,7 @@ export default function FilterAnalyticsBar({
                 onClose={() => setDrawerOpen(false)}
                 filterLabels={filterLabels}
                 analytics={analytics}
+                visibleColumnKeys={metricPrefs.visibleKeys}
             />
         </>
     );

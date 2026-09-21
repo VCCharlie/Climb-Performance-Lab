@@ -14,8 +14,8 @@ import ChartTooltip from '../../ui/ChartTooltip';
 import { cn } from '../../ui';
 import { CHART_A11Y_PROPS } from '../../../utils/chartA11y';
 import { getChartTheme } from '../../../utils/chartTheme';
-import { formatTotalMovingTime } from '../../../utils/activityLogFilterAnalytics';
 import { buildFilterAnalyticsChartData } from '../../../utils/filterAnalyticsMetrics';
+import FilterAnalyticsYearTable from './FilterAnalyticsYearTable';
 
 function InsightChartCard({ title, subtitle, children, className }) {
     return (
@@ -39,6 +39,7 @@ export default function FilterAnalyticsInsightDrawer({
     onClose,
     filterLabels = [],
     analytics,
+    visibleColumnKeys = [],
 }) {
     useEffect(() => {
         if (!open) return undefined;
@@ -191,33 +192,12 @@ export default function FilterAnalyticsInsightDrawer({
                     ) : null}
 
                     {analytics.byYear?.length > 0 ? (
-                        <InsightChartCard title="Year breakdown" subtitle="Table view of filtered volume">
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-[11px]">
-                                    <thead>
-                                        <tr className="text-left text-cdmuted border-b border-cdborder/40">
-                                            <th scope="col" className="py-1 pr-3 font-semibold">Year</th>
-                                            <th scope="col" className="py-1 pr-3 font-semibold tabular-nums">Rides</th>
-                                            <th scope="col" className="py-1 pr-3 font-semibold tabular-nums">Distance</th>
-                                            <th scope="col" className="py-1 pr-3 font-semibold tabular-nums">Time</th>
-                                            <th scope="col" className="py-1 font-semibold tabular-nums">Elev</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {analytics.byYear.map((row) => (
-                                            <tr key={row.year} className="border-b border-cdborder/20 last:border-0 text-cdtext">
-                                                <th scope="row" className="py-1.5 pr-3 font-bold">{row.year}</th>
-                                                <td className="py-1.5 pr-3 tabular-nums">{row.rideCount}</td>
-                                                <td className="py-1.5 pr-3 tabular-nums">{row.distanceKm} km</td>
-                                                <td className="py-1.5 pr-3 tabular-nums">
-                                                    {formatTotalMovingTime(row.movingTimeSec)}
-                                                </td>
-                                                <td className="py-1.5 tabular-nums">{row.elevationM} m</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                        <InsightChartCard title="Year breakdown" subtitle="Table columns follow your column picker">
+                            <FilterAnalyticsYearTable
+                                rows={analytics.byYear}
+                                visibleColumnKeys={visibleColumnKeys}
+                                compact
+                            />
                         </InsightChartCard>
                     ) : null}
                 </div>
