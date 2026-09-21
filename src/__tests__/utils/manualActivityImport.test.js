@@ -119,6 +119,72 @@ describe('fetchSingleActivityFromUrl — Intervals URL id resolution', () => {
         expect(act.best_20min).toBe(220);
         expect(act.avg_power).toBe(180);
     });
+
+    it('merges Strava metrics when Intervals API returns sparse STRAVA-sourced payload', async () => {
+        fetch
+            .mockResolvedValueOnce({
+                ok: true,
+                status: 200,
+                json: async () => ({
+                    id: 'i970385547',
+                    start_date_local: '2017-05-04T08:00:00',
+                    source: 'STRAVA',
+                    external_id: 'strava:99112233',
+                    name: 'Untitled',
+                    moving_time: 0,
+                    distance: 0,
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    id: 99112233,
+                    name: 'Cols 2017',
+                    type: 'Ride',
+                    distance: 85000,
+                    moving_time: 7200,
+                    average_watts: 180,
+                    weighted_average_watts: 195,
+                }),
+            });
+
+        const { fetchSingleActivityFromUrl } = await import('../../utils/manualActivityImport');
+        const act = await fetchSingleActivityFromUrl(
+            'https://intervals.icu/activities/970385547',
+            {
+                intervalsConfig: { apiKey: 'secret-key', athleteId: 'i12345' },
+                stravaToken: 'oauth-token',
+            },
+        );
+
+        expect(act.id).toBe('i970385547');
+        expect(act.title).toBe('Cols 2017');
+        expect(act.distance).toBe(85);
+        expect(act.avg_power).toBe(180);
+        expect(act.strava_id).toBe('99112233');
+    });
+
+    it('throws helpful message when Intervals is Strava-restricted and Strava is not connected', async () => {
+        fetch.mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                id: 'i970385547',
+                start_date_local: '2017-05-04T08:00:00',
+                name: 'Untitled',
+                moving_time: 0,
+                distance: 0,
+            }),
+        });
+
+        const { fetchSingleActivityFromUrl } = await import('../../utils/manualActivityImport');
+        await expect(
+            fetchSingleActivityFromUrl(
+                'https://intervals.icu/activities/970385547',
+                { intervalsConfig: { apiKey: 'secret-key', athleteId: 'i12345' } },
+            ),
+        ).rejects.toThrow(/Connect Strava in Settings/i);
+    });
 });
 
 describe('fetchSingleActivityFromUrl — Strava token resolution', () => {

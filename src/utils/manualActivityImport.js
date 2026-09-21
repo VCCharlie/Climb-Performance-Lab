@@ -9,6 +9,11 @@ import { normalizeStravaActivityId } from './strava';
 import { enrichActivityGearFromStrava } from './stravaGearEnrich';
 import { mergeActivitiesIntervalsPrimary } from './mergeActivities';
 import { fetchWithTimeout } from './fetchWithTimeout';
+import {
+    isStravaRestrictedIntervalsApiPayload,
+    mergeStravaApiIntoRestrictedIntervalsActivity,
+    buildStravaRestrictedIntervalsMessage,
+} from './intervalsStravaApiRestriction';
 
 const STRAVA_ACTIVITY_RE = /strava\.com\/(?:activities|activity)\/(\d+)/i;
 /** Intervals: /activities/123, /activities/i123… (API id is often `i` + digits — do not strip the `i`). */
@@ -189,9 +194,10 @@ async function fetchIntervalsActivityFromListByDate(activityId, dateYmd, interva
 /**
  * @param {string} intervalsActivityId
  * @param {{ athleteId: string, apiKey: string }} intervalsConfig
+ * @param {{ stravaGetToken?: () => Promise<string>, stravaToken?: string | null, existingActivity?: object | null }} [opts]
  * @returns {Promise<object>}
  */
-export async function fetchIntervalsActivityAsSiteActivity(intervalsActivityId, intervalsConfig) {
+export async function fetchIntervalsActivityAsSiteActivity(intervalsActivityId, intervalsConfig, opts = {}) {
     const candidates = buildIntervalsApiActivityIdCandidates(intervalsActivityId);
     if (!candidates.length) throw new Error('Invalid Intervals.icu activity id.');
     if (!intervalsConfig?.apiKey) {
@@ -229,6 +235,16 @@ export async function fetchIntervalsActivityAsSiteActivity(intervalsActivityId, 
             return act;
         }
 
+        if (isStravaRestrictedIntervalsApiPayload(json)) {
+            try {
+                let act = await mergeStravaApiIntoRestrictedIntervalsActivity(json, opts);
+                [act] = await enrichActivitiesWithLongDurationBests([act], intervalsConfig, { maxFetches: 1, delayMs: 0 });
+                return act;
+            } catch (err) {
+                lastError = err;
+            }
+        }
+
         if (!sparsePayload) {
             sparsePayload = json;
             sparseId = candidateId;
@@ -248,8 +264,36 @@ export async function fetchIntervalsActivityAsSiteActivity(intervalsActivityId, 
             return act;
         }
 
+        if (listRow && isStravaRestrictedIntervalsApiPayload(listRow)) {
+            try {
+                let act = await mergeStravaApiIntoRestrictedIntervalsActivity(listRow, opts);
+                [act] = await enrichActivitiesWithLongDurationBests([act], intervalsConfig, { maxFetches: 1, delayMs: 0 });
+                return act;
+            } catch (err) {
+                lastError = err;
+            }
+        }
+
+        if (sparsePayload && isStravaRestrictedIntervalsApiPayload(sparsePayload)) {
+            try {
+                let act = await mergeStravaApiIntoRestrictedIntervalsActivity(sparsePayload, opts);
+                [act] = await enrichActivitiesWithLongDurationBests([act], intervalsConfig, { maxFetches: 1, delayMs: 0 });
+                return act;
+            } catch (err) {
+                throw err;
+            }
+        }
+
         let act = normalizeIntervalsActivity(sparsePayload);
         [act] = await enrichActivitiesWithLongDurationBests([act], intervalsConfig, { maxFetches: 1, delayMs: 0 });
+        if (isStravaRestrictedIntervalsApiPayload(sparsePayload)) {
+            throw lastError || new Error(
+                buildStravaRestrictedIntervalsMessage({
+                    hasStravaConnection: Boolean(opts.stravaToken || opts.stravaGetToken),
+                    dateYmd: extractCalendarYmdFromIntervalsPayload(sparsePayload),
+                }),
+            );
+        }
         if (!isSubstantiveIntervalsApiPayload(sparsePayload) && sparseId) {
             console.warn(
                 `[Intervals URL fetch] Activity ${sparseId} returned sparse metrics; `
@@ -285,7 +329,10 @@ export async function fetchSingleActivityFromUrl(urlOrText, opts = {}) {
         return fetchStravaActivityDetailAsSiteActivity(parsed.id, stravaToken);
     }
 
-    return fetchIntervalsActivityAsSiteActivity(parsed.id, opts.intervalsConfig || {});
+    return fetchIntervalsActivityAsSiteActivity(parsed.id, opts.intervalsConfig || {}, {
+        stravaGetToken: opts.stravaGetToken,
+        stravaToken: opts.stravaToken,
+    });
 }
 
 /**
@@ -353,11 +400,17 @@ export async function fetchMergedActivityFromPrimaryAndOptionalUrl(primaryUrl, s
     let intervalsAct;
     let stravaAct;
     if (a.kind === 'intervals') {
-        intervalsAct = await fetchIntervalsActivityAsSiteActivity(a.id, opts.intervalsConfig || {});
+        intervalsAct = await fetchIntervalsActivityAsSiteActivity(a.id, opts.intervalsConfig || {}, {
+            stravaGetToken: opts.stravaGetToken,
+            stravaToken: stravaToken,
+        });
         stravaAct = await fetchStravaActivityDetailAsSiteActivity(b.id, stravaToken);
     } else {
         stravaAct = await fetchStravaActivityDetailAsSiteActivity(a.id, stravaToken);
-        intervalsAct = await fetchIntervalsActivityAsSiteActivity(b.id, opts.intervalsConfig || {});
+        intervalsAct = await fetchIntervalsActivityAsSiteActivity(b.id, opts.intervalsConfig || {}, {
+            stravaGetToken: opts.stravaGetToken,
+            stravaToken: stravaToken,
+        });
     }
 
     const merged = mergeActivitiesIntervalsPrimary(intervalsAct, stravaAct);

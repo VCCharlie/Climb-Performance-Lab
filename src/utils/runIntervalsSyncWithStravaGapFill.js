@@ -11,6 +11,7 @@ import {
     collectExistingStravaIds,
     findStravaOrphanActivities,
 } from './stravaOrphanImport.js';
+import { backfillStravaMetricsForSparseIntervalsActivities } from './intervalsStravaApiRestriction.js';
 
 /**
  * Link Strava list items to Intervals rows and import unmatched Strava orphans.
@@ -77,6 +78,11 @@ export async function runIntervalsSyncWithStravaGapFill({
     };
     let linked = linkIntervalsActivitiesToStravaList(intervals, stravaList, linkOpts);
     applyStravaFuzzyMatchesToIntervals(linked, stravaList, linkOpts);
+
+    linked = await backfillStravaMetricsForSparseIntervalsActivities(linked, {
+        stravaToken,
+        onProgress,
+    });
 
     onProgress?.('Checking for Strava-only rides to import…');
     const { orphans, alreadyLinkedCount, linkedToIntervalsCount } = findStravaOrphanActivities({
