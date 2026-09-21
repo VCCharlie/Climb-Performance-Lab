@@ -71,18 +71,29 @@ export default function FilterAnalyticsBar({
                     className,
                 )}
             >
-                <div className="flex flex-wrap items-start justify-between gap-2 px-3 py-2 border-b border-cdborder/50">
-                    <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1">
+                <div className="px-3 py-2.5 border-b border-cdborder/50 max-sm:space-y-2 sm:flex sm:flex-wrap sm:items-start sm:justify-between sm:gap-2">
+                    <div className="flex items-center justify-between gap-2 min-w-0 max-sm:w-full sm:flex-1 sm:max-w-none">
                         <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-cdaccent shrink-0">
                             <BarChart3 size={14} aria-hidden />
                             Filter insights
                         </span>
+                        <button
+                            type="button"
+                            onClick={() => setDrawerOpen(true)}
+                            className="inline-flex sm:hidden items-center gap-1 shrink-0 rounded-full border border-cdborder bg-cdsurface px-2.5 py-1 min-h-[26px] text-[10px] font-semibold text-cdaccent cd-focus-ring"
+                        >
+                            <PanelRightOpen size={13} aria-hidden />
+                            Charts
+                        </button>
+                    </div>
+
+                    <div className="min-w-0 max-sm:w-full sm:flex-1">
                         {filterLabels.length > 0 ? (
-                            <div className="flex flex-wrap gap-1 min-w-0">
+                            <div className="flex flex-wrap gap-1">
                                 {filterLabels.map((label) => (
                                     <span
                                         key={label}
-                                        className="text-[9px] px-1.5 py-0.5 rounded-full border border-cdborder bg-cdsurface text-cdtext truncate max-w-[10rem]"
+                                        className="text-[9px] px-1.5 py-0.5 rounded-full border border-cdborder bg-cdsurface text-cdtext truncate max-w-full sm:max-w-[10rem]"
                                         title={label}
                                     >
                                         {label}
@@ -93,16 +104,17 @@ export default function FilterAnalyticsBar({
                             <span className="text-[10px] text-cdmuted">Filtered subset of your log</span>
                         )}
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 max-sm:w-full max-sm:justify-between sm:shrink-0">
                         <button
                             type="button"
                             onClick={() => setDrawerOpen(true)}
-                            className="inline-flex items-center gap-1 text-[10px] font-semibold text-cdaccent hover:underline cd-focus-ring rounded px-1.5 py-0.5"
+                            className="hidden sm:inline-flex items-center gap-1 text-[10px] font-semibold text-cdaccent hover:underline cd-focus-ring rounded px-1.5 py-0.5"
                         >
                             <PanelRightOpen size={13} aria-hidden />
                             Charts
                         </button>
-                        {typeof onResetFilters === 'function' && (
+                        {typeof onResetFilters === 'function' ? (
                             <button
                                 type="button"
                                 onClick={onResetFilters}
@@ -110,18 +122,19 @@ export default function FilterAnalyticsBar({
                             >
                                 Clear filters
                             </button>
-                        )}
+                        ) : null}
                         <button
                             type="button"
                             aria-expanded={expanded}
                             aria-controls={detailsId}
                             onClick={() => setExpanded((v) => !v)}
-                            className="inline-flex items-center gap-1 text-[10px] font-semibold text-cdmuted hover:text-cdtext cd-focus-ring rounded px-1.5 py-0.5"
+                            className="inline-flex items-center gap-1 text-[10px] font-semibold text-cdmuted hover:text-cdtext cd-focus-ring rounded px-1.5 py-0.5 whitespace-nowrap"
                         >
-                            Volume by year
+                            <span className="sm:hidden">By year</span>
+                            <span className="hidden sm:inline">Volume by year</span>
                             <ChevronDown
                                 size={14}
-                                className={cn('cd-transition', expanded && 'rotate-180')}
+                                className={cn('cd-transition shrink-0', expanded && 'rotate-180')}
                                 aria-hidden
                             />
                         </button>
@@ -129,7 +142,7 @@ export default function FilterAnalyticsBar({
                 </div>
 
                 {metricPrefs.usingContextSuggestion && metricPrefs.contextProfile ? (
-                    <div className="px-3 py-1.5 border-b border-cdborder/40 bg-cdaccent/5 flex flex-wrap items-center justify-between gap-2">
+                    <div className="px-3 py-1.5 border-b border-cdborder/40 bg-cdaccent/5 flex flex-col gap-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                         <p className="text-[10px] text-cdtext">
                             Suggested table columns for{' '}
                             <strong className="text-cdaccent">{metricPrefs.contextProfile.label}</strong>
@@ -145,7 +158,7 @@ export default function FilterAnalyticsBar({
                 ) : null}
 
                 {metricPrefs.manualOverride && metricPrefs.contextProfile ? (
-                    <div className="px-3 py-1.5 border-b border-cdborder/40 bg-cdsurface/50 flex flex-wrap items-center justify-between gap-2">
+                    <div className="px-3 py-1.5 border-b border-cdborder/40 bg-cdsurface/50 flex flex-col gap-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                         <p className="text-[10px] text-cdmuted">
                             Using your custom table columns
                         </p>
@@ -160,12 +173,12 @@ export default function FilterAnalyticsBar({
                 ) : null}
 
                 <div
-                    className="overflow-x-auto overscroll-x-contain px-3 py-2.5"
+                    className="overflow-x-auto overscroll-x-contain px-3 py-2.5 scroll-px-3"
                     role="region"
                     aria-label="Filter summary totals"
                 >
                     {summaryChips.length > 0 ? (
-                        <div className="flex flex-nowrap sm:flex-wrap gap-2 min-w-min sm:min-w-0">
+                        <div className="flex flex-nowrap sm:flex-wrap gap-2 min-w-min sm:min-w-0 pr-2 snap-x snap-proximity">
                             {summaryChips.map((chip) => (
                                 <MetricChip
                                     key={chip.key}

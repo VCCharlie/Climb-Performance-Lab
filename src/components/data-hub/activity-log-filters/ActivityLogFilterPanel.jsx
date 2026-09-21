@@ -55,14 +55,14 @@ export default function ActivityLogFilterPanel({
                 onClearAll={onResetLogFilters}
             />
 
-            <div className="px-3 py-2.5 flex flex-wrap items-center justify-between gap-2 border-b border-cdborder/30">
+            <div className="px-3 py-2.5 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between border-b border-cdborder/30">
                 <PrimaryQuickFilterRow
                     {...sectionProps}
                 />
                 <button
                     type="button"
                     onClick={openDrawer}
-                    className="inline-flex items-center gap-1.5 shrink-0 rounded-full border border-cdborder bg-cdsurface px-3 py-1 min-h-[28px] text-[10px] font-bold text-cdtext hover:border-cdaccent/50 cd-focus-ring cd-transition"
+                    className="inline-flex items-center justify-center gap-1.5 shrink-0 rounded-full border border-cdborder bg-cdsurface px-3 py-1 min-h-[28px] text-[10px] font-bold text-cdtext hover:border-cdaccent/50 cd-focus-ring cd-transition max-sm:w-full sm:w-auto"
                     aria-haspopup="dialog"
                 >
                     <SlidersHorizontal size={13} aria-hidden />
@@ -101,11 +101,11 @@ export default function ActivityLogFilterPanel({
                     pills={activePills}
                     onClearAll={onResetLogFilters}
                 />
-                <div className="flex items-center gap-2 px-3 py-2 min-h-9">
+                <div className="flex flex-col gap-1.5 px-3 py-2 min-h-9 sm:flex-row sm:items-center sm:gap-2">
                     <button
                         type="button"
                         onClick={() => onCollapsedChange?.((v) => !v)}
-                        className="flex flex-1 min-w-0 items-center justify-between gap-2 text-left cd-type-subsection cd-transition hover:bg-cdborder/10 cd-focus-ring rounded-sm px-1 py-0.5"
+                        className="flex w-full min-w-0 items-center justify-between gap-2 text-left cd-type-subsection cd-transition hover:bg-cdborder/10 cd-focus-ring rounded-sm px-1 py-0.5"
                         aria-expanded={false}
                     >
                         <span className="flex items-center gap-2 min-w-0">
@@ -129,11 +129,11 @@ export default function ActivityLogFilterPanel({
                     <button
                         type="button"
                         onClick={openDrawer}
-                        className="inline-flex items-center gap-1 shrink-0 rounded-full border border-cdborder bg-cdsurface px-2.5 py-1 min-h-[28px] text-[10px] font-bold text-cdtext hover:border-cdaccent/50 cd-focus-ring cd-transition"
+                        className="inline-flex items-center justify-center gap-1 shrink-0 rounded-full border border-cdborder bg-cdsurface px-3 py-1 min-h-[28px] text-[10px] font-bold text-cdtext hover:border-cdaccent/50 cd-focus-ring cd-transition w-full sm:w-auto"
                         aria-haspopup="dialog"
                     >
                         <SlidersHorizontal size={12} aria-hidden />
-                        Filters
+                        All filters
                     </button>
                 </div>
                 {drawer}
