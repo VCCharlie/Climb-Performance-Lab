@@ -60,8 +60,8 @@ export default function FilterAnalyticsMetricPicker({
                 onClick={() => setOpen((v) => !v)}
                 aria-expanded={open}
                 aria-haspopup="dialog"
-                aria-label="Choose filter insight metrics"
-                title="Show or hide insight metrics"
+                aria-label="Choose year table columns"
+                title="Show or hide Volume by year columns"
                 className="inline-flex items-center gap-1 text-[10px] font-semibold text-cdmuted hover:text-cdtext cd-focus-ring rounded px-1.5 py-0.5"
             >
                 <LayoutGrid size={13} aria-hidden />
@@ -80,15 +80,15 @@ export default function FilterAnalyticsMetricPicker({
                 minWidth={280}
                 className="max-w-[calc(100vw-1rem)]"
             >
-                <div role="dialog" aria-label="Filter insight metrics">
+                <div role="dialog" aria-label="Volume by year columns">
                     <div className="px-3 py-2 border-b border-cdborder/60 bg-cdsurfacelow">
-                        <p className="text-xs font-semibold text-cdtext">Insight metrics</p>
+                        <p className="text-xs font-semibold text-cdtext">Year table columns</p>
                         <p className="text-[10px] text-cdmuted mt-0.5">
-                            {visibleKeys.length} of {FILTER_ANALYTICS_METRICS.length} visible in the bar.
+                            {visibleKeys.length} of {FILTER_ANALYTICS_METRICS.length} columns visible in Volume by year.
                         </p>
                         {usingContextSuggestion && contextProfile ? (
                             <p className="text-[10px] text-cdaccent mt-1">
-                                Auto layout for {contextProfile.label}.
+                                Auto columns for {contextProfile.label}.
                             </p>
                         ) : null}
                     </div>

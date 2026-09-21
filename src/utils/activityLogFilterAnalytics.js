@@ -144,7 +144,7 @@ export function aggregateActivityListMetrics(activities, profileFtp = 0) {
  * @returns {Array<{ year: string, rideCount: number, distanceKm: number, movingTimeSec: number, elevationM: number, loadSum: number }>}
  */
 export function aggregateActivityMetricsByYear(activities, profileFtp = 0) {
-    /** @type {Map<string, { rideCount: number, distanceKm: number, movingTimeSec: number, elevationM: number, loadSum: number }>} */
+    /** @type {Map<string, object>} */
     const byYear = new Map();
 
     for (const activity of activities || []) {
@@ -158,24 +158,84 @@ export function aggregateActivityMetricsByYear(activities, profileFtp = 0) {
             movingTimeSec: 0,
             elevationM: 0,
             loadSum: 0,
+            npSum: 0,
+            npCount: 0,
+            apSum: 0,
+            apCount: 0,
+            hrSum: 0,
+            hrCount: 0,
+            speedSum: 0,
+            speedCount: 0,
+            ifSum: 0,
+            ifCount: 0,
         };
         bucket.rideCount += 1;
         bucket.distanceKm += m.km;
         bucket.movingTimeSec += m.sec;
         bucket.elevationM += m.elev;
         bucket.loadSum += m.load;
+        if (m.np > 0) {
+            bucket.npSum += m.np;
+            bucket.npCount += 1;
+        }
+        if (m.ap > 0) {
+            bucket.apSum += m.ap;
+            bucket.apCount += 1;
+        }
+        if (m.hr > 0) {
+            bucket.hrSum += m.hr;
+            bucket.hrCount += 1;
+        }
+        if (m.speed > 0) {
+            bucket.speedSum += m.speed;
+            bucket.speedCount += 1;
+        }
+        if (m.ifVal != null && m.ifVal > 0) {
+            bucket.ifSum += m.ifVal;
+            bucket.ifCount += 1;
+        }
         byYear.set(year, bucket);
     }
 
     return [...byYear.entries()]
-        .map(([year, bucket]) => ({
-            year,
-            rideCount: bucket.rideCount,
-            distanceKm: Math.round(bucket.distanceKm * 10) / 10,
-            movingTimeSec: bucket.movingTimeSec,
-            elevationM: Math.round(bucket.elevationM),
-            loadSum: Math.round(bucket.loadSum),
-        }))
+        .map(([year, bucket]) => {
+            const rideCount = bucket.rideCount;
+            return {
+                year,
+                rideCount,
+                distanceKm: Math.round(bucket.distanceKm * 10) / 10,
+                movingTimeSec: bucket.movingTimeSec,
+                elevationM: Math.round(bucket.elevationM),
+                loadSum: Math.round(bucket.loadSum),
+                avgDistanceKm: rideCount > 0
+                    ? Math.round((bucket.distanceKm / rideCount) * 10) / 10
+                    : null,
+                avgMovingTimeSec: rideCount > 0
+                    ? Math.round(bucket.movingTimeSec / rideCount)
+                    : null,
+                avgElevationM: rideCount > 0
+                    ? Math.round(bucket.elevationM / rideCount)
+                    : null,
+                avgLoad: rideCount > 0 && bucket.loadSum > 0
+                    ? Math.round(bucket.loadSum / rideCount)
+                    : null,
+                avgNormPower: bucket.npCount > 0
+                    ? Math.round(bucket.npSum / bucket.npCount)
+                    : null,
+                avgPower: bucket.apCount > 0
+                    ? Math.round(bucket.apSum / bucket.apCount)
+                    : null,
+                avgHeartRate: bucket.hrCount > 0
+                    ? Math.round(bucket.hrSum / bucket.hrCount)
+                    : null,
+                avgSpeedKmh: bucket.speedCount > 0
+                    ? Math.round((bucket.speedSum / bucket.speedCount) * 10) / 10
+                    : null,
+                avgIntensityFactor: bucket.ifCount > 0
+                    ? Math.round((bucket.ifSum / bucket.ifCount) * 100) / 100
+                    : null,
+            };
+        })
         .sort((a, b) => b.year.localeCompare(a.year));
 }
 
