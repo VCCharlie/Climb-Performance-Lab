@@ -119,8 +119,12 @@ export default function MetricRangesSection({
     onFilterRaceMinChange,
     filterRaceMax,
     onFilterRaceMaxChange,
+    minTss,
+    onMinTssChange,
+    clearActiveMetricPresets,
 }) {
     const onManualMetricChange = clearActiveMetricPresets;
+    const onMinTssManualChange = wrapManualMetricHandler(onMinTssChange, onManualMetricChange);
 
     const handlers = useMemo(() => ({
         onFilterDistMinChange: wrapManualMetricHandler(onFilterDistMinChange, onManualMetricChange),
@@ -184,7 +188,7 @@ export default function MetricRangesSection({
                         <ChevronRight size={14} className="text-cdmuted shrink-0" aria-hidden />
                     )}
                 </button>
-                <span className="cd-type-caption hidden sm:inline">Dist · Speed · Power · Duration · Elev · kJ · Dec · Thr · Race</span>
+                <span className="cd-type-caption hidden sm:inline">Dist · Speed · Power · Duration · TSS · Elev · kJ · Dec · Thr · Race</span>
                 {metricRangeActive ? (
                     <Button
                         type="button"
@@ -205,6 +209,20 @@ export default function MetricRangesSection({
                         <RangeField label="Speed" minValue={filterSpeedMin} maxValue={filterSpeedMax} onMinChange={handlers.onFilterSpeedMinChange} onMaxChange={handlers.onFilterSpeedMaxChange} step={0.1} />
                         <RangeField label="Power" minValue={filterPowerMin} maxValue={filterPowerMax} onMinChange={handlers.onFilterPowerMinChange} onMaxChange={handlers.onFilterPowerMaxChange} />
                         <RangeField label="Duration" minValue={filterDurMinMin} maxValue={filterDurMaxMin} onMinChange={handlers.onFilterDurMinMinChange} onMaxChange={handlers.onFilterDurMaxMinChange} />
+                        <label className="flex flex-col gap-0.5 text-[10px] text-cdmuted">
+                            <span className="font-semibold uppercase text-[9px]">TSS</span>
+                            <input
+                                type="number"
+                                min={0}
+                                step={1}
+                                placeholder="min"
+                                value={minTss}
+                                onChange={(e) => onMinTssManualChange(e.target.value)}
+                                className={RANGE_INPUT_CLASS}
+                                aria-label="Minimum TSS (load)"
+                                title="Show activities with load (TSS) greater than this value"
+                            />
+                        </label>
                         <RangeField label="Elev" minValue={filterElevMin} maxValue={filterElevMax} onMinChange={handlers.onFilterElevMinChange} onMaxChange={handlers.onFilterElevMaxChange} />
                         <RangeField label="kJ" minValue={filterKjMin} maxValue={filterKjMax} onMinChange={handlers.onFilterKjMinChange} onMaxChange={handlers.onFilterKjMaxChange} />
                         <RangeField label="Dec %" minValue={filterDecMin} maxValue={filterDecMax} onMinChange={handlers.onFilterDecMinChange} onMaxChange={handlers.onFilterDecMaxChange} step={0.1} />

@@ -7,15 +7,13 @@ import {
 } from '../../utils/activityLogFilterPresets';
 
 describe('activityLogFilterPresets', () => {
-    it('chipStateForPreset gravel enables gravel chip only', () => {
+    it('chipStateForPreset gravel enables GravelRide type filter only', () => {
         const chips = chipStateForPreset('gravel');
-        expect(chips.gravelRideChip).toBe(true);
-        expect(chips.mtbRideChip).toBe(false);
-        expect(chips.ebikeRideChip).toBe(false);
+        expect(chips.activeSportTypes).toEqual(['GravelRide']);
     });
 
     it('detectActiveLogFilterPreset matches ebike preset', () => {
-        const state = { ...defaultLogFilterChipState(), ebikeRideChip: true };
+        const state = { ...defaultLogFilterChipState(), activeSportTypes: ['EBikeRide'] };
         expect(detectActiveLogFilterPreset(state)).toBe('ebike');
     });
 

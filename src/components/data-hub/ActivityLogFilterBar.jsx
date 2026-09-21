@@ -16,14 +16,9 @@ const ActivityLogFilterBar = ({
     onSearchChange,
     indoorFilter,
     onIndoorFilterChange,
-    virtualRideChip,
-    onVirtualRideChipChange,
-    gravelRideChip,
-    onGravelRideChipChange,
-    mtbRideChip,
-    onMtbRideChipChange,
-    ebikeRideChip,
-    onEbikeRideChipChange,
+    activeSportTypes,
+    onActiveSportTypesChange,
+    toggleSportType,
     logFilterPresets,
     activeLogFilterPresetId,
     detectedLogFilterPresetId,
@@ -165,18 +160,14 @@ const ActivityLogFilterBar = ({
         longRideOnly,
         missingHrOnly,
         hasTagOnly,
-        virtualRideChip,
-        gravelRideChip,
-        mtbRideChip,
-        ebikeRideChip,
-        Boolean(minTss),
+        activeSportTypes.length > 0,
         Boolean(filterGearId),
         metricRangeActive,
         indoorFilter !== 'all',
     ].filter(Boolean).length, [
         thisWeekOnly, rollingDays, stravaLinkedOnly, noStravaLinkOnly, possibleDuplicatesOnly, noPowerOnly, withPowerOnly,
-        highLoadOnly, longRideOnly, missingHrOnly, hasTagOnly, virtualRideChip, gravelRideChip,
-        mtbRideChip, ebikeRideChip, minTss, filterGearId, metricRangeActive, indoorFilter,
+        highLoadOnly, longRideOnly, missingHrOnly, hasTagOnly, activeSportTypes,
+        filterGearId, metricRangeActive, indoorFilter,
     ]);
 
     const columnPicker = (
@@ -231,7 +222,7 @@ const ActivityLogFilterBar = ({
                         value={indoorFilter}
                         onChange={(v) => {
                             onIndoorFilterChange(v);
-                            onVirtualRideChipChange(false);
+                            onActiveSportTypesChange([]);
                         }}
                         options={[
                             { value: 'all', label: 'All' },
@@ -379,14 +370,9 @@ const ActivityLogFilterBar = ({
             onMissingHrOnlyChange={onMissingHrOnlyChange}
             hasTagOnly={hasTagOnly}
             onHasTagOnlyChange={onHasTagOnlyChange}
-            virtualRideChip={virtualRideChip}
-            onVirtualRideChipChange={onVirtualRideChipChange}
-            gravelRideChip={gravelRideChip}
-            onGravelRideChipChange={onGravelRideChipChange}
-            mtbRideChip={mtbRideChip}
-            onMtbRideChipChange={onMtbRideChipChange}
-            ebikeRideChip={ebikeRideChip}
-            onEbikeRideChipChange={onEbikeRideChipChange}
+            activeSportTypes={activeSportTypes}
+            onActiveSportTypesChange={onActiveSportTypesChange}
+            toggleSportType={toggleSportType}
             indoorFilter={indoorFilter}
             onIndoorFilterChange={onIndoorFilterChange}
             minTss={minTss}

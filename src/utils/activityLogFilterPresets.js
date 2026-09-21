@@ -20,10 +20,7 @@ export const BUILTIN_ACTIVITY_LOG_FILTER_PRESETS = [
 export function defaultLogFilterChipState() {
     return {
         indoorFilter: 'all',
-        virtualRideChip: false,
-        gravelRideChip: false,
-        mtbRideChip: false,
-        ebikeRideChip: false,
+        activeSportTypes: [],
         thisWeekOnly: false,
         rollingDays: null,
         stravaLinkedOnly: false,
@@ -34,7 +31,6 @@ export function defaultLogFilterChipState() {
         highLoadOnly: false,
         longRideOnly: false,
         missingHrOnly: false,
-        minTss: '',
     };
 }
 
@@ -48,13 +44,13 @@ export function chipStateForPreset(presetId) {
         case 'outdoor':
             return { ...base, indoorFilter: 'outdoor' };
         case 'virtual':
-            return { ...base, indoorFilter: 'indoor', virtualRideChip: true };
+            return { ...base, indoorFilter: 'indoor', activeSportTypes: ['VirtualRide'] };
         case 'gravel':
-            return { ...base, gravelRideChip: true };
+            return { ...base, activeSportTypes: ['GravelRide'] };
         case 'mtb':
-            return { ...base, mtbRideChip: true };
+            return { ...base, activeSportTypes: ['MountainBikeRide'] };
         case 'ebike':
-            return { ...base, ebikeRideChip: true };
+            return { ...base, activeSportTypes: ['EBikeRide'] };
         case 'this_week':
             return { ...base, thisWeekOnly: true };
         case 'with_power':
@@ -88,10 +84,7 @@ export function parseStoredFilterPresetId() {
 export function detectActiveLogFilterPreset(state) {
     const snap = {
         indoorFilter: state.indoorFilter ?? 'all',
-        virtualRideChip: Boolean(state.virtualRideChip),
-        gravelRideChip: Boolean(state.gravelRideChip),
-        mtbRideChip: Boolean(state.mtbRideChip),
-        ebikeRideChip: Boolean(state.ebikeRideChip),
+        activeSportTypes: Array.isArray(state.activeSportTypes) ? state.activeSportTypes : [],
         thisWeekOnly: Boolean(state.thisWeekOnly),
         rollingDays: state.rollingDays ?? null,
         stravaLinkedOnly: Boolean(state.stravaLinkedOnly),
@@ -102,7 +95,6 @@ export function detectActiveLogFilterPreset(state) {
         highLoadOnly: Boolean(state.highLoadOnly),
         longRideOnly: Boolean(state.longRideOnly),
         missingHrOnly: Boolean(state.missingHrOnly),
-        minTss: state.minTss ?? '',
     };
 
     for (const preset of BUILTIN_ACTIVITY_LOG_FILTER_PRESETS) {
@@ -110,7 +102,14 @@ export function detectActiveLogFilterPreset(state) {
         const keys = Object.keys(expected);
         let match = true;
         for (const k of keys) {
-            if (snap[k] !== expected[k]) {
+            if (k === 'activeSportTypes') {
+                const a = snap.activeSportTypes || [];
+                const b = expected.activeSportTypes || [];
+                if (a.length !== b.length || a.some((t, i) => t !== b[i])) {
+                    match = false;
+                    break;
+                }
+            } else if (snap[k] !== expected[k]) {
                 match = false;
                 break;
             }

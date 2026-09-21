@@ -22,6 +22,7 @@ export function useDataHubLogDerivations({
     isYearExpanded,
     isMonthExpanded,
     climbDatabaseForMatch,
+    minTss,
     filterDistMin,
     filterDistMax,
     filterSpeedMin,
@@ -114,7 +115,8 @@ export function useDataHubLogDerivations({
     );
 
     const metricRangeActive =
-        [filterDistMin, filterDistMax, filterSpeedMin, filterSpeedMax, filterPowerMin, filterPowerMax,
+        Boolean(minTss !== '' && minTss != null)
+        || [filterDistMin, filterDistMax, filterSpeedMin, filterSpeedMax, filterPowerMin, filterPowerMax,
             filterDurMinMin, filterDurMaxMin, filterElevMin, filterElevMax, filterKjMin, filterKjMax,
             filterDecMin, filterDecMax, filterThrMin, filterThrMax, filterRaceMin, filterRaceMax]
             .some((v) => v !== '' && v != null);
