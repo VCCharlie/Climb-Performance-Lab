@@ -51,6 +51,10 @@ const ManualActivityImportBlock = ({
                 The merged row keeps your <strong className="text-cdtext">Intervals activity id</strong> and adds Strava route/gear and fills gaps (same rules as merge pair).
                 Strava connection + Intervals API key in Settings when both sides are used.
             </p>
+            <p className="text-xs text-cdmuted leading-relaxed border border-cdborder/60 rounded-lg px-3 py-2 bg-cdsurface/40">
+                <strong className="text-cdtext">Strava-sourced rides on Intervals.icu:</strong> Intervals cannot share Strava metrics through their API.
+                An Intervals-only URL often previews empty — connect Strava in Settings (we auto-fill from Strava), or paste the Strava URL as primary or in the optional second field.
+            </p>
             <div className="space-y-2">
                 <label className="block text-[10px] font-bold text-cdmuted uppercase">Primary URL</label>
                 <input

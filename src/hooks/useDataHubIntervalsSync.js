@@ -23,6 +23,7 @@ import {
     formatStravaSyncMatchSummary,
 } from '../utils/stravaSyncMatchSummary';
 import { buildDefaultSyncDates } from '../utils/syncDateRange';
+import { backfillStravaMetricsForSparseIntervalsActivities } from '../utils/intervalsStravaApiRestriction';
 
 /**
  * Intervals.icu sync + fetch-new flows for DataHub (selected-row sync and date-range fetch).
@@ -315,6 +316,20 @@ export function useDataHubIntervalsSync({
                 const i = workingIndexMap.get(String(n.id));
                 if (i !== undefined) {
                     working[i] = protectEnrichedFieldsOnMerge({ ...working[i], ...n }, working[i], mergeProtectOpts);
+                }
+            }
+
+            if (stravaEnrichEnabled && stravaGetToken) {
+                setSyncErrorDetail('Step 2b/3: Strava metrics for Intervals-restricted rides…');
+                working = await backfillStravaMetricsForSparseIntervalsActivities(working, {
+                    stravaGetToken,
+                    stravaToken: enrichOptions.stravaToken,
+                    onProgress: (m) => setSyncErrorDetail(String(m)),
+                });
+                if (working.some((a) => bulkIdSet.has(String(a.id)))) {
+                    const backfillPersist = working.filter((a) => bulkIdSet.has(String(a.id)));
+                    await persistImportedActivities(backfillPersist, activitiesMap);
+                    onImport(backfillPersist);
                 }
             }
 
