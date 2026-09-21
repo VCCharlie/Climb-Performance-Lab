@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Button, Chip, cn, inputBaseClass } from '../../ui';
 import {
@@ -78,6 +78,7 @@ function PresetChipRow({ label, presets, activeMetricPresetIds, toggleMetricPres
 export default function MetricRangesSection({
     expanded,
     onExpandedChange,
+    drawerLayout = false,
     metricRangeActive,
     clearMetricFilters,
     activeMetricPresetIds = [],
@@ -122,6 +123,7 @@ export default function MetricRangesSection({
     minTss,
     onMinTssChange,
 }) {
+    const [advancedOpen, setAdvancedOpen] = useState(false);
     const onManualMetricChange = clearActiveMetricPresets;
     const onMinTssManualChange = wrapManualMetricHandler(onMinTssChange, onManualMetricChange);
 
@@ -166,6 +168,100 @@ export default function MetricRangesSection({
         onFilterRaceMaxChange,
     ]);
 
+    const rangeFields = (
+        <div className={cn(
+            'grid gap-x-3 gap-y-2',
+            drawerLayout ? 'grid-cols-2 sm:grid-cols-3' : 'flex flex-wrap items-end',
+        )}
+        >
+            <RangeField label="Dist" minValue={filterDistMin} maxValue={filterDistMax} onMinChange={handlers.onFilterDistMinChange} onMaxChange={handlers.onFilterDistMaxChange} step={0.1} />
+            <RangeField label="Speed" minValue={filterSpeedMin} maxValue={filterSpeedMax} onMinChange={handlers.onFilterSpeedMinChange} onMaxChange={handlers.onFilterSpeedMaxChange} step={0.1} />
+            <RangeField label="Power" minValue={filterPowerMin} maxValue={filterPowerMax} onMinChange={handlers.onFilterPowerMinChange} onMaxChange={handlers.onFilterPowerMaxChange} />
+            <RangeField label="Duration" minValue={filterDurMinMin} maxValue={filterDurMaxMin} onMinChange={handlers.onFilterDurMinMinChange} onMaxChange={handlers.onFilterDurMaxMinChange} />
+            <label className="flex flex-col gap-0.5 text-[10px] text-cdmuted">
+                <span className="font-semibold uppercase text-[9px]">TSS</span>
+                <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    placeholder="min"
+                    value={minTss}
+                    onChange={(e) => onMinTssManualChange(e.target.value)}
+                    className={RANGE_INPUT_CLASS}
+                    aria-label="Minimum TSS (load)"
+                    title="Show activities with load (TSS) greater than this value"
+                />
+            </label>
+            <RangeField label="Elev" minValue={filterElevMin} maxValue={filterElevMax} onMinChange={handlers.onFilterElevMinChange} onMaxChange={handlers.onFilterElevMaxChange} />
+            <RangeField label="kJ" minValue={filterKjMin} maxValue={filterKjMax} onMinChange={handlers.onFilterKjMinChange} onMaxChange={handlers.onFilterKjMaxChange} />
+            <RangeField label="Dec %" minValue={filterDecMin} maxValue={filterDecMax} onMinChange={handlers.onFilterDecMinChange} onMaxChange={handlers.onFilterDecMaxChange} step={0.1} />
+            <RangeField label="Thr %" minValue={filterThrMin} maxValue={filterThrMax} onMinChange={handlers.onFilterThrMinChange} onMaxChange={handlers.onFilterThrMaxChange} step={0.1} />
+            <RangeField label="Race %" minValue={filterRaceMin} maxValue={filterRaceMax} onMinChange={handlers.onFilterRaceMinChange} onMaxChange={handlers.onFilterRaceMaxChange} step={0.1} />
+        </div>
+    );
+
+    const presetBlock = (
+        <div className="space-y-2">
+            <p className="text-[10px] text-cdmuted">
+                Tap a preset for common ranges. Use custom min/max only when you need precise bounds.
+            </p>
+            <PresetChipRow
+                label="Presets"
+                presets={GENERAL_METRIC_PRESETS}
+                activeMetricPresetIds={activeMetricPresetIds}
+                toggleMetricPreset={toggleMetricPreset}
+            />
+            <PresetChipRow
+                label="Drift"
+                presets={DRIFT_METRIC_PRESETS}
+                activeMetricPresetIds={activeMetricPresetIds}
+                toggleMetricPreset={toggleMetricPreset}
+            />
+        </div>
+    );
+
+    if (drawerLayout) {
+        return (
+            <div className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-xs font-bold text-cdtext">Metric ranges</h3>
+                    {metricRangeActive ? (
+                        <Button
+                            type="button"
+                            variant="text"
+                            size="sm"
+                            onClick={clearMetricFilters}
+                            className="!text-[10px] !h-7 shrink-0"
+                        >
+                            Clear ranges
+                        </Button>
+                    ) : null}
+                </div>
+                {presetBlock}
+                <div>
+                    <button
+                        type="button"
+                        onClick={() => setAdvancedOpen((v) => !v)}
+                        className="flex w-full items-center justify-between gap-2 text-left text-[11px] font-semibold text-cdtext py-1 cd-focus-ring rounded-sm"
+                        aria-expanded={advancedOpen}
+                    >
+                        Custom min / max
+                        {advancedOpen ? (
+                            <ChevronDown size={14} className="text-cdmuted shrink-0" aria-hidden />
+                        ) : (
+                            <ChevronRight size={14} className="text-cdmuted shrink-0" aria-hidden />
+                        )}
+                    </button>
+                    {advancedOpen ? (
+                        <div className="pt-2 animate-in fade-in duration-150">
+                            {rangeFields}
+                        </div>
+                    ) : null}
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="border-t border-cdborder/40">
             <div className="flex flex-wrap items-center gap-2 px-3 py-2">
@@ -203,45 +299,8 @@ export default function MetricRangesSection({
 
             {expanded ? (
                 <div className="px-3 pb-3 space-y-2">
-                    <div className="flex flex-wrap items-end gap-x-3 gap-y-2">
-                        <RangeField label="Dist" minValue={filterDistMin} maxValue={filterDistMax} onMinChange={handlers.onFilterDistMinChange} onMaxChange={handlers.onFilterDistMaxChange} step={0.1} />
-                        <RangeField label="Speed" minValue={filterSpeedMin} maxValue={filterSpeedMax} onMinChange={handlers.onFilterSpeedMinChange} onMaxChange={handlers.onFilterSpeedMaxChange} step={0.1} />
-                        <RangeField label="Power" minValue={filterPowerMin} maxValue={filterPowerMax} onMinChange={handlers.onFilterPowerMinChange} onMaxChange={handlers.onFilterPowerMaxChange} />
-                        <RangeField label="Duration" minValue={filterDurMinMin} maxValue={filterDurMaxMin} onMinChange={handlers.onFilterDurMinMinChange} onMaxChange={handlers.onFilterDurMaxMinChange} />
-                        <label className="flex flex-col gap-0.5 text-[10px] text-cdmuted">
-                            <span className="font-semibold uppercase text-[9px]">TSS</span>
-                            <input
-                                type="number"
-                                min={0}
-                                step={1}
-                                placeholder="min"
-                                value={minTss}
-                                onChange={(e) => onMinTssManualChange(e.target.value)}
-                                className={RANGE_INPUT_CLASS}
-                                aria-label="Minimum TSS (load)"
-                                title="Show activities with load (TSS) greater than this value"
-                            />
-                        </label>
-                        <RangeField label="Elev" minValue={filterElevMin} maxValue={filterElevMax} onMinChange={handlers.onFilterElevMinChange} onMaxChange={handlers.onFilterElevMaxChange} />
-                        <RangeField label="kJ" minValue={filterKjMin} maxValue={filterKjMax} onMinChange={handlers.onFilterKjMinChange} onMaxChange={handlers.onFilterKjMaxChange} />
-                        <RangeField label="Dec %" minValue={filterDecMin} maxValue={filterDecMax} onMinChange={handlers.onFilterDecMinChange} onMaxChange={handlers.onFilterDecMaxChange} step={0.1} />
-                        <RangeField label="Thr %" minValue={filterThrMin} maxValue={filterThrMax} onMinChange={handlers.onFilterThrMinChange} onMaxChange={handlers.onFilterThrMaxChange} step={0.1} />
-                        <RangeField label="Race %" minValue={filterRaceMin} maxValue={filterRaceMax} onMinChange={handlers.onFilterRaceMinChange} onMaxChange={handlers.onFilterRaceMaxChange} step={0.1} />
-                    </div>
-                    <div className="space-y-1.5">
-                        <PresetChipRow
-                            label="Presets"
-                            presets={GENERAL_METRIC_PRESETS}
-                            activeMetricPresetIds={activeMetricPresetIds}
-                            toggleMetricPreset={toggleMetricPreset}
-                        />
-                        <PresetChipRow
-                            label="Drift"
-                            presets={DRIFT_METRIC_PRESETS}
-                            activeMetricPresetIds={activeMetricPresetIds}
-                            toggleMetricPreset={toggleMetricPreset}
-                        />
-                    </div>
+                    {rangeFields}
+                    {presetBlock}
                 </div>
             ) : null}
         </div>

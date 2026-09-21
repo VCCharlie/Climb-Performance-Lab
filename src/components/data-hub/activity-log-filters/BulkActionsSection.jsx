@@ -10,6 +10,8 @@ import { Button } from '../../ui';
  */
 export default function BulkActionsSection({
     bulkSelectedCount,
+    layout,
+    compactBar = false,
     onBulkEdit,
     onBulkSetGravelRide,
     onBulkSetMtbRide,
@@ -35,10 +37,15 @@ export default function BulkActionsSection({
     canDecouplingBackfill,
     isDeleting,
 }) {
+    if (compactBar) return null;
+
     const hasSelection = bulkSelectedCount > 0;
+    const rootClass = layout === 'drawer'
+        ? 'space-y-2'
+        : 'border-t border-cdborder/40 px-3 py-2.5 space-y-2';
 
     return (
-        <div className="border-t border-cdborder/40 px-3 py-2.5 space-y-2">
+        <div className={rootClass}>
             <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[10px] font-semibold text-cdtext uppercase tracking-wide shrink-0">
                     Bulk
