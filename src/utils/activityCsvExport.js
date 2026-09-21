@@ -3,7 +3,8 @@
  */
 
 import { ACTIVITY_COLUMNS } from '../config';
-import { formatTime, formatNlNumber } from './formatters';
+import { formatTime, formatNlNumber, normalizeDate } from './formatters';
+import { stravaActivityUrl } from './strava';
 
 const UTF8_BOM = '\uFEFF';
 
@@ -51,11 +52,14 @@ export function exportDistanceKm(value) {
     return n > 2000 ? n / 1000 : n;
 }
 
+const STRAVA_LINK_EXPORT_COLUMN = { key: 'strava_url', label: 'Strava link' };
+
 /** @returns {{ key: string, label: string }[]} */
 export function getActivityExportColumns() {
-    return ACTIVITY_COLUMNS
+    const base = ACTIVITY_COLUMNS
         .filter((c) => !c.hideInTable && !c.omitFromExport)
         .map((c) => ({ key: c.key, label: c.label }));
+    return [...base, STRAVA_LINK_EXPORT_COLUMN];
 }
 
 /**
@@ -66,6 +70,14 @@ export function formatActivityExportCell(value, key) {
     if (value === null || value === undefined) return '';
     if (typeof value === 'object') return '';
     if (key === 'strava_kom_summary') return '';
+
+    if (key === 'date') {
+        return normalizeDate(value) || '';
+    }
+
+    if (key === 'strava_url') {
+        return value || '';
+    }
 
     if (key === 'moving_time') {
         return formatTime(value);
@@ -100,7 +112,12 @@ export function activitiesToExportRows(activities) {
     const columns = getActivityExportColumns();
     const header = columns.map((c) => c.label);
     const rows = (activities || []).map((activity) =>
-        columns.map((col) => formatActivityExportCell(activity[col.key], col.key)),
+        columns.map((col) => {
+            if (col.key === 'strava_url') {
+                return formatActivityExportCell(stravaActivityUrl(activity.strava_id), col.key);
+            }
+            return formatActivityExportCell(activity[col.key], col.key);
+        }),
     );
     return [header, ...rows];
 }
