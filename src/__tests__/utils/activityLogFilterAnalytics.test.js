@@ -113,6 +113,8 @@ describe('activityLogFilterAnalytics', () => {
         expect(result.distanceKm).toBe(125);
         expect(result.distancePctOfAll).toBeCloseTo(80.6, 1);
         expect(result.avgNormPower).toBe(200);
+        expect(result.avgDistanceKm).toBe(62.5);
+        expect(result.avgLoad).toBe(88);
         expect(result.byYear).toHaveLength(1);
     });
 });
