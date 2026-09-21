@@ -329,7 +329,8 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                         <div className="col-span-full">
                             <p className="text-xs text-cdmuted uppercase font-bold mb-2">Best efforts (W) — used for MMP curve</p>
                             <p className="hidden sm:block text-[10px] text-cdmuted mb-2 leading-snug">
-                                1–60 min values come from Intervals.icu list fields. Rides over 90 min get 90/120 min from the power curve on sync (direct API key) or a custom Intervals computed field.
+                                1–60 min values come from Intervals.icu list fields or Strava watt streams on import/sync.
+                                Rides over 90 min also get 90/120 min from the Intervals power curve or Strava streams when connected.
                             </p>
                         </div>
                         <div>
