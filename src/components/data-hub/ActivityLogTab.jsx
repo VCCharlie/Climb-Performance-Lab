@@ -2,12 +2,14 @@ import React from 'react';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import ActivityLogView from './ActivityLogView';
 import ActivityLogFilterBar from './ActivityLogFilterBar';
+import FilterAnalyticsBar from './activity-log-filters/FilterAnalyticsBar';
 import ActivityLogSyncBanners from './ActivityLogSyncBanners';
 import ActivityLogSyncStatusLine from './ActivityLogSyncStatusLine';
 import IntervalsSyncPanel from './IntervalsSyncPanel';
 import QuickNav from './QuickNav';
 import { formatDateDDMMYYYY } from '../../utils/formatters';
 import { useTodayIntervalsSync } from '../../context/IntervalsSyncContext';
+import { useActivityLogFilterAnalytics } from '../../hooks/useActivityLogFilterAnalytics';
 
 /**
  * Activity Log tab: sync banners, filters, grouped nav, and table/cards (Bolt fase 3e).
@@ -64,6 +66,15 @@ export default function ActivityLogTab({
     onRunSync,
 }) {
     const { syncTodayActivities, isTodaySyncBusy } = useTodayIntervalsSync();
+    const { isActive: filterAnalyticsActive, filterLabels, analytics } = useActivityLogFilterAnalytics({
+        filterBarProps,
+        singleDayFilterYmd,
+        logDateRangeFilter,
+        isolateActivityId,
+        filteredActivities: processedActivities,
+        allActivities: activities,
+        profileFtp,
+    });
 
     return (
         <div role="tabpanel" id="tabpanel-log" aria-labelledby="tab-log" className="p-4 flex-1 min-h-0 overflow-hidden flex flex-col">
@@ -120,6 +131,15 @@ export default function ActivityLogTab({
             />
 
             <ActivityLogFilterBar {...filterBarProps} />
+
+            {filterAnalyticsActive && analytics && (
+                <FilterAnalyticsBar
+                    filterLabels={filterLabels}
+                    analytics={analytics}
+                    onResetFilters={filterBarProps.onResetLogFilters}
+                    className="mb-2 shrink-0"
+                />
+            )}
 
             {isGroupedView && !isolateActivityId && !(logDateRangeFilter?.startYmd && logDateRangeFilter?.endYmd) && !singleDayFilterYmd && (
                 <div className="flex flex-col gap-2 shrink-0 mb-2 lg:mb-0">
