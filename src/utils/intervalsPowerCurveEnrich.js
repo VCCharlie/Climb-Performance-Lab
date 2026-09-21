@@ -1,10 +1,11 @@
 /**
- * Fill missing long-duration best powers (90 / 120 min) from Intervals.icu power curves.
- * The bulk activities list often includes Best1min…Best60min only; longer bests need
- * GET /api/v1/activity/{id}/power-curve.json or a custom computed field on Intervals.icu.
+ * Fill missing best powers (1–120 min) from Intervals.icu power curves.
+ * Strava-sourced rides on Intervals often lack Best1min… fields on the activity API;
+ * GET /api/v1/activity/{id}/power-curve.json still exposes computed peaks when available.
  */
 
 import { fetchWithTimeout } from './fetchWithTimeout';
+import { parseDurationToSeconds } from './formatters';
 import { devLog } from './safeLog';
 
 /** @typedef {{ sec: number, w: number }} PowerCurvePoint */
@@ -96,23 +97,78 @@ export async function fetchIntervalsActivityPowerCurve(activityId, intervalsConf
     return resp.json();
 }
 
+/** @typedef {{ field: string, minMovingSec: number, curveSec: number }} PowerCurveBestTarget */
+
+/** @type {PowerCurveBestTarget[]} */
+export const STANDARD_POWER_CURVE_BEST_TARGETS = [
+    { field: 'best_1min', minMovingSec: 60, curveSec: 60 },
+    { field: 'best_5min', minMovingSec: 300, curveSec: 300 },
+    { field: 'best_10min', minMovingSec: 600, curveSec: 600 },
+    { field: 'best_20min', minMovingSec: 1200, curveSec: 1200 },
+    { field: 'best_60min', minMovingSec: 3600, curveSec: 3600 },
+];
+
+/** @type {PowerCurveBestTarget[]} */
 const LONG_BEST_TARGETS = [
     { field: 'best_90min', minMovingSec: 5400, curveSec: 5400 },
     { field: 'best_120min', minMovingSec: 7200, curveSec: 7200 },
 ];
 
+/** @type {PowerCurveBestTarget[]} */
+export const ALL_POWER_CURVE_BEST_TARGETS = [
+    ...STANDARD_POWER_CURVE_BEST_TARGETS,
+    ...LONG_BEST_TARGETS,
+];
+
 /**
- * For rides long enough, fetch power curves when 90/120 min bests are missing.
- * Mutates and returns the same activity objects (shallow copy per row).
+ * @param {object | null | undefined} act
+ * @returns {number}
+ */
+export function activityMovingTimeSeconds(act) {
+    const raw = act?.moving_time;
+    if (raw == null || raw === '') return 0;
+    if (typeof raw === 'number' && Number.isFinite(raw) && raw > 0) return Math.floor(raw);
+    return Math.floor(parseDurationToSeconds(String(raw)));
+}
+
+/**
+ * @param {object} act
+ * @param {PowerCurveBestTarget[]} targets
+ * @returns {PowerCurveBestTarget[]}
+ */
+export function missingPowerCurveBestTargets(act, targets) {
+    const movingSec = activityMovingTimeSeconds(act);
+    if (movingSec <= 0) return [];
+    return (targets || []).filter(({ field, minMovingSec }) => {
+        if (movingSec < minMovingSec) return false;
+        return Math.round(Number(act[field]) || 0) <= 0;
+    });
+}
+
+/**
+ * @param {object} act
+ * @param {object | null | undefined} curve
+ * @param {PowerCurveBestTarget[]} targets
+ */
+export function applyPowerCurveBestTargets(act, curve, targets) {
+    for (const { field, curveSec } of targets || []) {
+        const watts = lookupPowerCurveWattsAtDuration(curve, curveSec);
+        if (watts > 0) act[field] = watts;
+    }
+}
+
+/**
+ * Fetch Intervals power curves and fill missing 1–120 min best powers.
  *
  * @param {object[]} activities
  * @param {{ athleteId?: string, apiKey?: string }} intervalsConfig
- * @param {{ maxFetches?: number, delayMs?: number }} [opts]
+ * @param {{ maxFetches?: number, delayMs?: number, targets?: PowerCurveBestTarget[] }} [opts]
  * @returns {Promise<object[]>}
  */
-export async function enrichActivitiesWithLongDurationBests(activities, intervalsConfig, opts = {}) {
+export async function enrichActivitiesWithPowerCurveBests(activities, intervalsConfig, opts = {}) {
     if (!activities?.length || !intervalsConfig?.apiKey) return activities || [];
 
+    const targets = opts.targets || ALL_POWER_CURVE_BEST_TARGETS;
     const maxFetches = opts.maxFetches ?? 40;
     const delayMs = opts.delayMs ?? 120;
     let fetchCount = 0;
@@ -122,15 +178,7 @@ export async function enrichActivitiesWithLongDurationBests(activities, interval
     for (const act of out) {
         if (fetchCount >= maxFetches) break;
 
-        const movingSec = Math.floor(Number(act.moving_time) || 0);
-        if (movingSec <= 0) continue;
-
-        const missing = LONG_BEST_TARGETS.filter(({ field, minMovingSec }) => {
-            if (movingSec < minMovingSec) return false;
-            const current = Math.round(Number(act[field]) || 0);
-            return current <= 0;
-        });
-
+        const missing = missingPowerCurveBestTargets(act, targets);
         if (!missing.length) continue;
 
         let curve;
@@ -144,10 +192,7 @@ export async function enrichActivitiesWithLongDurationBests(activities, interval
 
         if (!curve) continue;
 
-        for (const { field, curveSec } of missing) {
-            const watts = lookupPowerCurveWattsAtDuration(curve, curveSec);
-            if (watts > 0) act[field] = watts;
-        }
+        applyPowerCurveBestTargets(act, curve, missing);
 
         if (delayMs > 0 && fetchCount < maxFetches) {
             await new Promise((resolve) => setTimeout(resolve, delayMs));
@@ -155,8 +200,20 @@ export async function enrichActivitiesWithLongDurationBests(activities, interval
     }
 
     if (fetchCount > 0) {
-        devLog(`[Intervals power curve] Enriched ${fetchCount} activit${fetchCount === 1 ? 'y' : 'ies'} with 90/120 min bests`);
+        devLog(`[Intervals power curve] Enriched ${fetchCount} activit${fetchCount === 1 ? 'y' : 'ies'} with power-curve bests`);
     }
 
     return out;
+}
+
+/**
+ * Backward-compatible alias: now includes standard 1–60 min bests as well as 90/120 min.
+ *
+ * @param {object[]} activities
+ * @param {{ athleteId?: string, apiKey?: string }} intervalsConfig
+ * @param {{ maxFetches?: number, delayMs?: number }} [opts]
+ * @returns {Promise<object[]>}
+ */
+export async function enrichActivitiesWithLongDurationBests(activities, intervalsConfig, opts = {}) {
+    return enrichActivitiesWithPowerCurveBests(activities, intervalsConfig, opts);
 }

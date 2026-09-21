@@ -204,7 +204,7 @@ export function useDataHubIntervalsSync({
                 startYmd: syncStart,
                 endYmd: syncEnd,
                 allowedSportTypes: selectedTypes,
-                opts: { onProgress, deviceProfileTitles },
+                opts: { onProgress, deviceProfileTitles, intervalsConfig },
             });
         } catch (err) {
             console.warn('[Sync] Strava gap fill failed:', err);
@@ -324,6 +324,7 @@ export function useDataHubIntervalsSync({
                 working = await backfillStravaMetricsForSparseIntervalsActivities(working, {
                     stravaGetToken,
                     stravaToken: enrichOptions.stravaToken,
+                    intervalsConfig,
                     onProgress: (m) => setSyncErrorDetail(String(m)),
                 });
                 if (working.some((a) => bulkIdSet.has(String(a.id)))) {

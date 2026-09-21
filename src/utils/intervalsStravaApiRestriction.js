@@ -9,6 +9,7 @@ import { fetchStravaActivitiesInRange } from './stravaLinkIntervalsFetch';
 import { isIncludedStravaType, normalizeStravaActivity } from './stravaMatch';
 import { mergeActivitiesIntervalsPrimary } from './mergeActivities';
 import { normalizeIntervalsActivity } from './intervals';
+import { enrichActivitiesWithPowerCurveBests } from './intervalsPowerCurveEnrich';
 
 function payloadHasMetrics(item) {
     if (!item || typeof item !== 'object') return false;
@@ -164,7 +165,7 @@ export async function resolveStravaSideForRestrictedIntervalsActivity(sparseJson
  * Merge Strava API metrics onto a sparse Intervals row (keeps Intervals id for updates).
  *
  * @param {object} sparseJson
- * @param {{ stravaGetToken?: () => Promise<string>, stravaToken?: string | null, existingActivity?: object | null }} opts
+ * @param {{ stravaGetToken?: () => Promise<string>, stravaToken?: string | null, existingActivity?: object | null, intervalsConfig?: object | null }} opts
  * @returns {Promise<object>}
  */
 export async function mergeStravaApiIntoRestrictedIntervalsActivity(sparseJson, opts = {}) {
@@ -176,7 +177,14 @@ export async function mergeStravaApiIntoRestrictedIntervalsActivity(sparseJson, 
             dateYmd: calendarYmd(sparseJson?.start_date_local ?? sparseJson?.start_date),
         }));
     }
-    return mergeActivitiesIntervalsPrimary(intervalsPrimary, stravaSide);
+    let merged = mergeActivitiesIntervalsPrimary(intervalsPrimary, stravaSide);
+    if (opts.intervalsConfig?.apiKey) {
+        [merged] = await enrichActivitiesWithPowerCurveBests([merged], opts.intervalsConfig, {
+            maxFetches: 1,
+            delayMs: 0,
+        });
+    }
+    return merged;
 }
 
 /**
@@ -208,7 +216,7 @@ function sparseJsonFromSiteActivity(act) {
  * Fill distance/time/power from Strava when Intervals API returns Strava-restricted sparse rows.
  *
  * @param {object[]} activities normalized site activities
- * @param {{ stravaGetToken?: () => Promise<string>, stravaToken?: string | null, onProgress?: (msg: string) => void }} [opts]
+ * @param {{ stravaGetToken?: () => Promise<string>, stravaToken?: string | null, onProgress?: (msg: string) => void, intervalsConfig?: object | null }} [opts]
  * @returns {Promise<object[]>}
  */
 export async function backfillStravaMetricsForSparseIntervalsActivities(activities, opts = {}) {
@@ -244,5 +252,13 @@ export async function backfillStravaMetricsForSparseIntervalsActivities(activiti
             out.push({ ...act });
         }
     }
+
+    if (opts.intervalsConfig?.apiKey) {
+        return enrichActivitiesWithPowerCurveBests(out, opts.intervalsConfig, {
+            maxFetches: out.length,
+            delayMs: 0,
+        });
+    }
+
     return out;
 }

@@ -81,6 +81,7 @@ export async function runIntervalsSyncWithStravaGapFill({
 
     linked = await backfillStravaMetricsForSparseIntervalsActivities(linked, {
         stravaToken,
+        intervalsConfig: opts.intervalsConfig,
         onProgress,
     });
 

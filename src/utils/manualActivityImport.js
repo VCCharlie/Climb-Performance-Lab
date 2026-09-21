@@ -3,7 +3,7 @@
  */
 
 import { normalizeIntervalsActivity, buildIntervalsActivitiesListUrl, normalizeIntervalsActivityFromAny } from './intervals';
-import { enrichActivitiesWithLongDurationBests } from './intervalsPowerCurveEnrich';
+import { enrichActivitiesWithPowerCurveBests } from './intervalsPowerCurveEnrich';
 import { normalizeStravaActivity } from './stravaMatch';
 import { normalizeStravaActivityId } from './strava';
 import { enrichActivityGearFromStrava } from './stravaGearEnrich';
@@ -231,14 +231,17 @@ export async function fetchIntervalsActivityAsSiteActivity(intervalsActivityId, 
         const json = await resp.json();
         if (isSubstantiveIntervalsApiPayload(json)) {
             let act = normalizeIntervalsActivity(json);
-            [act] = await enrichActivitiesWithLongDurationBests([act], intervalsConfig, { maxFetches: 1, delayMs: 0 });
+            [act] = await enrichActivitiesWithPowerCurveBests([act], intervalsConfig, { maxFetches: 1, delayMs: 0 });
             return act;
         }
 
         if (isStravaRestrictedIntervalsApiPayload(json)) {
             try {
-                let act = await mergeStravaApiIntoRestrictedIntervalsActivity(json, opts);
-                [act] = await enrichActivitiesWithLongDurationBests([act], intervalsConfig, { maxFetches: 1, delayMs: 0 });
+                let act = await mergeStravaApiIntoRestrictedIntervalsActivity(json, {
+                    ...opts,
+                    intervalsConfig,
+                });
+                [act] = await enrichActivitiesWithPowerCurveBests([act], intervalsConfig, { maxFetches: 1, delayMs: 0 });
                 return act;
             } catch (err) {
                 lastError = err;
@@ -260,14 +263,17 @@ export async function fetchIntervalsActivityAsSiteActivity(intervalsActivityId, 
         );
         if (listRow && isSubstantiveIntervalsApiPayload(listRow)) {
             let act = normalizeIntervalsActivityFromAny(listRow);
-            [act] = await enrichActivitiesWithLongDurationBests([act], intervalsConfig, { maxFetches: 1, delayMs: 0 });
+            [act] = await enrichActivitiesWithPowerCurveBests([act], intervalsConfig, { maxFetches: 1, delayMs: 0 });
             return act;
         }
 
         if (listRow && isStravaRestrictedIntervalsApiPayload(listRow)) {
             try {
-                let act = await mergeStravaApiIntoRestrictedIntervalsActivity(listRow, opts);
-                [act] = await enrichActivitiesWithLongDurationBests([act], intervalsConfig, { maxFetches: 1, delayMs: 0 });
+                let act = await mergeStravaApiIntoRestrictedIntervalsActivity(listRow, {
+                    ...opts,
+                    intervalsConfig,
+                });
+                [act] = await enrichActivitiesWithPowerCurveBests([act], intervalsConfig, { maxFetches: 1, delayMs: 0 });
                 return act;
             } catch (err) {
                 lastError = err;
@@ -276,8 +282,11 @@ export async function fetchIntervalsActivityAsSiteActivity(intervalsActivityId, 
 
         if (sparsePayload && isStravaRestrictedIntervalsApiPayload(sparsePayload)) {
             try {
-                let act = await mergeStravaApiIntoRestrictedIntervalsActivity(sparsePayload, opts);
-                [act] = await enrichActivitiesWithLongDurationBests([act], intervalsConfig, { maxFetches: 1, delayMs: 0 });
+                let act = await mergeStravaApiIntoRestrictedIntervalsActivity(sparsePayload, {
+                    ...opts,
+                    intervalsConfig,
+                });
+                [act] = await enrichActivitiesWithPowerCurveBests([act], intervalsConfig, { maxFetches: 1, delayMs: 0 });
                 return act;
             } catch (err) {
                 throw err;
@@ -285,7 +294,7 @@ export async function fetchIntervalsActivityAsSiteActivity(intervalsActivityId, 
         }
 
         let act = normalizeIntervalsActivity(sparsePayload);
-        [act] = await enrichActivitiesWithLongDurationBests([act], intervalsConfig, { maxFetches: 1, delayMs: 0 });
+        [act] = await enrichActivitiesWithPowerCurveBests([act], intervalsConfig, { maxFetches: 1, delayMs: 0 });
         if (isStravaRestrictedIntervalsApiPayload(sparsePayload)) {
             throw lastError || new Error(
                 buildStravaRestrictedIntervalsMessage({

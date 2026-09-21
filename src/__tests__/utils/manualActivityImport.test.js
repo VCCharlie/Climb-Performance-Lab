@@ -146,6 +146,13 @@ describe('fetchSingleActivityFromUrl — Intervals URL id resolution', () => {
                     average_watts: 180,
                     weighted_average_watts: 195,
                 }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    secs: [60, 300, 1200],
+                    watts: [420, 340, 280],
+                }),
             });
 
         const { fetchSingleActivityFromUrl } = await import('../../utils/manualActivityImport');
@@ -162,6 +169,8 @@ describe('fetchSingleActivityFromUrl — Intervals URL id resolution', () => {
         expect(act.distance).toBe(85);
         expect(act.avg_power).toBe(180);
         expect(act.strava_id).toBe('99112233');
+        expect(act.best_1min).toBe(420);
+        expect(act.best_20min).toBe(280);
     });
 
     it('throws helpful message when Intervals is Strava-restricted and Strava is not connected', async () => {
