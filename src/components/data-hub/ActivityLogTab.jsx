@@ -66,7 +66,7 @@ export default function ActivityLogTab({
     onRunSync,
 }) {
     const { syncTodayActivities, isTodaySyncBusy } = useTodayIntervalsSync();
-    const { isActive: filterAnalyticsActive, filterLabels, analytics } = useActivityLogFilterAnalytics({
+    const { isActive: filterAnalyticsActive, filterLabels, filterState, analytics } = useActivityLogFilterAnalytics({
         filterBarProps,
         singleDayFilterYmd,
         logDateRangeFilter,
@@ -135,6 +135,7 @@ export default function ActivityLogTab({
             {filterAnalyticsActive && analytics && (
                 <FilterAnalyticsBar
                     filterLabels={filterLabels}
+                    filterState={filterState}
                     analytics={analytics}
                     onResetFilters={filterBarProps.onResetLogFilters}
                     className="mb-2 shrink-0"

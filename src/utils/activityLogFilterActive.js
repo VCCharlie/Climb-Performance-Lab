@@ -85,6 +85,8 @@ export function buildActivityLogFilterStateFromBarProps(filterBarProps = {}, ext
         filterGearId: filterBarProps.filterGearId,
         activeSportTypes: filterBarProps.activeSportTypes,
         metricRangeActive: filterBarProps.metricRangeActive,
+        filterElevMin: filterBarProps.filterElevMin,
+        filterElevMax: filterBarProps.filterElevMax,
         singleDayFilterYmd: extras.singleDayFilterYmd ?? null,
         logDateRangeFilter: extras.logDateRangeFilter ?? null,
         isolateActivityId: extras.isolateActivityId ?? null,

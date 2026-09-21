@@ -39,6 +39,7 @@ function MetricChip({ label, value, sub, accent = false, className }) {
  */
 export default function FilterAnalyticsBar({
     filterLabels = [],
+    filterState = null,
     analytics,
     onResetFilters,
     className,
@@ -46,7 +47,7 @@ export default function FilterAnalyticsBar({
     const detailsId = useId();
     const [expanded, setExpanded] = useState(false);
     const [drawerOpen, setDrawerOpen] = useState(false);
-    const metricPrefs = useFilterAnalyticsMetrics();
+    const metricPrefs = useFilterAnalyticsMetrics(filterState);
 
     const metricChips = useMemo(
         () => buildFilterAnalyticsMetricChips(metricPrefs.visibleKeys, analytics),
@@ -90,9 +91,14 @@ export default function FilterAnalyticsBar({
                         <FilterAnalyticsMetricPicker
                             visibleKeys={metricPrefs.visibleKeys}
                             activePreset={metricPrefs.activePreset}
+                            presetLabel={metricPrefs.presetLabel}
                             applyPreset={metricPrefs.applyPreset}
                             toggleMetric={metricPrefs.toggleMetric}
                             isMetricVisible={metricPrefs.isMetricVisible}
+                            contextProfile={metricPrefs.contextProfile}
+                            usingContextSuggestion={metricPrefs.usingContextSuggestion}
+                            manualOverride={metricPrefs.manualOverride}
+                            onApplyContextSuggestion={metricPrefs.applyContextSuggestion}
                         />
                         <button
                             type="button"
@@ -127,6 +133,37 @@ export default function FilterAnalyticsBar({
                         </button>
                     </div>
                 </div>
+
+                {metricPrefs.usingContextSuggestion && metricPrefs.contextProfile ? (
+                    <div className="px-3 py-1.5 border-b border-cdborder/40 bg-cdaccent/5 flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-[10px] text-cdtext">
+                            Suggested metrics for{' '}
+                            <strong className="text-cdaccent">{metricPrefs.contextProfile.label}</strong>
+                        </p>
+                        <button
+                            type="button"
+                            onClick={metricPrefs.dismissContextSuggestion}
+                            className="text-[10px] font-semibold text-cdmuted hover:text-cdtext cd-focus-ring rounded px-1"
+                        >
+                            Use my saved metrics
+                        </button>
+                    </div>
+                ) : null}
+
+                {metricPrefs.manualOverride && metricPrefs.contextProfile ? (
+                    <div className="px-3 py-1.5 border-b border-cdborder/40 bg-cdsurface/50 flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-[10px] text-cdmuted">
+                            Using your custom metrics
+                        </p>
+                        <button
+                            type="button"
+                            onClick={metricPrefs.applyContextSuggestion}
+                            className="text-[10px] font-semibold text-cdaccent hover:underline cd-focus-ring rounded px-1"
+                        >
+                            Apply {metricPrefs.contextProfile.label} suggestion
+                        </button>
+                    </div>
+                ) : null}
 
                 <div
                     className="overflow-x-auto overscroll-x-contain px-3 py-2.5"

@@ -34,6 +34,8 @@ export function useActivityLogFilterAnalytics({
         missingHrOnly,
         minTss,
         filterGearId,
+        filterElevMin,
+        filterElevMax,
         activeSportTypes,
         metricRangeActive,
     } = filterBarProps;
@@ -64,6 +66,8 @@ export function useActivityLogFilterAnalytics({
             filterGearId,
             sportTypesKey,
             metricRangeActive,
+            filterElevMin,
+            filterElevMax,
             singleDayFilterYmd,
             logDateRangeFilter?.startYmd,
             logDateRangeFilter?.endYmd,
@@ -93,6 +97,7 @@ export function useActivityLogFilterAnalytics({
     return {
         isActive,
         filterLabels,
+        filterState,
         analytics,
     };
 }
