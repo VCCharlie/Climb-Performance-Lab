@@ -48,6 +48,10 @@ export const ACTIVITY_COLUMNS = [
     { key: 'best_10min', label: '10m', align: 'right', width: 'w-10', hideByDefault: true },
     { key: 'best_20min', label: '20m', align: 'right', width: 'w-10', hideByDefault: true },
     { key: 'best_60min', label: '60m', align: 'right', width: 'w-10', hideByDefault: true },
+    { key: 'best_90min', label: '90m', align: 'right', width: 'w-10', hideByDefault: true },
+    { key: 'best_120min', label: '120m', align: 'right', width: 'w-10', hideByDefault: true },
+    { key: 'best_150min', label: '150m', align: 'right', width: 'w-10', hideByDefault: true },
+    { key: 'best_180min', label: '180m', align: 'right', width: 'w-10', hideByDefault: true },
 ];
 
 /** Columns shown in Activity Log / Import preview tables (excludes hideInTable). */
@@ -68,7 +72,7 @@ export const ACTIVITY_COLUMN_PRESETS = {
         'date', 'type', 'title', 'moving_time', 'distance', 'climbing',
         'norm_power', 'load', 'avg_power', 'intensity_factor', 'variability_index', 'efficiency_factor',
         'decoupling_pct', 'threshold_drift_pct', 'race_drift_pct',
-        'best_1min', 'best_5min', 'best_20min',
+        'best_1min', 'best_5min', 'best_20min', 'best_90min', 'best_120min',
     ],
     full: null,
 };

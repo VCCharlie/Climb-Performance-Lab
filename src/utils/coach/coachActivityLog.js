@@ -10,7 +10,7 @@ import { activityIF, filterActivitiesInRange, movingTimeSec, sumTss, todayYmd } 
 /** Max individual rides sent to LLM (most recent first). Yearly stats always cover full history. */
 export const COACH_ACTIVITY_LOG_MAX_RIDES = 500;
 
-const EXTRA_ACTIVITY_KEYS = ['best_90min', 'best_120min', 'id'];
+const EXTRA_ACTIVITY_KEYS = ['best_90min', 'best_120min', 'best_150min', 'best_180min', 'id'];
 
 const NUMERIC_ROUND = {
     distance: 1,
@@ -214,6 +214,8 @@ export function buildCoachActivityLog(activities, ftp = 0, options = {}) {
             'durationMin',
             'best_90min',
             'best_120min',
+            'best_150min',
+            'best_180min',
         ],
     };
 }

@@ -16,6 +16,8 @@ const FTP_CAPS = {
     best_60min: 1.1,
     best_90min: 1.08,
     best_120min: 1.06,
+    best_150min: 1.04,
+    best_180min: 1.03,
 };
 
 function capForKey(key, manualFtp) {

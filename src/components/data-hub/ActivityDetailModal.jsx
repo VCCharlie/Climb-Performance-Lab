@@ -158,6 +158,8 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
         { label: '60m', val: activity.best_60min },
         { label: '90m', val: activity.best_90min },
         { label: '120m', val: activity.best_120min },
+        { label: '150m', val: activity.best_150min },
+        { label: '180m', val: activity.best_180min },
     ].filter((p) => Number(p.val) > 0);
 
     const hasDecoupling = Number.isFinite(Number(activity.decoupling_pct));

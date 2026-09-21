@@ -24,6 +24,8 @@ const INTEGER_EXPORT_KEYS = new Set([
     'best_60min',
     'best_90min',
     'best_120min',
+    'best_150min',
+    'best_180min',
     'max_power',
     'avg_altitude',
     'max_altitude',

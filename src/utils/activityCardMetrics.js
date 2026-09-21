@@ -142,6 +142,10 @@ function formatActivityCardMetric(col, act, profileFtp, profileMaxHr) {
         case 'best_10min':
         case 'best_20min':
         case 'best_60min':
+        case 'best_90min':
+        case 'best_120min':
+        case 'best_150min':
+        case 'best_180min':
             return val != null && Number(val) > 0
                 ? { key, label: col.label, value: `${Math.round(val)} W`, tone: 'muted' }
                 : null;
