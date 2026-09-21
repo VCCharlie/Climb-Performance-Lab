@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { SlidersHorizontal, X } from 'lucide-react';
 import { cn, SegmentedControl } from '../../ui';
+import FixedLayerPortal from '../../ui/FixedLayerPortal';
+import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock';
 import QuickFilterChips from './QuickFilterChips';
 import MetricRangesSection from './MetricRangesSection';
 import BulkActionsSection from './BulkActionsSection';
@@ -28,26 +30,15 @@ export default function ActivityLogFilterDrawer({
         if (open) setTab(initialTab);
     }, [open, initialTab]);
 
+    useBodyScrollLock(open);
+
     useEffect(() => {
         if (!open) return undefined;
         const onKey = (e) => {
             if (e.key === 'Escape') onClose();
         };
         document.addEventListener('keydown', onKey);
-        const prevOverflow = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
-        const blockBackgroundScroll = (e) => {
-            if (drawerRef.current?.contains(e.target)) return;
-            e.preventDefault();
-        };
-        document.addEventListener('wheel', blockBackgroundScroll, { passive: false });
-        document.addEventListener('touchmove', blockBackgroundScroll, { passive: false });
-        return () => {
-            document.removeEventListener('keydown', onKey);
-            document.body.style.overflow = prevOverflow;
-            document.removeEventListener('wheel', blockBackgroundScroll);
-            document.removeEventListener('touchmove', blockBackgroundScroll);
-        };
+        return () => document.removeEventListener('keydown', onKey);
     }, [open, onClose]);
 
     const bulkSelectedCount = sectionProps.bulkSelectedCount ?? 0;
@@ -55,25 +46,26 @@ export default function ActivityLogFilterDrawer({
     if (!open) return null;
 
     return (
-        <div className="fixed inset-0 z-[80] flex justify-end overflow-hidden" role="presentation">
-            <button
-                type="button"
-                aria-label="Close filters"
-                className="absolute inset-0 bg-cdscrim/70 backdrop-blur-[1px]"
-                onClick={onClose}
-            />
-            <aside
-                ref={drawerRef}
-                role="dialog"
-                aria-modal="true"
-                aria-label="Activity log filters"
-                className={cn(
-                    'relative flex flex-col w-full max-w-lg h-full max-h-full min-h-0 overflow-hidden',
-                    'bg-cdsurface border-l border-cdborder shadow-2xl',
-                    'animate-in slide-in-from-right duration-200',
-                    'max-sm:max-w-none max-sm:border-l-0 max-sm:border-t max-sm:mt-auto max-sm:h-[92vh] max-sm:max-h-[92vh] max-sm:rounded-t-xl max-sm:slide-in-from-bottom',
-                )}
-            >
+        <FixedLayerPortal>
+            <div className="fixed inset-0 z-[80] overflow-hidden" role="presentation">
+                <button
+                    type="button"
+                    aria-label="Close filters"
+                    className="absolute inset-0 bg-cdscrim/70 backdrop-blur-[1px]"
+                    onClick={onClose}
+                />
+                <aside
+                    ref={drawerRef}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Activity log filters"
+                    className={cn(
+                        'fixed top-0 right-0 bottom-0 flex flex-col w-full max-w-lg min-h-0 overflow-hidden',
+                        'bg-cdsurface border-l border-cdborder shadow-2xl',
+                        'animate-in slide-in-from-right duration-200',
+                        'max-sm:left-0 max-sm:top-auto max-sm:h-[92dvh] max-sm:max-h-[92dvh] max-sm:rounded-t-xl max-sm:border-l-0 max-sm:border-t max-sm:slide-in-from-bottom',
+                    )}
+                >
                 <header className="flex items-start justify-between gap-3 px-4 py-3 border-b border-cdborder/60 shrink-0">
                     <div>
                         <div className="flex items-center gap-2">
@@ -155,6 +147,7 @@ export default function ActivityLogFilterDrawer({
                     </button>
                 </footer>
             </aside>
-        </div>
+            </div>
+        </FixedLayerPortal>
     );
 }
