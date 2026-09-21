@@ -1,14 +1,51 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { parseActivityUrl, normalizeIntervalsUrlActivityIdForApi } from '../../utils/manualActivityImport';
+import {
+    parseActivityUrl,
+    normalizeIntervalsUrlActivityIdForApi,
+    buildIntervalsApiActivityIdCandidates,
+    isSubstantiveIntervalsApiPayload,
+    intervalsActivityIdsEquivalent,
+} from '../../utils/manualActivityImport';
 
-describe('normalizeIntervalsUrlActivityIdForApi', () => {
-    it('preserves i-prefixed Intervals activity ids for the REST API', () => {
-        expect(normalizeIntervalsUrlActivityIdForApi('i53534754')).toBe('i53534754');
-        expect(normalizeIntervalsUrlActivityIdForApi('I999')).toBe('i999');
+describe('buildIntervalsApiActivityIdCandidates', () => {
+    it('prefers i-prefixed id for bare numeric URL ids', () => {
+        expect(buildIntervalsApiActivityIdCandidates('970385547')).toEqual(['i970385547', '970385547']);
     });
 
-    it('accepts plain numeric ids', () => {
-        expect(normalizeIntervalsUrlActivityIdForApi('87654321')).toBe('87654321');
+    it('preserves i-prefixed Intervals activity ids and adds bare numeric fallback', () => {
+        expect(buildIntervalsApiActivityIdCandidates('i53534754')).toEqual(['i53534754', '53534754']);
+        expect(buildIntervalsApiActivityIdCandidates('I999')).toEqual(['i999', '999']);
+    });
+});
+
+describe('normalizeIntervalsUrlActivityIdForApi', () => {
+    it('returns the first API candidate', () => {
+        expect(normalizeIntervalsUrlActivityIdForApi('970385547')).toBe('i970385547');
+        expect(normalizeIntervalsUrlActivityIdForApi('i53534754')).toBe('i53534754');
+    });
+});
+
+describe('isSubstantiveIntervalsApiPayload', () => {
+    it('detects sparse vs substantive Intervals payloads', () => {
+        expect(isSubstantiveIntervalsApiPayload({
+            start_date_local: '2017-05-04T08:00:00',
+            name: 'Untitled',
+            moving_time: 0,
+            distance: 0,
+        })).toBe(false);
+        expect(isSubstantiveIntervalsApiPayload({
+            id: 'i970385547',
+            name: 'Cols ride',
+            moving_time: 7200,
+            icu_average_watts: 180,
+        })).toBe(true);
+    });
+});
+
+describe('intervalsActivityIdsEquivalent', () => {
+    it('matches i-prefixed and bare numeric ids', () => {
+        expect(intervalsActivityIdsEquivalent('970385547', 'i970385547')).toBe(true);
+        expect(intervalsActivityIdsEquivalent('i123', '456')).toBe(false);
     });
 });
 
@@ -39,6 +76,48 @@ describe('fetchMergedActivityFromPrimaryAndOptionalUrl', () => {
                 {},
             ),
         ).rejects.toThrow(/different services/i);
+    });
+});
+
+describe('fetchSingleActivityFromUrl — Intervals URL id resolution', () => {
+    beforeEach(() => {
+        vi.stubGlobal('fetch', vi.fn());
+    });
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
+    it('uses i-prefixed API id for bare numeric Intervals URLs', async () => {
+        fetch.mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                id: 'i970385547',
+                start_date_local: '2017-05-04T08:00:00',
+                name: 'Cols 2017',
+                type: 'Ride',
+                moving_time: 7200,
+                distance: 85000,
+                icu_average_watts: 180,
+                icu_weighted_avg_watts: 195,
+                icu_training_load: 85,
+                Best20minpower: 220,
+            }),
+        });
+
+        const { fetchSingleActivityFromUrl } = await import('../../utils/manualActivityImport');
+        const act = await fetchSingleActivityFromUrl(
+            'https://intervals.icu/activities/970385547',
+            { intervalsConfig: { apiKey: 'secret-key', athleteId: 'i12345' } },
+        );
+
+        expect(fetch).toHaveBeenCalledWith(
+            'https://intervals.icu/api/v1/activity/i970385547',
+            expect.any(Object),
+        );
+        expect(act.title).toBe('Cols 2017');
+        expect(act.best_20min).toBe(220);
+        expect(act.avg_power).toBe(180);
     });
 });
 

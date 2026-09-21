@@ -2,7 +2,7 @@
  * Fetch a single activity from a Strava or Intervals.icu URL (for manual add / repair).
  */
 
-import { normalizeIntervalsActivity } from './intervals';
+import { normalizeIntervalsActivity, buildIntervalsActivitiesListUrl, normalizeIntervalsActivityFromAny } from './intervals';
 import { enrichActivitiesWithLongDurationBests } from './intervalsPowerCurveEnrich';
 import { normalizeStravaActivity } from './stravaMatch';
 import { normalizeStravaActivityId } from './strava';
@@ -72,17 +72,118 @@ export async function fetchStravaActivityDetailAsSiteActivity(stravaActivityId, 
 }
 
 /**
- * Intervals.icu activity ids in URLs are either numeric or `i` + digits (same id the REST API expects).
+ * Build candidate Intervals.icu REST ids for a URL or stored id.
+ * Web URLs often use bare numeric ids (970385547); the API expects i970385547.
+ *
+ * @param {string} raw
+ * @returns {string[]}
+ */
+export function buildIntervalsApiActivityIdCandidates(raw) {
+    const s = String(raw || '').trim();
+    const candidates = [];
+    const push = (id) => {
+        const v = String(id || '').trim();
+        if (v && !candidates.includes(v)) candidates.push(v);
+    };
+
+    if (/^i\d+$/i.test(s)) {
+        const digits = s.slice(1).replace(/\D/g, '');
+        push(`i${digits}`);
+        if (digits) push(digits);
+        return candidates;
+    }
+
+    const digits = s.replace(/\D/g, '');
+    if (/^\d+$/.test(digits)) {
+        push(`i${digits}`);
+        push(digits);
+    }
+    return candidates;
+}
+
+/**
+ * Intervals.icu activity ids in URLs are either numeric or `i` + digits.
+ * Prefer the API-canonical `i`-prefixed form.
+ *
  * @param {string} raw
  * @returns {string}
  */
 export function normalizeIntervalsUrlActivityIdForApi(raw) {
-    const s = String(raw || '').trim();
-    if (/^i\d+$/i.test(s)) {
-        return `i${s.slice(1).replace(/\D/g, '')}`;
+    return buildIntervalsApiActivityIdCandidates(raw)[0] || '';
+}
+
+/**
+ * @param {object | null | undefined} item
+ * @returns {boolean}
+ */
+export function isSubstantiveIntervalsApiPayload(item) {
+    if (!item || typeof item !== 'object') return false;
+    const num = (...vals) => {
+        for (const v of vals) {
+            const n = Number(v);
+            if (Number.isFinite(n) && n > 0) return n;
+        }
+        return 0;
+    };
+    if (num(item.moving_time, item.movingTime, item.icu_recording_time, item.elapsed_time, item.elapsedTime) > 0) {
+        return true;
     }
-    const digits = s.replace(/\D/g, '');
-    return /^\d+$/.test(digits) ? digits : '';
+    if (num(item.distance, item.icu_distance) > 0) return true;
+    if (num(item.icu_average_watts, item.average_watts, item.device_watts, item.avg_power) > 0) return true;
+    if (num(item.icu_weighted_avg_watts, item.weighted_average_watts, item.norm_power) > 0) return true;
+    if (num(item.icu_training_load, item.training_load, item.load) > 0) return true;
+    const name = String(item.name ?? item.title ?? '').trim();
+    return !!(name && !/^untitled$/i.test(name));
+}
+
+/**
+ * @param {string | number | null | undefined} a
+ * @param {string | number | null | undefined} b
+ * @returns {boolean}
+ */
+export function intervalsActivityIdsEquivalent(a, b) {
+    const da = String(a ?? '').trim().replace(/^i/i, '');
+    const db = String(b ?? '').trim().replace(/^i/i, '');
+    return !!(da && db && da === db);
+}
+
+function extractCalendarYmdFromIntervalsPayload(item) {
+    const raw = item?.start_date_local ?? item?.start_date ?? item?.startDate ?? item?.date;
+    if (!raw) return null;
+    const str = String(raw);
+    const m = str.match(/^(\d{4}-\d{2}-\d{2})/);
+    return m ? m[1] : null;
+}
+
+async function fetchIntervalsActivityRawJson(activityId, intervalsConfig) {
+    const authString = btoa(`API_KEY:${intervalsConfig.apiKey}`);
+    const url = `https://intervals.icu/api/v1/activity/${encodeURIComponent(activityId)}`;
+    const resp = await fetchWithTimeout(url, {
+        method: 'GET',
+        headers: {
+            Authorization: `Basic ${authString}`,
+            Accept: 'application/json',
+        },
+    });
+    return { resp, activityId };
+}
+
+async function fetchIntervalsActivityFromListByDate(activityId, dateYmd, intervalsConfig) {
+    if (!dateYmd || !intervalsConfig?.apiKey) return null;
+    const athleteId = intervalsConfig.athleteId || '0';
+    const authString = btoa(`API_KEY:${intervalsConfig.apiKey}`);
+    const url = buildIntervalsActivitiesListUrl(athleteId, dateYmd, dateYmd);
+    const resp = await fetchWithTimeout(url, {
+        method: 'GET',
+        headers: {
+            Authorization: `Basic ${authString}`,
+            Accept: 'application/json',
+        },
+    });
+    if (!resp.ok) return null;
+    const list = await resp.json();
+    if (!Array.isArray(list)) return null;
+    return list.find((row) => intervalsActivityIdsEquivalent(row?.id ?? row?.activity_id, activityId)) || null;
 }
 
 /**
@@ -91,34 +192,74 @@ export function normalizeIntervalsUrlActivityIdForApi(raw) {
  * @returns {Promise<object>}
  */
 export async function fetchIntervalsActivityAsSiteActivity(intervalsActivityId, intervalsConfig) {
-    const id = normalizeIntervalsUrlActivityIdForApi(intervalsActivityId);
-    if (!id) throw new Error('Invalid Intervals.icu activity id.');
+    const candidates = buildIntervalsApiActivityIdCandidates(intervalsActivityId);
+    if (!candidates.length) throw new Error('Invalid Intervals.icu activity id.');
     if (!intervalsConfig?.apiKey) {
         throw new Error('Intervals.icu API key missing — add it in Settings.');
     }
 
-    const authString = btoa(`API_KEY:${intervalsConfig.apiKey}`);
-    const url = `https://intervals.icu/api/v1/activity/${encodeURIComponent(id)}`;
+    let lastError = null;
+    let sparsePayload = null;
+    let sparseId = null;
 
-    const resp = await fetchWithTimeout(url, {
-        method: 'GET',
-        headers: {
-            Authorization: `Basic ${authString}`,
-            Accept: 'application/json',
-        },
-    });
+    for (const candidateId of candidates) {
+        let resp;
+        try {
+            ({ resp } = await fetchIntervalsActivityRawJson(candidateId, intervalsConfig));
+        } catch (err) {
+            lastError = err;
+            continue;
+        }
 
-    if (resp.status === 401) throw new Error('Intervals.icu rejected the API key — check Settings.');
-    if (resp.status === 404) throw new Error('Activity not found on Intervals.icu (wrong id or no access).');
-    if (!resp.ok) {
-        const t = await resp.text().catch(() => '');
-        throw new Error(`Intervals.icu error ${resp.status}${t ? `: ${t.slice(0, 160)}` : ''}`);
+        if (resp.status === 401) throw new Error('Intervals.icu rejected the API key — check Settings.');
+        if (resp.status === 404) {
+            lastError = new Error('Activity not found on Intervals.icu (wrong id or no access).');
+            continue;
+        }
+        if (!resp.ok) {
+            const t = await resp.text().catch(() => '');
+            lastError = new Error(`Intervals.icu error ${resp.status}${t ? `: ${t.slice(0, 160)}` : ''}`);
+            continue;
+        }
+
+        const json = await resp.json();
+        if (isSubstantiveIntervalsApiPayload(json)) {
+            let act = normalizeIntervalsActivity(json);
+            [act] = await enrichActivitiesWithLongDurationBests([act], intervalsConfig, { maxFetches: 1, delayMs: 0 });
+            return act;
+        }
+
+        if (!sparsePayload) {
+            sparsePayload = json;
+            sparseId = candidateId;
+        }
     }
 
-    const json = await resp.json();
-    let act = normalizeIntervalsActivity(json);
-    [act] = await enrichActivitiesWithLongDurationBests([act], intervalsConfig, { maxFetches: 1, delayMs: 0 });
-    return act;
+    if (sparsePayload) {
+        const dateYmd = extractCalendarYmdFromIntervalsPayload(sparsePayload);
+        const listRow = await fetchIntervalsActivityFromListByDate(
+            intervalsActivityId,
+            dateYmd,
+            intervalsConfig,
+        );
+        if (listRow && isSubstantiveIntervalsApiPayload(listRow)) {
+            let act = normalizeIntervalsActivityFromAny(listRow);
+            [act] = await enrichActivitiesWithLongDurationBests([act], intervalsConfig, { maxFetches: 1, delayMs: 0 });
+            return act;
+        }
+
+        let act = normalizeIntervalsActivity(sparsePayload);
+        [act] = await enrichActivitiesWithLongDurationBests([act], intervalsConfig, { maxFetches: 1, delayMs: 0 });
+        if (!isSubstantiveIntervalsApiPayload(sparsePayload) && sparseId) {
+            console.warn(
+                `[Intervals URL fetch] Activity ${sparseId} returned sparse metrics; `
+                + 'check the Intervals API id or re-sync via Refresh selected.',
+            );
+        }
+        return act;
+    }
+
+    throw lastError || new Error('Activity not found on Intervals.icu (wrong id or no access).');
 }
 
 /**
