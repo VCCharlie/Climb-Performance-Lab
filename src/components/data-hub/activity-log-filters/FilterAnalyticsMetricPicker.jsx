@@ -16,9 +16,14 @@ const PRESET_ORDER = ['essential', 'volume', 'intensity', 'full'];
 export default function FilterAnalyticsMetricPicker({
     visibleKeys,
     activePreset,
+    presetLabel,
     applyPreset,
     toggleMetric,
     isMetricVisible,
+    contextProfile = null,
+    usingContextSuggestion = false,
+    manualOverride = false,
+    onApplyContextSuggestion,
     className,
 }) {
     const [open, setOpen] = useState(false);
@@ -35,9 +40,10 @@ export default function FilterAnalyticsMetricPicker({
         return () => document.removeEventListener('mousedown', onDoc);
     }, [open]);
 
-    const presetLabel = activePreset === 'custom'
-        ? 'Custom'
-        : (FILTER_ANALYTICS_PRESET_LABELS[activePreset] || 'Metrics');
+    const buttonLabel = presetLabel
+        || (activePreset === 'custom'
+            ? 'Custom'
+            : (FILTER_ANALYTICS_PRESET_LABELS[activePreset] || 'Metrics'));
 
     const grouped = FILTER_ANALYTICS_METRICS.reduce((acc, metric) => {
         const group = metric.group;
@@ -59,7 +65,7 @@ export default function FilterAnalyticsMetricPicker({
                 className="inline-flex items-center gap-1 text-[10px] font-semibold text-cdmuted hover:text-cdtext cd-focus-ring rounded px-1.5 py-0.5"
             >
                 <LayoutGrid size={13} aria-hidden />
-                <span className="hidden sm:inline">{presetLabel}</span>
+                <span className="hidden sm:inline max-w-[7rem] truncate">{buttonLabel}</span>
                 <ChevronDown
                     size={13}
                     className={cn('cd-transition', open && 'rotate-180')}
@@ -80,7 +86,27 @@ export default function FilterAnalyticsMetricPicker({
                         <p className="text-[10px] text-cdmuted mt-0.5">
                             {visibleKeys.length} of {FILTER_ANALYTICS_METRICS.length} visible in the bar.
                         </p>
+                        {usingContextSuggestion && contextProfile ? (
+                            <p className="text-[10px] text-cdaccent mt-1">
+                                Auto layout for {contextProfile.label}.
+                            </p>
+                        ) : null}
                     </div>
+
+                    {manualOverride && contextProfile && typeof onApplyContextSuggestion === 'function' ? (
+                        <div className="px-3 py-2 border-b border-cdborder/40">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    onApplyContextSuggestion();
+                                    setOpen(false);
+                                }}
+                                className="w-full text-left text-[10px] font-semibold text-cdaccent hover:underline cd-focus-ring rounded"
+                            >
+                                Apply {contextProfile.label} suggestion
+                            </button>
+                        </div>
+                    ) : null}
 
                     <div className="px-3 py-2 border-b border-cdborder/40 flex flex-wrap gap-1.5">
                         {PRESET_ORDER.map((id) => (
@@ -93,7 +119,7 @@ export default function FilterAnalyticsMetricPicker({
                                 }}
                                 className={cn(
                                     'text-[10px] font-bold px-2 py-1 rounded border cd-focus-ring',
-                                    activePreset === id
+                                    activePreset === id && !usingContextSuggestion
                                         ? 'border-cdaccent/50 bg-cdaccent/15 text-cdaccent'
                                         : 'border-cdborder text-cdmuted hover:text-cdtext',
                                 )}
