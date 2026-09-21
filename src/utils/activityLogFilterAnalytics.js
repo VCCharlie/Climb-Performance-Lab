@@ -47,6 +47,7 @@ function accumulateActivityMetrics(activity, profileFtp) {
     const elev = Number(activity?.climbing);
     const load = Number(activity?.load);
     const np = Number(activity?.norm_power) || Number(activity?.avg_power) || 0;
+    const ap = Number(activity?.avg_power) || 0;
     const hr = Number(activity?.avg_hr) || 0;
     const speed = activityAvgSpeedKmh(activity, km, sec > 0 ? sec : null);
 
@@ -56,6 +57,7 @@ function accumulateActivityMetrics(activity, profileFtp) {
         elev: !Number.isNaN(elev) && elev > 0 ? elev : 0,
         load: !Number.isNaN(load) && load > 0 ? load : 0,
         np: np > 0 ? np : 0,
+        ap: ap > 0 ? ap : 0,
         hr: hr > 0 ? hr : 0,
         speed: speed != null && !Number.isNaN(speed) ? speed : 0,
         ifVal: activityIntensityFactor(np, profileFtp),
@@ -90,6 +92,8 @@ export function aggregateActivityListMetrics(activities, profileFtp = 0) {
         loadSum: 0,
         npSum: 0,
         npCount: 0,
+        apSum: 0,
+        apCount: 0,
         hrSum: 0,
         hrCount: 0,
         speedSum: 0,
@@ -109,6 +113,10 @@ export function aggregateActivityListMetrics(activities, profileFtp = 0) {
         if (m.np > 0) {
             out.npSum += m.np;
             out.npCount += 1;
+        }
+        if (m.ap > 0) {
+            out.apSum += m.ap;
+            out.apCount += 1;
         }
         if (m.hr > 0) {
             out.hrSum += m.hr;
@@ -133,10 +141,10 @@ export function aggregateActivityListMetrics(activities, profileFtp = 0) {
 /**
  * @param {object[]} activities
  * @param {number} profileFtp
- * @returns {Array<{ year: string, rideCount: number, distanceKm: number, movingTimeSec: number, elevationM: number }>}
+ * @returns {Array<{ year: string, rideCount: number, distanceKm: number, movingTimeSec: number, elevationM: number, loadSum: number }>}
  */
 export function aggregateActivityMetricsByYear(activities, profileFtp = 0) {
-    /** @type {Map<string, { rideCount: number, distanceKm: number, movingTimeSec: number, elevationM: number }>} */
+    /** @type {Map<string, { rideCount: number, distanceKm: number, movingTimeSec: number, elevationM: number, loadSum: number }>} */
     const byYear = new Map();
 
     for (const activity of activities || []) {
@@ -149,11 +157,13 @@ export function aggregateActivityMetricsByYear(activities, profileFtp = 0) {
             distanceKm: 0,
             movingTimeSec: 0,
             elevationM: 0,
+            loadSum: 0,
         };
         bucket.rideCount += 1;
         bucket.distanceKm += m.km;
         bucket.movingTimeSec += m.sec;
         bucket.elevationM += m.elev;
+        bucket.loadSum += m.load;
         byYear.set(year, bucket);
     }
 
@@ -164,6 +174,7 @@ export function aggregateActivityMetricsByYear(activities, profileFtp = 0) {
             distanceKm: Math.round(bucket.distanceKm * 10) / 10,
             movingTimeSec: bucket.movingTimeSec,
             elevationM: Math.round(bucket.elevationM),
+            loadSum: Math.round(bucket.loadSum),
         }))
         .sort((a, b) => b.year.localeCompare(a.year));
 }
@@ -178,6 +189,7 @@ export function computeActivityLogFilterAnalytics(filteredActivities, allActivit
     const baseline = aggregateActivityListMetrics(allActivities, profileFtp);
 
     const avgNormPower = filtered.npCount > 0 ? Math.round(filtered.npSum / filtered.npCount) : null;
+    const avgPower = filtered.apCount > 0 ? Math.round(filtered.apSum / filtered.apCount) : null;
     const avgHeartRate = filtered.hrCount > 0 ? Math.round(filtered.hrSum / filtered.hrCount) : null;
     const avgSpeedKmh = filtered.speedCount > 0
         ? Math.round((filtered.speedSum / filtered.speedCount) * 10) / 10
@@ -188,6 +200,15 @@ export function computeActivityLogFilterAnalytics(filteredActivities, allActivit
     const avgElevationM = filtered.rideCount > 0
         ? Math.round(filtered.elevationM / filtered.rideCount)
         : null;
+    const avgDistanceKm = filtered.rideCount > 0
+        ? Math.round((filtered.distanceKm / filtered.rideCount) * 10) / 10
+        : null;
+    const avgMovingTimeSec = filtered.rideCount > 0
+        ? Math.round(filtered.movingTimeSec / filtered.rideCount)
+        : null;
+    const avgLoad = filtered.rideCount > 0 && filtered.loadSum > 0
+        ? Math.round(filtered.loadSum / filtered.rideCount)
+        : null;
 
     return {
         rideCount: filtered.rideCount,
@@ -195,23 +216,31 @@ export function computeActivityLogFilterAnalytics(filteredActivities, allActivit
         rideCountPct: percentOf(filtered.rideCount, baseline.rideCount),
         distanceKm: filtered.distanceKm,
         distancePctOfAll: percentOf(filtered.distanceKm, baseline.distanceKm),
+        avgDistanceKm,
         movingTimeSec: filtered.movingTimeSec,
         movingTimeLabel: formatTotalMovingTime(filtered.movingTimeSec),
         movingTimePctOfAll: percentOf(filtered.movingTimeSec, baseline.movingTimeSec),
+        avgMovingTimeSec,
+        avgMovingTimeLabel: avgMovingTimeSec ? formatTotalMovingTime(avgMovingTimeSec) : null,
         elevationM: filtered.elevationM,
         elevationPctOfAll: percentOf(filtered.elevationM, baseline.elevationM),
         avgElevationM,
         totalLoad: filtered.loadSum,
         loadPctOfAll: percentOf(filtered.loadSum, baseline.loadSum),
+        avgLoad,
         avgNormPower,
+        avgPower,
         avgHeartRate,
         avgSpeedKmh,
         avgIntensityFactor,
         byYear: aggregateActivityMetricsByYear(filteredActivities, profileFtp),
         formatted: {
             distanceKm: formatNlNumber(filtered.distanceKm, 1),
+            avgDistanceKm: formatNlNumber(avgDistanceKm, 1),
             elevationM: formatNlNumber(filtered.elevationM, 0),
+            avgElevationM: formatNlNumber(avgElevationM, 0),
             totalLoad: formatNlNumber(filtered.loadSum, 0),
+            avgLoad: formatNlNumber(avgLoad, 0),
         },
     };
 }
