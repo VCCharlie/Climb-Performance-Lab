@@ -40,6 +40,8 @@ export const POWER_PEAK_FIELDS = [
     { id: 'best_60min', label: '60 min' },
     { id: 'best_90min', label: '90 min' },
     { id: 'best_120min', label: '120 min' },
+    { id: 'best_150min', label: '150 min' },
+    { id: 'best_180min', label: '180 min' },
 ];
 
 /** Power peak metrics for explorer (avg / max / top-N avg per bucket). */

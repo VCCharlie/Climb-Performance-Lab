@@ -330,7 +330,7 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                             <p className="text-xs text-cdmuted uppercase font-bold mb-2">Best efforts (W) — used for MMP curve</p>
                             <p className="hidden sm:block text-[10px] text-cdmuted mb-2 leading-snug">
                                 1–60 min values come from Intervals.icu list fields or Strava watt streams on import/sync.
-                                Rides over 90 min also get 90/120 min from the Intervals power curve or Strava streams when connected.
+                                Rides over 90 min also get 90–180 min from the Intervals power curve or Strava streams when connected.
                             </p>
                         </div>
                         <div>
@@ -360,6 +360,14 @@ const EditActivityModal = ({ activity, allActivities = [], onClose, onSave, onFi
                         <div>
                             <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Best 120 min (W)</label>
                             <input name="best_120min" type="number" value={formData.best_120min || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Best 150 min (W)</label>
+                            <input name="best_150min" type="number" value={formData.best_150min || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-cdmuted uppercase font-bold block mb-1">Best 180 min (W)</label>
+                            <input name="best_180min" type="number" value={formData.best_180min || 0} onChange={handleChange} className="w-full bg-cdborder border border-cdborder rounded p-2 text-cdtext focus:border-cdprimary/50 focus:ring-4 focus:ring-cdprimary/10 focus:outline-none" />
                         </div>
                     </div>
 

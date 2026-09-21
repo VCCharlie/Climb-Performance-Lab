@@ -21,6 +21,8 @@ export const NUMERIC_ACTIVITY_SORT_KEYS = new Set([
     'best_60min',
     'best_90min',
     'best_120min',
+    'best_150min',
+    'best_180min',
     'avg_altitude',
     'max_altitude',
     'ftp',

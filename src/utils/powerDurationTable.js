@@ -1,6 +1,6 @@
 /**
  * Power-duration curve for a set of activities (intervals.icu-style).
- * Per ride: max_power, best 1/5/10/20/60 (and optional 90/120) min, plus a moving_time anchor
+ * Per ride: max_power, best 1/5/10/20/60 (and optional 90/120/150/180) min, plus a moving_time anchor
  * with conservative average power — intermediate seconds via log interpolation.
  */
 
@@ -65,7 +65,7 @@ function maxAnchorSec(anchors) {
 
 /**
  * Ankers (sec, watt) voor één activiteit — basis voor interpolatie per rit.
- * Inclusief optionele best_90min / best_120min uit API en een anker op echte moving_time
+ * Inclusief optionele best_90min / best_120min / best_150min / best_180min uit API en een anker op echte moving_time
  * (avg/np) zodat de curve voorbij 60 min kan dalen zonder plat te blijven.
  */
 export function buildAnchorsForActivity(activity, manualFtp) {
@@ -78,6 +78,8 @@ export function buildAnchorsForActivity(activity, manualFtp) {
     const b60 = capBestField(activity.best_60min, 'best_60min', manualFtp);
     const b90 = capBestField(activity.best_90min, 'best_90min', manualFtp);
     const b120 = capBestField(activity.best_120min, 'best_120min', manualFtp);
+    const b150 = capBestField(activity.best_150min, 'best_150min', manualFtp);
+    const b180 = capBestField(activity.best_180min, 'best_180min', manualFtp);
 
     const anchors = [];
     if (maxP > 0) anchors.push({ sec: 1, w: maxP });
@@ -88,6 +90,8 @@ export function buildAnchorsForActivity(activity, manualFtp) {
     if (b60 > 0) anchors.push({ sec: 3600, w: b60 });
     if (b90 > 0) anchors.push({ sec: 5400, w: b90 });
     if (b120 > 0) anchors.push({ sec: 7200, w: b120 });
+    if (b150 > 0) anchors.push({ sec: 9000, w: b150 });
+    if (b180 > 0) anchors.push({ sec: 10800, w: b180 });
 
     anchors.sort((a, b) => a.sec - b.sec);
 

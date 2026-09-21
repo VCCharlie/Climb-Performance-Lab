@@ -1,5 +1,5 @@
 /**
- * Fill missing best powers (1–120 min) from Intervals.icu power curves.
+ * Fill missing best powers (1–180 min) from Intervals.icu power curves.
  * Strava-sourced rides on Intervals often lack Best1min… fields on the activity API;
  * GET /api/v1/activity/{id}/power-curve.json still exposes computed peaks when available.
  */
@@ -112,6 +112,8 @@ export const STANDARD_POWER_CURVE_BEST_TARGETS = [
 const LONG_BEST_TARGETS = [
     { field: 'best_90min', minMovingSec: 5400, curveSec: 5400 },
     { field: 'best_120min', minMovingSec: 7200, curveSec: 7200 },
+    { field: 'best_150min', minMovingSec: 9000, curveSec: 9000 },
+    { field: 'best_180min', minMovingSec: 10800, curveSec: 10800 },
 ];
 
 /** @type {PowerCurveBestTarget[]} */

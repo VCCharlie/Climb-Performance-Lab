@@ -172,6 +172,8 @@ export function cloudPayloadToRawShape(item) {
         Best60minpower: item.best_60min,
         Best90minpower: item.best_90min,
         Best120minpower: item.best_120min,
+        Best150minpower: item.best_150min,
+        Best180minpower: item.best_180min,
         average_altitude: item.avg_altitude,
         maximum_altitude: item.max_altitude,
         trainer: item.type === 'VirtualRide',
@@ -307,6 +309,20 @@ export const normalizeIntervalsActivity = (item) => {
         'icu_power_120min',
         'w120min',
     ));
+    const best150min = getNum(getVal(
+        'best_150min',
+        'Best150minpower',
+        'best_150min_power',
+        'icu_power_150min',
+        'w150min',
+    ));
+    const best180min = getNum(getVal(
+        'best_180min',
+        'Best180minpower',
+        'best_180min_power',
+        'icu_power_180min',
+        'w180min',
+    ));
 
     const avgAltitude = getNum(getVal('avgAltitude', 'average_altitude', 'avg_altitude'));
     const maxAltitude = getNum(getVal('maxAltitude', 'maximum_altitude', 'max_altitude'));
@@ -349,6 +365,8 @@ export const normalizeIntervalsActivity = (item) => {
         best_60min: Math.round(best60min),
         best_90min: Math.round(best90min),
         best_120min: Math.round(best120min),
+        best_150min: Math.round(best150min),
+        best_180min: Math.round(best180min),
         avg_altitude: Math.round(avgAltitude),
         max_altitude: Math.round(maxAltitude),
         trainer: item.trainer === true || finalType === 'VirtualRide' || finalType === 'VirtualRun',
