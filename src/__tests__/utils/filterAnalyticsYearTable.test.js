@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
     buildFilterAnalyticsSummaryChips,
+    buildYearChartSeries,
     buildYearTableColumns,
     FILTER_ANALYTICS_YEAR_TABLE_COLUMNS,
 } from '../../utils/filterAnalyticsYearTable';
@@ -90,5 +91,16 @@ describe('filterAnalyticsYearTable', () => {
         for (const key of metricKeysForPreset('essential')) {
             expect(FILTER_ANALYTICS_YEAR_TABLE_COLUMNS[key]).toBeTruthy();
         }
+    });
+
+    it('buildYearChartSeries mirrors visible year table columns', () => {
+        const analytics = computeActivityLogFilterAnalytics(sampleActivities, sampleActivities, 250);
+        const series = buildYearChartSeries(
+            ['activities', 'distance_avg', 'time_avg', 'avg_np'],
+            analytics.byYear,
+        );
+        expect(series.map((s) => s.key)).toEqual(['activities', 'distance_avg', 'time_avg', 'avg_np']);
+        expect(series[0].dataKey).toBe('rideCount');
+        expect(series[1].dataKey).toBe('avgDistanceKm');
     });
 });

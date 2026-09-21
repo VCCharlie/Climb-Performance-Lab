@@ -83,7 +83,7 @@ describe('filterAnalyticsMetrics', () => {
         const chartData = buildFilterAnalyticsChartData(analytics);
         expect(chartData).toHaveLength(1);
         expect(chartData[0].year).toBe('2024');
-        expect(chartData[0].rides).toBe(2);
-        expect(chartData[0].load).toBeGreaterThan(0);
+        expect(chartData[0].rideCount).toBe(2);
+        expect(chartData[0].loadSum).toBeGreaterThan(0);
     });
 });

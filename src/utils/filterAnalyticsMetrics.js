@@ -1,5 +1,6 @@
 import { safeLocalStorageSet } from './safeStorage';
 import { formatTotalMovingTime } from './activityLogFilterAnalytics';
+import { buildFilterAnalyticsYearChartData as buildYearChartDataFromRows } from './filterAnalyticsYearTable';
 
 export const FILTER_ANALYTICS_METRICS_STORAGE_KEY = 'cpl.filterAnalyticsMetrics.v1';
 
@@ -253,18 +254,7 @@ export function buildFilterAnalyticsMetricChips(visibleKeys, analytics) {
         .filter(Boolean);
 }
 
-/**
- * Chart rows for the insight drawer (newest year first in data, reversed for left-to-right ascending in chart).
- * @param {ReturnType<import('./activityLogFilterAnalytics').computeActivityLogFilterAnalytics>} analytics
- */
+/** @param {{ byYear?: object[] }} analytics */
 export function buildFilterAnalyticsChartData(analytics) {
-    const rows = [...(analytics?.byYear || [])].reverse();
-    return rows.map((row) => ({
-        year: row.year,
-        rides: row.rideCount,
-        distanceKm: row.distanceKm,
-        movingHours: Math.round((row.movingTimeSec / 3600) * 10) / 10,
-        elevationM: row.elevationM,
-        load: row.loadSum || 0,
-    }));
+    return buildYearChartDataFromRows(analytics?.byYear || []);
 }

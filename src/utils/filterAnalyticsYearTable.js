@@ -225,3 +225,164 @@ export function buildFilterAnalyticsSummaryChips(analytics, keys) {
         })
         .filter(Boolean);
 }
+
+/** @type {Record<string, { dataKey: string, title: string, subtitle: string, colorKey: string, allowDecimals?: boolean, formatTooltip: (value: number) => [string, string] }>} */
+export const FILTER_ANALYTICS_YEAR_CHART_SERIES = {
+    activities: {
+        dataKey: 'rideCount',
+        title: 'Rides per year',
+        subtitle: 'Activity count per calendar year',
+        colorKey: 'primary',
+        allowDecimals: false,
+        formatTooltip: (value) => [String(value), 'Rides'],
+    },
+    distance_total: {
+        dataKey: 'distanceKm',
+        title: 'Distance per year',
+        subtitle: 'Total km per calendar year',
+        colorKey: 'blue',
+        formatTooltip: (value) => [
+            `${formatNlNumber(value, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km`,
+            'Distance',
+        ],
+    },
+    distance_avg: {
+        dataKey: 'avgDistanceKm',
+        title: 'Average distance per year',
+        subtitle: 'Mean km per activity each year',
+        colorKey: 'blue',
+        formatTooltip: (value) => [
+            `${formatNlNumber(value, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km`,
+            'Dist (avg)',
+        ],
+    },
+    time_total: {
+        dataKey: 'movingHours',
+        title: 'Moving time per year',
+        subtitle: 'Total hours per calendar year',
+        colorKey: 'green',
+        formatTooltip: (value) => [`${value} h`, 'Time'],
+    },
+    time_avg: {
+        dataKey: 'avgMovingHours',
+        title: 'Average duration per year',
+        subtitle: 'Mean hours per activity each year',
+        colorKey: 'green',
+        formatTooltip: (value) => [`${value} h`, 'Dur (avg)'],
+    },
+    elevation_total: {
+        dataKey: 'elevationM',
+        title: 'Elevation per year',
+        subtitle: 'Total climbing meters per calendar year',
+        colorKey: 'primary',
+        allowDecimals: false,
+        formatTooltip: (value) => [`${value} m`, 'Elev'],
+    },
+    elevation_avg: {
+        dataKey: 'avgElevationM',
+        title: 'Average elevation per year',
+        subtitle: 'Mean climbing meters per activity each year',
+        colorKey: 'primary',
+        allowDecimals: false,
+        formatTooltip: (value) => [`${value} m`, 'Elev (avg)'],
+    },
+    tss_total: {
+        dataKey: 'loadSum',
+        title: 'Training load per year',
+        subtitle: 'Total TSS per calendar year',
+        colorKey: 'green',
+        allowDecimals: false,
+        formatTooltip: (value) => [String(value), 'TSS'],
+    },
+    tss_avg: {
+        dataKey: 'avgLoad',
+        title: 'Average TSS per year',
+        subtitle: 'Mean TSS per activity each year',
+        colorKey: 'green',
+        allowDecimals: false,
+        formatTooltip: (value) => [String(value), 'TSS (avg)'],
+    },
+    avg_np: {
+        dataKey: 'avgNormPower',
+        title: 'Average NP per year',
+        subtitle: 'Mean normalized power each year',
+        colorKey: 'blue',
+        allowDecimals: false,
+        formatTooltip: (value) => [`${value} W`, 'Avg NP'],
+    },
+    avg_power: {
+        dataKey: 'avgPower',
+        title: 'Average power per year',
+        subtitle: 'Mean average power each year',
+        colorKey: 'blue',
+        allowDecimals: false,
+        formatTooltip: (value) => [`${value} W`, 'Avg power'],
+    },
+    avg_if: {
+        dataKey: 'avgIntensityFactor',
+        title: 'Average IF per year',
+        subtitle: 'Mean intensity factor each year',
+        colorKey: 'primary',
+        formatTooltip: (value) => [Number(value).toFixed(2), 'Avg IF'],
+    },
+    avg_hr: {
+        dataKey: 'avgHeartRate',
+        title: 'Average HR per year',
+        subtitle: 'Mean heart rate each year',
+        colorKey: 'green',
+        allowDecimals: false,
+        formatTooltip: (value) => [`${value} bpm`, 'Avg HR'],
+    },
+    avg_speed: {
+        dataKey: 'avgSpeedKmh',
+        title: 'Average speed per year',
+        subtitle: 'Mean speed each year',
+        colorKey: 'blue',
+        formatTooltip: (value) => [`${value} km/h`, 'Avg speed'],
+    },
+};
+
+/**
+ * Chart rows (ascending year) with numeric fields for Recharts.
+ * @param {object[]} byYear
+ */
+export function buildFilterAnalyticsYearChartData(byYear = []) {
+    return [...byYear].reverse().map((row) => ({
+        year: row.year,
+        rideCount: row.rideCount,
+        distanceKm: row.distanceKm,
+        avgDistanceKm: row.avgDistanceKm,
+        movingHours: Math.round((row.movingTimeSec / 3600) * 10) / 10,
+        avgMovingHours: row.avgMovingTimeSec
+            ? Math.round((row.avgMovingTimeSec / 3600) * 10) / 10
+            : null,
+        elevationM: row.elevationM,
+        avgElevationM: row.avgElevationM,
+        loadSum: row.loadSum || 0,
+        avgLoad: row.avgLoad,
+        avgNormPower: row.avgNormPower,
+        avgPower: row.avgPower,
+        avgIntensityFactor: row.avgIntensityFactor,
+        avgHeartRate: row.avgHeartRate,
+        avgSpeedKmh: row.avgSpeedKmh,
+    }));
+}
+
+/**
+ * Build one bar chart per visible year-table column that supports charting.
+ * @param {string[]} visibleKeys
+ * @param {object[]} rows
+ */
+export function buildYearChartSeries(visibleKeys, rows = []) {
+    const tableColumns = buildYearTableColumns(visibleKeys, rows);
+    return tableColumns
+        .map((col) => {
+            const spec = FILTER_ANALYTICS_YEAR_CHART_SERIES[col.key];
+            if (!spec) return null;
+            return {
+                key: col.key,
+                ...spec,
+            };
+        })
+        .filter(Boolean);
+}
