@@ -76,19 +76,27 @@ describe('mergeStravaApiIntoRestrictedIntervalsActivity', () => {
     });
 
     it('merges Strava detail onto sparse Intervals payload', async () => {
-        fetch.mockResolvedValue({
-            ok: true,
-            json: async () => ({
-                id: 99112233,
-                name: 'Cols 2017',
-                type: 'Ride',
-                distance: 85000,
-                moving_time: 7200,
-                average_watts: 180,
-                weighted_average_watts: 195,
-                average_heartrate: 145,
-            }),
-        });
+        fetch
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    id: 99112233,
+                    name: 'Cols 2017',
+                    type: 'Ride',
+                    distance: 85000,
+                    moving_time: 7200,
+                    average_watts: 180,
+                    weighted_average_watts: 195,
+                    average_heartrate: 145,
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    secs: [60, 300, 1200],
+                    watts: [420, 340, 280],
+                }),
+            });
 
         const merged = await mergeStravaApiIntoRestrictedIntervalsActivity(
             {
@@ -97,7 +105,7 @@ describe('mergeStravaApiIntoRestrictedIntervalsActivity', () => {
                 source: 'STRAVA',
                 external_id: 'strava:99112233',
             },
-            { stravaToken: 'token-abc' },
+            { stravaToken: 'token-abc', intervalsConfig: { apiKey: 'secret' } },
         );
 
         expect(merged.id).toBe('i970385547');
@@ -105,6 +113,8 @@ describe('mergeStravaApiIntoRestrictedIntervalsActivity', () => {
         expect(merged.distance).toBe(85);
         expect(merged.avg_power).toBe(180);
         expect(merged.strava_id).toBe('99112233');
+        expect(merged.best_1min).toBe(420);
+        expect(merged.best_20min).toBe(280);
     });
 });
 

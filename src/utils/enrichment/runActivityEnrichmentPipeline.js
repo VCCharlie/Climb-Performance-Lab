@@ -73,7 +73,7 @@ export async function runActivityEnrichmentPipeline(activities, options = {}) {
     }
 
     if (options.intervalsConfig?.apiKey || options.intervalsConfig?.athleteId) {
-        onProgress?.('Enriching long power bests (90/120 min)…');
+        onProgress?.('Enriching power bests from Intervals power curves…');
         stats.powerCurveRan = true;
         try {
             result = await enrichActivitiesWithLongDurationBests(result, options.intervalsConfig);
