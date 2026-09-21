@@ -17,6 +17,11 @@ describe('getActivityExportColumns', () => {
         expect(keys).not.toContain('strava_kom_summary');
         expect(keys).not.toContain('intensity_factor');
     });
+
+    it('includes Strava link column at the end', () => {
+        const columns = getActivityExportColumns();
+        expect(columns[columns.length - 1]).toEqual({ key: 'strava_url', label: 'Strava link' });
+    });
 });
 
 describe('activitiesToCsv', () => {
@@ -43,11 +48,12 @@ describe('activitiesToCsv', () => {
     it('exports formatted time and distance for mixed activity shapes', () => {
         const csv = activitiesToCsv([
             {
-                date: '2026-07-11',
+                date: '2026-07-11T07:28:57.000Z',
                 type: 'Ride',
                 title: 'Intervals ride',
                 moving_time: 7903,
                 distance: 72.83,
+                strava_id: '987654321',
             },
             {
                 date: '2026-04-01',
@@ -57,10 +63,13 @@ describe('activitiesToCsv', () => {
                 distance: '73.43',
             },
         ]);
+        expect(csv).toContain('2026-07-11');
+        expect(csv).not.toContain('T07:28:57');
         expect(csv).toContain('2:11:43');
         expect(csv).toContain('2:20:59');
         expect(csv).toContain('72,83');
         expect(csv).toContain('73,43');
+        expect(csv).toContain('https://www.strava.com/activities/987654321');
         expect(csv).not.toContain(',7903,');
     });
 });
@@ -101,6 +110,17 @@ describe('formatActivityExportCell', () => {
         expect(formatActivityExportCell(245, 'norm_power')).toBe('245');
         expect(formatActivityExportCell('120', 'load')).toBe('120');
     });
+
+    it('normalizes date values to YYYY-MM-DD for export', () => {
+        expect(formatActivityExportCell('2017-05-04', 'date')).toBe('2017-05-04');
+        expect(formatActivityExportCell('2026-09-20T07:26:49.000Z', 'date')).toBe('2026-09-20');
+    });
+
+    it('passes through Strava activity URLs', () => {
+        expect(formatActivityExportCell('https://www.strava.com/activities/123456', 'strava_url'))
+            .toBe('https://www.strava.com/activities/123456');
+        expect(formatActivityExportCell(null, 'strava_url')).toBe('');
+    });
 });
 
 describe('parseExportNumber', () => {
@@ -120,7 +140,14 @@ describe('exportDistanceKm', () => {
 describe('activitiesToXlsxWorksheet', () => {
     it('writes data rows directly under header columns', () => {
         const ws = activitiesToXlsxWorksheet(
-            [{ date: '2026-07-11', type: 'Ride', title: 'CD', distance: 42.5, load: 65 }],
+            [{
+                date: '2026-07-11T07:28:57.000Z',
+                type: 'Ride',
+                title: 'CD',
+                distance: 42.5,
+                load: 65,
+                strava_id: '123456',
+            }],
             XLSX,
         );
         expect(ws.A1?.v).toBe('Date');
@@ -128,5 +155,17 @@ describe('activitiesToXlsxWorksheet', () => {
         expect(ws.A2?.v).toBe('2026-07-11');
         expect(ws.B2?.v).toBe('Ride');
         expect(ws.C2?.v).toBe('CD');
+    });
+
+    it('includes Strava link column when strava_id is present', () => {
+        const ws = activitiesToXlsxWorksheet(
+            [{ date: '2026-01-01', type: 'Ride', title: 'A', strava_id: '555' }],
+            XLSX,
+        );
+        const columns = getActivityExportColumns();
+        const stravaColIndex = columns.findIndex((c) => c.key === 'strava_url');
+        const colLetter = XLSX.utils.encode_col(stravaColIndex);
+        expect(ws[`${colLetter}1`]?.v).toBe('Strava link');
+        expect(ws[`${colLetter}2`]?.v).toBe('https://www.strava.com/activities/555');
     });
 });
