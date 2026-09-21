@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Chip, inputBaseClass, cn } from '../../ui';
+import { Chip, cn, inputBaseClass } from '../../ui';
+import { ACTIVITY_SPORT_TYPE_FILTER_OPTIONS } from '../../../utils/activitySportTypeFilters';
 
 /**
  * Quick filter chips for Activity Log — unified Chip styling (no per-filter rainbow colors).
@@ -30,24 +31,15 @@ export default function QuickFilterChips({
     onMissingHrOnlyChange,
     hasTagOnly,
     onHasTagOnlyChange,
-    virtualRideChip,
-    onVirtualRideChipChange,
-    gravelRideChip,
-    onGravelRideChipChange,
-    mtbRideChip,
-    onMtbRideChipChange,
-    ebikeRideChip,
-    onEbikeRideChipChange,
-    indoorFilter,
-    onIndoorFilterChange,
-    minTss,
-    onMinTssChange,
+    activeSportTypes = [],
+    toggleSportType,
     gearFilterOptions,
     filterGearId,
     onFilterGearIdChange,
 }) {
     const [moreOpen, setMoreOpen] = useState(false);
     const showSecondary = !compact || moreOpen;
+    const selectedSportTypes = new Set(activeSportTypes);
 
     const secondaryActive = Boolean(
         rollingDays === 14
@@ -57,11 +49,75 @@ export default function QuickFilterChips({
         || longRideOnly
         || missingHrOnly
         || hasTagOnly
-        || virtualRideChip
-        || gravelRideChip
-        || mtbRideChip
-        || ebikeRideChip
+        || activeSportTypes.length > 0
         || filterGearId,
+    );
+
+    const secondaryChips = (
+        <>
+            <Chip
+                size="xs"
+                selected={rollingDays === 14}
+                onClick={() => {
+                    onRollingDaysChange((cur) => (cur === 14 ? null : 14));
+                    onThisWeekOnlyChange(false);
+                }}
+            >
+                Last 14d
+            </Chip>
+            <Chip
+                size="xs"
+                selected={stravaLinkedOnly}
+                disabled={!stravaGetToken}
+                onClick={() => {
+                    onStravaLinkedOnlyChange((v) => {
+                        const next = !v;
+                        if (next) onNoStravaLinkOnlyChange(false);
+                        return next;
+                    });
+                }}
+            >
+                Strava link
+            </Chip>
+            <Chip
+                size="xs"
+                selected={noStravaLinkOnly}
+                onClick={() => {
+                    onNoStravaLinkOnlyChange((v) => {
+                        const next = !v;
+                        if (next) onStravaLinkedOnlyChange(false);
+                        return next;
+                    });
+                }}
+                title="Activities without a linked Strava id"
+            >
+                No Strava link
+            </Chip>
+            <Chip
+                size="xs"
+                selected={possibleDuplicatesOnly}
+                onClick={() => onPossibleDuplicatesOnlyChange((v) => !v)}
+                title="Show rows that match another activity on the same day (same title + duration)"
+            >
+                Possible duplicates
+            </Chip>
+            <Chip
+                size="xs"
+                selected={longRideOnly}
+                onClick={() => onLongRideOnlyChange((v) => !v)}
+                title="Distance > 100 km"
+            >
+                Long ride
+            </Chip>
+            <Chip
+                size="xs"
+                selected={missingHrOnly}
+                onClick={() => onMissingHrOnlyChange((v) => !v)}
+                title="Avg HR missing or zero"
+            >
+                No HR
+            </Chip>
+        </>
     );
 
     return (
@@ -156,311 +212,31 @@ export default function QuickFilterChips({
                         {secondaryActive && !moreOpen ? ' ·' : ''}
                     </button>
                 ) : (
-                    <>
-                        <Chip
-                            size="xs"
-                            selected={rollingDays === 14}
-                            onClick={() => {
-                                onRollingDaysChange((cur) => (cur === 14 ? null : 14));
-                                onThisWeekOnlyChange(false);
-                            }}
-                        >
-                            Last 14d
-                        </Chip>
-                        <Chip
-                            size="xs"
-                            selected={stravaLinkedOnly}
-                            disabled={!stravaGetToken}
-                            onClick={() => {
-                                onStravaLinkedOnlyChange((v) => {
-                                    const next = !v;
-                                    if (next) onNoStravaLinkOnlyChange(false);
-                                    return next;
-                                });
-                            }}
-                        >
-                            Strava link
-                        </Chip>
-                        <Chip
-                            size="xs"
-                            selected={noStravaLinkOnly}
-                            onClick={() => {
-                                onNoStravaLinkOnlyChange((v) => {
-                                    const next = !v;
-                                    if (next) onStravaLinkedOnlyChange(false);
-                                    return next;
-                                });
-                            }}
-                            title="Activities without a linked Strava id"
-                        >
-                            No Strava link
-                        </Chip>
-                        <Chip
-                            size="xs"
-                            selected={possibleDuplicatesOnly}
-                            onClick={() => onPossibleDuplicatesOnlyChange((v) => !v)}
-                            title="Show rows that match another activity on the same day (same title + duration)"
-                        >
-                            Possible duplicates
-                        </Chip>
-                        <Chip
-                            size="xs"
-                            selected={longRideOnly}
-                            onClick={() => onLongRideOnlyChange((v) => !v)}
-                            title="Distance > 100 km"
-                        >
-                            Long ride
-                        </Chip>
-                        <Chip
-                            size="xs"
-                            selected={missingHrOnly}
-                            onClick={() => onMissingHrOnlyChange((v) => !v)}
-                            title="Avg HR missing or zero"
-                        >
-                            No HR
-                        </Chip>
-                        <Chip
-                            size="xs"
-                            selected={virtualRideChip}
-                            onClick={() => {
-                                if (virtualRideChip) {
-                                    onVirtualRideChipChange(false);
-                                    onIndoorFilterChange('all');
-                                } else {
-                                    onVirtualRideChipChange(true);
-                                    onGravelRideChipChange(false);
-                                    onMtbRideChipChange(false);
-                                    onEbikeRideChipChange(false);
-                                    onIndoorFilterChange('indoor');
-                                }
-                            }}
-                        >
-                            Virtual only
-                        </Chip>
-                        <Chip
-                            size="xs"
-                            selected={gravelRideChip}
-                            onClick={() => {
-                                if (gravelRideChip) {
-                                    onGravelRideChipChange(false);
-                                } else {
-                                    onGravelRideChipChange(true);
-                                    onMtbRideChipChange(false);
-                                    onEbikeRideChipChange(false);
-                                    onVirtualRideChipChange(false);
-                                    if (indoorFilter === 'indoor') onIndoorFilterChange('all');
-                                }
-                            }}
-                            title="Show activities stored as GravelRide"
-                        >
-                            Gravel
-                        </Chip>
-                        <Chip
-                            size="xs"
-                            selected={mtbRideChip}
-                            onClick={() => {
-                                if (mtbRideChip) {
-                                    onMtbRideChipChange(false);
-                                } else {
-                                    onMtbRideChipChange(true);
-                                    onGravelRideChipChange(false);
-                                    onEbikeRideChipChange(false);
-                                    onVirtualRideChipChange(false);
-                                    if (indoorFilter === 'indoor') onIndoorFilterChange('all');
-                                }
-                            }}
-                            title="Show activities stored as MountainBikeRide"
-                        >
-                            MTB
-                        </Chip>
-                        <Chip
-                            size="xs"
-                            selected={ebikeRideChip}
-                            onClick={() => {
-                                if (ebikeRideChip) {
-                                    onEbikeRideChipChange(false);
-                                } else {
-                                    onEbikeRideChipChange(true);
-                                    onGravelRideChipChange(false);
-                                    onMtbRideChipChange(false);
-                                    onVirtualRideChipChange(false);
-                                    if (indoorFilter === 'indoor') onIndoorFilterChange('all');
-                                }
-                            }}
-                            title="Show activities stored as EBikeRide"
-                        >
-                            E-bike
-                        </Chip>
-                    </>
-                )}
-                {!compact && (
-                    <label className="inline-flex items-center gap-1.5 text-[10px] text-cdmuted ml-0.5">
-                        <span className="font-semibold shrink-0">TSS &gt;</span>
-                        <input
-                            type="number"
-                            min={0}
-                            step={1}
-                            placeholder="—"
-                            value={minTss}
-                            onChange={(e) => onMinTssChange(e.target.value)}
-                            className={cn(inputBaseClass, 'w-14 !py-1 !px-1.5 text-[10px]')}
-                            aria-label="Minimum TSS"
-                        />
-                    </label>
+                    secondaryChips
                 )}
             </div>
 
             {showSecondary && compact && (
                 <div className="flex flex-wrap gap-1.5 items-center">
-                    <Chip
-                        size="xs"
-                        selected={rollingDays === 14}
-                        onClick={() => {
-                            onRollingDaysChange((cur) => (cur === 14 ? null : 14));
-                            onThisWeekOnlyChange(false);
-                        }}
-                    >
-                        Last 14d
-                    </Chip>
-                    <Chip
-                        size="xs"
-                        selected={stravaLinkedOnly}
-                        disabled={!stravaGetToken}
-                        onClick={() => {
-                            onStravaLinkedOnlyChange((v) => {
-                                const next = !v;
-                                if (next) onNoStravaLinkOnlyChange(false);
-                                return next;
-                            });
-                        }}
-                    >
-                        Strava link
-                    </Chip>
-                    <Chip
-                        size="xs"
-                        selected={noStravaLinkOnly}
-                        onClick={() => {
-                            onNoStravaLinkOnlyChange((v) => {
-                                const next = !v;
-                                if (next) onStravaLinkedOnlyChange(false);
-                                return next;
-                            });
-                        }}
-                        title="Activities without a linked Strava id"
-                    >
-                        No Strava link
-                    </Chip>
-                    <Chip
-                        size="xs"
-                        selected={possibleDuplicatesOnly}
-                        onClick={() => onPossibleDuplicatesOnlyChange((v) => !v)}
-                        title="Show rows that match another activity on the same day (same title + duration)"
-                    >
-                        Possible duplicates
-                    </Chip>
-                    <Chip
-                        size="xs"
-                        selected={longRideOnly}
-                        onClick={() => onLongRideOnlyChange((v) => !v)}
-                        title="Distance > 100 km"
-                    >
-                        Long ride
-                    </Chip>
-                    <Chip
-                        size="xs"
-                        selected={missingHrOnly}
-                        onClick={() => onMissingHrOnlyChange((v) => !v)}
-                        title="Avg HR missing or zero"
-                    >
-                        No HR
-                    </Chip>
-                    <Chip
-                        size="xs"
-                        selected={virtualRideChip}
-                        onClick={() => {
-                            if (virtualRideChip) {
-                                onVirtualRideChipChange(false);
-                                onIndoorFilterChange('all');
-                            } else {
-                                onVirtualRideChipChange(true);
-                                onGravelRideChipChange(false);
-                                onMtbRideChipChange(false);
-                                onEbikeRideChipChange(false);
-                                onIndoorFilterChange('indoor');
-                            }
-                        }}
-                    >
-                        Virtual only
-                    </Chip>
-                    <Chip
-                        size="xs"
-                        selected={gravelRideChip}
-                        onClick={() => {
-                            if (gravelRideChip) {
-                                onGravelRideChipChange(false);
-                            } else {
-                                onGravelRideChipChange(true);
-                                onMtbRideChipChange(false);
-                                onEbikeRideChipChange(false);
-                                onVirtualRideChipChange(false);
-                                if (indoorFilter === 'indoor') onIndoorFilterChange('all');
-                            }
-                        }}
-                        title="Show activities stored as GravelRide"
-                    >
-                        Gravel
-                    </Chip>
-                    <Chip
-                        size="xs"
-                        selected={mtbRideChip}
-                        onClick={() => {
-                            if (mtbRideChip) {
-                                onMtbRideChipChange(false);
-                            } else {
-                                onMtbRideChipChange(true);
-                                onGravelRideChipChange(false);
-                                onEbikeRideChipChange(false);
-                                onVirtualRideChipChange(false);
-                                if (indoorFilter === 'indoor') onIndoorFilterChange('all');
-                            }
-                        }}
-                        title="Show activities stored as MountainBikeRide"
-                    >
-                        MTB
-                    </Chip>
-                    <Chip
-                        size="xs"
-                        selected={ebikeRideChip}
-                        onClick={() => {
-                            if (ebikeRideChip) {
-                                onEbikeRideChipChange(false);
-                            } else {
-                                onEbikeRideChipChange(true);
-                                onGravelRideChipChange(false);
-                                onMtbRideChipChange(false);
-                                onVirtualRideChipChange(false);
-                                if (indoorFilter === 'indoor') onIndoorFilterChange('all');
-                            }
-                        }}
-                        title="Show activities stored as EBikeRide"
-                    >
-                        E-bike
-                    </Chip>
-                    <label className="inline-flex items-center gap-1.5 text-[10px] text-cdmuted ml-0.5">
-                        <span className="font-semibold shrink-0">TSS &gt;</span>
-                        <input
-                            type="number"
-                            min={0}
-                            step={1}
-                            placeholder="—"
-                            value={minTss}
-                            onChange={(e) => onMinTssChange(e.target.value)}
-                            className={cn(inputBaseClass, 'w-14 !py-1 !px-1.5 text-[10px]')}
-                            aria-label="Minimum TSS"
-                        />
-                    </label>
+                    {secondaryChips}
                 </div>
             )}
+
+            <div className="flex flex-wrap gap-1.5 items-center">
+                <span className="text-[9px] font-semibold text-cdmuted uppercase shrink-0 mr-0.5">Type</span>
+                {ACTIVITY_SPORT_TYPE_FILTER_OPTIONS.map(({ type, label }) => (
+                    <Chip
+                        key={type}
+                        size="xs"
+                        variant="filter"
+                        selected={selectedSportTypes.has(type)}
+                        onClick={() => toggleSportType?.(type)}
+                        title={`Show ${type} activities only (toggle multiple types)`}
+                    >
+                        {label}
+                    </Chip>
+                ))}
+            </div>
 
             {showSecondary && (
                 <div className="flex flex-wrap items-center gap-2">

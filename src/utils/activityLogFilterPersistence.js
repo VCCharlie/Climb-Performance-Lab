@@ -1,4 +1,5 @@
 import { safeLocalStorageSet } from './safeStorage';
+import { migrateLegacySportTypeFilters, normalizeActiveSportTypes } from './activitySportTypeFilters';
 
 export const ACTIVITY_LOG_FILTER_STATE_KEY = 'cpl.activityLogFilterState.v1';
 
@@ -41,10 +42,7 @@ export function buildActivityLogFilterSnapshot(filterState) {
         highLoadOnly: Boolean(filterState.highLoadOnly),
         longRideOnly: Boolean(filterState.longRideOnly),
         missingHrOnly: Boolean(filterState.missingHrOnly),
-        virtualRideChip: Boolean(filterState.virtualRideChip),
-        gravelRideChip: Boolean(filterState.gravelRideChip),
-        mtbRideChip: Boolean(filterState.mtbRideChip),
-        ebikeRideChip: Boolean(filterState.ebikeRideChip),
+        activeSportTypes: normalizeActiveSportTypes(filterState.activeSportTypes),
         hasTagOnly: Boolean(filterState.hasTagOnly),
         minTss: filterState.minTss ?? '',
         filterDistMin: filterState.filterDistMin ?? '',
@@ -81,9 +79,11 @@ export function mergeActivityLogFilterDefaults(saved, defaults) {
     if (!saved) return defaults;
     const merged = { ...defaults };
     for (const key of Object.keys(defaults)) {
+        if (key === 'activeSportTypes') continue;
         if (saved[key] !== undefined && saved[key] !== null) {
             merged[key] = saved[key];
         }
     }
+    merged.activeSportTypes = migrateLegacySportTypeFilters(saved);
     return merged;
 }

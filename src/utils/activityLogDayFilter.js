@@ -69,10 +69,7 @@ export function applyFilterSnapshotToSetters(snapshot, setters) {
     apply('setHighLoadOnly', 'highLoadOnly', false);
     apply('setLongRideOnly', 'longRideOnly', false);
     apply('setMissingHrOnly', 'missingHrOnly', false);
-    apply('setVirtualRideChip', 'virtualRideChip', false);
-    apply('setGravelRideChip', 'gravelRideChip', false);
-    apply('setMtbRideChip', 'mtbRideChip', false);
-    apply('setEbikeRideChip', 'ebikeRideChip', false);
+    apply('setActiveSportTypes', 'activeSportTypes', []);
     apply('setHasTagOnly', 'hasTagOnly', false);
     apply('setMinTss', 'minTss', '');
     apply('setFilterGearId', 'filterGearId', '');

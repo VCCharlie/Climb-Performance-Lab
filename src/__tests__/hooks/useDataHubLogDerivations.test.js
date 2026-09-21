@@ -88,6 +88,14 @@ describe('useDataHubLogDerivations', () => {
         expect(result.current.metricRangeActive).toBe(true);
     });
 
+    it('detects active TSS metric filter', () => {
+        const { result } = renderDerivations({
+            minTss: '90',
+        });
+
+        expect(result.current.metricRangeActive).toBe(true);
+    });
+
     it('detects active drift metric range filters', () => {
         const { result } = renderDerivations({
             filterDecMax: '5',
