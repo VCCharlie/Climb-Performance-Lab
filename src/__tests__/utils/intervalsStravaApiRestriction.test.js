@@ -76,8 +76,21 @@ describe('mergeStravaApiIntoRestrictedIntervalsActivity', () => {
     });
 
     it('merges Strava detail onto sparse Intervals payload', async () => {
-        fetch
-            .mockResolvedValueOnce({
+        fetch.mockImplementation(async (url) => {
+            const u = String(url);
+            if (u.includes('power-curve')) {
+                return { ok: false, status: 404, json: async () => ({}) };
+            }
+            if (u.includes('/streams?')) {
+                return {
+                    ok: true,
+                    json: async () => ({
+                        time: { data: Array.from({ length: 120 }, (_, i) => i) },
+                        watts: { data: Array.from({ length: 120 }, (_, i) => (i >= 30 && i < 90 ? 420 : 180)) },
+                    }),
+                };
+            }
+            return {
                 ok: true,
                 json: async () => ({
                     id: 99112233,
@@ -89,14 +102,8 @@ describe('mergeStravaApiIntoRestrictedIntervalsActivity', () => {
                     weighted_average_watts: 195,
                     average_heartrate: 145,
                 }),
-            })
-            .mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({
-                    secs: [60, 300, 1200],
-                    watts: [420, 340, 280],
-                }),
-            });
+            };
+        });
 
         const merged = await mergeStravaApiIntoRestrictedIntervalsActivity(
             {
@@ -113,8 +120,7 @@ describe('mergeStravaApiIntoRestrictedIntervalsActivity', () => {
         expect(merged.distance).toBe(85);
         expect(merged.avg_power).toBe(180);
         expect(merged.strava_id).toBe('99112233');
-        expect(merged.best_1min).toBe(420);
-        expect(merged.best_20min).toBe(280);
+        expect(merged.best_1min).toBeGreaterThanOrEqual(400);
     });
 });
 

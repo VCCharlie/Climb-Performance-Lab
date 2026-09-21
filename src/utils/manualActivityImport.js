@@ -3,7 +3,7 @@
  */
 
 import { normalizeIntervalsActivity, buildIntervalsActivitiesListUrl, normalizeIntervalsActivityFromAny } from './intervals';
-import { enrichActivitiesWithPowerCurveBests } from './intervalsPowerCurveEnrich';
+import { enrichActivitiesWithBestPowerEfforts } from './enrichActivityBestPowers';
 import { normalizeStravaActivity } from './stravaMatch';
 import { normalizeStravaActivityId } from './strava';
 import { enrichActivityGearFromStrava } from './stravaGearEnrich';
@@ -33,6 +33,25 @@ async function resolveStravaToken(opts = {}) {
     } catch {
         throw new Error('Strava session expired — reconnect in Settings.');
     }
+}
+
+async function enrichActBestPowers(act, intervalsConfig, opts = {}) {
+    let token = opts.stravaToken || null;
+    if (!token && opts.stravaGetToken) {
+        try {
+            token = await opts.stravaGetToken();
+        } catch {
+            token = null;
+        }
+    }
+    const [enriched] = await enrichActivitiesWithBestPowerEfforts([act], {
+        intervalsConfig,
+        stravaToken: token,
+        stravaGetToken: opts.stravaGetToken,
+        maxFetches: 1,
+        delayMs: 0,
+    });
+    return enriched;
 }
 
 /**
@@ -231,7 +250,7 @@ export async function fetchIntervalsActivityAsSiteActivity(intervalsActivityId, 
         const json = await resp.json();
         if (isSubstantiveIntervalsApiPayload(json)) {
             let act = normalizeIntervalsActivity(json);
-            [act] = await enrichActivitiesWithPowerCurveBests([act], intervalsConfig, { maxFetches: 1, delayMs: 0 });
+            act = await enrichActBestPowers(act, intervalsConfig, opts);
             return act;
         }
 
@@ -241,7 +260,7 @@ export async function fetchIntervalsActivityAsSiteActivity(intervalsActivityId, 
                     ...opts,
                     intervalsConfig,
                 });
-                [act] = await enrichActivitiesWithPowerCurveBests([act], intervalsConfig, { maxFetches: 1, delayMs: 0 });
+                act = await enrichActBestPowers(act, intervalsConfig, opts);
                 return act;
             } catch (err) {
                 lastError = err;
@@ -263,7 +282,7 @@ export async function fetchIntervalsActivityAsSiteActivity(intervalsActivityId, 
         );
         if (listRow && isSubstantiveIntervalsApiPayload(listRow)) {
             let act = normalizeIntervalsActivityFromAny(listRow);
-            [act] = await enrichActivitiesWithPowerCurveBests([act], intervalsConfig, { maxFetches: 1, delayMs: 0 });
+            act = await enrichActBestPowers(act, intervalsConfig, opts);
             return act;
         }
 
@@ -273,7 +292,7 @@ export async function fetchIntervalsActivityAsSiteActivity(intervalsActivityId, 
                     ...opts,
                     intervalsConfig,
                 });
-                [act] = await enrichActivitiesWithPowerCurveBests([act], intervalsConfig, { maxFetches: 1, delayMs: 0 });
+                act = await enrichActBestPowers(act, intervalsConfig, opts);
                 return act;
             } catch (err) {
                 lastError = err;
@@ -286,7 +305,7 @@ export async function fetchIntervalsActivityAsSiteActivity(intervalsActivityId, 
                     ...opts,
                     intervalsConfig,
                 });
-                [act] = await enrichActivitiesWithPowerCurveBests([act], intervalsConfig, { maxFetches: 1, delayMs: 0 });
+                act = await enrichActBestPowers(act, intervalsConfig, opts);
                 return act;
             } catch (err) {
                 throw err;
@@ -294,7 +313,7 @@ export async function fetchIntervalsActivityAsSiteActivity(intervalsActivityId, 
         }
 
         let act = normalizeIntervalsActivity(sparsePayload);
-        [act] = await enrichActivitiesWithPowerCurveBests([act], intervalsConfig, { maxFetches: 1, delayMs: 0 });
+        act = await enrichActBestPowers(act, intervalsConfig, opts);
         if (isStravaRestrictedIntervalsApiPayload(sparsePayload)) {
             throw lastError || new Error(
                 buildStravaRestrictedIntervalsMessage({
@@ -335,7 +354,8 @@ export async function fetchSingleActivityFromUrl(urlOrText, opts = {}) {
         if (!stravaToken) {
             throw new Error('Connect Strava (Settings) to fetch activities by Strava URL.');
         }
-        return fetchStravaActivityDetailAsSiteActivity(parsed.id, stravaToken);
+        const act = await fetchStravaActivityDetailAsSiteActivity(parsed.id, stravaToken);
+        return enrichActBestPowers(act, opts.intervalsConfig || {}, { ...opts, stravaToken });
     }
 
     return fetchIntervalsActivityAsSiteActivity(parsed.id, opts.intervalsConfig || {}, {
