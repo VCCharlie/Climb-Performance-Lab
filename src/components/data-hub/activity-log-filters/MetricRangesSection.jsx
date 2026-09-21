@@ -121,7 +121,6 @@ export default function MetricRangesSection({
     onFilterRaceMaxChange,
     minTss,
     onMinTssChange,
-    clearActiveMetricPresets,
 }) {
     const onManualMetricChange = clearActiveMetricPresets;
     const onMinTssManualChange = wrapManualMetricHandler(onMinTssChange, onManualMetricChange);
