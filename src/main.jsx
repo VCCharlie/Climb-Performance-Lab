@@ -6,7 +6,7 @@ import ErrorBoundary from './components/ErrorBoundary.jsx'
 import { ClimbDatabaseProvider } from './context/ClimbDatabaseContext.jsx'
 import { applyTheme, readStoredTheme } from './theme/applyTheme'
 import { maintainBrowserStorageOnBoot } from './utils/safeStorage.js'
-import { bootstrapDeployRecoveryForBoot, persistCurrentBuildId } from './utils/deployRecovery.js'
+import { bootstrapDeployRecoveryForBoot, persistCurrentBuildId, clearRecoveryAttemptFlag } from './utils/deployRecovery.js'
 import { completeGoogleRedirectIfNeeded } from './utils/googleSignIn.js'
 import { stripStaleStravaOAuthParamsFromUrl } from './utils/stravaOAuthUrl.js'
 import { registerClimbLabServiceWorker } from './utils/registerServiceWorker.js'
@@ -36,6 +36,7 @@ async function boot() {
         </StrictMode>,
     )
     persistCurrentBuildId()
+    clearRecoveryAttemptFlag()
 
     await registerClimbLabServiceWorker()
 }

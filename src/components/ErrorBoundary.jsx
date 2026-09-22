@@ -6,6 +6,7 @@ import {
     performSilentDeployRecovery,
     hasRecoveryBeenAttempted,
     clearDeployCaches,
+    clearRecoveryAttemptFlag,
 } from '../utils/deployRecovery.js';
 
 const IS_PROD = import.meta.env.PROD;
@@ -26,6 +27,7 @@ const THEME_VARS = {
 };
 
 async function clearSiteCacheAndReload() {
+    clearRecoveryAttemptFlag();
     await clearDeployCaches();
     window.location.reload();
 }

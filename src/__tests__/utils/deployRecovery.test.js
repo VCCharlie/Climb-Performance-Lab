@@ -5,6 +5,7 @@ import {
     isRecoverableDeployError,
     hasRecoveryBeenAttempted,
     markRecoveryAttempted,
+    clearRecoveryAttemptFlag,
     readStoredBuildId,
     persistCurrentBuildId,
     STORED_BUILD_ID_KEY,
@@ -63,6 +64,13 @@ describe('deployRecovery', () => {
             markRecoveryAttempted();
             expect(hasRecoveryBeenAttempted()).toBe(true);
             expect(sessionStorage.getItem(RECOVERY_ATTEMPT_KEY)).toBe('1');
+        });
+
+        it('clears the recovery guard after successful boot or manual cache clear', () => {
+            markRecoveryAttempted();
+            clearRecoveryAttemptFlag();
+            expect(hasRecoveryBeenAttempted()).toBe(false);
+            expect(sessionStorage.getItem(RECOVERY_ATTEMPT_KEY)).toBeNull();
         });
     });
 
