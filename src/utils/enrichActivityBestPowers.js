@@ -6,8 +6,8 @@ import {
     enrichActivitiesWithPowerCurveBests,
     missingPowerCurveBestTargets,
     ALL_POWER_CURVE_BEST_TARGETS,
-} from './intervalsPowerCurveEnrich';
-import { enrichActivitiesWithStravaStreamBestPowers } from './stravaPowerStreamBests';
+} from './intervalsPowerCurveEnrich.js';
+import { enrichActivitiesWithStravaStreamBestPowers } from './stravaPowerStreamBests.js';
 
 /**
  * @param {object[]} activities

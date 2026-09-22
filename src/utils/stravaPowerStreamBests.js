@@ -3,13 +3,13 @@
  * has no FIT/power-curve (common for Strava-sourced rides without an original file).
  */
 
-import { fetchWithTimeout } from './fetchWithTimeout';
-import { devLog } from './safeLog';
-import { normalizeStravaActivityId } from './strava';
+import { fetchWithTimeout } from './fetchWithTimeout.js';
+import { devLog } from './safeLog.js';
+import { normalizeStravaActivityId } from './strava.js';
 import {
     ALL_POWER_CURVE_BEST_TARGETS,
     missingPowerCurveBestTargets,
-} from './intervalsPowerCurveEnrich';
+} from './intervalsPowerCurveEnrich.js';
 
 function extractSeries(streamBlock) {
     if (Array.isArray(streamBlock)) {

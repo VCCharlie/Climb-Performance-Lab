@@ -3,10 +3,10 @@
  * Intervals.icu specific logic
  */
 
-import { normalizeActivityDate, parseDurationToSeconds } from './formatters';
-import { determineActivityType } from './activityTypes';
-import { extractStravaId } from './strava';
-import { buildZoneTimesFields } from './zoneTimes';
+import { normalizeActivityDate, parseDurationToSeconds } from './formatters.js';
+import { determineActivityType } from './activityTypes.js';
+import { extractStravaId } from './strava.js';
+import { buildZoneTimesFields } from './zoneTimes.js';
 
 /**
  * Explicit fields for GET /athlete/{id}/activities — summary responses often omit
