@@ -40,23 +40,25 @@ export default function PrimaryQuickFilterRow(props) {
     );
 
     return (
-        <div className="flex flex-wrap gap-1.5 items-center min-w-0 flex-1">
-            {visibleIds.map((id) => {
-                const chip = resolveQuickFilterChip(id, props);
-                if (!chip) return null;
-                return (
-                    <Chip
-                        key={chip.id}
-                        size="xs"
-                        selected={chip.selected}
-                        disabled={chip.disabled}
-                        onClick={chip.onClick}
-                        title={chip.title}
-                    >
-                        {chip.label}
-                    </Chip>
-                );
-            })}
+        <div className="flex flex-col gap-1.5 w-full min-w-0 sm:flex-row sm:flex-wrap sm:items-center sm:flex-1">
+            <div className="flex flex-wrap gap-1.5 items-center min-w-0">
+                {visibleIds.map((id) => {
+                    const chip = resolveQuickFilterChip(id, props);
+                    if (!chip) return null;
+                    return (
+                        <Chip
+                            key={chip.id}
+                            size="xs"
+                            selected={chip.selected}
+                            disabled={chip.disabled}
+                            onClick={chip.onClick}
+                            title={chip.title}
+                        >
+                            {chip.label}
+                        </Chip>
+                    );
+                })}
+            </div>
             <PrimaryQuickFilterCustomize
                 selectedIds={selectedIds}
                 onToggleFilter={toggleFilterOnBar}
