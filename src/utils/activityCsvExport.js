@@ -165,13 +165,41 @@ export function downloadActivitiesCsv(activities) {
 }
 
 /**
+ * @param {import('xlsx').WorkSheet} worksheet
+ * @param {import('xlsx').XLSX} XLSX
+ * @param {number} stravaColIndex
+ * @param {number} dataRowCount — number of activity rows (excludes header)
+ */
+export function applyStravaHyperlinksToWorksheet(worksheet, XLSX, stravaColIndex, dataRowCount) {
+    if (stravaColIndex < 0 || dataRowCount <= 0) return worksheet;
+
+    const colLetter = XLSX.utils.encode_col(stravaColIndex);
+    for (let row = 0; row < dataRowCount; row += 1) {
+        const ref = `${colLetter}${row + 2}`;
+        const cell = worksheet[ref];
+        const url = cell?.v;
+        if (typeof url !== 'string' || !url.startsWith('http')) continue;
+
+        worksheet[ref] = {
+            ...cell,
+            l: { Target: url, Tooltip: 'Open activity in Strava' },
+        };
+    }
+
+    return worksheet;
+}
+
+/**
  * @param {object[]} activities
  * @param {import('xlsx').XLSX} XLSX
  * @returns {import('xlsx').WorkSheet}
  */
 export function activitiesToXlsxWorksheet(activities, XLSX) {
     const rows = activitiesToExportRows(activities);
-    return XLSX.utils.aoa_to_sheet(rows);
+    const worksheet = XLSX.utils.aoa_to_sheet(rows);
+    const stravaColIndex = getActivityExportColumns().findIndex((c) => c.key === 'strava_url');
+    applyStravaHyperlinksToWorksheet(worksheet, XLSX, stravaColIndex, activities?.length ?? 0);
+    return worksheet;
 }
 
 /**
