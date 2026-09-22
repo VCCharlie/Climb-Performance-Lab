@@ -114,10 +114,11 @@ export default defineConfig({
               request.destination === 'script'
               && url.pathname.includes('/assets/')
             ),
-            handler: 'StaleWhileRevalidate',
+            handler: 'NetworkFirst',
             options: {
               cacheName: 'cpl-lazy-chunks',
-              expiration: { maxEntries: 80, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              networkTimeoutSeconds: 4,
+              expiration: { maxEntries: 80, maxAgeSeconds: 60 * 60 * 24 * 7 },
             },
           },
           {

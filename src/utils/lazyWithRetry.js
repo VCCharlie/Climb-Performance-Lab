@@ -11,14 +11,22 @@ import { isChunkLoadError, performSilentDeployRecovery, hasRecoveryBeenAttempted
  */
 export function lazyWithRetry(importFn, label = 'chunk') {
     return lazy(async () => {
+        const load = () => importFn();
+
         try {
-            return await importFn();
+            return await load();
         } catch (error) {
-            if (isChunkLoadError(error) && !hasRecoveryBeenAttempted()) {
-                console.warn(`[lazyWithRetry] ${label} import failed — triggering deploy recovery`, error);
-                await performSilentDeployRecovery();
+            if (!isChunkLoadError(error)) throw error;
+
+            try {
+                return await load();
+            } catch (retryError) {
+                if (isChunkLoadError(retryError) && !hasRecoveryBeenAttempted()) {
+                    console.warn(`[lazyWithRetry] ${label} import failed — triggering deploy recovery`, retryError);
+                    await performSilentDeployRecovery();
+                }
+                throw retryError;
             }
-            throw error;
         }
     });
 }

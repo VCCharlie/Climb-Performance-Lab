@@ -11,6 +11,7 @@
 
 import { pruneLocalStorageCaches } from './safeStorage.js';
 import { readPersistedMainTab } from './sessionNavRestore.js';
+import { clearSensitiveLocalStorage } from './sessionData.js';
 
 /** @type {string|undefined} */
 const BUILD_ID = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : undefined;
@@ -104,6 +105,19 @@ export function markRecoveryAttempted() {
 }
 
 /**
+ * Clears the one-shot recovery guard so a manual cache clear or successful boot
+ * can trigger auto-healing again on the next stale-chunk failure.
+ */
+export function clearRecoveryAttemptFlag() {
+    if (typeof sessionStorage === 'undefined') return;
+    try {
+        sessionStorage.removeItem(RECOVERY_ATTEMPT_KEY);
+    } catch {
+        /* ignore quota errors */
+    }
+}
+
+/**
  * Clears deploy-related caches without reloading.
  * @returns {Promise<void>}
  */
@@ -180,6 +194,7 @@ export async function reconcileBuildVersionOnBoot() {
     if (stored === BUILD_ID) return false;
 
     console.info('[deployRecovery] Build ID changed (%s → %s). Clearing stale caches.', stored, BUILD_ID);
+    clearRecoveryAttemptFlag();
     await clearDeployCaches();
     persistCurrentBuildId(BUILD_ID);
     return true;
@@ -205,7 +220,9 @@ export async function performSilentDeployRecovery() {
         }
     }
     await clearDeployCaches();
-    window.location.reload();
+    const reloadUrl = new URL(window.location.href);
+    reloadUrl.searchParams.set('cpl_recovery', String(Date.now()));
+    window.location.replace(reloadUrl.toString());
     return { reloaded: true };
 }
 
