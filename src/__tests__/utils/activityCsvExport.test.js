@@ -167,5 +167,17 @@ describe('activitiesToXlsxWorksheet', () => {
         const colLetter = XLSX.utils.encode_col(stravaColIndex);
         expect(ws[`${colLetter}1`]?.v).toBe('Strava link');
         expect(ws[`${colLetter}2`]?.v).toBe('https://www.strava.com/activities/555');
+        expect(ws[`${colLetter}2`]?.l?.Target).toBe('https://www.strava.com/activities/555');
+    });
+
+    it('does not add hyperlink when Strava URL is empty', () => {
+        const ws = activitiesToXlsxWorksheet(
+            [{ date: '2026-01-01', type: 'Ride', title: 'No Strava' }],
+            XLSX,
+        );
+        const stravaColIndex = getActivityExportColumns().findIndex((c) => c.key === 'strava_url');
+        const colLetter = XLSX.utils.encode_col(stravaColIndex);
+        expect(ws[`${colLetter}2`]?.v).toBe('');
+        expect(ws[`${colLetter}2`]?.l).toBeUndefined();
     });
 });
