@@ -3,13 +3,12 @@
  * Web UI shows full data; REST returns date + source=STRAVA only.
  */
 
-import { extractStravaId } from './strava';
-import { normalizeStravaActivityId } from './strava';
-import { fetchStravaActivitiesInRange } from './stravaLinkIntervalsFetch';
-import { isIncludedStravaType, normalizeStravaActivity } from './stravaMatch';
-import { mergeActivitiesIntervalsPrimary } from './mergeActivities';
-import { normalizeIntervalsActivity } from './intervals';
-import { enrichActivitiesWithBestPowerEfforts } from './enrichActivityBestPowers';
+import { extractStravaId, normalizeStravaActivityId } from './strava.js';
+import { fetchStravaActivitiesInRange } from './stravaLinkIntervalsFetch.js';
+import { isIncludedStravaType, normalizeStravaActivity } from './stravaMatch.js';
+import { mergeActivitiesIntervalsPrimary } from './mergeActivities.js';
+import { normalizeIntervalsActivity } from './intervals.js';
+import { enrichActivitiesWithBestPowerEfforts } from './enrichActivityBestPowers.js';
 
 function payloadHasMetrics(item) {
     if (!item || typeof item !== 'object') return false;

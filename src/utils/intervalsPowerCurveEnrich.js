@@ -4,9 +4,9 @@
  * GET /api/v1/activity/{id}/power-curve.json still exposes computed peaks when available.
  */
 
-import { fetchWithTimeout } from './fetchWithTimeout';
-import { parseDurationToSeconds } from './formatters';
-import { devLog } from './safeLog';
+import { fetchWithTimeout } from './fetchWithTimeout.js';
+import { parseDurationToSeconds } from './formatters.js';
+import { devLog } from './safeLog.js';
 
 /** @typedef {{ sec: number, w: number }} PowerCurvePoint */
 

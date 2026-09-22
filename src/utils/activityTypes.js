@@ -5,7 +5,7 @@
  * Both intervals.js and parsers.js import from this file.
  */
 
-import { SPORT_TYPES } from '../config';
+import { SPORT_TYPES } from '../config.js';
 
 /** Canonical sport types we preserve from import/API before title heuristics. */
 const PRESERVED_CANONICAL_TYPES = new Map(
