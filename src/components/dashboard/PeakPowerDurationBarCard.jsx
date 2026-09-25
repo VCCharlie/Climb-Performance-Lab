@@ -25,16 +25,12 @@ import {
 } from '../../utils/dashboardActivityPeaks';
 import { formatDateDDMMYYYY } from '../../utils';
 import CollapsibleDashboardCard from './CollapsibleDashboardCard';
+import { PEAK_BAR_POWER_DURATIONS, topTenInterpolatedOpts } from '../../utils/powerDurationStandard';
 
-const DURATION_OPTIONS = [
-    { value: '5', label: '5s' },
-    { value: '10', label: '10s' },
-    { value: '20', label: '20s' },
-    { value: '60', label: '1m' },
-    { value: '300', label: '5m' },
-    { value: '1200', label: '20m' },
-    { value: '3600', label: '60m' },
-];
+const DURATION_OPTIONS = PEAK_BAR_POWER_DURATIONS.map(({ sec, label }) => ({
+    value: String(sec),
+    label,
+}));
 
 const SCOPE_OPTIONS = [
     { value: PEAK_LEADERBOARD_SCOPES.PERIOD, label: 'Period bests' },
@@ -81,12 +77,14 @@ export default function PeakPowerDurationBarCard({
     );
 
     const rows = useMemo(() => {
+        const durationDef = PEAK_BAR_POWER_DURATIONS.find((d) => d.sec === durationSecNum);
+        const opts = durationDef ? topTenInterpolatedOpts(durationDef) : {};
         const top = topNInterpolatedAtSec(
             leaderboardActivities,
             manualFtp,
             durationSecNum,
             10,
-            {},
+            opts,
             anchorsCache,
         );
         return top.map((entry, index) => {

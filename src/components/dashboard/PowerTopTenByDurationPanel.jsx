@@ -14,10 +14,12 @@ import {
     boundsFromYmdRange,
     aggregatePeriodStats,
 } from '../../utils/dashboardActivityWindow';
+import { formatLongRange } from './powerTopTenByDurationConstants';
 import {
-    DURATION_TARGETS,
-    formatLongRange,
-} from './powerTopTenByDurationConstants';
+    TOP_TEN_POWER_DURATIONS,
+    topTenDurationFootnote,
+    topTenInterpolatedOpts,
+} from '../../utils/powerDurationStandard';
 import PowerTopTenExpandedBody from './PowerTopTenExpandedBody';
 import { chartCardShellClass } from '../../utils/chartTheme';
 
@@ -102,8 +104,9 @@ const PowerTopTenByDurationPanel = ({
 
     const tablesByDuration = useMemo(() => {
         const anchorsCache = buildAnchorsCache(chartData, manualFtp);
-        return DURATION_TARGETS.map(({ sec, label }) => {
-            const opts = sec === 7200 ? { requireAnchorBeyondSec: 7200 } : {};
+        return TOP_TEN_POWER_DURATIONS.map((def) => {
+            const { sec, label } = def;
+            const opts = topTenInterpolatedOpts(def);
             const primary = topNInterpolatedAtSec(currentActs, manualFtp, sec, 10, opts, anchorsCache);
             const secondary = compareBounds ? topNInterpolatedAtSec(compareActs, manualFtp, sec, 10, opts, anchorsCache) : null;
             return {
@@ -111,9 +114,7 @@ const PowerTopTenByDurationPanel = ({
                 label,
                 primary,
                 secondary,
-                footnote: sec === 7200
-                    ? 'Only rides with power data extending to at least 2 h (longest anchor: 90/120 min from the API, or ride duration with average power). Short rides without a long-duration reading are excluded.'
-                    : null,
+                footnote: topTenDurationFootnote(def),
             };
         });
     }, [currentActs, compareActs, compareBounds, manualFtp, chartData]);

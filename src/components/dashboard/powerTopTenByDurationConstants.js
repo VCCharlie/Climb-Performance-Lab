@@ -1,13 +1,8 @@
 import { formatDateDDMMYYYY } from '../../utils/formatters';
+import { TOP_TEN_POWER_DURATIONS } from '../../utils/powerDurationStandard';
 
-export const DURATION_TARGETS = [
-    { sec: 60, label: '1 min' },
-    { sec: 300, label: '5 min' },
-    { sec: 600, label: '10 min' },
-    { sec: 1200, label: '20 min' },
-    { sec: 3600, label: '60 min' },
-    { sec: 7200, label: '120 min' },
-];
+/** @deprecated Prefer TOP_TEN_POWER_DURATIONS from utils/powerDurationStandard.js */
+export const DURATION_TARGETS = TOP_TEN_POWER_DURATIONS;
 
 export const COMPARE_OPTIONS = [
     { value: 'none', label: 'No comparison' },

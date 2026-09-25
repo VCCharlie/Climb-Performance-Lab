@@ -10,6 +10,7 @@ import CollapsibleInfoCard from '../ui/CollapsibleInfoCard';
 import { findBestPowerActivity, findBestInterpolatedPowerAtSec, DASHBOARD_FTP_CAPS } from '../../utils/dashboardActivityPeaks';
 import { getDashboardDisplayBoundsYmd } from '../../utils/dashboardActivityWindow';
 import { dashboardFilterLabel } from '../../utils/powerDurationTable';
+import { RADAR_POWER_PEAK_DURATIONS } from '../../utils/powerDurationStandard';
 
 /**
  * PowerTab: power metrics, top-10 tables per duration, intervals.icu-style matrix, monthly chart, MMP.
@@ -42,14 +43,12 @@ const cappedMax = (activities, key, manualFtp) => {
     return max;
 };
 
-const POWER_TABLE_KEYS = [
-    { key: 'peak_15s', label: '15 s', interpolatedSec: 15 },
-    { key: 'best_1min', label: '1 min' },
-    { key: 'best_5min', label: '5 min' },
-    { key: 'best_10min', label: '10 min' },
-    { key: 'best_20min', label: '20 min' },
-    { key: 'best_60min', label: '60 min' },
-];
+const POWER_TABLE_KEYS = RADAR_POWER_PEAK_DURATIONS.map((def) => {
+    if (def.interpolatedSec) {
+        return { key: `peak_${def.interpolatedSec}s`, label: def.label, interpolatedSec: def.interpolatedSec };
+    }
+    return { key: def.field, label: def.label };
+});
 
 const PowerTab = ({
     data,
