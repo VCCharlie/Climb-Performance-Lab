@@ -18,6 +18,11 @@ export const ALLOWED_BACKUP_TOP_KEYS = new Set([
     'weatherClimb',
     'fueling',
     'activityLogFilter',
+    'coachWeekState',
+    'trainingPlanSnapshot',
+    'activityLogColumns',
+    'intervalsSyncHealth',
+    'duplicateResolutions',
     '_security_notice',
 ]);
 
@@ -38,6 +43,11 @@ const IMPORT_LABELS = {
     weatherClimb: 'Weather climb tab',
     fueling: 'Race fueling tab',
     activityLogFilter: 'Activity log filters',
+    coachWeekState: 'Coach week plan (completions & overrides)',
+    trainingPlanSnapshot: 'Training goal / event planner',
+    activityLogColumns: 'Activity log column visibility',
+    intervalsSyncHealth: 'Last Intervals sync summary',
+    duplicateResolutions: 'Duplicate pair resolutions',
 };
 
 /**
