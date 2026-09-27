@@ -26,6 +26,14 @@ export default function useActivityColumnVisibility() {
         safeLocalStorageSet(ACTIVITY_COLUMN_STORAGE_KEY, JSON.stringify(visibleKeys));
     }, [visibleKeys]);
 
+    useEffect(() => {
+        const onRestored = () => {
+            setVisibleKeys(loadInitialKeys());
+        };
+        window.addEventListener('cpl-activity-columns-restored', onRestored);
+        return () => window.removeEventListener('cpl-activity-columns-restored', onRestored);
+    }, []);
+
     const visibleColumns = useMemo(() => columnsForVisibleKeys(visibleKeys), [visibleKeys]);
 
     const activePreset = useMemo(() => detectActivePreset(visibleKeys), [visibleKeys]);
