@@ -227,7 +227,6 @@ export function reconcileStravaEnrichPendingQueue(attemptedActivities, result, d
         enqueueStravaEnrichPending(partialEntries.map((e) => ({ ...e, attemptsIncrement: 0 })));
     }
 
-    const queue = readStravaEnrichPendingQueue();
     const completeIds = (attemptedActivities || [])
         .map((a) => String(a.id))
         .filter((id) => {

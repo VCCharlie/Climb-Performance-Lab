@@ -18,6 +18,13 @@ describe('nightlySyncDefaults', () => {
         }
     });
 
+    it('defaultSportFilterMap enables all config sport types', () => {
+        const map = defaultSportFilterMap();
+        for (const t of SPORT_TYPES) {
+            expect(map[t]).toBe(true);
+        }
+    });
+
     it('buildNightlyIntervalsConfig returns null without credentials', () => {
         expect(buildNightlyIntervalsConfig({})).toBeNull();
         expect(buildNightlyIntervalsConfig({ athleteId: 'i1', apiKey: 'k' })).toEqual({
