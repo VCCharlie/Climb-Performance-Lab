@@ -30,10 +30,16 @@ describe('backupSchema', () => {
             weatherClimb: {},
             fueling: {},
             activityLogFilter: {},
+            coachWeekState: { version: 2, weeks: {} },
+            trainingPlanSnapshot: { goalDate: '2026-10-01', weeks: [{ weekNum: 1 }] },
+            activityLogColumns: ['date', 'distance'],
+            intervalsSyncHealth: { at: '2026-01-01T00:00:00.000Z', added: 1, updated: 0, skipped: 0 },
+            duplicateResolutions: { byPairKey: {}, byFingerprint: {} },
             _security_notice: 'x',
         });
         expect(result.ok).toBe(true);
         expect(result.keys).toContain('racePacing');
+        expect(result.keys).toContain('coachWeekState');
     });
 
     it('describes import sections', () => {

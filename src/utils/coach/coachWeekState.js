@@ -157,6 +157,40 @@ export function applyCoachWeekStateToLocal(state) {
     return next;
 }
 
+/** Full v2 payload for JSON backup (all ISO weeks + week-2 toggle). */
+export function readCoachWeekStorageForBackup() {
+    const root = readStorageRoot();
+    return {
+        ...root,
+        week2Enabled: readCoachWeek2Enabled(),
+    };
+}
+
+/**
+ * Merge coach week storage from backup without dropping weeks absent in the file.
+ * @param {object | null | undefined} incoming
+ */
+export function mergeCoachWeekStorageFromBackup(incoming) {
+    if (!incoming || typeof incoming !== 'object') return;
+    const root = readStorageRoot();
+    if (incoming.version === 2 && incoming.weeks && typeof incoming.weeks === 'object') {
+        for (const [weekKey, weekState] of Object.entries(incoming.weeks)) {
+            const normalized = normalizeCoachWeekState({ ...weekState, weekKey });
+            root.weeks[weekKey] = {
+                ...normalized,
+                updatedAt: normalized.updatedAt || new Date().toISOString(),
+            };
+        }
+        writeStorageRoot(root);
+    } else if (incoming.weekKey) {
+        applyCoachWeekStateToLocal(incoming);
+    }
+    if (typeof incoming.week2Enabled === 'boolean') {
+        writeCoachWeek2Enabled(incoming.week2Enabled);
+    }
+    dispatchCoachWeekUpdated();
+}
+
 /**
  * @param {string} mondayYmd
  * @returns {{ weekKey: string, completedDates: string[], overrides: Record<string, string>, moves: Record<string, string>, unavailableDates: string[], availableDates: string[] }}

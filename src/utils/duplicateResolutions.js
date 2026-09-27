@@ -162,3 +162,24 @@ export function duplicateResolutionSummary(saved) {
         default: return null;
     }
 }
+
+/** @returns {{ byPairKey: Record<string, DuplicateResolutionRecord>, byFingerprint: Record<string, DuplicateResolutionRecord> }} */
+export function readDuplicateResolutionsForBackup() {
+    return loadStore();
+}
+
+/**
+ * Merge duplicate pair resolutions from backup (backup entries win on conflict).
+ * @param {{ byPairKey?: object, byFingerprint?: object } | null | undefined} incoming
+ */
+export function mergeDuplicateResolutionsFromBackup(incoming) {
+    if (!incoming || typeof incoming !== 'object') return;
+    const store = loadStore();
+    if (incoming.byPairKey && typeof incoming.byPairKey === 'object') {
+        Object.assign(store.byPairKey, incoming.byPairKey);
+    }
+    if (incoming.byFingerprint && typeof incoming.byFingerprint === 'object') {
+        Object.assign(store.byFingerprint, incoming.byFingerprint);
+    }
+    saveStore(store);
+}

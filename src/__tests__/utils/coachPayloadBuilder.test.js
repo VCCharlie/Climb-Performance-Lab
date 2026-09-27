@@ -109,7 +109,7 @@ describe('buildCoachContext', () => {
     });
 
     it('includes activityLog with distance summaries', () => {
-        const ctx = buildCoachContext(sampleActivities, { ftp: 250 });
+        const ctx = buildCoachContext(sampleActivities, { ftp: 250 }, { endDate: '2026-08-05' });
         expect(ctx.activityLog).toBeTruthy();
         expect(ctx.activityLog.totals.distanceKm).toBeGreaterThan(0);
         expect(ctx.periodSummary.distanceKm28d).toBeGreaterThan(0);

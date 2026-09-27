@@ -119,6 +119,7 @@ import {
     dispatchCoachWeekUpdated,
 } from './utils/coach/coachWeekState';
 import { todayYmd } from './utils/coach/coachHelpers';
+import { readBackupLocalExtras, applyBackupLocalExtras } from './utils/backupLocalState';
 import { runGoogleSignIn, isGoogleSignInInProgress, googleSignInErrorMessage, completeGoogleRedirectIfNeeded } from './utils/googleSignIn';
 import { notify } from './utils/notify';
 import { AppProviders } from './app/AppProviders';
@@ -1164,6 +1165,7 @@ const App = () => {
         if (backupData.activityLogFilter) {
             writeActivityLogFilterState(backupData.activityLogFilter);
         }
+        applyBackupLocalExtras(backupData);
         notify('Backup restored successfully!', { variant: 'success' });
     };
 
@@ -1541,6 +1543,7 @@ const App = () => {
                                     weatherClimb: weatherClimbState,
                                     fueling: fuelingState,
                                     activityLogFilter: readActivityLogFilterState(),
+                                    ...readBackupLocalExtras(),
                                 }}
                                 onImportBackup={handleImportBackup}
                                 onResetUserSettings={handleResetUserSettings}
