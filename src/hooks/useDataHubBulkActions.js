@@ -12,6 +12,10 @@ import {
 import { enrichActivityGearFromStrava } from '../utils/stravaGearEnrich';
 import { enrichSelectedActivitiesFromStrava } from '../utils/stravaSelectedEnrich';
 import { buildStravaEnrichFailureMessage } from '../utils/stravaEnrichMessages';
+import {
+    reconcileStravaEnrichPendingQueue,
+    formatStravaEnrichRetryGuidance,
+} from '../utils/stravaEnrichPendingQueue';
 import { buildStravaDescriptionBackfillUpdates } from '../utils/stravaDescriptionBackfill';
 import { buildDecouplingBackfillUpdates, buildDecouplingBackfillStats, formatDecouplingBackfillIntro } from '../utils/decouplingStreamBackfill';
 import { formatNlNumber } from '../utils/formatters';
@@ -238,6 +242,12 @@ export function useDataHubBulkActions({
                 setStravaEnrichMsg('Could not get Strava token.');
                 return;
             }
+            const result = await enrichSelectedActivitiesFromStrava(list, token, {
+                concurrency: 3,
+                forceStravaDetail: true,
+                deviceProfileTitles,
+                onProgress: (m) => setStravaEnrichMsg(m),
+            });
             const {
                 updates,
                 linkedCount,
@@ -249,14 +259,10 @@ export function useDataHubBulkActions({
                 stravaTotalFetched,
                 bikeActivitiesFound,
                 matchCount,
-            } = await enrichSelectedActivitiesFromStrava(list, token, {
-                concurrency: 3,
-                forceStravaDetail: true,
-                deviceProfileTitles,
-                onProgress: (m) => setStravaEnrichMsg(m),
-            });
+            } = result;
+            reconcileStravaEnrichPendingQueue(list, result, deviceProfileTitles);
             const rateLimitNote = rateLimitHits > 0
-                ? ' Strava rate limit hit — some details may be incomplete; try again in ~15 minutes.'
+                ? ` ${formatStravaEnrichRetryGuidance({ rateLimitHits, partialSaved: updates.length > 0 })}`
                 : '';
             if (updates.length === 0) {
                 const failureMsg = buildStravaEnrichFailureMessage(

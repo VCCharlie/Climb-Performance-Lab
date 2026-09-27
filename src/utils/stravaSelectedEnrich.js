@@ -97,6 +97,8 @@ async function buildStravaLinkPhaseUpdates(siteActivities, bikeActivities, bikes
     const result = matchStravaToSite(bikeActivities, siteActivities);
     const candidates = [];
     let rateLimitHits = 0;
+    /** @type {string[]} */
+    const rateLimitedActivityIds = [];
 
     if (result?.matched?.length > 0) {
         candidates.push(...result.matched.filter((m) => m.confidence !== 'low'));
@@ -106,7 +108,13 @@ async function buildStravaLinkPhaseUpdates(siteActivities, bikeActivities, bikes
     }
 
     if (candidates.length === 0) {
-        return { updates: [], linkedCount: 0, rateLimitHits: 0, matchCount: 0 };
+        return {
+            updates: [],
+            linkedCount: 0,
+            rateLimitHits: 0,
+            rateLimitedActivityIds: [],
+            matchCount: 0,
+        };
     }
 
     const linkPatches = [];
@@ -147,6 +155,7 @@ async function buildStravaLinkPhaseUpdates(siteActivities, bikeActivities, bikes
                 );
                 if (detResp.status === 429) {
                     rateLimitHits += 1;
+                    rateLimitedActivityIds.push(String(m.site.id));
                 } else if (detResp.ok) {
                     stravaDetailed = await detResp.json();
                 }
@@ -191,6 +200,7 @@ async function buildStravaLinkPhaseUpdates(siteActivities, bikeActivities, bikes
         updates: linkPatches,
         linkedCount,
         rateLimitHits,
+        rateLimitedActivityIds,
         matchCount: candidates.length,
     };
 }
@@ -239,6 +249,8 @@ export async function enrichSelectedActivitiesFromStrava(selectedActivities, tok
         unchanged: 0,
         failed: 0,
         rateLimitHits: 0,
+        rateLimitedActivityIds: [],
+        failedActivityIds: [],
         stravaTotalFetched: 0,
         bikeActivitiesFound: 0,
         matchCount: 0,
@@ -282,6 +294,7 @@ export async function enrichSelectedActivitiesFromStrava(selectedActivities, tok
     const linkUpdates = linkPhase.updates;
     const linkedCount = linkPhase.linkedCount;
     let rateLimitHits = linkPhase.rateLimitHits || 0;
+    const rateLimitedActivityIds = [...(linkPhase.rateLimitedActivityIds || [])];
     const matchCount = linkPhase.matchCount || 0;
 
     const mergedSelected = applyUpdatesToActivities(list, linkUpdates);
@@ -292,10 +305,11 @@ export async function enrichSelectedActivitiesFromStrava(selectedActivities, tok
     let unchanged = 0;
     let failed = 0;
     let detailUpdates = [];
+    let detailResult = null;
 
     if (withStrava.length > 0) {
         opts.onProgress?.(`Strava details for ${withStrava.length} ride(s)…`);
-        const detailResult = await buildStravaDetailEnrichmentUpdates(withStrava, token, {
+        detailResult = await buildStravaDetailEnrichmentUpdates(withStrava, token, {
             concurrency: opts.concurrency ?? 3,
             forceStravaDetail: opts.forceStravaDetail !== false,
             onProgress: opts.onProgress,
@@ -306,13 +320,17 @@ export async function enrichSelectedActivitiesFromStrava(selectedActivities, tok
         unchanged = detailResult.unchanged;
         failed = detailResult.failed;
         rateLimitHits += detailResult.rateLimitHits || 0;
+        rateLimitedActivityIds.push(...(detailResult.rateLimitedActivityIds || []));
     }
 
     const mergedUpdates = mergeUpdatePatches(linkUpdates, detailUpdates);
+    const mergedSelectedFinal = applyUpdatesToActivities(list, mergedUpdates);
 
     if (rateLimitHits > 0) {
         opts.onRateLimit?.(rateLimitHits);
     }
+
+    const failedActivityIds = [...(detailResult?.failedActivityIds || [])];
 
     return {
         updates: mergedUpdates,
@@ -322,6 +340,9 @@ export async function enrichSelectedActivitiesFromStrava(selectedActivities, tok
         unchanged,
         failed,
         rateLimitHits,
+        rateLimitedActivityIds: [...new Set(rateLimitedActivityIds)],
+        failedActivityIds: [...new Set(failedActivityIds)],
+        mergedActivities: mergedSelectedFinal,
         stravaTotalFetched: allStrava.length,
         bikeActivitiesFound: bikeActivities.length,
         matchCount,

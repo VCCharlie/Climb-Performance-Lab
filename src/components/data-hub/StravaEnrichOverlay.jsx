@@ -1,5 +1,6 @@
 import React from 'react';
 import StravaEnrichTab from './StravaEnrichTab';
+import StravaEnrichPendingPanel from './StravaEnrichPendingPanel';
 
 /**
  * Full-screen Strava link/enrich overlay from DataHub.
@@ -17,6 +18,12 @@ export default function StravaEnrichOverlay({
     onResultsChange,
     enrichmentTarget,
     userSettings,
+    stravaEnrichPending = [],
+    onRetryPendingEnrich,
+    onDismissPendingEntry,
+    onClearPendingEnrich,
+    pendingRetryMessage,
+    isRetryingPendingEnrich,
 }) {
     if (!open || !stravaGetToken) return null;
 
@@ -46,6 +53,14 @@ export default function StravaEnrichOverlay({
                     </button>
                 </div>
                 <div className="p-4 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+                    <StravaEnrichPendingPanel
+                        pendingEntries={stravaEnrichPending}
+                        isRetrying={isRetryingPendingEnrich}
+                        retryMessage={pendingRetryMessage}
+                        onRetryAll={onRetryPendingEnrich}
+                        onDismissEntry={onDismissPendingEntry}
+                        onClearAll={onClearPendingEnrich}
+                    />
                     <StravaEnrichTab
                         activities={activities}
                         getStravaToken={stravaGetToken}
