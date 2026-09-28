@@ -59,6 +59,40 @@ describe('protectEnrichedFieldsOnMerge', () => {
     expect(out.max_hr).toBe(178);
   });
 
+  it('keeps power metrics when incoming re-sync has zeros', () => {
+    const out = protectEnrichedFieldsOnMerge(
+      {
+        id: '1',
+        title: 'Ride',
+        norm_power: 0,
+        avg_power: 0,
+        load: 0,
+        best_20min: 0,
+      },
+      {
+        id: '1',
+        norm_power: 228,
+        avg_power: 210,
+        load: 95,
+        best_20min: 265,
+      },
+    );
+    expect(out.norm_power).toBe(228);
+    expect(out.avg_power).toBe(210);
+    expect(out.load).toBe(95);
+    expect(out.best_20min).toBe(265);
+  });
+
+  it('allows incoming power metrics when values are present', () => {
+    const out = protectEnrichedFieldsOnMerge(
+      { id: '1', norm_power: 240, avg_power: 225, load: 110 },
+      { id: '1', norm_power: 228, avg_power: 210, load: 95 },
+    );
+    expect(out.norm_power).toBe(240);
+    expect(out.avg_power).toBe(225);
+    expect(out.load).toBe(110);
+  });
+
   it('keeps strava_kom_summary when incoming omits it', () => {
     const kom = { label: 'PR · KOM#2', tooltip: 'Seg (PR, KOM#2)' };
     const out = protectEnrichedFieldsOnMerge(

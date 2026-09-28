@@ -1,6 +1,7 @@
 /**
  * Summarize Intervals.icu fetch/merge results for user-visible sync feedback.
  */
+import { formatIntervalsImportHealthParts } from './intervalsImportHealth.js';
 
 /**
  * @param {object} stats — from useIntervalsSync
@@ -22,6 +23,16 @@ export function formatIntervalsSyncSummary(stats, mergeMeta = {}) {
     if (mergeMeta.updatedCount > 0) parts.push(`${mergeMeta.updatedCount} updated`);
     if (skippedEmpty > 0) parts.push(`${skippedEmpty} skipped (no distance/time/power)`);
     if (skippedSport > 0) parts.push(`${skippedSport} filtered by sport type`);
+
+    const healthParts = formatIntervalsImportHealthParts(stats?.health);
+    if (healthParts.length > 0) {
+        parts.push(...healthParts);
+    }
+    if (stats?.syncRoute === 'direct') {
+        parts.push('route: direct API');
+    } else if (stats?.syncRoute === 'cloud') {
+        parts.push('route: cloud sync');
+    }
 
     if (parts.length === 0) {
         return 'No activities returned for this range.';

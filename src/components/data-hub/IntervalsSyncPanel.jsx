@@ -138,7 +138,7 @@ const IntervalsSyncPanel = ({
 
                     <div>
                         <div className="flex justify-between items-center mb-1.5">
-                            <span className="text-[10px] font-semibold text-cdmuted uppercase">Sport types</span>
+                            <span className="text-[10px] font-semibold text-cdmuted uppercase">Sport types (cycling on by default)</span>
                             <div className="flex gap-1">
                                 <Button variant="text" size="sm" type="button" onClick={() => onSetAllSportFilters(true)}>
                                     All

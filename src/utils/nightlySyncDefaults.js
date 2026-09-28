@@ -1,25 +1,26 @@
 /**
  * Shared defaults for nightly GitHub Actions sync vs DataHub Intervals sync.
- * DataHub enables all `SPORT_TYPES` from config on first load; nightly uses the same
- * set plus trainer aliases (Workout / IndoorCycling) that Intervals often assigns.
+ * DataHub and nightly both use cycling-first sport filters (Run/Walk/Hike off by default).
+ * Nightly additionally allows trainer aliases (Workout / IndoorCycling) from Intervals.icu.
  */
 
-import { SPORT_TYPES } from '../config.js';
+import { CYCLING_SPORT_TYPES } from '../config.js';
+import { buildDefaultIntervalsSyncSportFilters } from './intervalsSyncSportFilters.js';
 
 /** Extra Intervals types not in Settings sport toggles but common on Intervals.icu. */
 export const NIGHTLY_EXTRA_INTERVALS_SPORT_TYPES = ['Workout', 'IndoorCycling'];
 
-/** @returns {Record<string, boolean>} Same as DataHub initial sport filter (all on). */
+/** @returns {Record<string, boolean>} DataHub initial sport filter (cycling types on). */
 export function defaultSportFilterMap() {
-    return SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: true }), {});
+    return buildDefaultIntervalsSyncSportFilters();
 }
 
 /**
- * Sport filters aligned with DataHub default (all config types on) + nightly trainer types.
+ * Sport filters for nightly sync: cycling types + trainer aliases (no Run/Walk/Hike).
  * @returns {string[]}
  */
 export function getDefaultNightlyAllowedSportTypes() {
-    const set = new Set([...SPORT_TYPES, ...NIGHTLY_EXTRA_INTERVALS_SPORT_TYPES]);
+    const set = new Set([...CYCLING_SPORT_TYPES, ...NIGHTLY_EXTRA_INTERVALS_SPORT_TYPES]);
     return [...set];
 }
 

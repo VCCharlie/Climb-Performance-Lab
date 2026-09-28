@@ -5,7 +5,12 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { normalizeIntervalsActivity, buildIntervalsActivitiesListUrl, INTERVALS_LIST_ACTIVITY_FIELDS } from '../../utils/intervals';
+import {
+    normalizeIntervalsActivity,
+    normalizeIntervalsActivityFromAny,
+    buildIntervalsActivitiesListUrl,
+    INTERVALS_LIST_ACTIVITY_FIELDS,
+} from '../../utils/intervals';
 
 const fixturesDir = resolve(__dirname, '../fixtures');
 const fixture = JSON.parse(readFileSync(resolve(fixturesDir, 'sample-intervals-api.json'), 'utf-8'));
@@ -311,6 +316,37 @@ describe('normalizeIntervalsActivity - edge cases', () => {
     for (const field of numericFields) {
       expect(typeof norm[field]).toBe('number');
     }
+  });
+});
+
+describe('normalizeIntervalsActivityFromAny - cloud-shaped payload', () => {
+  it('re-normalizes Python/cloud transform output to canonical metrics', () => {
+    const cloudRow = {
+      id: 'i99999',
+      date: '2026-08-15',
+      type: 'Ride',
+      title: 'Alpine loop',
+      moving_time: 7200,
+      distance: 85.5,
+      climbing: 2100,
+      avg_speed: 28.4,
+      avg_power: 195,
+      norm_power: 218,
+      avg_hr: 148,
+      max_hr: 172,
+      work: 1400,
+      load: 120,
+      best_20min: 245,
+      ftp: 280,
+    };
+    const norm = normalizeIntervalsActivityFromAny(cloudRow);
+    expect(norm.id).toBe('i99999');
+    expect(norm.avg_power).toBe(195);
+    expect(norm.norm_power).toBe(218);
+    expect(norm.load).toBe(120);
+    expect(norm.distance).toBe(85.5);
+    expect(norm.moving_time).toBe(7200);
+    expect(norm.best_20min).toBe(245);
   });
 });
 

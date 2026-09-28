@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { db } from '../firebase';
 import { SPORT_TYPES } from '../config';
 import { defaultSportFilterMap } from '../utils/nightlySyncDefaults.js';
+import { formatIntervalsImportHealthParts } from '../utils/intervalsImportHealth.js';
 import { protectEnrichedFieldsOnMerge } from '../utils/firestoreActivityMerge';
 import { batchWriteDocuments } from '../utils/firestoreBatchWrite';
 import { stripUndefinedFields } from '../utils/mergeActivities';
@@ -398,6 +399,8 @@ export function useDataHubIntervalsSync({
                 added: orphanMerged.length,
                 updated: mergedNews.length,
                 skipped: skippedEmpty,
+                importHealth: syncStats?.health,
+                syncRoute: syncStats?.syncRoute,
             });
             onImportFinished?.(buildPostImportActivityList(activities, [...working, ...orphanMerged]));
 
@@ -411,6 +414,9 @@ export function useDataHubIntervalsSync({
             if (skippedEmpty > 0) {
                 parts.push(`${skippedEmpty} skipped (no distance/time/power)`);
             }
+            parts.push(...formatIntervalsImportHealthParts(syncStats?.health));
+            if (syncStats?.syncRoute === 'direct') parts.push('route: direct API');
+            else if (syncStats?.syncRoute === 'cloud') parts.push('route: cloud sync');
             if (enrichedLinkCount > 0) parts.push(`${enrichedLinkCount} Strava link update(s)`);
             if (segmentRefreshCount > 0) parts.push(`${segmentRefreshCount} Strava detail + segment refresh`);
             if (detailFailed > 0) parts.push(`${detailFailed} detail error(s)`);
@@ -588,6 +594,8 @@ export function useDataHubIntervalsSync({
                 added: mergeCounts.newCount + orphanMergeCounts.newCount,
                 updated: mergeCounts.updatedCount + orphanMergeCounts.updatedCount,
                 skipped: Number(syncStats?.skippedEmpty) || 0,
+                importHealth: syncStats?.health,
+                syncRoute: syncStats?.syncRoute,
             });
             onImportFinished?.(buildPostImportActivityList(activities, merged));
 

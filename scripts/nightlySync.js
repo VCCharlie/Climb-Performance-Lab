@@ -41,7 +41,7 @@ const CLOUD_FUNCTION_URL = 'https://sync-intervals-97555677694.europe-west1.run.
 const FIRESTORE_COLLECTION = 'activities';
 const LOOKBACK_DAYS = 14;
 // We no longer strictly filter on SPORT_TYPES before storing, to ensure we catch Workouts with power data.
-/** Orphan gap-fill + CF pre-filter — aligned with DataHub all-on filters + Workout/IndoorCycling (see nightlySyncDefaults.js). */
+/** Orphan gap-fill + CF pre-filter — cycling types + Workout/IndoorCycling (see nightlySyncDefaults.js). */
 const ACCEPTED_TYPES = getDefaultNightlyAllowedSportTypes();
 
 // Firestore limits batch writes to 500 documents at a time.
