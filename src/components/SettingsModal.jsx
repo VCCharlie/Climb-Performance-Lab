@@ -41,6 +41,7 @@ import HistoricalFtpSettings from './settings/HistoricalFtpSettings';
 import IntegrationsDiagnosticsSection from './settings/IntegrationsDiagnosticsSection';
 import AdvancedCoachSettings from './settings/AdvancedCoachSettings';
 import PhysicsDefaultsSettings from './settings/PhysicsDefaultsSettings';
+import SyncEnrichLimitsSettings from './settings/SyncEnrichLimitsSettings';
 import {
     RESET_SETTINGS_PRESERVED_LABELS,
     RESET_SETTINGS_CLEARED_LABELS,
@@ -419,6 +420,10 @@ const SettingsModal = ({
                                         Pre-fills the Activities → Fetch &amp; merge date range when you open sync.
                                     </p>
                                 </div>
+                                <SyncEnrichLimitsSettings
+                                    userSettings={userSettings}
+                                    updateUserSettings={updateUserSettings}
+                                />
                                 {/* OpenWeatherMap API Key */}
                                 <div className="pt-2 border-t border-cdborder/30 mt-2">
                                     <label className={`block text-xs font-semibold mb-1 text-cdmuted`}>

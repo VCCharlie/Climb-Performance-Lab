@@ -40,6 +40,7 @@ export function mapZoneTimesOnActivities(activities) {
  *   decouplingDelayMs?: number,
  *   zoneTimesMaxFetches?: number,
  *   zoneTimesDelayMs?: number,
+ *   powerCurveMaxFetches?: number,
  *   onProgress?: (message: string) => void,
  * }} [options]
  * @returns {Promise<{ activities: object[], stats: { zoneMapped: number, zoneTimesEnriched: number, powerCurveRan: boolean, driftRan: boolean } }>}
@@ -64,11 +65,12 @@ export async function runActivityEnrichmentPipeline(activities, options = {}) {
         return { activities: result, stats };
     }
 
-    if (options.intervalsConfig?.apiKey) {
+    const zoneTimesMaxFetches = options.zoneTimesMaxFetches ?? 25;
+    if (options.intervalsConfig?.apiKey && zoneTimesMaxFetches > 0) {
         onProgress?.('Fetching zone times from activity details…');
         try {
             const zoneEnrich = await enrichActivitiesWithZoneTimes(result, options.intervalsConfig, {
-                maxFetches: options.zoneTimesMaxFetches ?? 25,
+                maxFetches: zoneTimesMaxFetches,
                 delayMs: options.zoneTimesDelayMs ?? 120,
             });
             result = zoneEnrich.activities;
@@ -78,11 +80,14 @@ export async function runActivityEnrichmentPipeline(activities, options = {}) {
         }
     }
 
-    if (options.intervalsConfig?.apiKey || options.intervalsConfig?.athleteId) {
+    const powerCurveMaxFetches = options.powerCurveMaxFetches ?? 40;
+    if ((options.intervalsConfig?.apiKey || options.intervalsConfig?.athleteId) && powerCurveMaxFetches > 0) {
         onProgress?.('Enriching power bests from Intervals power curves…');
         stats.powerCurveRan = true;
         try {
-            result = await enrichActivitiesWithLongDurationBests(result, options.intervalsConfig);
+            result = await enrichActivitiesWithLongDurationBests(result, options.intervalsConfig, {
+                maxFetches: powerCurveMaxFetches,
+            });
         } catch (err) {
             console.warn('[Enrichment] Power curve enrich failed:', err);
         }
