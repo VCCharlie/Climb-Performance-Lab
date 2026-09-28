@@ -54,9 +54,15 @@ export async function runActivityEnrichmentPipeline(activities, options = {}) {
         driftRan: false,
     };
 
+    const fastMode = options.enrichmentMode === 'fast';
+
     const zonePass = mapZoneTimesOnActivities(result);
     result = zonePass.activities;
     stats.zoneMapped = zonePass.mappedCount;
+
+    if (fastMode) {
+        return { activities: result, stats };
+    }
 
     if (options.intervalsConfig?.apiKey) {
         onProgress?.('Fetching zone times from activity details…');

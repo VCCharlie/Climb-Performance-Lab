@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Download, X, Zap, Info } from 'lucide-react';
 import { TableHeader, Row } from './ActivityTable';
 import { useModalA11y } from '../../hooks/useModalA11y';
+import { summarizeImportPreviewWarnings } from '../../utils/intervalsImportHealth.js';
 import {
     Button,
     Chip,
@@ -44,6 +45,8 @@ const ImportModal = ({
         setSelectedActivities(withPower);
     };
 
+    const previewWarnings = summarizeImportPreviewWarnings(fetchedActivities);
+
     return (
         <div className={`${modalScrimClass} z-[100]`}>
             <div
@@ -64,6 +67,14 @@ const ImportModal = ({
                         <X size={18} />
                     </IconButton>
                 </div>
+                {previewWarnings.message ? (
+                    <div
+                        className="mx-3 mt-2 px-3 py-2 rounded-cdmd border border-cdborder bg-cdsurfacelow text-xs text-cdtext leading-snug"
+                        role="status"
+                    >
+                        {previewWarnings.message}
+                    </div>
+                ) : null}
                 <div className={modalToolbarClass}>
                     <Button variant="tonal" size="sm" type="button" onClick={() => setSelectedActivities(fetchedActivities.map((r) => r.id))}>
                         Select all

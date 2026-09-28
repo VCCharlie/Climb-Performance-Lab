@@ -26,6 +26,12 @@ import {
 } from '../utils/stravaSyncMatchSummary';
 import { buildDefaultSyncDates } from '../utils/syncDateRange';
 import { backfillStravaMetricsForSparseIntervalsActivities } from '../utils/intervalsStravaApiRestriction';
+import {
+    isFullSyncDepth,
+    readPersistedSyncDepth,
+    writePersistedSyncDepth,
+    normalizeSyncDepth,
+} from '../utils/intervalsSyncDepth.js';
 
 /**
  * Intervals.icu sync + fetch-new flows for DataHub (selected-row sync and date-range fetch).
@@ -107,6 +113,13 @@ export function useDataHubIntervalsSync({
     const [sportFilters, setSportFilters] = useState(() => defaultSportFilterMap());
     const [isFetchingNewIntervals, setIsFetchingNewIntervals] = useState(false);
     const [stravaEnrichEnabled, setStravaEnrichEnabled] = useState(true);
+    const [syncDepth, setSyncDepthState] = useState(() => readPersistedSyncDepth());
+
+    const setSyncDepth = useCallback((depth) => {
+        const normalized = normalizeSyncDepth(depth);
+        setSyncDepthState(normalized);
+        writePersistedSyncDepth(normalized);
+    }, []);
 
     const getSelectedSportTypes = useCallback(
         () => Object.keys(sportFilters).filter((k) => sportFilters[k]),
@@ -128,8 +141,9 @@ export function useDataHubIntervalsSync({
             stravaToken,
             intervalsConfig,
             deferDriftEnrich: true,
+            enrichmentMode: isFullSyncDepth(syncDepth) ? 'full' : 'fast',
         };
-    }, [userSettings?.ftp, stravaEnrichEnabled, stravaGetToken, intervalsConfig]);
+    }, [userSettings?.ftp, stravaEnrichEnabled, stravaGetToken, intervalsConfig, syncDepth]);
 
     const applyPostSyncDriftEnrich = useCallback(async (list, activitiesMap, enrichOptions, driftOptions = {}) => {
         if (!list?.length || Number(enrichOptions.profileFtp) <= 0) {
@@ -183,9 +197,16 @@ export function useDataHubIntervalsSync({
         syncStart,
         syncEnd,
         selectedTypes,
-        activitiesMap,
         onProgress,
     }) => {
+        if (!isFullSyncDepth(syncDepth)) {
+            return {
+                intervalsActivities: intervalsBatch,
+                orphanActivities: [],
+                stravaList: null,
+                stats: null,
+            };
+        }
         if (!stravaEnrichEnabled || !stravaGetToken) {
             return { intervalsActivities: intervalsBatch, orphanActivities: [], stravaList: null, stats: null };
         }
@@ -210,7 +231,7 @@ export function useDataHubIntervalsSync({
             console.warn('[Sync] Strava gap fill failed:', err);
             return { intervalsActivities: intervalsBatch, orphanActivities: [], stravaList: null, stats: null };
         }
-    }, [activities, getActivitiesSnapshot, stravaEnrichEnabled, stravaGetToken, deviceProfileTitles, intervalsConfig]);
+    }, [activities, getActivitiesSnapshot, stravaEnrichEnabled, stravaGetToken, deviceProfileTitles, intervalsConfig, syncDepth]);
 
     const toggleSportFilter = useCallback((type) => {
         setSportFilters((prev) => ({ ...prev, [type]: !prev[type] }));
@@ -319,6 +340,32 @@ export function useDataHubIntervalsSync({
                 }
             }
 
+            if (!isFullSyncDepth(syncDepth)) {
+                const skippedEmpty = Number(syncStats?.skippedEmpty) || 0;
+                recordIntervalsSyncSuccess({
+                    added: orphanMerged.length,
+                    updated: mergedNews.length,
+                    skipped: skippedEmpty,
+                    importHealth: syncStats?.health,
+                    syncRoute: syncStats?.syncRoute,
+                    syncDepth: syncDepth,
+                });
+                onImportFinished?.(buildPostImportActivityList(activities, [...working, ...orphanMerged]));
+
+                setSyncStatus('done');
+                const parts = [];
+                if (mergedNews.length > 0) parts.push(`${mergedNews.length} Intervals row(s) saved`);
+                if (skippedEmpty > 0) parts.push(`${skippedEmpty} skipped (no distance/time/power)`);
+                parts.push(...formatIntervalsImportHealthParts(syncStats?.health));
+                if (syncStats?.syncRoute === 'direct') parts.push('route: direct API');
+                else if (syncStats?.syncRoute === 'cloud') parts.push('route: cloud sync');
+                parts.push('Fast sync (Intervals only — no Strava/drift)');
+                setSyncErrorDetail(`✅ Sync complete. ${parts.join(' · ')}.`);
+                showToast(`Sync complete. ${parts.join(' · ')}.`, { variant: 'success' });
+                setTimeout(() => setSyncStatus(null), 9000);
+                return;
+            }
+
             if (stravaEnrichEnabled && stravaGetToken) {
                 setSyncErrorDetail('Step 2b/3: Strava metrics for Intervals-restricted rides…');
                 working = await backfillStravaMetricsForSparseIntervalsActivities(working, {
@@ -401,6 +448,7 @@ export function useDataHubIntervalsSync({
                 skipped: skippedEmpty,
                 importHealth: syncStats?.health,
                 syncRoute: syncStats?.syncRoute,
+                syncDepth: syncDepth,
             });
             onImportFinished?.(buildPostImportActivityList(activities, [...working, ...orphanMerged]));
 
@@ -462,6 +510,7 @@ export function useDataHubIntervalsSync({
         onImportFinished,
         applyStravaGapFillToBatch,
         persistImportedActivities,
+        syncDepth,
     ]);
 
     const fetchAndMergeIntervalsRange = useCallback(async (syncStart, syncEnd) => {
@@ -524,6 +573,27 @@ export function useDataHubIntervalsSync({
                 onImport(allImported);
             }
 
+            if (!isFullSyncDepth(syncDepth)) {
+                const orphanMergeCounts = countMergeCategories(orphanMerged, activities);
+                recordIntervalsSyncSuccess({
+                    added: mergeCounts.newCount + orphanMergeCounts.newCount,
+                    updated: mergeCounts.updatedCount + orphanMergeCounts.updatedCount,
+                    skipped: Number(syncStats?.skippedEmpty) || 0,
+                    importHealth: syncStats?.health,
+                    syncRoute: syncStats?.syncRoute,
+                    syncDepth: syncDepth,
+                });
+                onImportFinished?.(buildPostImportActivityList(activities, allImported));
+
+                setSyncStatus('done');
+                const summary = formatIntervalsSyncSummary(syncStats, mergeCounts);
+                const parts = [summary, 'Fast sync (Intervals only — no Strava/drift)'];
+                setSyncErrorDetail(`✅ ${parts.join(' · ')}.`);
+                showToast(parts.join(' · '), { variant: 'success' });
+                setTimeout(() => setSyncStatus(null), 9000);
+                return;
+            }
+
             let enrichCount = 0;
             let segmentRefreshCount = 0;
             let detailFailed = 0;
@@ -577,7 +647,6 @@ export function useDataHubIntervalsSync({
                     console.warn('[Fetch new] Strava enrich failed:', e);
                     stravaEnrichWarning = e?.message || 'Strava enrichment failed during fetch.';
                 }
-                onImport(allImported);
             }
 
             const isSingleDaySync = syncStart === syncEnd;
@@ -596,6 +665,7 @@ export function useDataHubIntervalsSync({
                 skipped: Number(syncStats?.skippedEmpty) || 0,
                 importHealth: syncStats?.health,
                 syncRoute: syncStats?.syncRoute,
+                syncDepth: syncDepth,
             });
             onImportFinished?.(buildPostImportActivityList(activities, merged));
 
@@ -669,6 +739,7 @@ export function useDataHubIntervalsSync({
         onImportFinished,
         applyStravaGapFillToBatch,
         persistImportedActivities,
+        syncDepth,
     ]);
 
     const handleFetchNewFromIntervals = useCallback(async () => {
@@ -696,6 +767,8 @@ export function useDataHubIntervalsSync({
         setAllSportFilters,
         stravaEnrichEnabled,
         setStravaEnrichEnabled,
+        syncDepth,
+        setSyncDepth,
         handleRunSync,
         isFetchingNewIntervals,
         handleSync,

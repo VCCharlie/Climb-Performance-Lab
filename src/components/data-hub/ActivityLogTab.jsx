@@ -125,6 +125,8 @@ export default function ActivityLogTab({
                 stravaConnected={filterBarProps.stravaGetToken != null}
                 stravaEnrichEnabled={intervalsSync.stravaEnrichEnabled}
                 onStravaEnrichEnabledChange={intervalsSync.setStravaEnrichEnabled}
+                syncDepth={intervalsSync.syncDepth}
+                onSyncDepthChange={intervalsSync.setSyncDepth}
                 onOpenImportTab={onOpenImportTab}
                 lastIntervalsSyncAt={lastIntervalsSyncAt}
                 lastSyncHealthSummary={intervalsSync.lastSyncHealthSummary}
