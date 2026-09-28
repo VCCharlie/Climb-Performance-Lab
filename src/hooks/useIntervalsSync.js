@@ -27,6 +27,8 @@ const useIntervalsSync = (intervalsConfig) => {
             enrichmentMode: enrichOptions.enrichmentMode,
             decouplingMaxFetches: enrichOptions.decouplingMaxFetches ?? 8,
             decouplingDelayMs: enrichOptions.decouplingDelayMs ?? 150,
+            zoneTimesMaxFetches: enrichOptions.zoneTimesMaxFetches,
+            powerCurveMaxFetches: enrichOptions.powerCurveMaxFetches,
             onProgress: (message) => setSyncProgress(message),
         });
         return result;

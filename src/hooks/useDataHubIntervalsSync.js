@@ -13,7 +13,8 @@ import { useToast } from '../context/ToastContext';
 import { safeLocalStorageSet } from '../utils/safeStorage';
 import { ACTIVITY_LOG_INTERVALS_LAST_SYNC_KEY, readLastIntervalsSyncAt } from '../utils/activityLogSyncLabel';
 import { countMergeCategories, formatIntervalsSyncSummary, formatStravaGapFillSummaryParts } from '../utils/importSyncStats';
-import { enrichSyncedActivitiesDrift, formatSyncDriftRemainderNote, SYNC_DRIFT_MAX_FETCHES_DEFAULT, SYNC_DRIFT_MAX_FETCHES_TODAY } from '../utils/syncDriftEnrich';
+import { enrichSyncedActivitiesDrift, formatSyncDriftRemainderNote } from '../utils/syncDriftEnrich';
+import { resolveSyncEnrichLimits } from '../utils/syncEnrichLimits.js';
 import { buildPostImportActivityList } from '../utils/postImportActivityList';
 import { runIntervalsSyncWithStravaGapFill } from '../utils/runIntervalsSyncWithStravaGapFill';
 import {
@@ -137,6 +138,11 @@ export function useDataHubIntervalsSync({
         [sportFilters],
     );
 
+    const syncEnrichLimits = useMemo(
+        () => resolveSyncEnrichLimits(userSettings),
+        [userSettings?.syncEnrichLimits],
+    );
+
     const buildSyncEnrichOptions = useCallback(async () => {
         const profileFtp = Number(userSettings?.ftp) || 0;
         let stravaToken = null;
@@ -147,14 +153,19 @@ export function useDataHubIntervalsSync({
                 stravaToken = null;
             }
         }
+        const limits = resolveSyncEnrichLimits(userSettings);
         return {
             profileFtp,
             stravaToken,
             intervalsConfig,
             deferDriftEnrich: true,
             enrichmentMode: isFullSyncDepth(syncDepth) ? 'full' : 'fast',
+            zoneTimesMaxFetches: limits.zoneTimesMaxFetches,
+            powerCurveMaxFetches: limits.powerCurveMaxFetches,
+            driftMaxFetches: limits.driftMaxFetches,
+            driftMaxFetchesToday: limits.driftMaxFetchesToday,
         };
-    }, [userSettings?.ftp, stravaEnrichEnabled, stravaGetToken, intervalsConfig, syncDepth]);
+    }, [userSettings, stravaEnrichEnabled, stravaGetToken, intervalsConfig, syncDepth]);
 
     const applyPostSyncDriftEnrich = useCallback(async (list, activitiesMap, enrichOptions, driftOptions = {}) => {
         if (!list?.length || Number(enrichOptions.profileFtp) <= 0) {
@@ -177,7 +188,7 @@ export function useDataHubIntervalsSync({
             intervalsConfig,
             stravaToken,
             profileFtp: enrichOptions.profileFtp,
-            maxFetches: driftOptions.maxFetches ?? SYNC_DRIFT_MAX_FETCHES_DEFAULT,
+            maxFetches: driftOptions.maxFetches ?? enrichOptions.driftMaxFetches ?? syncEnrichLimits.driftMaxFetches,
             onProgress: (message) => setSyncErrorDetail(String(message)),
         });
 
@@ -196,7 +207,7 @@ export function useDataHubIntervalsSync({
         onImport(updated);
 
         return { list: updated, driftEnrichedCount: enrichedCount, driftRemainingCount: remainingCount };
-    }, [intervalsConfig, stravaEnrichEnabled, stravaGetToken, onImport, mergeProtectOpts]);
+    }, [intervalsConfig, stravaEnrichEnabled, stravaGetToken, onImport, mergeProtectOpts, syncEnrichLimits.driftMaxFetches]);
 
     const persistImportedActivities = useCallback(async (items, activitiesMap) => {
         if (!items?.length) return;
@@ -449,7 +460,12 @@ export function useDataHubIntervalsSync({
 
             onImport(working);
 
-            const driftResult = await applyPostSyncDriftEnrich(working, activitiesMap, enrichOptions);
+            const refreshSingleDay = syncStart === syncEnd;
+            const driftResult = await applyPostSyncDriftEnrich(working, activitiesMap, enrichOptions, {
+                maxFetches: refreshSingleDay
+                    ? (enrichOptions.driftMaxFetchesToday ?? syncEnrichLimits.driftMaxFetchesToday)
+                    : (enrichOptions.driftMaxFetches ?? syncEnrichLimits.driftMaxFetches),
+            });
             working = driftResult.list;
 
             const skippedEmpty = Number(syncStats?.skippedEmpty) || 0;
@@ -665,7 +681,11 @@ export function useDataHubIntervalsSync({
                 allImported,
                 activitiesMap,
                 enrichOptions,
-                { maxFetches: isSingleDaySync ? SYNC_DRIFT_MAX_FETCHES_TODAY : SYNC_DRIFT_MAX_FETCHES_DEFAULT },
+                {
+                    maxFetches: isSingleDaySync
+                        ? (enrichOptions.driftMaxFetchesToday ?? syncEnrichLimits.driftMaxFetchesToday)
+                        : (enrichOptions.driftMaxFetches ?? syncEnrichLimits.driftMaxFetches),
+                },
             );
             merged = driftResult.list;
 

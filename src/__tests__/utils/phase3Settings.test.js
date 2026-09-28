@@ -14,6 +14,7 @@ import {
 } from '../../utils/resetUserSettings.js';
 import { buildDefaultSyncDates } from '../../utils/syncDateRange.js';
 import { normalizeSyncDepth } from '../../utils/intervalsSyncDepth.js';
+import { DEFAULT_SYNC_ENRICH_LIMITS } from '../../utils/syncEnrichLimits.js';
 
 describe('coachThresholds', () => {
     it('merges partial coach thresholds', () => {
@@ -37,6 +38,7 @@ describe('userSettingsMerge', () => {
         expect(merged.ftp).toBe(250);
         expect(merged.defaultSyncRangeDays).toBe(14);
         expect(merged.defaultIntervalsSyncDepth).toBe('fast');
+        expect(merged.syncEnrichLimits).toEqual(DEFAULT_SYNC_ENRICH_LIMITS);
         expect(merged.physics.crr).toBe(0.004);
         expect(merged.coachThresholds.highWeeklyLoadTss).toBe(400);
         expect(merged.recoveryThresholds.tsbCritical).toBe(-30);

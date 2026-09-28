@@ -4,12 +4,13 @@
 
 import { enrichActivitiesWithDecoupling } from './decouplingStreamEnrich';
 import { activityNeedsDriftAnalysis, extractDriftPatch } from './coach/rideDurability';
+import { DEFAULT_SYNC_ENRICH_LIMITS } from './syncEnrichLimits.js';
 
 /** Max stream fetches during a multi-day Intervals fetch-and-merge. */
-export const SYNC_DRIFT_MAX_FETCHES_DEFAULT = 8;
+export const SYNC_DRIFT_MAX_FETCHES_DEFAULT = DEFAULT_SYNC_ENRICH_LIMITS.driftMaxFetches;
 
 /** Higher cap for single-day “sync today” (Dashboard / Activities / Training header). */
-export const SYNC_DRIFT_MAX_FETCHES_TODAY = 12;
+export const SYNC_DRIFT_MAX_FETCHES_TODAY = DEFAULT_SYNC_ENRICH_LIMITS.driftMaxFetchesToday;
 
 /**
  * @param {object[]} activities
