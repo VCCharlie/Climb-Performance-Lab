@@ -36,4 +36,17 @@ describe('runActivityEnrichmentPipeline zone times', () => {
         expect(out[0].power_zone_sec).toEqual([0, 1800, 0, 0, 0, 0, 0]);
         expect(fetch).toHaveBeenCalledTimes(1);
     });
+
+    it('skips network enrichment in fast mode', async () => {
+        const activities = [{ id: 'i555', date: '2026-08-10', avg_power: 190, ftp: 260 }];
+
+        const { stats } = await runActivityEnrichmentPipeline(activities, {
+            intervalsConfig: { apiKey: 'key', athleteId: 'a1' },
+            enrichmentMode: 'fast',
+        });
+
+        expect(stats.zoneTimesEnriched).toBe(0);
+        expect(stats.powerCurveRan).toBe(false);
+        expect(fetch).not.toHaveBeenCalled();
+    });
 });

@@ -24,6 +24,7 @@ const useIntervalsSync = (intervalsConfig) => {
             profileFtp: enrichOptions.profileFtp,
             stravaToken: enrichOptions.stravaToken || null,
             deferDriftEnrich: enrichOptions.deferDriftEnrich,
+            enrichmentMode: enrichOptions.enrichmentMode,
             decouplingMaxFetches: enrichOptions.decouplingMaxFetches ?? 8,
             decouplingDelayMs: enrichOptions.decouplingDelayMs ?? 150,
             onProgress: (message) => setSyncProgress(message),

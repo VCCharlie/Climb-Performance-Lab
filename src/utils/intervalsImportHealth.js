@@ -86,6 +86,27 @@ export function analyzeIntervalsImportHealth(activities) {
  * @param {ReturnType<typeof analyzeIntervalsImportHealth> | null | undefined} health
  * @returns {string[]}
  */
+/**
+ * User-facing summary for JSON/CSV import preview modal.
+ * @param {object[]} activities
+ * @returns {{ rideCount: number, missingPowerCount: number, message: string | null }}
+ */
+export function summarizeImportPreviewWarnings(activities) {
+    const health = analyzeIntervalsImportHealth(activities);
+    if (health.rideCount <= 0) {
+        return { rideCount: 0, missingPowerCount: 0, message: null };
+    }
+    const missingPowerCount = Math.max(health.missingNormPower, health.missingAvgPower);
+    if (missingPowerCount <= 0) {
+        return { rideCount: health.rideCount, missingPowerCount: 0, message: null };
+    }
+    return {
+        rideCount: health.rideCount,
+        missingPowerCount,
+        message: `${missingPowerCount} of ${health.rideCount} ride(s) have no power data (NP/avg). They will still import, but coach charts may ignore them.`,
+    };
+}
+
 export function formatIntervalsImportHealthParts(health) {
     if (!health || health.rideCount <= 0) return [];
 

@@ -31,6 +31,7 @@ import {
 import QuickLinksSettings from './settings/QuickLinksSettings';
 import { stravaConfigHasPrivateRead, STRAVA_RECONNECT_PRIVATE_READ_MSG } from '../utils/stravaOAuthScopes';
 import HistoricalFtpSettings from './settings/HistoricalFtpSettings';
+import IntegrationsDiagnosticsSection from './settings/IntegrationsDiagnosticsSection';
 import AdvancedCoachSettings from './settings/AdvancedCoachSettings';
 import PhysicsDefaultsSettings from './settings/PhysicsDefaultsSettings';
 import {
@@ -365,6 +366,11 @@ const SettingsModal = ({
                                         Open GitHub Actions workflow
                                     </a>
                                 </div>
+                                <IntegrationsDiagnosticsSection
+                                    intervalsConfig={intervalsConfig}
+                                    stravaConfig={stravaConfig}
+                                    isSignedIn={isSignedIn}
+                                />
                                 <div className="pt-2 border-t border-cdborder/30 mt-2">
                                     <label className="block text-xs font-semibold mb-1 text-cdmuted">
                                         Default sync range (days)

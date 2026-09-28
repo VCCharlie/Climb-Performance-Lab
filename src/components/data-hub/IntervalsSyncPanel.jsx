@@ -5,12 +5,18 @@ import { SPORT_TYPES } from '../../config';
 import { Button, Chip, SegmentedControl, inputBaseClass, cn } from '../ui';
 import { safeLocalStorageSet } from '../../utils/safeStorage';
 import { formatIntervalsSyncHealthLine } from '../../utils/intervalsSyncHealth';
+import { SYNC_DEPTH_FAST, SYNC_DEPTH_FULL } from '../../utils/intervalsSyncDepth.js';
 
 const SYNC_PANEL_EXPANDED_KEY = 'cpl.intervalsSyncPanel.expanded.v1';
 
 const SYNC_MODE_OPTIONS = (selectedCount) => [
     { value: 'fetch-range', label: 'Date range' },
     { value: 'refresh-selected', label: `Selected (${selectedCount})` },
+];
+
+const SYNC_DEPTH_OPTIONS = [
+    { value: SYNC_DEPTH_FAST, label: 'Fast' },
+    { value: SYNC_DEPTH_FULL, label: 'Full' },
 ];
 
 const IntervalsSyncPanel = ({
@@ -28,6 +34,8 @@ const IntervalsSyncPanel = ({
     stravaConnected,
     stravaEnrichEnabled,
     onStravaEnrichEnabledChange,
+    syncDepth,
+    onSyncDepthChange,
     onOpenImportTab,
     lastIntervalsSyncAt = null,
     lastSyncHealthSummary = null,
@@ -161,6 +169,22 @@ const IntervalsSyncPanel = ({
                                     {type}
                                 </Chip>
                             ))}
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2 pt-1 border-t border-cdborder/60">
+                        <div>
+                            <span className="text-[10px] font-semibold text-cdmuted uppercase block mb-1">Sync depth</span>
+                            <SegmentedControl
+                                options={SYNC_DEPTH_OPTIONS}
+                                value={syncDepth}
+                                onChange={onSyncDepthChange}
+                                size="sm"
+                                aria-label="Intervals sync depth"
+                            />
+                            <p className="text-[10px] text-cdmuted mt-1 leading-snug">
+                                Fast: Intervals fetch + save only. Full: Strava gap-fill, detail enrich, and HR drift (when enabled below).
+                            </p>
                         </div>
                     </div>
 
