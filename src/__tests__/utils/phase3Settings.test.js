@@ -13,6 +13,7 @@ import {
     PRESERVED_SETTINGS_KEYS,
 } from '../../utils/resetUserSettings.js';
 import { buildDefaultSyncDates } from '../../utils/syncDateRange.js';
+import { normalizeSyncDepth } from '../../utils/intervalsSyncDepth.js';
 
 describe('coachThresholds', () => {
     it('merges partial coach thresholds', () => {
@@ -35,6 +36,7 @@ describe('userSettingsMerge', () => {
         expect(merged.weight).toBe(72);
         expect(merged.ftp).toBe(250);
         expect(merged.defaultSyncRangeDays).toBe(14);
+        expect(merged.defaultIntervalsSyncDepth).toBe('fast');
         expect(merged.physics.crr).toBe(0.004);
         expect(merged.coachThresholds.highWeeklyLoadTss).toBe(400);
         expect(merged.recoveryThresholds.tsbCritical).toBe(-30);
@@ -43,6 +45,7 @@ describe('userSettingsMerge', () => {
     it('getDefaultUserSettings includes Phase 3 nested defaults', () => {
         const defaults = getDefaultUserSettings();
         expect(defaults.defaultSyncRangeDays).toBe(14);
+        expect(defaults.defaultIntervalsSyncDepth).toBe('fast');
         expect(defaults.recoveryThresholds).toEqual(DEFAULT_RECOVERY_THRESHOLDS);
     });
 });
@@ -65,6 +68,19 @@ describe('resetUserSettings', () => {
 
     it('documents preserved keys', () => {
         expect(PRESERVED_SETTINGS_KEYS).toContain('geminiApiKey');
+    });
+});
+
+describe('defaultIntervalsSyncDepth merge', () => {
+    it('normalizes invalid stored values to fast', () => {
+        const merged = mergeUserSettingsWithDefaults({ defaultIntervalsSyncDepth: 'invalid' });
+        expect(merged.defaultIntervalsSyncDepth).toBe('fast');
+    });
+
+    it('keeps full when set', () => {
+        const merged = mergeUserSettingsWithDefaults({ defaultIntervalsSyncDepth: 'full' });
+        expect(merged.defaultIntervalsSyncDepth).toBe('full');
+        expect(normalizeSyncDepth(merged.defaultIntervalsSyncDepth)).toBe('full');
     });
 });
 

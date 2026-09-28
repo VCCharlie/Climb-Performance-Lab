@@ -12,17 +12,37 @@ export const SYNC_DEPTH_FULL = 'full';
 const VALID = new Set([SYNC_DEPTH_FAST, SYNC_DEPTH_FULL]);
 
 /**
+ * @param {'fast' | 'full' | string | undefined} [settingsDefault] from userSettings.defaultIntervalsSyncDepth
  * @returns {'fast' | 'full'}
  */
-export function readPersistedSyncDepth() {
-    if (typeof localStorage === 'undefined') return SYNC_DEPTH_FAST;
+export function readPersistedSyncDepth(settingsDefault) {
+    const fallback = normalizeSyncDepth(settingsDefault ?? SYNC_DEPTH_FAST);
+    if (typeof localStorage === 'undefined') return fallback;
     try {
         const raw = localStorage.getItem(INTERVALS_SYNC_DEPTH_STORAGE_KEY);
         if (raw && VALID.has(raw)) return raw;
     } catch {
         /* private mode */
     }
-    return SYNC_DEPTH_FAST;
+    return fallback;
+}
+
+/**
+ * @param {object | null | undefined} userSettings
+ * @returns {'fast' | 'full'}
+ */
+export function resolveInitialSyncDepth(userSettings) {
+    return readPersistedSyncDepth(userSettings?.defaultIntervalsSyncDepth);
+}
+
+/**
+ * @param {'fast' | 'full' | string | undefined} depth
+ * @returns {string}
+ */
+export function describeSyncDepth(depth) {
+    return isFullSyncDepth(depth)
+        ? 'Full (Intervals + Strava link/enrich + HR drift when enabled)'
+        : 'Fast (Intervals fetch and save only)';
 }
 
 /**

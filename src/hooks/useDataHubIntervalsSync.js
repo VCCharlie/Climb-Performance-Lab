@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { db } from '../firebase';
 import { SPORT_TYPES } from '../config';
 import { defaultSportFilterMap } from '../utils/nightlySyncDefaults.js';
@@ -31,6 +31,7 @@ import {
     readPersistedSyncDepth,
     writePersistedSyncDepth,
     normalizeSyncDepth,
+    resolveInitialSyncDepth,
 } from '../utils/intervalsSyncDepth.js';
 
 /**
@@ -113,7 +114,17 @@ export function useDataHubIntervalsSync({
     const [sportFilters, setSportFilters] = useState(() => defaultSportFilterMap());
     const [isFetchingNewIntervals, setIsFetchingNewIntervals] = useState(false);
     const [stravaEnrichEnabled, setStravaEnrichEnabled] = useState(true);
-    const [syncDepth, setSyncDepthState] = useState(() => readPersistedSyncDepth());
+    const settingsSyncDepth = normalizeSyncDepth(userSettings?.defaultIntervalsSyncDepth);
+    const [syncDepth, setSyncDepthState] = useState(() => resolveInitialSyncDepth(userSettings));
+    const prevSettingsSyncDepthRef = useRef(settingsSyncDepth);
+
+    useEffect(() => {
+        const next = settingsSyncDepth;
+        if (prevSettingsSyncDepthRef.current === next) return;
+        prevSettingsSyncDepthRef.current = next;
+        setSyncDepthState(next);
+        writePersistedSyncDepth(next);
+    }, [settingsSyncDepth]);
 
     const setSyncDepth = useCallback((depth) => {
         const normalized = normalizeSyncDepth(depth);

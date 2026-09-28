@@ -3,6 +3,7 @@ import {
     readPersistedSyncDepth,
     writePersistedSyncDepth,
     isFullSyncDepth,
+    resolveInitialSyncDepth,
     SYNC_DEPTH_FAST,
     SYNC_DEPTH_FULL,
     INTERVALS_SYNC_DEPTH_STORAGE_KEY,
@@ -15,6 +16,15 @@ describe('intervalsSyncDepth', () => {
 
     it('defaults to fast sync depth', () => {
         expect(readPersistedSyncDepth()).toBe(SYNC_DEPTH_FAST);
+    });
+
+    it('readPersistedSyncDepth falls back to settings default when localStorage empty', () => {
+        expect(readPersistedSyncDepth(SYNC_DEPTH_FULL)).toBe(SYNC_DEPTH_FULL);
+    });
+
+    it('resolveInitialSyncDepth prefers localStorage over settings', () => {
+        writePersistedSyncDepth(SYNC_DEPTH_FAST);
+        expect(resolveInitialSyncDepth({ defaultIntervalsSyncDepth: SYNC_DEPTH_FULL })).toBe(SYNC_DEPTH_FAST);
     });
 
     it('persists full depth', () => {

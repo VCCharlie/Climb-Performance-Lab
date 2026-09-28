@@ -105,6 +105,8 @@ export function getDefaultUserSettings() {
         historicalFtp: getDefaultHistoricalFtpSettings(),
         /** Default Intervals.icu fetch window (days back from today). */
         defaultSyncRangeDays: 14,
+        /** Default Intervals sync depth: 'fast' (Intervals only) | 'full' (Strava + drift). */
+        defaultIntervalsSyncDepth: 'fast',
         /** Physics model defaults (CdA, CRR, drivetrain loss). */
         physics: { ...DEFAULT_PHYSICS_SETTINGS },
         /** Coach SWOT analysis thresholds. */
