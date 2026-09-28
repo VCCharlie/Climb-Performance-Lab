@@ -197,7 +197,6 @@ export function useDataHubIntervalsSync({
         syncStart,
         syncEnd,
         selectedTypes,
-        activitiesMap: _activitiesMap,
         onProgress,
     }) => {
         if (!isFullSyncDepth(syncDepth)) {
