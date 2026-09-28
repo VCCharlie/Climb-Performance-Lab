@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Activity } from 'lucide-react';
 import { buildIntegrationDiagnosticsLines } from '../../utils/integrationDiagnostics.js';
+import { describeSyncDepth, normalizeSyncDepth } from '../../utils/intervalsSyncDepth.js';
 
 const toneClass = {
     ok: 'text-cdtext',
@@ -15,11 +16,18 @@ export default function IntegrationsDiagnosticsSection({
     intervalsConfig,
     stravaConfig,
     isSignedIn = false,
+    userSettings = null,
 }) {
     const lines = useMemo(
         () => buildIntegrationDiagnosticsLines({ intervalsConfig, stravaConfig, isSignedIn }),
         [intervalsConfig, stravaConfig, isSignedIn],
     );
+
+    const defaultDepthLine = useMemo(() => ({
+        label: 'Default sync depth (Settings)',
+        value: describeSyncDepth(normalizeSyncDepth(userSettings?.defaultIntervalsSyncDepth)),
+        tone: 'muted',
+    }), [userSettings?.defaultIntervalsSyncDepth]);
 
     return (
         <div className="rounded-cdmd border border-cdborder/60 bg-cdsurface/50 p-3 mt-4">
@@ -34,6 +42,10 @@ export default function IntegrationsDiagnosticsSection({
                         <span className={toneClass[line.tone] || toneClass.muted}>{line.value}</span>
                     </li>
                 ))}
+                <li className="text-xs leading-snug">
+                    <span className="font-medium text-cdtext">{defaultDepthLine.label}: </span>
+                    <span className={toneClass[defaultDepthLine.tone]}>{defaultDepthLine.value}</span>
+                </li>
             </ul>
             <p className="text-[10px] text-cdmuted mt-2 leading-snug">
                 Use Activities → Intervals sync → <strong className="text-cdtext">Full</strong> mode when you need Strava link, gear, segments, and HR drift after import.

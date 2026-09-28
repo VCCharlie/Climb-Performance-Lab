@@ -26,7 +26,7 @@ export const RESET_SETTINGS_CLEARED_LABELS = [
     'Goals and volume targets',
     'Physics defaults (CdA, CRR, drivetrain loss)',
     'Coach & recovery thresholds',
-    'Default Intervals sync range',
+    'Default Intervals sync range and sync depth (Fast/Full)',
     'Notification thresholds',
     'Power zones, terrain profile, quick links',
     'Historical FTP overrides',

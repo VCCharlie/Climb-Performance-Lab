@@ -6,6 +6,7 @@ import { getDefaultHistoricalFtpSettings } from './historicalFtp.js';
 import { getDefaultUserSettings } from './sessionData.js';
 import { mergePhysicsSettings } from './physicsConstants.js';
 import { mergeCoachThresholds, mergeRecoveryThresholds } from './coachThresholds.js';
+import { normalizeSyncDepth } from './intervalsSyncDepth.js';
 
 /**
  * @param {Record<string, unknown> | null | undefined} parsed
@@ -36,6 +37,9 @@ export function mergeUserSettingsWithDefaults(parsed) {
         defaultSyncRangeDays: Number.isFinite(Number(parsed.defaultSyncRangeDays)) && Number(parsed.defaultSyncRangeDays) > 0
             ? Math.round(Number(parsed.defaultSyncRangeDays))
             : defaults.defaultSyncRangeDays,
+        defaultIntervalsSyncDepth: normalizeSyncDepth(
+            parsed.defaultIntervalsSyncDepth ?? defaults.defaultIntervalsSyncDepth,
+        ),
         weeklyTssOverrides: parsed.weeklyTssOverrides
             && typeof parsed.weeklyTssOverrides === 'object'
             && !Array.isArray(parsed.weeklyTssOverrides)

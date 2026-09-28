@@ -18,7 +18,14 @@ import {
 } from '../utils/profileFtp';
 import { formatDateDDMMYYYY } from '../utils/formatters';
 import { buildBackupExport, validateBackupPayload, describeBackupImport, BACKUP_MAX_BYTES } from '../utils/backupSchema';
-import { Button, IconButton, inputBaseClass, inputNumberClass, modalScrimClass, modalPanelClass, modalHeaderClass, modalFooterClass, SubTabNav } from './ui';
+import { Button, IconButton, inputBaseClass, inputNumberClass, modalScrimClass, modalPanelClass, modalHeaderClass, modalFooterClass, SubTabNav, SegmentedControl } from './ui';
+import {
+    SYNC_DEPTH_FAST,
+    SYNC_DEPTH_FULL,
+    writePersistedSyncDepth,
+    normalizeSyncDepth,
+    describeSyncDepth,
+} from '../utils/intervalsSyncDepth.js';
 import ModalPortal from './ui/ModalPortal';
 import { useActivities } from '../hooks/useActivities';
 import { useConfirm } from '../context/ConfirmContext';
@@ -370,7 +377,32 @@ const SettingsModal = ({
                                     intervalsConfig={intervalsConfig}
                                     stravaConfig={stravaConfig}
                                     isSignedIn={isSignedIn}
+                                    userSettings={userSettings}
                                 />
+                                <div className="pt-2 border-t border-cdborder/30 mt-2">
+                                    <label className="block text-xs font-semibold mb-1 text-cdmuted">
+                                        Default Intervals sync depth
+                                    </label>
+                                    <SegmentedControl
+                                        size="sm"
+                                        options={[
+                                            { value: SYNC_DEPTH_FAST, label: 'Fast' },
+                                            { value: SYNC_DEPTH_FULL, label: 'Full' },
+                                        ]}
+                                        value={normalizeSyncDepth(userSettings.defaultIntervalsSyncDepth)}
+                                        onChange={(depth) => {
+                                            const normalized = normalizeSyncDepth(depth);
+                                            updateUserSettings('defaultIntervalsSyncDepth', normalized);
+                                            writePersistedSyncDepth(normalized);
+                                        }}
+                                        aria-label="Default Intervals sync depth"
+                                    />
+                                    <p className="text-xs text-cdmuted mt-1 leading-relaxed">
+                                        {describeSyncDepth(userSettings.defaultIntervalsSyncDepth)}.
+                                        Applies to Sync today, Fetch &amp; merge, and Refresh selected.
+                                        You can still override per session in the Activities sync panel.
+                                    </p>
+                                </div>
                                 <div className="pt-2 border-t border-cdborder/30 mt-2">
                                     <label className="block text-xs font-semibold mb-1 text-cdmuted">
                                         Default sync range (days)
