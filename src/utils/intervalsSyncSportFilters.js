@@ -1,4 +1,4 @@
-import { SPORT_TYPES, CYCLING_SPORT_TYPES } from '../config';
+import { SPORT_TYPES, CYCLING_SPORT_TYPES } from '../config.js';
 
 const CYCLING_SET = new Set(CYCLING_SPORT_TYPES);
 
