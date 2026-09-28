@@ -1,8 +1,8 @@
 import { useState, useCallback, useMemo } from 'react';
 import { db } from '../firebase';
 import { SPORT_TYPES } from '../config';
-import { buildDefaultIntervalsSyncSportFilters } from '../utils/intervalsSyncSportFilters';
-import { formatIntervalsImportHealthParts } from '../utils/intervalsImportHealth';
+import { defaultSportFilterMap } from '../utils/nightlySyncDefaults.js';
+import { formatIntervalsImportHealthParts } from '../utils/intervalsImportHealth.js';
 import { protectEnrichedFieldsOnMerge } from '../utils/firestoreActivityMerge';
 import { batchWriteDocuments } from '../utils/firestoreBatchWrite';
 import { stripUndefinedFields } from '../utils/mergeActivities';
@@ -104,7 +104,7 @@ export function useDataHubIntervalsSync({
         : 14;
     const [syncDates, setSyncDates] = useState(() => buildDefaultSyncDates(defaultSyncRangeDays));
     const [syncMode, setSyncMode] = useState('fetch-range');
-    const [sportFilters, setSportFilters] = useState(() => buildDefaultIntervalsSyncSportFilters());
+    const [sportFilters, setSportFilters] = useState(() => defaultSportFilterMap());
     const [isFetchingNewIntervals, setIsFetchingNewIntervals] = useState(false);
     const [stravaEnrichEnabled, setStravaEnrichEnabled] = useState(true);
 
@@ -210,7 +210,7 @@ export function useDataHubIntervalsSync({
             console.warn('[Sync] Strava gap fill failed:', err);
             return { intervalsActivities: intervalsBatch, orphanActivities: [], stravaList: null, stats: null };
         }
-    }, [activities, getActivitiesSnapshot, stravaEnrichEnabled, stravaGetToken, deviceProfileTitles]);
+    }, [activities, getActivitiesSnapshot, stravaEnrichEnabled, stravaGetToken, deviceProfileTitles, intervalsConfig]);
 
     const toggleSportFilter = useCallback((type) => {
         setSportFilters((prev) => ({ ...prev, [type]: !prev[type] }));

@@ -4,7 +4,7 @@
 
 import { stripUndefinedFields } from './mergeActivities';
 import { normalizeStravaActivityId } from './strava';
-import { runInBatches } from './async';
+import { runInBatchesWithStravaBackoff } from './stravaBatchBackoff.js';
 import { parseDurationToSeconds } from './formatters';
 import { activityDistanceKm } from './activityFilterMetrics';
 import { buildStravaKomSummaryFromActivityDetail } from './stravaSegmentKomSummary';
@@ -201,6 +201,12 @@ export async function enrichActivityGearFromStrava(merged, stravaSide, token, op
                 if (opts.stats && typeof opts.stats.rateLimitHits === 'number') {
                     opts.stats.rateLimitHits += 1;
                 }
+                if (opts.stats && merged?.id != null) {
+                    if (!Array.isArray(opts.stats.rateLimitedActivityIds)) {
+                        opts.stats.rateLimitedActivityIds = [];
+                    }
+                    opts.stats.rateLimitedActivityIds.push(String(merged.id));
+                }
             } else if (resp.ok) {
                 detail = await resp.json();
             }
@@ -311,13 +317,13 @@ export async function buildStravaDetailEnrichmentUpdates(siteActivities, token, 
     opts.onProgress?.(`Strava activity details: ${list.length} ride(s)…`);
 
     const enrichOpts = { forceStravaDetail: opts.forceStravaDetail === true };
-    const stats = { rateLimitHits: 0 };
+    const stats = { rateLimitHits: 0, rateLimitedActivityIds: [], failedActivityIds: [] };
 
     const updates = [];
     let unchanged = 0;
     let failed = 0;
 
-    await runInBatches(list, conc, async (act) => {
+    await runInBatchesWithStravaBackoff(list, conc, async (act) => {
         try {
             const enriched = await enrichActivityGearFromStrava(act, null, token, { ...enrichOpts, stats });
             const sid = enriched.strava_id || normalizeStravaActivityId(act.strava_id);
@@ -373,7 +379,13 @@ export async function buildStravaDetailEnrichmentUpdates(siteActivities, token, 
             updates.push({ id: act.id, data: patch });
         } catch {
             failed += 1;
+            stats.failedActivityIds.push(String(act.id));
         }
+    }, {
+        stats,
+        onBackoff: (delayMs, hits) => {
+            opts.onProgress?.(`Strava rate limit — pausing ${Math.round(delayMs / 1000)}s (${hits} hit(s))…`);
+        },
     });
 
     return {
@@ -382,5 +394,7 @@ export async function buildStravaDetailEnrichmentUpdates(siteActivities, token, 
         unchanged,
         failed,
         rateLimitHits: stats.rateLimitHits,
+        rateLimitedActivityIds: stats.rateLimitedActivityIds,
+        failedActivityIds: stats.failedActivityIds,
     };
 }

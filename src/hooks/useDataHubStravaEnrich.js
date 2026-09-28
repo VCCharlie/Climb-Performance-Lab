@@ -6,12 +6,16 @@ import { enrichSelectedActivitiesFromStrava } from '../utils/stravaSelectedEnric
 import { activityLikelyNeedsStravaTitle } from '../utils/stravaTitleHeuristics';
 import { resolveDeviceProfileTitlesFromSettings } from '../utils/bikeComputerProfileTitles';
 import { devLog } from '../utils/safeLog';
+import {
+    readStravaEnrichPendingQueue,
+    reconcileStravaEnrichPendingQueue,
+    removeStravaEnrichPendingIds,
+    writeStravaEnrichPendingQueue,
+    formatStravaEnrichRetryGuidance,
+} from '../utils/stravaEnrichPendingQueue';
 
 /** Background auto-enrich window (days) — keep small to avoid Strava 429s. */
 const AUTO_ENRICH_LOOKBACK_DAYS = 7;
-
-const RATE_LIMIT_NOTICE =
-    'Titles and details may update later — try again in about 15 minutes.';
 
 /**
  * Strava silent/auto enrichment and per-activity "Find on Strava" panel state (Bolt 3d-bis follow-up).
@@ -30,6 +34,9 @@ export function useDataHubStravaEnrich({
     const [enrichmentTarget, setEnrichmentTarget] = useState(null);
     const [stravaListProgress, setStravaListProgress] = useState(null);
     const [stravaAutoEnrichNotice, setStravaAutoEnrichNotice] = useState(null);
+    const [stravaEnrichPending, setStravaEnrichPending] = useState(() => readStravaEnrichPendingQueue());
+    const [pendingRetryMessage, setPendingRetryMessage] = useState(null);
+    const [isRetryingPendingEnrich, setIsRetryingPendingEnrich] = useState(false);
     const autoEnrichRanRef = useRef(false);
 
     const dismissStravaAutoEnrichNotice = useCallback(() => {
@@ -61,6 +68,37 @@ export function useDataHubStravaEnrich({
         [userSettings],
     );
 
+    const persistEnrichUpdates = useCallback(async (result, inRange) => {
+        if (!result?.updates?.length || !db) return 0;
+        const activitiesMap = new Map((activities || []).map((a) => [String(a.id), a]));
+        const mergedUpdates = result.updates.map(({ id, data }) => {
+            const existing = activitiesMap.get(String(id));
+            const payload = protectEnrichedFieldsOnMerge(data, existing, { deviceProfileTitles });
+            return { id, payload, merged: existing ? { ...existing, ...payload } : payload };
+        });
+        await Promise.all(
+            mergedUpdates.map(({ id, payload }) =>
+                setDoc(doc(db, 'activities', String(id)), payload, { merge: true }),
+            ),
+        );
+        onImport(mergedUpdates.map(({ merged }) => merged));
+        return result.updates.length;
+    }, [activities, deviceProfileTitles, onImport]);
+
+    const applyEnrichResultSideEffects = useCallback((inRange, result) => {
+        const queue = reconcileStravaEnrichPendingQueue(inRange, result, deviceProfileTitles);
+        setStravaEnrichPending(queue);
+
+        if (result.rateLimitHits > 0 || queue.length > 0) {
+            setStravaAutoEnrichNotice(formatStravaEnrichRetryGuidance({
+                pendingCount: queue.length,
+                rateLimitHits: result.rateLimitHits,
+                partialSaved: result.updates?.length > 0,
+            }));
+        }
+        return queue;
+    }, [deviceProfileTitles]);
+
     const performSilentStravaEnrichment = useCallback(async (actsToEnrich, customStart, customEnd) => {
         if (!stravaGetToken) return 0;
         try {
@@ -81,8 +119,11 @@ export function useDataHubStravaEnrich({
                 forceStravaDetail: false,
                 concurrency: 2,
                 deviceProfileTitles,
-                onRateLimit: () => {
-                    setStravaAutoEnrichNotice(RATE_LIMIT_NOTICE);
+                onRateLimit: (hits) => {
+                    setStravaAutoEnrichNotice(formatStravaEnrichRetryGuidance({
+                        pendingCount: stravaEnrichPending.length,
+                        rateLimitHits: hits,
+                    }));
                 },
                 onProgress: (m) => {
                     if (String(m).includes('page')) {
@@ -92,30 +133,17 @@ export function useDataHubStravaEnrich({
             });
             setStravaListProgress(null);
 
-            if (result.rateLimitHits > 0) {
-                setStravaAutoEnrichNotice(RATE_LIMIT_NOTICE);
-            }
-
-            if (result.updates.length > 0 && db) {
-                const activitiesMap = new Map((activities || []).map((a) => [String(a.id), a]));
-                const mergedUpdates = result.updates.map(({ id, data }) => {
-                    const existing = activitiesMap.get(String(id));
-                    const payload = protectEnrichedFieldsOnMerge(data, existing, { deviceProfileTitles });
-                    return { id, payload, merged: existing ? { ...existing, ...payload } : payload };
-                });
-                await Promise.all(
-                    mergedUpdates.map(({ id, payload }) =>
-                        setDoc(doc(db, 'activities', String(id)), payload, { merge: true }),
-                    ),
-                );
-                onImport(mergedUpdates.map(({ merged }) => merged));
-                return result.updates.length;
-            }
+            applyEnrichResultSideEffects(inRange, result);
+            const saved = await persistEnrichUpdates(result, inRange);
+            return saved;
         } catch (err) {
             console.error('[Silent Enrichment] Failed:', err);
             setStravaListProgress(null);
             if (err?.message && /rate limit|429/i.test(err.message)) {
-                setStravaAutoEnrichNotice(RATE_LIMIT_NOTICE);
+                setStravaAutoEnrichNotice(formatStravaEnrichRetryGuidance({
+                    pendingCount: stravaEnrichPending.length,
+                    rateLimitHits: 1,
+                }));
                 throw err;
             }
             setStravaAutoEnrichNotice(
@@ -123,7 +151,80 @@ export function useDataHubStravaEnrich({
             );
         }
         return 0;
-    }, [stravaGetToken, startDate, endDate, deviceProfileTitles, activities, onImport]);
+    }, [
+        stravaGetToken,
+        startDate,
+        endDate,
+        deviceProfileTitles,
+        applyEnrichResultSideEffects,
+        persistEnrichUpdates,
+        stravaEnrichPending.length,
+    ]);
+
+    const retryStravaEnrichPending = useCallback(async () => {
+        if (!stravaGetToken || stravaEnrichPending.length === 0) return;
+        setIsRetryingPendingEnrich(true);
+        setPendingRetryMessage('Retrying pending rides…');
+        try {
+            const token = await stravaGetToken();
+            if (!token) {
+                setPendingRetryMessage('Could not get Strava token.');
+                return;
+            }
+            const idSet = new Set(stravaEnrichPending.map((e) => e.activityId));
+            const subset = (activities || []).filter((a) => idSet.has(String(a.id)));
+            if (subset.length === 0) {
+                setPendingRetryMessage('Pending rides are not in the current activity list.');
+                return;
+            }
+            const result = await enrichSelectedActivitiesFromStrava(subset, token, {
+                concurrency: 2,
+                forceStravaDetail: true,
+                deviceProfileTitles,
+                onProgress: (m) => setPendingRetryMessage(String(m)),
+            });
+            await persistEnrichUpdates(result, subset);
+            const queue = applyEnrichResultSideEffects(subset, result);
+            if (queue.length === 0) {
+                setPendingRetryMessage('All pending rides enriched.');
+            } else {
+                setPendingRetryMessage(formatStravaEnrichRetryGuidance({
+                    pendingCount: queue.length,
+                    rateLimitHits: result.rateLimitHits,
+                    partialSaved: result.updates?.length > 0,
+                }));
+            }
+        } catch (e) {
+            setPendingRetryMessage(`Retry failed: ${e.message || e}`);
+        } finally {
+            setIsRetryingPendingEnrich(false);
+        }
+    }, [
+        stravaGetToken,
+        stravaEnrichPending,
+        activities,
+        deviceProfileTitles,
+        persistEnrichUpdates,
+        applyEnrichResultSideEffects,
+    ]);
+
+    const dismissPendingEnrichEntry = useCallback((activityId) => {
+        const next = removeStravaEnrichPendingIds([activityId]);
+        setStravaEnrichPending(next);
+    }, []);
+
+    const clearStravaEnrichPending = useCallback(() => {
+        writeStravaEnrichPendingQueue([]);
+        setStravaEnrichPending([]);
+        setPendingRetryMessage(null);
+    }, []);
+
+    useEffect(() => {
+        const refresh = () => setStravaEnrichPending(readStravaEnrichPendingQueue());
+        refresh();
+        window.addEventListener('cpl-strava-enrich-pending-updated', refresh);
+        return () => window.removeEventListener('cpl-strava-enrich-pending-updated', refresh);
+    }, [activities?.length]);
 
     useEffect(() => {
         if (autoEnrichRanRef.current) return;
@@ -179,7 +280,7 @@ export function useDataHubStravaEnrich({
                 console.error('Strava import Firestore error:', e);
             }
         }
-    }, [activities, onImport]);
+    }, [activities, onImport, deviceProfileTitles]);
 
     return {
         showStravaEnrichPanel,
@@ -193,5 +294,11 @@ export function useDataHubStravaEnrich({
         handleFindOnStrava,
         handleImportFromStrava,
         performSilentStravaEnrichment,
+        stravaEnrichPending,
+        retryStravaEnrichPending,
+        dismissPendingEnrichEntry,
+        clearStravaEnrichPending,
+        pendingRetryMessage,
+        isRetryingPendingEnrich,
     };
 }

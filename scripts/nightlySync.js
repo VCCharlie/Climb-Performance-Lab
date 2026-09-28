@@ -30,6 +30,10 @@ import { normalizeBikeComputerProfileTitles } from '../src/utils/bikeComputerPro
 import { protectEnrichedFieldsOnMerge } from '../src/utils/firestoreActivityMerge.js';
 import { runIntervalsSyncWithStravaGapFill } from '../src/utils/runIntervalsSyncWithStravaGapFill.js';
 import { formatStravaGapFillSummary } from '../src/utils/importSyncStats.js';
+import {
+    buildNightlyIntervalsConfig,
+    getDefaultNightlyAllowedSportTypes,
+} from '../src/utils/nightlySyncDefaults.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -37,7 +41,8 @@ const CLOUD_FUNCTION_URL = 'https://sync-intervals-97555677694.europe-west1.run.
 const FIRESTORE_COLLECTION = 'activities';
 const LOOKBACK_DAYS = 14;
 // We no longer strictly filter on SPORT_TYPES before storing, to ensure we catch Workouts with power data.
-const ACCEPTED_TYPES = ['Ride', 'VirtualRide', 'Workout', 'IndoorCycling'];
+/** Orphan gap-fill + CF pre-filter — cycling types + Workout/IndoorCycling (see nightlySyncDefaults.js). */
+const ACCEPTED_TYPES = getDefaultNightlyAllowedSportTypes();
 
 // Firestore limits batch writes to 500 documents at a time.
 const FIRESTORE_BATCH_LIMIT = 500;
@@ -560,6 +565,10 @@ async function runNightlySync() {
 
         try {
             const stravaToken = await getValidStravaAccessToken(db);
+            const intervalsConfig = buildNightlyIntervalsConfig({
+                athleteId: config.athleteId,
+                apiKey: config.apiKey,
+            });
             const gapResult = await runIntervalsSyncWithStravaGapFill({
                 intervalsActivities: activities,
                 existingActivities,
@@ -567,7 +576,7 @@ async function runNightlySync() {
                 startYmd: startDate,
                 endYmd: endDate,
                 allowedSportTypes: ACCEPTED_TYPES,
-                opts: { deviceProfileTitles },
+                opts: { deviceProfileTitles, intervalsConfig },
             });
             intervalsToSave = gapResult.intervalsActivities;
             orphansToSave = gapResult.orphanActivities;

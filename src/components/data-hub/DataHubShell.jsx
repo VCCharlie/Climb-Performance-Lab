@@ -167,6 +167,12 @@ const DataHubShell = ({
                 onResultsChange={onStravaEnrichResults}
                 enrichmentTarget={stravaEnrich.enrichmentTarget}
                 userSettings={userSettings}
+                stravaEnrichPending={stravaEnrich.stravaEnrichPending}
+                onRetryPendingEnrich={stravaEnrich.retryStravaEnrichPending}
+                onDismissPendingEntry={stravaEnrich.dismissPendingEnrichEntry}
+                onClearPendingEnrich={stravaEnrich.clearStravaEnrichPending}
+                pendingRetryMessage={stravaEnrich.pendingRetryMessage}
+                isRetryingPendingEnrich={stravaEnrich.isRetryingPendingEnrich}
             />
 
             {internalTab === 'log' && (
