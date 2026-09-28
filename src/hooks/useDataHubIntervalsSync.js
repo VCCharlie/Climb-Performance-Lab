@@ -1,6 +1,8 @@
 import { useState, useCallback, useMemo } from 'react';
 import { db } from '../firebase';
 import { SPORT_TYPES } from '../config';
+import { buildDefaultIntervalsSyncSportFilters } from '../utils/intervalsSyncSportFilters';
+import { formatIntervalsImportHealthParts } from '../utils/intervalsImportHealth';
 import { protectEnrichedFieldsOnMerge } from '../utils/firestoreActivityMerge';
 import { batchWriteDocuments } from '../utils/firestoreBatchWrite';
 import { stripUndefinedFields } from '../utils/mergeActivities';
@@ -102,9 +104,7 @@ export function useDataHubIntervalsSync({
         : 14;
     const [syncDates, setSyncDates] = useState(() => buildDefaultSyncDates(defaultSyncRangeDays));
     const [syncMode, setSyncMode] = useState('fetch-range');
-    const [sportFilters, setSportFilters] = useState(() =>
-        SPORT_TYPES.reduce((acc, type) => ({ ...acc, [type]: true }), {}),
-    );
+    const [sportFilters, setSportFilters] = useState(() => buildDefaultIntervalsSyncSportFilters());
     const [isFetchingNewIntervals, setIsFetchingNewIntervals] = useState(false);
     const [stravaEnrichEnabled, setStravaEnrichEnabled] = useState(true);
 
@@ -399,6 +399,8 @@ export function useDataHubIntervalsSync({
                 added: orphanMerged.length,
                 updated: mergedNews.length,
                 skipped: skippedEmpty,
+                importHealth: syncStats?.health,
+                syncRoute: syncStats?.syncRoute,
             });
             onImportFinished?.(buildPostImportActivityList(activities, [...working, ...orphanMerged]));
 
@@ -412,6 +414,9 @@ export function useDataHubIntervalsSync({
             if (skippedEmpty > 0) {
                 parts.push(`${skippedEmpty} skipped (no distance/time/power)`);
             }
+            parts.push(...formatIntervalsImportHealthParts(syncStats?.health));
+            if (syncStats?.syncRoute === 'direct') parts.push('route: direct API');
+            else if (syncStats?.syncRoute === 'cloud') parts.push('route: cloud sync');
             if (enrichedLinkCount > 0) parts.push(`${enrichedLinkCount} Strava link update(s)`);
             if (segmentRefreshCount > 0) parts.push(`${segmentRefreshCount} Strava detail + segment refresh`);
             if (detailFailed > 0) parts.push(`${detailFailed} detail error(s)`);
@@ -589,6 +594,8 @@ export function useDataHubIntervalsSync({
                 added: mergeCounts.newCount + orphanMergeCounts.newCount,
                 updated: mergeCounts.updatedCount + orphanMergeCounts.updatedCount,
                 skipped: Number(syncStats?.skippedEmpty) || 0,
+                importHealth: syncStats?.health,
+                syncRoute: syncStats?.syncRoute,
             });
             onImportFinished?.(buildPostImportActivityList(activities, merged));
 

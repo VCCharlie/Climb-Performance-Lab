@@ -31,6 +31,39 @@ const hasStravaId = (v) => {
     return !!(n && n.length >= 6);
 };
 
+const METRIC_RETENTION_KEYS = [
+    'avg_power',
+    'norm_power',
+    'load',
+    'work',
+    'max_power',
+    'best_1min',
+    'best_5min',
+    'best_10min',
+    'best_20min',
+    'best_60min',
+    'best_90min',
+    'best_120min',
+    'best_150min',
+    'best_180min',
+];
+
+function retainPositiveMetricIfIncomingEmpty(incoming, existing, out, key) {
+    const inVal = Number(incoming[key]);
+    const exVal = Number(existing[key]);
+    const incomingMissing = !Number.isFinite(inVal) || inVal <= 0;
+    const existingPresent = Number.isFinite(exVal) && exVal > 0;
+    if (incomingMissing && existingPresent) {
+        out[key] = existing[key];
+    }
+}
+
+function protectPowerMetricsOnMerge(incoming, existing, out) {
+    for (const key of METRIC_RETENTION_KEYS) {
+        retainPositiveMetricIfIncomingEmpty(incoming, existing, out, key);
+    }
+}
+
 /**
  * @param {object} incoming - Activiteit die we naar Firestore willen schrijven
  * @param {object|undefined|null} existing - Huidige activiteit uit app-state (zelfde id), indien bekend
@@ -99,6 +132,7 @@ export function protectEnrichedFieldsOnMerge(incoming, existing, opts = {}) {
     protectClimbingOnMerge(incoming, existing, out);
     protectZoneTimesFieldsOnMerge(incoming, existing, out);
     protectActivityTagsOnMerge(incoming, existing, out);
+    protectPowerMetricsOnMerge(incoming, existing, out);
 
     // Stream-based drift summaries: preserve when re-sync omits enriched fields.
     const driftKeys = getAllDriftMergeKeys();
