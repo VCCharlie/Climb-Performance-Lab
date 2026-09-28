@@ -84,6 +84,7 @@ export const ACTIVITY_COLUMN_PRESET_LABELS = {
 };
 
 // 2. Sport Filters
+/** All sport types shown in Activity Log / Intervals sync UI chips. */
 export const SPORT_TYPES = [
     "Ride",
     "VirtualRide",
@@ -92,7 +93,16 @@ export const SPORT_TYPES = [
     "EBikeRide",
     "Run",
     "Walk",
-    "Hike"
+    "Hike",
+];
+
+/** Default Intervals.icu sync: cycling only (this app is bike-focused). */
+export const CYCLING_SPORT_TYPES = [
+    "Ride",
+    "VirtualRide",
+    "GravelRide",
+    "MountainBikeRide",
+    "EBikeRide",
 ];
 
 // 3. Maandvolgorde voor sortering

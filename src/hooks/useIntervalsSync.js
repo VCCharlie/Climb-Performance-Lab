@@ -4,6 +4,7 @@ import {
     filterNonEmptyIntervalsActivities,
     buildIntervalsActivitiesListUrl,
 } from '../utils/intervals';
+import { analyzeIntervalsImportHealth } from '../utils/intervalsImportHealth';
 import { runActivityEnrichmentPipeline } from '../utils/enrichment/runActivityEnrichmentPipeline';
 import { fetchWithTimeout } from '../utils/fetchWithTimeout';
 import { devLog } from '../utils/safeLog';
@@ -69,6 +70,7 @@ const useIntervalsSync = (intervalsConfig) => {
         const imported = transformed.length;
 
         transformed = await enrichSyncedActivities(transformed, enrichOptions);
+        const health = analyzeIntervalsImportHealth(transformed);
         return {
             activities: transformed,
             stats: {
@@ -78,6 +80,8 @@ const useIntervalsSync = (intervalsConfig) => {
                 imported,
                 skippedEmpty: afterSportFilter - imported,
                 skippedSport: afterNormalize - afterSportFilter,
+                health,
+                syncRoute: 'direct',
             },
         };
     };
@@ -105,6 +109,7 @@ const useIntervalsSync = (intervalsConfig) => {
         const imported = transformed.length;
 
         transformed = await enrichSyncedActivities(transformed, enrichOptions);
+        const health = analyzeIntervalsImportHealth(transformed);
         return {
             activities: transformed,
             stats: {
@@ -114,6 +119,8 @@ const useIntervalsSync = (intervalsConfig) => {
                 imported,
                 skippedEmpty: afterSportFilter - imported,
                 skippedSport: afterNormalize - afterSportFilter,
+                health,
+                syncRoute: 'cloud',
             },
         };
     };

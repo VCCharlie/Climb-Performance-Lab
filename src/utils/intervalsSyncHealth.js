@@ -1,9 +1,18 @@
 import { safeLocalStorageSet } from './safeStorage';
+import { formatIntervalsImportHealthParts } from './intervalsImportHealth';
 
 export const INTERVALS_SYNC_HEALTH_KEY = 'cpl.intervals.lastSyncSummary.v1';
 
 /**
- * @typedef {{ at: string, added: number, updated: number, skipped: number, summary?: string }} IntervalsSyncHealthSummary
+ * @typedef {{
+ *   at: string,
+ *   added: number,
+ *   updated: number,
+ *   skipped: number,
+ *   summary?: string,
+ *   importHealth?: import('./intervalsImportHealth.js').ReturnType<import('./intervalsImportHealth.js').analyzeIntervalsImportHealth>,
+ *   syncRoute?: 'direct' | 'cloud',
+ * }} IntervalsSyncHealthSummary
  */
 
 /**
@@ -44,6 +53,10 @@ export function formatIntervalsSyncHealthLine(summary, lastSyncAtIso) {
         if (summary.added > 0) parts.push(`${summary.added} new`);
         if (summary.updated > 0) parts.push(`${summary.updated} updated`);
         if (summary.skipped > 0) parts.push(`${summary.skipped} skipped`);
+        const healthParts = formatIntervalsImportHealthParts(summary.importHealth);
+        if (healthParts.length > 0) parts.push(healthParts.join('; '));
+        if (summary.syncRoute === 'direct') parts.push('direct API');
+        else if (summary.syncRoute === 'cloud') parts.push('cloud sync');
     }
     return parts.length > 0 ? parts.join(' · ') : null;
 }
