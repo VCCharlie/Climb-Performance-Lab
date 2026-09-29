@@ -4,7 +4,7 @@ import { db } from '../firebase';
 import { protectEnrichedFieldsOnMerge } from '../utils/firestoreActivityMerge';
 import { enrichSelectedActivitiesFromStrava } from '../utils/stravaSelectedEnrich';
 import { activityLikelyNeedsStravaTitle } from '../utils/stravaTitleHeuristics';
-import { resolveDeviceProfileTitlesFromSettings } from '../utils/bikeComputerProfileTitles';
+import { buildMergeProtectOpts } from '../utils/mergeProtectOptions.js';
 import { devLog } from '../utils/safeLog';
 import {
     readStravaEnrichPendingQueue,
@@ -63,17 +63,18 @@ export function useDataHubStravaEnrich({
         endDate: stravaDateOverride || endDate,
     }), [stravaDateOverride, startDate, endDate]);
 
-    const deviceProfileTitles = useMemo(
-        () => resolveDeviceProfileTitlesFromSettings(userSettings),
-        [userSettings],
+    const mergeProtectOpts = useMemo(
+        () => buildMergeProtectOpts(userSettings),
+        [userSettings?.bikeComputerProfileTitles, userSettings?.syncDataSourcePrefs],
     );
+    const deviceProfileTitles = mergeProtectOpts.deviceProfileTitles;
 
     const persistEnrichUpdates = useCallback(async (result, inRange) => {
         if (!result?.updates?.length || !db) return 0;
         const activitiesMap = new Map((activities || []).map((a) => [String(a.id), a]));
         const mergedUpdates = result.updates.map(({ id, data }) => {
             const existing = activitiesMap.get(String(id));
-            const payload = protectEnrichedFieldsOnMerge(data, existing, { deviceProfileTitles });
+            const payload = protectEnrichedFieldsOnMerge(data, existing, mergeProtectOpts);
             return { id, payload, merged: existing ? { ...existing, ...payload } : payload };
         });
         await Promise.all(
@@ -83,7 +84,7 @@ export function useDataHubStravaEnrich({
         );
         onImport(mergedUpdates.map(({ merged }) => merged));
         return result.updates.length;
-    }, [activities, deviceProfileTitles, onImport]);
+    }, [activities, mergeProtectOpts, onImport]);
 
     const applyEnrichResultSideEffects = useCallback((inRange, result) => {
         const queue = reconcileStravaEnrichPendingQueue(inRange, result, deviceProfileTitles);
@@ -119,6 +120,7 @@ export function useDataHubStravaEnrich({
                 forceStravaDetail: false,
                 concurrency: 2,
                 deviceProfileTitles,
+                dataSourcePrefs: mergeProtectOpts.dataSourcePrefs,
                 onRateLimit: (hits) => {
                     setStravaAutoEnrichNotice(formatStravaEnrichRetryGuidance({
                         pendingCount: stravaEnrichPending.length,
@@ -155,7 +157,7 @@ export function useDataHubStravaEnrich({
         stravaGetToken,
         startDate,
         endDate,
-        deviceProfileTitles,
+        mergeProtectOpts,
         applyEnrichResultSideEffects,
         persistEnrichUpdates,
         stravaEnrichPending.length,
@@ -181,6 +183,7 @@ export function useDataHubStravaEnrich({
                 concurrency: 2,
                 forceStravaDetail: true,
                 deviceProfileTitles,
+                dataSourcePrefs: mergeProtectOpts.dataSourcePrefs,
                 onProgress: (m) => setPendingRetryMessage(String(m)),
             });
             await persistEnrichUpdates(result, subset);
@@ -273,14 +276,14 @@ export function useDataHubStravaEnrich({
 
                 await Promise.all(newActs.map((act) => {
                     const existing = activitiesMap.get(String(act.id));
-                    const payload = protectEnrichedFieldsOnMerge(act, existing, { deviceProfileTitles });
+                    const payload = protectEnrichedFieldsOnMerge(act, existing, mergeProtectOpts);
                     return setDoc(doc(db, 'activities', String(act.id)), payload, { merge: true });
                 }));
             } catch (e) {
                 console.error('Strava import Firestore error:', e);
             }
         }
-    }, [activities, onImport, deviceProfileTitles]);
+    }, [activities, onImport, mergeProtectOpts]);
 
     return {
         showStravaEnrichPanel,

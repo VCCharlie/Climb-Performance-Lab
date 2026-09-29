@@ -20,7 +20,7 @@ import { buildStravaDescriptionBackfillUpdates } from '../utils/stravaDescriptio
 import { buildDecouplingBackfillUpdates, buildDecouplingBackfillStats, formatDecouplingBackfillIntro } from '../utils/decouplingStreamBackfill';
 import { formatNlNumber } from '../utils/formatters';
 import { buildMarkRecoveryConfirmMessage, resolveRecoveryTss } from '../utils/recoveryTss';
-import { resolveDeviceProfileTitlesFromSettings } from '../utils/bikeComputerProfileTitles';
+import { buildMergeProtectOpts } from '../utils/mergeProtectOptions.js';
 import { useConfirm } from '../context/ConfirmContext';
 import { useToast } from '../context/ToastContext';
 
@@ -42,11 +42,11 @@ export function useDataHubBulkActions({
 }) {
     const { confirm } = useConfirm();
     const { showToast } = useToast();
-    const deviceProfileTitles = resolveDeviceProfileTitlesFromSettings(userSettings);
     const mergeProtectOpts = useMemo(
-        () => ({ deviceProfileTitles }),
-        [deviceProfileTitles],
+        () => buildMergeProtectOpts(userSettings),
+        [userSettings?.bikeComputerProfileTitles, userSettings?.syncDataSourcePrefs],
     );
+    const deviceProfileTitles = mergeProtectOpts.deviceProfileTitles;
     const [bulkSelectedIds, setBulkSelectedIds] = useState(() => new Set());
     const [showMergeModal, setShowMergeModal] = useState(false);
     const [mergeError, setMergeError] = useState(null);
@@ -245,7 +245,8 @@ export function useDataHubBulkActions({
             const result = await enrichSelectedActivitiesFromStrava(list, token, {
                 concurrency: 3,
                 forceStravaDetail: true,
-                deviceProfileTitles,
+                deviceProfileTitles: mergeProtectOpts.deviceProfileTitles,
+                dataSourcePrefs: mergeProtectOpts.dataSourcePrefs,
                 onProgress: (m) => setStravaEnrichMsg(m),
             });
             const {

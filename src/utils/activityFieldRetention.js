@@ -98,6 +98,7 @@ export function applyManualClimbingCorrectionFlags(previous, next) {
  */
 export function shouldApplyStravaElevationPatch(activity, opts = {}) {
     if (opts.forceRefreshElevation === true) return true;
+    if (opts.dataSourcePrefs?.elevation === 'intervals') return false;
     if (activity?.climbing_user_corrected === true) return false;
     if (activity?.climbing_from_strava === true) return false;
     return true;
@@ -110,12 +111,16 @@ export function shouldApplyStravaElevationPatch(activity, opts = {}) {
  * @param {object} existing
  * @param {object} out - mutable merge payload
  */
-export function protectClimbingOnMerge(incoming, existing, out) {
+export function protectClimbingOnMerge(incoming, existing, out, opts = {}) {
     if (!existing || !out) return;
 
     if (existing.climbing_user_corrected === true) {
         out.climbing = existing.climbing;
         out.climbing_user_corrected = true;
+        return;
+    }
+
+    if (opts.dataSourcePrefs?.elevation === 'intervals') {
         return;
     }
 
@@ -168,6 +173,10 @@ export function protectStravaLinkedTitleOnMerge(incoming, existing, out, opts = 
         return;
     }
 
+    if (opts.dataSourcePrefs?.title === 'intervals') {
+        return;
+    }
+
     // Incoming Strava title wins when existing title is replaceable and incoming is not generic.
     if (
         inTitle
@@ -190,8 +199,12 @@ export function protectStravaLinkedTitleOnMerge(incoming, existing, out, opts = 
  * @param {object} existing
  * @param {object} out
  */
-export function protectStravaLinkedGearOnMerge(incoming, existing, out) {
+export function protectStravaLinkedGearOnMerge(incoming, existing, out, opts = {}) {
     if (!existing || !out || !activityHasStravaLink(existing)) return;
+
+    if (opts.dataSourcePrefs?.gearAndType === 'intervals') {
+        return;
+    }
 
     if (existing.gear_id) {
         out.gear_id = existing.gear_id;
@@ -209,8 +222,12 @@ export function protectStravaLinkedGearOnMerge(incoming, existing, out) {
  * @param {object} existing
  * @param {object} out
  */
-export function protectStravaLinkedTypeOnMerge(incoming, existing, out) {
+export function protectStravaLinkedTypeOnMerge(incoming, existing, out, opts = {}) {
     if (!existing || !out || !activityHasStravaLink(existing)) return;
+
+    if (opts.dataSourcePrefs?.gearAndType === 'intervals') {
+        return;
+    }
 
     const exType = (existing.type || '').trim();
     if (exType) {

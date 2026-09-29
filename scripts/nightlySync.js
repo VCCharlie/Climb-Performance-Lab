@@ -27,6 +27,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { getValidStravaAccessToken } from './stravaTokenManager.js';
 import { shouldApplyStravaTitleOnMatch } from '../src/utils/stravaTitleSameDay.js';
 import { normalizeBikeComputerProfileTitles } from '../src/utils/bikeComputerProfileTitles.js';
+import { mergeSyncDataSourcePrefs } from '../src/utils/syncDataSourcePrefs.js';
 import { protectEnrichedFieldsOnMerge } from '../src/utils/firestoreActivityMerge.js';
 import { runIntervalsSyncWithStravaGapFill } from '../src/utils/runIntervalsSyncWithStravaGapFill.js';
 import { formatStravaGapFillSummary } from '../src/utils/importSyncStats.js';
@@ -121,6 +122,31 @@ async function loadBikeComputerProfileTitles(db) {
     }
 
     return [];
+}
+
+/**
+ * Load Strava vs Intervals merge prefs from Firestore settings (Settings UI).
+ */
+async function loadSyncDataSourcePrefs(db) {
+    const readFromDoc = (data) => mergeSyncDataSourcePrefs(data?.body?.syncDataSourcePrefs);
+
+    const explicitId = (process.env.FIREBASE_SETTINGS_DOC_ID || '').trim();
+    if (explicitId) {
+        const snap = await db.doc(`settings/${explicitId}`).get();
+        if (snap.exists) {
+            return readFromDoc(snap.data());
+        }
+    }
+
+    const settingsSnaps = await db.collection('settings').limit(20).get();
+    for (const settingsDoc of settingsSnaps.docs) {
+        const prefs = settingsDoc.data()?.body?.syncDataSourcePrefs;
+        if (prefs && typeof prefs === 'object') {
+            return mergeSyncDataSourcePrefs(prefs);
+        }
+    }
+
+    return mergeSyncDataSourcePrefs(null);
 }
 
 async function fetchFromIntervalsAPI({ athleteId, apiKey, startDate, endDate }) {
@@ -392,7 +418,8 @@ function matchStravaToFirestore(stravaActivities, firestoreActivities) {
     return results;
 }
 
-async function enrichWithStrava(db, firestoreActivities, startDate, endDate, isDryRun, deviceProfileTitles = []) {
+async function enrichWithStrava(db, firestoreActivities, startDate, endDate, isDryRun, mergeOpts = {}) {
+    const deviceProfileTitles = mergeOpts.deviceProfileTitles || [];
     console.log('[STRAVA] === Strava enrichment (server-side credentials) ===');
 
     let token;
@@ -485,7 +512,7 @@ async function enrichWithStrava(db, firestoreActivities, startDate, endDate, isD
 
         const docId = String(site.firestoreId || site.id);
 
-        const payload = protectEnrichedFieldsOnMerge(updateData, site, { deviceProfileTitles });
+        const payload = protectEnrichedFieldsOnMerge(updateData, site, mergeOpts);
 
         if (isDryRun) {
             const fields = Object.keys(payload).join(', ');
@@ -545,9 +572,12 @@ async function runNightlySync() {
 
     const { startDate, endDate } = getDateRange(LOOKBACK_DAYS);
     const deviceProfileTitles = await loadBikeComputerProfileTitles(db);
+    const dataSourcePrefs = await loadSyncDataSourcePrefs(db);
+    const mergeOpts = { deviceProfileTitles, dataSourcePrefs };
     if (deviceProfileTitles.length > 0) {
         console.log(`[STRAVA] Bike computer profile titles: ${deviceProfileTitles.join(', ')}`);
     }
+    console.log(`[SYNC] Data source prefs: elevation=${dataSourcePrefs.elevation}, title=${dataSourcePrefs.title}, gear/type=${dataSourcePrefs.gearAndType}`);
 
     try {
         const activities = await fetchFromIntervalsAPI({
@@ -576,7 +606,7 @@ async function runNightlySync() {
                 startYmd: startDate,
                 endYmd: endDate,
                 allowedSportTypes: ACCEPTED_TYPES,
-                opts: { deviceProfileTitles, intervalsConfig },
+                opts: { deviceProfileTitles, dataSourcePrefs, intervalsConfig },
             });
             intervalsToSave = gapResult.intervalsActivities;
             orphansToSave = gapResult.orphanActivities;
@@ -597,9 +627,7 @@ async function runNightlySync() {
         } else {
             console.log(`[SYNC] ${combinedActivities.length} activiteiten ontvangen (${intervalsToSave.length} Intervals, ${orphansToSave.length} Strava orphans).`);
 
-            savedCount = await upsertToFirestore(db, combinedActivities, config.isDryRun, {
-                deviceProfileTitles,
-            });
+            savedCount = await upsertToFirestore(db, combinedActivities, config.isDryRun, mergeOpts);
             const action = config.isDryRun ? 'zouden worden opgeslagen' : 'opgeslagen/bijgewerkt';
             console.log(`[SYNC] ✅ Succes! ${savedCount} activiteiten ${action} in Firebase.`);
         }
@@ -613,7 +641,7 @@ async function runNightlySync() {
         });
 
         if (windowActivities.length > 0) {
-            await enrichWithStrava(db, windowActivities, startDate, endDate, config.isDryRun, deviceProfileTitles);
+            await enrichWithStrava(db, windowActivities, startDate, endDate, config.isDryRun, mergeOpts);
         } else {
             console.log('[STRAVA] Geen activiteiten in het sync-venster om te verrijken.');
         }

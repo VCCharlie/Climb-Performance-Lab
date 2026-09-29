@@ -10,6 +10,7 @@ import { getDefaultHistoricalFtpSettings } from './historicalFtp.js';
 import { DEFAULT_PHYSICS_SETTINGS } from './physicsConstants.js';
 import { DEFAULT_COACH_THRESHOLDS, DEFAULT_RECOVERY_THRESHOLDS } from './coachThresholds.js';
 import { DEFAULT_SYNC_ENRICH_LIMITS } from './syncEnrichLimits.js';
+import { DEFAULT_SYNC_DATA_SOURCE_PREFS } from './syncDataSourcePrefs.js';
 
 /** Keys removed on logout. Theme and PWA UI prefs are preserved. */
 export const SENSITIVE_LOCAL_STORAGE_KEYS = [
@@ -110,6 +111,8 @@ export function getDefaultUserSettings() {
         defaultIntervalsSyncDepth: 'fast',
         /** Full sync enrichment fetch caps (drift, zone times, power curves). */
         syncEnrichLimits: { ...DEFAULT_SYNC_ENRICH_LIMITS },
+        /** Strava vs Intervals when re-sync merges linked activities. */
+        syncDataSourcePrefs: { ...DEFAULT_SYNC_DATA_SOURCE_PREFS },
         /** Physics model defaults (CdA, CRR, drivetrain loss). */
         physics: { ...DEFAULT_PHYSICS_SETTINGS },
         /** Coach SWOT analysis thresholds. */

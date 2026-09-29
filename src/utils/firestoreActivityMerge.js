@@ -67,7 +67,7 @@ function protectPowerMetricsOnMerge(incoming, existing, out) {
 /**
  * @param {object} incoming - Activiteit die we naar Firestore willen schrijven
  * @param {object|undefined|null} existing - Huidige activiteit uit app-state (zelfde id), indien bekend
- * @param {{ deviceProfileTitles?: string[] }} [opts]
+ * @param {{ deviceProfileTitles?: string[], dataSourcePrefs?: import('./syncDataSourcePrefs.js').SyncDataSourcePrefs }} [opts]
  * @returns {object} Payload voor setDoc(..., { merge: true })
  */
 export function protectEnrichedFieldsOnMerge(incoming, existing, opts = {}) {
@@ -99,16 +99,18 @@ export function protectEnrichedFieldsOnMerge(incoming, existing, opts = {}) {
     if (exMap && !inMap) {
         out.strava_map = existing.strava_map;
     }
-    protectStravaLinkedGearOnMerge(incoming, existing, out);
-    if (existing.gear_id && !incoming.gear_id && out.gear_id !== existing.gear_id) {
-        out.gear_id = existing.gear_id;
+    protectStravaLinkedGearOnMerge(incoming, existing, out, opts);
+    if (opts.dataSourcePrefs?.gearAndType !== 'intervals') {
+        if (existing.gear_id && !incoming.gear_id && out.gear_id !== existing.gear_id) {
+            out.gear_id = existing.gear_id;
+        }
+        const exGearName = existing.gear_name != null && String(existing.gear_name).trim() !== '';
+        const inGearName = incoming.gear_name != null && String(incoming.gear_name).trim() !== '';
+        if (exGearName && !inGearName && out.gear_name !== existing.gear_name) {
+            out.gear_name = existing.gear_name;
+        }
     }
-    const exGearName = existing.gear_name != null && String(existing.gear_name).trim() !== '';
-    const inGearName = incoming.gear_name != null && String(incoming.gear_name).trim() !== '';
-    if (exGearName && !inGearName && out.gear_name !== existing.gear_name) {
-        out.gear_name = existing.gear_name;
-    }
-    protectStravaLinkedTypeOnMerge(incoming, existing, out);
+    protectStravaLinkedTypeOnMerge(incoming, existing, out, opts);
 
     const inHr = Number(incoming.avg_hr);
     const exHr = Number(existing.avg_hr);
@@ -129,7 +131,7 @@ export function protectEnrichedFieldsOnMerge(incoming, existing, opts = {}) {
         out.strava_kom_summary = existing.strava_kom_summary;
     }
 
-    protectClimbingOnMerge(incoming, existing, out);
+    protectClimbingOnMerge(incoming, existing, out, opts);
     protectZoneTimesFieldsOnMerge(incoming, existing, out);
     protectActivityTagsOnMerge(incoming, existing, out);
     protectPowerMetricsOnMerge(incoming, existing, out);

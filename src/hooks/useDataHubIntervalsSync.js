@@ -8,7 +8,7 @@ import { batchWriteDocuments } from '../utils/firestoreBatchWrite';
 import { stripUndefinedFields } from '../utils/mergeActivities';
 import { enrichSelectedActivitiesFromStrava } from '../utils/stravaSelectedEnrich';
 import useIntervalsSync from './useIntervalsSync';
-import { resolveDeviceProfileTitlesFromSettings } from '../utils/bikeComputerProfileTitles';
+import { buildMergeProtectOpts } from '../utils/mergeProtectOptions.js';
 import { useToast } from '../context/ToastContext';
 import { safeLocalStorageSet } from '../utils/safeStorage';
 import { ACTIVITY_LOG_INTERVALS_LAST_SYNC_KEY, readLastIntervalsSyncAt } from '../utils/activityLogSyncLabel';
@@ -85,11 +85,11 @@ export function useDataHubIntervalsSync({
     getActivitiesSnapshot,
     onImportFinished,
 }) {
-    const deviceProfileTitles = resolveDeviceProfileTitlesFromSettings(userSettings);
     const mergeProtectOpts = useMemo(
-        () => ({ deviceProfileTitles }),
-        [deviceProfileTitles],
+        () => buildMergeProtectOpts(userSettings),
+        [userSettings?.bikeComputerProfileTitles, userSettings?.syncDataSourcePrefs],
     );
+    const deviceProfileTitles = mergeProtectOpts.deviceProfileTitles;
     const { showToast } = useToast();
 
     const recordIntervalsSyncSuccess = useCallback((healthSummary) => {
@@ -417,6 +417,7 @@ export function useDataHubIntervalsSync({
                             forceStravaDetail: true,
                             concurrency: 3,
                             deviceProfileTitles,
+                            dataSourcePrefs: mergeProtectOpts.dataSourcePrefs,
                             onProgress: (m) => setSyncErrorDetail(String(m)),
                         });
                         enrichedLinkCount = enrichResult.linkedCount;
@@ -635,6 +636,7 @@ export function useDataHubIntervalsSync({
                             forceStravaDetail: true,
                             concurrency: 3,
                             deviceProfileTitles,
+                            dataSourcePrefs: mergeProtectOpts.dataSourcePrefs,
                             onProgress: (m) => setSyncErrorDetail(String(m)),
                         });
                         enrichCount = enrichResult.updates.length;
