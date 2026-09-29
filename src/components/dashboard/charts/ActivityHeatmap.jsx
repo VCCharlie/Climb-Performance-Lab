@@ -20,10 +20,10 @@ const DAY_LABELS = ['Mon', '', 'Wed', '', 'Fri', '', 'Sun'];
 
 const LEVEL_CLASSES = [
     'bg-cdborder/40',          // 0 = empty
-    'bg-orange-500/20',        // 1 = light
-    'bg-orange-500/45',        // 2
-    'bg-orange-500/75',        // 3
-    'bg-orange-500',           // 4 = peak
+    'bg-cdprimary/20',        // 1 = light
+    'bg-cdprimary/45',        // 2
+    'bg-cdprimary/75',        // 3
+    'bg-cdprimary',           // 4 = peak
 ];
 
 const getLevel = (km, maxKm) => {

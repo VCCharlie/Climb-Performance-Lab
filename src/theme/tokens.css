@@ -3,6 +3,12 @@
  *
  * Legacy `cd*` Tailwind aliases map to these CSS variables so existing
  * components keep working while new code can use the surface ladder.
+ *
+ * Accent palette (warm terracotta / amber) — layered for comfort + WCAG 2.1 AA:
+ * - --cd-accent-soft: large fills, chips, progress track tints
+ * - --cd-primary: buttons, bars, icons (solid accent)
+ * - --cd-accent-emphasis: accent text on light surfaces (stricter contrast)
+ * - --cd-primary-hover / --cd-primary-active: interactive states
  */
 
 :root {
@@ -20,15 +26,19 @@
   --cd-muted: #64748b;
   --cd-border: #dce1e8;
 
-  /* ── Primary (interaction accent) ── */
-  --cd-primary: #ea580c;
-  --cd-primary-rgb: 234 88 12;
-  --cd-on-primary: #ffffff;
-  --cd-primary-container: #ffedd5;
-  --cd-on-primary-container: #7c2d12;
+  /* ── Primary (interaction accent) — Option C: layered warm terracotta ── */
+  --cd-accent-soft: #f7ede4;
+  --cd-primary: #a96332;
+  --cd-primary-rgb: 169 99 50;
+  --cd-primary-hover: #945828;
+  --cd-primary-active: #7f4c22;
+  --cd-accent-emphasis: #7a4a26;
+  --cd-on-primary: #fffbf7;
+  --cd-primary-container: #f5e8dc;
+  --cd-on-primary-container: #5c3a22;
 
   /* ── Brand secondary (header / key highlights) ── */
-  --cd-brand: #facc15;
+  --cd-brand: #e8c547;
   --cd-on-brand: #1e2330;
 
   /* ── Semantic ── */
@@ -42,7 +52,7 @@
   --cd-accent: var(--cd-primary);
 
   /* ── Focus & overlays ── */
-  --cd-focus-ring: rgb(234 88 12 / 0.4);
+  --cd-focus-ring: rgb(169 99 50 / 0.38);
   --cd-scrim: rgb(30 35 48 / 0.4);
 
   /* ── Motion (MD3 emphasized easing) ── */
@@ -71,19 +81,23 @@
   --cd-muted: #94a3b8;
   --cd-border: #2f3848;
 
-  --cd-primary: #fb923c;
-  --cd-primary-rgb: 251 146 60;
-  --cd-on-primary: #1a0f08;
-  --cd-primary-container: #3d2010;
-  --cd-on-primary-container: #ffedd5;
+  --cd-accent-soft: #2a221c;
+  --cd-primary: #dca882;
+  --cd-primary-rgb: 220 168 130;
+  --cd-primary-hover: #e8b896;
+  --cd-primary-active: #c99570;
+  --cd-accent-emphasis: #e8b896;
+  --cd-on-primary: #1f140c;
+  --cd-primary-container: #3a2a22;
+  --cd-on-primary-container: #f0ddd0;
 
-  --cd-brand: #facc15;
+  --cd-brand: #e8c547;
   --cd-on-brand: #1e2330;
 
   --cd-blue: #60a5fa;
   --cd-green: #4ade80;
   --cd-red: #f87171;
 
-  --cd-focus-ring: rgb(251 146 60 / 0.45);
+  --cd-focus-ring: rgb(220 168 130 / 0.42);
   --cd-scrim: rgb(0 0 0 / 0.55);
 }

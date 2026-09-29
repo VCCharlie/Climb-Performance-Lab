@@ -15,7 +15,7 @@ import CollapsibleDashboardCard from './CollapsibleDashboardCard';
 const COL_STYLES = [
     { key: 'd42', label: '42 d', headerClass: 'bg-violet-600/90 text-white' },
     { key: 'd84', label: '84 d', headerClass: 'bg-fuchsia-600/90 text-white' },
-    { key: 'd90', label: '90 d', headerClass: 'bg-orange-600/90 text-white' },
+    { key: 'd90', label: '90 d', headerClass: 'bg-cdprimary/90 text-cdonprimary' },
     { key: 'filter', label: null, headerClass: 'bg-emerald-600/90 text-white' },
     { key: 'season', label: null, headerClass: 'bg-lime-600/90 text-white' },
     { key: 'lastSeason', label: null, headerClass: 'bg-amber-500/90 text-cdonbrand' },
