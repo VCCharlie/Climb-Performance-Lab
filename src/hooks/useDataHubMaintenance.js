@@ -4,6 +4,7 @@ import { db } from '../firebase';
 import { stripUndefinedFields } from '../utils/mergeActivities';
 import { enrichActivityGearFromStrava } from '../utils/stravaGearEnrich';
 import { applyManualClimbingCorrectionFlags } from '../utils/activityFieldRetention';
+import { resolveOwnerUid, stampActivityOwnerId } from '../utils/activityOwnership.js';
 import { useConfirm } from '../context/ConfirmContext';
 import { useToast } from '../context/ToastContext';
 
@@ -39,7 +40,8 @@ export function useDataHubMaintenance({
                 }
             }
             if (db) {
-                await setDoc(doc(db, 'activities', String(toSave.id)), toSave, { merge: true });
+                const payload = stampActivityOwnerId(toSave, resolveOwnerUid(), prev);
+                await setDoc(doc(db, 'activities', String(toSave.id)), payload, { merge: true });
             }
             onUpsert([toSave]);
             setEditingActivity(null);

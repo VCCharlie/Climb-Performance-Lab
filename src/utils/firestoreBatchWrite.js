@@ -5,6 +5,7 @@
 
 import { writeBatch, doc } from 'firebase/firestore';
 import { db } from '../firebase';
+import { stampActivityOwnerId, resolveOwnerUid } from './activityOwnership.js';
 
 /** Firestore limit per batch commit. */
 export const FIRESTORE_MAX_BATCH_SIZE = 500;
@@ -46,10 +47,19 @@ export async function batchWriteDocuments(collectionName, entries, options = {})
  * @param {object[]} activities
  * @returns {Promise<number>}
  */
-export async function batchMergeWriteActivities(activities) {
+/**
+ * @param {object[]} activities
+ * @param {string | null | undefined} [ownerUid]
+ * @returns {Promise<number>}
+ */
+export async function batchMergeWriteActivities(activities, ownerUid = null) {
     if (!activities?.length) return 0;
+    const uid = resolveOwnerUid(ownerUid);
     const entries = activities
         .filter((act) => act?.id != null)
-        .map((act) => ({ id: act.id, data: act }));
+        .map((act) => ({
+            id: act.id,
+            data: uid ? stampActivityOwnerId(act, uid, act) : act,
+        }));
     return batchWriteDocuments('activities', entries, { merge: true });
 }

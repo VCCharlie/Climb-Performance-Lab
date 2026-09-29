@@ -3,7 +3,7 @@
  * Auto-computed from top efforts; manual overrides live in userSettings.historicalFtp.
  */
 
-import { normalizeDate } from './formatters';
+import { normalizeDate } from './formatters.js';
 
 export const HISTORICAL_FTP_SOURCE_20 = '20min';
 export const HISTORICAL_FTP_SOURCE_60 = '60min';

@@ -11,6 +11,7 @@ import {
 } from '../../utils/stravaGearEnrich';
 import { shouldApplyStravaTitleOnMatch, stravaStartDatePatch } from '../../utils/stravaTitleSameDay.js';
 import { resolveDeviceProfileTitlesFromSettings } from '../../utils/bikeComputerProfileTitles';
+import { resolveOwnerUid, stampActivityOwnerId } from '../../utils/activityOwnership.js';
 import { safeLocalStorageSet } from '../../utils/safeStorage.js';
 
 // Strava logo SVG
@@ -139,7 +140,8 @@ const StravaEnrichTab = ({
                 ...(detailedStrava.name?.trim() && { title: detailedStrava.name.trim() })
             };
 
-            await setDoc(doc(db, 'activities', String(enrichmentTarget.id)), updateData, { merge: true });
+            const payload = stampActivityOwnerId(updateData, resolveOwnerUid(), enrichmentTarget);
+            await setDoc(doc(db, 'activities', String(enrichmentTarget.id)), payload, { merge: true });
 
             const mergedLocal = { ...enrichmentTarget, ...updateData };
             onAfterStravaLink?.([mergedLocal]);
@@ -290,19 +292,20 @@ const StravaEnrichTab = ({
                     const gearName = gearId ? (bikesMap[gearId] || 'Strava bike') : null;
                     const stravaTitle = (strava.name || '').trim();
                     const applyTitle = shouldApplyStravaTitleOnMatch(site, strava, { deviceProfileTitles });
+                    const linkPatch = stampActivityOwnerId({
+                        strava_id: String(strava.id),
+                        ...stravaStartDatePatch(strava),
+                        strava_map: strava.map?.summary_polyline || null,
+                        ...(gearId && { gear_id: gearId, gear_name: gearName }),
+                        ...(applyTitle && stravaTitle && { title: stravaTitle }),
+                        ...((!site.rpe || site.rpe === 0) && strava.perceived_exertion && { rpe: strava.perceived_exertion }),
+                        ...((!site.avg_hr || site.avg_hr === 0) && strava.average_heartrate && { avg_hr: Math.round(strava.average_heartrate) }),
+                        ...((!site.max_hr || site.max_hr === 0) && strava.max_heartrate && { max_hr: Math.round(strava.max_heartrate) }),
+                    }, resolveOwnerUid(), site);
                     await setDoc(
                         doc(db, 'activities', String(site.id)),
-                        {
-                            strava_id: String(strava.id),
-                            ...stravaStartDatePatch(strava),
-                            strava_map: strava.map?.summary_polyline || null,
-                            ...(gearId && { gear_id: gearId, gear_name: gearName }),
-                            ...(applyTitle && stravaTitle && { title: stravaTitle }),
-                            ...((!site.rpe || site.rpe === 0) && strava.perceived_exertion && { rpe: strava.perceived_exertion }),
-                            ...((!site.avg_hr || site.avg_hr === 0) && strava.average_heartrate && { avg_hr: Math.round(strava.average_heartrate) }),
-                            ...((!site.max_hr || site.max_hr === 0) && strava.max_heartrate && { max_hr: Math.round(strava.max_heartrate) })
-                        },
-                        { merge: true }
+                        linkPatch,
+                        { merge: true },
                     );
                 }
                 count++;
@@ -339,10 +342,11 @@ const StravaEnrichTab = ({
                     });
 
                     if (Object.keys(updateData).length > 0 && db) {
+                        const payload = stampActivityOwnerId(updateData, resolveOwnerUid(), site);
                         await setDoc(
                             doc(db, 'activities', String(site.id)),
-                            updateData,
-                            { merge: true }
+                            payload,
+                            { merge: true },
                         );
                         count++;
                         successfullyUpdatedIds.add(String(strava.id));

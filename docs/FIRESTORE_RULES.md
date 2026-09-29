@@ -9,7 +9,7 @@ You do **not** need Firebase CLI on your work PC.
 | Collection | Access |
 |------------|--------|
 | `settings/{docId}` | Read/write only when signed in **and** `docId == user_{uid}` |
-| `activities/{id}` | Read/write when signed in (shared log — single-owner app) |
+| `activities/{id}` | Read/write when signed in; docs must carry `ownerId == your Google uid` (legacy rows without `ownerId` work until backfill) |
 | Everything else | Denied |
 
 This matches the client after Phase 4.0: Firestore listeners run only when `user` is set.
@@ -96,4 +96,5 @@ Requires **JDK 21+** locally. GitHub Actions installs Temurin 21 automatically.
 
 - Cloud Function auth (Phase 4.2)
 - App Check (Phase 4.3)
-- Per-activity `ownerId` for multi-user (deferred)
+- **Deploy order:** ship app with `ownerId` stamping first, then publish rules (see `firestore.rules`). Sign in once so legacy activities backfill.
+- Tighten legacy read access later (optional) once all docs have `ownerId`

@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { protectEnrichedFieldsOnMerge } from '../utils/firestoreActivityMerge';
+import { buildActivityFirestoreMergePayload } from '../utils/activityFirestoreWrite.js';
+import { resolveOwnerUid } from '../utils/activityOwnership.js';
 import { enrichSelectedActivitiesFromStrava } from '../utils/stravaSelectedEnrich';
 import { activityLikelyNeedsStravaTitle } from '../utils/stravaTitleHeuristics';
 import { buildMergeProtectOpts } from '../utils/mergeProtectOptions.js';
@@ -74,7 +75,12 @@ export function useDataHubStravaEnrich({
         const activitiesMap = new Map((activities || []).map((a) => [String(a.id), a]));
         const mergedUpdates = result.updates.map(({ id, data }) => {
             const existing = activitiesMap.get(String(id));
-            const payload = protectEnrichedFieldsOnMerge(data, existing, mergeProtectOpts);
+            const payload = buildActivityFirestoreMergePayload(
+                data,
+                existing,
+                mergeProtectOpts,
+                resolveOwnerUid(),
+            );
             return { id, payload, merged: existing ? { ...existing, ...payload } : payload };
         });
         await Promise.all(
@@ -276,7 +282,12 @@ export function useDataHubStravaEnrich({
 
                 await Promise.all(newActs.map((act) => {
                     const existing = activitiesMap.get(String(act.id));
-                    const payload = protectEnrichedFieldsOnMerge(act, existing, mergeProtectOpts);
+                    const payload = buildActivityFirestoreMergePayload(
+                        act,
+                        existing,
+                        mergeProtectOpts,
+                        resolveOwnerUid(),
+                    );
                     return setDoc(doc(db, 'activities', String(act.id)), payload, { merge: true });
                 }));
             } catch (e) {

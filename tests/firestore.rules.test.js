@@ -58,11 +58,50 @@ describe('firestore.rules', () => {
         await assertFails(ctx.firestore().doc('settings/user_user-b').get());
     });
 
-    it('allows authenticated read/write of activities', async () => {
-        const ctx = testEnv.authenticatedContext('user-a', { email: 'a@example.com' });
+    it('allows owner-tagged activity create/read/update', async () => {
+        const uid = 'user-a';
+        const ctx = testEnv.authenticatedContext(uid, { email: 'a@example.com' });
         const ref = ctx.firestore().doc('activities/intervals-42');
-        await assertSucceeds(ref.set({ id: 'intervals-42', type: 'Ride', date: '2026-01-01' }));
+        await assertSucceeds(ref.set({
+            id: 'intervals-42',
+            type: 'Ride',
+            date: '2026-01-01',
+            ownerId: uid,
+        }));
         await assertSucceeds(ref.get());
+        await assertSucceeds(ref.update({ load: 50 }));
+    });
+
+    it('denies activity write without matching ownerId', async () => {
+        const ctx = testEnv.authenticatedContext('user-a', { email: 'a@example.com' });
+        const ref = ctx.firestore().doc('activities/bad-owner');
+        await assertFails(ref.set({ id: 'bad-owner', type: 'Ride', ownerId: 'other-user' }));
+    });
+
+    it('denies read of another users owned activity', async () => {
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await adminCtx.firestore().doc('activities/owned-by-b').set({
+                id: 'owned-by-b',
+                type: 'Ride',
+                ownerId: 'user-b',
+            });
+        });
+        const ctx = testEnv.authenticatedContext('user-a', { email: 'a@example.com' });
+        await assertFails(ctx.firestore().doc('activities/owned-by-b').get());
+    });
+
+    it('allows legacy activity without ownerId until backfill', async () => {
+        await testEnv.withSecurityRulesDisabled(async (adminCtx) => {
+            await adminCtx.firestore().doc('activities/legacy-1').set({
+                id: 'legacy-1',
+                type: 'Ride',
+                date: '2026-01-01',
+            });
+        });
+        const ctx = testEnv.authenticatedContext('user-a', { email: 'a@example.com' });
+        const ref = ctx.firestore().doc('activities/legacy-1');
+        await assertSucceeds(ref.get());
+        await assertSucceeds(ref.set({ id: 'legacy-1', type: 'Ride', date: '2026-01-01', ownerId: 'user-a' }, { merge: true }));
     });
 
     it('denies client access to strava_tokens (Admin SDK only)', async () => {

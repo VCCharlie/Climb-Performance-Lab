@@ -3,6 +3,8 @@ import { doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { runInBatches } from '../utils';
 import { protectEnrichedFieldsOnMerge } from '../utils/firestoreActivityMerge';
+import { buildActivityFirestoreMergePayload } from '../utils/activityFirestoreWrite.js';
+import { resolveOwnerUid, stampActivityOwnerId } from '../utils/activityOwnership.js';
 import { downloadActivitiesCsv, downloadActivitiesXlsx } from '../utils/activityCsvExport';
 import {
     mergeActivitiesIntervalsPrimary,
@@ -186,7 +188,8 @@ export function useDataHubBulkActions({
                 }
             }
             if (db) {
-                await setDoc(doc(db, 'activities', String(intervals.id)), finalMerged, { merge: true });
+                const payload = stampActivityOwnerId(finalMerged, resolveOwnerUid(), intervals);
+                await setDoc(doc(db, 'activities', String(intervals.id)), payload, { merge: true });
                 await deleteDoc(doc(db, 'activities', String(stravaSide.id)));
             }
             onImport([finalMerged]);
@@ -213,7 +216,12 @@ export function useDataHubBulkActions({
                         const prev = sourceMap.get(String(id)) || activitiesMap.get(String(id)) || {};
                         return setDoc(
                             doc(db, 'activities', String(id)),
-                            protectEnrichedFieldsOnMerge(data, prev, mergeProtectOpts),
+                            buildActivityFirestoreMergePayload(
+                                data,
+                                prev,
+                                mergeProtectOpts,
+                                resolveOwnerUid(),
+                            ),
                             { merge: true },
                         );
                     }),
@@ -487,7 +495,11 @@ export function useDataHubBulkActions({
             if (db) {
                 await Promise.all(
                     selectedActivitiesForBulk.map((act) =>
-                        setDoc(doc(db, 'activities', String(act.id)), { load: tss }, { merge: true })
+                        setDoc(
+                            doc(db, 'activities', String(act.id)),
+                            stampActivityOwnerId({ load: tss }, resolveOwnerUid(), act),
+                            { merge: true },
+                        )
                     )
                 );
             }
@@ -532,7 +544,8 @@ export function useDataHubBulkActions({
                     }
                 }
                 if (db) {
-                    await setDoc(doc(db, 'activities', String(toSave.id)), toSave, { merge: true });
+                    const payload = stampActivityOwnerId(toSave, resolveOwnerUid(), prev);
+                    await setDoc(doc(db, 'activities', String(toSave.id)), payload, { merge: true });
                 }
                 return toSave;
             });
