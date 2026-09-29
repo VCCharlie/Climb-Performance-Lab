@@ -313,6 +313,7 @@ export async function enrichSelectedActivitiesFromStrava(selectedActivities, tok
             concurrency: opts.concurrency ?? 3,
             forceStravaDetail: opts.forceStravaDetail !== false,
             onProgress: opts.onProgress,
+            dataSourcePrefs: opts.dataSourcePrefs,
         });
         detailUpdates = detailResult.updates;
         detailUpdatedCount = detailResult.updates.length;

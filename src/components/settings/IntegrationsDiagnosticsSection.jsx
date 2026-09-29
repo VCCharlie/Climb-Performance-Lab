@@ -3,6 +3,7 @@ import { Activity } from 'lucide-react';
 import { buildIntegrationDiagnosticsLines } from '../../utils/integrationDiagnostics.js';
 import { describeSyncDepth, normalizeSyncDepth } from '../../utils/intervalsSyncDepth.js';
 import { formatSyncEnrichLimitsSummary, resolveSyncEnrichLimits } from '../../utils/syncEnrichLimits.js';
+import { formatSyncDataSourcePrefsSummary, resolveSyncDataSourcePrefs } from '../../utils/syncDataSourcePrefs.js';
 
 const toneClass = {
     ok: 'text-cdtext',
@@ -36,6 +37,12 @@ export default function IntegrationsDiagnosticsSection({
         tone: 'muted',
     }), [userSettings?.syncEnrichLimits]);
 
+    const dataSourceLine = useMemo(() => ({
+        label: 'Re-sync data sources (Settings)',
+        value: formatSyncDataSourcePrefsSummary(resolveSyncDataSourcePrefs(userSettings)),
+        tone: 'muted',
+    }), [userSettings?.syncDataSourcePrefs]);
+
     return (
         <div className="rounded-cdmd border border-cdborder/60 bg-cdsurface/50 p-3 mt-4">
             <div className="flex items-center gap-2 mb-2">
@@ -56,6 +63,10 @@ export default function IntegrationsDiagnosticsSection({
                 <li className="text-xs leading-snug">
                     <span className="font-medium text-cdtext">{enrichLimitsLine.label}: </span>
                     <span className={toneClass[enrichLimitsLine.tone]}>{enrichLimitsLine.value}</span>
+                </li>
+                <li className="text-xs leading-snug">
+                    <span className="font-medium text-cdtext">{dataSourceLine.label}: </span>
+                    <span className={toneClass[dataSourceLine.tone]}>{dataSourceLine.value}</span>
                 </li>
             </ul>
             <p className="text-[10px] text-cdmuted mt-2 leading-snug">

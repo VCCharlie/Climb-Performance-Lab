@@ -42,6 +42,7 @@ import IntegrationsDiagnosticsSection from './settings/IntegrationsDiagnosticsSe
 import AdvancedCoachSettings from './settings/AdvancedCoachSettings';
 import PhysicsDefaultsSettings from './settings/PhysicsDefaultsSettings';
 import SyncEnrichLimitsSettings from './settings/SyncEnrichLimitsSettings';
+import SyncDataSourcePrefsSettings from './settings/SyncDataSourcePrefsSettings';
 import {
     RESET_SETTINGS_PRESERVED_LABELS,
     RESET_SETTINGS_CLEARED_LABELS,
@@ -421,6 +422,10 @@ const SettingsModal = ({
                                     </p>
                                 </div>
                                 <SyncEnrichLimitsSettings
+                                    userSettings={userSettings}
+                                    updateUserSettings={updateUserSettings}
+                                />
+                                <SyncDataSourcePrefsSettings
                                     userSettings={userSettings}
                                     updateUserSettings={updateUserSettings}
                                 />

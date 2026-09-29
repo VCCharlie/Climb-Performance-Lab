@@ -8,6 +8,7 @@ import { mergePhysicsSettings } from './physicsConstants.js';
 import { mergeCoachThresholds, mergeRecoveryThresholds } from './coachThresholds.js';
 import { normalizeSyncDepth } from './intervalsSyncDepth.js';
 import { mergeSyncEnrichLimits } from './syncEnrichLimits.js';
+import { mergeSyncDataSourcePrefs } from './syncDataSourcePrefs.js';
 
 /**
  * @param {Record<string, unknown> | null | undefined} parsed
@@ -43,6 +44,9 @@ export function mergeUserSettingsWithDefaults(parsed) {
         ),
         syncEnrichLimits: mergeSyncEnrichLimits(
             parsed.syncEnrichLimits ?? defaults.syncEnrichLimits,
+        ),
+        syncDataSourcePrefs: mergeSyncDataSourcePrefs(
+            parsed.syncDataSourcePrefs ?? defaults.syncDataSourcePrefs,
         ),
         weeklyTssOverrides: parsed.weeklyTssOverrides
             && typeof parsed.weeklyTssOverrides === 'object'

@@ -275,6 +275,7 @@ export async function enrichActivityGearFromStrava(merged, stravaSide, token, op
     if (detail) {
         out = applyStravaElevationToActivity(out, detail, {
             forceRefreshElevation: forceDetail,
+            dataSourcePrefs: opts.dataSourcePrefs,
         });
 
         const stravaKm = kmFromStravaDistanceMeters(detail.distance);
@@ -316,7 +317,10 @@ export async function buildStravaDetailEnrichmentUpdates(siteActivities, token, 
 
     opts.onProgress?.(`Strava activity details: ${list.length} ride(s)…`);
 
-    const enrichOpts = { forceStravaDetail: opts.forceStravaDetail === true };
+    const enrichOpts = {
+        forceStravaDetail: opts.forceStravaDetail === true,
+        dataSourcePrefs: opts.dataSourcePrefs,
+    };
     const stats = { rateLimitHits: 0, rateLimitedActivityIds: [], failedActivityIds: [] };
 
     const updates = [];
