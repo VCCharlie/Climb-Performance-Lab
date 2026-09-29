@@ -33,7 +33,7 @@ const RADAR_GLOW_ID = 'power-profile-dot-glow';
 const BARLOW = 'Barlow, sans-serif';
 
 function periodAccentColor() {
-    return getCssVar('--cd-primary', '#ff6d4a');
+    return getCssVar('--cd-primary', '#dc7a63');
 }
 
 function historyAccentColor() {
