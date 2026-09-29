@@ -9,4 +9,11 @@ describe('nightlySyncEsmGuard', () => {
         }
         expect(result.ok).toBe(true);
     });
+
+    it('nightlySync.js does not pull Firebase client SDK (Node-safe chain)', () => {
+        const result = verifyNightlySyncEsmImports();
+        expect(result.ok).toBe(true);
+        const chainNote = result.ok ? 'ok' : result.errors.join('\n');
+        expect(chainNote).not.toContain('firebase.js');
+    });
 });

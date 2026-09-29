@@ -22,7 +22,7 @@ import {
     activityNeedsOwnerBackfill,
     isActivityVisibleToUser,
     stampActivityOwnerId,
-} from '../utils/activityOwnership.js';
+} from '../utils/activityOwnershipCore.js';
 import {
     mergeActivitiesDirectUpsert,
     mergeActivitiesPreservingEnrichment,

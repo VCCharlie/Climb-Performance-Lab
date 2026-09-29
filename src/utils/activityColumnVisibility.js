@@ -2,7 +2,7 @@ import {
     ACTIVITY_TABLE_COLUMNS,
     ACTIVITY_COLUMN_PRESETS,
     ACTIVITY_LOG_DEFAULT_VISIBLE_KEYS,
-} from '../config';
+} from '../config.js';
 
 export const ACTIVITY_COLUMN_STORAGE_KEY = 'cpl-activity-log-columns';
 
