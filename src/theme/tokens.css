@@ -1,10 +1,10 @@
 /**
  * Climb Lab — Material Design 3 design tokens (Phase 1)
  *
- * Accent palette — Strava-inspired coral orange (red-orange hue, not amber/brown):
- * - --cd-primary: softer fill orange for bars, chips, translucent UI
- * - --cd-accent-emphasis: brand-adjacent accent (#fc4c02 family) for text/icons
- * - --cd-primary-container / --cd-accent-soft: peach wash backgrounds (Strava-style tints)
+ * Accent palette — muted Strava-family coral (red-orange hue, lower chroma):
+ * - --cd-primary: dusty coral fills (bars, chips) — not neon
+ * - --cd-accent-emphasis: readable accent text/icons — same hue, ~15% less saturation than #fc4c02
+ * - Containers: neutral peach washes
  */
 
 :root {
@@ -23,16 +23,16 @@
   --cd-border: #dce1e8;
 
   /* ── Primary (fills & soft accents) ── */
-  --cd-accent-soft: #fff5f2;
-  --cd-primary: #ff6d4a;
-  --cd-primary-rgb: 255 109 74;
-  --cd-primary-hover: #fc4c02;
-  --cd-primary-active: #e85a1c;
-  --cd-accent-emphasis: #fc4c02;
-  --cd-accent-emphasis-rgb: 252 76 2;
+  --cd-accent-soft: #faf7f5;
+  --cd-primary: #dc7a63;
+  --cd-primary-rgb: 220 122 99;
+  --cd-primary-hover: #d4633a;
+  --cd-primary-active: #c95632;
+  --cd-accent-emphasis: #c95632;
+  --cd-accent-emphasis-rgb: 201 86 50;
   --cd-on-primary: #ffffff;
-  --cd-primary-container: #fff0e8;
-  --cd-on-primary-container: #b93800;
+  --cd-primary-container: #faf0ec;
+  --cd-on-primary-container: #9e4528;
 
   /* ── Brand secondary (header / key highlights) ── */
   --cd-brand: #facc15;
@@ -49,7 +49,7 @@
   --cd-accent: var(--cd-accent-emphasis);
 
   /* ── Focus & overlays ── */
-  --cd-focus-ring: rgb(252 76 2 / 0.38);
+  --cd-focus-ring: rgb(201 86 50 / 0.32);
   --cd-scrim: rgb(30 35 48 / 0.4);
 
   /* ── Motion (MD3 emphasized easing) ── */
@@ -78,16 +78,16 @@
   --cd-muted: #94a3b8;
   --cd-border: #2f3848;
 
-  --cd-accent-soft: #2a120c;
-  --cd-primary: #fc4c02;
-  --cd-primary-rgb: 252 76 2;
-  --cd-primary-hover: #ff6d4a;
-  --cd-primary-active: #e85a1c;
-  --cd-accent-emphasis: #ff8a5c;
-  --cd-accent-emphasis-rgb: 255 138 92;
+  --cd-accent-soft: #241812;
+  --cd-primary: #d4633a;
+  --cd-primary-rgb: 212 99 58;
+  --cd-primary-hover: #dc7a63;
+  --cd-primary-active: #c95632;
+  --cd-accent-emphasis: #e09980;
+  --cd-accent-emphasis-rgb: 224 153 128;
   --cd-on-primary: #ffffff;
-  --cd-primary-container: #3d1508;
-  --cd-on-primary-container: #ffe8dc;
+  --cd-primary-container: #352018;
+  --cd-on-primary-container: #f5e0d6;
 
   --cd-brand: #facc15;
   --cd-on-brand: #1e2330;
@@ -96,6 +96,6 @@
   --cd-green: #4ade80;
   --cd-red: #f87171;
 
-  --cd-focus-ring: rgb(255 138 92 / 0.45);
+  --cd-focus-ring: rgb(224 153 128 / 0.38);
   --cd-scrim: rgb(0 0 0 / 0.55);
 }
