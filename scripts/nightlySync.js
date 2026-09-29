@@ -28,7 +28,7 @@ import { getValidStravaAccessToken } from './stravaTokenManager.js';
 import { shouldApplyStravaTitleOnMatch } from '../src/utils/stravaTitleSameDay.js';
 import { normalizeBikeComputerProfileTitles } from '../src/utils/bikeComputerProfileTitles.js';
 import { mergeSyncDataSourcePrefs } from '../src/utils/syncDataSourcePrefs.js';
-import { ownerUidFromSettingsDocId, stampActivityOwnerId } from '../src/utils/activityOwnership.js';
+import { ownerUidFromSettingsDocId, stampActivityOwnerId } from '../src/utils/activityOwnershipCore.js';
 import { protectEnrichedFieldsOnMerge } from '../src/utils/firestoreActivityMerge.js';
 import { runIntervalsSyncWithStravaGapFill } from '../src/utils/runIntervalsSyncWithStravaGapFill.js';
 import { formatStravaGapFillSummary } from '../src/utils/importSyncStats.js';

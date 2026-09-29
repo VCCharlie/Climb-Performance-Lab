@@ -81,16 +81,31 @@ export function verifyNightlySyncEsmImports(entryPath = NIGHTLY_ENTRY) {
         }
 
         for (const dep of localImportsFromFile(normalized)) {
-            if (dep.startsWith(REPO_ROOT) && !dep.endsWith('.js') && !fs.existsSync(dep)) {
-                const withJs = `${dep}.js`;
-                if (fs.existsSync(withJs)) {
+            if (dep.startsWith(REPO_ROOT) && !dep.endsWith('.js')) {
+                let depStat = null;
+                try {
+                    if (fs.existsSync(dep)) {
+                        depStat = fs.statSync(dep);
+                    }
+                } catch {
+                    depStat = null;
+                }
+
+                if (depStat?.isDirectory()) {
                     errors.push(
-                        `Import missing .js extension: ${path.relative(REPO_ROOT, normalized)} → ${path.relative(REPO_ROOT, dep)} (use ${path.relative(path.dirname(normalized), withJs)})`,
+                        `Import resolves to a directory (use explicit .js file): ${path.relative(REPO_ROOT, normalized)} → ${path.relative(REPO_ROOT, dep)}`,
                     );
-                } else {
-                    errors.push(
-                        `Unresolved local import: ${path.relative(REPO_ROOT, normalized)} → ${path.relative(REPO_ROOT, dep)}`,
-                    );
+                } else if (!depStat) {
+                    const withJs = `${dep}.js`;
+                    if (fs.existsSync(withJs)) {
+                        errors.push(
+                            `Import missing .js extension: ${path.relative(REPO_ROOT, normalized)} → ${path.relative(REPO_ROOT, dep)} (use ${path.relative(path.dirname(normalized), withJs)})`,
+                        );
+                    } else {
+                        errors.push(
+                            `Unresolved local import: ${path.relative(REPO_ROOT, normalized)} → ${path.relative(REPO_ROOT, dep)}`,
+                        );
+                    }
                 }
             }
             queue.add(dep.endsWith('.js') ? dep : `${dep}.js`);
