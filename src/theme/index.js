@@ -18,6 +18,7 @@ export const CSS_VARS = {
   primaryActive: '--cd-primary-active',
   accentSoft: '--cd-accent-soft',
   accentEmphasis: '--cd-accent-emphasis',
+  accentEmphasisRgb: '--cd-accent-emphasis-rgb',
   onPrimary: '--cd-on-primary',
   primaryContainer: '--cd-primary-container',
   onPrimaryContainer: '--cd-on-primary-container',
