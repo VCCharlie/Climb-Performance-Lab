@@ -5,6 +5,8 @@ import { defaultSportFilterMap } from '../utils/nightlySyncDefaults.js';
 import { formatIntervalsImportHealthParts } from '../utils/intervalsImportHealth.js';
 import { protectEnrichedFieldsOnMerge } from '../utils/firestoreActivityMerge';
 import { batchWriteDocuments } from '../utils/firestoreBatchWrite';
+import { buildActivityFirestoreMergePayload } from '../utils/activityFirestoreWrite.js';
+import { resolveOwnerUid } from '../utils/activityOwnership.js';
 import { stripUndefinedFields } from '../utils/mergeActivities';
 import { enrichSelectedActivitiesFromStrava } from '../utils/stravaSelectedEnrich';
 import useIntervalsSync from './useIntervalsSync';
@@ -45,22 +47,24 @@ function buildActivitiesLookupMap(activities, getActivitiesSnapshot) {
     return new Map((source || []).map((a) => [String(a.id), a]));
 }
 
-async function persistActivitiesMerge(activities, existingMap, mergeOpts = {}) {
+async function persistActivitiesMerge(activities, existingMap, mergeOpts = {}, ownerUid = null) {
     if (!db || !activities?.length) return;
+    const uid = resolveOwnerUid(ownerUid);
     await batchWriteDocuments(
         'activities',
         activities.map((act) => {
             const existing = existingMap.get(String(act.id));
             return {
                 id: act.id,
-                data: protectEnrichedFieldsOnMerge(act, existing, mergeOpts),
+                data: buildActivityFirestoreMergePayload(act, existing, mergeOpts, uid),
             };
         }),
     );
 }
 
-async function persistActivityUpdates(updates, existingMap, mergeOpts = {}) {
+async function persistActivityUpdates(updates, existingMap, mergeOpts = {}, ownerUid = null) {
     if (!db || !updates?.length) return;
+    const uid = resolveOwnerUid(ownerUid);
     await batchWriteDocuments(
         'activities',
         updates.map(({ id, data }) => {
@@ -68,7 +72,7 @@ async function persistActivityUpdates(updates, existingMap, mergeOpts = {}) {
             const existingRow = existingMap.get(strId) || {};
             return {
                 id,
-                data: protectEnrichedFieldsOnMerge(data, existingRow, mergeOpts),
+                data: buildActivityFirestoreMergePayload(data, existingRow, mergeOpts, uid),
             };
         }),
     );
@@ -202,7 +206,7 @@ export function useDataHubIntervalsSync({
         });
 
         if (db) {
-            await persistActivitiesMerge(updated, activitiesMap, mergeProtectOpts);
+            await persistActivitiesMerge(updated, activitiesMap, mergeProtectOpts, resolveOwnerUid());
         }
         onImport(updated);
 
@@ -211,7 +215,7 @@ export function useDataHubIntervalsSync({
 
     const persistImportedActivities = useCallback(async (items, activitiesMap) => {
         if (!items?.length) return;
-        await persistActivitiesMerge(items, activitiesMap, mergeProtectOpts);
+        await persistActivitiesMerge(items, activitiesMap, mergeProtectOpts, resolveOwnerUid());
     }, [mergeProtectOpts]);
 
     const applyStravaGapFillToBatch = useCallback(async ({
@@ -430,6 +434,7 @@ export function useDataHubIntervalsSync({
                                     enrichResult.updates,
                                     new Map([...workingMap, ...activitiesMap]),
                                     mergeProtectOpts,
+                                    resolveOwnerUid(),
                                 );
                             }
                             const updatesMap = new Map(enrichResult.updates.map((u) => [String(u.id), u]));
@@ -649,6 +654,7 @@ export function useDataHubIntervalsSync({
                                     enrichResult.updates,
                                     new Map([...mergedMap, ...activitiesMap]),
                                     mergeProtectOpts,
+                                    resolveOwnerUid(),
                                 );
                             }
                             const updatesMap = new Map(enrichResult.updates.map((u) => [String(u.id), u]));

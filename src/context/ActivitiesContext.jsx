@@ -19,6 +19,11 @@ import { devLog } from '../utils/safeLog';
 import { notify } from '../utils/notify';
 import { batchMergeWriteActivities } from '../utils/firestoreBatchWrite';
 import {
+    activityNeedsOwnerBackfill,
+    isActivityVisibleToUser,
+    stampActivityOwnerId,
+} from '../utils/activityOwnership.js';
+import {
     mergeActivitiesDirectUpsert,
     mergeActivitiesPreservingEnrichment,
     prepareProtectedActivityUpsertsFromCurrent,
@@ -36,6 +41,7 @@ export function ActivitiesProvider({ user, children }) {
     const [syncStatus, setSyncStatus] = useState('idle');
     const [isLoading, setIsLoading] = useState(() => Boolean(user));
     const activitiesRef = useRef([]);
+    const ownerBackfillStartedRef = useRef(false);
 
     const setActivitiesState = useCallback((nextActivities) => {
         if (typeof nextActivities !== 'function') {
@@ -54,6 +60,10 @@ export function ActivitiesProvider({ user, children }) {
     useEffect(() => {
         activitiesRef.current = activities;
     }, [activities]);
+
+    useEffect(() => {
+        ownerBackfillStartedRef.current = false;
+    }, [user?.uid]);
 
     const lastActivityDate = useMemo(() => {
         if (!activities?.length) return null;
@@ -92,7 +102,10 @@ export function ActivitiesProvider({ user, children }) {
             }
             const actCol = collection(db, 'activities');
             const snapshot = await getDocsFromServer(actCol);
-            const loadedActs = snapshot.docs.map((d) => d.data());
+            const uid = user?.uid ?? null;
+            const loadedActs = snapshot.docs
+                .map((d) => d.data())
+                .filter((act) => isActivityVisibleToUser(act, uid));
 
             if (loadedActs.length > 0) {
                 setActivitiesState(sortActivitiesNewestFirst(loadedActs));
@@ -104,7 +117,7 @@ export function ActivitiesProvider({ user, children }) {
             console.error('Fout tijdens handmatig vernieuwen:', e);
             notify('Could not refresh activities from the cloud.', { variant: 'error', durationMs: 8000 });
         }
-    }, [setActivitiesState]);
+    }, [setActivitiesState, user?.uid]);
 
     const syncFromIntervals = useCallback(async (newActs) => {
         if (!newActs || newActs.length === 0) return 0;
@@ -117,12 +130,13 @@ export function ActivitiesProvider({ user, children }) {
         if (db) {
             await batchMergeWriteActivities(
                 mergedActivities.filter((act) => act?.id != null),
+                user?.uid,
             );
         }
 
         importActivities(mergedActivities);
         return mergedActivities.length;
-    }, [importActivities]);
+    }, [importActivities, user?.uid]);
 
     const getActivitiesSnapshot = useCallback(() => activitiesRef.current, []);
 
@@ -142,7 +156,9 @@ export function ActivitiesProvider({ user, children }) {
                 const cur = byNormId.get(k);
                 byNormId.set(k, cur ? { ...cur, ...act } : act);
             });
-            const loadedActs = Array.from(byNormId.values());
+            const uid = user?.uid ?? null;
+            const loadedActs = Array.from(byNormId.values())
+                .filter((act) => isActivityVisibleToUser(act, uid));
 
             if (loadedActs.length > 0) {
                 React.startTransition(() => {
@@ -152,6 +168,25 @@ export function ActivitiesProvider({ user, children }) {
                 React.startTransition(() => {
                     setActivitiesState([]);
                 });
+            }
+
+            if (
+                uid
+                && db
+                && !ownerBackfillStartedRef.current
+                && !snapshot.metadata.hasPendingWrites
+            ) {
+                const legacy = loadedActs.filter((act) => activityNeedsOwnerBackfill(act, uid));
+                if (legacy.length > 0) {
+                    ownerBackfillStartedRef.current = true;
+                    batchMergeWriteActivities(
+                        legacy.map((act) => stampActivityOwnerId(act, uid, act)),
+                        uid,
+                    ).catch((err) => {
+                        console.warn('[Activities] ownerId backfill failed:', err?.message || err);
+                        ownerBackfillStartedRef.current = false;
+                    });
+                }
             }
 
             const hasPendingWrites = snapshot.metadata.hasPendingWrites;

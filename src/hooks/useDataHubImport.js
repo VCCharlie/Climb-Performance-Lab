@@ -2,7 +2,8 @@ import { useState, useMemo, useCallback } from 'react';
 import { doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { findDuplicatesInList } from '../utils';
-import { protectEnrichedFieldsOnMerge } from '../utils/firestoreActivityMerge';
+import { buildActivityFirestoreMergePayload } from '../utils/activityFirestoreWrite.js';
+import { resolveOwnerUid } from '../utils/activityOwnership.js';
 import { buildImportReplacementPlan } from '../utils/importDuplicateMatch';
 import { persistImportedActivitiesReplacingDuplicates } from '../utils/importPersistence';
 import { activityIntensityFactor } from '../utils/activityFilterMetrics';
@@ -107,7 +108,7 @@ export function useDataHubImport({
         const activitiesById = new Map((activities || []).map((activity) => [String(activity.id), activity]));
         const importPayloads = replacementPlan.activitiesToImport.map((activity) => {
             const existing = activitiesById.get(String(activity.id));
-            return protectEnrichedFieldsOnMerge(activity, existing);
+            return buildActivityFirestoreMergePayload(activity, existing, {}, resolveOwnerUid());
         });
 
         if (db) {
@@ -118,7 +119,12 @@ export function useDataHubImport({
                     idsToDelete: replacementPlan.idsToDelete,
                     writeActivity: (id, payload) => setDoc(doc(db, 'activities', String(id)), payload, { merge: true }),
                     deleteActivity: (id) => deleteDoc(doc(db, 'activities', String(id))),
-                    mergePayload: protectEnrichedFieldsOnMerge,
+                    mergePayload: (incoming, existing) => buildActivityFirestoreMergePayload(
+                        incoming,
+                        existing,
+                        {},
+                        resolveOwnerUid(),
+                    ),
                 });
                 savedCount = importPayloads.length;
                 cloudPersisted = true;

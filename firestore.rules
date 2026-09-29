@@ -22,10 +22,32 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Shared activity log — authenticated users only (single-owner deployment today).
-    // Future multi-tenant: add ownerId field + match request.auth.uid.
+    function activityLegacyNoOwner() {
+      return !('ownerId' in resource.data);
+    }
+
+    function activityOwnedByCaller() {
+      return resource.data.ownerId == request.auth.uid;
+    }
+
+    function incomingActivityOwnedByCaller() {
+      return request.resource.data.ownerId == request.auth.uid;
+    }
+
+    // Activity log — single-owner: each doc tagged with ownerId (Google uid).
+    // Legacy rows without ownerId remain readable until backfilled by the client.
     match /activities/{activityId} {
-      allow read, write: if isSignedIn();
+      allow read: if isSignedIn()
+        && (activityLegacyNoOwner() || activityOwnedByCaller());
+
+      allow create: if isSignedIn() && incomingActivityOwnedByCaller();
+
+      allow update: if isSignedIn()
+        && (activityLegacyNoOwner() || activityOwnedByCaller())
+        && incomingActivityOwnedByCaller();
+
+      allow delete: if isSignedIn()
+        && (activityLegacyNoOwner() || activityOwnedByCaller());
     }
 
     // Deny everything else by default.

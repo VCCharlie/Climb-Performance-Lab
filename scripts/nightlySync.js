@@ -28,6 +28,7 @@ import { getValidStravaAccessToken } from './stravaTokenManager.js';
 import { shouldApplyStravaTitleOnMatch } from '../src/utils/stravaTitleSameDay.js';
 import { normalizeBikeComputerProfileTitles } from '../src/utils/bikeComputerProfileTitles.js';
 import { mergeSyncDataSourcePrefs } from '../src/utils/syncDataSourcePrefs.js';
+import { ownerUidFromSettingsDocId, stampActivityOwnerId } from '../src/utils/activityOwnership.js';
 import { protectEnrichedFieldsOnMerge } from '../src/utils/firestoreActivityMerge.js';
 import { runIntervalsSyncWithStravaGapFill } from '../src/utils/runIntervalsSyncWithStravaGapFill.js';
 import { formatStravaGapFillSummary } from '../src/utils/importSyncStats.js';
@@ -127,6 +128,25 @@ async function loadBikeComputerProfileTitles(db) {
 /**
  * Load Strava vs Intervals merge prefs from Firestore settings (Settings UI).
  */
+async function loadOwnerUidFromSettings(db) {
+    const explicitId = (process.env.FIREBASE_SETTINGS_DOC_ID || '').trim();
+    if (explicitId) {
+        const fromId = ownerUidFromSettingsDocId(explicitId);
+        if (fromId) return fromId;
+    }
+
+    const envUid = (process.env.FIREBASE_OWNER_UID || '').trim();
+    if (envUid) return envUid;
+
+    const settingsSnaps = await db.collection('settings').limit(20).get();
+    for (const settingsDoc of settingsSnaps.docs) {
+        const fromId = ownerUidFromSettingsDocId(settingsDoc.id);
+        if (fromId) return fromId;
+    }
+
+    return null;
+}
+
 async function loadSyncDataSourcePrefs(db) {
     const readFromDoc = (data) => mergeSyncDataSourcePrefs(data?.body?.syncDataSourcePrefs);
 
@@ -224,24 +244,28 @@ async function upsertToFirestore(db, newActivities, isDryRun, mergeOpts = {}) {
 
         if (exactMatch) {
             // SCENARIO 1: UPDATE — same id, preserve enriched fields (Strava, manual, zone times, drift).
-            const actToSave = protectEnrichedFieldsOnMerge(newAct, exactMatch, mergeOpts);
+            const actToSave = stampActivityOwnerId(
+                protectEnrichedFieldsOnMerge(newAct, exactMatch, mergeOpts),
+                mergeOpts.ownerUid,
+                exactMatch,
+            );
             toProcess.push(actToSave);
             updatedCount++;
             if (isDryRun) console.log(`[DRY-RUN] UPDATE: Beschermde velden behouden voor "${actToSave.title}" (${actToSave.id})`);
 
         } else if (duplicateMatch) {
             // SCENARIO 2: MERGE (dedupe) — keep Firestore doc id, apply shared retention rules.
-            const actToSave = {
+            const actToSave = stampActivityOwnerId({
                 ...protectEnrichedFieldsOnMerge(newAct, duplicateMatch, mergeOpts),
                 id: duplicateMatch.firestoreId,
-            };
+            }, mergeOpts.ownerUid, duplicateMatch);
             toProcess.push(actToSave);
             mergedCount++;
             if (isDryRun) console.log(`[DRY-RUN] MERGE: "${actToSave.title}" (${actToSave.id}) <== Verrijkt met Intervals data`);
 
         } else {
             // SCENARIO 3: NEW — no existing row to protect.
-            toProcess.push({ ...newAct });
+            toProcess.push(stampActivityOwnerId({ ...newAct }, mergeOpts.ownerUid, null));
             newCount++;
             if (isDryRun) console.log(`[DRY-RUN] NEW: "${newAct.title}" (${newAct.id})`);
         }
@@ -512,7 +536,11 @@ async function enrichWithStrava(db, firestoreActivities, startDate, endDate, isD
 
         const docId = String(site.firestoreId || site.id);
 
-        const payload = protectEnrichedFieldsOnMerge(updateData, site, mergeOpts);
+        const payload = stampActivityOwnerId(
+            protectEnrichedFieldsOnMerge(updateData, site, mergeOpts),
+            mergeOpts.ownerUid,
+            site,
+        );
 
         if (isDryRun) {
             const fields = Object.keys(payload).join(', ');
@@ -573,7 +601,11 @@ async function runNightlySync() {
     const { startDate, endDate } = getDateRange(LOOKBACK_DAYS);
     const deviceProfileTitles = await loadBikeComputerProfileTitles(db);
     const dataSourcePrefs = await loadSyncDataSourcePrefs(db);
-    const mergeOpts = { deviceProfileTitles, dataSourcePrefs };
+    const ownerUid = await loadOwnerUidFromSettings(db);
+    const mergeOpts = { deviceProfileTitles, dataSourcePrefs, ownerUid };
+    if (!ownerUid) {
+        console.warn('[SYNC] No owner uid resolved — set FIREBASE_SETTINGS_DOC_ID=user_{uid} or FIREBASE_OWNER_UID for ownerId stamps.');
+    }
     if (deviceProfileTitles.length > 0) {
         console.log(`[STRAVA] Bike computer profile titles: ${deviceProfileTitles.join(', ')}`);
     }
