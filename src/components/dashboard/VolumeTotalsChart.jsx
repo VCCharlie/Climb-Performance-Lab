@@ -49,7 +49,7 @@ function readVolumeChartPersist() {
     }
 }
 
-const STRAVA_ORANGE = '#a96332';
+const STRAVA_ORANGE = '#f08a38';
 
 const BAR_SERIES_NAME = 'This period';
 const COMPARE_PREV = 'Previous period';
