@@ -63,7 +63,7 @@ function FormFitnessMobileDataCard({ datum, isScrubbing }) {
                 </div>
                 <div className="rounded-md bg-cdsurface border border-cdborder/50 px-2 py-1.5">
                     <dt className="text-[10px] uppercase font-bold text-cdmuted tracking-wide">ATL</dt>
-                    <dd className="text-lg font-black text-orange-400 tabular-nums">{datum.atl ?? '—'}</dd>
+                    <dd className="text-lg font-black text-cdaccent tabular-nums">{datum.atl ?? '—'}</dd>
                 </div>
                 <div className="rounded-md bg-cdsurface border border-cdborder/50 px-2 py-1.5">
                     <dt className="text-[10px] uppercase font-bold text-cdmuted tracking-wide">TSB</dt>

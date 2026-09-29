@@ -17,7 +17,7 @@ export function getChartTheme() {
       fill: surfaceHigh,
       fillOpacity: 0.4,
     },
-    primary: getCssVar('--cd-primary', '#ea580c'),
+    primary: getCssVar('--cd-primary', '#a96332'),
     green: getCssVar('--cd-green', '#16a34a'),
     blue: getCssVar('--cd-blue', '#3b82f6'),
   };

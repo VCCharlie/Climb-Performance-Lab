@@ -24,7 +24,7 @@ function TrendBadge({ status }) {
     }
     if (status === AEROBIC_TREND_STATUS.DECLINING) {
         return (
-            <span className="inline-flex items-center gap-1 text-orange-400 text-xs font-bold">
+            <span className="inline-flex items-center gap-1 text-cdaccent text-xs font-bold">
                 <TrendingDown size={14} aria-hidden /> Declining
             </span>
         );

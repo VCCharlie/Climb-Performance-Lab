@@ -128,7 +128,7 @@ const PowerTopTenCustomRanges = ({
             </div>
         </div>
         {(!boundsPrimary || !compareBounds) && (
-            <p className="text-xs text-orange-400/90">
+            <p className="text-xs text-cdaccent/90">
                 {!boundsPrimary && 'Enter valid dates for column 1 (start ≤ end).'}
                 {boundsPrimary && !compareBounds && ' Enter valid dates for column 2.'}
             </p>

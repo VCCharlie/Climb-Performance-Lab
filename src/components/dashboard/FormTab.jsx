@@ -54,7 +54,7 @@ const FormTab = ({
                 <>
                     <div className="grid grid-cols-3 gap-4">
                         <StatBadge label="CTL (Fitness)" value={latest.ctl} color="text-blue-400" />
-                        <StatBadge label="ATL (Fatigue)" value={latest.atl} color="text-orange-400" />
+                        <StatBadge label="ATL (Fatigue)" value={latest.atl} color="text-cdaccent" />
                         <StatBadge label="TSB (Form)" value={latest.tsb} color={tsbColor} />
                     </div>
 
