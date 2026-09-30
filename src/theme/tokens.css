@@ -1,10 +1,11 @@
 /**
  * Climb Lab — Material Design 3 design tokens (Phase 1)
  *
- * Accent palette — muted Strava-family coral (red-orange hue, lower chroma):
- * - --cd-primary: dusty coral fills (bars, chips) — not neon
- * - --cd-accent-emphasis: readable accent text/icons — same hue, ~15% less saturation than #fc4c02
- * - Containers: neutral peach washes
+ * Accent palette — "Alpine Teal" (calm, outdoor, low chroma):
+ * - Distinct from semantic chart colors (--cd-blue CTL, --cd-green, --cd-red)
+ * - --cd-primary: soft teal fills (bars, chips)
+ * - --cd-accent-emphasis: deeper teal for text/icons (Tailwind cdaccent)
+ * Strava-specific UI may still use brand orange locally.
  */
 
 :root {
@@ -23,19 +24,19 @@
   --cd-border: #dce1e8;
 
   /* ── Primary (fills & soft accents) ── */
-  --cd-accent-soft: #faf7f5;
-  --cd-primary: #dc7a63;
-  --cd-primary-rgb: 220 122 99;
-  --cd-primary-hover: #d4633a;
-  --cd-primary-active: #c95632;
-  --cd-accent-emphasis: #c95632;
-  --cd-accent-emphasis-rgb: 201 86 50;
+  --cd-accent-soft: #f4f9f9;
+  --cd-primary: #5ba3a3;
+  --cd-primary-rgb: 91 163 163;
+  --cd-primary-hover: #3d8f8f;
+  --cd-primary-active: #2a7474;
+  --cd-accent-emphasis: #2a7474;
+  --cd-accent-emphasis-rgb: 42 116 116;
   --cd-on-primary: #ffffff;
-  --cd-primary-container: #faf0ec;
-  --cd-on-primary-container: #9e4528;
+  --cd-primary-container: #e6f3f3;
+  --cd-on-primary-container: #1f4f4f;
 
-  /* ── Brand secondary (header / key highlights) ── */
-  --cd-brand: #facc15;
+  /* ── Brand secondary (header sparkle — muted gold, not neon yellow) ── */
+  --cd-brand: #d4b85c;
   --cd-on-brand: #1e2330;
 
   /* ── Semantic ── */
@@ -49,7 +50,7 @@
   --cd-accent: var(--cd-accent-emphasis);
 
   /* ── Focus & overlays ── */
-  --cd-focus-ring: rgb(201 86 50 / 0.32);
+  --cd-focus-ring: rgb(42 116 116 / 0.35);
   --cd-scrim: rgb(30 35 48 / 0.4);
 
   /* ── Motion (MD3 emphasized easing) ── */
@@ -78,24 +79,24 @@
   --cd-muted: #94a3b8;
   --cd-border: #2f3848;
 
-  --cd-accent-soft: #241812;
-  --cd-primary: #d4633a;
-  --cd-primary-rgb: 212 99 58;
-  --cd-primary-hover: #dc7a63;
-  --cd-primary-active: #c95632;
-  --cd-accent-emphasis: #e09980;
-  --cd-accent-emphasis-rgb: 224 153 128;
-  --cd-on-primary: #ffffff;
-  --cd-primary-container: #352018;
-  --cd-on-primary-container: #f5e0d6;
+  --cd-accent-soft: #141c1c;
+  --cd-primary: #4d9494;
+  --cd-primary-rgb: 77 148 148;
+  --cd-primary-hover: #6bb8b8;
+  --cd-primary-active: #3d8f8f;
+  --cd-accent-emphasis: #8ecece;
+  --cd-accent-emphasis-rgb: 142 206 206;
+  --cd-on-primary: #0a1212;
+  --cd-primary-container: #1a2e2e;
+  --cd-on-primary-container: #d4eded;
 
-  --cd-brand: #facc15;
+  --cd-brand: #d4b85c;
   --cd-on-brand: #1e2330;
 
   --cd-blue: #60a5fa;
   --cd-green: #4ade80;
   --cd-red: #f87171;
 
-  --cd-focus-ring: rgb(224 153 128 / 0.38);
+  --cd-focus-ring: rgb(142 206 206 / 0.38);
   --cd-scrim: rgb(0 0 0 / 0.55);
 }
