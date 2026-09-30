@@ -84,6 +84,7 @@ export default function AccentPaletteSettings({
             </div>
 
             {value === ACCENT_PALETTE_CUSTOM && (
+                <>
                 <p className="text-[10px] text-cdmuted mt-2">
                     The third stripe on the Custom card is a light badge background — computed from Fill, not a separate picker.
                 </p>
@@ -115,6 +116,7 @@ export default function AccentPaletteSettings({
                         </span>
                     </label>
                 </div>
+                </>
             )}
         </div>
     );
