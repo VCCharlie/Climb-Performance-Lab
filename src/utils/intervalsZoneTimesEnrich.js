@@ -3,9 +3,9 @@
  * The bulk activities list often omits icu_zone_times even with fields=; detail GET usually has them.
  */
 
-import { fetchWithTimeout } from './fetchWithTimeout';
-import { devLog } from './safeLog';
-import { buildZoneTimesFields, hasZoneTimesData } from './zoneTimes';
+import { fetchWithTimeout } from './fetchWithTimeout.js';
+import { devLog } from './safeLog.js';
+import { buildZoneTimesFields, hasZoneTimesData } from './zoneTimes.js';
 
 /**
  * @param {object | null | undefined} act

@@ -6,11 +6,11 @@
  * Without streams we still track EF trends across eligible rides.
  */
 
-import { normalizeDate } from '../formatters';
-import { activityIntensityFactor, activityMovingTimeSec } from '../activityFilterMetrics';
-import { activityEfficiencyFactor, activityVariabilityIndex } from '../rideInsights';
-import { getMondayYmd } from './coachWeekPlan';
-import { addDaysToYmd } from '../dashboardVolumeTotals';
+import { normalizeDate } from '../formatters.js';
+import { activityIntensityFactor, activityMovingTimeSec } from '../activityFilterMetrics.js';
+import { activityEfficiencyFactor, activityVariabilityIndex } from '../rideInsights.js';
+import { getMondayYmd } from '../weekYmd.js';
+import { addDaysToYmd } from '../dashboardVolumeTotals.js';
 
 export const DECOUPLING_STATUS = {
     GOOD: 'good',

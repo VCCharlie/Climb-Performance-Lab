@@ -26,12 +26,17 @@ import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getValidStravaAccessToken } from './stravaTokenManager.js';
 import { shouldApplyStravaTitleOnMatch } from '../src/utils/stravaTitleSameDay.js';
-import { normalizeBikeComputerProfileTitles } from '../src/utils/bikeComputerProfileTitles.js';
-import { mergeSyncDataSourcePrefs } from '../src/utils/syncDataSourcePrefs.js';
-import { ownerUidFromSettingsDocId, stampActivityOwnerId } from '../src/utils/activityOwnershipCore.js';
+import { stampActivityOwnerId } from '../src/utils/activityOwnershipCore.js';
 import { protectEnrichedFieldsOnMerge } from '../src/utils/firestoreActivityMerge.js';
 import { runIntervalsSyncWithStravaGapFill } from '../src/utils/runIntervalsSyncWithStravaGapFill.js';
 import { formatStravaGapFillSummary } from '../src/utils/importSyncStats.js';
+import { enrichSyncedActivitiesDrift } from '../src/utils/syncDriftEnrich.js';
+import { extractDriftPatch } from '../src/utils/coach/rideDurability.js';
+import { enrichIntervalsActivitiesForNightlySync } from '../src/utils/nightlySyncIntervalsEnrich.js';
+import {
+    loadNightlySyncSettingsDoc,
+    resolveNightlySyncContext,
+} from '../src/utils/nightlySyncSettings.js';
 import {
     buildNightlyIntervalsConfig,
     getDefaultNightlyAllowedSportTypes,
@@ -41,7 +46,6 @@ import {
 
 const CLOUD_FUNCTION_URL = 'https://sync-intervals-97555677694.europe-west1.run.app';
 const FIRESTORE_COLLECTION = 'activities';
-const LOOKBACK_DAYS = 14;
 // We no longer strictly filter on SPORT_TYPES before storing, to ensure we catch Workouts with power data.
 /** Orphan gap-fill + CF pre-filter — cycling types + Workout/IndoorCycling (see nightlySyncDefaults.js). */
 const ACCEPTED_TYPES = getDefaultNightlyAllowedSportTypes();
@@ -101,72 +105,76 @@ function chunkArray(array, size) {
     return result;
 }
 
-/**
- * Load bike-computer profile names from Firestore settings (saved from Settings UI).
- * Optional env FIREBASE_SETTINGS_DOC_ID = settings doc id (e.g. user_abc123).
- */
-async function loadBikeComputerProfileTitles(db) {
-    const explicitId = (process.env.FIREBASE_SETTINGS_DOC_ID || '').trim();
-    if (explicitId) {
-        const snap = await db.doc(`settings/${explicitId}`).get();
-        if (snap.exists) {
-            return normalizeBikeComputerProfileTitles(snap.data()?.body?.bikeComputerProfileTitles);
-        }
+async function applyNightlyIntervalsEnrichment(activities, syncContext, intervalsConfig) {
+    if (!activities?.length) return activities;
+
+    const { activities: enriched, stats } = await enrichIntervalsActivitiesForNightlySync(activities, {
+        isFullSync: syncContext.isFullSync,
+        intervalsConfig,
+        enrichLimits: syncContext.enrichLimits,
+        onProgress: (message) => console.log(`[ENRICH] ${message}`),
+    });
+
+    if (stats.zoneMapped > 0) {
+        console.log(`[ENRICH] Zone times mapped on ${stats.zoneMapped} activit(y/ies).`);
+    }
+    if (stats.zoneTimesEnriched > 0) {
+        console.log(`[ENRICH] Zone times fetched for ${stats.zoneTimesEnriched} activit(y/ies).`);
+    }
+    if (stats.powerCurveRan) {
+        console.log('[ENRICH] Power-curve bests pass completed.');
     }
 
-    const settingsSnaps = await db.collection('settings').limit(20).get();
-    for (const settingsDoc of settingsSnaps.docs) {
-        const titles = settingsDoc.data()?.body?.bikeComputerProfileTitles;
-        if (Array.isArray(titles) && titles.length > 0) {
-            return normalizeBikeComputerProfileTitles(titles);
-        }
-    }
-
-    return [];
+    return enriched;
 }
 
-/**
- * Load Strava vs Intervals merge prefs from Firestore settings (Settings UI).
- */
-async function loadOwnerUidFromSettings(db) {
-    const explicitId = (process.env.FIREBASE_SETTINGS_DOC_ID || '').trim();
-    if (explicitId) {
-        const fromId = ownerUidFromSettingsDocId(explicitId);
-        if (fromId) return fromId;
-    }
+async function persistDriftEnrichment(db, driftActivities, existingActivities, mergeOpts, isDryRun) {
+    if (!driftActivities?.length) return 0;
 
-    const envUid = (process.env.FIREBASE_OWNER_UID || '').trim();
-    if (envUid) return envUid;
+    const existingById = new Map(
+        (existingActivities || []).map((a) => [String(a.firestoreId || a.id), a]),
+    );
 
-    const settingsSnaps = await db.collection('settings').limit(20).get();
-    for (const settingsDoc of settingsSnaps.docs) {
-        const fromId = ownerUidFromSettingsDocId(settingsDoc.id);
-        if (fromId) return fromId;
-    }
+    let saved = 0;
+    const batch = [];
+    for (const act of driftActivities) {
+        const key = String(act.id);
+        const existing = existingById.get(key);
+        if (!existing) continue;
 
-    return null;
-}
+        const patch = extractDriftPatch(act);
+        if (!patch) continue;
+        const prevPatch = extractDriftPatch(existing);
+        if (prevPatch && JSON.stringify(prevPatch) === JSON.stringify(patch)) continue;
 
-async function loadSyncDataSourcePrefs(db) {
-    const readFromDoc = (data) => mergeSyncDataSourcePrefs(data?.body?.syncDataSourcePrefs);
+        const payload = stampActivityOwnerId(
+            protectEnrichedFieldsOnMerge(act, existing, mergeOpts),
+            mergeOpts.ownerUid,
+            existing,
+        );
 
-    const explicitId = (process.env.FIREBASE_SETTINGS_DOC_ID || '').trim();
-    if (explicitId) {
-        const snap = await db.doc(`settings/${explicitId}`).get();
-        if (snap.exists) {
-            return readFromDoc(snap.data());
+        if (isDryRun) {
+            console.log(`[DRY-RUN] DRIFT UPDATE: "${payload.title || existing.title}" (${key})`);
+            saved += 1;
+            continue;
         }
+
+        batch.push({ id: key, payload });
     }
 
-    const settingsSnaps = await db.collection('settings').limit(20).get();
-    for (const settingsDoc of settingsSnaps.docs) {
-        const prefs = settingsDoc.data()?.body?.syncDataSourcePrefs;
-        if (prefs && typeof prefs === 'object') {
-            return mergeSyncDataSourcePrefs(prefs);
+    if (isDryRun || batch.length === 0) return saved;
+
+    const chunks = chunkArray(batch, FIRESTORE_BATCH_LIMIT);
+    for (const chunk of chunks) {
+        const writeBatch = db.batch();
+        for (const { id, payload } of chunk) {
+            writeBatch.set(db.collection(FIRESTORE_COLLECTION).doc(id), payload, { merge: true });
         }
+        await writeBatch.commit();
+        saved += chunk.length;
     }
 
-    return mergeSyncDataSourcePrefs(null);
+    return saved;
 }
 
 async function fetchFromIntervalsAPI({ athleteId, apiKey, startDate, endDate }) {
@@ -555,26 +563,18 @@ async function enrichWithStrava(db, firestoreActivities, startDate, endDate, isD
     return enrichedCount;
 }
 
-async function resolveSettingsDocRef(db) {
-    const explicitId = process.env.FIREBASE_SETTINGS_DOC_ID;
-    if (explicitId) {
-        return db.doc(`settings/${explicitId}`);
-    }
-    const settingsSnaps = await db.collection('settings').limit(20).get();
-    const first = settingsSnaps.docs[0];
-    return first ? first.ref : null;
-}
-
-async function recordNightlySyncStatus(db, { activitiesSaved, isDryRun }) {
-    if (isDryRun) return;
+async function recordNightlySyncStatus(db, settingsRef, { activitiesSaved, isDryRun, syncContext, startDate, endDate }) {
+    if (isDryRun || !settingsRef) return;
     try {
-        const ref = await resolveSettingsDocRef(db);
-        if (!ref) return;
-        await ref.set({
+        await settingsRef.set({
             lastNightlySync: {
                 at: new Date().toISOString(),
                 activitiesSaved: Number(activitiesSaved) || 0,
                 summary: 'GitHub Actions nightly sync',
+                syncDepth: syncContext?.syncDepth ?? 'fast',
+                lookbackDays: syncContext?.lookbackDays ?? 14,
+                windowStart: startDate,
+                windowEnd: endDate,
             },
         }, { merge: true });
     } catch (err) {
@@ -598,26 +598,53 @@ async function runNightlySync() {
     initializeApp({ credential: cert(config.serviceAccount) });
     const db = getFirestore();
 
-    const { startDate, endDate } = getDateRange(LOOKBACK_DAYS);
-    const deviceProfileTitles = await loadBikeComputerProfileTitles(db);
-    const dataSourcePrefs = await loadSyncDataSourcePrefs(db);
-    const ownerUid = await loadOwnerUidFromSettings(db);
-    const mergeOpts = { deviceProfileTitles, dataSourcePrefs, ownerUid };
+    const settingsDoc = await loadNightlySyncSettingsDoc(db, {
+        settingsDocId: process.env.FIREBASE_SETTINGS_DOC_ID,
+    });
+    const syncContext = resolveNightlySyncContext(settingsDoc?.body, {
+        settingsDocId: settingsDoc?.docId,
+        ownerUidEnv: process.env.FIREBASE_OWNER_UID,
+    });
+    const { mergeOpts, isFullSync, lookbackDays } = syncContext;
+    const { startDate, endDate } = getDateRange(lookbackDays);
+
+    const { deviceProfileTitles, dataSourcePrefs } = mergeOpts;
+    const ownerUid = mergeOpts.ownerUid;
+
     if (!ownerUid) {
         console.warn('[SYNC] No owner uid resolved — set FIREBASE_SETTINGS_DOC_ID=user_{uid} or FIREBASE_OWNER_UID for ownerId stamps.');
     }
+    console.log(`[SYNC] Settings: ${lookbackDays}-day window (${startDate} → ${endDate}), depth=${syncContext.syncDepthLabel}`);
     if (deviceProfileTitles.length > 0) {
         console.log(`[STRAVA] Bike computer profile titles: ${deviceProfileTitles.join(', ')}`);
     }
     console.log(`[SYNC] Data source prefs: elevation=${dataSourcePrefs.elevation}, title=${dataSourcePrefs.title}, gear/type=${dataSourcePrefs.gearAndType}`);
 
+    const intervalsConfig = buildNightlyIntervalsConfig({
+        athleteId: config.athleteId,
+        apiKey: config.apiKey,
+    });
+
+    let stravaToken = null;
+    if (isFullSync) {
+        try {
+            stravaToken = await getValidStravaAccessToken(db);
+        } catch (err) {
+            console.warn('[STRAVA] Token unavailable — Full sync will skip Strava/drift steps:', err.message);
+        }
+    } else {
+        console.log('[SYNC] Fast sync — Intervals fetch + zone map only (no Strava gap fill / detail / drift).');
+    }
+
     try {
-        const activities = await fetchFromIntervalsAPI({
+        let activities = await fetchFromIntervalsAPI({
             athleteId: config.athleteId,
             apiKey: config.apiKey,
             startDate,
             endDate,
         });
+
+        activities = await applyNightlyIntervalsEnrichment(activities, syncContext, intervalsConfig);
 
         const existingDocs = await db.collection(FIRESTORE_COLLECTION).get();
         const existingActivities = existingDocs.docs.map((d) => ({ ...d.data(), firestoreId: d.id }));
@@ -625,29 +652,26 @@ async function runNightlySync() {
         let intervalsToSave = activities;
         let orphansToSave = [];
 
-        try {
-            const stravaToken = await getValidStravaAccessToken(db);
-            const intervalsConfig = buildNightlyIntervalsConfig({
-                athleteId: config.athleteId,
-                apiKey: config.apiKey,
-            });
-            const gapResult = await runIntervalsSyncWithStravaGapFill({
-                intervalsActivities: activities,
-                existingActivities,
-                stravaToken,
-                startYmd: startDate,
-                endYmd: endDate,
-                allowedSportTypes: ACCEPTED_TYPES,
-                opts: { deviceProfileTitles, dataSourcePrefs, intervalsConfig },
-            });
-            intervalsToSave = gapResult.intervalsActivities;
-            orphansToSave = gapResult.orphanActivities;
-            const gapSummary = formatStravaGapFillSummary(gapResult.stats);
-            if (gapSummary) {
-                console.log(`[STRAVA] Gap fill: ${gapSummary}`);
+        if (isFullSync && stravaToken) {
+            try {
+                const gapResult = await runIntervalsSyncWithStravaGapFill({
+                    intervalsActivities: activities,
+                    existingActivities,
+                    stravaToken,
+                    startYmd: startDate,
+                    endYmd: endDate,
+                    allowedSportTypes: ACCEPTED_TYPES,
+                    opts: { deviceProfileTitles, dataSourcePrefs, intervalsConfig },
+                });
+                intervalsToSave = gapResult.intervalsActivities;
+                orphansToSave = gapResult.orphanActivities;
+                const gapSummary = formatStravaGapFillSummary(gapResult.stats);
+                if (gapSummary) {
+                    console.log(`[STRAVA] Gap fill: ${gapSummary}`);
+                }
+            } catch (gapErr) {
+                console.warn('[STRAVA] Gap fill skipped:', gapErr.message);
             }
-        } catch (gapErr) {
-            console.warn('[STRAVA] Gap fill skipped:', gapErr.message);
         }
 
         const combinedActivities = [...intervalsToSave, ...orphansToSave];
@@ -655,7 +679,7 @@ async function runNightlySync() {
         let savedCount = 0;
 
         if (combinedActivities.length === 0) {
-            console.log('[SYNC] Geen activiteiten gevonden in de afgelopen 14 dagen.');
+            console.log(`[SYNC] Geen activiteiten gevonden in de afgelopen ${lookbackDays} dagen.`);
         } else {
             console.log(`[SYNC] ${combinedActivities.length} activiteiten ontvangen (${intervalsToSave.length} Intervals, ${orphansToSave.length} Strava orphans).`);
 
@@ -664,21 +688,63 @@ async function runNightlySync() {
             console.log(`[SYNC] ✅ Succes! ${savedCount} activiteiten ${action} in Firebase.`);
         }
 
-        // Stap 2: Strava verrijking — altijd draaien, ook als er geen nieuwe Intervals ritten zijn
         const refreshedDocs = await db.collection(FIRESTORE_COLLECTION).get();
-        const allActivities = refreshedDocs.docs.map(d => ({ ...d.data(), firestoreId: d.id }));
-        const windowActivities = allActivities.filter(a => {
+        const allActivities = refreshedDocs.docs.map((d) => ({ ...d.data(), firestoreId: d.id }));
+        const windowActivities = allActivities.filter((a) => {
             const d = a.date?.split('T')[0];
             return d && d >= startDate && d <= endDate;
         });
 
-        if (windowActivities.length > 0) {
+        if (isFullSync && stravaToken && windowActivities.length > 0) {
             await enrichWithStrava(db, windowActivities, startDate, endDate, config.isDryRun, mergeOpts);
+        } else if (isFullSync && !stravaToken) {
+            console.log('[STRAVA] Skipping detail enrichment (no valid token).');
+        } else if (!isFullSync) {
+            console.log('[STRAVA] Skipped (Fast sync depth).');
         } else {
             console.log('[STRAVA] Geen activiteiten in het sync-venster om te verrijken.');
         }
 
-        await recordNightlySyncStatus(db, { activitiesSaved: savedCount, isDryRun: config.isDryRun });
+        if (isFullSync && stravaToken && syncContext.profileFtp > 0 && windowActivities.length > 0) {
+            const postStravaDocs = await db.collection(FIRESTORE_COLLECTION).get();
+            const postStravaAll = postStravaDocs.docs.map((d) => ({ ...d.data(), firestoreId: d.id }));
+            const postStravaWindow = postStravaAll.filter((a) => {
+                const d = a.date?.split('T')[0];
+                return d && d >= startDate && d <= endDate;
+            });
+
+            console.log('[DRIFT] HR drift analysis (Full sync, Settings caps)…');
+            const driftResult = await enrichSyncedActivitiesDrift(postStravaWindow, {
+                intervalsConfig,
+                stravaToken,
+                profileFtp: syncContext.profileFtp,
+                maxFetches: syncContext.enrichLimits.driftMaxFetches,
+                onProgress: (message) => console.log(`[DRIFT] ${message}`),
+            });
+
+            if (driftResult.enrichedCount > 0) {
+                const driftSaved = await persistDriftEnrichment(
+                    db,
+                    driftResult.activities,
+                    postStravaWindow,
+                    mergeOpts,
+                    config.isDryRun,
+                );
+                console.log(`[DRIFT] ✅ ${driftResult.enrichedCount} analyse(s); ${driftSaved} document(s) updated.`);
+            } else if (driftResult.remainingCount > 0) {
+                console.log(`[DRIFT] No new drift this run; ${driftResult.remainingCount} ride(s) still eligible.`);
+            } else {
+                console.log('[DRIFT] No eligible rides in window.');
+            }
+        }
+
+        await recordNightlySyncStatus(db, settingsDoc?.ref ?? null, {
+            activitiesSaved: savedCount,
+            isDryRun: config.isDryRun,
+            syncContext,
+            startDate,
+            endDate,
+        });
     } catch (error) {
         console.error('[ERROR] Sync mislukt:', error.message);
         process.exit(1);

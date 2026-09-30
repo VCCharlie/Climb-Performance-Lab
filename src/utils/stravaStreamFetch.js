@@ -2,10 +2,10 @@
  * Fetch activity streams from Strava for decoupling analysis.
  */
 
-import { fetchWithTimeout } from './fetchWithTimeout';
-import { devLog } from './safeLog';
-import { normalizeStravaActivityId } from './strava';
-import { normalizeActivityStreams } from './activityStreamNormalize';
+import { fetchWithTimeout } from './fetchWithTimeout.js';
+import { devLog } from './safeLog.js';
+import { normalizeStravaActivityId } from './strava.js';
+import { normalizeActivityStreams } from './activityStreamNormalize.js';
 
 /**
  * @param {string | number} stravaActivityId

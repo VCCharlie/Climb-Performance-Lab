@@ -3,8 +3,8 @@
  * Buckets use local calendar; weeks start on Monday.
  */
 
-import { normalizeDate, formatDateDDMMYYYY } from './formatters';
-import { activityDistanceKm, activityMovingTimeSec } from './activityFilterMetrics';
+import { normalizeDate, formatDateDDMMYYYY } from './formatters.js';
+import { activityDistanceKm, activityMovingTimeSec } from './activityFilterMetrics.js';
 
 function pad2(n) {
     return String(n).padStart(2, '0');
