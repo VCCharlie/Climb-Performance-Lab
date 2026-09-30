@@ -95,6 +95,17 @@ export function getDefaultCustomAccentColors() {
 }
 
 /**
+ * Preview swatches for the Custom palette card (emphasis, fill, auto container tint).
+ * @param {{ emphasis: string, fill: string }} colors
+ * @returns {[string, string, string]}
+ */
+export function getCustomPreviewSwatches(colors) {
+  const emphasis = normalizeHexColor(colors.emphasis) || DEFAULT_CUSTOM.emphasis;
+  const fill = normalizeHexColor(colors.fill) || DEFAULT_CUSTOM.fill;
+  return [emphasis, fill, mixHexWithWhite(fill, 0.82)];
+}
+
+/**
  * @param {unknown} raw
  * @returns {{ emphasis: string, fill: string } | null}
  */

@@ -1,6 +1,6 @@
 import React from 'react';
 import { ACCENT_PALETTES, ACCENT_PALETTE_CUSTOM } from '../../theme/accentPalette';
-import { normalizeHexColor } from '../../utils/customAccentColor';
+import { getCustomPreviewSwatches, normalizeHexColor } from '../../utils/customAccentColor';
 
 /**
  * @param {{
@@ -40,6 +40,10 @@ export default function AccentPaletteSettings({
             >
                 {ACCENT_PALETTES.map((palette) => {
                     const selected = value === palette.id;
+                    const swatches =
+                        palette.id === ACCENT_PALETTE_CUSTOM
+                            ? getCustomPreviewSwatches(customColors)
+                            : palette.swatches;
                     return (
                         <button
                             key={palette.id}
@@ -55,11 +59,20 @@ export default function AccentPaletteSettings({
                             ].join(' ')}
                         >
                             <div className="flex gap-1 mb-2" aria-hidden>
-                                {palette.swatches.map((hex) => (
+                                {swatches.map((hex, index) => (
                                     <span
-                                        key={hex}
+                                        key={`${palette.id}-${index}-${hex}`}
                                         className="h-5 flex-1 rounded-sm border border-cdborder/40"
                                         style={{ backgroundColor: hex }}
+                                        title={
+                                            palette.id === ACCENT_PALETTE_CUSTOM
+                                                ? index === 0
+                                                    ? 'Emphasis'
+                                                    : index === 1
+                                                      ? 'Fill'
+                                                      : 'Auto background (from Fill)'
+                                                : undefined
+                                        }
                                     />
                                 ))}
                             </div>
@@ -71,7 +84,10 @@ export default function AccentPaletteSettings({
             </div>
 
             {value === ACCENT_PALETTE_CUSTOM && (
-                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-lg border border-cdborder bg-cdsurfacelow p-4">
+                <p className="text-[10px] text-cdmuted mt-2">
+                    The third stripe on the Custom card is a light badge background — computed from Fill, not a separate picker.
+                </p>
+                <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-lg border border-cdborder bg-cdsurfacelow p-4">
                     <label className="flex items-center gap-3 text-sm text-cdtext">
                         <input
                             type="color"
