@@ -36,7 +36,7 @@ describe('accentPalette', () => {
     it('applyAccentPalette sets data attribute for non-default palettes', () => {
         applyAccentPalette('indigo');
         expect(document.documentElement.getAttribute('data-accent-palette')).toBe('indigo');
-        applyAccentPalette('alpine');
+        applyAccentPalette('classic');
         expect(document.documentElement.hasAttribute('data-accent-palette')).toBe(false);
     });
 });
