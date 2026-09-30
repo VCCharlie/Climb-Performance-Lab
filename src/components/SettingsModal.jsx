@@ -41,6 +41,7 @@ import HistoricalFtpSettings from './settings/HistoricalFtpSettings';
 import IntegrationsDiagnosticsSection from './settings/IntegrationsDiagnosticsSection';
 import AdvancedCoachSettings from './settings/AdvancedCoachSettings';
 import PhysicsDefaultsSettings from './settings/PhysicsDefaultsSettings';
+import AccentPaletteSettings from './settings/AccentPaletteSettings';
 import SyncEnrichLimitsSettings from './settings/SyncEnrichLimitsSettings';
 import SyncDataSourcePrefsSettings from './settings/SyncDataSourcePrefsSettings';
 import {
@@ -75,6 +76,7 @@ const SettingsModal = ({
     intervalsConfig, updateIntervalsConfig,
     userSettings, updateUserSettings,
     onSaveToCloud, theme, setTheme,
+    accentPalette, setAccentPalette,
     backupExtras, onImportBackup, onResetUserSettings, onCleanupCloudTokens,
     stravaConfig, stravaAuth,
     isSignedIn = false,
@@ -257,6 +259,11 @@ const SettingsModal = ({
                                         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isDark ? 'translate-x-1' : 'translate-x-6'}`} />
                                     </button>
                                 </div>
+
+                                <AccentPaletteSettings
+                                    value={accentPalette}
+                                    onChange={setAccentPalette}
+                                />
 
                                 <div className="flex items-center justify-between border-t border-cdborder/30 pt-4">
                                     <div>

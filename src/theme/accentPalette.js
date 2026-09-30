@@ -1,0 +1,61 @@
+/**
+ * User-selectable accent palettes (orthogonal to light/dark).
+ */
+
+export const ACCENT_PALETTE_STORAGE_KEY = 'accentPalette';
+
+export const DEFAULT_ACCENT_PALETTE = 'alpine';
+
+export const ACCENT_PALETTES = [
+  {
+    id: 'alpine',
+    label: 'Alpine Teal',
+    description: 'Calm sea-glass tones — outdoor and easy on the eyes.',
+    swatches: ['#2a7474', '#5ba3a3', '#e6f3f3'],
+  },
+  {
+    id: 'indigo',
+    label: 'Soft Indigo',
+    description: 'Cool, modern analytics feel without harsh saturation.',
+    swatches: ['#5b6fd6', '#8b9ae8', '#eef1fb'],
+  },
+  {
+    id: 'plum',
+    label: 'Warm Plum',
+    description: 'Muted violet accent on neutral surfaces — soft and editorial.',
+    swatches: ['#7c6b9e', '#a192c4', '#f3f0f7'],
+  },
+];
+
+const VALID_IDS = new Set(ACCENT_PALETTES.map((p) => p.id));
+
+/** @param {string | null | undefined} id */
+export function isValidAccentPalette(id) {
+  return typeof id === 'string' && VALID_IDS.has(id);
+}
+
+export function readStoredAccentPalette() {
+  if (typeof localStorage === 'undefined') return DEFAULT_ACCENT_PALETTE;
+  try {
+    const stored = localStorage.getItem(ACCENT_PALETTE_STORAGE_KEY);
+    return isValidAccentPalette(stored) ? stored : DEFAULT_ACCENT_PALETTE;
+  } catch {
+    return DEFAULT_ACCENT_PALETTE;
+  }
+}
+
+/**
+ * @param {string} paletteId
+ */
+export function applyAccentPalette(paletteId) {
+  if (typeof document === 'undefined') return;
+
+  const id = isValidAccentPalette(paletteId) ? paletteId : DEFAULT_ACCENT_PALETTE;
+  const root = document.documentElement;
+
+  if (id === DEFAULT_ACCENT_PALETTE) {
+    root.removeAttribute('data-accent-palette');
+  } else {
+    root.setAttribute('data-accent-palette', id);
+  }
+}

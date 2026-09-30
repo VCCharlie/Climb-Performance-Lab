@@ -1,0 +1,60 @@
+/**
+ * Optional accent palettes (light + dark).
+ * Default alpine tokens live in tokens.css on :root / .dark.
+ */
+
+[data-accent-palette='indigo'] {
+  --cd-accent-soft: #f4f6fc;
+  --cd-primary: #8b9ae8;
+  --cd-primary-rgb: 139 154 232;
+  --cd-primary-hover: #6b7fd4;
+  --cd-primary-active: #5b6fd6;
+  --cd-accent-emphasis: #5b6fd6;
+  --cd-accent-emphasis-rgb: 91 111 214;
+  --cd-on-primary: #ffffff;
+  --cd-primary-container: #eef1fb;
+  --cd-on-primary-container: #2e3a6e;
+  --cd-focus-ring: rgb(91 111 214 / 0.35);
+}
+
+.dark[data-accent-palette='indigo'] {
+  --cd-accent-soft: #161a28;
+  --cd-primary: #6b7fd4;
+  --cd-primary-rgb: 107 127 212;
+  --cd-primary-hover: #8b9ae8;
+  --cd-primary-active: #5b6fd6;
+  --cd-accent-emphasis: #a5b4f5;
+  --cd-accent-emphasis-rgb: 165 180 245;
+  --cd-on-primary: #0c0f18;
+  --cd-primary-container: #1e2438;
+  --cd-on-primary-container: #e0e7ff;
+  --cd-focus-ring: rgb(165 180 245 / 0.38);
+}
+
+[data-accent-palette='plum'] {
+  --cd-accent-soft: #faf8fc;
+  --cd-primary: #a192c4;
+  --cd-primary-rgb: 161 146 196;
+  --cd-primary-hover: #8b7aad;
+  --cd-primary-active: #7c6b9e;
+  --cd-accent-emphasis: #7c6b9e;
+  --cd-accent-emphasis-rgb: 124 107 158;
+  --cd-on-primary: #ffffff;
+  --cd-primary-container: #f3f0f7;
+  --cd-on-primary-container: #443a58;
+  --cd-focus-ring: rgb(124 107 158 / 0.35);
+}
+
+.dark[data-accent-palette='plum'] {
+  --cd-accent-soft: #1a161f;
+  --cd-primary: #9b8bb8;
+  --cd-primary-rgb: 155 139 184;
+  --cd-primary-hover: #b0a2ca;
+  --cd-primary-active: #7c6b9e;
+  --cd-accent-emphasis: #c4b5db;
+  --cd-accent-emphasis-rgb: 196 181 219;
+  --cd-on-primary: #100d14;
+  --cd-primary-container: #2a2433;
+  --cd-on-primary-container: #ede8f5;
+  --cd-focus-ring: rgb(196 181 219 / 0.38);
+}

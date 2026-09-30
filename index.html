@@ -12,6 +12,10 @@
           if (localStorage.getItem('theme') === 'dark') {
             document.documentElement.classList.add('dark');
           }
+          var accent = localStorage.getItem('accentPalette');
+          if (accent === 'indigo' || accent === 'plum') {
+            document.documentElement.setAttribute('data-accent-palette', accent);
+          }
         } catch (e) {
           /* ignore */
         }
