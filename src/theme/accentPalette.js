@@ -3,7 +3,13 @@
  * Logo yellow (--cd-brand) is defined only in tokens.css and is not overridden here.
  */
 
+import {
+  applyCustomAccentOverrides,
+  clearCustomAccentOverrides,
+} from '../utils/customAccentColor.js';
+
 export const ACCENT_PALETTE_STORAGE_KEY = 'accentPalette';
+export const ACCENT_PALETTE_CUSTOM = 'custom';
 
 /** Original app accent before optional palettes were added. */
 export const DEFAULT_ACCENT_PALETTE = 'classic';
@@ -33,6 +39,12 @@ export const ACCENT_PALETTES = [
     description: 'Muted violet accent on neutral surfaces — soft and editorial.',
     swatches: ['#7c6b9e', '#a192c4', '#f3f0f7'],
   },
+  {
+    id: ACCENT_PALETTE_CUSTOM,
+    label: 'Custom',
+    description: 'Pick your own accent and fill colors (logo yellow stays fixed).',
+    swatches: ['#ea580c', '#8b5cf6', '#e6f3f3'],
+  },
 ];
 
 const VALID_IDS = new Set(ACCENT_PALETTES.map((p) => p.id));
@@ -54,16 +66,24 @@ export function readStoredAccentPalette() {
 
 /**
  * @param {string} paletteId
+ * @param {{ emphasis: string, fill: string } | null | undefined} [customColors]
  */
-export function applyAccentPalette(paletteId) {
+export function applyAccentPalette(paletteId, customColors) {
   if (typeof document === 'undefined') return;
 
   const id = isValidAccentPalette(paletteId) ? paletteId : DEFAULT_ACCENT_PALETTE;
   const root = document.documentElement;
 
+  clearCustomAccentOverrides(root);
+
   if (id === DEFAULT_ACCENT_PALETTE) {
     root.removeAttribute('data-accent-palette');
-  } else {
-    root.setAttribute('data-accent-palette', id);
+    return;
+  }
+
+  root.setAttribute('data-accent-palette', id);
+
+  if (id === ACCENT_PALETTE_CUSTOM && customColors) {
+    applyCustomAccentOverrides(root, customColors);
   }
 }

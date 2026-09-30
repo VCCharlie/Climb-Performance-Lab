@@ -77,6 +77,7 @@ const SettingsModal = ({
     userSettings, updateUserSettings,
     onSaveToCloud, theme, setTheme,
     accentPalette, setAccentPalette,
+    customAccentColors, setCustomAccentColors,
     backupExtras, onImportBackup, onResetUserSettings, onCleanupCloudTokens,
     stravaConfig, stravaAuth,
     isSignedIn = false,
@@ -263,6 +264,8 @@ const SettingsModal = ({
                                 <AccentPaletteSettings
                                     value={accentPalette}
                                     onChange={setAccentPalette}
+                                    customColors={customAccentColors}
+                                    onCustomColorsChange={setCustomAccentColors}
                                 />
 
                                 <div className="flex items-center justify-between border-t border-cdborder/30 pt-4">

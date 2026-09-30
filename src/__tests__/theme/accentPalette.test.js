@@ -39,4 +39,11 @@ describe('accentPalette', () => {
         applyAccentPalette('classic');
         expect(document.documentElement.hasAttribute('data-accent-palette')).toBe(false);
     });
+
+    it('applyAccentPalette custom sets attribute and inline emphasis', () => {
+        applyAccentPalette('custom', { emphasis: '#2a7474', fill: '#5ba3a3' });
+        expect(document.documentElement.getAttribute('data-accent-palette')).toBe('custom');
+        expect(document.documentElement.style.getPropertyValue('--cd-accent-emphasis')).toBe('#2a7474');
+        applyAccentPalette('classic');
+    });
 });

@@ -59,6 +59,11 @@ import {
     ACCENT_PALETTE_STORAGE_KEY,
     isValidAccentPalette,
 } from './theme/accentPalette';
+import {
+    CUSTOM_ACCENT_COLORS_STORAGE_KEY,
+    readStoredCustomAccentColors,
+    normalizeCustomAccentColors,
+} from './utils/customAccentColor';
 import { consumeNavRestore, persistMainTab, readPersistedMainTab, resolveInitialMainTab, resolveInitialDataHubInternalTab } from './utils/sessionNavRestore';
 import { mergeUserSettingsWithDefaults } from './utils/userSettingsMerge';
 import { resetUserSettingsPreservingSecrets } from './utils/resetUserSettings';
@@ -154,19 +159,26 @@ const App = () => {
     const [activeTab, setActiveTab] = useState(() => resolveInitialMainTab());
     const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
     const [accentPalette, setAccentPaletteState] = useState(() => readStoredAccentPalette());
+    const [customAccentColors, setCustomAccentColorsState] = useState(() => readStoredCustomAccentColors());
 
     useEffect(() => {
         applyTheme(theme);
     }, [theme]);
 
     useEffect(() => {
-        applyAccentPalette(accentPalette);
-    }, [accentPalette]);
+        applyAccentPalette(accentPalette, customAccentColors);
+    }, [accentPalette, customAccentColors]);
 
     const setAccentPalette = useCallback((next) => {
         const id = isValidAccentPalette(next) ? next : readStoredAccentPalette();
         setAccentPaletteState(id);
         safeLocalStorageSet(ACCENT_PALETTE_STORAGE_KEY, id);
+    }, []);
+
+    const setCustomAccentColors = useCallback((next) => {
+        const normalized = normalizeCustomAccentColors(next) || readStoredCustomAccentColors();
+        setCustomAccentColorsState(normalized);
+        safeLocalStorageSet(CUSTOM_ACCENT_COLORS_STORAGE_KEY, JSON.stringify(normalized));
     }, []);
 
     useTouchFocusRelease();
@@ -719,6 +731,10 @@ const App = () => {
                     if (data.accentPalette && isValidAccentPalette(data.accentPalette)) {
                         setAccentPalette(data.accentPalette);
                     }
+                    if (data.customAccentColors) {
+                        const normalized = normalizeCustomAccentColors(data.customAccentColors);
+                        if (normalized) setCustomAccentColors(normalized);
+                    }
                     if (data.bucketList) {
                         let localRaw = null;
                         try {
@@ -1066,6 +1082,7 @@ const App = () => {
                 body: safeBody,
                 theme: theme,
                 accentPalette,
+                customAccentColors,
                 strava: safeStrava,
                 stravaProfile: stravaProfileData,
                 // bucketList + bucketListUpdatedAt: only via syncBucketListToFirestore
@@ -1125,6 +1142,10 @@ const App = () => {
         }
         if (backupData.accentPalette && isValidAccentPalette(backupData.accentPalette)) {
             setAccentPalette(backupData.accentPalette);
+        }
+        if (backupData.customAccentColors) {
+            const normalized = normalizeCustomAccentColors(backupData.customAccentColors);
+            if (normalized) setCustomAccentColors(normalized);
         }
         if (backupData.racePacing) {
             const restored = {
@@ -1556,6 +1577,8 @@ const App = () => {
                                 }}
                                 accentPalette={accentPalette}
                                 setAccentPalette={setAccentPalette}
+                                customAccentColors={customAccentColors}
+                                setCustomAccentColors={setCustomAccentColors}
                                 backupExtras={{
                                     settings: userSettings,
                                     intervals: intervalsConfig,
@@ -1564,6 +1587,7 @@ const App = () => {
                                     stravaProfile: stravaProfileData,
                                     theme,
                                     accentPalette,
+                                    customAccentColors,
                                     racePacing: racePacingState,
                                     gearOptimizer: gearOptimizerState,
                                     climbProfiler: climbProfilerState,
