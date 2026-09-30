@@ -1,7 +1,36 @@
 /**
  * Optional accent palettes (light + dark).
- * Default alpine tokens live in tokens.css on :root / .dark.
+ * Default classic tokens live in tokens.css on :root / .dark.
+ * Never override --cd-brand (logo yellow).
  */
+
+[data-accent-palette='alpine'] {
+  --cd-accent-soft: #f4f9f9;
+  --cd-primary: #5ba3a3;
+  --cd-primary-rgb: 91 163 163;
+  --cd-primary-hover: #3d8f8f;
+  --cd-primary-active: #2a7474;
+  --cd-accent-emphasis: #2a7474;
+  --cd-accent-emphasis-rgb: 42 116 116;
+  --cd-on-primary: #ffffff;
+  --cd-primary-container: #e6f3f3;
+  --cd-on-primary-container: #1f4f4f;
+  --cd-focus-ring: rgb(42 116 116 / 0.35);
+}
+
+.dark[data-accent-palette='alpine'] {
+  --cd-accent-soft: #141c1c;
+  --cd-primary: #4d9494;
+  --cd-primary-rgb: 77 148 148;
+  --cd-primary-hover: #6bb8b8;
+  --cd-primary-active: #3d8f8f;
+  --cd-accent-emphasis: #8ecece;
+  --cd-accent-emphasis-rgb: 142 206 206;
+  --cd-on-primary: #0a1212;
+  --cd-primary-container: #1a2e2e;
+  --cd-on-primary-container: #d4eded;
+  --cd-focus-ring: rgb(142 206 206 / 0.38);
+}
 
 [data-accent-palette='indigo'] {
   --cd-accent-soft: #f4f6fc;

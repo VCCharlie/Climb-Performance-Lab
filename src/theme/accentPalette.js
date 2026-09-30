@@ -1,12 +1,20 @@
 /**
  * User-selectable accent palettes (orthogonal to light/dark).
+ * Logo yellow (--cd-brand) is defined only in tokens.css and is not overridden here.
  */
 
 export const ACCENT_PALETTE_STORAGE_KEY = 'accentPalette';
 
-export const DEFAULT_ACCENT_PALETTE = 'alpine';
+/** Original app accent before optional palettes were added. */
+export const DEFAULT_ACCENT_PALETTE = 'classic';
 
 export const ACCENT_PALETTES = [
+  {
+    id: 'classic',
+    label: 'Classic Orange',
+    description: 'Original Climb Lab accent — same as before custom palettes.',
+    swatches: ['#ea580c', '#fb923c', '#ffedd5'],
+  },
   {
     id: 'alpine',
     label: 'Alpine Teal',

@@ -27,8 +27,8 @@ describe('accentPalette', () => {
 
     it('reads default when storage empty or invalid', () => {
         expect(readStoredAccentPalette()).toBe(DEFAULT_ACCENT_PALETTE);
-        localStorage.setItem(ACCENT_PALETTE_STORAGE_KEY, 'indigo');
-        expect(readStoredAccentPalette()).toBe('indigo');
+        localStorage.setItem(ACCENT_PALETTE_STORAGE_KEY, 'alpine');
+        expect(readStoredAccentPalette()).toBe('alpine');
         localStorage.setItem(ACCENT_PALETTE_STORAGE_KEY, 'invalid');
         expect(readStoredAccentPalette()).toBe(DEFAULT_ACCENT_PALETTE);
     });

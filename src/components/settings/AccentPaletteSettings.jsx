@@ -14,7 +14,7 @@ export default function AccentPaletteSettings({ value, onChange }) {
                 </p>
             </div>
             <div
-                className="grid grid-cols-1 sm:grid-cols-3 gap-2"
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2"
                 role="radiogroup"
                 aria-label="Accent color palette"
             >
