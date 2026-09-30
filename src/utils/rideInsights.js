@@ -2,11 +2,11 @@
  * Rule-based post-ride insights (plain-language summary from activity metrics).
  */
 
-import { formatDateDDMMYYYY, normalizeDate } from './formatters';
+import { formatDateDDMMYYYY, normalizeDate } from './formatters.js';
 import {
     activityIntensityFactor,
     activityMovingTimeSec,
-} from './activityFilterMetrics';
+} from './activityFilterMetrics.js';
 
 const RIDE_TYPES = new Set([
     'Ride',

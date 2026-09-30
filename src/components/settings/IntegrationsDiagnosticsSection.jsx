@@ -26,10 +26,21 @@ export default function IntegrationsDiagnosticsSection({
     );
 
     const defaultDepthLine = useMemo(() => ({
-        label: 'Default sync depth (Settings)',
+        label: 'Default sync depth (Settings + nightly)',
         value: describeSyncDepth(normalizeSyncDepth(userSettings?.defaultIntervalsSyncDepth)),
         tone: 'muted',
     }), [userSettings?.defaultIntervalsSyncDepth]);
+
+    const nightlyWindowLine = useMemo(() => {
+        const days = Number(userSettings?.defaultSyncRangeDays) > 0
+            ? Math.round(Number(userSettings.defaultSyncRangeDays))
+            : 14;
+        return {
+            label: 'Nightly sync window (GitHub Actions)',
+            value: `Last ${days} days · same depth & enrich limits as above`,
+            tone: 'muted',
+        };
+    }, [userSettings?.defaultSyncRangeDays]);
 
     const enrichLimitsLine = useMemo(() => ({
         label: 'Full sync enrich limits (Settings)',

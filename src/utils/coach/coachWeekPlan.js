@@ -2,8 +2,11 @@
  * Builds a rebalanced fluid week plan from activities + coach context.
  */
 
-import { normalizeDate } from '../formatters';
-import { addDaysToYmd } from '../dashboardVolumeTotals';
+import { normalizeDate } from '../formatters.js';
+import { addDaysToYmd } from '../dashboardVolumeTotals.js';
+import { getMondayYmd } from '../weekYmd.js';
+
+export { getMondayYmd };
 import { buildWeekSkeleton, rebalanceWeek, applyPhaseToWeekSkeleton } from './coachRebalancer';
 import { buildWeekSkeletonForStrategy, sumSkeletonPlannedTss } from './coachTargetSkeleton';
 import { analyzeRidingPattern } from './coachRidingPattern';
@@ -16,22 +19,6 @@ import { matchSessionsToActivities, classifyActivityStimulus } from './coachSess
 import { applyAvailabilityRelocation } from './coachAvailability';
 import { trimPlannedVolume } from './coachWeekVolume';
 import { projectWeekEndTsb } from './coachFitnessForecast';
-
-/**
- * Monday (ISO) of the week containing referenceYmd.
- * @param {string} [referenceYmd]
- */
-export function getMondayYmd(referenceYmd = todayYmd()) {
-    const [y, m, d] = referenceYmd.split('-').map(Number);
-    const dt = new Date(y, m - 1, d);
-    const day = dt.getDay();
-    const diff = day === 0 ? -6 : 1 - day;
-    dt.setDate(dt.getDate() + diff);
-    const yy = dt.getFullYear();
-    const mm = String(dt.getMonth() + 1).padStart(2, '0');
-    const dd = String(dt.getDate()).padStart(2, '0');
-    return `${yy}-${mm}-${dd}`;
-}
 
 /**
  * @param {object[]} activities

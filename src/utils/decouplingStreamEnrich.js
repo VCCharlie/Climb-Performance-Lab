@@ -3,18 +3,18 @@
  * Supports steady decoupling, threshold tempo drift, and race-style drift profiles.
  */
 
-import { DRIFT_PROFILE } from './coach/rideDurability';
+import { DRIFT_PROFILE } from './coach/rideDurability.js';
 import {
     activityNeedsDriftAnalysis,
     buildDriftPatch,
     buildRideDriftPatchFromStreams,
     getRideDriftProfile,
-} from './coach/rideDurability';
-import { analyzeDecouplingFromStreams } from './coach/aerobicDecoupling';
-import { fetchIntervalsActivityStreams } from './intervalsStreamFetch';
-import { fetchStravaActivityStreams } from './stravaStreamFetch';
-import { isLikelyIntervalsActivityId } from './mergeActivities';
-import { devLog } from './safeLog';
+} from './coach/rideDurability.js';
+import { analyzeDecouplingFromStreams } from './coach/aerobicDecoupling.js';
+import { fetchIntervalsActivityStreams } from './intervalsStreamFetch.js';
+import { fetchStravaActivityStreams } from './stravaStreamFetch.js';
+import { isLikelyIntervalsActivityId } from './mergeActivities.js';
+import { devLog } from './safeLog.js';
 
 /**
  * @param {object | null} analysis

@@ -2,9 +2,9 @@
  * Fetch activity streams from Intervals.icu for decoupling analysis.
  */
 
-import { fetchWithTimeout } from './fetchWithTimeout';
-import { devLog } from './safeLog';
-import { normalizeActivityStreams } from './activityStreamNormalize';
+import { fetchWithTimeout } from './fetchWithTimeout.js';
+import { devLog } from './safeLog.js';
+import { normalizeActivityStreams } from './activityStreamNormalize.js';
 
 /**
  * @param {string} activityId

@@ -2,8 +2,8 @@
  * Post-sync HR drift enrichment — run after Strava link/detail so streams and HR are available.
  */
 
-import { enrichActivitiesWithDecoupling } from './decouplingStreamEnrich';
-import { activityNeedsDriftAnalysis, extractDriftPatch } from './coach/rideDurability';
+import { enrichActivitiesWithDecoupling } from './decouplingStreamEnrich.js';
+import { activityNeedsDriftAnalysis, extractDriftPatch } from './coach/rideDurability.js';
 import { DEFAULT_SYNC_ENRICH_LIMITS } from './syncEnrichLimits.js';
 
 /** Max stream fetches during a multi-day Intervals fetch-and-merge. */
