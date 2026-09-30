@@ -1,4 +1,12 @@
 export { applyTheme, readStoredTheme } from './applyTheme.js';
+export {
+  ACCENT_PALETTES,
+  ACCENT_PALETTE_STORAGE_KEY,
+  DEFAULT_ACCENT_PALETTE,
+  applyAccentPalette,
+  isValidAccentPalette,
+  readStoredAccentPalette,
+} from './accentPalette.js';
 
 /**
  * Token name constants for JS-driven styling (charts, canvas, inline styles).

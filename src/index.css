@@ -1,4 +1,5 @@
 @import './theme/tokens.css';
+@import './theme/accent-palettes.css';
 
 /* App base — values driven by MD3 tokens in tokens.css */
 :root {

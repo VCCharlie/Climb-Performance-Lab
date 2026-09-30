@@ -53,6 +53,12 @@ const ClimbMap = lazyWithRetry(() => import('./components/ClimbMap'), 'ClimbMap'
 import useStravaAuth from './hooks/useStravaAuth';
 import useTouchFocusRelease from './hooks/useTouchFocusRelease';
 import { applyTheme } from './theme/applyTheme';
+import {
+    applyAccentPalette,
+    readStoredAccentPalette,
+    ACCENT_PALETTE_STORAGE_KEY,
+    isValidAccentPalette,
+} from './theme/accentPalette';
 import { consumeNavRestore, persistMainTab, readPersistedMainTab, resolveInitialMainTab, resolveInitialDataHubInternalTab } from './utils/sessionNavRestore';
 import { mergeUserSettingsWithDefaults } from './utils/userSettingsMerge';
 import { resetUserSettingsPreservingSecrets } from './utils/resetUserSettings';
@@ -147,10 +153,21 @@ const MAIN_TAB_IDS = new Set([
 const App = () => {
     const [activeTab, setActiveTab] = useState(() => resolveInitialMainTab());
     const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
+    const [accentPalette, setAccentPaletteState] = useState(() => readStoredAccentPalette());
 
     useEffect(() => {
         applyTheme(theme);
     }, [theme]);
+
+    useEffect(() => {
+        applyAccentPalette(accentPalette);
+    }, [accentPalette]);
+
+    const setAccentPalette = useCallback((next) => {
+        const id = isValidAccentPalette(next) ? next : readStoredAccentPalette();
+        setAccentPaletteState(id);
+        safeLocalStorageSet(ACCENT_PALETTE_STORAGE_KEY, id);
+    }, []);
 
     useTouchFocusRelease();
 
@@ -699,6 +716,9 @@ const App = () => {
                         setTheme(data.theme);
                         safeLocalStorageSet('theme', data.theme);
                     }
+                    if (data.accentPalette && isValidAccentPalette(data.accentPalette)) {
+                        setAccentPalette(data.accentPalette);
+                    }
                     if (data.bucketList) {
                         let localRaw = null;
                         try {
@@ -1045,6 +1065,7 @@ const App = () => {
                 intervals: safeIntervals,
                 body: safeBody,
                 theme: theme,
+                accentPalette,
                 strava: safeStrava,
                 stravaProfile: stravaProfileData,
                 // bucketList + bucketListUpdatedAt: only via syncBucketListToFirestore
@@ -1101,6 +1122,9 @@ const App = () => {
         if (backupData.theme) {
             setTheme(backupData.theme);
             safeLocalStorageSet('theme', backupData.theme);
+        }
+        if (backupData.accentPalette && isValidAccentPalette(backupData.accentPalette)) {
+            setAccentPalette(backupData.accentPalette);
         }
         if (backupData.racePacing) {
             const restored = {
@@ -1530,6 +1554,8 @@ const App = () => {
                                     setTheme(newTheme);
                                     safeLocalStorageSet('theme', newTheme);
                                 }}
+                                accentPalette={accentPalette}
+                                setAccentPalette={setAccentPalette}
                                 backupExtras={{
                                     settings: userSettings,
                                     intervals: intervalsConfig,
@@ -1537,6 +1563,7 @@ const App = () => {
                                     strava: stravaConfig,
                                     stravaProfile: stravaProfileData,
                                     theme,
+                                    accentPalette,
                                     racePacing: racePacingState,
                                     gearOptimizer: gearOptimizerState,
                                     climbProfiler: climbProfilerState,

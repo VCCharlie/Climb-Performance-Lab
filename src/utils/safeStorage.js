@@ -13,6 +13,7 @@ const QUOTA_PROBE_KEY = '__cpl_quota_probe__';
 /** UX-only keys kept when sign-in repair must clear a full quota. */
 const PRESERVED_LOCAL_STORAGE_KEYS = new Set([
     'theme',
+    'accentPalette',
     'pwa_install_banner_dismissed',
     'cpl.app.buildId.v1',
     QUOTA_PROBE_KEY,
