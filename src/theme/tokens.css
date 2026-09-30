@@ -1,11 +1,9 @@
 /**
  * Climb Lab — Material Design 3 design tokens (Phase 1)
  *
- * Accent palette — "Alpine Teal" (calm, outdoor, low chroma):
- * - Distinct from semantic chart colors (--cd-blue CTL, --cd-green, --cd-red)
- * - --cd-primary: soft teal fills (bars, chips)
- * - --cd-accent-emphasis: deeper teal for text/icons (Tailwind cdaccent)
- * Strava-specific UI may still use brand orange locally.
+ * Default "classic" accent (original orange). Optional palettes override
+ * accent tokens via data-accent-palette in accent-palettes.css.
+ * --cd-brand is logo yellow and is never changed by accent palettes.
  */
 
 :root {
@@ -23,20 +21,20 @@
   --cd-muted: #64748b;
   --cd-border: #dce1e8;
 
-  /* ── Primary (fills & soft accents) ── */
-  --cd-accent-soft: #f4f9f9;
-  --cd-primary: #5ba3a3;
-  --cd-primary-rgb: 91 163 163;
-  --cd-primary-hover: #3d8f8f;
-  --cd-primary-active: #2a7474;
-  --cd-accent-emphasis: #2a7474;
-  --cd-accent-emphasis-rgb: 42 116 116;
+  /* ── Primary (classic orange — default accent) ── */
+  --cd-accent-soft: #fff7ed;
+  --cd-primary: #ea580c;
+  --cd-primary-rgb: 234 88 12;
+  --cd-primary-hover: #c2410c;
+  --cd-primary-active: #9a3412;
+  --cd-accent-emphasis: #ea580c;
+  --cd-accent-emphasis-rgb: 234 88 12;
   --cd-on-primary: #ffffff;
-  --cd-primary-container: #e6f3f3;
-  --cd-on-primary-container: #1f4f4f;
+  --cd-primary-container: #ffedd5;
+  --cd-on-primary-container: #7c2d12;
 
-  /* ── Brand secondary (header sparkle — muted gold, not neon yellow) ── */
-  --cd-brand: #d4b85c;
+  /* ── Brand — logo yellow (fixed across all accent palettes) ── */
+  --cd-brand: #facc15;
   --cd-on-brand: #1e2330;
 
   /* ── Semantic ── */
@@ -47,10 +45,10 @@
   /* ── Legacy aliases (backward compatible) ── */
   --cd-bg: var(--cd-surface-dim);
   --cd-surface-legacy: var(--cd-surface-bright);
-  --cd-accent: var(--cd-accent-emphasis);
+  --cd-accent: var(--cd-primary);
 
   /* ── Focus & overlays ── */
-  --cd-focus-ring: rgb(42 116 116 / 0.35);
+  --cd-focus-ring: rgb(234 88 12 / 0.4);
   --cd-scrim: rgb(30 35 48 / 0.4);
 
   /* ── Motion (MD3 emphasized easing) ── */
@@ -79,24 +77,24 @@
   --cd-muted: #94a3b8;
   --cd-border: #2f3848;
 
-  --cd-accent-soft: #141c1c;
-  --cd-primary: #4d9494;
-  --cd-primary-rgb: 77 148 148;
-  --cd-primary-hover: #6bb8b8;
-  --cd-primary-active: #3d8f8f;
-  --cd-accent-emphasis: #8ecece;
-  --cd-accent-emphasis-rgb: 142 206 206;
-  --cd-on-primary: #0a1212;
-  --cd-primary-container: #1a2e2e;
-  --cd-on-primary-container: #d4eded;
+  --cd-accent-soft: #2a1a12;
+  --cd-primary: #fb923c;
+  --cd-primary-rgb: 251 146 60;
+  --cd-primary-hover: #fdba74;
+  --cd-primary-active: #ea580c;
+  --cd-accent-emphasis: #fb923c;
+  --cd-accent-emphasis-rgb: 251 146 60;
+  --cd-on-primary: #1a0f08;
+  --cd-primary-container: #3d2010;
+  --cd-on-primary-container: #ffedd5;
 
-  --cd-brand: #d4b85c;
+  --cd-brand: #facc15;
   --cd-on-brand: #1e2330;
 
   --cd-blue: #60a5fa;
   --cd-green: #4ade80;
   --cd-red: #f87171;
 
-  --cd-focus-ring: rgb(142 206 206 / 0.38);
+  --cd-focus-ring: rgb(251 146 60 / 0.45);
   --cd-scrim: rgb(0 0 0 / 0.55);
 }

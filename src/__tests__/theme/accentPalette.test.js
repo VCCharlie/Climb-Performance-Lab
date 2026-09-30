@@ -27,8 +27,8 @@ describe('accentPalette', () => {
 
     it('reads default when storage empty or invalid', () => {
         expect(readStoredAccentPalette()).toBe(DEFAULT_ACCENT_PALETTE);
-        localStorage.setItem(ACCENT_PALETTE_STORAGE_KEY, 'indigo');
-        expect(readStoredAccentPalette()).toBe('indigo');
+        localStorage.setItem(ACCENT_PALETTE_STORAGE_KEY, 'alpine');
+        expect(readStoredAccentPalette()).toBe('alpine');
         localStorage.setItem(ACCENT_PALETTE_STORAGE_KEY, 'invalid');
         expect(readStoredAccentPalette()).toBe(DEFAULT_ACCENT_PALETTE);
     });
@@ -36,7 +36,7 @@ describe('accentPalette', () => {
     it('applyAccentPalette sets data attribute for non-default palettes', () => {
         applyAccentPalette('indigo');
         expect(document.documentElement.getAttribute('data-accent-palette')).toBe('indigo');
-        applyAccentPalette('alpine');
+        applyAccentPalette('classic');
         expect(document.documentElement.hasAttribute('data-accent-palette')).toBe(false);
     });
 });
