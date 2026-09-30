@@ -14,6 +14,7 @@ const QUOTA_PROBE_KEY = '__cpl_quota_probe__';
 const PRESERVED_LOCAL_STORAGE_KEYS = new Set([
     'theme',
     'accentPalette',
+    'customAccentColors',
     'pwa_install_banner_dismissed',
     'cpl.app.buildId.v1',
     QUOTA_PROBE_KEY,

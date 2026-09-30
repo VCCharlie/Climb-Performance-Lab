@@ -13,8 +13,20 @@
             document.documentElement.classList.add('dark');
           }
           var accent = localStorage.getItem('accentPalette');
-          if (accent === 'alpine' || accent === 'indigo' || accent === 'plum') {
+          if (accent === 'alpine' || accent === 'indigo' || accent === 'plum' || accent === 'custom') {
             document.documentElement.setAttribute('data-accent-palette', accent);
+          }
+          if (accent === 'custom') {
+            try {
+              var raw = localStorage.getItem('customAccentColors');
+              if (raw) {
+                var c = JSON.parse(raw);
+                if (c && c.emphasis && c.fill) {
+                  document.documentElement.style.setProperty('--cd-accent-emphasis', c.emphasis);
+                  document.documentElement.style.setProperty('--cd-primary', c.fill);
+                }
+              }
+            } catch (e) { /* ignore */ }
           }
         } catch (e) {
           /* ignore */

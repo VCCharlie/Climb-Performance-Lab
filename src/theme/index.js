@@ -1,6 +1,7 @@
 export { applyTheme, readStoredTheme } from './applyTheme.js';
 export {
   ACCENT_PALETTES,
+  ACCENT_PALETTE_CUSTOM,
   ACCENT_PALETTE_STORAGE_KEY,
   DEFAULT_ACCENT_PALETTE,
   applyAccentPalette,
