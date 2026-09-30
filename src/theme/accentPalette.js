@@ -42,8 +42,8 @@ export const ACCENT_PALETTES = [
   {
     id: ACCENT_PALETTE_CUSTOM,
     label: 'Custom',
-    description: 'Pick your own accent and fill colors (logo yellow stays fixed).',
-    swatches: ['#ea580c', '#8b5cf6', '#e6f3f3'],
+    description: 'Two pickers below; the pale third swatch is an auto badge background from Fill.',
+    swatches: ['#ea580c', '#fb923c', '#ffedd5'],
   },
 ];
 
