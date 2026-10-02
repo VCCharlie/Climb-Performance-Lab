@@ -22,6 +22,13 @@ import {
     computeClimbStats,
     estimateClimbPacingMetrics
 } from '../utils/climbProfilerModel';
+import {
+    CLIMB_PROFILE_UPDATED_EVENT,
+    formatClimbProfileSourceLabel,
+    getStoredClimbProfile,
+} from '../utils/climbProfileStorage.js';
+import { climbfinderUrlForClimb } from '../utils/climbfinderUrl.js';
+import { openExternalUrl } from '../utils/strava.js';
 
 /** Upper FTP ratio shown on the zone bar; Z7 in data uses max≈∞ for matching — cap here so bar widths match Coggan bands. */
 const ZONE_BAR_MAX_FTP_RATIO = 1.65;
@@ -52,13 +59,39 @@ const ClimbProfiler = ({ userSettings, initialState, onStateChange, theme = 'lig
 
     const isDark = theme === 'dark';
 
+    const [profileRevision, setProfileRevision] = useState(0);
+
     React.useEffect(() => {
         if (onStateChange) {
             onStateChange({ selectedClimb, showPowerZones, targetIntensity });
         }
     }, [selectedClimb, showPowerZones, targetIntensity, onStateChange]);
 
-    const profileData = useMemo(() => buildSyntheticProfile(selectedClimb), [selectedClimb]);
+    React.useEffect(() => {
+        const onUpdated = () => setProfileRevision((r) => r + 1);
+        window.addEventListener(CLIMB_PROFILE_UPDATED_EVENT, onUpdated);
+        return () => window.removeEventListener(CLIMB_PROFILE_UPDATED_EVENT, onUpdated);
+    }, []);
+
+    // `profileRevision` bumps when localStorage profile changes (custom event).
+    void profileRevision;
+    const importedProfile = getStoredClimbProfile(selectedClimb?.id);
+
+    const profileData = useMemo(() => {
+        if (importedProfile?.points?.length >= 2) {
+            return importedProfile.points.map((p) => ({
+                distance: p.distance ?? p.distanceKm,
+                elevation: p.elevation,
+                gradient: p.gradient,
+                progress: p.progress ?? 0,
+            }));
+        }
+        return buildSyntheticProfile(selectedClimb);
+    }, [selectedClimb, importedProfile]);
+
+    const usesImportedProfile = Boolean(importedProfile?.points?.length >= 2);
+    const climbfinderLink = climbfinderUrlForClimb(selectedClimb)
+        || (importedProfile?.referenceUrl?.includes('climbfinder.com') ? importedProfile.referenceUrl : null);
     const ftp = userSettings?.ftp || 250;
     const weight = userSettings?.weight || 70;
     const bikeW = userSettings?.bikeWeight || 8;
@@ -100,20 +133,53 @@ const ClimbProfiler = ({ userSettings, initialState, onStateChange, theme = 'lig
 
     return (
         <div className="bg-cdsurface p-5 md:p-6 rounded-xl border border-cdborder shadow-xl space-y-6">
-            <div
-                role="note"
-                className="rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-3 flex items-start gap-3"
-            >
-                <Info size={18} className="text-amber-400 shrink-0 mt-0.5" aria-hidden />
-                <div>
-                    <p className="text-sm font-bold text-cdtext">Synthetic climb profile</p>
-                    <p className="text-sm text-cdtext mt-1">
-                        This chart is generated from average gradient, length, and elevation — not GPS or barometric
-                        segment data. Use it for tactical pacing and zone planning; do not treat it as an exact
-                        elevation trace.
-                    </p>
+            {usesImportedProfile ? (
+                <div
+                    role="note"
+                    className="rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-4 py-3 flex items-start gap-3"
+                >
+                    <Info size={18} className="text-emerald-400 shrink-0 mt-0.5" aria-hidden />
+                    <div>
+                        <p className="text-sm font-bold text-cdtext">Imported elevation profile</p>
+                        <p className="text-sm text-cdtext mt-1">
+                            {formatClimbProfileSourceLabel(importedProfile)}
+                            . Chart uses your GPX track points — suitable for tactical pacing on this climb.
+                        </p>
+                        {climbfinderLink && (
+                            <button
+                                type="button"
+                                className="text-xs text-cdaccent hover:underline mt-2 font-medium"
+                                onClick={() => openExternalUrl(climbfinderLink)}
+                            >
+                                Open Climbfinder reference
+                            </button>
+                        )}
+                    </div>
                 </div>
-            </div>
+            ) : (
+                <div
+                    role="note"
+                    className="rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-3 flex items-start gap-3"
+                >
+                    <Info size={18} className="text-amber-400 shrink-0 mt-0.5" aria-hidden />
+                    <div>
+                        <p className="text-sm font-bold text-cdtext">Synthetic climb profile</p>
+                        <p className="text-sm text-cdtext mt-1">
+                            This chart is generated from average gradient, length, and elevation — not GPS or barometric
+                            segment data. Import a GPX under Activities → Import Data, or open Climbfinder to export GPS.
+                        </p>
+                        {climbfinderLink && (
+                            <button
+                                type="button"
+                                className="text-xs text-cdaccent hover:underline mt-2 font-medium"
+                                onClick={() => openExternalUrl(climbfinderLink)}
+                            >
+                                Open Climbfinder page for this climb
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
 
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 border-b border-cdborder pb-5">
                 <div>
@@ -122,8 +188,9 @@ const ClimbProfiler = ({ userSettings, initialState, onStateChange, theme = 'lig
                         Climb Profiler
                     </h2>
                     <p className="text-sm text-cdmuted mt-1 max-w-xl">
-                        Gradient and elevation view based on length, elevation gain, and average gradient. Suitable for
-                        tactical preparation; not exact GPS segment data.
+                        {usesImportedProfile
+                            ? 'Gradient and elevation from your imported GPX profile.'
+                            : 'Gradient and elevation from database averages (synthetic model). Import GPX in Activities → Import Data for a real trace.'}
                     </p>
                 </div>
                 <div className="flex flex-col items-end gap-2 shrink-0">
