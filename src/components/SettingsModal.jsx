@@ -362,8 +362,9 @@ const SettingsModal = ({
                                 <div className="pt-2 border-t border-cdborder/30 mt-2">
                                     <p className="text-xs font-semibold text-cdtext mb-1">Nightly server sync</p>
                                     <p className="text-xs text-cdmuted mb-2">
-                                        GitHub Actions runs <code className="bg-cdborder px-1 rounded">scripts/nightlySync.js</code> daily
-                                        (last 14 days → Firestore, then Strava enrich). Uses repository secrets{' '}
+                                        GitHub Actions runs <code className="bg-cdborder px-1 rounded">scripts/nightlySync.js</code> when triggered
+                                        (external daily cron → workflow, or manual run). Window and Fast/Full depth follow Settings below.
+                                        Server credentials use repository secrets{' '}
                                         <code className="bg-cdborder px-1 rounded">INTERVALS_API_KEY</code>.
                                     </p>
                                     {(() => {

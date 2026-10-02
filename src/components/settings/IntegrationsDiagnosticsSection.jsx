@@ -36,7 +36,7 @@ export default function IntegrationsDiagnosticsSection({
             ? Math.round(Number(userSettings.defaultSyncRangeDays))
             : 14;
         return {
-            label: 'Nightly sync window (GitHub Actions)',
+            label: 'Nightly sync window (when triggered)',
             value: `Last ${days} days · same depth & enrich limits as above`,
             tone: 'muted',
         };
