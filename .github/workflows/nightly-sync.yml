@@ -1,10 +1,8 @@
 name: Nightly Intervals Sync
 
 on:
-  schedule:
-    # Runs every night at 03:00 UTC (05:00 CEST / 04:00 CET)
-    - cron: '0 3 * * *'
-  # Allows manual triggering via the Actions tab on GitHub
+  # Scheduled via external cron (e.g. cron-job.org) POST → workflow_dispatch.
+  # GitHub's built-in `schedule` cron is not used (unreliable start time on shared runners).
   workflow_dispatch:
 
 jobs:
