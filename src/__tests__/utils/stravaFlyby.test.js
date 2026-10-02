@@ -59,12 +59,18 @@ describe('openStravaFlybyForActivity', () => {
         expect(result).toBe(false);
     });
 
-    it('opens flyby after validating with token', async () => {
+    it('opens flyby after validating with token (placeholder tab before async)', async () => {
         fetch.mockResolvedValueOnce({
             ok: true,
             json: async () => ({ id: 123456789 }),
         });
-        const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+        const location = { href: 'about:blank' };
+        const openSpy = vi.spyOn(window, 'open').mockReturnValue({
+            closed: false,
+            opener: window,
+            location,
+            close: vi.fn(),
+        });
 
         const result = await openStravaFlybyForActivity(
             { id: 'i1', strava_id: '123456789' },
@@ -72,6 +78,7 @@ describe('openStravaFlybyForActivity', () => {
         );
 
         expect(result).toBe(true);
-        expect(clickSpy).toHaveBeenCalled();
+        expect(openSpy).toHaveBeenCalledWith('about:blank', '_blank');
+        expect(location.href).toBe('https://labs.strava.com/flyby/viewer/#123456789');
     });
 });

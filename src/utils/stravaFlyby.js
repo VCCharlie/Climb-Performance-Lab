@@ -52,27 +52,67 @@ export async function fetchCanonicalStravaActivityId(stravaId, token) {
 }
 
 /**
- * Open Flyby in a new tab (direct navigation — preserves Strava cookie session better than about:blank hops).
+ * Open Flyby in a new tab (synchronous — must run inside the user click handler).
  * @param {string} url
  * @returns {boolean}
  */
 export function openFlybyViewerUrl(url) {
     if (!url || typeof url !== 'string') return false;
+    const trimmed = url.trim();
+    if (!trimmed) return false;
+
     try {
-        const anchor = document.createElement('a');
-        anchor.href = url.trim();
-        anchor.target = '_blank';
-        anchor.rel = 'noopener noreferrer';
-        anchor.click();
-        return true;
+        const w = window.open('about:blank', '_blank');
+        if (w) {
+            w.opener = null;
+            w.location.href = trimmed;
+            return true;
+        }
     } catch {
+        // fall through
+    }
+    try {
+        const w = window.open(trimmed, '_blank', 'noopener,noreferrer');
+        return Boolean(w && !w.closed);
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Reserve a new tab while the browser still treats the call as a user gesture.
+ * @returns {Window | null}
+ */
+function openFlybyPlaceholderTab() {
+    if (typeof window === 'undefined') return null;
+    try {
+        const w = window.open('about:blank', '_blank');
+        if (w) w.opener = null;
+        return w;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * @param {Window | null | undefined} tab
+ * @param {string} url
+ * @returns {boolean}
+ */
+function navigateFlybyTab(tab, url) {
+    if (tab && !tab.closed) {
         try {
-            const w = window.open(url, '_blank', 'noopener,noreferrer');
-            return Boolean(w && !w.closed);
+            tab.location.href = url;
+            return true;
         } catch {
-            return false;
+            try {
+                tab.close();
+            } catch {
+                /* ignore */
+            }
         }
     }
+    return openFlybyViewerUrl(url);
 }
 
 /**
@@ -97,13 +137,21 @@ export async function openStravaFlybyForActivity(activityOrId, options = {}) {
         return false;
     }
 
-    if (typeof getStravaToken === 'function') {
+    const needsAsyncCheck = typeof getStravaToken === 'function';
+    const placeholderTab = needsAsyncCheck ? openFlybyPlaceholderTab() : null;
+
+    if (needsAsyncCheck) {
         try {
             const token = await getStravaToken();
             const check = await fetchCanonicalStravaActivityId(stravaId, token);
             if (check.ok) {
                 stravaId = check.canonicalId;
             } else if (check.reason === 'not_found') {
+                try {
+                    placeholderTab?.close();
+                } catch {
+                    /* ignore */
+                }
                 notify(
                     `Strava activity ${check.triedId} was not found for your account. Re-link this ride (Activities → Strava) or open it on Strava and use View Flybys there.`,
                     { variant: 'warning', durationMs: 14000 },
@@ -116,9 +164,19 @@ export async function openStravaFlybyForActivity(activityOrId, options = {}) {
     }
 
     const url = stravaFlybyUrl(stravaId);
-    if (!url) return false;
+    if (!url) {
+        try {
+            placeholderTab?.close();
+        } catch {
+            /* ignore */
+        }
+        return false;
+    }
 
-    const opened = openFlybyViewerUrl(url);
+    const opened = needsAsyncCheck
+        ? navigateFlybyTab(placeholderTab, url)
+        : openFlybyViewerUrl(url);
+
     if (!opened) {
         notify(
             `Could not open Strava Flyby (popup blocked?). Allow popups for this site, or open manually:\n${url}`,
