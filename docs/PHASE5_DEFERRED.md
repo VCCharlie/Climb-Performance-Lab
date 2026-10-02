@@ -12,7 +12,9 @@ Items intentionally deferred from Phase 5 due to size or cross-cutting schema wo
 - Store imported profiles in Firestore `climbProfiles/{id}` with `{ points: [{ distanceKm, elevation, gradient }] }`.
 - Wire `ClimbProfiler` to prefer imported profile over `buildSyntheticProfile`.
 
-**Stub:** No parser shipped in Phase 5; Climb Profiler continues to show the synthetic-profile disclaimer.
+**MVP (shipped):** GPX import under Activities → Import Data; profiles in `localStorage` (`climbProfileStorage.js`); Climbfinder URL matching (no scrape). Climb Profiler prefers imported points over `buildSyntheticProfile`.
+
+**Still deferred:** FIT import, Firestore `climbProfiles/{id}` sync, Strava segment streams API.
 
 ## N1 — Activity schema versioning (L)
 

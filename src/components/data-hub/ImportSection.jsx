@@ -2,6 +2,7 @@
 import { Upload, FileJson } from 'lucide-react';
 import { smartParseJSON } from '../../utils';
 import ManualActivityImportBlock from './ManualActivityImportBlock';
+import ClimbSegmentImportSection from './ClimbSegmentImportSection';
 import { Button, Card, inputBaseClass, cn } from '../ui';
 import { useToast } from '../../context/ToastContext';
 
@@ -54,6 +55,7 @@ const ImportSection = ({
 
     return (
         <div className="space-y-6">
+            <ClimbSegmentImportSection />
             {typeof onFetchedActivityFromUrl === 'function' && (
                 <Card variant="outlined" className="border-cdprimary/30 bg-cdprimarycontainer/10">
                     <ManualActivityImportBlock
