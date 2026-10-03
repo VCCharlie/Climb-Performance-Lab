@@ -10,8 +10,22 @@ describe('resolveFlybyStravaId', () => {
         expect(resolveFlybyStravaId({ id: 'i12345', strava_id: '987654321' })).toBe('987654321');
     });
 
-    it('rejects when strava_id digits match intervals row id', () => {
+    it('rejects when strava_id digits match intervals numeric row id', () => {
         expect(resolveFlybyStravaId({ id: '53534754', strava_id: '53534754' })).toBeNull();
+    });
+
+    it('does not reject prefixed activity id that shares digits with strava_id', () => {
+        expect(resolveFlybyStravaId({ id: 'i14163440910', strava_id: '14163440910' })).toBe('14163440910');
+    });
+
+    it('falls back to external_id when strava_id is mislinked', () => {
+        expect(
+            resolveFlybyStravaId({
+                id: '53534754',
+                strava_id: '53534754',
+                external_id: 'strava-14163440910',
+            }),
+        ).toBe('14163440910');
     });
 
     it('returns null when strava_id missing', () => {
@@ -79,6 +93,25 @@ describe('openStravaFlybyForActivity', () => {
 
         expect(result).toBe(true);
         expect(openSpy).toHaveBeenCalledWith('about:blank', '_blank');
+        expect(location.href).toBe('https://labs.strava.com/flyby/viewer/#123456789');
+    });
+
+    it('still opens flyby when Strava API returns 404 (preflight best-effort)', async () => {
+        fetch.mockResolvedValueOnce({ ok: false, status: 404 });
+        const location = { href: 'about:blank' };
+        vi.spyOn(window, 'open').mockReturnValue({
+            closed: false,
+            opener: window,
+            location,
+            close: vi.fn(),
+        });
+
+        const result = await openStravaFlybyForActivity(
+            { id: 'i1', strava_id: '123456789' },
+            { getStravaToken: async () => 'tok' },
+        );
+
+        expect(result).toBe(true);
         expect(location.href).toBe('https://labs.strava.com/flyby/viewer/#123456789');
     });
 });

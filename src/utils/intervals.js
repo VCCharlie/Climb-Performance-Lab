@@ -331,13 +331,17 @@ export const normalizeIntervalsActivity = (item) => {
     const finalType = determineActivityType(rawType, title);
 
     // Strava ID: Intervals.icu slaat dit op als external_id (bijv. "strava-12345678")
-    const stravaId = extractStravaId(getVal('external_id', 'externalId'));
+    const externalIdRaw = getVal('external_id', 'externalId');
+    const stravaId = extractStravaId(externalIdRaw);
 
     const zoneTimesFields = buildZoneTimesFields(item, { ftp });
 
     return {
         id: id,
         strava_id: stravaId,
+        ...(externalIdRaw != null && String(externalIdRaw).trim() !== ''
+            ? { external_id: String(externalIdRaw).trim() }
+            : {}),
         date: normalizeActivityDate(dateStr),
         title: title,
         ...(description ? { description } : {}),
