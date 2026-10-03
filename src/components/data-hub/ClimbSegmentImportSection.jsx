@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Mountain, Upload, Link2, Trash2, ExternalLink } from 'lucide-react';
+import { Mountain, Upload, Link2, Trash2, ExternalLink, Info } from 'lucide-react';
 import { Card, Button, inputBaseClass, cn } from '../ui';
 import { useToast } from '../../context/ToastContext';
 import ClimbSelector from '../shared/ClimbSelector';
@@ -129,11 +129,31 @@ export default function ClimbSegmentImportSection() {
                 <div>
                     <h3 className="text-sm font-bold text-cdtext">Climb profile import (GPX)</h3>
                     <p className="text-xs text-cdmuted mt-1 max-w-2xl leading-relaxed">
-                        Upload a GPX with elevation to replace the synthetic profile in Climb Profiler for this climb.
-                        Optional: paste a Climbfinder URL to match a database climb or store as reference.
-                        For Climbfinder-only data, use Export to GPS on their site, then upload the GPX here.
+                        Real elevation in Climb Profiler comes from a GPX file you upload here — not from a pasted link alone.
                     </p>
                 </div>
+            </div>
+
+            <div
+                role="note"
+                className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-3 mb-4 text-xs text-cdtext space-y-2"
+            >
+                <p className="font-semibold flex items-center gap-1.5">
+                    <Info size={14} className="text-amber-400 shrink-0" aria-hidden />
+                    Climbfinder URL vs GPX
+                </p>
+                <ol className="list-decimal list-inside space-y-1 text-cdmuted leading-relaxed">
+                    <li>
+                        <span className="text-cdtext">Climbfinder link</span> — matches a climb in this app and opens their page.
+                        It does <strong className="text-cdtext font-medium">not</strong> download profile or map data into Climb Lab.
+                    </li>
+                    <li>
+                        On Climbfinder, use <span className="text-cdtext">Export to GPS</span> (GPX), then upload that file below.
+                    </li>
+                    <li>
+                        Click <span className="text-cdtext">Save to Climb Profiler</span> — the chart uses your GPX; the link is stored as reference only.
+                    </li>
+                </ol>
             </div>
 
             <div className="space-y-4">

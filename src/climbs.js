@@ -7,6 +7,7 @@
  */
 
 export { COGGAN_ZONES } from './cogganZones.js';
+import { processClimbDatabaseRecords } from './utils/climbDataQuality.js';
 
 const getClimbUrl = (name, country) => {
     if (country === 'ZWIFT') return `https://zwiftinsider.com/?s=${name.replace(/\s+/g, '+')}`;
@@ -92,7 +93,7 @@ const ZWIFT_EXTRA = [
 export const CORE_CLIMB_DATABASE = ZWIFT_EXTRA.map(withClimbUrl);
 
 /** Bump when climbs_extended.js changes materially — invalidates IndexedDB snapshot. */
-export const CLIMB_DATABASE_STORAGE_REVISION = '2026-08-19';
+export const CLIMB_DATABASE_STORAGE_REVISION = '2026-10-03-climb-quality';
 
 /**
  * Merge extended real-world climbs with Zwift extras (dedupe by id).
@@ -107,5 +108,5 @@ export function buildFullClimbDatabase(extendedClimbs) {
     for (const c of ZWIFT_EXTRA) {
         if (!byId.has(c.id)) byId.set(c.id, withClimbUrl(c));
     }
-    return Array.from(byId.values());
+    return processClimbDatabaseRecords(Array.from(byId.values()));
 }
