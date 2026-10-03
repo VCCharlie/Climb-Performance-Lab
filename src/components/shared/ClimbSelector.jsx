@@ -2,6 +2,11 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Search, Globe, SortAsc, SortDesc, ChevronDown, ChevronUp, Minus, Plus, LocateFixed, X } from 'lucide-react';
 import { useClimbDatabase } from '../../hooks/useClimbDatabase';
 import { calculateClimbCategory, haversineDistance } from '../../utils/calculations';
+import {
+  persistHideIncompleteClimbsPref,
+  readHideIncompleteClimbsPref,
+  shouldShowClimbInSelector,
+} from '../../utils/climbDataQuality.js';
 import FlagIcon from '../FlagIcon';
 
 // RepeatButton: Hold to repeat action (with acceleration)
@@ -172,6 +177,7 @@ const ClimbSelector = ({
   const [maxFiets, setMaxFiets] = useState(0);
   const [sortBy, setSortBy] = useState('name');
   const [sortDir, setSortDir] = useState('asc');
+  const [hideIncompleteClimbs, setHideIncompleteClimbs] = useState(() => readHideIncompleteClimbsPref());
 
   // Set dynamic max values on mount
   useEffect(() => {
@@ -195,8 +201,13 @@ const ClimbSelector = ({
     return ['All', ...new Set(regions)].sort();
   }, [countryFilter, climbDatabase]);
 
+  const incompleteHiddenCount = useMemo(
+    () => climbDatabase.filter((c) => c.dataQuality === 'incomplete').length,
+    [climbDatabase],
+  );
+
   const filteredClimbs = useMemo(() => {
-    let climbs = climbDatabase;
+    let climbs = climbDatabase.filter((c) => shouldShowClimbInSelector(c, hideIncompleteClimbs));
 
     if (excludeSet.size > 0) climbs = climbs.filter(c => !excludeSet.has(c.id));
 
@@ -238,7 +249,7 @@ const ClimbSelector = ({
       if (typeof valA === 'string') return sortDir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
       return sortDir === 'asc' ? valA - valB : valB - valA;
     });
-  }, [searchTerm, countryFilter, regionFilter, catFilter, minKm, maxKm, minGrade, maxGrade, minScore, maxScore, minFiets, maxFiets, sortBy, sortDir, excludeSet, nearbyActive, userPos, nearbyRadius, climbDatabase]);
+  }, [searchTerm, countryFilter, regionFilter, catFilter, minKm, maxKm, minGrade, maxGrade, minScore, maxScore, minFiets, maxFiets, sortBy, sortDir, excludeSet, nearbyActive, userPos, nearbyRadius, climbDatabase, hideIncompleteClimbs]);
 
   // Auto-select on unique match (single mode only)
   useEffect(() => {
@@ -296,8 +307,10 @@ const ClimbSelector = ({
     return calculateClimbCategory(selected.lengthKm, selected.avgGrade);
   }, [showCategoryBadge, selected]);
 
-  const optionLabel = (c) =>
-    `${c.name} (${c.lengthKm}km @ ${c.avgGrade}%${c.cat ? ' · ' + c.cat : ''}${c.score ? ' · ' + c.score.toLocaleString('nl-NL') : ''})`;
+  const optionLabel = (c) => {
+    const incompleteTag = c.dataQuality === 'incomplete' ? ' · incomplete data' : '';
+    return `${c.name} (${c.lengthKm}km @ ${c.avgGrade}%${c.cat ? ' · ' + c.cat : ''}${c.score ? ' · ' + c.score.toLocaleString('nl-NL') : ''}${incompleteTag})`;
+  };
 
   // Track active filters count for badge
   const activeFilterCount = [
@@ -370,6 +383,13 @@ const ClimbSelector = ({
         <p className="text-xs text-red-400">{locError}</p>
       )}
 
+      {incompleteHiddenCount > 0 && hideIncompleteClimbs && (
+        <p className="text-[10px] text-cdmuted leading-relaxed">
+          Hiding {incompleteHiddenCount} legacy climbs with missing length, gradient, or elevation.
+          Enable &quot;Show incomplete entries&quot; under Filters to review them.
+        </p>
+      )}
+
       {/* Category filter pills (always visible — quick and common filter) */}
       <div className="flex gap-1.5 flex-wrap">
         {CAT_OPTIONS.map(cat => (
@@ -433,6 +453,23 @@ const ClimbSelector = ({
               <NumberFilter label="Min Bike" value={minFiets} onChange={setMinFiets} min={0} max={maxFiets} step={100} />
               <NumberFilter label="Max Bike" value={maxFiets} onChange={setMaxFiets} min={minFiets} max={dataMaxFiets} step={100} />
             </div>
+          </div>
+          <div className="pt-1 border-t border-cdborder/50">
+            <label className="flex items-start gap-2 text-xs text-cdtext cursor-pointer">
+              <input
+                type="checkbox"
+                className="mt-0.5 rounded border-cdborder"
+                checked={!hideIncompleteClimbs}
+                onChange={(e) => {
+                  const showIncomplete = e.target.checked;
+                  setHideIncompleteClimbs(!showIncomplete);
+                  persistHideIncompleteClimbsPref(!showIncomplete);
+                }}
+              />
+              <span>
+                Show incomplete database entries (0% grade or missing elevation — not recommended for Profiler)
+              </span>
+            </label>
           </div>
           {/* Sort */}
           <div className="flex items-center gap-2 pt-1 border-t border-cdborder/50">
