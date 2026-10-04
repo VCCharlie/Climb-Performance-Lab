@@ -5,24 +5,51 @@
  */
 
 import { notify } from './notify.js';
-import { normalizeStravaActivityId, stravaFlybyUrl } from './strava.js';
+import { extractStravaId, normalizeStravaActivityId, stravaFlybyUrl } from './strava.js';
+
+/**
+ * Intervals row id accidentally copied into strava_id (same numeric id on both fields).
+ * @param {object | null | undefined} activity
+ * @param {string} normalizedStravaId
+ * @returns {boolean}
+ */
+export function isIntervalsRowIdMislinkedAsStrava(activity, normalizedStravaId) {
+    if (!activity?.id || !normalizedStravaId) return false;
+    const rawId = String(activity.id).trim();
+    const rawStrava = String(activity.strava_id ?? '').trim();
+    if (rawStrava && rawId === rawStrava) return true;
+    if (/^\d+$/.test(rawId) && rawId === normalizedStravaId) return true;
+    return false;
+}
 
 /**
  * Resolve a numeric Strava activity id for external links / Flyby.
- * Rejects the common mis-link where intervals row id digits were stored as strava_id.
  * @param {object | null | undefined} activity
  * @returns {string | null}
  */
 export function resolveFlybyStravaId(activity) {
-    if (!activity || activity.strava_id == null || activity.strava_id === '') return null;
-    const id = normalizeStravaActivityId(activity.strava_id);
-    if (!id) return null;
+    if (!activity) return null;
 
-    const activityDigits = activity.id != null ? String(activity.id).replace(/\D/g, '') : '';
-    if (activityDigits.length >= 6 && activityDigits === id) {
-        return null;
+    const candidates = [
+        activity.strava_id,
+        extractStravaId(activity.external_id),
+        extractStravaId(activity.externalId),
+    ];
+
+    for (const candidate of candidates) {
+        if (candidate == null || candidate === '') continue;
+        const id = normalizeStravaActivityId(candidate);
+        if (!id) continue;
+        if (
+            candidate === activity.strava_id
+            && isIntervalsRowIdMislinkedAsStrava(activity, id)
+        ) {
+            continue;
+        }
+        return id;
     }
-    return id;
+
+    return null;
 }
 
 /**
@@ -117,7 +144,7 @@ function navigateFlybyTab(tab, url) {
 
 /**
  * Open Strava Flyby for an activity.
- * When Strava is connected, validates the stored id via API before opening Flyby.
+ * Optional OAuth preflight when Strava is connected (does not replace strava.com cookies in Flyby).
  * @param {string | number | { strava_id?: string | number, id?: string | number } | null | undefined} activityOrId
  * @param {{ getStravaToken?: () => Promise<string> }} [options]
  * @returns {Promise<boolean>}
@@ -131,7 +158,7 @@ export async function openStravaFlybyForActivity(activityOrId, options = {}) {
 
     if (!stravaId) {
         notify(
-            'This ride has no valid Strava activity id for Flyby. Link it in Activities → Strava, or check that strava_id is not the Intervals row id.',
+            'This ride has no valid Strava activity id for Flyby. Run Strava sync in Activities, or fix a wrong link (Intervals row id copied as strava_id).',
             { variant: 'warning', durationMs: 12000 },
         );
         return false;
@@ -139,6 +166,7 @@ export async function openStravaFlybyForActivity(activityOrId, options = {}) {
 
     const needsAsyncCheck = typeof getStravaToken === 'function';
     const placeholderTab = needsAsyncCheck ? openFlybyPlaceholderTab() : null;
+    let apiPreflightFailed = false;
 
     if (needsAsyncCheck) {
         try {
@@ -147,16 +175,7 @@ export async function openStravaFlybyForActivity(activityOrId, options = {}) {
             if (check.ok) {
                 stravaId = check.canonicalId;
             } else if (check.reason === 'not_found') {
-                try {
-                    placeholderTab?.close();
-                } catch {
-                    /* ignore */
-                }
-                notify(
-                    `Strava activity ${check.triedId} was not found for your account. Re-link this ride (Activities → Strava) or open it on Strava and use View Flybys there.`,
-                    { variant: 'warning', durationMs: 14000 },
-                );
-                return false;
+                apiPreflightFailed = true;
             }
         } catch {
             // Offline / token refresh issue — still attempt Flyby with best-effort id.
@@ -183,6 +202,13 @@ export async function openStravaFlybyForActivity(activityOrId, options = {}) {
             { variant: 'warning', durationMs: 12000 },
         );
         return false;
+    }
+
+    if (apiPreflightFailed) {
+        notify(
+            `Strava API could not verify activity ${stravaId}. Flyby opened anyway — log in at strava.com in that tab. Empty playback usually means a wrong id: re-link via Activities → Strava.`,
+            { variant: 'warning', durationMs: 16000 },
+        );
     }
 
     return true;
