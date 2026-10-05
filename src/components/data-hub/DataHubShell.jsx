@@ -17,6 +17,8 @@ const DataHubShell = ({
     dataHubTabs,
     detailActivity,
     setDetailActivity,
+    navigateDetailActivity,
+    detailNavigationIds,
     editingActivity,
     setEditingActivity,
     isDeleting,
@@ -56,6 +58,8 @@ const DataHubShell = ({
         <DataHubModals
             detailActivity={detailActivity}
             onCloseDetail={() => setDetailActivity(null)}
+            detailNavigationIds={detailNavigationIds}
+            onNavigateDetail={navigateDetailActivity}
             stravaGetToken={stravaGetToken}
             profileFtp={resolvedProfileFtp}
             profileMaxHr={profileMaxHr}

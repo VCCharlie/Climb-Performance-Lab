@@ -152,6 +152,24 @@ export function useDataHubLogDerivations({
         }, []);
     }, [processedActivities, groupedActivities, isGroupedView, sortConfig.direction, isYearExpanded, isMonthExpanded]);
 
+    /** Order for activity detail modal prev/next (matches visible log rows). */
+    const detailNavigationIds = useMemo(() => {
+        if (isolateActivityId && isolatedActivity?.id != null) {
+            return [String(isolatedActivity.id)];
+        }
+        if (rangeFilteredActivities?.length) {
+            return rangeFilteredActivities
+                .map((a) => (a?.id != null ? String(a.id) : null))
+                .filter(Boolean);
+        }
+        return visibleActivityIdsFlat;
+    }, [
+        isolateActivityId,
+        isolatedActivity,
+        rangeFilteredActivities,
+        visibleActivityIdsFlat,
+    ]);
+
     return {
         isolatedActivity,
         rangeFilteredActivities,
@@ -160,5 +178,6 @@ export function useDataHubLogDerivations({
         metricRangeActive,
         profilerClimbByActivityId,
         visibleActivityIdsFlat,
+        detailNavigationIds,
     };
 }
