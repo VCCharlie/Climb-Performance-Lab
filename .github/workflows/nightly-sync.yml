@@ -17,6 +17,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate nightly sync (ESM + Node/Vite compat)
+        run: npm run test:nightly-sync
 
       - name: Install Firebase Admin
         # Installed here only — intentionally NOT in package.json to keep the

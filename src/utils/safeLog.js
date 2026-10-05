@@ -43,16 +43,25 @@ export function redactSecrets(value, extraFields = []) {
     return out;
 }
 
+/**
+ * True when Vite dev mode is active. In Node (e.g. scripts/nightlySync.js on GitHub Actions),
+ * `import.meta.env` is undefined — optional access avoids crashing production automation.
+ * @param {ImportMeta['env'] | undefined} [viteEnv]
+ */
+export function isViteDevBuild(viteEnv = typeof import.meta !== 'undefined' ? import.meta.env : undefined) {
+    return viteEnv?.DEV === true;
+}
+
 /** Verbose debug log — stripped from production bundles when possible. */
 export function devLog(...args) {
-    if (import.meta.env.DEV) {
+    if (isViteDevBuild()) {
         console.log(...args);
     }
 }
 
 /** Verbose debug warn — development only. */
 export function devWarn(...args) {
-    if (import.meta.env.DEV) {
+    if (isViteDevBuild()) {
         console.warn(...args);
     }
 }
