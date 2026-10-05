@@ -418,6 +418,7 @@ src/__tests__/
 5. **No TypeScript**: Project uses plain JavaScript with JSX
 6. **File size limit**: Keep files under ~200 lines; extract logic if needed
 7. **Full code output**: Never truncate code with placeholders (see AGENTS.md)
+8. **Vite env in shared utils (nightly sync)**: Never use bare `import.meta.env.FOO` in code reachable from `scripts/nightlySync.js`. Use `import.meta.env?.FOO`, `isViteDevBuild()` (`src/utils/safeLog.js`), or the `viteEnv?.` pattern in `src/config.js`. CI enforces this via `npm run test:nightly-sync` / `verifyNightlySyncImportMetaSafe()` in `src/utils/nightlySyncEsmGuard.js` — see **AGENTS.md → Shared utils also run in Node**.
 
 ### Common Tasks
 
