@@ -41,6 +41,7 @@ This is a **client-side SPA** — no backend services to start. The only require
 |------|---------|-------|
 | Dev server | `npm run dev` | Serves at `http://localhost:5173/Climb-Performance-Lab/` |
 | Lint | `npm run lint` | Pre-existing errors in root-level CJS scripts are expected; `src/` is clean |
+| CI (PR / main) | GitHub Actions **CI** workflow | Runs `npm run test:run` + `npm run test:nightly-sync` — **not** full-repo ESLint (see `.github/workflows/ci.yml`) |
 | Tests (once) | `npm run test:run` | Vitest; covers `src/utils/` only |
 | Tests (watch) | `npm run test` | |
 | Build | `npm run build` | Output in `dist/` |
