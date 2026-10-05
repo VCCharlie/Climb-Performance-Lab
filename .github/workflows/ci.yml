@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: ESLint (application source)
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm run test:run
+
+      - name: Nightly sync regression guards
+        run: npm run test:nightly-sync
+
+      - name: Smoke-load nightly sync entry (no secrets)
+        run: node --input-type=module -e "import { verifyNightlySyncEsmImports, verifyNightlySyncImportMetaSafe } from './src/utils/nightlySyncEsmGuard.js'; const a=verifyNightlySyncEsmImports(); const b=verifyNightlySyncImportMetaSafe(); if(!a.ok) throw new Error(a.errors.join('\\n')); if(!b.ok) throw new Error(b.errors.join('\\n')); console.log('nightly sync static validation OK');"

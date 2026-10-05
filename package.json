@@ -12,6 +12,7 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
+    "test:nightly-sync": "vitest run src/__tests__/utils/nightlySyncEsmGuard.test.js src/__tests__/utils/nightlySyncDefaults.test.js src/__tests__/utils/nightlySyncSettings.test.js src/__tests__/utils/nightlySyncStatus.test.js src/__tests__/utils/safeLog.test.js",
     "test:rules": "firebase emulators:exec --only firestore --project climb-performance-lab-rules-test \"vitest run --config vitest.rules.config.js\"",
     "deploy:firestore-rules": "node scripts/deployFirestoreRules.js",
     "test:coverage": "vitest run --coverage"
