@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
-import { X, Calendar, Clock, MapPin, Zap, ExternalLink, Mountain, TrendingUp, Loader2, AlertCircle, Star, Bike, Trophy, Crown, Heart } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
+import { X, Calendar, Clock, MapPin, Zap, ExternalLink, Mountain, TrendingUp, Loader2, AlertCircle, Star, Bike, Trophy, Crown, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatDateDDMMYYYY, formatTime } from '../../utils';
 import { formatSegmentTime, navigateToStravaSegment, stravaActivityUrl, stravaFlybyUrl, openExternalUrl, openStravaFlyby, resolveFlybyStravaId } from '../../utils/strava';
 import {
@@ -12,6 +12,10 @@ import ZoneMetricCell from './ZoneMetricCell';
 import NormPowerCell from './NormPowerCell';
 import ModalPortal from '../ui/ModalPortal';
 import { useModalA11y } from '../../hooks/useModalA11y';
+import {
+    findActivityByIdInList,
+    getActivityDetailNavSlice,
+} from '../../utils/activityDetailNavigation.js';
 
 const StravaMap = lazy(() => import('./StravaMap'));
 
@@ -104,11 +108,46 @@ const StatBox = ({ label, value, unit, icon, color = "text-cdmuted" }) => (
     </div>
 );
 
-const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, profileMaxHr }) => {
+const ActivityDetailModal = ({
+    activity,
+    onClose,
+    getStravaToken,
+    profileFtp,
+    profileMaxHr,
+    navigationIds = [],
+    allActivities = [],
+    onNavigate,
+}) => {
     const panelRef = useModalA11y({ isOpen: true, onClose });
     const [stravaData, setStravaData] = useState(null);
     const [stravaLoading, setStravaLoading] = useState(false);
     const [stravaError, setStravaError] = useState(null);
+
+    const navSlice = useMemo(
+        () => getActivityDetailNavSlice(activity?.id, navigationIds),
+        [activity?.id, navigationIds],
+    );
+
+    const goToNeighbor = useCallback((targetId) => {
+        if (!targetId || typeof onNavigate !== 'function') return;
+        const next = findActivityByIdInList(targetId, allActivities);
+        if (next) onNavigate(next);
+    }, [allActivities, onNavigate]);
+
+    useEffect(() => {
+        if (!activity?.id) return undefined;
+        const onKeyDown = (e) => {
+            if (e.key === 'ArrowLeft' && navSlice.prevId) {
+                e.preventDefault();
+                goToNeighbor(navSlice.prevId);
+            } else if (e.key === 'ArrowRight' && navSlice.nextId) {
+                e.preventDefault();
+                goToNeighbor(navSlice.nextId);
+            }
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [activity?.id, navSlice.prevId, navSlice.nextId, goToNeighbor]);
 
     useEffect(() => {
         if (!activity?.strava_id || !getStravaToken) return;
@@ -139,7 +178,13 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
                 });
         });
         return () => { cancelled = true; };
-    }, [activity?.strava_id, getStravaToken]);
+    }, [activity?.id, activity?.strava_id, getStravaToken]);
+
+    const driftEligibility = useMemo(() => {
+        if (!activity) return null;
+        const hasPowerHr = Number(activity.norm_power) > 0 && Number(activity.avg_hr) > 0;
+        return hasPowerHr ? describeRideDriftEligibility(activity, profileFtp) : null;
+    }, [activity, profileFtp]);
 
     if (!activity) return null;
 
@@ -167,11 +212,6 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
     const hasRaceDrift = Number.isFinite(Number(activity.race_drift_pct));
     const hasAnyDrift = hasDecoupling || hasThresholdDrift || hasRaceDrift;
     const hasPowerHrForDrift = Number(activity.norm_power) > 0 && Number(activity.avg_hr) > 0;
-
-    const driftEligibility = useMemo(
-        () => (hasPowerHrForDrift ? describeRideDriftEligibility(activity, profileFtp) : null),
-        [activity, profileFtp, hasPowerHrForDrift],
-    );
 
     return (
         <ModalPortal>
@@ -219,14 +259,47 @@ const ActivityDetailModal = ({ activity, onClose, getStravaToken, profileFtp, pr
                             )}
                         </div>
                     </div>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="p-2 hover:bg-cdsurface rounded-full text-cdmuted hover:text-cdtext cd-focus-ring shrink-0"
-                        aria-label="Close modal"
-                    >
-                        <X size={20} />
-                    </button>
+                    <div className="flex items-center gap-0.5 shrink-0">
+                        {navSlice.total > 1 && navSlice.index >= 0 && (
+                            <>
+                                <button
+                                    type="button"
+                                    disabled={!navSlice.prevId}
+                                    onClick={() => goToNeighbor(navSlice.prevId)}
+                                    className="p-1.5 rounded-md text-cdmuted hover:text-cdtext hover:bg-cdsurface disabled:opacity-25 disabled:pointer-events-none cd-focus-ring"
+                                    aria-label="Previous activity in log"
+                                    title="Previous activity (←)"
+                                >
+                                    <ChevronLeft size={18} aria-hidden />
+                                </button>
+                                <span
+                                    className="text-[10px] text-cdmuted tabular-nums px-0.5 min-w-[2.75rem] text-center select-none"
+                                    aria-live="polite"
+                                >
+                                    {navSlice.index + 1}/{navSlice.total}
+                                </span>
+                                <button
+                                    type="button"
+                                    disabled={!navSlice.nextId}
+                                    onClick={() => goToNeighbor(navSlice.nextId)}
+                                    className="p-1.5 rounded-md text-cdmuted hover:text-cdtext hover:bg-cdsurface disabled:opacity-25 disabled:pointer-events-none cd-focus-ring"
+                                    aria-label="Next activity in log"
+                                    title="Next activity (→)"
+                                >
+                                    <ChevronRight size={18} aria-hidden />
+                                </button>
+                                <span className="w-px h-5 bg-cdborder/60 mx-0.5" aria-hidden />
+                            </>
+                        )}
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="p-2 hover:bg-cdsurface rounded-full text-cdmuted hover:text-cdtext cd-focus-ring"
+                            aria-label="Close modal"
+                        >
+                            <X size={20} />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Primary stats — pinned so long descriptions never push them off-screen */}

@@ -14,6 +14,8 @@ import { db } from '../../firebase';
 export default function DataHubModals({
     detailActivity,
     onCloseDetail,
+    detailNavigationIds = [],
+    onNavigateDetail,
     stravaGetToken,
     profileFtp,
     profileMaxHr,
@@ -33,6 +35,9 @@ export default function DataHubModals({
                 <ActivityDetailModal
                     activity={detailActivity}
                     onClose={onCloseDetail}
+                    navigationIds={detailNavigationIds}
+                    allActivities={activities}
+                    onNavigate={onNavigateDetail}
                     getStravaToken={stravaGetToken}
                     profileFtp={profileFtp}
                     profileMaxHr={profileMaxHr}

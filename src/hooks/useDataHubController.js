@@ -315,6 +315,15 @@ export function useDataHubController({
         [maintenance],
     );
 
+    const navigateDetailActivity = useCallback((nextActivity) => {
+        if (!nextActivity?.id) return;
+        setDetailActivity(nextActivity);
+        requestAnimationFrame(() => {
+            const el = document.getElementById(`activity-row-${nextActivity.id}`);
+            el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+    }, []);
+
     const dataHubTabs = useMemo(() => [
         { id: 'log', label: 'Activity Log', ariaControls: 'tabpanel-log' },
         { id: 'import', label: 'Import Data', ariaControls: 'tabpanel-import' },
@@ -329,6 +338,8 @@ export function useDataHubController({
         dataHubTabs,
         detailActivity,
         setDetailActivity,
+        navigateDetailActivity,
+        detailNavigationIds: logDerivations.detailNavigationIds,
         editingActivity,
         setEditingActivity,
         isDeleting,
