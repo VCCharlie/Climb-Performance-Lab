@@ -52,3 +52,19 @@ This is a **client-side SPA** — no backend services to start. The only require
 - **ESLint false positives:** Root-level `.js` files (e.g. `run_*.js`, `bootstrap_and_run.js`) use CommonJS but ESLint is configured for browser globals. Lint errors in those files are pre-existing and not caused by `src/` changes.
 - **Firebase / Intervals.icu:** Both are remote SaaS consumed via client SDK. No local emulators or cloud-function deployments are needed for core app development.
 - **No Docker or external services required** for the main SPA development workflow.
+
+### Shared `src/utils` also run in Node (nightly sync) — **mandatory for agents**
+
+`scripts/nightlySync.js` (GitHub Actions) imports the same modules under `src/utils/` as the Vite SPA. In Node, **`import.meta.env` is undefined** unless you are inside a Vite build/dev transform.
+
+When editing any file that can sit on the nightly sync import chain (most of `src/utils/`, hooks, services used by sync):
+
+| Do not | Do instead |
+|--------|------------|
+| `import.meta.env.DEV` / `import.meta.env.VITE_*` (bare dot) | `import.meta.env?.DEV`, `import.meta.env?.VITE_*` |
+| Gate debug logs with raw `import.meta.env` | `isViteDevBuild()` from `src/utils/safeLog.js` |
+| Repeat env reads everywhere | One module-level `const viteEnv = typeof import.meta !== 'undefined' ? import.meta.env : undefined` then `viteEnv?.…` (see `src/config.js`) |
+
+**Enforcement (not optional):** CI runs `npm run test:nightly-sync`, which includes `verifyNightlySyncImportMetaSafe()` — it walks the graph from `scripts/nightlySync.js` and **fails** on bare `import.meta.env.` in those files. After touching sync-related utils, run `npm run test:nightly-sync` locally before pushing.
+
+Human-oriented notes: `docs/NIGHTLY_SYNC_SCHEDULE.md` § *Dual runtime (Vite + Node)*.

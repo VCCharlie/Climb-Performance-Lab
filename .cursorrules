@@ -32,6 +32,7 @@ Apply this communication style to all future chat responses and Composer generat
 - Separate business logic from UI: prefer `src/utils/`, `src/hooks/`, `src/services/` over bloating `src/components/`.
 - If a touched file is large (~200+ lines), extract helpers rather than growing it further.
 - Do not introduce “god” components or duplicate logic; reuse and extend existing utilities.
+- **Dual runtime:** Shared utils are imported by `scripts/nightlySync.js` (plain Node on GitHub Actions). Do not use bare `import.meta.env.X`; follow **AGENTS.md → Shared utils also run in Node** and run `npm run test:nightly-sync` when changing sync-related utils.
 
 ## UI & theming
 - Use theme tokens/classes based on `cd*` CSS variables (e.g. `bg-cdsurface`, `text-cdtext`, `border-cdborder`, `text-cdaccent`, `text-cdmuted`). Avoid hardcoded slate/gray palettes for themed surfaces unless matching an existing unthemed island intentionally.

@@ -1,6 +1,7 @@
 /**
  * Static guard: relative ESM imports under scripts/nightlySync.js must use explicit .js extensions.
- * Prevents GitHub Actions nightly job failing at runtime (Node ESM resolution).
+ * Also: verifyNightlySyncImportMetaSafe() — no bare import.meta.env.* (see AGENTS.md → Shared utils also run in Node).
+ * Prevents GitHub Actions nightly job failing at runtime (Node ESM resolution / missing Vite env).
  */
 
 import fs from 'node:fs';
