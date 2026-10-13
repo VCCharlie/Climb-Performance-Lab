@@ -41,10 +41,10 @@ import {
     buildNightlyIntervalsConfig,
     getDefaultNightlyAllowedSportTypes,
 } from '../src/utils/nightlySyncDefaults.js';
+import { fetchNightlyIntervalsActivitiesResilient } from '../src/utils/nightlySyncIntervalsFetch.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const CLOUD_FUNCTION_URL = 'https://sync-intervals-97555677694.europe-west1.run.app';
 const FIRESTORE_COLLECTION = 'activities';
 // We no longer strictly filter on SPORT_TYPES before storing, to ensure we catch Workouts with power data.
 /** Orphan gap-fill + CF pre-filter — cycling types + Workout/IndoorCycling (see nightlySyncDefaults.js). */
@@ -177,36 +177,32 @@ async function persistDriftEnrichment(db, driftActivities, existingActivities, m
     return saved;
 }
 
+/**
+ * @returns {Promise<{ activities: object[], meta: import('../src/utils/nightlySyncIntervalsFetch.js').NightlyIntervalsFetchMeta }>}
+ */
 async function fetchFromIntervalsAPI({ athleteId, apiKey, startDate, endDate }) {
-    console.log(`[SYNC] Ophalen Intervals.icu data van ${startDate} tot ${endDate}...`);
-    
-    const url = CLOUD_FUNCTION_URL;
-    
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            ...(process.env.AUTOMATION_SHARED_SECRET
-                ? { 'X-Automation-Secret': process.env.AUTOMATION_SHARED_SECRET }
-                : {}),
-        },
-        body: JSON.stringify({
-            athlete_id: athleteId,
-            api_key: apiKey,
-            start_date: startDate,
-            end_date: endDate,
-            // We pass the accepted types to allow the function to pre-filter
-            sport_types: ACCEPTED_TYPES
-        })
+    console.log(`[SYNC] Fetching Intervals.icu data from ${startDate} to ${endDate}…`);
+
+    const { activities, meta } = await fetchNightlyIntervalsActivitiesResilient({
+        athleteId,
+        apiKey,
+        startDate,
+        endDate,
+        sportTypes: ACCEPTED_TYPES,
+        automationSecret: process.env.AUTOMATION_SHARED_SECRET,
+        onLog: (message) => console.log(`[SYNC] ${message}`),
     });
 
-    if (!response.ok) {
-        throw new Error(`Cloud function returned ${response.status}: ${await response.text()}`);
+    if (meta.route === 'direct_fallback') {
+        console.warn(`[FAILSAFE] ${meta.warning || 'Used direct Intervals.icu API fallback.'}`);
+        if (meta.cloudError) {
+            console.warn(`[FAILSAFE] Cloud error: ${meta.cloudError}`);
+        }
+    } else {
+        console.log(`[SYNC] Cloud Run sync succeeded (${meta.cloudAttempts} attempt(s)).`);
     }
-    
-    // The function now returns the full transformed activity object directly
-    const data = await response.json();
-    return data;
+
+    return { activities, meta };
 }
 
 async function upsertToFirestore(db, newActivities, isDryRun, mergeOpts = {}) {
@@ -563,22 +559,52 @@ async function enrichWithStrava(db, firestoreActivities, startDate, endDate, isD
     return enrichedCount;
 }
 
-async function recordNightlySyncStatus(db, settingsRef, { activitiesSaved, isDryRun, syncContext, startDate, endDate }) {
+async function recordNightlySyncStatus(db, settingsRef, {
+    activitiesSaved,
+    isDryRun,
+    syncContext,
+    startDate,
+    endDate,
+    intervalsFetchMeta,
+}) {
     if (isDryRun || !settingsRef) return;
     try {
+        const summaryParts = ['GitHub Actions nightly sync'];
+        if (intervalsFetchMeta?.route === 'direct_fallback') {
+            summaryParts.push('(direct Intervals fallback)');
+        }
+
         await settingsRef.set({
             lastNightlySync: {
                 at: new Date().toISOString(),
                 activitiesSaved: Number(activitiesSaved) || 0,
-                summary: 'GitHub Actions nightly sync',
+                summary: summaryParts.join(' '),
                 syncDepth: syncContext?.syncDepth ?? 'fast',
                 lookbackDays: syncContext?.lookbackDays ?? 14,
                 windowStart: startDate,
                 windowEnd: endDate,
+                intervalsFetchRoute: intervalsFetchMeta?.route ?? 'cloud',
+                intervalsFetchWarning: intervalsFetchMeta?.warning || null,
             },
+            lastNightlySyncFailure: null,
         }, { merge: true });
     } catch (err) {
         console.warn('[SYNC] Could not record lastNightlySync on settings doc:', err.message);
+    }
+}
+
+async function recordNightlySyncFailure(db, settingsRef, { message, isDryRun }) {
+    if (isDryRun || !settingsRef) return;
+    try {
+        await settingsRef.set({
+            lastNightlySyncFailure: {
+                at: new Date().toISOString(),
+                message: String(message || 'Unknown error').slice(0, 500),
+                summary: 'GitHub Actions nightly sync failed',
+            },
+        }, { merge: true });
+    } catch (err) {
+        console.warn('[SYNC] Could not record lastNightlySyncFailure:', err.message);
     }
 }
 
@@ -636,13 +662,17 @@ async function runNightlySync() {
         console.log('[SYNC] Fast sync — Intervals fetch + zone map only (no Strava gap fill / detail / drift).');
     }
 
+    let intervalsFetchMeta = null;
+
     try {
-        let activities = await fetchFromIntervalsAPI({
+        const fetchResult = await fetchFromIntervalsAPI({
             athleteId: config.athleteId,
             apiKey: config.apiKey,
             startDate,
             endDate,
         });
+        intervalsFetchMeta = fetchResult.meta;
+        let activities = fetchResult.activities;
 
         activities = await applyNightlyIntervalsEnrichment(activities, syncContext, intervalsConfig);
 
@@ -744,9 +774,14 @@ async function runNightlySync() {
             syncContext,
             startDate,
             endDate,
+            intervalsFetchMeta,
         });
     } catch (error) {
         console.error('[ERROR] Sync mislukt:', error.message);
+        await recordNightlySyncFailure(db, settingsDoc?.ref ?? null, {
+            message: error.message,
+            isDryRun: config.isDryRun,
+        });
         process.exit(1);
     }
 }
