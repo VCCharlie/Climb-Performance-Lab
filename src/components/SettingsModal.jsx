@@ -669,7 +669,11 @@ const SettingsModal = ({
                             </div>
                         </div>
 
-                        <RouteMapCoverageSettings activities={activities} />
+                        <RouteMapCoverageSettings
+                            activities={activities}
+                            intervalsConfig={intervalsConfig}
+                            userSettings={userSettings}
+                        />
 
                         {onResetUserSettings && (
                             <div className={sectionClass}>

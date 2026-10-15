@@ -5,6 +5,8 @@ import {
     getActivityRoutePolylineSource,
     summarizeActivityRouteMapCoverage,
     formatRouteMapCoverageSummary,
+    missingRouteActivitiesToCsv,
+    missingRouteActivitiesToExportJson,
 } from '../../utils/activityRouteMapCoverage.js';
 
 describe('activityRouteMapCoverage', () => {
@@ -49,5 +51,19 @@ describe('activityRouteMapCoverage', () => {
         });
         expect(text).toContain('7/10 (70%)');
         expect(text).toContain('missing both: 3');
+    });
+
+    it('exports missing rides as CSV and JSON payload', () => {
+        const summary = summarizeActivityRouteMapCoverage([
+            { id: 'c', date: '2024-06-01', title: 'Ride, "fun"', type: 'Ride' },
+        ]);
+        const csv = missingRouteActivitiesToCsv(summary.missingActivities);
+        expect(csv).toContain('Activity ID');
+        expect(csv).toContain('c');
+        expect(csv).toContain('"Ride, ""fun"""');
+        const json = missingRouteActivitiesToExportJson(summary);
+        expect(json.schema).toBe('cpl.routeMapCoverage.missing.v1');
+        expect(json.missingActivities).toHaveLength(1);
+        expect(json.totals.missingRouteMap).toBe(1);
     });
 });

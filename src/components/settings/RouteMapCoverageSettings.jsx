@@ -1,24 +1,40 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { MapPin, Upload } from 'lucide-react';
+import { Download, Loader2, MapPin, Upload } from 'lucide-react';
 import { Button } from '../ui';
 import {
+    downloadMissingRouteActivitiesCsv,
+    downloadMissingRouteActivitiesJson,
     formatRouteMapCoverageSummary,
     summarizeActivityRouteMapCoverage,
 } from '../../utils/activityRouteMapCoverage.js';
 import { validateBackupPayload, BACKUP_MAX_BYTES } from '../../utils/backupSchema.js';
 import { useToast } from '../../context/ToastContext';
+import { useConfirm } from '../../context/ConfirmContext';
+import { useActivities } from '../../hooks/useActivities';
+import { buildMergeProtectOpts } from '../../utils/mergeProtectOptions.js';
+import { applyIntervalsMapBackfill } from '../../utils/intervalsMapBackfillApply.js';
+import { filterActivitiesForIntervalsMapBackfill } from '../../utils/intervalsMapEnrich.js';
 
-const MISSING_LIST_CAP = 40;
+const BACKFILL_CONFIRM_THRESHOLD = 25;
 
 /**
  * Backup tab helper: route polyline coverage (strava_map or intervals_map).
  */
-export default function RouteMapCoverageSettings({ activities }) {
+export default function RouteMapCoverageSettings({ activities, intervalsConfig, userSettings }) {
     const { showToast } = useToast();
+    const { confirm } = useConfirm();
+    const { importActivities, getActivitiesSnapshot } = useActivities();
     const fileInputRef = useRef(null);
     const [report, setReport] = useState(null);
     const [showMissing, setShowMissing] = useState(false);
     const [reportSource, setReportSource] = useState('loaded');
+    const [backfillProgress, setBackfillProgress] = useState(null);
+    const [isBackfilling, setIsBackfilling] = useState(false);
+
+    const mergeProtectOpts = useMemo(
+        () => buildMergeProtectOpts(userSettings),
+        [userSettings?.bikeComputerProfileTitles, userSettings?.syncDataSourcePrefs],
+    );
 
     const runReport = useCallback((list, sourceLabel) => {
         const summary = summarizeActivityRouteMapCoverage(list);
@@ -76,18 +92,103 @@ export default function RouteMapCoverageSettings({ activities }) {
         return formatRouteMapCoverageSummary(report).split('\n');
     }, [report]);
 
-    const missingPreview = useMemo(() => {
-        if (!report?.missingActivities?.length) return [];
-        return report.missingActivities.slice(0, MISSING_LIST_CAP);
-    }, [report]);
+    const missingRows = report?.missingActivities ?? [];
 
-    const missingOverflow = report && report.missingActivities.length > MISSING_LIST_CAP
-        ? report.missingActivities.length - MISSING_LIST_CAP
-        : 0;
+    const backfillEligibleCount = useMemo(() => {
+        if (reportSource !== 'loaded') return 0;
+        return filterActivitiesForIntervalsMapBackfill(activities).length;
+    }, [activities, reportSource]);
 
     const pct = report && report.total > 0
         ? Math.round((report.withRouteMap / report.total) * 100)
         : 0;
+
+    const canBackfillLoaded = reportSource === 'loaded'
+        && backfillEligibleCount > 0
+        && Boolean(intervalsConfig?.apiKey);
+
+    const handleExportCsv = useCallback(() => {
+        if (!report?.missingActivities?.length) {
+            showToast('No missing rides to export.', { variant: 'warning' });
+            return;
+        }
+        downloadMissingRouteActivitiesCsv(report);
+        showToast('Downloaded CSV of rides without route map.', { variant: 'success' });
+    }, [report, showToast]);
+
+    const handleExportJson = useCallback(() => {
+        if (!report?.missingActivities?.length) {
+            showToast('No missing rides to export.', { variant: 'warning' });
+            return;
+        }
+        downloadMissingRouteActivitiesJson(report);
+        showToast('Downloaded JSON of rides without route map.', { variant: 'success' });
+    }, [report, showToast]);
+
+    const handleBackfillIntervalsMaps = useCallback(async () => {
+        if (!intervalsConfig?.apiKey) {
+            showToast('Add your Intervals.icu API key under Integrations first.', { variant: 'warning' });
+            return;
+        }
+        if (reportSource !== 'loaded') {
+            showToast('Run “Check loaded activities” first — backup files cannot be updated from here.', {
+                variant: 'warning',
+            });
+            return;
+        }
+        const missing = backfillEligibleCount;
+        if (missing <= 0) return;
+
+        if (missing >= BACKFILL_CONFIRM_THRESHOLD) {
+            const ok = await confirm({
+                title: 'Fetch route maps from Intervals?',
+                message: `This will call the Intervals API for up to ${missing} outdoor ride(s) missing a route polyline (indoor/virtual rides are skipped). It may take several minutes. Continue?`,
+                confirmLabel: 'Fetch maps',
+                cancelLabel: 'Cancel',
+            });
+            if (!ok) return;
+        }
+
+        setIsBackfilling(true);
+        setBackfillProgress('Starting…');
+        try {
+            const snapshot = getActivitiesSnapshot();
+            const result = await applyIntervalsMapBackfill(snapshot, intervalsConfig, mergeProtectOpts, {
+                concurrency: 2,
+                delayMs: 120,
+                onProgress: (msg) => setBackfillProgress(msg),
+            });
+            importActivities(result.activities);
+            const added = result.updates?.length ?? 0;
+            runReport(result.activities, 'loaded');
+            const parts = [
+                added > 0 ? `${added} route map(s) added` : 'No new polylines from Intervals',
+                result.unchanged > 0 ? `${result.unchanged} unchanged` : null,
+                result.failed > 0 ? `${result.failed} failed` : null,
+            ].filter(Boolean);
+            showToast(`Intervals route backfill done: ${parts.join(', ')}.`, {
+                variant: result.failed > 0 ? 'warning' : 'success',
+            });
+        } catch (err) {
+            console.error('[RouteMapCoverage] backfill failed:', err);
+            showToast('Could not fetch route maps from Intervals. Check your API key and connection.', {
+                variant: 'error',
+            });
+        } finally {
+            setIsBackfilling(false);
+            setBackfillProgress(null);
+        }
+    }, [
+        confirm,
+        getActivitiesSnapshot,
+        importActivities,
+        intervalsConfig,
+        mergeProtectOpts,
+        backfillEligibleCount,
+        reportSource,
+        runReport,
+        showToast,
+    ]);
 
     return (
         <div className="rounded-cdlg border border-cdborder bg-cdsurface p-6">
@@ -137,31 +238,85 @@ export default function RouteMapCoverageSettings({ activities }) {
                         ))}
                     </ul>
                     {report.missingRouteMap > 0 && (
-                        <div className="mt-3">
-                            <Button
-                                type="button"
-                                variant="text"
-                                className="text-xs h-8 px-2"
-                                onClick={() => setShowMissing((v) => !v)}
-                            >
-                                {showMissing ? 'Hide' : 'Show'} rides without route ({report.missingRouteMap})
-                            </Button>
+                        <div className="mt-3 space-y-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <Button
+                                    type="button"
+                                    variant="text"
+                                    className="text-xs h-8 px-2"
+                                    onClick={() => setShowMissing((v) => !v)}
+                                >
+                                    {showMissing ? 'Hide' : 'Show'} rides without route ({report.missingRouteMap})
+                                </Button>
+                                {showMissing && (
+                                    <>
+                                        <Button
+                                            type="button"
+                                            variant="outlined"
+                                            className="text-xs h-8 px-2"
+                                            onClick={handleExportCsv}
+                                        >
+                                            <Download size={12} aria-hidden /> Export CSV
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="outlined"
+                                            className="text-xs h-8 px-2"
+                                            onClick={handleExportJson}
+                                        >
+                                            <Download size={12} aria-hidden /> Export JSON
+                                        </Button>
+                                    </>
+                                )}
+                            </div>
                             {showMissing && (
-                                <ul className="mt-2 max-h-48 overflow-y-auto text-xs text-cdmuted space-y-1 border-t border-cdborder/50 pt-2">
-                                    {missingPreview.map((row) => {
+                                <ul
+                                    className="mt-1 max-h-[min(60vh,28rem)] overflow-y-auto text-xs text-cdmuted space-y-1 border-t border-cdborder/50 pt-2 pr-1"
+                                    aria-label="Activities without route polyline"
+                                >
+                                    {missingRows.map((row) => {
                                         const date = row.date ? String(row.date).split('T')[0] : '?';
                                         const title = row.title || '(no title)';
                                         const type = row.type ? ` · ${row.type}` : '';
                                         return (
-                                            <li key={`${row.id}-${date}`} className="font-mono">
+                                            <li key={`${row.id}-${date}`} className="font-mono break-all">
                                                 {date} · {row.id} · {title}{type}
                                             </li>
                                         );
                                     })}
-                                    {missingOverflow > 0 && (
-                                        <li className="text-cdmuted italic">…and {missingOverflow} more</li>
-                                    )}
                                 </ul>
+                            )}
+                            {reportSource === 'loaded' && (
+                                <div className="border-t border-cdborder/50 pt-3">
+                                    <p className="text-xs text-cdmuted mb-2">
+                                        Fetch encoded polylines from Intervals.icu for outdoor rides that have no Strava or Intervals map yet
+                                        (same step as a full Intervals sync). Indoor and virtual rides (e.g. Zwift, trainer) are skipped.
+                                    </p>
+                                    {!intervalsConfig?.apiKey && (
+                                        <p className="text-xs text-amber-500/90 mb-2">
+                                            Connect Intervals under Settings → Integrations to enable bulk fetch.
+                                        </p>
+                                    )}
+                                    <Button
+                                        type="button"
+                                        variant="tonal"
+                                        className="w-full sm:w-auto"
+                                        disabled={!canBackfillLoaded || isBackfilling}
+                                        onClick={handleBackfillIntervalsMaps}
+                                    >
+                                        {isBackfilling ? (
+                                            <>
+                                                <Loader2 size={14} className="animate-spin" aria-hidden />
+                                                Fetching…
+                                            </>
+                                        ) : (
+                                            `Fetch Intervals maps for outdoor rides (${backfillEligibleCount})`
+                                        )}
+                                    </Button>
+                                    {backfillProgress && (
+                                        <p className="text-xs text-cdmuted mt-2 font-mono">{backfillProgress}</p>
+                                    )}
+                                </div>
                             )}
                         </div>
                     )}

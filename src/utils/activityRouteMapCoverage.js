@@ -110,3 +110,83 @@ export function formatRouteMapCoverageSummary(summary) {
         `  missing both: ${s.missingRouteMap}`,
     ].join('\n');
 }
+
+const UTF8_BOM = '\uFEFF';
+
+const MISSING_EXPORT_COLUMNS = [
+    { key: 'id', label: 'Activity ID' },
+    { key: 'date', label: 'Date' },
+    { key: 'title', label: 'Title' },
+    { key: 'type', label: 'Type' },
+];
+
+function csvEscape(val) {
+    if (val === null || val === undefined) return '';
+    const s = String(val);
+    if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    return s;
+}
+
+/**
+ * @param {RouteMapCoverageSummary['missingActivities']} rows
+ * @returns {string}
+ */
+export function missingRouteActivitiesToCsv(rows) {
+    const list = Array.isArray(rows) ? rows : [];
+    const header = MISSING_EXPORT_COLUMNS.map((c) => csvEscape(c.label)).join(',');
+    const body = list.map((row) => MISSING_EXPORT_COLUMNS.map((c) => csvEscape(row[c.key])).join(','));
+    return [header, ...body].join('\r\n');
+}
+
+/**
+ * @param {RouteMapCoverageSummary} summary
+ * @returns {object}
+ */
+export function missingRouteActivitiesToExportJson(summary) {
+    const s = summary || summarizeActivityRouteMapCoverage([]);
+    return {
+        schema: 'cpl.routeMapCoverage.missing.v1',
+        generatedAt: new Date().toISOString(),
+        totals: {
+            total: s.total,
+            withRouteMap: s.withRouteMap,
+            missingRouteMap: s.missingRouteMap,
+        },
+        missingActivities: s.missingActivities,
+    };
+}
+
+function triggerBrowserDownload(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.rel = 'noopener';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+}
+
+function exportFilename(ext) {
+    const day = new Date().toISOString().split('T')[0];
+    return `climb_lab_missing_route_maps_${day}.${ext}`;
+}
+
+/**
+ * @param {RouteMapCoverageSummary} summary
+ */
+export function downloadMissingRouteActivitiesCsv(summary) {
+    const csv = missingRouteActivitiesToCsv(summary?.missingActivities);
+    const blob = new Blob([UTF8_BOM + csv], { type: 'text/csv;charset=utf-8;' });
+    triggerBrowserDownload(blob, exportFilename('csv'));
+}
+
+/**
+ * @param {RouteMapCoverageSummary} summary
+ */
+export function downloadMissingRouteActivitiesJson(summary) {
+    const payload = missingRouteActivitiesToExportJson(summary);
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8;' });
+    triggerBrowserDownload(blob, exportFilename('json'));
+}
