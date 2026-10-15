@@ -36,6 +36,7 @@ import {
     normalizeSyncDepth,
     resolveInitialSyncDepth,
 } from '../utils/intervalsSyncDepth.js';
+import { buildIntervalsMapEnrichmentUpdates } from '../utils/intervalsMapEnrich.js';
 
 /**
  * Intervals.icu sync + fetch-new flows for DataHub (selected-row sync and date-range fetch).
@@ -95,6 +96,35 @@ export function useDataHubIntervalsSync({
     );
     const deviceProfileTitles = mergeProtectOpts.deviceProfileTitles;
     const { showToast } = useToast();
+
+    const applyIntervalsMapEnrichmentToList = useCallback(async (list, activitiesMap, onProgress) => {
+        if (!intervalsConfig?.apiKey || !list?.length) return list;
+        const mapResult = await buildIntervalsMapEnrichmentUpdates(list, intervalsConfig, {
+            concurrency: 2,
+            delayMs: 120,
+            onProgress,
+        });
+        if (!mapResult.updates?.length) return list;
+        if (db) {
+            await persistActivityUpdates(
+                mapResult.updates,
+                activitiesMap,
+                mergeProtectOpts,
+                resolveOwnerUid(),
+            );
+        }
+        const updatesMap = new Map(mapResult.updates.map((u) => [String(u.id), u.data]));
+        return list.map((act) => {
+            const patch = updatesMap.get(String(act.id));
+            if (!patch) return act;
+            const existingBase = activitiesMap.get(String(act.id)) || act;
+            return protectEnrichedFieldsOnMerge(
+                stripUndefinedFields({ ...act, ...patch }),
+                existingBase,
+                mergeProtectOpts,
+            );
+        });
+    }, [intervalsConfig, mergeProtectOpts]);
 
     const recordIntervalsSyncSuccess = useCallback((healthSummary) => {
         const now = new Date().toISOString();
@@ -464,6 +494,12 @@ export function useDataHubIntervalsSync({
                 }
             }
 
+            working = await applyIntervalsMapEnrichmentToList(
+                working,
+                activitiesMap,
+                (m) => setSyncErrorDetail(String(m)),
+            );
+
             onImport(working);
 
             const refreshSingleDay = syncStart === syncEnd;
@@ -683,6 +719,18 @@ export function useDataHubIntervalsSync({
                     stravaEnrichWarning = e?.message || 'Strava enrichment failed during fetch.';
                 }
             }
+
+            const mapEnriched = await applyIntervalsMapEnrichmentToList(
+                allImported,
+                activitiesMap,
+                (m) => setSyncErrorDetail(String(m)),
+            );
+            for (let i = 0; i < merged.length; i++) {
+                const id = String(merged[i].id);
+                const row = mapEnriched.find((a) => String(a.id) === id);
+                if (row) merged[i] = row;
+            }
+            onImport(mapEnriched);
 
             const isSingleDaySync = syncStart === syncEnd;
             const driftResult = await applyPostSyncDriftEnrich(
