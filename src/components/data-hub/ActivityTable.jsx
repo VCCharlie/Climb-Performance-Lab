@@ -16,6 +16,7 @@ import ZoneMetricCell from './ZoneMetricCell';
 import ClimbMatchBadge from './ClimbMatchBadge';
 import ActivityTypeIcon from './ActivityTypeIcon';
 import { resolveActivityType } from '../../utils/activityVenue';
+import { describeActivityProfilerRouteTooltip } from '../../utils/activityRouteProfiler.js';
 import {
     flattenActivityList,
     estimateFlattenedRowSize,
@@ -538,13 +539,10 @@ export const Row = React.memo(React.forwardRef(({
                                     onOpenProfiler(act, profilerClimbByActivityId?.get(String(act.id)));
                                 }}
                                 className="text-cdmuted hover:text-emerald-400 p-0.5 rounded hover:bg-cdborder/40 cd-focus-ring"
-                                title={
-                                    profilerClimbByActivityId?.get(String(act.id))
-                                        ? 'Open in Climb Profiler'
-                                        : act.strava_map
-                                            ? 'Open in Climb Profiler (approximation — route from Strava)'
-                                            : 'Open in Climb Profiler (default climb — no route in data; pick climb in tab)'
-                                }
+                                title={describeActivityProfilerRouteTooltip(
+                                    act,
+                                    Boolean(profilerClimbByActivityId?.get(String(act.id))),
+                                )}
                                 aria-label="Open in Climb Profiler"
                             >
                                 <Route size={13} />

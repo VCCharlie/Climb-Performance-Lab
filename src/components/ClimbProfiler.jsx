@@ -56,6 +56,9 @@ const ClimbProfiler = ({ userSettings, initialState, onStateChange, theme = 'lig
     const [targetIntensity, setTargetIntensity] = useState(
         typeof initialState?.targetIntensity === 'number' ? initialState.targetIntensity : 0.85
     );
+    const [activityRouteProfile, setActivityRouteProfile] = useState(
+        initialState?.activityRouteProfile ?? null,
+    );
 
     const isDark = theme === 'dark';
 
@@ -63,9 +66,21 @@ const ClimbProfiler = ({ userSettings, initialState, onStateChange, theme = 'lig
 
     React.useEffect(() => {
         if (onStateChange) {
-            onStateChange({ selectedClimb, showPowerZones, targetIntensity });
+            onStateChange({
+                selectedClimb,
+                showPowerZones,
+                targetIntensity,
+                activityRouteProfile,
+            });
         }
-    }, [selectedClimb, showPowerZones, targetIntensity, onStateChange]);
+    }, [selectedClimb, showPowerZones, targetIntensity, activityRouteProfile, onStateChange]);
+
+    React.useEffect(() => {
+        if (initialState?.selectedClimb) {
+            setSelectedClimb(initialState.selectedClimb);
+        }
+        setActivityRouteProfile(initialState?.activityRouteProfile ?? null);
+    }, [initialState?.selectedClimb?.id, initialState?.activityRouteProfile?.activityId]);
 
     React.useEffect(() => {
         const onUpdated = () => setProfileRevision((r) => r + 1);
@@ -86,10 +101,24 @@ const ClimbProfiler = ({ userSettings, initialState, onStateChange, theme = 'lig
                 progress: p.progress ?? 0,
             }));
         }
+        if (activityRouteProfile?.points?.length >= 2) {
+            return activityRouteProfile.points.map((p) => ({
+                distance: p.distance ?? p.distanceKm,
+                elevation: p.elevation,
+                gradient: p.gradient,
+                progress: p.progress ?? 0,
+            }));
+        }
         return buildSyntheticProfile(selectedClimb);
-    }, [selectedClimb, importedProfile]);
+    }, [selectedClimb, importedProfile, activityRouteProfile]);
 
     const usesImportedProfile = Boolean(importedProfile?.points?.length >= 2);
+    const usesActivityRouteProfile = Boolean(
+        !usesImportedProfile && activityRouteProfile?.points?.length >= 2,
+    );
+    const activityRouteSourceLabel = activityRouteProfile?.source === 'intervals'
+        ? 'Intervals.icu GPS route'
+        : 'Strava GPS route';
     const climbfinderLink = climbfinderUrlForClimb(selectedClimb)
         || (importedProfile?.referenceUrl?.includes('climbfinder.com') ? importedProfile.referenceUrl : null);
     const ftp = userSettings?.ftp || 250;
@@ -133,7 +162,22 @@ const ClimbProfiler = ({ userSettings, initialState, onStateChange, theme = 'lig
 
     return (
         <div className="bg-cdsurface p-5 md:p-6 rounded-xl border border-cdborder shadow-xl space-y-6">
-            {usesImportedProfile ? (
+            {usesActivityRouteProfile ? (
+                <div
+                    role="note"
+                    className="rounded-lg border border-sky-500/50 bg-sky-500/10 px-4 py-3 flex items-start gap-3"
+                >
+                    <Info size={18} className="text-sky-400 shrink-0 mt-0.5" aria-hidden />
+                    <div>
+                        <p className="text-sm font-bold text-cdtext">Activity route approximation</p>
+                        <p className="text-sm text-cdtext mt-1">
+                            Chart uses {activityRouteSourceLabel}
+                            {activityRouteProfile?.title ? ` for “${activityRouteProfile.title}”` : ''}.
+                            Elevation follows your recorded climbing meters along the GPS path — not barometric segment data.
+                        </p>
+                    </div>
+                </div>
+            ) : usesImportedProfile ? (
                 <div
                     role="note"
                     className="rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-4 py-3 flex items-start gap-3"
@@ -190,7 +234,9 @@ const ClimbProfiler = ({ userSettings, initialState, onStateChange, theme = 'lig
                     <p className="text-sm text-cdmuted mt-1 max-w-xl">
                         {usesImportedProfile
                             ? 'Gradient and elevation from your imported GPX profile.'
-                            : 'Gradient and elevation from database averages (synthetic model). Import GPX in Activities → Import Data for a real trace.'}
+                            : usesActivityRouteProfile
+                                ? 'Gradient and elevation from GPS distance with climbing distributed along the route.'
+                                : 'Gradient and elevation from database averages (synthetic model). Import GPX in Activities → Import Data for a real trace.'}
                     </p>
                 </div>
                 <div className="flex flex-col items-end gap-2 shrink-0">
@@ -214,7 +260,14 @@ const ClimbProfiler = ({ userSettings, initialState, onStateChange, theme = 'lig
                 <label className="text-[11px] text-cdmuted uppercase tracking-wider block mb-2 font-semibold">
                     Climb
                 </label>
-                <ClimbSelector mode="single" selected={selectedClimb} onSelect={setSelectedClimb} />
+                <ClimbSelector
+                    mode="single"
+                    selected={selectedClimb}
+                    onSelect={(climb) => {
+                        setSelectedClimb(climb);
+                        setActivityRouteProfile(null);
+                    }}
+                />
                 <ClimbComparePanel
                     userSettings={userSettings}
                     primaryClimb={selectedClimb}
