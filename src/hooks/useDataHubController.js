@@ -191,6 +191,8 @@ export function useDataHubController({
         onDelete,
         onImportComplete: () => setInternalTab('log'),
         profileFtp: resolvedProfileFtp,
+        intervalsConfig,
+        userSettings,
     });
 
     const { registerOpenDuplicateResolver } = useDuplicatePrompt();

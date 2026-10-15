@@ -14,14 +14,17 @@ describe('runActivityEnrichmentPipeline zone times', () => {
     });
 
     it('runs zone-times detail enrich after map pass when api key is set', async () => {
-        fetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({
-                id: 'i555',
-                icu_zone_times: [{ id: 'Z2', secs: 1800 }],
-                icu_ftp: 260,
-            }),
-        });
+        fetch
+            .mockResolvedValueOnce({ ok: false, status: 404 })
+            .mockResolvedValueOnce({ ok: false, status: 404 })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    id: 'i555',
+                    icu_zone_times: [{ id: 'Z2', secs: 1800 }],
+                    icu_ftp: 260,
+                }),
+            });
 
         const activities = [{ id: 'i555', date: '2026-08-10', avg_power: 190, ftp: 260 }];
 
@@ -34,10 +37,14 @@ describe('runActivityEnrichmentPipeline zone times', () => {
 
         expect(stats.zoneTimesEnriched).toBe(1);
         expect(out[0].power_zone_sec).toEqual([0, 1800, 0, 0, 0, 0, 0]);
-        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(fetch).toHaveBeenCalledTimes(3);
     });
 
-    it('skips network enrichment in fast mode', async () => {
+    it('still fetches route maps in fast mode but skips other network enrich', async () => {
+        fetch
+            .mockResolvedValueOnce({ ok: false, status: 404 })
+            .mockResolvedValueOnce({ ok: false, status: 404 });
+
         const activities = [{ id: 'i555', date: '2026-08-10', avg_power: 190, ftp: 260 }];
 
         const { stats } = await runActivityEnrichmentPipeline(activities, {
@@ -47,6 +54,6 @@ describe('runActivityEnrichmentPipeline zone times', () => {
 
         expect(stats.zoneTimesEnriched).toBe(0);
         expect(stats.powerCurveRan).toBe(false);
-        expect(fetch).not.toHaveBeenCalled();
+        expect(fetch).toHaveBeenCalled();
     });
 });

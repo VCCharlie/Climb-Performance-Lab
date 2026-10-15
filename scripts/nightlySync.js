@@ -124,6 +124,9 @@ async function applyNightlyIntervalsEnrichment(activities, syncContext, interval
     if (stats.powerCurveRan) {
         console.log('[ENRICH] Power-curve bests pass completed.');
     }
+    if (stats.intervalsMapsAdded > 0) {
+        console.log(`[ENRICH] Intervals route maps added for ${stats.intervalsMapsAdded} activit(y/ies).`);
+    }
 
     return enriched;
 }

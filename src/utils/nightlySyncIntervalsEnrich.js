@@ -4,6 +4,7 @@
 import { buildZoneTimesFields } from './zoneTimes.js';
 import { enrichActivitiesWithZoneTimes } from './intervalsZoneTimesEnrich.js';
 import { enrichActivitiesWithLongDurationBests } from './intervalsPowerCurveEnrich.js';
+import { enrichActivitiesWithIntervalsMapPolylines } from './intervalsMapEnrich.js';
 
 /**
  * @param {object[]} activities
@@ -36,11 +37,26 @@ export function mapZoneTimesOnActivities(activities) {
 export async function enrichIntervalsActivitiesForNightlySync(activities, options) {
     const onProgress = options.onProgress;
     let result = activities || [];
-    const stats = { zoneMapped: 0, zoneTimesEnriched: 0, powerCurveRan: false };
+    const stats = { zoneMapped: 0, zoneTimesEnriched: 0, powerCurveRan: false, intervalsMapsAdded: 0 };
 
     const zonePass = mapZoneTimesOnActivities(result);
     result = zonePass.activities;
     stats.zoneMapped = zonePass.mappedCount;
+
+    if (options.intervalsConfig?.apiKey) {
+        onProgress?.('Fetching route maps from Intervals.icu…');
+        try {
+            const mapPass = await enrichActivitiesWithIntervalsMapPolylines(result, options.intervalsConfig, {
+                concurrency: 2,
+                delayMs: 120,
+                onProgress,
+            });
+            result = mapPass.activities;
+            stats.intervalsMapsAdded = mapPass.mapsAdded;
+        } catch (err) {
+            console.warn('[Nightly enrich] Route maps failed:', err);
+        }
+    }
 
     if (!options.isFullSync || !options.intervalsConfig?.apiKey) {
         return { activities: result, stats };
