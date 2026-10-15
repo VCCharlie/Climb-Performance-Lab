@@ -4,6 +4,7 @@
 
 import { stripUndefinedFields } from './mergeActivities.js';
 import { fetchIntervalsActivityMapPolyline } from './intervalsMapFetch.js';
+import { isVirtualActivity } from './activityVenue.js';
 
 function needsRouteMap(act) {
     if (!act?.id) return false;
@@ -14,11 +15,30 @@ function needsRouteMap(act) {
 }
 
 /**
+ * Outdoor rides missing a polyline — indoor/virtual (Zwift, trainer, VirtualRide) are skipped for now.
+ *
+ * @param {object | null | undefined} activity
+ * @returns {boolean}
+ */
+export function isEligibleForIntervalsMapBackfill(activity) {
+    if (!needsRouteMap(activity)) return false;
+    return !isVirtualActivity(activity);
+}
+
+/**
+ * @param {object[] | null | undefined} activities
+ * @returns {object[]}
+ */
+export function filterActivitiesForIntervalsMapBackfill(activities) {
+    return (Array.isArray(activities) ? activities : []).filter(isEligibleForIntervalsMapBackfill);
+}
+
+/**
  * @param {object} activity
  * @param {{ apiKey?: string }} intervalsConfig
  */
 export async function enrichActivityMapFromIntervals(activity, intervalsConfig) {
-    if (!needsRouteMap(activity) || !intervalsConfig?.apiKey) {
+    if (!isEligibleForIntervalsMapBackfill(activity) || !intervalsConfig?.apiKey) {
         return stripUndefinedFields({ ...activity });
     }
     const poly = await fetchIntervalsActivityMapPolyline(String(activity.id), intervalsConfig);
@@ -33,7 +53,7 @@ export async function enrichActivityMapFromIntervals(activity, intervalsConfig) 
  */
 export async function buildIntervalsMapEnrichmentUpdates(siteActivities, intervalsConfig, opts = {}) {
     const conc = Math.max(1, Math.min(4, opts.concurrency ?? 2));
-    const list = (siteActivities || []).filter(needsRouteMap);
+    const list = filterActivitiesForIntervalsMapBackfill(siteActivities);
     if (!intervalsConfig?.apiKey || list.length === 0) {
         return { updates: [], ridesProcessed: 0, unchanged: 0, failed: 0 };
     }
