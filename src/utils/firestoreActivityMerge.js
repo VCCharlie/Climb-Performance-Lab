@@ -99,6 +99,13 @@ export function protectEnrichedFieldsOnMerge(incoming, existing, opts = {}) {
     if (exMap && !inMap) {
         out.strava_map = existing.strava_map;
     }
+    const inIntervalsMap =
+        incoming.intervals_map != null && String(incoming.intervals_map).trim() !== '';
+    const exIntervalsMap =
+        existing.intervals_map != null && String(existing.intervals_map).trim() !== '';
+    if (exIntervalsMap && !inIntervalsMap) {
+        out.intervals_map = existing.intervals_map;
+    }
     protectStravaLinkedGearOnMerge(incoming, existing, out, opts);
     if (opts.dataSourcePrefs?.gearAndType !== 'intervals') {
         if (existing.gear_id && !incoming.gear_id && out.gear_id !== existing.gear_id) {
