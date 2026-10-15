@@ -55,6 +55,7 @@ import {
     TERRAIN_PROFILE_MIXED,
     normalizeTerrainProfile,
 } from '../utils/climbingTerrainProfile';
+import RouteMapCoverageSettings from './settings/RouteMapCoverageSettings';
 
 // Strava logo SVG
 const StravaIcon = ({ size = 16 }) => (
@@ -667,6 +668,8 @@ const SettingsModal = ({
                                 </label>
                             </div>
                         </div>
+
+                        <RouteMapCoverageSettings activities={activities} />
 
                         {onResetUserSettings && (
                             <div className={sectionClass}>
