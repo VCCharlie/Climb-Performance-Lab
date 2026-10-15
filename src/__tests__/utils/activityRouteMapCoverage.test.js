@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
     activityHasRoutePolyline,
+    getActivityRoutePolyline,
     getActivityRoutePolylineSource,
     summarizeActivityRouteMapCoverage,
     formatRouteMapCoverageSummary,
@@ -13,6 +14,12 @@ describe('activityRouteMapCoverage', () => {
             strava_map: 'abc',
             intervals_map: 'xyz',
         })).toBe('strava');
+        expect(getActivityRoutePolyline({
+            id: '1',
+            strava_map: 'abc',
+            intervals_map: 'xyz',
+        })).toBe('abc');
+        expect(getActivityRoutePolyline({ id: '1', intervals_map: 'xyz' })).toBe('xyz');
         expect(activityHasRoutePolyline({ id: '1', intervals_map: 'xyz' })).toBe(true);
     });
 

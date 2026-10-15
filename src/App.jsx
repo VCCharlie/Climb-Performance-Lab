@@ -4,6 +4,10 @@ import { doc, setDoc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged, reload } from "firebase/auth";
 import { db, auth } from './firebase';
 import { getDefaultClimb } from './services/climbDatabase';
+import {
+    buildClimbSelectionForActivityRoute,
+    resolveActivityRouteProfile,
+} from './utils/activityRouteProfiler.js';
 import { useClimbDatabase } from './hooks/useClimbDatabase';
 import { calculatePowerZones } from './utils';
 import { devLog, redactSecrets } from './utils/safeLog';
@@ -379,11 +383,22 @@ const App = () => {
         }),
     );
 
-    const handleOpenProfilerFromActivity = useCallback((_activity, climb) => {
-        const target = climb && climb.id ? climb : getDefaultClimb();
+    const handleOpenProfilerFromActivity = useCallback((activity, climb) => {
+        const routeProfile = activity ? resolveActivityRouteProfile(activity) : null;
+        const target = routeProfile
+            ? buildClimbSelectionForActivityRoute(activity, routeProfile.points, climb)
+            : (climb && climb.id ? climb : getDefaultClimb());
         setClimbProfilerState((prev) => ({
             ...prev,
             selectedClimb: target,
+            activityRouteProfile: routeProfile
+                ? {
+                    points: routeProfile.points,
+                    source: routeProfile.source,
+                    activityId: routeProfile.activityId,
+                    title: activity?.title || '',
+                }
+                : null,
         }));
         setActiveTab('profiler');
         persistMainTab('profiler');

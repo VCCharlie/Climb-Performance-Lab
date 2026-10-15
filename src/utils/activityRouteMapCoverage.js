@@ -22,6 +22,23 @@ export function getActivityRoutePolylineSource(activity) {
 }
 
 /**
+ * Encoded Google polyline for map/profiler (Strava first, then Intervals).
+ *
+ * @param {object | null | undefined} activity
+ * @returns {string | null}
+ */
+export function getActivityRoutePolyline(activity) {
+    if (!activity || typeof activity !== 'object') return null;
+    if (hasNonEmptyRoutePolyline(activity.strava_map)) {
+        return String(activity.strava_map).trim();
+    }
+    if (hasNonEmptyRoutePolyline(activity.intervals_map)) {
+        return String(activity.intervals_map).trim();
+    }
+    return null;
+}
+
+/**
  * @param {object | null | undefined} activity
  * @returns {boolean}
  */
