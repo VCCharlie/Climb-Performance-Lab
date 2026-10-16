@@ -12,7 +12,19 @@ const MergePairModal = ({
     hasDb,
     onClose,
     onConfirm,
+    onSwapKeeper,
 }) => {
+    const formatRowMeta = (row) => {
+        if (!row) return null;
+        const dist = Number(row.distance);
+        const elev = Number(row.climbing);
+        const parts = [];
+        if (Number.isFinite(dist) && dist > 0) parts.push(`${dist.toFixed(1)} km`);
+        else parts.push('0 km');
+        if (Number.isFinite(elev) && elev > 0) parts.push(`${Math.round(elev)} m elev`);
+        if (row.strava_id) parts.push(`Strava ${row.strava_id}`);
+        return parts.join(' · ');
+    };
     const panelRef = useModalA11y({ isOpen: open, onClose });
 
     if (!open) return null;
@@ -44,7 +56,7 @@ const MergePairModal = ({
                     </div>
                     <div className="p-4 space-y-3 text-xs text-cdmuted overflow-y-auto custom-scrollbar">
                         <p>
-                            Keeps the <strong className="text-cdtext">primary</strong> activity id and best available power/load metrics.
+                            Keeps the <strong className="text-cdtext">primary</strong> Intervals activity id (prefer the row with real distance/elevation when both are Intervals duplicates).
                             Pulls in <strong className="text-cdtext">Strava</strong> link, map polyline, gear, distance, and HR from whichever row has them.
                             After merge, if you are signed in to Strava, we fetch activity details to fill <strong className="text-cdtext">gear</strong> and route polyline when missing.
                             The duplicate row is <strong className="text-red-400">deleted</strong> from the database.
@@ -58,14 +70,22 @@ const MergePairModal = ({
                                     <div className="text-[10px] font-bold text-cdaccent uppercase">Keep (primary)</div>
                                     <div className="text-cdtext tabular-nums text-[11px]">id {mergePairPreview.intervals.id}</div>
                                     <div className="text-cdtext truncate">{mergePairPreview.intervals.title || '—'}</div>
+                                    <div className="text-[10px] text-cdmuted">{formatRowMeta(mergePairPreview.intervals)}</div>
                                 </div>
+                                {onSwapKeeper && (
+                                    <button
+                                        type="button"
+                                        onClick={onSwapKeeper}
+                                        className="w-full text-xs font-semibold text-cdaccent hover:underline py-1"
+                                    >
+                                        Swap which id to keep
+                                    </button>
+                                )}
                                 <div className="rounded-lg border border-cdborder bg-cdbg/40 p-2 space-y-1">
                                     <div className="text-[10px] font-bold text-orange-400 uppercase">Remove after merge (duplicate)</div>
                                     <div className="text-cdtext tabular-nums text-[11px]">id {mergePairPreview.stravaSide.id}</div>
                                     <div className="text-cdtext truncate">{mergePairPreview.stravaSide.title || '—'}</div>
-                                    {mergePairPreview.stravaSide.strava_id && (
-                                        <div className="text-[10px]">strava_id {mergePairPreview.stravaSide.strava_id}</div>
-                                    )}
+                                    <div className="text-[10px] text-cdmuted">{formatRowMeta(mergePairPreview.stravaSide)}</div>
                                 </div>
                             </>
                         )}

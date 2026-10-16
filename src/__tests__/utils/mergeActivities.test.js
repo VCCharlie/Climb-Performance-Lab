@@ -58,8 +58,8 @@ describe('pickMergePairSides', () => {
     };
     const sides = pickMergePairSides(enriched, sparse);
     expect(sides.error).toBeUndefined();
-    expect(sides.primary.id).toBe('i100');
-    expect(sides.secondary.id).toBe('i200');
+    expect(sides.primary.id).toBe('i200');
+    expect(sides.secondary.id).toBe('i100');
   });
 
   it('rejects unrelated pair', () => {

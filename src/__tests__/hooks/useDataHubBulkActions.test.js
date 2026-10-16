@@ -165,7 +165,7 @@ describe('useDataHubBulkActions', () => {
         });
 
         expect(result.current.canMergePair).toBe(true);
-        expect(result.current.mergePairPreview?.intervals?.id).toBe('i100');
+        expect(result.current.mergePairPreview?.intervals?.id).toBe('i200');
         expect(result.current.mergePairPreview?.merged?.strava_id).toBe('555');
         expect(result.current.mergePairPreview?.merged?.distance).toBe(10);
     });
