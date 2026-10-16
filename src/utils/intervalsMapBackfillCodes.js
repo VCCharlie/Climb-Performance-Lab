@@ -3,6 +3,7 @@
 export const MAP_BACKFILL_CODE = {
     ADDED: 'added',
     NOT_INTERVALS_ACTIVITY: 'not_intervals_activity',
+    STRAVA_LINKED_NO_STORED_MAP: 'strava_linked_no_stored_map',
     NO_GPS_DATA: 'no_gps_data',
     INTERVALS_NOT_FOUND: 'intervals_not_found',
     INTERVALS_FORBIDDEN: 'intervals_forbidden',
@@ -22,6 +23,8 @@ export function messageForMapBackfillCode(code, ctx = {}) {
             return 'Route map saved from Intervals.icu';
         case MAP_BACKFILL_CODE.NOT_INTERVALS_ACTIVITY:
             return 'Not an Intervals.icu activity (manual entry or CSV id) — cannot fetch a map from Intervals';
+        case MAP_BACKFILL_CODE.STRAVA_LINKED_NO_STORED_MAP:
+            return 'Strava-linked ride — the map in activity detail is loaded live from Strava, not saved as strava_map yet. Use Activities → Strava enrich to store the polyline for coverage and Profiler';
         case MAP_BACKFILL_CODE.NO_GPS_DATA:
             return 'Intervals.icu has no GPS track for this ride (no map to download)';
         case MAP_BACKFILL_CODE.INTERVALS_NOT_FOUND:

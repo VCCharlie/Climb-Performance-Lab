@@ -17,6 +17,14 @@ describe('intervalsMapBackfillOutcomes', () => {
         expect(plan.preSkipped[0].code).toBe(MAP_BACKFILL_CODE.NOT_INTERVALS_ACTIVITY);
     });
 
+    it('labels Strava-linked rows with a distinct skip reason', () => {
+        const plan = planIntervalsMapBackfillFromActivities([
+            { id: 'strava_5603837582', strava_id: '5603837582', type: 'Ride', title: 'Kibbeling' },
+        ]);
+        expect(plan.toFetch).toHaveLength(0);
+        expect(plan.preSkipped[0].code).toBe(MAP_BACKFILL_CODE.STRAVA_LINKED_NO_STORED_MAP);
+    });
+
     it('includes virtual rides in fetch plan', () => {
         const pre = precheckIntervalsMapBackfill({ id: 'i42', type: 'VirtualRide' });
         expect(pre.canFetch).toBe(true);

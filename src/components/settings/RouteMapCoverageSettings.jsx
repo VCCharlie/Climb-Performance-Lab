@@ -223,7 +223,8 @@ export default function RouteMapCoverageSettings({ activities, intervalsConfig, 
             </div>
             <p className="text-xs text-cdmuted mb-3 leading-relaxed">
                 Counts activities with a stored route polyline from Strava (<code className="text-cdtext">strava_map</code>)
-                or Intervals (<code className="text-cdtext">intervals_map</code>). Checks and bulk fetch run in this browser tab
+                or Intervals (<code className="text-cdtext">intervals_map</code>) saved on the activity. The map in an open activity
+                detail can still come from live Strava API without being stored. Checks and bulk fetch run in this browser tab
                 (calls Intervals.icu directly). Keep the tab open until the fetch finishes — closing it stops the job.
             </p>
             <div className="flex flex-col sm:flex-row gap-2">
@@ -304,7 +305,8 @@ export default function RouteMapCoverageSettings({ activities, intervalsConfig, 
                                         const date = row.date ? String(row.date).split('T')[0] : '?';
                                         const title = row.title || '(no title)';
                                         const type = row.type ? ` · ${row.type}` : '';
-                                        const hint = mapBackfillHintById.get(String(row.id));
+                                        const hint = row.mapBackfillHint
+                                            || mapBackfillHintById.get(String(row.id));
                                         return (
                                             <li key={`${row.id}-${date}`} className="font-mono break-all">
                                                 {date} · {row.id} · {title}{type}

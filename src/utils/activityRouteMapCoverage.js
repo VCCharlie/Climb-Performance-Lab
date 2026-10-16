@@ -2,6 +2,8 @@
  * Report which activities have a stored route polyline (Strava or Intervals).
  */
 
+import { precheckIntervalsMapBackfill } from './intervalsMapBackfillOutcomes.js';
+
 /**
  * @param {unknown} value
  * @returns {boolean}
@@ -36,7 +38,7 @@ export function activityHasRoutePolyline(activity) {
  *   withStravaMap: number,
  *   withIntervalsMap: number,
  *   missingRouteMap: number,
- *   missingActivities: Array<{ id: string, date?: string, title?: string, type?: string }>,
+ *   missingActivities: Array<{ id: string, date?: string, title?: string, type?: string, mapBackfillHint?: string }>,
  * }} RouteMapCoverageSummary
  */
 
@@ -58,11 +60,13 @@ export function summarizeActivityRouteMapCoverage(activities) {
         } else if (source === 'intervals') {
             withIntervalsMap += 1;
         } else {
+            const pre = precheckIntervalsMapBackfill(act);
             missingActivities.push({
                 id: String(act?.id ?? ''),
                 date: act?.date != null ? String(act.date) : undefined,
                 title: act?.title != null ? String(act.title) : undefined,
                 type: act?.type != null ? String(act.type) : undefined,
+                mapBackfillHint: pre.canFetch ? undefined : pre.message,
             });
         }
     }
