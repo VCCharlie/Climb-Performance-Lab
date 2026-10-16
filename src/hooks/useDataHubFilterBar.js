@@ -226,6 +226,10 @@ export function useDataHubFilterBar({
             const sel = bulk.selectedActivitiesForBulk;
             bulk.runDecouplingBackfill(sel.length > 0 ? sel : null);
         },
+        onIntervalsMapBackfill: () => {
+            bulk.runIntervalsMapBackfillSelected(bulk.selectedActivitiesForBulk);
+        },
+        intervalsConfig,
         onMergePair: bulk.openMergeModal,
         canMergePair: bulk.canMergePair,
         mergePairHint: bulk.mergePairHint,
@@ -235,6 +239,7 @@ export function useDataHubFilterBar({
         isStravaEnriching: bulk.isStravaEnriching,
         isStravaDescBackfilling: bulk.isStravaDescBackfilling,
         isDecouplingBackfilling: bulk.isDecouplingBackfilling,
+        isIntervalsMapBackfilling: bulk.isIntervalsMapBackfilling,
         canDecouplingBackfill: Boolean(intervalsConfig?.apiKey || stravaGetToken)
             && Number(userSettings?.ftp) > 0,
         filterBarRootRef,

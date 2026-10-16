@@ -134,6 +134,8 @@ const ActivityLogFilterBar = ({
     onStravaEnrich,
     onStravaDescriptionBackfill,
     onDecouplingBackfill,
+    onIntervalsMapBackfill,
+    intervalsConfig,
     onMergePair,
     canMergePair,
     mergePairHint,
@@ -143,6 +145,7 @@ const ActivityLogFilterBar = ({
     isStravaEnriching,
     isStravaDescBackfilling = false,
     isDecouplingBackfilling = false,
+    isIntervalsMapBackfilling = false,
     canDecouplingBackfill = false,
     filterBarRootRef,
     activities = [],
@@ -441,6 +444,8 @@ const ActivityLogFilterBar = ({
             onStravaEnrich={onStravaEnrich}
             onStravaDescriptionBackfill={onStravaDescriptionBackfill}
             onDecouplingBackfill={onDecouplingBackfill}
+            onIntervalsMapBackfill={onIntervalsMapBackfill}
+            intervalsConfig={intervalsConfig}
             onMergePair={onMergePair}
             canMergePair={canMergePair}
             mergePairHint={mergePairHint}
@@ -450,6 +455,7 @@ const ActivityLogFilterBar = ({
             isStravaEnriching={isStravaEnriching}
             isStravaDescBackfilling={isStravaDescBackfilling}
             isDecouplingBackfilling={isDecouplingBackfilling}
+            isIntervalsMapBackfilling={isIntervalsMapBackfilling}
             canDecouplingBackfill={canDecouplingBackfill}
             isDeleting={isDeleting}
         />

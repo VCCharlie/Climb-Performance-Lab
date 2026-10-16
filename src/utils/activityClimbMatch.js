@@ -84,6 +84,15 @@ export function findBestClimbUsingIndex(activityTitle, index, options = {}) {
 
     const venue = options.activityVenue ?? null;
     const venueOk = (climb) => !venue || isClimbVenueCompatible(climb, venue);
+    const countryCode = options.activityCountry
+        ? String(options.activityCountry).trim().toUpperCase()
+        : '';
+    const countryOk = (climb) => {
+        if (!countryCode) return true;
+        const cc = String(climb?.country || '').trim().toUpperCase();
+        if (!cc || cc === 'ZWIFT') return false;
+        return cc === countryCode;
+    };
 
     const titleLower = stripDiacritics(activityTitle.toLowerCase());
     const titleWords = normWords(activityTitle);
@@ -95,14 +104,14 @@ export function findBestClimbUsingIndex(activityTitle, index, options = {}) {
         const s = index.climbByWord.get(w);
         if (s) {
             for (const c of s) {
-                if (venueOk(c)) candidates.add(c);
+                if (venueOk(c) && countryOk(c)) candidates.add(c);
             }
         }
     }
 
     let toCheck;
     if (lookupKeys.length === 0) {
-        toCheck = index.climbs.filter(venueOk);
+        toCheck = index.climbs.filter((c) => venueOk(c) && countryOk(c));
     } else if (candidates.size === 0) {
         return null;
     } else {
@@ -220,7 +229,10 @@ export function findBestClimbForActivity(activity, index) {
         return { climb: null, source: null };
     }
 
-    const matchOpts = { activityVenue: activityVenue(activity) };
+    const matchOpts = {
+        activityVenue: activityVenue(activity),
+        activityCountry: activity?.ride_country || null,
+    };
     const title = climbMatchTitleForActivity(activity);
     const fromTitle = title ? findBestClimbUsingIndex(title, index, matchOpts) : null;
     if (fromTitle) {

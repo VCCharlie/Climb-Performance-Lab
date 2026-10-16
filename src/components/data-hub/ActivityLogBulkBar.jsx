@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit2, Trash2, X, Loader2, Link2, FileText, Activity } from 'lucide-react';
+import { Edit2, Trash2, X, Loader2, Link2, FileText, Activity, MapPin } from 'lucide-react';
 import { formatNlNumber } from '../../utils/formatters';
 import ActivityLogExportButtons from './ActivityLogExportButtons';
 
@@ -18,6 +18,8 @@ const ActivityLogBulkBar = ({
     onStravaEnrich,
     onStravaDescriptionBackfill,
     onDecouplingBackfill,
+    onIntervalsMapBackfill,
+    intervalsConfig,
     stravaGetToken,
     canDecouplingBackfill = false,
     isDeleting = false,
@@ -25,6 +27,7 @@ const ActivityLogBulkBar = ({
     isStravaEnriching = false,
     isStravaDescBackfilling = false,
     isDecouplingBackfilling = false,
+    isIntervalsMapBackfilling = false,
 }) => {
     if (!count || count <= 0 || !useCardLayout) return null;
 
@@ -63,6 +66,18 @@ const ActivityLogBulkBar = ({
                                     Descriptions
                                 </button>
                             </>
+                        )}
+                        {intervalsConfig?.apiKey && onIntervalsMapBackfill && (
+                            <button
+                                type="button"
+                                onClick={onIntervalsMapBackfill}
+                                disabled={isIntervalsMapBackfilling}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 min-h-11 rounded-lg border border-sky-500/40 text-sky-400 text-[11px] font-bold disabled:opacity-40 cd-focus-ring"
+                                title="Fetch Intervals route map and ride country for selected rides"
+                            >
+                                {isIntervalsMapBackfilling ? <Loader2 size={13} className="animate-spin" aria-hidden /> : <MapPin size={13} aria-hidden />}
+                                Map
+                            </button>
                         )}
                         {canDecouplingBackfill && (
                             <button

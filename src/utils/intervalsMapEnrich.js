@@ -9,6 +9,7 @@ import {
     planIntervalsMapBackfillFromActivities,
 } from './intervalsMapBackfillOutcomes.js';
 import { MAP_BACKFILL_CODE } from './intervalsMapBackfillCodes.js';
+import { buildRideGeoPatchFromPolyline } from './activityRideGeo.js';
 
 /**
  * @param {object | null | undefined} activity
@@ -47,6 +48,19 @@ export function isIntervalsActivityId(id) {
 }
 
 /**
+ * @param {object[]} siteActivities
+ * @param {{ forceRefresh?: boolean }} [opts]
+ * @returns {object[]}
+ */
+export function selectActivitiesForIntervalsMapFetch(siteActivities, opts = {}) {
+    const list = Array.isArray(siteActivities) ? siteActivities : [];
+    if (opts.forceRefresh) {
+        return list.filter((a) => isIntervalsActivityId(a?.id));
+    }
+    return planIntervalsMapBackfillFromActivities(list).toFetch;
+}
+
+/**
  * @param {object} activity
  * @param {{ apiKey?: string }} intervalsConfig
  */
@@ -66,12 +80,17 @@ export async function enrichActivityMapFromIntervals(activity, intervalsConfig) 
  */
 export async function buildIntervalsMapEnrichmentUpdates(siteActivities, intervalsConfig, opts = {}) {
     const conc = Math.max(1, Math.min(4, opts.concurrency ?? 2));
+    const forceRefresh = opts.forceRefresh === true;
+    const inferRideGeo = opts.inferRideGeo !== false;
     const plan = planIntervalsMapBackfillFromActivities(siteActivities);
     /** @type {import('./intervalsMapBackfillOutcomes.js').IntervalsMapBackfillOutcome[]} */
-    const outcomes = [...plan.preSkipped];
+    const outcomes = forceRefresh ? [] : [...plan.preSkipped];
 
     if (!intervalsConfig?.apiKey) {
-        for (const act of plan.toFetch) {
+        const missingKeyTargets = forceRefresh
+            ? selectActivitiesForIntervalsMapFetch(siteActivities, { forceRefresh: true })
+            : plan.toFetch;
+        for (const act of missingKeyTargets) {
             outcomes.push(buildMapBackfillOutcome(act, 'skipped', MAP_BACKFILL_CODE.MISSING_API_KEY));
         }
         return {
@@ -83,7 +102,7 @@ export async function buildIntervalsMapEnrichmentUpdates(siteActivities, interva
         };
     }
 
-    const list = plan.toFetch;
+    const list = selectActivitiesForIntervalsMapFetch(siteActivities, { forceRefresh });
     if (list.length === 0) {
         return { updates: [], ridesProcessed: 0, unchanged: 0, failed: 0, outcomes };
     }
@@ -104,8 +123,27 @@ export async function buildIntervalsMapEnrichmentUpdates(siteActivities, interva
             try {
                 const fetchResult = await fetchIntervalsActivityMapPolylineDetailed(String(act.id), intervalsConfig);
                 const poly = fetchResult.polyline;
-                if (poly && String(act.intervals_map || '') !== String(poly)) {
-                    updates.push({ id: act.id, data: { intervals_map: poly } });
+                const polyForGeo = poly || (forceRefresh ? String(act.intervals_map || '').trim() : '');
+                let geoPatch = null;
+                if (inferRideGeo && polyForGeo) {
+                    geoPatch = await buildRideGeoPatchFromPolyline(act, polyForGeo);
+                    if (opts.geocodeDelayMs) {
+                        await new Promise((r) => setTimeout(r, opts.geocodeDelayMs));
+                    }
+                }
+                const mapChanged = poly && String(act.intervals_map || '') !== String(poly);
+                const geoChanged = geoPatch && (
+                    String(act.ride_country || '') !== String(geoPatch.ride_country || '')
+                    || String(act.ride_region || '') !== String(geoPatch.ride_region || '')
+                );
+                if (mapChanged || geoChanged) {
+                    updates.push({
+                        id: act.id,
+                        data: stripUndefinedFields({
+                            ...(mapChanged ? { intervals_map: poly } : {}),
+                            ...(geoPatch || {}),
+                        }),
+                    });
                     fetchOutcomes[i] = buildMapBackfillOutcome(act, 'added', MAP_BACKFILL_CODE.ADDED);
                 } else if (
                     fetchResult.code === MAP_BACKFILL_CODE.NO_GPS_DATA
