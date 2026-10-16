@@ -2,7 +2,7 @@
  * Outdoor vs virtual (Zwift/trainer) venue helpers for activity ↔ climb matching.
  */
 
-import { determineActivityType } from './activityTypes';
+import { determineActivityType } from './activityTypes.js';
 
 const VIRTUAL_ACTIVITY_TYPES = new Set(['VirtualRide', 'VirtualRun']);
 
