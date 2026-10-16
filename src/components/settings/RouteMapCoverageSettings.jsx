@@ -142,7 +142,7 @@ export default function RouteMapCoverageSettings({ activities, intervalsConfig, 
         if (missing >= BACKFILL_CONFIRM_THRESHOLD) {
             const ok = await confirm({
                 title: 'Fetch route maps from Intervals?',
-                message: `This will call the Intervals API for up to ${missing} outdoor ride(s) missing a route polyline (indoor/virtual rides are skipped). It may take several minutes. Continue?`,
+                message: `This will call the Intervals API for up to ${missing} ride(s) missing a route polyline. Keep this browser tab open until it finishes. It may take several minutes. Continue?`,
                 confirmLabel: 'Fetch maps',
                 cancelLabel: 'Cancel',
             });
@@ -198,7 +198,8 @@ export default function RouteMapCoverageSettings({ activities, intervalsConfig, 
             </div>
             <p className="text-xs text-cdmuted mb-3 leading-relaxed">
                 Counts activities with a stored route polyline from Strava (<code className="text-cdtext">strava_map</code>)
-                or Intervals (<code className="text-cdtext">intervals_map</code>). Runs in the browser — nothing is uploaded.
+                or Intervals (<code className="text-cdtext">intervals_map</code>). Checks and bulk fetch run in this browser tab
+                (calls Intervals.icu directly). Keep the tab open until the fetch finishes — closing it stops the job.
             </p>
             <div className="flex flex-col sm:flex-row gap-2">
                 <Button type="button" variant="tonal" className="flex-1" onClick={handleCheckLoaded}>
@@ -289,8 +290,8 @@ export default function RouteMapCoverageSettings({ activities, intervalsConfig, 
                             {reportSource === 'loaded' && (
                                 <div className="border-t border-cdborder/50 pt-3">
                                     <p className="text-xs text-cdmuted mb-2">
-                                        Fetch encoded polylines from Intervals.icu for outdoor rides that have no Strava or Intervals map yet
-                                        (same step as a full Intervals sync). Indoor and virtual rides (e.g. Zwift, trainer) are skipped.
+                                        Fetch encoded polylines from Intervals.icu for rides that have no Strava or Intervals map yet
+                                        (same step as Intervals sync/import). Runs in this tab — do not close the browser until done.
                                     </p>
                                     {!intervalsConfig?.apiKey && (
                                         <p className="text-xs text-amber-500/90 mb-2">
@@ -310,7 +311,7 @@ export default function RouteMapCoverageSettings({ activities, intervalsConfig, 
                                                 Fetching…
                                             </>
                                         ) : (
-                                            `Fetch Intervals maps for outdoor rides (${backfillEligibleCount})`
+                                            `Fetch Intervals maps for missing rides (${backfillEligibleCount})`
                                         )}
                                     </Button>
                                     {backfillProgress && (

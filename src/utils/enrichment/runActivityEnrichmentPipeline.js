@@ -7,6 +7,7 @@ import { enrichActivitiesWithLongDurationBests } from '../intervalsPowerCurveEnr
 import { enrichActivitiesWithZoneTimes } from '../intervalsZoneTimesEnrich';
 import { enrichActivitiesWithDecoupling } from '../decouplingStreamEnrich';
 import { buildZoneTimesFields } from '../zoneTimes';
+import { enrichActivitiesWithIntervalsMapPolylines } from '../intervalsMapEnrich.js';
 
 /**
  * Ensure zone times are mapped when raw Intervals fields are still on the activity.
@@ -43,7 +44,7 @@ export function mapZoneTimesOnActivities(activities) {
  *   powerCurveMaxFetches?: number,
  *   onProgress?: (message: string) => void,
  * }} [options]
- * @returns {Promise<{ activities: object[], stats: { zoneMapped: number, zoneTimesEnriched: number, powerCurveRan: boolean, driftRan: boolean } }>}
+ * @returns {Promise<{ activities: object[], stats: { zoneMapped: number, zoneTimesEnriched: number, powerCurveRan: boolean, driftRan: boolean, intervalsMapsAdded: number } }>}
  */
 export async function runActivityEnrichmentPipeline(activities, options = {}) {
     const onProgress = options.onProgress;
@@ -53,6 +54,7 @@ export async function runActivityEnrichmentPipeline(activities, options = {}) {
         zoneTimesEnriched: 0,
         powerCurveRan: false,
         driftRan: false,
+        intervalsMapsAdded: 0,
     };
 
     const fastMode = options.enrichmentMode === 'fast';
@@ -60,6 +62,21 @@ export async function runActivityEnrichmentPipeline(activities, options = {}) {
     const zonePass = mapZoneTimesOnActivities(result);
     result = zonePass.activities;
     stats.zoneMapped = zonePass.mappedCount;
+
+    if (options.intervalsConfig?.apiKey && result.length > 0) {
+        onProgress?.('Fetching route maps from Intervals.icu…');
+        try {
+            const mapPass = await enrichActivitiesWithIntervalsMapPolylines(result, options.intervalsConfig, {
+                concurrency: 2,
+                delayMs: 120,
+                onProgress,
+            });
+            result = mapPass.activities;
+            stats.intervalsMapsAdded = mapPass.mapsAdded;
+        } catch (err) {
+            console.warn('[Enrichment] Intervals route map enrich failed:', err);
+        }
+    }
 
     if (fastMode) {
         return { activities: result, stats };

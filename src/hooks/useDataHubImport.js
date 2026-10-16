@@ -14,6 +14,9 @@ import {
 import { useToast } from '../context/ToastContext';
 import { useDuplicatePromptOptional } from '../context/DuplicatePromptContext';
 import { buildPostImportActivityList } from '../utils/postImportActivityList';
+import { buildMergeProtectOpts } from '../utils/mergeProtectOptions.js';
+import { applyIntervalsMapBackfill } from '../utils/intervalsMapBackfillApply.js';
+import { isIntervalsActivityId } from '../utils/intervalsMapEnrich.js';
 
 /**
  * JSON import preview, confirm flow, and duplicate resolution (Bolt 3d-bis follow-up).
@@ -24,6 +27,8 @@ export function useDataHubImport({
     onDelete,
     onImportComplete,
     profileFtp,
+    intervalsConfig,
+    userSettings,
 }) {
     const { showToast } = useToast();
     const duplicatePrompt = useDuplicatePromptOptional();
@@ -105,8 +110,33 @@ export function useDataHubImport({
         let savedCount = 0;
         let cloudPersisted = !db;
         const replacementPlan = buildImportReplacementPlan(activities, toImport);
+        let activitiesToImport = replacementPlan.activitiesToImport;
+        const mergeProtectOpts = buildMergeProtectOpts(userSettings);
+        const hasIntervalsRows = activitiesToImport.some((a) => isIntervalsActivityId(a.id));
+        if (intervalsConfig?.apiKey && hasIntervalsRows) {
+            showToast('Fetching route maps from Intervals.icu — keep this tab open…', {
+                variant: 'info',
+                durationMs: 6000,
+            });
+            try {
+                const backfill = await applyIntervalsMapBackfill(
+                    activitiesToImport,
+                    intervalsConfig,
+                    mergeProtectOpts,
+                    { concurrency: 2, delayMs: 120 },
+                );
+                activitiesToImport = backfill.activities;
+            } catch (e) {
+                console.warn('[Import] Intervals route map fetch failed:', e);
+                showToast('Import continued, but route maps could not be fetched from Intervals.', {
+                    variant: 'warning',
+                    durationMs: 8000,
+                });
+            }
+        }
+
         const activitiesById = new Map((activities || []).map((activity) => [String(activity.id), activity]));
-        const importPayloads = replacementPlan.activitiesToImport.map((activity) => {
+        const importPayloads = activitiesToImport.map((activity) => {
             const existing = activitiesById.get(String(activity.id));
             return buildActivityFirestoreMergePayload(activity, existing, {}, resolveOwnerUid());
         });
@@ -167,6 +197,8 @@ export function useDataHubImport({
         onImportComplete,
         showToast,
         duplicatePrompt,
+        intervalsConfig,
+        userSettings,
     ]);
 
     const findDuplicates = useCallback(() => {

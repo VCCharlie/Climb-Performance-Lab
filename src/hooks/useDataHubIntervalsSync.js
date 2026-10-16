@@ -397,6 +397,14 @@ export function useDataHubIntervalsSync({
             }
 
             if (!isFullSyncDepth(syncDepth)) {
+                setSyncErrorDetail('Fetching route maps from Intervals.icu…');
+                working = await applyIntervalsMapEnrichmentToList(
+                    working,
+                    activitiesMap,
+                    (m) => setSyncErrorDetail(String(m)),
+                );
+                onImport(working);
+
                 const skippedEmpty = Number(syncStats?.skippedEmpty) || 0;
                 recordIntervalsSyncSuccess({
                     added: orphanMerged.length,
@@ -415,7 +423,7 @@ export function useDataHubIntervalsSync({
                 parts.push(...formatIntervalsImportHealthParts(syncStats?.health));
                 if (syncStats?.syncRoute === 'direct') parts.push('route: direct API');
                 else if (syncStats?.syncRoute === 'cloud') parts.push('route: cloud sync');
-                parts.push('Fast sync (Intervals only — no Strava/drift)');
+                parts.push('Fast sync (Intervals route maps; no Strava/drift)');
                 setSyncErrorDetail(`✅ Sync complete. ${parts.join(' · ')}.`);
                 showToast(`Sync complete. ${parts.join(' · ')}.`, { variant: 'success' });
                 setTimeout(() => setSyncStatus(null), 9000);
@@ -643,6 +651,14 @@ export function useDataHubIntervalsSync({
             }
 
             if (!isFullSyncDepth(syncDepth)) {
+                setSyncErrorDetail('Fetching route maps from Intervals.icu…');
+                const mapEnriched = await applyIntervalsMapEnrichmentToList(
+                    allImported,
+                    activitiesMap,
+                    (m) => setSyncErrorDetail(String(m)),
+                );
+                onImport(mapEnriched);
+
                 const orphanMergeCounts = countMergeCategories(orphanMerged, activities);
                 recordIntervalsSyncSuccess({
                     added: mergeCounts.newCount + orphanMergeCounts.newCount,
@@ -652,11 +668,11 @@ export function useDataHubIntervalsSync({
                     syncRoute: syncStats?.syncRoute,
                     syncDepth: syncDepth,
                 });
-                onImportFinished?.(buildPostImportActivityList(activities, allImported));
+                onImportFinished?.(buildPostImportActivityList(activities, mapEnriched));
 
                 setSyncStatus('done');
                 const summary = formatIntervalsSyncSummary(syncStats, mergeCounts);
-                const parts = [summary, 'Fast sync (Intervals only — no Strava/drift)'];
+                const parts = [summary, 'Fast sync (Intervals route maps; no Strava/drift)'];
                 setSyncErrorDetail(`✅ ${parts.join(' · ')}.`);
                 showToast(parts.join(' · '), { variant: 'success' });
                 setTimeout(() => setSyncStatus(null), 9000);
