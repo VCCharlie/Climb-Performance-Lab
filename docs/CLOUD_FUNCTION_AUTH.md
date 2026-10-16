@@ -97,6 +97,27 @@ If deploy still fails on artifact upload, also add **Service Account User** (`ro
 
 Until those roles are set, use **Option A (Cloud Shell)** — your Google user already has deploy rights there.
 
+### Still failing after adding roles?
+
+| Symptom in Actions log | What to add / check |
+|------------------------|---------------------|
+| `run.services.get` denied | `roles/run.developer` on the **same** `client_email` as in `FIREBASE_SERVICE_ACCOUNT` |
+| Cloud Build / `PERMISSION_DENIED` on `cloudbuild.builds.create` | `roles/cloudbuild.builds.editor` |
+| `iam.serviceaccounts.actAs` / runtime SA | `roles/iam.serviceAccountUser` on the Cloud Run **runtime** service account (Cloud Run → sync-intervals → Security → Service account) |
+| Workflow aborts before deploy | New **Verify Cloud Run deploy access** step — read the `Authenticated as:` line; that email must have the roles above |
+
+IAM changes can take **1–3 minutes**. Re-run the workflow with confirm **`DEPLOY`** (not `deploy`).
+
+### Option C2 — dedicated deploy key (keeps Firebase SA minimal)
+
+1. [GCP → Service accounts](https://console.cloud.google.com/iam-admin/serviceaccounts?project=climb-performance-lab) → **Create** → name e.g. `github-cloud-run-deploy`.
+2. Grant roles: **Cloud Run Developer**, **Cloud Build Editor**, **Service Account User** (project level).
+3. Keys → **Add key** → JSON → copy once.
+4. GitHub → Settings → Secrets → **New repository secret** → name **`GCP_DEPLOY_SERVICE_ACCOUNT`** → paste full JSON.
+5. Re-run **Deploy Cloud Function**. The workflow prefers this secret over `FIREBASE_SERVICE_ACCOUNT`.
+
+Nightly sync and Firestore rules keep using **`FIREBASE_SERVICE_ACCOUNT`** only.
+
 ---
 
 ## Smoke test
