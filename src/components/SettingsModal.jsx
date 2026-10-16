@@ -56,6 +56,7 @@ import {
     normalizeTerrainProfile,
 } from '../utils/climbingTerrainProfile';
 import RouteMapCoverageSettings from './settings/RouteMapCoverageSettings';
+import ClimbLogbookServerSyncPanel from './settings/ClimbLogbookServerSyncPanel';
 
 // Strava logo SVG
 const StravaIcon = ({ size = 16 }) => (
@@ -82,6 +83,7 @@ const SettingsModal = ({
     backupExtras, onImportBackup, onResetUserSettings, onCleanupCloudTokens,
     stravaConfig, stravaAuth,
     isSignedIn = false,
+    userUid = null,
     onGoToActivitiesSync,
     nightlySyncStatus = null,
 }) => {
@@ -392,6 +394,10 @@ const SettingsModal = ({
                                     stravaConfig={stravaConfig}
                                     isSignedIn={isSignedIn}
                                     userSettings={userSettings}
+                                />
+                                <ClimbLogbookServerSyncPanel
+                                    isSignedIn={isSignedIn}
+                                    userUid={userUid}
                                 />
                                 <div className="pt-2 border-t border-cdborder/30 mt-2">
                                     <label className="block text-xs font-semibold mb-1 text-cdmuted">

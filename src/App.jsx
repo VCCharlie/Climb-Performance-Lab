@@ -1616,6 +1616,7 @@ const App = () => {
                                 onCleanupCloudTokens={cleanupCloudTokens}
                                 stravaConfig={stravaConfig}
                                 isSignedIn={Boolean(user)}
+                                userUid={user?.uid ?? null}
                                 updateStravaConfig={updateStravaConfig}
                                 stravaAuth={stravaAuth}
                                 onGoToActivitiesSync={navigateToActivitiesSync}

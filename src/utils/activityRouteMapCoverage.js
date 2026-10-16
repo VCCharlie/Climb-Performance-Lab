@@ -48,6 +48,42 @@ export function activityHasRoutePolyline(activity) {
     return getActivityRoutePolylineSource(activity) !== null;
 }
 
+/** @typedef {'cpl' | 'intervals' | 'strava'} ClimbLogbookRouteSource */
+
+/**
+ * Route polyline for climb logbook server matching.
+ * - `cpl`: stored polyline in Firestore (Strava map first, then Intervals map)
+ * - `strava`: only `strava_map`
+ * - `intervals`: only `intervals_map`
+ *
+ * @param {object | null | undefined} activity
+ * @param {ClimbLogbookRouteSource} source
+ * @returns {string | null}
+ */
+export function getActivityRoutePolylineForSource(activity, source) {
+    if (!activity || typeof activity !== 'object') return null;
+    if (source === 'strava') {
+        return hasNonEmptyRoutePolyline(activity.strava_map)
+            ? String(activity.strava_map).trim()
+            : null;
+    }
+    if (source === 'intervals') {
+        return hasNonEmptyRoutePolyline(activity.intervals_map)
+            ? String(activity.intervals_map).trim()
+            : null;
+    }
+    return getActivityRoutePolyline(activity);
+}
+
+/**
+ * @param {object | null | undefined} activity
+ * @param {ClimbLogbookRouteSource} source
+ * @returns {boolean}
+ */
+export function activityHasRoutePolylineForSource(activity, source) {
+    return getActivityRoutePolylineForSource(activity, source) != null;
+}
+
 /**
  * @typedef {{
  *   total: number,
