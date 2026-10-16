@@ -83,7 +83,19 @@ All existing variables (`INTERVALS_ATHLETE_ID`, `INTERVALS_API_KEY`, `AUTOMATION
 
 ## Option C — GitHub Actions (optional)
 
-[Deploy Cloud Function workflow](https://github.com/VCCharlie/Climb-Performance-Lab/actions/workflows/deploy-cloud-function.yml) — only if you add Cloud Functions + Cloud Run IAM roles to `FIREBASE_SERVICE_ACCOUNT`. Otherwise use Option A.
+[Deploy Cloud Function workflow](https://github.com/VCCharlie/Climb-Performance-Lab/actions/workflows/deploy-cloud-function.yml) uses the same GitHub secret as nightly sync: **`FIREBASE_SERVICE_ACCOUNT`**. That key is enough for Firestore sync, but **Cloud Run deploy needs extra IAM** on the service account (`client_email` in the JSON — often `firebase-adminsdk-fbsvc@climb-performance-lab.iam.gserviceaccount.com`).
+
+### Fix `PERMISSION_DENIED: run.services.get` (one-time, in browser)
+
+1. Open [GCP IAM](https://console.cloud.google.com/iam-admin/iam?project=climb-performance-lab).
+2. Find that service account → **Edit** (pencil) → **Add another role**:
+   - **Cloud Run Developer** (`roles/run.developer`)
+   - **Cloud Build Editor** (`roles/cloudbuild.builds.editor`) — needed when deploy uses `--source`
+3. Save → wait ~1 minute → re-run **Deploy Cloud Function** with confirm `DEPLOY`.
+
+If deploy still fails on artifact upload, also add **Service Account User** (`roles/iam.serviceAccountUser`) on the project (or the Cloud Run runtime SA).
+
+Until those roles are set, use **Option A (Cloud Shell)** — your Google user already has deploy rights there.
 
 ---
 
