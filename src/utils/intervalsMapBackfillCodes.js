@@ -37,7 +37,13 @@ export function messageForMapBackfillCode(code, ctx = {}) {
                 ? `Intervals.icu returned HTTP ${ctx.httpStatus}`
                 : 'Intervals.icu could not return map data';
         case MAP_BACKFILL_CODE.NETWORK_ERROR:
-            return 'Network error while calling Intervals.icu';
+            if (ctx.networkDetail === 'timeout') {
+                return 'Intervals.icu did not respond in time (30s). Keep this tab open and try Fetch map again';
+            }
+            if (ctx.networkDetail === 'offline') {
+                return 'Browser could not reach Intervals.icu (connection blocked or offline). Check Wi‑Fi/VPN and try again';
+            }
+            return 'Network error while calling Intervals.icu — no HTTP response. Try Fetch map again with this tab open';
         case MAP_BACKFILL_CODE.MISSING_API_KEY:
             return 'Intervals API key is not configured';
         case MAP_BACKFILL_CODE.STRAVA_NOT_CONNECTED:

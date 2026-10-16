@@ -64,6 +64,22 @@ function httpCodeToBackfillCode(status) {
 }
 
 /**
+ * @param {unknown} err
+ * @returns {{ code: string, networkDetail?: 'timeout' | 'offline' }}
+ */
+function classifyIntervalsFetchError(err) {
+    const name = err && typeof err === 'object' ? err.name : '';
+    const message = err && typeof err === 'object' && err.message ? String(err.message) : String(err || '');
+    if (name === 'AbortError' || /aborted|timeout/i.test(message)) {
+        return { code: MAP_BACKFILL_CODE.NETWORK_ERROR, networkDetail: 'timeout' };
+    }
+    if (/failed to fetch|networkerror|load failed/i.test(message)) {
+        return { code: MAP_BACKFILL_CODE.NETWORK_ERROR, networkDetail: 'offline' };
+    }
+    return { code: MAP_BACKFILL_CODE.NETWORK_ERROR };
+}
+
+/**
  * @param {string} activityId — Intervals activity id (incl. leading i)
  * @param {{ apiKey?: string }} intervalsConfig
  * @returns {Promise<IntervalsMapFetchResult>}
@@ -83,6 +99,7 @@ export async function fetchIntervalsActivityMapPolylineDetailed(activityId, inte
     let lastHttpStatus;
 
     const mapUrl = `https://intervals.icu/api/v1/activity/${encodeURIComponent(id)}/map`;
+    let mapNetworkDetail;
     try {
         const resp = await fetchWithTimeout(mapUrl, { method: 'GET', headers });
         lastHttpStatus = resp.status;
@@ -98,7 +115,8 @@ export async function fetchIntervalsActivityMapPolylineDetailed(activityId, inte
         }
     } catch (err) {
         devLog(`[Intervals map] ${id}: ${err?.message || err}`);
-        return { polyline: null, code: MAP_BACKFILL_CODE.NETWORK_ERROR };
+        mapNetworkDetail = classifyIntervalsFetchError(err).networkDetail;
+        // Fall through to /streams — /map often fails on older rides while streams still work.
     }
 
     const streamUrl = `https://intervals.icu/api/v1/activity/${encodeURIComponent(id)}/streams?types=latlng`;
@@ -130,7 +148,12 @@ export async function fetchIntervalsActivityMapPolylineDetailed(activityId, inte
         return { polyline: null, code: MAP_BACKFILL_CODE.NO_GPS_DATA };
     } catch (err) {
         devLog(`[Intervals map streams] ${id}: ${err?.message || err}`);
-        return { polyline: null, code: MAP_BACKFILL_CODE.NETWORK_ERROR };
+        const classified = classifyIntervalsFetchError(err);
+        return {
+            polyline: null,
+            code: classified.code,
+            networkDetail: classified.networkDetail || mapNetworkDetail,
+        };
     }
 }
 
