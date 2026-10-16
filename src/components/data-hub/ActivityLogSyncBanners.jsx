@@ -2,6 +2,41 @@ import React from 'react';
 import { Loader2 } from 'lucide-react';
 import { formatNlNumber } from '../../utils/formatters';
 
+function mentionsStravaPendingQueue(text) {
+    return typeof text === 'string' && /pending enrich/i.test(text);
+}
+
+function StravaPendingQueueActions({
+    showOpenLink,
+    onOpenStravaPendingQueue,
+    onDismiss,
+    dismissClassName,
+}) {
+    if (!showOpenLink && !onDismiss) return null;
+    return (
+        <div className="flex flex-wrap items-center justify-end gap-3 shrink-0">
+            {showOpenLink && onOpenStravaPendingQueue ? (
+                <button
+                    type="button"
+                    onClick={onOpenStravaPendingQueue}
+                    className="text-xs font-bold text-cdaccent hover:underline underline-offset-2 cd-focus-ring rounded"
+                >
+                    Open pending queue
+                </button>
+            ) : null}
+            {onDismiss ? (
+                <button
+                    type="button"
+                    onClick={onDismiss}
+                    className={dismissClassName}
+                >
+                    Dismiss
+                </button>
+            ) : null}
+        </div>
+    );
+}
+
 const ActivityLogSyncBanners = ({
     syncStatus,
     syncErrorDetail,
@@ -19,7 +54,22 @@ const ActivityLogSyncBanners = ({
     isDecouplingBackfilling,
     decouplingBackfillMsg,
     onDismissDecouplingBackfillMsg,
-}) => (
+    stravaEnrichPendingCount = 0,
+    onOpenStravaPendingQueue,
+}) => {
+    const showPendingQueueLink = Boolean(
+        onOpenStravaPendingQueue
+        && (
+            stravaEnrichPendingCount > 0
+            || mentionsStravaPendingQueue(stravaAutoEnrichNotice)
+            || mentionsStravaPendingQueue(stravaEnrichMsg)
+        ),
+    );
+    const autoNoticeTitle = stravaAutoEnrichNotice && /429|rate limit/i.test(stravaAutoEnrichNotice)
+        ? 'Strava rate limit'
+        : 'Strava enrich';
+
+    return (
     <>
         {stravaAutoEnrichNotice && (
             <div
@@ -27,17 +77,16 @@ const ActivityLogSyncBanners = ({
                 className="flex items-start justify-between gap-3 text-sm px-3 py-2.5 rounded-lg mb-3 border bg-amber-500/15 border-amber-600/40 text-cdtext"
             >
                 <p className="leading-snug min-w-0 text-cdtext">
-                    <span className="font-semibold text-amber-900 dark:text-amber-100">Strava rate limit</span>
+                    <span className="font-semibold text-amber-900 dark:text-amber-100">{autoNoticeTitle}</span>
                     {' — '}
                     {stravaAutoEnrichNotice}
                 </p>
-                <button
-                    type="button"
-                    onClick={onDismissStravaAutoEnrichNotice}
-                    className="shrink-0 text-xs font-bold text-amber-900 dark:text-amber-100 underline underline-offset-2 hover:opacity-80"
-                >
-                    Dismiss
-                </button>
+                <StravaPendingQueueActions
+                    showOpenLink={showPendingQueueLink}
+                    onOpenStravaPendingQueue={onOpenStravaPendingQueue}
+                    onDismiss={onDismissStravaAutoEnrichNotice}
+                    dismissClassName="shrink-0 text-xs font-bold text-amber-900 dark:text-amber-100 underline underline-offset-2 hover:opacity-80"
+                />
             </div>
         )}
         {syncStatus && (
@@ -76,13 +125,12 @@ const ActivityLogSyncBanners = ({
                 </span>
                 <span className="text-sm leading-snug text-cdtext">{stravaEnrichMsg}</span>
                 {!isStravaEnriching && stravaEnrichMsg && (
-                    <button
-                        type="button"
-                        onClick={onDismissStravaEnrichMsg}
-                        className="self-end text-xs font-bold text-cdaccent hover:underline underline-offset-2"
-                    >
-                        Dismiss
-                    </button>
+                    <StravaPendingQueueActions
+                        showOpenLink={showPendingQueueLink}
+                        onOpenStravaPendingQueue={onOpenStravaPendingQueue}
+                        onDismiss={onDismissStravaEnrichMsg}
+                        dismissClassName="text-xs font-bold text-cdaccent hover:underline underline-offset-2"
+                    />
                 )}
             </div>
         )}
@@ -137,6 +185,7 @@ const ActivityLogSyncBanners = ({
             </div>
         )}
     </>
-);
+    );
+};
 
 export default ActivityLogSyncBanners;
