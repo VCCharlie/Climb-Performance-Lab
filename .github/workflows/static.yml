@@ -69,24 +69,40 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       pages: write
       id-token: write
     steps:
+      # Re-check tip of main before touching the Pages queue. Build may have started
+      # when this commit was HEAD, but several merges can land before deploy runs.
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Skip deploy if superseded on main
+        id: stale_deploy
+        run: |
+          git fetch origin main --depth=1
+          if [ "$(git rev-parse origin/main)" != "${{ github.sha }}" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Skipping Pages deploy for ${{ github.sha }}; main is now $(git rev-parse origin/main)"
+          fi
       # GitHub Pages allows only one deployment in flight per site. A prior deploy
       # may still be settling when this job starts — retry once after a short wait.
       - name: Deploy to GitHub Pages
+        if: steps.stale_deploy.outputs.skip != 'true'
         id: deployment
         uses: actions/deploy-pages@v4
         continue-on-error: true
       - name: Wait for in-flight deployment to settle
-        if: steps.deployment.outcome == 'failure'
+        if: steps.stale_deploy.outputs.skip != 'true' && steps.deployment.outcome == 'failure'
         run: sleep 90
       - name: Deploy to GitHub Pages (retry)
-        if: steps.deployment.outcome == 'failure'
+        if: steps.stale_deploy.outputs.skip != 'true' && steps.deployment.outcome == 'failure'
         id: deployment-retry
         uses: actions/deploy-pages@v4
       - name: Fail if both deploy attempts failed
-        if: steps.deployment.outcome == 'failure' && steps.deployment-retry.outcome == 'failure'
+        if: steps.stale_deploy.outputs.skip != 'true' && steps.deployment.outcome == 'failure' && steps.deployment-retry.outcome == 'failure'
         run: |
           echo "GitHub Pages deployment failed twice. Re-run the workflow or check https://www.githubstatus.com/"
           exit 1
