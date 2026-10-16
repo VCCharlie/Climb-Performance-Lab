@@ -59,6 +59,15 @@ export function useDataHubStravaEnrich({
         setEnrichmentTarget(null);
     }, []);
 
+    /** Open Link to Strava overlay focused on Pending enrich (no single-activity target). */
+    const openStravaEnrichPendingPanel = useCallback(() => {
+        if (!stravaGetToken) return;
+        onBeforeOpenPanel?.();
+        setEnrichmentTarget(null);
+        setStravaDateOverride(null);
+        setShowStravaEnrichPanel(true);
+    }, [stravaGetToken, onBeforeOpenPanel]);
+
     const stravaSearchDates = useMemo(() => ({
         startDate: stravaDateOverride || startDate,
         endDate: stravaDateOverride || endDate,
@@ -306,6 +315,7 @@ export function useDataHubStravaEnrich({
         stravaAutoEnrichNotice,
         dismissStravaAutoEnrichNotice,
         handleFindOnStrava,
+        openStravaEnrichPendingPanel,
         handleImportFromStrava,
         performSilentStravaEnrichment,
         stravaEnrichPending,

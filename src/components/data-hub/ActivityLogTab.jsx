@@ -26,6 +26,8 @@ export default function ActivityLogTab({
     stravaListProgress,
     stravaAutoEnrichNotice,
     onDismissStravaAutoEnrichNotice,
+    stravaEnrichPendingCount = 0,
+    onOpenStravaPendingQueue,
     bulk,
     onOpenImportTab,
     filterBarProps,
@@ -95,6 +97,8 @@ export default function ActivityLogTab({
                 onDismissDecouplingBackfillMsg={() => bulk.setDecouplingBackfillMsg(null)}
                 stravaAutoEnrichNotice={stravaAutoEnrichNotice}
                 onDismissStravaAutoEnrichNotice={onDismissStravaAutoEnrichNotice}
+                stravaEnrichPendingCount={stravaEnrichPendingCount}
+                onOpenStravaPendingQueue={onOpenStravaPendingQueue}
             />
 
             <ActivityLogSyncStatusLine

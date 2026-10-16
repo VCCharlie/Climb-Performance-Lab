@@ -61,4 +61,26 @@ describe('useDataHubStravaEnrich', () => {
         });
         expect(result.current.enrichmentTarget?.id).toBe('1');
     });
+
+    it('opens pending queue panel without pinning a single activity', () => {
+        const { result } = renderHook(() => useDataHubStravaEnrich({
+            stravaGetToken: async () => 'token',
+            activities: [],
+            startDate: '2026-01-01',
+            endDate: '2026-06-30',
+            onImport,
+            userSettings: { bikeComputerProfileTitles: [] },
+        }));
+
+        act(() => {
+            result.current.openStravaEnrichPendingPanel();
+        });
+
+        expect(result.current.showStravaEnrichPanel).toBe(true);
+        expect(result.current.enrichmentTarget).toBeNull();
+        expect(result.current.stravaSearchDates).toEqual({
+            startDate: '2026-01-01',
+            endDate: '2026-06-30',
+        });
+    });
 });
