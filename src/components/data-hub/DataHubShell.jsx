@@ -211,6 +211,11 @@ const DataHubShell = ({
                         && Number(resolvedProfileFtp) > 0}
                     isStravaDescBackfilling={bulk.isStravaDescBackfilling}
                     isDecouplingBackfilling={bulk.isDecouplingBackfilling}
+                    intervalsConfig={intervalsConfig}
+                    onIntervalsMapBackfill={() => {
+                        bulk.runIntervalsMapBackfillSelected(bulk.selectedActivitiesForBulk);
+                    }}
+                    isIntervalsMapBackfilling={bulk.isIntervalsMapBackfilling}
                 />
             )}
         </TabPageShell>

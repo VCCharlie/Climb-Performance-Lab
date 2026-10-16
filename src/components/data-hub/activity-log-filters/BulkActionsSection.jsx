@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, Edit2, GitMerge, Link2, Loader2, Trash } from 'lucide-react';
+import { Activity, Edit2, GitMerge, Link2, Loader2, MapPin, Trash } from 'lucide-react';
 import { formatNlNumber } from '../../../utils/formatters';
 import { buildMarkRecoveryTooltip } from '../../../utils/recoveryTss';
 import ActivityLogExportButtons from '../ActivityLogExportButtons';
@@ -25,6 +25,8 @@ export default function BulkActionsSection({
     onStravaEnrich,
     onStravaDescriptionBackfill,
     onDecouplingBackfill,
+    onIntervalsMapBackfill,
+    intervalsConfig,
     onMergePair,
     canMergePair,
     mergePairHint,
@@ -35,6 +37,7 @@ export default function BulkActionsSection({
     isStravaDescBackfilling,
     isDecouplingBackfilling,
     canDecouplingBackfill,
+    isIntervalsMapBackfilling,
     isDeleting,
 }) {
     if (compactBar) return null;
@@ -79,6 +82,20 @@ export default function BulkActionsSection({
                     onExportXlsx={onExportXlsx}
                     isExportingXlsx={isExportingXlsx}
                 />
+                {intervalsConfig?.apiKey ? (
+                    <Button
+                        type="button"
+                        variant="outlined"
+                        size="sm"
+                        onClick={onIntervalsMapBackfill}
+                        disabled={isIntervalsMapBackfilling || !hasSelection || isStravaEnriching}
+                        title="Force-fetch Intervals.icu route map (intervals_map) and infer ride country/region from GPS"
+                        className="!text-[10px] !h-8"
+                    >
+                        {isIntervalsMapBackfilling ? <Loader2 size={12} className="animate-spin" aria-hidden /> : <MapPin size={12} aria-hidden />}
+                        Intervals map
+                    </Button>
+                ) : null}
                 {stravaGetToken ? (
                     <>
                         <Button

@@ -20,6 +20,8 @@ import {
 } from '../utils/stravaEnrichPendingQueue';
 import { buildStravaDescriptionBackfillUpdates } from '../utils/stravaDescriptionBackfill';
 import { buildDecouplingBackfillUpdates, buildDecouplingBackfillStats, formatDecouplingBackfillIntro } from '../utils/decouplingStreamBackfill';
+import { applyIntervalsMapBackfill } from '../utils/intervalsMapBackfillApply.js';
+import { isIntervalsActivityId } from '../utils/intervalsMapEnrich.js';
 import { formatNlNumber } from '../utils/formatters';
 import { buildMarkRecoveryConfirmMessage, resolveRecoveryTss } from '../utils/recoveryTss';
 import { buildMergeProtectOpts } from '../utils/mergeProtectOptions.js';
@@ -62,6 +64,8 @@ export function useDataHubBulkActions({
     const [stravaDescBackfillMsg, setStravaDescBackfillMsg] = useState(null);
     const [isDecouplingBackfilling, setIsDecouplingBackfilling] = useState(false);
     const [decouplingBackfillMsg, setDecouplingBackfillMsg] = useState(null);
+    const [isIntervalsMapBackfilling, setIsIntervalsMapBackfilling] = useState(false);
+    const [intervalsMapBackfillMsg, setIntervalsMapBackfillMsg] = useState(null);
     const [isExportingXlsx, setIsExportingXlsx] = useState(false);
 
     const allVisibleSelected = useMemo(
@@ -417,6 +421,67 @@ export function useDataHubBulkActions({
         }
     }, [stravaGetToken, activities, persistStravaEnrichUpdates]);
 
+    const runIntervalsMapBackfillSelected = useCallback(async (subset) => {
+        if (!intervalsConfig?.apiKey) {
+            setIntervalsMapBackfillMsg('Add your Intervals.icu API key in Settings → Integrations first.');
+            return;
+        }
+        const list = subset && subset.length > 0 ? subset : selectedActivitiesForBulk;
+        if (!list.length) {
+            setIntervalsMapBackfillMsg('Select one or more activities (row checkboxes), then run Intervals map.');
+            return;
+        }
+        const intervalsRows = list.filter((a) => isIntervalsActivityId(a?.id));
+        if (intervalsRows.length === 0) {
+            setIntervalsMapBackfillMsg('No Intervals activities in selection (ids like i12345678).');
+            return;
+        }
+        const skipped = list.length - intervalsRows.length;
+        setIsIntervalsMapBackfilling(true);
+        setIntervalsMapBackfillMsg(
+            `Fetching Intervals route map for ${formatNlNumber(intervalsRows.length)} ride(s)…`
+            + (skipped > 0 ? ` (${formatNlNumber(skipped)} non-Intervals skipped)` : ''),
+        );
+        try {
+            const result = await applyIntervalsMapBackfill(intervalsRows, intervalsConfig, mergeProtectOpts, {
+                concurrency: 2,
+                delayMs: 120,
+                forceRefresh: true,
+                inferRideGeo: true,
+                geocodeDelayMs: 220,
+                onProgress: (m) => setIntervalsMapBackfillMsg(m),
+            });
+            const added = result.updates?.length ?? 0;
+            const geoCount = (result.updates || []).filter((u) => u.data?.ride_country).length;
+            if (added === 0) {
+                setIntervalsMapBackfillMsg(
+                    `Checked ${formatNlNumber(intervalsRows.length)} ride(s): no new map or country data`
+                    + (result.failed > 0 ? ` · ${formatNlNumber(result.failed)} failed` : ''),
+                );
+            } else {
+                setIntervalsMapBackfillMsg(
+                    `Done: updated ${formatNlNumber(added)} ride(s)`
+                    + (geoCount > 0 ? ` · ${formatNlNumber(geoCount)} with country/region` : '')
+                    + ' — intervals_map stored when Intervals returns GPS.',
+                );
+            }
+            if (result.updates?.length) {
+                const idSet = new Set(result.updates.map((u) => String(u.id)));
+                onImport(result.activities.filter((a) => idSet.has(String(a.id))));
+            }
+        } catch (e) {
+            console.error('[Intervals map backfill]', e);
+            setIntervalsMapBackfillMsg(`Error: ${e.message || e}`);
+        } finally {
+            setIsIntervalsMapBackfilling(false);
+        }
+    }, [
+        intervalsConfig,
+        mergeProtectOpts,
+        onImport,
+        selectedActivitiesForBulk,
+    ]);
+
     const runDecouplingBackfill = useCallback(async (subset) => {
         const profileFtp = Number(userSettings?.ftp) || 0;
         if (profileFtp <= 0) {
@@ -652,5 +717,9 @@ export function useDataHubBulkActions({
         isDecouplingBackfilling,
         decouplingBackfillMsg,
         setDecouplingBackfillMsg,
+        runIntervalsMapBackfillSelected,
+        isIntervalsMapBackfilling,
+        intervalsMapBackfillMsg,
+        setIntervalsMapBackfillMsg,
     };
 }

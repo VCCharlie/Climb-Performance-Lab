@@ -54,6 +54,9 @@ const ActivityLogSyncBanners = ({
     isDecouplingBackfilling,
     decouplingBackfillMsg,
     onDismissDecouplingBackfillMsg,
+    isIntervalsMapBackfilling,
+    intervalsMapBackfillMsg,
+    onDismissIntervalsMapBackfillMsg,
     stravaEnrichPendingCount = 0,
     onOpenStravaPendingQueue,
 }) => {
@@ -152,6 +155,31 @@ const ActivityLogSyncBanners = ({
                     <button
                         type="button"
                         onClick={onDismissStravaDescBackfillMsg}
+                        className="self-end text-xs font-bold text-cdaccent hover:underline underline-offset-2"
+                    >
+                        Dismiss
+                    </button>
+                )}
+            </div>
+        )}
+        {(isIntervalsMapBackfilling || intervalsMapBackfillMsg) && (
+            <div
+                role="status"
+                className={`flex flex-col gap-1.5 text-sm px-3 py-2.5 rounded-lg mb-3 border ${
+                    isIntervalsMapBackfilling
+                        ? 'bg-sky-500/15 border-sky-600/40 text-cdtext'
+                        : 'bg-cdsurface border-cdborder text-cdtext'
+                }`}
+            >
+                <span className="flex items-center gap-2 font-semibold text-cdtext">
+                    {isIntervalsMapBackfilling && <Loader2 size={14} className="animate-spin text-sky-600 dark:text-sky-400" />}
+                    Intervals route map
+                </span>
+                <span className="text-sm leading-snug text-cdtext">{intervalsMapBackfillMsg}</span>
+                {!isIntervalsMapBackfilling && intervalsMapBackfillMsg && (
+                    <button
+                        type="button"
+                        onClick={onDismissIntervalsMapBackfillMsg}
                         className="self-end text-xs font-bold text-cdaccent hover:underline underline-offset-2"
                     >
                         Dismiss

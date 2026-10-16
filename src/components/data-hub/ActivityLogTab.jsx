@@ -95,6 +95,9 @@ export default function ActivityLogTab({
                 isDecouplingBackfilling={bulk.isDecouplingBackfilling}
                 decouplingBackfillMsg={bulk.decouplingBackfillMsg}
                 onDismissDecouplingBackfillMsg={() => bulk.setDecouplingBackfillMsg(null)}
+                isIntervalsMapBackfilling={bulk.isIntervalsMapBackfilling}
+                intervalsMapBackfillMsg={bulk.intervalsMapBackfillMsg}
+                onDismissIntervalsMapBackfillMsg={() => bulk.setIntervalsMapBackfillMsg(null)}
                 stravaAutoEnrichNotice={stravaAutoEnrichNotice}
                 onDismissStravaAutoEnrichNotice={onDismissStravaAutoEnrichNotice}
                 stravaEnrichPendingCount={stravaEnrichPendingCount}

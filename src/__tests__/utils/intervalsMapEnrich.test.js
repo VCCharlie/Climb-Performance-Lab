@@ -3,6 +3,7 @@ import {
     activityNeedsIntervalsMapPolyline,
     filterActivitiesForIntervalsMapBackfill,
     isIntervalsActivityId,
+    selectActivitiesForIntervalsMapFetch,
 } from '../../utils/intervalsMapEnrich.js';
 
 describe('intervalsMapEnrich eligibility', () => {
@@ -33,5 +34,13 @@ describe('intervalsMapEnrich eligibility', () => {
     it('detects Intervals activity ids', () => {
         expect(isIntervalsActivityId('i197621495')).toBe(true);
         expect(isIntervalsActivityId('garmin-123')).toBe(false);
+    });
+
+    it('forceRefresh includes Intervals ids even when intervals_map exists', () => {
+        const list = [
+            { id: 'i1', intervals_map: 'existing' },
+            { id: 'strava_1' },
+        ];
+        expect(selectActivitiesForIntervalsMapFetch(list, { forceRefresh: true }).map((a) => a.id)).toEqual(['i1']);
     });
 });
