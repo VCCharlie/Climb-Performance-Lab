@@ -103,13 +103,36 @@ export function pickMergePairSides(x, y) {
  * @param {object} y
  * @returns {{ primary: object, secondary: object } | null}
  */
+function hasStoredRoutePolyline(activity) {
+    if (!activity) return false;
+    if (activity.strava_map != null && String(activity.strava_map).trim() !== '') return true;
+    if (activity.intervals_map != null && String(activity.intervals_map).trim() !== '') return true;
+    return false;
+}
+
+/**
+ * Prefer the Intervals row that matches the richer ride on Intervals.icu (map, elevation, then distance in CPL).
+ *
+ * @param {object} x
+ * @param {object} y
+ * @returns {{ primary: object, secondary: object } | null}
+ */
 export function pickIntervalsDuplicateKeeperByRouteData(x, y) {
-    const dx = activityDistanceKm(x) ?? 0;
-    const dy = activityDistanceKm(y) ?? 0;
+    const polyX = hasStoredRoutePolyline(x);
+    const polyY = hasStoredRoutePolyline(y);
+    if (polyX && !polyY) return { primary: x, secondary: y };
+    if (polyY && !polyX) return { primary: y, secondary: x };
+
     const cx = Number(x.climbing) || 0;
     const cy = Number(y.climbing) || 0;
-    const routeScore = (distKm, climb) => distKm * 100 + climb;
+    if (cx > 0 && cy <= 0) return { primary: x, secondary: y };
+    if (cy > 0 && cx <= 0) return { primary: y, secondary: x };
+    if (cy > cx * 1.25) return { primary: y, secondary: x };
+    if (cx > cy * 1.25) return { primary: x, secondary: y };
 
+    const dx = activityDistanceKm(x) ?? 0;
+    const dy = activityDistanceKm(y) ?? 0;
+    const routeScore = (distKm, climb) => distKm * 100 + climb;
     const rx = routeScore(dx, cx);
     const ry = routeScore(dy, cy);
 

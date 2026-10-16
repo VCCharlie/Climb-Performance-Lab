@@ -134,6 +134,8 @@ describe('useDataHubBulkActions', () => {
             title: 'FulGaz - Col du Chaussy',
             moving_time: '43:21',
             distance: 0,
+            climbing: 1200,
+            intervals_map: 'encodedPolyline',
             strava_id: '555',
             load: 53,
         };
@@ -144,6 +146,7 @@ describe('useDataHubBulkActions', () => {
             title: 'FulGaz - Col du Chaussy',
             moving_time: '43:21',
             distance: 10,
+            climbing: 4,
             gear_name: 'Gilbertson Allure',
             load: 0,
         };
@@ -165,7 +168,7 @@ describe('useDataHubBulkActions', () => {
         });
 
         expect(result.current.canMergePair).toBe(true);
-        expect(result.current.mergePairPreview?.intervals?.id).toBe('i200');
+        expect(result.current.mergePairPreview?.intervals?.id).toBe('i100');
         expect(result.current.mergePairPreview?.merged?.strava_id).toBe('555');
         expect(result.current.mergePairPreview?.merged?.distance).toBe(10);
     });
