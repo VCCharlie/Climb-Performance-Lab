@@ -75,7 +75,7 @@ export function summarizeActivityRouteMapCoverage(activities) {
                 type: act?.type != null ? String(act.type) : undefined,
                 mapBackfillAction: classified.action,
                 mapBackfillHint: classified.action === 'intervals_fetch'
-                    ? 'Can fetch from Intervals.icu (bulk button below)'
+                    ? 'Intervals.icu activity — use Fetch map on this row or the bulk Intervals button below'
                     : classified.message,
             });
         }

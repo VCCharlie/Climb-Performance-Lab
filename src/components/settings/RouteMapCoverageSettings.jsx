@@ -40,7 +40,9 @@ export default function RouteMapCoverageSettings({
     const [backfillOutcomes, setBackfillOutcomes] = useState(null);
     const [isStravaBackfilling, setIsStravaBackfilling] = useState(false);
     const [stravaRowBusyId, setStravaRowBusyId] = useState(null);
+    const [intervalsRowBusyId, setIntervalsRowBusyId] = useState(null);
     const [stravaSelectedIds, setStravaSelectedIds] = useState(() => new Set());
+    const [intervalsSelectedIds, setIntervalsSelectedIds] = useState(() => new Set());
 
     const mergeProtectOpts = useMemo(
         () => buildMergeProtectOpts(userSettings),
@@ -112,9 +114,21 @@ export default function RouteMapCoverageSettings({
         [missingRows],
     );
 
+    const intervalsFetchEligibleIds = useMemo(
+        () => missingRows
+            .filter((row) => row.mapBackfillAction === 'intervals_fetch')
+            .map((row) => String(row.id)),
+        [missingRows],
+    );
+
     const stravaEnrichSelectedCount = useMemo(
         () => stravaEnrichEligibleIds.filter((id) => stravaSelectedIds.has(id)).length,
         [stravaEnrichEligibleIds, stravaSelectedIds],
+    );
+
+    const intervalsFetchSelectedCount = useMemo(
+        () => intervalsFetchEligibleIds.filter((id) => intervalsSelectedIds.has(id)).length,
+        [intervalsFetchEligibleIds, intervalsSelectedIds],
     );
 
     const toggleStravaSelect = useCallback((id) => {
@@ -130,6 +144,20 @@ export default function RouteMapCoverageSettings({
     const selectAllStravaEnrich = useCallback(() => {
         setStravaSelectedIds(new Set(stravaEnrichEligibleIds));
     }, [stravaEnrichEligibleIds]);
+
+    const toggleIntervalsSelect = useCallback((id) => {
+        const key = String(id);
+        setIntervalsSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(key)) next.delete(key);
+            else next.add(key);
+            return next;
+        });
+    }, []);
+
+    const selectAllIntervalsFetch = useCallback(() => {
+        setIntervalsSelectedIds(new Set(intervalsFetchEligibleIds));
+    }, [intervalsFetchEligibleIds]);
 
     const backfillPlan = useMemo(() => {
         if (reportSource !== 'loaded') {
@@ -182,7 +210,7 @@ export default function RouteMapCoverageSettings({
         showToast('Downloaded JSON of rides without route map.', { variant: 'success' });
     }, [report, showToast]);
 
-    const handleBackfillIntervalsMaps = useCallback(async () => {
+    const runIntervalsMapBackfillForIds = useCallback(async (ids, { allowAllEligible = false } = {}) => {
         if (!intervalsConfig?.apiKey) {
             showToast('Add your Intervals.icu API key under Integrations first.', { variant: 'warning' });
             return;
@@ -193,42 +221,74 @@ export default function RouteMapCoverageSettings({
             });
             return;
         }
-        const missing = backfillEligibleCount;
-        if (missing <= 0) return;
 
+        const snapshot = getActivitiesSnapshot();
+        let uniqueIds = [...new Set((ids || []).map(String))].filter(Boolean);
+        if (uniqueIds.length === 0 && allowAllEligible) {
+            uniqueIds = backfillPlan.toFetch.map((a) => String(a.id));
+        }
+        if (uniqueIds.length === 0) {
+            showToast('Select one or more Intervals rides (checkboxes in the list).', { variant: 'warning' });
+            return;
+        }
+
+        const missing = uniqueIds.length;
         if (missing >= BACKFILL_CONFIRM_THRESHOLD) {
             const ok = await confirm({
                 title: 'Fetch route maps from Intervals?',
-                message: `This will call the Intervals API for up to ${missing} ride(s) missing a route polyline. Keep this browser tab open until it finishes. It may take several minutes. Continue?`,
+                message: `This will call the Intervals API for ${missing} ride(s). Keep this browser tab open until it finishes. It may take several minutes. Continue?`,
                 confirmLabel: 'Fetch maps',
                 cancelLabel: 'Cancel',
             });
             if (!ok) return;
         }
 
+        const singleRow = missing === 1 ? uniqueIds[0] : null;
         setIsBackfilling(true);
+        if (singleRow) setIntervalsRowBusyId(singleRow);
         setBackfillProgress('Starting…');
         setBackfillOutcomes(null);
         try {
-            const snapshot = getActivitiesSnapshot();
-            const result = await applyIntervalsMapBackfill(snapshot, intervalsConfig, mergeProtectOpts, {
-                concurrency: 2,
+            const idSet = new Set(uniqueIds);
+            const subset = snapshot.filter((a) => idSet.has(String(a.id)));
+            const result = await applyIntervalsMapBackfill(subset, intervalsConfig, mergeProtectOpts, {
+                concurrency: singleRow ? 1 : 2,
                 delayMs: 120,
                 onProgress: (msg) => setBackfillProgress(msg),
             });
-            importActivities(result.activities);
+            const byId = new Map(result.activities.map((a) => [String(a.id), a]));
+            const fullNext = snapshot.map((a) => byId.get(String(a.id)) || a);
+            importActivities(fullNext);
             const added = result.updates?.length ?? 0;
             setBackfillOutcomes(result.outcomes || []);
-            runReport(result.activities, 'loaded');
+            runReport(fullNext, 'loaded');
+            if (singleRow) {
+                setIntervalsSelectedIds((prev) => {
+                    const next = new Set(prev);
+                    next.delete(singleRow);
+                    return next;
+                });
+            }
             const skipped = (result.outcomes || []).filter((o) => o.status === 'skipped').length;
-            const parts = [
-                added > 0 ? `${added} route map(s) added` : 'No new polylines from Intervals',
-                skipped > 0 ? `${skipped} skipped (see per-activity reasons below)` : null,
-                result.failed > 0 ? `${result.failed} failed` : null,
-            ].filter(Boolean);
-            showToast(`Intervals route backfill done: ${parts.join(', ')}.`, {
-                variant: result.failed > 0 ? 'warning' : 'success',
-            });
+            if (singleRow) {
+                const rowOutcome = (result.outcomes || []).find((o) => String(o.id) === singleRow);
+                if (added > 0) {
+                    showToast('Route map saved from Intervals.icu for this ride.', { variant: 'success' });
+                } else {
+                    showToast(rowOutcome?.message || 'No GPS track returned from Intervals for this ride.', {
+                        variant: 'warning',
+                    });
+                }
+            } else {
+                const parts = [
+                    added > 0 ? `${added} route map(s) added` : 'No new polylines from Intervals',
+                    skipped > 0 ? `${skipped} skipped (see per-activity reasons below)` : null,
+                    result.failed > 0 ? `${result.failed} failed` : null,
+                ].filter(Boolean);
+                showToast(`Intervals route backfill done: ${parts.join(', ')}.`, {
+                    variant: result.failed > 0 ? 'warning' : 'success',
+                });
+            }
         } catch (err) {
             console.error('[RouteMapCoverage] backfill failed:', err);
             showToast('Could not fetch route maps from Intervals. Check your API key and connection.', {
@@ -236,19 +296,32 @@ export default function RouteMapCoverageSettings({
             });
         } finally {
             setIsBackfilling(false);
+            setIntervalsRowBusyId(null);
             setBackfillProgress(null);
         }
     }, [
+        backfillPlan.toFetch,
         confirm,
         getActivitiesSnapshot,
         importActivities,
         intervalsConfig,
         mergeProtectOpts,
-        backfillEligibleCount,
         reportSource,
         runReport,
         showToast,
     ]);
+
+    const handleBackfillIntervalsMaps = useCallback(() => {
+        const selected = intervalsFetchEligibleIds.filter((id) => intervalsSelectedIds.has(id));
+        if (selected.length > 0) {
+            return runIntervalsMapBackfillForIds(selected);
+        }
+        return runIntervalsMapBackfillForIds([], { allowAllEligible: true });
+    }, [intervalsFetchEligibleIds, intervalsSelectedIds, runIntervalsMapBackfillForIds]);
+
+    const handleIntervalsMapBackfillOne = useCallback((activityId) => {
+        runIntervalsMapBackfillForIds([String(activityId)]);
+    }, [runIntervalsMapBackfillForIds]);
 
     const runStravaMapBackfillForIds = useCallback(async (ids) => {
         if (!stravaGetToken) {
@@ -407,16 +480,28 @@ export default function RouteMapCoverageSettings({
                                     className="mt-1 max-h-[min(60vh,28rem)] overflow-y-auto text-xs text-cdmuted space-y-1 border-t border-cdborder/50 pt-2 pr-1"
                                     aria-label="Activities without route polyline"
                                 >
-                                    {stravaEnrichEligibleIds.length > 0 && (
-                                        <li className="list-none font-sans pb-1">
-                                            <Button
-                                                type="button"
-                                                variant="text"
-                                                className="text-xs h-7 px-1"
-                                                onClick={selectAllStravaEnrich}
-                                            >
-                                                Select all Strava enrich ({stravaEnrichEligibleIds.length})
-                                            </Button>
+                                    {(stravaEnrichEligibleIds.length > 0 || intervalsFetchEligibleIds.length > 0) && (
+                                        <li className="list-none font-sans pb-1 flex flex-wrap gap-x-3 gap-y-1">
+                                            {stravaEnrichEligibleIds.length > 0 && (
+                                                <Button
+                                                    type="button"
+                                                    variant="text"
+                                                    className="text-xs h-7 px-1"
+                                                    onClick={selectAllStravaEnrich}
+                                                >
+                                                    Select all Strava enrich ({stravaEnrichEligibleIds.length})
+                                                </Button>
+                                            )}
+                                            {intervalsFetchEligibleIds.length > 0 && (
+                                                <Button
+                                                    type="button"
+                                                    variant="text"
+                                                    className="text-xs h-7 px-1"
+                                                    onClick={selectAllIntervalsFetch}
+                                                >
+                                                    Select all Intervals fetch ({intervalsFetchEligibleIds.length})
+                                                </Button>
+                                            )}
                                         </li>
                                     )}
                                     {missingRows.map((row) => {
@@ -426,8 +511,10 @@ export default function RouteMapCoverageSettings({
                                         const hint = row.mapBackfillHint
                                             || mapBackfillHintById.get(String(row.id));
                                         const isStravaRow = row.mapBackfillAction === 'strava_enrich';
+                                        const isIntervalsRow = row.mapBackfillAction === 'intervals_fetch';
                                         const rowId = String(row.id);
                                         const isRowStravaBusy = stravaRowBusyId === rowId;
+                                        const isRowIntervalsBusy = intervalsRowBusyId === rowId;
                                         const actionBadge = row.mapBackfillAction === 'intervals_fetch'
                                             ? 'Intervals'
                                             : isStravaRow
@@ -437,13 +524,25 @@ export default function RouteMapCoverageSettings({
                                                     : null;
                                         return (
                                             <li key={`${row.id}-${date}`} className="font-mono break-all flex gap-2 items-start">
-                                                {isStravaRow && reportSource === 'loaded' && (
+                                                {reportSource === 'loaded' && (isStravaRow || isIntervalsRow) && (
                                                     <input
                                                         type="checkbox"
                                                         className="mt-0.5 shrink-0"
-                                                        checked={stravaSelectedIds.has(String(row.id))}
-                                                        onChange={() => toggleStravaSelect(row.id)}
-                                                        aria-label={`Select ${title} for Strava map enrich`}
+                                                        checked={
+                                                            isStravaRow
+                                                                ? stravaSelectedIds.has(rowId)
+                                                                : intervalsSelectedIds.has(rowId)
+                                                        }
+                                                        onChange={() => (
+                                                            isStravaRow
+                                                                ? toggleStravaSelect(row.id)
+                                                                : toggleIntervalsSelect(row.id)
+                                                        )}
+                                                        aria-label={
+                                                            isStravaRow
+                                                                ? `Select ${title} for Strava map enrich`
+                                                                : `Select ${title} for Intervals map fetch`
+                                                        }
                                                     />
                                                 )}
                                                 <div className="min-w-0 flex-1">
@@ -481,6 +580,33 @@ export default function RouteMapCoverageSettings({
                                                             </>
                                                         ) : (
                                                             'Strava enrich'
+                                                        )}
+                                                    </Button>
+                                                )}
+                                                {isIntervalsRow && reportSource === 'loaded' && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="outlined"
+                                                        className="!text-[10px] !h-7 !px-2 shrink-0 font-sans"
+                                                        disabled={
+                                                            !intervalsConfig?.apiKey
+                                                            || isBackfilling
+                                                            || isStravaBackfilling
+                                                        }
+                                                        title={
+                                                            intervalsConfig?.apiKey
+                                                                ? 'Fetch and store intervals_map from Intervals.icu'
+                                                                : 'Add Intervals API key under Settings → Integrations'
+                                                        }
+                                                        onClick={() => handleIntervalsMapBackfillOne(row.id)}
+                                                    >
+                                                        {isRowIntervalsBusy ? (
+                                                            <>
+                                                                <Loader2 size={12} className="animate-spin" aria-hidden />
+                                                                …
+                                                            </>
+                                                        ) : (
+                                                            'Fetch map'
                                                         )}
                                                     </Button>
                                                 )}
@@ -535,7 +661,12 @@ export default function RouteMapCoverageSettings({
                                         type="button"
                                         variant="tonal"
                                         className="w-full sm:w-auto"
-                                        disabled={!canBackfillLoaded || isBackfilling || isStravaBackfilling}
+                                        disabled={
+                                            !canBackfillLoaded
+                                            || isBackfilling
+                                            || isStravaBackfilling
+                                            || intervalsRowBusyId != null
+                                        }
                                         onClick={handleBackfillIntervalsMaps}
                                     >
                                         {isBackfilling ? (
@@ -543,8 +674,10 @@ export default function RouteMapCoverageSettings({
                                                 <Loader2 size={14} className="animate-spin" aria-hidden />
                                                 Fetching…
                                             </>
+                                        ) : intervalsFetchSelectedCount > 0 ? (
+                                            `Fetch Intervals maps for selected (${intervalsFetchSelectedCount})`
                                         ) : (
-                                            `Fetch Intervals maps for missing rides (${backfillEligibleCount})`
+                                            `Fetch Intervals maps for all eligible (${backfillEligibleCount})`
                                         )}
                                     </Button>
                                     {backfillProgress && (
