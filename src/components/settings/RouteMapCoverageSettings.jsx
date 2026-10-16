@@ -13,7 +13,8 @@ import { useConfirm } from '../../context/ConfirmContext';
 import { useActivities } from '../../hooks/useActivities';
 import { buildMergeProtectOpts } from '../../utils/mergeProtectOptions.js';
 import { applyIntervalsMapBackfill } from '../../utils/intervalsMapBackfillApply.js';
-import { filterActivitiesForIntervalsMapBackfill } from '../../utils/intervalsMapEnrich.js';
+import { planIntervalsMapBackfillFromActivities } from '../../utils/intervalsMapBackfillOutcomes.js';
+import RouteMapBackfillResults from './RouteMapBackfillResults.jsx';
 
 const BACKFILL_CONFIRM_THRESHOLD = 25;
 
@@ -30,6 +31,7 @@ export default function RouteMapCoverageSettings({ activities, intervalsConfig, 
     const [reportSource, setReportSource] = useState('loaded');
     const [backfillProgress, setBackfillProgress] = useState(null);
     const [isBackfilling, setIsBackfilling] = useState(false);
+    const [backfillOutcomes, setBackfillOutcomes] = useState(null);
 
     const mergeProtectOpts = useMemo(
         () => buildMergeProtectOpts(userSettings),
@@ -94,10 +96,30 @@ export default function RouteMapCoverageSettings({ activities, intervalsConfig, 
 
     const missingRows = report?.missingActivities ?? [];
 
-    const backfillEligibleCount = useMemo(() => {
-        if (reportSource !== 'loaded') return 0;
-        return filterActivitiesForIntervalsMapBackfill(activities).length;
+    const backfillPlan = useMemo(() => {
+        if (reportSource !== 'loaded') {
+            return { toFetch: [], preSkipped: [] };
+        }
+        return planIntervalsMapBackfillFromActivities(activities);
     }, [activities, reportSource]);
+
+    const backfillEligibleCount = backfillPlan.toFetch.length;
+    const backfillPrecheckSkippedCount = backfillPlan.preSkipped.length;
+
+    const mapBackfillHintById = useMemo(() => {
+        const hints = new Map();
+        for (const row of backfillPlan.preSkipped) {
+            hints.set(String(row.id), row.message);
+        }
+        if (backfillOutcomes) {
+            for (const row of backfillOutcomes) {
+                if (row.status !== 'added') {
+                    hints.set(String(row.id), row.message);
+                }
+            }
+        }
+        return hints;
+    }, [backfillPlan.preSkipped, backfillOutcomes]);
 
     const pct = report && report.total > 0
         ? Math.round((report.withRouteMap / report.total) * 100)
@@ -151,6 +173,7 @@ export default function RouteMapCoverageSettings({ activities, intervalsConfig, 
 
         setIsBackfilling(true);
         setBackfillProgress('Starting…');
+        setBackfillOutcomes(null);
         try {
             const snapshot = getActivitiesSnapshot();
             const result = await applyIntervalsMapBackfill(snapshot, intervalsConfig, mergeProtectOpts, {
@@ -160,10 +183,12 @@ export default function RouteMapCoverageSettings({ activities, intervalsConfig, 
             });
             importActivities(result.activities);
             const added = result.updates?.length ?? 0;
+            setBackfillOutcomes(result.outcomes || []);
             runReport(result.activities, 'loaded');
+            const skipped = (result.outcomes || []).filter((o) => o.status === 'skipped').length;
             const parts = [
                 added > 0 ? `${added} route map(s) added` : 'No new polylines from Intervals',
-                result.unchanged > 0 ? `${result.unchanged} unchanged` : null,
+                skipped > 0 ? `${skipped} skipped (see per-activity reasons below)` : null,
                 result.failed > 0 ? `${result.failed} failed` : null,
             ].filter(Boolean);
             showToast(`Intervals route backfill done: ${parts.join(', ')}.`, {
@@ -279,9 +304,13 @@ export default function RouteMapCoverageSettings({ activities, intervalsConfig, 
                                         const date = row.date ? String(row.date).split('T')[0] : '?';
                                         const title = row.title || '(no title)';
                                         const type = row.type ? ` · ${row.type}` : '';
+                                        const hint = mapBackfillHintById.get(String(row.id));
                                         return (
                                             <li key={`${row.id}-${date}`} className="font-mono break-all">
                                                 {date} · {row.id} · {title}{type}
+                                                {hint && (
+                                                    <div className="font-sans text-amber-500/90 mt-0.5">{hint}</div>
+                                                )}
                                             </li>
                                         );
                                     })}
@@ -291,8 +320,15 @@ export default function RouteMapCoverageSettings({ activities, intervalsConfig, 
                                 <div className="border-t border-cdborder/50 pt-3">
                                     <p className="text-xs text-cdmuted mb-2">
                                         Fetch encoded polylines from Intervals.icu for rides that have no Strava or Intervals map yet
-                                        (same step as Intervals sync/import). Runs in this tab — do not close the browser until done.
+                                        (includes indoor and virtual rides when Intervals has GPS). Manual or CSV-only entries are skipped
+                                        with an explicit reason per activity. Keep this tab open until the job finishes.
                                     </p>
+                                    {backfillPrecheckSkippedCount > 0 && (
+                                        <p className="text-xs text-amber-500/90 mb-2">
+                                            {backfillEligibleCount} Intervals ride(s) can be fetched; {backfillPrecheckSkippedCount} missing
+                                            ride(s) are not Intervals activities and will not be called (reason shown in the list).
+                                        </p>
+                                    )}
                                     {!intervalsConfig?.apiKey && (
                                         <p className="text-xs text-amber-500/90 mb-2">
                                             Connect Intervals under Settings → Integrations to enable bulk fetch.
@@ -317,6 +353,10 @@ export default function RouteMapCoverageSettings({ activities, intervalsConfig, 
                                     {backfillProgress && (
                                         <p className="text-xs text-cdmuted mt-2 font-mono">{backfillProgress}</p>
                                     )}
+                                    <RouteMapBackfillResults
+                                        outcomes={backfillOutcomes}
+                                        onClose={() => setBackfillOutcomes(null)}
+                                    />
                                 </div>
                             )}
                         </div>
