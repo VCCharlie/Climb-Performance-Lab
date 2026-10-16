@@ -43,6 +43,8 @@ describe('pickMergePairSides', () => {
       strava_id: '555',
       load: 53,
       distance: 0,
+      intervals_map: 'encodedPolyline',
+      climbing: 1200,
       moving_time: '43:21',
       type: 'VirtualRide',
     };
@@ -51,6 +53,7 @@ describe('pickMergePairSides', () => {
       date: '2019-05-04',
       title: 'FulGaz - Col du Chaussy',
       distance: 10,
+      climbing: 4,
       gear_name: 'Gilbertson Allure',
       load: 0,
       moving_time: '43:21',
@@ -60,6 +63,30 @@ describe('pickMergePairSides', () => {
     expect(sides.error).toBeUndefined();
     expect(sides.primary.id).toBe('i100');
     expect(sides.secondary.id).toBe('i200');
+  });
+
+  it('prefers distance when neither Intervals duplicate has a stored polyline', () => {
+    const sides = pickMergePairSides(
+      {
+        id: 'i100',
+        date: '2019-05-04',
+        title: 'FulGaz - Col du Chaussy',
+        strava_id: '555',
+        load: 53,
+        distance: 0,
+        moving_time: '43:21',
+        type: 'VirtualRide',
+      },
+      {
+        id: 'i200',
+        date: '2019-05-04',
+        title: 'FulGaz - Col du Chaussy',
+        distance: 10,
+        moving_time: '43:21',
+        type: 'VirtualRide',
+      },
+    );
+    expect(sides.primary.id).toBe('i200');
   });
 
   it('rejects unrelated pair', () => {

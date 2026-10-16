@@ -53,6 +53,7 @@ export function useDataHubBulkActions({
     const [showMergeModal, setShowMergeModal] = useState(false);
     const [mergeError, setMergeError] = useState(null);
     const [isMerging, setIsMerging] = useState(false);
+    const [mergeKeeperSwapped, setMergeKeeperSwapped] = useState(false);
     const [showBulkEditModal, setShowBulkEditModal] = useState(false);
     const [isBulkSaving, setIsBulkSaving] = useState(false);
     const [isStravaEnriching, setIsStravaEnriching] = useState(false);
@@ -142,7 +143,7 @@ export function useDataHubBulkActions({
         }
     }, [bulkSelectedIds, onDelete, setIsDeleting, confirm, showToast]);
 
-    const mergePairPreview = useMemo(() => {
+    const mergePairPreviewBase = useMemo(() => {
         if (selectedActivitiesForBulk.length !== 2) return null;
         const [x, y] = selectedActivitiesForBulk;
         const sides = pickMergePairSides(x, y);
@@ -150,11 +151,46 @@ export function useDataHubBulkActions({
         const { primary, secondary } = sides;
         try {
             const merged = mergeActivitiesIntervalsPrimary(primary, secondary);
-            return { intervals: primary, stravaSide: secondary, merged };
+            return { keeper: primary, duplicate: secondary, merged };
         } catch (e) {
             return { error: e.message || 'Merge failed' };
         }
     }, [selectedActivitiesForBulk]);
+
+    const mergePairPreview = useMemo(() => {
+        if (!mergePairPreviewBase || mergePairPreviewBase.error) return mergePairPreviewBase;
+        if (!mergeKeeperSwapped) {
+            return {
+                ...mergePairPreviewBase,
+                intervals: mergePairPreviewBase.keeper,
+                stravaSide: mergePairPreviewBase.duplicate,
+            };
+        }
+        const keeper = mergePairPreviewBase.duplicate;
+        const duplicate = mergePairPreviewBase.keeper;
+        try {
+            const merged = mergeActivitiesIntervalsPrimary(keeper, duplicate);
+            return {
+                keeper,
+                duplicate,
+                merged,
+                intervals: keeper,
+                stravaSide: duplicate,
+            };
+        } catch (e) {
+            return { error: e.message || 'Merge failed' };
+        }
+    }, [mergePairPreviewBase, mergeKeeperSwapped]);
+
+    const openMergeModal = useCallback(() => {
+        setMergeKeeperSwapped(false);
+        setMergeError(null);
+        setShowMergeModal(true);
+    }, []);
+
+    const swapMergeKeeper = useCallback(() => {
+        setMergeKeeperSwapped((v) => !v);
+    }, []);
 
     const canMergePair = Boolean(
         selectedActivitiesForBulk.length === 2
@@ -572,11 +608,6 @@ export function useDataHubBulkActions({
         await handleBulkApplyPatch({ type: typeValue });
     }, [selectedActivitiesForBulk, handleBulkApplyPatch, confirm]);
 
-    const openMergeModal = useCallback(() => {
-        setMergeError(null);
-        setShowMergeModal(true);
-    }, []);
-
     const closeMergeModal = useCallback(() => {
         setShowMergeModal(false);
         setMergeError(null);
@@ -601,6 +632,7 @@ export function useDataHubBulkActions({
         isMerging,
         confirmMergePair,
         openMergeModal,
+        swapMergeKeeper,
         closeMergeModal,
         markBulkRecovery,
         handleBulkApplyPatch,

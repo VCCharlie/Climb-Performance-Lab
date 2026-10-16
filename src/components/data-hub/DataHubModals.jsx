@@ -105,6 +105,7 @@ export default function DataHubModals({
                 hasDb={!!db}
                 onClose={bulk.closeMergeModal}
                 onConfirm={bulk.confirmMergePair}
+                onSwapKeeper={bulk.swapMergeKeeper}
             />
         </>
     );
