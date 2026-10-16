@@ -39,6 +39,7 @@ export default function RouteMapCoverageSettings({
     const [isBackfilling, setIsBackfilling] = useState(false);
     const [backfillOutcomes, setBackfillOutcomes] = useState(null);
     const [isStravaBackfilling, setIsStravaBackfilling] = useState(false);
+    const [stravaRowBusyId, setStravaRowBusyId] = useState(null);
     const [stravaSelectedIds, setStravaSelectedIds] = useState(() => new Set());
 
     const mergeProtectOpts = useMemo(
@@ -249,7 +250,7 @@ export default function RouteMapCoverageSettings({
         showToast,
     ]);
 
-    const handleStravaMapBackfill = useCallback(async () => {
+    const runStravaMapBackfillForIds = useCallback(async (ids) => {
         if (!stravaGetToken) {
             showToast('Connect Strava under Settings → Integrations first.', { variant: 'warning' });
             return;
@@ -258,21 +259,23 @@ export default function RouteMapCoverageSettings({
             showToast('Run “Check loaded activities” first.', { variant: 'warning' });
             return;
         }
-        const ids = stravaEnrichEligibleIds.filter((id) => stravaSelectedIds.has(id));
-        if (ids.length === 0) {
+        const uniqueIds = [...new Set((ids || []).map(String))].filter(Boolean);
+        if (uniqueIds.length === 0) {
             showToast('Select one or more Strava-linked rides (checkboxes in the list).', { variant: 'warning' });
             return;
         }
 
+        const singleRow = uniqueIds.length === 1 ? uniqueIds[0] : null;
         setIsStravaBackfilling(true);
+        if (singleRow) setStravaRowBusyId(singleRow);
         setBackfillProgress('Starting Strava enrich…');
         setBackfillOutcomes(null);
         try {
             const snapshot = getActivitiesSnapshot();
-            const idSet = new Set(ids);
+            const idSet = new Set(uniqueIds);
             const subset = snapshot.filter((a) => idSet.has(String(a.id)));
             const result = await applyStravaMapBackfill(subset, stravaGetToken, mergeProtectOpts, {
-                concurrency: 3,
+                concurrency: singleRow ? 1 : 3,
                 onProgress: (msg) => setBackfillProgress(msg),
             });
             importActivities(result.activities);
@@ -280,15 +283,23 @@ export default function RouteMapCoverageSettings({
             const byId = new Map(result.activities.map((a) => [String(a.id), a]));
             const fullNext = snapshot.map((a) => byId.get(String(a.id)) || a);
             runReport(fullNext, 'loaded');
-            showToast(
-                `Strava map backfill done: ${result.mapsAdded} route map(s) stored.`,
-                { variant: result.mapsAdded > 0 ? 'success' : 'warning' },
-            );
+            if (singleRow) {
+                setStravaSelectedIds((prev) => {
+                    const next = new Set(prev);
+                    next.delete(singleRow);
+                    return next;
+                });
+            }
+            const toastLabel = singleRow
+                ? (result.mapsAdded > 0 ? 'Route map stored for this ride.' : 'No route map returned from Strava for this ride.')
+                : `Strava map backfill done: ${result.mapsAdded} route map(s) stored.`;
+            showToast(toastLabel, { variant: result.mapsAdded > 0 ? 'success' : 'warning' });
         } catch (err) {
             console.error('[RouteMapCoverage] Strava backfill failed:', err);
             showToast('Strava map backfill failed. Check Strava connection and try again.', { variant: 'error' });
         } finally {
             setIsStravaBackfilling(false);
+            setStravaRowBusyId(null);
             setBackfillProgress(null);
         }
     }, [
@@ -298,10 +309,17 @@ export default function RouteMapCoverageSettings({
         reportSource,
         runReport,
         showToast,
-        stravaEnrichEligibleIds,
         stravaGetToken,
-        stravaSelectedIds,
     ]);
+
+    const handleStravaMapBackfill = useCallback(() => {
+        const ids = stravaEnrichEligibleIds.filter((id) => stravaSelectedIds.has(id));
+        return runStravaMapBackfillForIds(ids);
+    }, [runStravaMapBackfillForIds, stravaEnrichEligibleIds, stravaSelectedIds]);
+
+    const handleStravaMapBackfillOne = useCallback((activityId) => {
+        runStravaMapBackfillForIds([String(activityId)]);
+    }, [runStravaMapBackfillForIds]);
 
     return (
         <div className="rounded-cdlg border border-cdborder bg-cdsurface p-6">
@@ -408,6 +426,8 @@ export default function RouteMapCoverageSettings({
                                         const hint = row.mapBackfillHint
                                             || mapBackfillHintById.get(String(row.id));
                                         const isStravaRow = row.mapBackfillAction === 'strava_enrich';
+                                        const rowId = String(row.id);
+                                        const isRowStravaBusy = stravaRowBusyId === rowId;
                                         const actionBadge = row.mapBackfillAction === 'intervals_fetch'
                                             ? 'Intervals'
                                             : isStravaRow
@@ -437,6 +457,33 @@ export default function RouteMapCoverageSettings({
                                                         <div className="font-sans text-amber-500/90 mt-0.5">{hint}</div>
                                                     )}
                                                 </div>
+                                                {isStravaRow && reportSource === 'loaded' && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="outlined"
+                                                        className="!text-[10px] !h-7 !px-2 shrink-0 font-sans"
+                                                        disabled={
+                                                            !stravaGetToken
+                                                            || isStravaBackfilling
+                                                            || isBackfilling
+                                                        }
+                                                        title={
+                                                            stravaGetToken
+                                                                ? 'Fetch and store strava_map for this ride'
+                                                                : 'Connect Strava under Settings → Integrations'
+                                                        }
+                                                        onClick={() => handleStravaMapBackfillOne(row.id)}
+                                                    >
+                                                        {isRowStravaBusy ? (
+                                                            <>
+                                                                <Loader2 size={12} className="animate-spin" aria-hidden />
+                                                                …
+                                                            </>
+                                                        ) : (
+                                                            'Strava enrich'
+                                                        )}
+                                                    </Button>
+                                                )}
                                             </li>
                                         );
                                     })}
@@ -470,6 +517,7 @@ export default function RouteMapCoverageSettings({
                                                 || isStravaBackfilling
                                                 || isBackfilling
                                                 || stravaEnrichSelectedCount === 0
+                                                || stravaRowBusyId != null
                                             }
                                             onClick={handleStravaMapBackfill}
                                         >
