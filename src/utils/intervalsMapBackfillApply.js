@@ -56,5 +56,6 @@ export async function applyIntervalsMapBackfill(activities, intervalsConfig, mer
         ridesProcessed: mapResult.ridesProcessed,
         unchanged: mapResult.unchanged,
         failed: mapResult.failed,
+        outcomes: mapResult.outcomes || [],
     };
 }

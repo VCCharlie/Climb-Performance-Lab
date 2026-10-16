@@ -3,7 +3,12 @@
  */
 
 import { stripUndefinedFields } from './mergeActivities.js';
-import { fetchIntervalsActivityMapPolyline } from './intervalsMapFetch.js';
+import { fetchIntervalsActivityMapPolylineDetailed } from './intervalsMapFetch.js';
+import {
+    buildMapBackfillOutcome,
+    planIntervalsMapBackfillFromActivities,
+} from './intervalsMapBackfillOutcomes.js';
+import { MAP_BACKFILL_CODE } from './intervalsMapBackfillCodes.js';
 
 /**
  * @param {object | null | undefined} activity
@@ -49,9 +54,9 @@ export async function enrichActivityMapFromIntervals(activity, intervalsConfig) 
     if (!activityNeedsIntervalsMapPolyline(activity) || !intervalsConfig?.apiKey) {
         return stripUndefinedFields({ ...activity });
     }
-    const poly = await fetchIntervalsActivityMapPolyline(String(activity.id), intervalsConfig);
-    if (!poly) return stripUndefinedFields({ ...activity });
-    return stripUndefinedFields({ ...activity, intervals_map: poly });
+    const fetchResult = await fetchIntervalsActivityMapPolylineDetailed(String(activity.id), intervalsConfig);
+    if (!fetchResult.polyline) return stripUndefinedFields({ ...activity });
+    return stripUndefinedFields({ ...activity, intervals_map: fetchResult.polyline });
 }
 
 /**
@@ -61,9 +66,26 @@ export async function enrichActivityMapFromIntervals(activity, intervalsConfig) 
  */
 export async function buildIntervalsMapEnrichmentUpdates(siteActivities, intervalsConfig, opts = {}) {
     const conc = Math.max(1, Math.min(4, opts.concurrency ?? 2));
-    const list = filterActivitiesForIntervalsMapBackfill(siteActivities);
-    if (!intervalsConfig?.apiKey || list.length === 0) {
-        return { updates: [], ridesProcessed: 0, unchanged: 0, failed: 0 };
+    const plan = planIntervalsMapBackfillFromActivities(siteActivities);
+    /** @type {import('./intervalsMapBackfillOutcomes.js').IntervalsMapBackfillOutcome[]} */
+    const outcomes = [...plan.preSkipped];
+
+    if (!intervalsConfig?.apiKey) {
+        for (const act of plan.toFetch) {
+            outcomes.push(buildMapBackfillOutcome(act, 'skipped', MAP_BACKFILL_CODE.MISSING_API_KEY));
+        }
+        return {
+            updates: [],
+            ridesProcessed: 0,
+            unchanged: 0,
+            failed: 0,
+            outcomes,
+        };
+    }
+
+    const list = plan.toFetch;
+    if (list.length === 0) {
+        return { updates: [], ridesProcessed: 0, unchanged: 0, failed: 0, outcomes };
     }
 
     opts.onProgress?.(`Intervals route map: ${list.length} ride(s)…`);
@@ -72,6 +94,7 @@ export async function buildIntervalsMapEnrichmentUpdates(siteActivities, interva
     let unchanged = 0;
     let failed = 0;
     let idx = 0;
+    const fetchOutcomes = new Array(list.length);
 
     async function worker() {
         while (idx < list.length) {
@@ -79,15 +102,37 @@ export async function buildIntervalsMapEnrichmentUpdates(siteActivities, interva
             idx += 1;
             const act = list[i];
             try {
-                const enriched = await enrichActivityMapFromIntervals(act, intervalsConfig);
-                const poly = enriched.intervals_map;
-                if (!poly || String(act.intervals_map || '') === String(poly)) {
+                const fetchResult = await fetchIntervalsActivityMapPolylineDetailed(String(act.id), intervalsConfig);
+                const poly = fetchResult.polyline;
+                if (poly && String(act.intervals_map || '') !== String(poly)) {
+                    updates.push({ id: act.id, data: { intervals_map: poly } });
+                    fetchOutcomes[i] = buildMapBackfillOutcome(act, 'added', MAP_BACKFILL_CODE.ADDED);
+                } else if (
+                    fetchResult.code === MAP_BACKFILL_CODE.NO_GPS_DATA
+                    || fetchResult.code === MAP_BACKFILL_CODE.NOT_INTERVALS_ACTIVITY
+                ) {
                     unchanged += 1;
-                    continue;
+                    fetchOutcomes[i] = buildMapBackfillOutcome(
+                        act,
+                        'skipped',
+                        fetchResult.code,
+                        { httpStatus: fetchResult.httpStatus },
+                    );
+                } else if (!poly) {
+                    failed += 1;
+                    fetchOutcomes[i] = buildMapBackfillOutcome(
+                        act,
+                        'failed',
+                        fetchResult.code,
+                        { httpStatus: fetchResult.httpStatus },
+                    );
+                } else {
+                    unchanged += 1;
+                    fetchOutcomes[i] = buildMapBackfillOutcome(act, 'skipped', MAP_BACKFILL_CODE.NO_GPS_DATA);
                 }
-                updates.push({ id: act.id, data: { intervals_map: poly } });
             } catch {
                 failed += 1;
+                fetchOutcomes[i] = buildMapBackfillOutcome(act, 'failed', MAP_BACKFILL_CODE.NETWORK_ERROR);
             }
             if (opts.delayMs) {
                 await new Promise((r) => setTimeout(r, opts.delayMs));
@@ -103,6 +148,7 @@ export async function buildIntervalsMapEnrichmentUpdates(siteActivities, interva
         ridesProcessed: list.length,
         unchanged,
         failed,
+        outcomes: [...outcomes, ...fetchOutcomes.filter(Boolean)],
     };
 }
 
