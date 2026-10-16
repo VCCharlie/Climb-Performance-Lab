@@ -84,6 +84,28 @@ export function buildMapBackfillOutcome(activity, status, code, ctx = {}) {
  * @param {object[] | null | undefined} activities
  * @returns {{ toFetch: object[], preSkipped: IntervalsMapBackfillOutcome[] }}
  */
+/**
+ * @typedef {'intervals_fetch' | 'strava_enrich' | 'unavailable'} MissingRouteMapBackfillAction
+ */
+
+/**
+ * @param {object | null | undefined} activity
+ * @returns {{ action: MissingRouteMapBackfillAction, message?: string, code?: string }}
+ */
+export function classifyMissingRouteMapBackfillAction(activity) {
+    if (!activityNeedsIntervalsMapPolyline(activity)) {
+        return { action: 'unavailable', message: 'Already has a stored route map' };
+    }
+    const pre = precheckIntervalsMapBackfill(activity);
+    if (pre.canFetch) {
+        return { action: 'intervals_fetch' };
+    }
+    if (pre.code === MAP_BACKFILL_CODE.STRAVA_LINKED_NO_STORED_MAP) {
+        return { action: 'strava_enrich', message: pre.message, code: pre.code };
+    }
+    return { action: 'unavailable', message: pre.message, code: pre.code };
+}
+
 export function planIntervalsMapBackfillFromActivities(activities) {
     const list = Array.isArray(activities) ? activities : [];
     const needing = list.filter(activityNeedsIntervalsMapPolyline);

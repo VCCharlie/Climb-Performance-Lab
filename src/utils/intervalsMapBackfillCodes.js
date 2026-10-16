@@ -10,6 +10,7 @@ export const MAP_BACKFILL_CODE = {
     INTERVALS_HTTP_ERROR: 'intervals_http_error',
     NETWORK_ERROR: 'network_error',
     MISSING_API_KEY: 'missing_api_key',
+    STRAVA_NOT_CONNECTED: 'strava_not_connected',
 };
 
 /**
@@ -39,6 +40,8 @@ export function messageForMapBackfillCode(code, ctx = {}) {
             return 'Network error while calling Intervals.icu';
         case MAP_BACKFILL_CODE.MISSING_API_KEY:
             return 'Intervals API key is not configured';
+        case MAP_BACKFILL_CODE.STRAVA_NOT_CONNECTED:
+            return 'Connect Strava in Settings → Integrations to store route maps';
         default:
             return 'Could not fetch route map';
     }

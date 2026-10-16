@@ -206,4 +206,12 @@ describe('mergeActivitiesIntervalsPrimary', () => {
     expect(m.climbing).toBe(0);
     expect(m.climbing_from_strava).toBe(true);
   });
+
+  it('copies intervals_map from secondary when primary has none', () => {
+    const primary = { id: 'i1', title: 'Sparse', distance: 0 };
+    const secondary = { id: 'i2', title: 'Full', distance: 18.1, intervals_map: 'encodedPoly' };
+    const m = mergeActivitiesIntervalsPrimary(primary, secondary);
+    expect(m.intervals_map).toBe('encodedPoly');
+    expect(m.distance).toBe(18.1);
+  });
 });
