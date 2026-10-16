@@ -124,7 +124,10 @@ export async function buildIntervalsMapEnrichmentUpdates(siteActivities, interva
                         act,
                         'failed',
                         fetchResult.code,
-                        { httpStatus: fetchResult.httpStatus },
+                        {
+                            httpStatus: fetchResult.httpStatus,
+                            networkDetail: fetchResult.networkDetail,
+                        },
                     );
                 } else {
                     unchanged += 1;
