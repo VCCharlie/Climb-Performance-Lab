@@ -27,7 +27,7 @@ export function messageForMapBackfillCode(code, ctx = {}) {
         case MAP_BACKFILL_CODE.STRAVA_LINKED_NO_STORED_MAP:
             return 'Strava-linked ride — the map in activity detail is loaded live from Strava, not saved as strava_map yet. Use Activities → Strava enrich to store the polyline for coverage and Profiler';
         case MAP_BACKFILL_CODE.NO_GPS_DATA:
-            return 'Intervals.icu has no GPS track for this ride (no map to download)';
+            return 'Intervals.icu returned no usable GPS points for this ride (map API and lat/lng streams were empty)';
         case MAP_BACKFILL_CODE.INTERVALS_NOT_FOUND:
             return 'Activity not found on Intervals.icu (wrong id or deleted)';
         case MAP_BACKFILL_CODE.INTERVALS_FORBIDDEN:

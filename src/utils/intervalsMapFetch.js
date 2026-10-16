@@ -41,16 +41,87 @@ export function encodeGooglePolyline(latLngs) {
     return result || null;
 }
 
+/**
+ * Flatten Intervals map latlngs (may contain null segment gaps) into [lat, lng] pairs.
+ * @param {unknown} latlngs
+ * @returns {Array<[number, number]> | null}
+ */
+export function flattenLatLngPoints(latlngs) {
+    if (!Array.isArray(latlngs) || latlngs.length === 0) return null;
+    /** @type {Array<[number, number]>} */
+    const pairs = [];
+    for (const pt of latlngs) {
+        if (pt == null) continue;
+        if (Array.isArray(pt) && pt.length >= 2) {
+            const lat = Number(pt[0]);
+            const lon = Number(pt[1]);
+            if (Number.isFinite(lat) && Number.isFinite(lon)) pairs.push([lat, lon]);
+            continue;
+        }
+        if (typeof pt === 'object') {
+            const lat = Number(pt.lat);
+            const lon = Number(pt.lng ?? pt.lon);
+            if (Number.isFinite(lat) && Number.isFinite(lon)) pairs.push([lat, lon]);
+        }
+    }
+    return pairs.length > 0 ? pairs : null;
+}
+
+/**
+ * Intervals stream type `latlng` stores latitude in `data` and longitude in `data2` (parallel arrays).
+ * @param {object | null | undefined} stream
+ * @returns {Array<[number, number]> | null}
+ */
+export function latLngPairsFromIntervalsStream(stream) {
+    if (!stream || typeof stream !== 'object') return null;
+
+    const pairCandidates = flattenLatLngPoints(stream.data);
+    if (pairCandidates && pairCandidates.length >= 2) {
+        return pairCandidates;
+    }
+
+    const lats = stream.data;
+    const lngs = stream.data2;
+    if (Array.isArray(lats) && Array.isArray(lngs) && lats.length > 0 && lngs.length > 0) {
+        const pairs = [];
+        const n = Math.min(lats.length, lngs.length);
+        for (let i = 0; i < n; i += 1) {
+            const lat = Number(lats[i]);
+            const lon = Number(lngs[i]);
+            if (Number.isFinite(lat) && Number.isFinite(lon)) pairs.push([lat, lon]);
+        }
+        if (pairs.length >= 2) return pairs;
+    }
+
+    return flattenLatLngPoints(stream.latlng ?? stream.latlngs ?? stream);
+}
+
 function normalizeLatLngPayload(json) {
     if (!json) return null;
     if (Array.isArray(json)) {
         if (!json.length) return null;
-        if (Array.isArray(json[0])) return json;
-        if (json[0]?.lat != null && json[0]?.lng != null) return json.map((p) => [p.lat, p.lng]);
+        const first = json[0];
+        if (first != null && Array.isArray(first)) {
+            return flattenLatLngPoints(json);
+        }
+        if (first != null && typeof first === 'object' && first.lat != null && first.lng != null) {
+            return flattenLatLngPoints(json);
+        }
+        if (typeof first === 'number' && json.length >= 4 && json.length % 2 === 0) {
+            const pairs = [];
+            for (let i = 0; i < json.length; i += 2) {
+                const lat = Number(json[i]);
+                const lon = Number(json[i + 1]);
+                if (Number.isFinite(lat) && Number.isFinite(lon)) pairs.push([lat, lon]);
+            }
+            return pairs.length > 0 ? pairs : null;
+        }
+    }
+    if (typeof json === 'object' && json.data != null && json.data2 != null) {
+        return latLngPairsFromIntervalsStream(json);
     }
     const latlngs = json.latlngs || json.latlng || json.data;
-    if (Array.isArray(latlngs) && latlngs.length) return latlngs;
-    return null;
+    return flattenLatLngPoints(latlngs);
 }
 
 /**
@@ -131,9 +202,13 @@ export async function fetchIntervalsActivityMapPolylineDetailed(activityId, inte
             };
         }
         const json = await resp.json();
-        const stream = Array.isArray(json) ? json.find((s) => s.type === 'latlng') : json?.latlng;
-        const data = stream?.data || stream?.latlng || stream;
-        const latlngs = normalizeLatLngPayload(data);
+        let latlngs = null;
+        if (Array.isArray(json)) {
+            const stream = json.find((s) => String(s?.type || '').toLowerCase() === 'latlng');
+            latlngs = latLngPairsFromIntervalsStream(stream);
+        } else {
+            latlngs = latLngPairsFromIntervalsStream(json?.latlng) || normalizeLatLngPayload(json);
+        }
         const encoded = encodeGooglePolyline(latlngs);
         if (encoded) {
             return { polyline: encoded, code: MAP_BACKFILL_CODE.ADDED };
