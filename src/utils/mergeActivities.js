@@ -152,6 +152,9 @@ export function mergeActivitiesIntervalsPrimary(primary, secondary) {
         p.strava_id = norm || String(s.strava_id).trim();
     }
     if (s.strava_map) p.strava_map = s.strava_map;
+    const pIntervalsMap = p.intervals_map != null && String(p.intervals_map).trim() !== '';
+    const sIntervalsMap = s.intervals_map != null && String(s.intervals_map).trim() !== '';
+    if (!pIntervalsMap && sIntervalsMap) p.intervals_map = s.intervals_map;
     if (s.strava_kom_summary) p.strava_kom_summary = s.strava_kom_summary;
     if (s.gear_id) {
         p.gear_id = s.gear_id;

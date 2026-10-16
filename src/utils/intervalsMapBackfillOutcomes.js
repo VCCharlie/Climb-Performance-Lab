@@ -25,15 +25,37 @@ export { MAP_BACKFILL_CODE, messageForMapBackfillCode };
  * @param {object | null | undefined} activity
  * @returns {{ canFetch: boolean, code?: string, message?: string }}
  */
+/**
+ * @param {object | null | undefined} activity
+ * @returns {boolean}
+ */
+export function isStravaLinkedActivityWithoutStoredMap(activity) {
+    if (!activity || !activityNeedsIntervalsMapPolyline(activity)) return false;
+    const id = String(activity.id ?? '');
+    return Boolean(activity.strava_id) || id.startsWith('strava_');
+}
+
+/**
+ * @param {object | null | undefined} activity
+ * @returns {string}
+ */
+export function resolveNonIntervalsMapBackfillCode(activity) {
+    if (isStravaLinkedActivityWithoutStoredMap(activity)) {
+        return MAP_BACKFILL_CODE.STRAVA_LINKED_NO_STORED_MAP;
+    }
+    return MAP_BACKFILL_CODE.NOT_INTERVALS_ACTIVITY;
+}
+
 export function precheckIntervalsMapBackfill(activity) {
     if (!activityNeedsIntervalsMapPolyline(activity)) {
         return { canFetch: false, code: MAP_BACKFILL_CODE.NO_GPS_DATA, message: 'Already has a route map' };
     }
     if (!isIntervalsActivityId(activity?.id)) {
+        const code = resolveNonIntervalsMapBackfillCode(activity);
         return {
             canFetch: false,
-            code: MAP_BACKFILL_CODE.NOT_INTERVALS_ACTIVITY,
-            message: messageForMapBackfillCode(MAP_BACKFILL_CODE.NOT_INTERVALS_ACTIVITY),
+            code,
+            message: messageForMapBackfillCode(code),
         };
     }
     return { canFetch: true };
@@ -62,6 +84,28 @@ export function buildMapBackfillOutcome(activity, status, code, ctx = {}) {
  * @param {object[] | null | undefined} activities
  * @returns {{ toFetch: object[], preSkipped: IntervalsMapBackfillOutcome[] }}
  */
+/**
+ * @typedef {'intervals_fetch' | 'strava_enrich' | 'unavailable'} MissingRouteMapBackfillAction
+ */
+
+/**
+ * @param {object | null | undefined} activity
+ * @returns {{ action: MissingRouteMapBackfillAction, message?: string, code?: string }}
+ */
+export function classifyMissingRouteMapBackfillAction(activity) {
+    if (!activityNeedsIntervalsMapPolyline(activity)) {
+        return { action: 'unavailable', message: 'Already has a stored route map' };
+    }
+    const pre = precheckIntervalsMapBackfill(activity);
+    if (pre.canFetch) {
+        return { action: 'intervals_fetch' };
+    }
+    if (pre.code === MAP_BACKFILL_CODE.STRAVA_LINKED_NO_STORED_MAP) {
+        return { action: 'strava_enrich', message: pre.message, code: pre.code };
+    }
+    return { action: 'unavailable', message: pre.message, code: pre.code };
+}
+
 export function planIntervalsMapBackfillFromActivities(activities) {
     const list = Array.isArray(activities) ? activities : [];
     const needing = list.filter(activityNeedsIntervalsMapPolyline);
@@ -74,7 +118,10 @@ export function planIntervalsMapBackfillFromActivities(activities) {
         const pre = precheckIntervalsMapBackfill(act);
         if (pre.canFetch) {
             toFetch.push(act);
-        } else if (pre.code === MAP_BACKFILL_CODE.NOT_INTERVALS_ACTIVITY) {
+        } else if (
+            pre.code === MAP_BACKFILL_CODE.NOT_INTERVALS_ACTIVITY
+            || pre.code === MAP_BACKFILL_CODE.STRAVA_LINKED_NO_STORED_MAP
+        ) {
             preSkipped.push(buildMapBackfillOutcome(act, 'skipped', pre.code));
         }
     }

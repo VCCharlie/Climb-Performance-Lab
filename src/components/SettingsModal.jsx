@@ -673,6 +673,7 @@ const SettingsModal = ({
                             activities={activities}
                             intervalsConfig={intervalsConfig}
                             userSettings={userSettings}
+                            stravaGetToken={stravaAuth?.isConnected ? stravaAuth.getValidToken : null}
                         />
 
                         {onResetUserSettings && (

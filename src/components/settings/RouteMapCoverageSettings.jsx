@@ -13,6 +13,7 @@ import { useConfirm } from '../../context/ConfirmContext';
 import { useActivities } from '../../hooks/useActivities';
 import { buildMergeProtectOpts } from '../../utils/mergeProtectOptions.js';
 import { applyIntervalsMapBackfill } from '../../utils/intervalsMapBackfillApply.js';
+import { applyStravaMapBackfill } from '../../utils/stravaMapBackfillApply.js';
 import { planIntervalsMapBackfillFromActivities } from '../../utils/intervalsMapBackfillOutcomes.js';
 import RouteMapBackfillResults from './RouteMapBackfillResults.jsx';
 
@@ -21,7 +22,12 @@ const BACKFILL_CONFIRM_THRESHOLD = 25;
 /**
  * Backup tab helper: route polyline coverage (strava_map or intervals_map).
  */
-export default function RouteMapCoverageSettings({ activities, intervalsConfig, userSettings }) {
+export default function RouteMapCoverageSettings({
+    activities,
+    intervalsConfig,
+    userSettings,
+    stravaGetToken = null,
+}) {
     const { showToast } = useToast();
     const { confirm } = useConfirm();
     const { importActivities, getActivitiesSnapshot } = useActivities();
@@ -32,6 +38,8 @@ export default function RouteMapCoverageSettings({ activities, intervalsConfig, 
     const [backfillProgress, setBackfillProgress] = useState(null);
     const [isBackfilling, setIsBackfilling] = useState(false);
     const [backfillOutcomes, setBackfillOutcomes] = useState(null);
+    const [isStravaBackfilling, setIsStravaBackfilling] = useState(false);
+    const [stravaSelectedIds, setStravaSelectedIds] = useState(() => new Set());
 
     const mergeProtectOpts = useMemo(
         () => buildMergeProtectOpts(userSettings),
@@ -95,6 +103,32 @@ export default function RouteMapCoverageSettings({ activities, intervalsConfig, 
     }, [report]);
 
     const missingRows = report?.missingActivities ?? [];
+
+    const stravaEnrichEligibleIds = useMemo(
+        () => missingRows
+            .filter((row) => row.mapBackfillAction === 'strava_enrich')
+            .map((row) => String(row.id)),
+        [missingRows],
+    );
+
+    const stravaEnrichSelectedCount = useMemo(
+        () => stravaEnrichEligibleIds.filter((id) => stravaSelectedIds.has(id)).length,
+        [stravaEnrichEligibleIds, stravaSelectedIds],
+    );
+
+    const toggleStravaSelect = useCallback((id) => {
+        const key = String(id);
+        setStravaSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(key)) next.delete(key);
+            else next.add(key);
+            return next;
+        });
+    }, []);
+
+    const selectAllStravaEnrich = useCallback(() => {
+        setStravaSelectedIds(new Set(stravaEnrichEligibleIds));
+    }, [stravaEnrichEligibleIds]);
 
     const backfillPlan = useMemo(() => {
         if (reportSource !== 'loaded') {
@@ -215,6 +249,60 @@ export default function RouteMapCoverageSettings({ activities, intervalsConfig, 
         showToast,
     ]);
 
+    const handleStravaMapBackfill = useCallback(async () => {
+        if (!stravaGetToken) {
+            showToast('Connect Strava under Settings → Integrations first.', { variant: 'warning' });
+            return;
+        }
+        if (reportSource !== 'loaded') {
+            showToast('Run “Check loaded activities” first.', { variant: 'warning' });
+            return;
+        }
+        const ids = stravaEnrichEligibleIds.filter((id) => stravaSelectedIds.has(id));
+        if (ids.length === 0) {
+            showToast('Select one or more Strava-linked rides (checkboxes in the list).', { variant: 'warning' });
+            return;
+        }
+
+        setIsStravaBackfilling(true);
+        setBackfillProgress('Starting Strava enrich…');
+        setBackfillOutcomes(null);
+        try {
+            const snapshot = getActivitiesSnapshot();
+            const idSet = new Set(ids);
+            const subset = snapshot.filter((a) => idSet.has(String(a.id)));
+            const result = await applyStravaMapBackfill(subset, stravaGetToken, mergeProtectOpts, {
+                concurrency: 3,
+                onProgress: (msg) => setBackfillProgress(msg),
+            });
+            importActivities(result.activities);
+            setBackfillOutcomes(result.outcomes || []);
+            const byId = new Map(result.activities.map((a) => [String(a.id), a]));
+            const fullNext = snapshot.map((a) => byId.get(String(a.id)) || a);
+            runReport(fullNext, 'loaded');
+            showToast(
+                `Strava map backfill done: ${result.mapsAdded} route map(s) stored.`,
+                { variant: result.mapsAdded > 0 ? 'success' : 'warning' },
+            );
+        } catch (err) {
+            console.error('[RouteMapCoverage] Strava backfill failed:', err);
+            showToast('Strava map backfill failed. Check Strava connection and try again.', { variant: 'error' });
+        } finally {
+            setIsStravaBackfilling(false);
+            setBackfillProgress(null);
+        }
+    }, [
+        getActivitiesSnapshot,
+        importActivities,
+        mergeProtectOpts,
+        reportSource,
+        runReport,
+        showToast,
+        stravaEnrichEligibleIds,
+        stravaGetToken,
+        stravaSelectedIds,
+    ]);
+
     return (
         <div className="rounded-cdlg border border-cdborder bg-cdsurface p-6">
             <div className="flex items-center gap-2 pb-2 border-b border-cdborder/50 mb-4">
@@ -223,7 +311,8 @@ export default function RouteMapCoverageSettings({ activities, intervalsConfig, 
             </div>
             <p className="text-xs text-cdmuted mb-3 leading-relaxed">
                 Counts activities with a stored route polyline from Strava (<code className="text-cdtext">strava_map</code>)
-                or Intervals (<code className="text-cdtext">intervals_map</code>). Checks and bulk fetch run in this browser tab
+                or Intervals (<code className="text-cdtext">intervals_map</code>) saved on the activity. The map in an open activity
+                detail can still come from live Strava API without being stored. Checks and bulk fetch run in this browser tab
                 (calls Intervals.icu directly). Keep the tab open until the fetch finishes — closing it stops the job.
             </p>
             <div className="flex flex-col sm:flex-row gap-2">
@@ -300,17 +389,54 @@ export default function RouteMapCoverageSettings({ activities, intervalsConfig, 
                                     className="mt-1 max-h-[min(60vh,28rem)] overflow-y-auto text-xs text-cdmuted space-y-1 border-t border-cdborder/50 pt-2 pr-1"
                                     aria-label="Activities without route polyline"
                                 >
+                                    {stravaEnrichEligibleIds.length > 0 && (
+                                        <li className="list-none font-sans pb-1">
+                                            <Button
+                                                type="button"
+                                                variant="text"
+                                                className="text-xs h-7 px-1"
+                                                onClick={selectAllStravaEnrich}
+                                            >
+                                                Select all Strava enrich ({stravaEnrichEligibleIds.length})
+                                            </Button>
+                                        </li>
+                                    )}
                                     {missingRows.map((row) => {
                                         const date = row.date ? String(row.date).split('T')[0] : '?';
                                         const title = row.title || '(no title)';
                                         const type = row.type ? ` · ${row.type}` : '';
-                                        const hint = mapBackfillHintById.get(String(row.id));
+                                        const hint = row.mapBackfillHint
+                                            || mapBackfillHintById.get(String(row.id));
+                                        const isStravaRow = row.mapBackfillAction === 'strava_enrich';
+                                        const actionBadge = row.mapBackfillAction === 'intervals_fetch'
+                                            ? 'Intervals'
+                                            : isStravaRow
+                                                ? 'Strava enrich'
+                                                : row.mapBackfillAction === 'unavailable'
+                                                    ? 'No auto-fetch'
+                                                    : null;
                                         return (
-                                            <li key={`${row.id}-${date}`} className="font-mono break-all">
-                                                {date} · {row.id} · {title}{type}
-                                                {hint && (
-                                                    <div className="font-sans text-amber-500/90 mt-0.5">{hint}</div>
+                                            <li key={`${row.id}-${date}`} className="font-mono break-all flex gap-2 items-start">
+                                                {isStravaRow && reportSource === 'loaded' && (
+                                                    <input
+                                                        type="checkbox"
+                                                        className="mt-0.5 shrink-0"
+                                                        checked={stravaSelectedIds.has(String(row.id))}
+                                                        onChange={() => toggleStravaSelect(row.id)}
+                                                        aria-label={`Select ${title} for Strava map enrich`}
+                                                    />
                                                 )}
+                                                <div className="min-w-0 flex-1">
+                                                    {actionBadge && (
+                                                        <span className="font-sans text-[10px] uppercase font-bold text-cdaccent mr-1">
+                                                            [{actionBadge}]
+                                                        </span>
+                                                    )}
+                                                    {date} · {row.id} · {title}{type}
+                                                    {hint && (
+                                                        <div className="font-sans text-amber-500/90 mt-0.5">{hint}</div>
+                                                    )}
+                                                </div>
                                             </li>
                                         );
                                     })}
@@ -334,11 +460,34 @@ export default function RouteMapCoverageSettings({ activities, intervalsConfig, 
                                             Connect Intervals under Settings → Integrations to enable bulk fetch.
                                         </p>
                                     )}
+                                    {stravaEnrichEligibleIds.length > 0 && (
+                                        <Button
+                                            type="button"
+                                            variant="outlined"
+                                            className="w-full sm:w-auto mb-2"
+                                            disabled={
+                                                !stravaGetToken
+                                                || isStravaBackfilling
+                                                || isBackfilling
+                                                || stravaEnrichSelectedCount === 0
+                                            }
+                                            onClick={handleStravaMapBackfill}
+                                        >
+                                            {isStravaBackfilling ? (
+                                                <>
+                                                    <Loader2 size={14} className="animate-spin" aria-hidden />
+                                                    Strava enrich…
+                                                </>
+                                            ) : (
+                                                `Store Strava maps for selected (${stravaEnrichSelectedCount})`
+                                            )}
+                                        </Button>
+                                    )}
                                     <Button
                                         type="button"
                                         variant="tonal"
                                         className="w-full sm:w-auto"
-                                        disabled={!canBackfillLoaded || isBackfilling}
+                                        disabled={!canBackfillLoaded || isBackfilling || isStravaBackfilling}
                                         onClick={handleBackfillIntervalsMaps}
                                     >
                                         {isBackfilling ? (
