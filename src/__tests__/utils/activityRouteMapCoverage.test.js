@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
     activityHasRoutePolyline,
     getActivityRoutePolyline,
+    getActivityRoutePolylineForSource,
     getActivityRoutePolylineSource,
     summarizeActivityRouteMapCoverage,
     formatRouteMapCoverageSummary,
@@ -23,6 +24,14 @@ describe('activityRouteMapCoverage', () => {
         })).toBe('abc');
         expect(getActivityRoutePolyline({ id: '1', intervals_map: 'xyz' })).toBe('xyz');
         expect(activityHasRoutePolyline({ id: '1', intervals_map: 'xyz' })).toBe(true);
+    });
+
+    it('getActivityRoutePolylineForSource respects route source', () => {
+        const act = { id: '1', strava_map: 's', intervals_map: 'i' };
+        expect(getActivityRoutePolylineForSource(act, 'strava')).toBe('s');
+        expect(getActivityRoutePolylineForSource(act, 'intervals')).toBe('i');
+        expect(getActivityRoutePolylineForSource(act, 'cpl')).toBe('s');
+        expect(getActivityRoutePolylineForSource({ id: '2', intervals_map: 'i' }, 'strava')).toBe(null);
     });
 
     it('counts missing and sources in summary', () => {
